@@ -1,0 +1,48 @@
+---
+title: Guia do Módulo de Estoque
+description: Tudo o que você precisa saber sobre o módulo de estoque do Syspro ERP, incluindo acesso, funcionalidades e suporte.
+---
+
+import { Building, Package, Search, Table, FileText, MessagesSquare, Phone, Mail, BarChart2 } from 'lucide-react';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { CustomCard } from '@/components/CustomCard';
+import SuporteSection from '@/components/SuporteSection.tsx';
+
+O módulo de estoque do Syspro ERP foi projetado para oferecer uma gestão completa e eficiente do inventário da sua empresa. Com uma interface organizada e intuitiva, você pode controlar produtos, departamentos, inventários, promoções e muito mais. Este módulo é essencial para garantir que os níveis de estoque estejam sempre atualizados e alinhados às necessidades operacionais.
+
+<Callout type="info" title="Dica">
+  Certifique-se de ter permissões adequadas para acessar todas as funcionalidades do módulo. Contate o administrador, se necessário.
+</Callout>
+
+---
+
+Conheça as principais funcionalidades do módulo de estoque e como elas podem ajudar na sua operação:
+
+<Cards>
+  <CustomCard title="Departamento" href="#departamento" icon={<Building className="h-5 w-5" />}>
+    - Gerencie departamentos de estoque, organizando produtos por áreas ou setores da empresa.
+  </CustomCard>
+  <CustomCard title="Estoques" href="#estoques" icon={<Package className="h-5 w-5" />}>
+    - Controle os níveis de estoque, monitorando entradas, saídas e movimentações de produtos.
+  </CustomCard>
+  <CustomCard title="Inventário" href="#inventario" icon={<Search className="h-5 w-5" />}>
+    - Realize inventários periódicos para garantir a precisão dos dados de estoque.
+  </CustomCard>
+  <CustomCard title="Produto" href="#produto" icon={<FileText className="h-5 w-5" />}>
+    - Cadastre e gerencie informações detalhadas sobre os produtos, como descrições, categorias e preços.
+  </CustomCard>
+  <CustomCard title="Promoção" href="#promocao" icon={<BarChart2 className="h-5 w-5" />}>
+    - Crie e gerencie promoções para impulsionar vendas e movimentar o estoque.
+  </CustomCard>
+  <CustomCard title="Tabela" href="/docs/manual/estoque/tabela/unidade" icon={<Table className="h-5 w-5" />}>
+    - Configure tabelas relacionadas ao estoque, como tabelas de preços ou grupos de produtos.
+  </CustomCard>
+</Cards>
+
+---
+
+<SuporteSection modulo="Estoque" />
+
+

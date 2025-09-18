@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/revalidate?secret=sk_zammad_aHR0cHM6Ly93d3cueW91dHViZS5jb20L3dhdGNoP3Y9ZFF3NFc5V2dYY1E",
+      "schedule": "0 5 * * *"
+    }
+  ]
+}

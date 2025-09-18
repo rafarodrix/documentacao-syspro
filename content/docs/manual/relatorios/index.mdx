@@ -1,0 +1,64 @@
+---
+title: Guia do Módulo de Relatórios
+description: Tudo o que você precisa saber sobre o módulo de relatórios da Trilink Software, incluindo acesso, funcionalidades e suporte.
+---
+
+import { FileText, Search, BarChart2, MessagesSquare, Phone, Mail } from 'lucide-react';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { CustomCard } from '@/components/CustomCard';
+import SuporteSection from '@/components/SuporteSection.tsx';
+
+O módulo de relatórios do Syspro ERP foi projetado para oferecer uma visão detalhada e personalizada dos dados da sua empresa. Com uma interface organizada e intuitiva, você pode acessar informações essenciais para tomar decisões em diversas áreas do negócio. Explore as categorias disponíveis e encontre o relatório perfeito para suas necessidades.
+
+<Callout type="info" title="Dica">
+  Certifique-se de ter permissões adequadas para acessar os relatórios. Contate o administrador, se necessário.
+</Callout>
+
+---
+
+Os relatórios estão organizados por categorias para facilitar sua navegação:
+
+<Cards>
+  <CustomCard title="Compras" href="#compras" icon={<FileText className="h-5 w-5" />}>
+    - Relatórios de compras, incluindo registros de fornecedores, pedidos e status de entrega.
+  </CustomCard>
+  <CustomCard title="Contábil" href="#contabil" icon={<BarChart2 className="h-5 w-5" />}>
+    - Relatórios contábeis, como balanços, demonstrações de resultados e lançamentos.
+  </CustomCard>
+  <CustomCard title="Financeiro" href="#financeiro" icon={<BarChart2 className="h-5 w-5" />}>
+    - Dados de fluxo de caixa, contas a pagar/receber e análise de liquidez.
+  </CustomCard>
+  <CustomCard title="Fiscal" href="#fiscal" icon={<Search className="h-5 w-5" />}>
+    - Relatórios fiscais, como notas fiscais emitidas, apurações de impostos e obrigações acessórias.
+  </CustomCard>
+  <CustomCard title="Logística" href="#logistica" icon={<FileText className="h-5 w-5" />}>
+    - Informações de estoque, movimentação de mercadorias e rastreamento de entregas.
+  </CustomCard>
+  <CustomCard title="Movimento" href="#movimento" icon={<BarChart2 className="h-5 w-5" />}>
+    - Relatórios de movimentação interna, como transferências e ajustes de estoque.
+  </CustomCard>
+  <CustomCard title="Participante" href="#participante" icon={<Search className="h-5 w-5" />}>
+    - Dados de clientes, fornecedores e outros participantes do sistema.
+  </CustomCard>
+  <CustomCard title="Pedido" href="#pedido" icon={<FileText className="h-5 w-5" />}>
+    - Relatórios de pedidos de vendas, status de processamento e histórico de compras.
+  </CustomCard>
+  <CustomCard title="Produção" href="#producao" icon={<BarChart2 className="h-5 w-5" />}>
+    - Informações sobre ordens de produção e controle de qualidade.
+  </CustomCard>
+  <CustomCard title="Produto" href="#produto" icon={<Search className="h-5 w-5" />}>
+    - Relatórios de estoque, cadastro de produtos e análise de vendas por item.
+  </CustomCard>
+  <CustomCard title="RH" href="#rh" icon={<FileText className="h-5 w-5" />}>
+    - Gestão de recursos humanos, como folha de pagamento e controle de ponto.
+  </CustomCard>
+  <CustomCard title="Venda" href="#venda" icon={<BarChart2 className="h-5 w-5" />}>
+    - Dados de vendas realizadas, faturamento e desempenho de vendedores.
+  </CustomCard>
+</Cards>
+
+---
+
+<SuporteSection modulo="relatórios" />

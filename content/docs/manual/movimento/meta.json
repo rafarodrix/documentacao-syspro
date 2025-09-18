@@ -1,0 +1,6 @@
+{
+    "root": false,
+    "title": "Movimento",
+    "description": "O módulo de Movimento é responsável por registrar todas as transações e movimentações físicas de produtos dentro e fora da empresa.",
+    "icon": "Terminal"
+  }

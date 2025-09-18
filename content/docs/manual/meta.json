@@ -1,0 +1,18 @@
+{
+    "root": true,
+    "title": "Documentação",
+    "description": "Nesta seção estão soluções para dúvidas frequentes.",
+    "icon": "Terminal",
+    "pages": [
+      "cadastro",
+      "estoque",
+      "compra",
+      "financeiro",
+      "movimento",
+      "fiscal",
+      "contabil",
+      "producao",
+      "vendas",
+      "relatorios"
+    ]
+  }

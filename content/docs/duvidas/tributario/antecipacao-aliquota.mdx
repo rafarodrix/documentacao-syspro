@@ -1,0 +1,197 @@
+---
+title: Antecipação de Alíquota 
+description: Como calcular a antecipação de alíquota para empresas do Simples Nacional em produtos destinados à comercialização, industrialização ou prestação de serviços.
+---
+
+import 'katex/dist/katex.min.css';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+
+A **antecipação de alíquota** é um processo fiscal onde uma parte do imposto de compra é paga antes da venda do produto, ajudando a garantir que as leis fiscais sejam seguidas e os impostos sejam calculados corretamente.
+
+Este processo é importante para empresas que estão no **Simples Nacional** e que fazem operações de compra ou venda entre estados diferentes (interestaduais). Essas operações devem envolver produtos que serão:
+
+- **Vendidos** (comercialização)
+- **Transformados em outros produtos** (industrialização)
+- **Usados para oferecer serviços** (prestação de serviços)
+
+Verifique se é Necessário calcular a antecipação, siga estes passos simples:
+
+   - Veja se a sua compra ou venda é entre estados diferentes.
+   - Confirme se o produto será vendido, transformado ou usado para serviços.
+   - Assegure-se de que o produto é tributado no estado de origem e destino.
+
+
+## Cálculo sem benefício fiscal
+
+Abaixo, exemplo de cálculo do valor do imposto devido a título de antecipação, sem a existência de benefício fiscal, considerando:
+
+Imagine que você comprou um produto por R$ 1.000,00 de outro estado para vender na sua loja em MG
+
+| **Descrição**                                                      | **Valor**  |
+|--------------------------------------------------------------------|------------|
+| Valor da operação `(custo + frete + seguro + despesas acessórias)` | R$ 1.000,00|
+| Alíquota interestadual                                             | 12%        |
+| Alíquota interna                                                   | 18%        |
+
+### Formula
+
+$$
+\text{Antecipação} = (B_{\text{ant}} \times A_{\text{int}}) - (V_{\text{op}} \times A_{\text{inter}})
+$$
+
+**Definições das Variáveis**
+
+| **Variável** | **Descrição**                                       |
+|--------------|-----------------------------------------------------|
+| **$B_{\text{ant}}$** | **Base de Cálculo Antecipação**: É o valor usado para calcular o imposto que deve ser pago antecipadamente. |
+| **$A_{\text{int}}$** | **Alíquota Interna**: A taxa de imposto aplicável dentro do estado de Minas Gerais, que é de 18%. |
+| **$V_{\text{op}}$**  | **Valor da Operação**: O preço total que você pagou pela compra do produto, incluindo todos os custos como frete, seguro e outras despesas. |
+| **$A_{\text{inter}}$** | **Alíquota Interestadual**: A taxa de imposto que você paga quando compra de outro estado, que é de 12%. |
+
+### Cálculo
+
+<div className='fd-steps [&_h4]:fd-step'>
+
+#### Calcule o Valor Sem o Imposto Interestadual
+
+Primeiro, você precisa saber quanto do seu dinheiro foi usado só para o produto, sem o imposto que já foi pago ao comprar de outro estado.
+
+
+$$
+\text{Valor Sem Imposto} = \text{$V_{\text{op}}$} - (\text{$V_{\text{op}}$} \times \text{$A_{\text{inter}}$})
+$$
+
+
+$$
+\text{Valor Sem Imposto} = \text{R\$ 1.000,00} - (\text{R\$ 1.000,00} \times 0,12) 
+$$
+
+
+$$
+\text{Valor Sem Imposto} =  \text{R\$ 1.000,00} - \text{R\$ 120,00} = \text{R\$ 880,00}
+$$
+
+$$
+\text{Valor Sem Imposto} = \text{R\$ 880,00}
+$$
+
+
+#### Calcule o Valor com Imposto
+
+Agora, você ajusta esse valor para o que seria se você tivesse que pagar o imposto de MG desde o começo.
+
+
+#####
+
+$$
+\text{$B_{\text{ant}}$} = \frac{\text{Valor Sem Imposto}}{1 - \text{$A_{\text{int}}$}}
+$$
+
+#####
+
+$$
+\text{$B_{\text{ant}}$} = \frac{\text{R\$ 880,00}}{1 - 0,18} = \frac{\text{R\$ 880,00}}{0,82} \approx \text{R\$ 1.073,17}
+$$
+
+#### Calcule o Imposto Antecipado
+
+Finalmente, você calcula quanto deve pagar de imposto antecipadamente.
+
+#####
+$$
+\text{Antecipação} = (\text{$B_{\text{ant}}$} \times \text{$A_{\text{int}}$}) - (\text{$V_{\text{op}}$} \times \text{$A_{\text{inter}}$})
+$$
+
+#####
+$$
+\text{Antecipação} = (\text{R\$ 1.073,17} \times 0,18) - (\text{R\$ 1.000,00} \times 0,12)
+$$
+
+#####
+$$
+\text{Antecipação} = \text{R\$ 193,17} - \text{R\$ 120,00}
+$$
+
+#####
+
+$$
+\text{Antecipação} = R\$ 73,17
+$$
+
+</div>
+
+
+Neste exemplo, você deve pagar R$ 73,17 como antecipação de alíquota para a compra de mercadorias. 
+
+Isso se deve ao fato de que o ICMS interestadual é de 12%, mas ao vender dentro de Minas Gerais, você precisa ajustar para a alíquota interna de 18%. Portanto, este valor é o que você precisa recolher antecipadamente ao Estado de MG para garantir que está cumprindo com as obrigações fiscais locais.
+
+
+## Cálculo com benefício fiscal
+
+Abaixo, exemplo de cálculo do valor do imposto devido a título de diferencial de alíquotas, com a existência de benefício fiscal, considerando:
+
+|                                                                                        |                         |
+|----------------------------------------------------------------------------------------|-------------------------|
+|Valor da operação :br `(valor das mercadorias + frete + seguro + despesas acessórias)`  | R$ 1.000,00             |
+|Alíquota interestadual                                                                  | 12%                     |
+|Alíquota interna MG                                                                     | 18%                     |
+|Benefício de redução de base de cálculo de 20%                                          | 20%                     |
+
+### Fórmula
+
+1. **Exclusão do ICMS da operação interestadual da base de cálculo:**
+
+$$
+\text{Base de Cálculo} = \text{Valor da Operação} - \text{ICMS Interestadual}
+$$
+
+2. **Base de cálculo do diferencial de alíquota:**
+
+$$
+\text{Base de Cálculo DIFAL} = \frac{\text{Base de Cálculo}}{1 - \text{ALQ interna}}
+$$
+
+3. **Base de cálculo reduzida em 20% no destino:**
+
+$$
+\text{Base de Cálculo Reduzida} = \text{Base de Cálculo DIFAL} \times (1 - 0,20)
+$$
+
+4. **Cálculo do ICMS diferencial de alíquota com base de cálculo reduzida:**
+
+$$
+\text{ICMS DIFAL} = (\text{Base de Cálculo Reduzida} \times \text{ALQ interna}) - (\text{Base de Cálculo} \times \text{ALQ interestadual})
+$$
+
+### Cálculo
+
+<div className='fd-steps [&_h4]:fd-step'>
+
+#### Base de Cálculo Excluindo ICMS Interestadual
+
+$$
+\text{Base de Cálculo} = R\$ 1.000,00 - (R\$ 1.000,00 \times 0,12) = R\$ 1.000,00 - R\$ 120,00 = R\$ 880,00
+$$
+
+#### Base de Cálculo do Diferencial de Alíquota
+
+$$
+\text{Base de Cálculo DIFAL} = \frac{R\$ 880,00}{1 - 0,18} = \frac{R\$ 880,00}{0,82} = R\$ 1.073,17
+$$
+
+#### Base de Cálculo Reduzida em 20% no Destino
+
+$$
+\text{Base de Cálculo Reduzida} = R\$ 1.073,17 \times (1 - 0,20) = R\$ 1.073,17 \times 0,80 = R\$ 858,54
+$$
+
+#### Aplicação da Alíquota Interna sobre a Base de Cálculo Reduzida
+
+$$
+\text{ICMS DIFAL} = (R\$ 858,54 \times 0,18) - (R\$ 1.000,00 \times 0,12) = R\$ 154,54 - R\$ 120,00 = R\$ 34,54
+$$
+
+</div>
+Neste exemplo, o cálculo do diferencial de alíquota para a operação de compra de mercadorias, considerando o ICMS interestadual de 12%, a alíquota interna de 18% e um benefício de redução de base de cálculo de 20%, resulta em um valor total de R\$ 34,54 a ser recolhido ao Estado de MG.

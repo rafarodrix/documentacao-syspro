@@ -1,0 +1,44 @@
+---
+title: Guia do Módulo de Cadastro
+description: Tudo o que você precisa saber sobre o módulo de cadastro do Syspro ERP, incluindo acesso, funcionalidades e suporte.
+---
+
+import { Building, Package, Search, Table, FileText, Percent, Users, Mail, Truck, Settings, User, Folder, BarChart2, List, Tag, Scale } from 'lucide-react';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { CustomCard } from '@/components/CustomCard';
+import SuporteSection from '@/components/SuporteSection.tsx';
+
+
+
+O módulo de cadastro do Syspro ERP foi projetado para oferecer uma gestão completa e organizada dos dados fundamentais da sua empresa. Com uma interface intuitiva e estruturada, você pode registrar e gerenciar informações sobre empresas, participantes, produtos, departamentos, tabelas e muito mais. Este módulo é essencial para garantir que todos os dados estejam centralizados, atualizados e acessíveis para suportar as operações diárias.
+
+<Callout type="info" title="Dica">
+  Certifique-se de ter permissões adequadas para acessar todas as funcionalidades do módulo. Contate o administrador, se necessário.
+</Callout>
+
+---
+
+Conheça as principais funcionalidades do módulo de cadastro e como elas podem ajudar na sua operação:
+
+<Cards>
+  <CustomCard title="Empresa" href="/docs/manual/cadastro/empresa" icon={<Building className="h-5 w-5" />}>
+    - Registre e gerencie informações detalhadas sobre a empresa, como dados fiscais, endereço e contatos.
+  </CustomCard>
+  <CustomCard title="Participante" href="/docs/manual/cadastro/participante" icon={<Users className="h-5 w-5" />}>
+    - Cadastre e gerencie participantes, como clientes, fornecedores e parceiros, com informações como nome, CPF/CNPJ e histórico.
+  </CustomCard>
+  <CustomCard title="Serviço" href="#servico" icon={<Truck className="h-5 w-5" />}>
+    - Cadastre e administre serviços oferecidos ou contratados, com detalhes como descrição e prazos.
+  </CustomCard>
+  <CustomCard title="Tabela" href="#tabela" icon={<Table className="h-5 w-5" />}>
+    - Configure tabelas relacionadas ao cadastro, como tabelas de preços, embalagens, marcas, NCM e unidades.
+  </CustomCard>
+  <CustomCard title="Usuário" href="/docs/manual/cadastro/usuario" icon={<User className="h-5 w-5" />}>
+    - Gerencie o cadastro de usuários do sistema, incluindo permissões, senhas e perfis de acesso.
+  </CustomCard>
+</Cards>
+
+---
+
+<SuporteSection modulo="Cadastro" />

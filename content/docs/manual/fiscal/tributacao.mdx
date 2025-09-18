@@ -1,0 +1,147 @@
+---
+title: Tributação
+description: Manual de Configurações Tributárias no Syspro ERP
+---
+
+Este manual detalha o processo de configuração de regras tributárias no Syspro ERP, abrangendo as telas de **Alíquota**, **Participante**, **Documentos** e **UF**. O objetivo é configurar as alíquotas e regras de cálculo para impostos como ICMS, ICMS-ST, PIS, COFINS e IPI, considerando diferentes tipos de operações, participantes e unidades federativas (UFs).
+
+As telas a seguir ilustram o processo de configuração:
+
+- **Tela de Alíquota**: Define as regras de cálculo de impostos.
+- **Tela de Participante**: Associa tipos de participantes às regras tributárias.
+- **Tela de Documentos**: Lista os tipos de operações e suas configurações específicas.
+- **Tela de UF**: Define a validade das regras por unidade federativa.
+
+
+<Callout type="info" title="Aviso">
+ Você tem acesso administrativo ou permissões específicas para alterar configurações tributárias no Syspro ERP.
+</Callout>
+
+
+## Visão Geral das Telas
+
+### 1. Tela de Alíquota
+
+A tela de **Alíquota** é onde as regras de cálculo de impostos (ICMS, ICMS-ST, PIS, COFINS, IPI) são definidas. Ela permite configurar alíquotas, CSTs (Códigos de Situação Tributária), bases de cálculo e outras informações fiscais.
+
+- **Funcionalidade**:
+  - Define alíquotas para cada imposto (ex.: ICMS: 18,00%, PIS: 0,00%).
+  - Associa CSTs (ex.: CST ICMS: 000, CST PIS: 99).
+  - Configura bases de cálculo e reduções (ex.: Red. Base ICMS: 0,00%).
+  - Permite definir a UF de origem e destino (ex.: MG para ambos).
+- **Exemplo de Configuração**:
+  - **ICMS**:
+    - Alíquota: 18,00%
+    - CST ICMS: 000 (Nacional, exceto nas indicações dos códigos 3, 4, 5 e 8 da Tabela A - Tributada Integralmente)
+  - **PIS**:
+    - Alíquota: 0,00%
+    - CST PIS: 99 (Outras Operações)
+  - **COFINS**:
+    - Alíquota: 0,00%
+    - CST COFINS: 99 (Outras Operações)
+
+
+### 2. Tela de Participante
+
+A tela de **Participante** associa tipos de participantes às regras tributárias. Diferentes tipos de participantes (ex.: Pessoa Física, Isento, Simples Nacional) podem ter regras específicas, como aproveitamento ou não de alíquotas.
+
+- **Funcionalidade**:
+  - Associa tipos de participantes (ex.: Simples Nacional, Pessoa Física, Isento, Normal Tributado Integralmente).
+  - Permite configurar regras específicas para cada tipo de participante.
+  - Exemplo: Um participante "Isento" não aproveita alíquotas de ICMS, enquanto um "Simples Nacional" pode ter regras diferenciadas.
+- **Exemplo de Configuração**:
+  - **Participante: Simples Nacional**
+    - Regra: Tributado pelo Simples Nacional, sem permissão de crédito.
+    - CST CSOSN: 0102
+  - **Participante: Isento**
+    - Regra: Não aproveita alíquotas de ICMS.
+    - CST ICMS: 090 (Isento)
+  - **Participante: Pessoa Física**
+    - Regra: Não aproveita alíquotas de ICMS.
+    - CST ICMS: 090 (Isento)
+
+### 3. Tela de Documentos
+
+A tela de **Documentos** lista os tipos de operações que podem ter regras tributárias específicas. Cada tipo de operação (ex.: compra, venda, transferência) pode ser configurado com alíquotas e CSTs diferentes.
+
+- **Funcionalidade**:
+  - Exibe uma lista de operações (ex.: Venda PDV, Compra de Mercadoria, Transferência de Mercadoria).
+  - Permite associar regras tributárias específicas para cada operação.
+- **Exemplo de Operações**:
+  - **Venda de Mercadoria (VENDA PDV)**:
+    - ICMS: 18,00%, CST ICMS: 000
+    - PIS/COFINS: 0,00%, CST PIS/COFINS: 99
+  - **Compra de Mercadoria (PEDIDO DE COMPRA)**:
+    - ICMS: 18,00%, CST ICMS: 090
+    - PIS/COFINS: 0,00%, CST PIS/COFINS: 99
+  - **Transferência de Mercadoria (EMISSÃO DE TRANSFERÊNCIA DE MERCADORIA)**:
+    - ICMS: 0,00%, CST ICMS: 090
+    - PIS/COFINS: 0,00%, CST PIS/COFINS: 99
+
+### 4. Tela de UF
+
+A tela de **UF** define a unidade federativa (UF) para a qual as regras tributárias são válidas. Isso é importante para operações interestaduais ou para regras específicas de cada estado.
+
+- **Localização**: Menu **Tributação** > **Ativos** > **UF**.
+- **Funcionalidade**:
+  - Define a UF de origem e destino para as regras tributárias.
+  - Exemplo: Uma regra configurada para UF Origem "MG" e UF Destino "MG" será válida apenas para operações dentro de Minas Gerais.
+- **Exemplo de Configuração**:
+  - **UF Origem: MG, UF Destino: MG**
+    - Regra: ICMS 18,00% para operações internas.
+  - **UF Origem: MG, UF Destino: SP**
+    - Regra: ICMS 12,00% para operações interestaduais.
+
+## Passo a Passo para Configuração de Regras Tributárias
+
+### 1. Acessar as Telas de Configuração
+
+2. Selecione a aba desejada:
+   - **Alíquota**: Para configurar as regras de cálculo de impostos.
+   - **Participante**: Para associar tipos de participantes.
+   - **Documentos**: Para configurar tipos de operações.
+   - **UF**: Para definir a validade das regras por UF.
+
+### 2. Configurar as Regras na Tela de Alíquota
+
+1. Acesse a aba **Alíquota**.
+2. Selecione a operação desejada na aba **Documentos** (ex.: **VENDA PDV**).
+3. Configure os impostos:
+   - **ICMS**:
+     - Alíquota: 18,00%
+     - CST ICMS: 000
+     - Origem/Destino: MG/MG
+   - **PIS**:
+     - Alíquota: 0,00%
+     - CST PIS: 99
+     - Origem/Destino: MG/MG
+   - **COFINS**:
+     - Alíquota: 0,00%
+     - CST COFINS: 99
+     - Origem/Destino: MG/MG
+4. Clique em **Salvar** para confirmar as alterações.
+
+### 3. Associar Tipos de Participantes na Tela de Participante
+
+1. Acesse a aba **Participante**.
+2. Selecione o tipo de participante (ex.: **Simples Nacional**).
+3. Associe as regras tributárias:
+   - **Simples Nacional**:
+     - CST CSOSN: 0102 (Tributada pelo Simples Nacional, sem permissão de crédito).
+   - **Isento**:
+     - CST ICMS: 090 (Isento).
+4. Clique em **Salvar** para confirmar.
+
+### 4. Configurar Tipos de Operações na Tela de Documentos
+
+1. Acesse a aba **Documentos**.
+2. Selecione a operação desejada (ex.: **VENDA PDV**, **PEDIDO DE COMPRA**).
+3. Associe as regras tributárias definidas na tela de **Alíquota**.
+4. Clique em **Salvar** para confirmar.
+
+### 5. Definir a Validade por UF
+
+1. Acesse a aba **UF**.
+2. Configure a UF de origem e destino (ex.: Origem: MG, Destino: MG).
+3. Associe as regras tributárias definidas anteriormente.
+4. Clique em **Salvar** para confirmar.

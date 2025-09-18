@@ -1,0 +1,132 @@
+---
+title: Plano de Pagamento
+description: Guia simples para entender, configurar e aplicar corretamente o Plano de Pagamento no Syspro ERP.
+full: false
+---
+
+import { Banknote, CreditCard, BarChart2, Building, FileText, MessagesSquare, Phone, Mail } from 'lucide-react';  
+import { Card, Cards } from 'fumadocs-ui/components/card';  
+import { Callout } from 'fumadocs-ui/components/callout';  
+import { CustomCard } from '@/components/CustomCard';  
+import SuporteSection from '@/components/SuporteSection.tsx';  
+
+
+## Como Funciona o Plano de Pagamento
+
+> O Plano de Pagamento é uma configuração dentro do Syspro ERP que permite definir regras, formas e estruturas financeiras para lançamentos automáticos. Ele funciona como um modelo que o sistema utiliza para registrar pagamentos e recebimentos de forma padronizada, organizada e automatizada.
+
+Isso facilita o controle financeiro da empresa e permite criar diferentes estruturas para setores distintos, como vendas no balcão, faturamento, compras, entre outros. O plano de pagamento deixa o uso do sistema mais dinâmico, flexível e adaptado à realidade de cada negócio.
+
+### Objetivo do Plano
+- Determinar como as contas devem ser pagas ou recebidas, e de que forma (dinheiro, boleto, etc.)
+- Definir regras de pagamento, contas bancárias, parcelamentos e centros de custo
+- Facilitar o uso para usuários do financeiro, faturamento e implantação
+
+### Acessando o Módulo
+
+1. Acesse o menu principal superior do sistema
+2. Vá em **Financeiro > Plano de Pagamento > Plano de Pagamento**
+
+### Tela Inicial
+
+A tela mostra os planos já cadastrados com filtros por nome e empresa. Aqui você pode criar, editar ou excluir planos existentes.
+
+---
+
+## Criando um novo Plano de Pagamento
+
+> Um plano de pagamento define a regra para pagamento ou recebimento de um valor, como uma conta de água, salário ou venda a prazo.
+
+### Campos Básicos
+
+| Campo | Para que serve? |
+|-------|------------------|
+| Tipo | Define se é uma **SAÍDA** (pagamento) ou **ENTRADA** (recebimento) |
+| Descrição | Nome que identifica o plano (ex: DESPESA COM ÁGUA) |
+| Empresa | Empresa onde será aplicado (útil para ambientes com mais de uma empresa) |
+
+---
+
+## Aba: Formas de Pagamento
+
+> Aqui você vincula formas como dinheiro, boleto, cartão ou prazo, definindo a conta e as regras que serão seguidas.
+
+### Campos
+
+| Campo | Significado |
+|-------|-------------|
+| Forma de Pagamento | Nome da condição (ex: A PRAZO, DINHEIRO) |
+| Movimenta Conferência | Gera movimentação financeira? |
+| Requer Participante | Precisa de cliente ou fornecedor? |
+| Conta | Conta bancária associada |
+
+### Campos Avançados (Menu superior da forma)
+
+| Campo | Descrição |
+|-------|-----------|
+| Detalhar no Balcão | Solicita parcelas na venda? |
+| Gerar Conferência | Lança movimentação financeira? |
+| Gerar Cashback | Gera bônus para o cliente? |
+| Fechar Pedido Automaticamente | Finaliza o pedido sem aprovação? |
+| Fechar Conferência Automaticamente | Lança direto no caixa? |
+
+---
+
+## Aba: Esquema de Parcelas
+
+> Essa aba serve para dividir valores em parcelas. É útil quando o cliente paga em mais de uma vez (ex: 2x de 30 dias) ou para prever recebimentos futuros de forma organizada.
+
+### Campos
+
+| Campo | Explicação |
+|-------|------------|
+| Descrição | Nome da condição (ex: 30 DIAS, 3x SEM JUROS) |
+| Desconto Máx (%) | Percentual de desconto permitido |
+| Acréscimo Máx / Padrão (%) | Juros por parcela, se houver |
+| Qtde de Dias | Quantidade de dias entre as parcelas |
+
+> ⚠️ Para usar acréscimos, o parâmetro "Calcular Troco Ativo" precisa estar desligado.
+
+---
+
+## Aba: Esquema Conta Caixa Financeiro
+
+> Essa aba define como a operação será lançada no banco ou no caixa. Cada tipo (débito, crédito, pagar, etc.) tem um impacto direto no financeiro.
+
+### Naturezas Disponíveis
+
+| Natureza | O que faz |
+|----------|-----------|
+| PAGAR | Lança direto no contas a pagar (sem mexer no banco) |
+| CRÉDITO | Gera entrada no banco |
+| DÉBITO | Gera saída no banco |
+| ACRÉSCIMO | Soma um valor extra |
+| DESCONTO | Subtrai um valor |
+| TROCO / TRANSFERÊNCIA | Outras movimentações |
+
+> Se marcar "Manter Plano Conta Caixa na Baixa de Título", o sistema usará o plano do próprio título.
+
+---
+
+## Aba: Centro de Custo
+
+> Essa aba separa as despesas ou receitas por área da empresa, como Indústria, Administrativo ou Estoque.
+
+> Sempre que um centro for informado, o sistema pedirá os percentuais ao lançar nota fiscal ou financeiro.
+
+### Campos
+
+| Campo | Utilidade |
+|-------|-----------|
+| Centro de Custo | Ex: Administrativo, Indústria 01, Vendas |
+| Percentual | Percentual do valor vinculado ao centro |
+
+---
+
+<SuporteSection modulo="Financeiro" />  
+
+---
+
+
+
+

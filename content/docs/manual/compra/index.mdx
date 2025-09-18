@@ -1,0 +1,42 @@
+---
+title: Guia do Módulo de Compras  
+description: Explore o módulo de compras do Syspro ERP e aprenda a gerenciar cotações, pedidos, requisições e muito mais.  
+---
+
+import { ShoppingCart, FileText, Search, Package, MessagesSquare, Phone, Mail } from 'lucide-react';
+import { Card, Cards } from 'fumadocs-ui/components/card';  
+import { Callout } from 'fumadocs-ui/components/callout';  
+import { CustomCard } from '@/components/CustomCard'; 
+import SuporteSection from '@/components/SuporteSection.tsx';
+
+O módulo de compras do Syspro ERP foi projetado para simplificar e otimizar todas as atividades relacionadas à aquisição de bens e serviços. Ele oferece ferramentas essenciais para criar e gerenciar cotações, pedidos de compra, requisições e muito mais, garantindo um processo de compra eficiente, controlado e alinhado às necessidades da sua empresa.  
+
+<Callout type="info" title="Dica">  
+  Verifique se você possui as permissões necessárias para utilizar todas as funcionalidades do módulo. Em caso de dúvidas, consulte o administrador do sistema.  
+</Callout>  
+
+---
+
+Conheça as principais funcionalidades do módulo de compras e como elas podem ajudar na sua operação:  
+
+<Cards>  
+  <CustomCard title="Cotação" href="#cotacao" icon={<Search className="h-5 w-5" />}>  
+    - Permite criar e gerenciar cotações de fornecedores, comparando preços e condições para tomar a melhor decisão de compra.  
+  </CustomCard>  
+  <CustomCard title="Digitação de Preço" href="#digitacao-de-preco" icon={<FileText className="h-5 w-5" />}>  
+    - Facilita a entrada de preços para itens de compra, garantindo precisão nos registros financeiros.  
+  </CustomCard>  
+  <CustomCard title="Pedido de Compra" href="#pedido-de-compra" icon={<ShoppingCart className="h-5 w-5" />}>  
+    - Permite criar, rastrear e gerenciar pedidos de compra, acompanhando o status desde a solicitação até a entrega.  
+  </CustomCard>  
+  <CustomCard title="Requisição Compra" href="#requisicao-compra" icon={<FileText className="h-5 w-5" />}>  
+    - Gerencia requisições internas para compras, facilitando o controle de demandas dentro da empresa.  
+  </CustomCard>  
+  <CustomCard title="Requisição Compra Material" href="#requisicao-compra-material" icon={<Package className="h-5 w-5" />}>  
+    - Específico para requisições de materiais, garantindo que os insumos necessários estejam sempre disponíveis.  
+  </CustomCard>  
+</Cards>  
+
+---
+
+<SuporteSection modulo="Compras" />

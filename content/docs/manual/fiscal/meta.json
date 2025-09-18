@@ -1,0 +1,6 @@
+{
+    "root": false,
+    "title": "Fiscal",
+    "description": "O módulo Fiscal assegura a conformidade com a legislação tributária, gerenciando impostos, notas fiscais e outros documentos fiscais.",
+    "icon": "Terminal"
+  }

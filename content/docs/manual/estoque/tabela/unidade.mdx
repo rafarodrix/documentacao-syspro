@@ -1,0 +1,88 @@
+---
+title: Unidades de Medida
+description: Documentação sobre como cadastrar e gerenciar as Unidades de Medida no sistema.
+---
+
+import { MessagesSquare, Phone, Mail, Clock, AlarmClock } from 'lucide-react';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { CustomCard } from '@/components/CustomCard';
+import SuporteSection from '@/components/SuporteSection.tsx';
+
+As unidades de medida são essenciais para o controle de estoque e para os processos de compras, produção e vendas. O sistema permite cadastrar todas as unidades utilizadas pela empresa e configurar fatores de conversão entre elas.
+
+Por padrão, um produto possui uma única unidade para controlar seu saldo em estoque (a unidade de estoque). No entanto, ele pode ser comprado ou vendido em unidades diferentes. Por exemplo, você pode controlar o estoque de um refrigerante por `UN` (unidade), mas comprá-lo em `FD` (fardo com 6) e vendê-lo em `CX` (caixa com 12).
+
+O cadastro de unidades e seus fatores de conversão permite que o sistema realize essas conversões automaticamente, mantendo o estoque sempre correto.
+
+### Como Cadastrar uma Unidade de Medida?
+
+Para acessar a tela de cadastro, siga o caminho: **Estoque > Tabelas > Unidades**. Clique no botão **Incluir** para adicionar uma nova unidade ou selecione uma existente para editar.
+
+### Campos de Cadastro
+
+Abaixo estão detalhados todos os campos para o preenchimento correto da unidade de medida.
+
+**Código***
+Informe um código curto para a unidade. Este código será usado nas telas de compra, venda e movimentação de estoque.
+*Exemplos: `UN`, `KG`, `CX12`, `PCT`.*
+
+<Callout type="warn" title="Atenção para NF-e">
+    Para a correta emissão de Notas Fiscais Eletrônicas (NF-e), o código da unidade de medida não deve ultrapassar **6 caracteres**.
+</Callout>
+
+**Descrição***
+Informe o nome completo da unidade de medida.
+*Exemplos: `UNIDADE`, `QUILOGRAMA`, `CAIXA COM 12 UNIDADES`.*
+
+**Unidade Tributável**
+Neste campo, você deve associar a unidade comercial à unidade de medida tributável correspondente, conforme as normas da SEFAZ (Secretaria da Fazenda). Isso é fundamental para a validação da NF-e.
+*Exemplo: Se você vende um produto em `CX` (Caixa), a unidade tributável para a SEFAZ geralmente será `UN` (Unidade).*
+
+**Fator de Conversão***
+(Na imagem, "Fator Caixa") Representa o valor para converter esta unidade na unidade de estoque principal do produto.
+
+-   **Se esta unidade for a própria unidade de estoque**, o fator é **1**.
+-   **Se esta unidade for maior que a unidade de estoque**, o fator será a quantidade de unidades de estoque que ela contém.
+    -   *Exemplo:* Uma `CX24` (Caixa com 24) de um produto controlado por `UN` (Unidade) tem fator **24**.
+-   **Se esta unidade for menor que a unidade de estoque**, o fator será a proporção em relação à unidade de estoque.
+    -   *Exemplo:* Uma `G` (Grama) de um produto controlado por `KG` (Quilograma) tem fator **0,001**.
+
+<Callout type="info" title="Exemplo de Cálculo do Fator">
+    Imagine que uma caixa fechada de um produto pesa 10kg e a unidade de venda (e de estoque) é de 500g.
+  -   Peso da Caixa / Peso da Unidade = Fator de Conversão
+  -   10.000g / 500g = **20**
+  -   Neste caso, o fator de conversão da unidade "Caixa" seria 20.
+</Callout>
+
+**Casas Decimais**
+Indique o número de casas decimais que a unidade pode ter em operações de venda ou movimentação. Para unidades como `KG` ou `LT`, é comum usar 2 ou 3 casas decimais. Para unidades como `UN` ou `CX`, geralmente o valor é 0.
+
+**Padrão em Cadastro**
+Define se esta unidade será sugerida como padrão ao cadastrar um novo produto. As opções são:
+-   **Compras:** Padrão para o campo "Unidade de Compra".
+-   **Vendas:** Padrão para o campo "Unidade de Venda".
+-   **Ambos:** Padrão para ambos os campos.
+-   **Nenhum:** Não é padrão.
+
+<Callout type="warn" title="Atenção">
+    É uma boa prática definir a unidade mais comum (como `UN` ou `KG`) como padrão para `Ambos`, a fim de agilizar o cadastro de novos produtos.
+</Callout>
+
+**Calcular Metro Quadrado***
+Marque **SIM** para produtos que são vendidos por área (m²), como pisos, tecidos, vidros ou chapas. Ao usar esta unidade em um pedido de venda, o sistema permitirá a inserção de `Comprimento` e `Largura` para calcular a quantidade total automaticamente.
+
+**Gerar Etiqueta Unitária***
+Selecione **SIM** caso você precise imprimir etiquetas individuais para cada unidade base dentro de um pacote.
+*Exemplo: Ao receber uma `CX24` (caixa com 24 unidades), se esta opção for `SIM`, o sistema poderá gerar 24 etiquetas individuais, em vez de uma única etiqueta para a caixa.*
+
+---
+
+<Callout type="warn" title="Atenção">
+    Certifique-se de ter permissões adequadas para acessar e modificar as unidades de medida. Contate o administrador do sistema, se necessário.
+</Callout>
+
+---
+
+<SuporteSection modulo="Unidade de Medida" />
+

@@ -1,0 +1,55 @@
+---
+title: Visão Geral dos Módulos
+description: Uma visão geral dos módulos disponíveis no sistema, incluindo descrições e links para páginas detalhadas.
+icon: Album
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { CustomCard } from '@/components/CustomCard';
+import { Building, Package, Search, FileText, BarChart2, ShoppingCart, CreditCard, Truck, Folder, User, Wrench, AlertTriangle, Banknote, Percent, LayoutDashboard, Edit, Smartphone, List, Tag, Scale, Calendar, MessagesSquare, Phone, Mail } from 'lucide-react';
+import SuporteSection from '@/components/SuporteSection.tsx';
+
+
+Bem-vindo à visão geral do sistema! Aqui você encontrará uma descrição dos principais módulos disponíveis, projetados para gerenciar diferentes setores de sua empresa de forma eficiente e integrada. 
+
+Clique nos links para acessar páginas detalhadas de cada módulo.
+
+
+<Cards>
+  <CustomCard title="Cadastro" href="/docs/manual/cadastro" icon={<User className="h-5 w-5" />}>
+    Registre e gerencie informações de clientes, fornecedores, produtos, empresas e usuários.
+  </CustomCard>
+  <CustomCard title="Estoque" href="/docs/manual/estoque" icon={<Package className="h-5 w-5" />}>
+    Controle inventário, gerencie produtos, promoções e realize inventários com precisão.
+  </CustomCard>
+  <CustomCard title="Compra" href="/docs/manual/compra" icon={<CreditCard className="h-5 w-5" />}>
+    Administre cotações, pedidos de compra, requisições e processos de aquisição.
+  </CustomCard>
+  <CustomCard title="Financeiro" href="/docs/manual/financeiro" icon={<Banknote className="h-5 w-5" />}>
+    Controle contas a pagar e receber, fluxo de caixa, faturamento e centros de custo.
+  </CustomCard>
+  <CustomCard title="Movimento" href="/docs/manual/movimento" icon={<Truck className="h-5 w-5" />}>
+    Acompanhe transações que afetam o estoque, como entregas, perdas e movimentações fiscais.
+  </CustomCard>
+  <CustomCard title="Fiscal" href="/docs/manual/fiscal" icon={<Truck className="h-5 w-5" />}>
+    O módulo fiscal assegura conformidade com a legistação tributária e os documentos fiscais.
+  </CustomCard>
+  <CustomCard title="Contábil" href="/docs/manual/contabil" icon={<Truck className="h-5 w-5" />}>
+    O módulo Contábil permite a execução de todas as operações contábeis.
+  </CustomCard>
+  <CustomCard title="Produção" href="/docs/manual/producao" icon={<Wrench className="h-5 w-5" />}>
+    Planeje e controle processos de produção, incluindo ordens de serviço, análise e dashboards.
+  </CustomCard>
+  <CustomCard title="Venda" href="/docs/manual/vendas" icon={<ShoppingCart className="h-5 w-5" />}>
+    Gerencie vendas, campanhas, metas, orçamentos e pedidos de clientes com automação e eficiência.
+  </CustomCard>
+  <CustomCard title="Relatório" href="/docs/manual/relatorios" icon={<BarChart2 className="h-5 w-5" />}>
+    Gere relatórios detalhados e personalizados para análise de dados e tomada de decisões informadas.
+  </CustomCard>
+</Cards>
+
+---
+
+<SuporteSection modulo="Syspro ERP" />
+
+---

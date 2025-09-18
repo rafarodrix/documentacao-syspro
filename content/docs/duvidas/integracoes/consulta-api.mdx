@@ -1,0 +1,226 @@
+---
+title: Consulta via API
+description: Manual para consultar dados do Syspro ERP via API, com rotas, campos e exemplos práticos
+icon: Code
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+
+## Introdução
+
+Este manual orienta desenvolvedores e analistas sobre como consultar dados do **Syspro ERP** por meio de sua API. Ele abrange a configuração e o uso de rotas para acessar informações como vendas, estoque, produção, títulos a pagar/receber e transporte. Inclui exemplos de URLs (com e sem IIS), passos para autenticação e integração com ferramentas como Power BI, além de uma lista detalhada dos campos retornados por cada rota.
+
+<Callout title="Pré-requisitos">
+  - Credenciais de acesso (usuário e senha) fornecidas pelo suporte.
+  - Endereço do servidor e porta da API (ex.: `api.minhaempresa.com:8080`).
+  - Ferramenta para testes (ex.: Postman) ou integração (ex.: Power BI).
+</Callout>
+
+## Estrutura das URLs
+
+As URLs da API contêm *placeholders* (`servidor` e `porta`) que devem ser substituídos pelos valores reais do ambiente onde a API está hospedada. A estrutura varia dependendo se o sistema usa ou não o **IIS (Internet Information Services)**.
+
+### Exemplo Prático
+Considere:
+- **Servidor**: `api.minhaempresa.com`
+- **Porta**: `8080`
+- **Período**: `01/01/2024` a `10/01/2024`
+
+
+```html title="URL sem IIS"
+   http://api.minhaempresa.com:8080/syspro/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+```html title="URL usando o IIS"
+   http://api.minhaempresa.com:8080/sysproserverisapi.dll/syspro/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+<Callout title="Nota">
+  Confirme com o administrador do sistema se o IIS está em uso, pois isso afeta o caminho da URL.
+</Callout>
+
+## Passo a Passo
+
+Siga estas etapas para acessar a API do Syspro ERP:
+
+<div className='fd-steps [&_h3]:fd-step'>
+  <h3>Obter Credenciais</h3>
+    Solicite ao suporte técnico do Syspro ERP o usuário e senha da API. Use os canais listados na seção "Suporte" abaixo.
+
+  <h3>Configurar a URL</h3>
+    Substitua `servidor` e `porta` na URL pela configuração do seu ambiente (ex.: `api.minhaempresa.com:8080`).
+
+  <h3>Autenticar-se</h3>
+    Utilize as credenciais em um método de autenticação (ex.: Basic Auth ou token, conforme especificado pelo suporte) ao enviar a requisição.
+
+  <h3>Consultar Dados</h3>
+    Envie a requisição via ferramenta de teste (ex.: Postman) ou integre diretamente em plataformas como Power BI, ajustando os parâmetros (ex.: `dt_inicial` e `dt_final`).
+</div>
+
+<Callout title="Dica" type="tip">
+  Teste as rotas primeiro em um ambiente de desenvolvimento para validar os dados retornados antes de integrar em produção.
+</Callout>
+
+## Rotas da API
+
+A seguir, as principais rotas disponíveis, com URLs, exemplos e campos retornados.
+
+### Vendas de Produtos
+
+```html title="URL Vendas de Produtos"
+   http://servidor:porta/syspro/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+```html title="URL Vendas de Produtos usando o IIS"
+   http://servidor:porta/sysproserverisapi.dll/syspro/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+#### Campos Retornados
+| **Campo Descritivo**            | **Nome na API**              | **Descrição**                                  |
+|---------------------------------|------------------------------|------------------------------------------------|
+| Código da Empresa (Emitente)    | `empresa_codigo`            | Identificador da empresa que emitiu a venda    |
+| Número da Venda                 | `nf_numero`                 | Número único da nota fiscal ou venda           |
+| Nome do Cliente                 | `cliente_nome`              | Nome completo do cliente                       |
+| Cidade do Cliente               | `cliente_cidade`            | Cidade do cliente                              |
+| UF do Cliente                   | `cliente_uf`                | Estado (ex.: SP, RJ) do cliente                |
+| Código do Produto               | `produto_id`                | Código interno do produto vendido              |
+| Descrição do Produto            | `produto_descricao`         | Nome ou descrição do produto                   |
+| Departamento                    | `produto_departamento`      | Categoria ou setor do produto                  |
+| Unidade de Medida               | `produto_un`                | Unidade do produto (ex.: UN, KG)               |
+| Quantidade                      | `produto_qtde`              | Quantidade vendida                             |
+| Valor Unitário                  | `produto_vlr_item`          | Valor bruto por unidade                        |
+| Valor de Substituição Tributária| `produto_vlr_icms_stb`      | Valor do ICMS ST, se aplicável                 |
+| Valor de Desconto               | `produto_vlr_desconto`      | Desconto aplicado no item                      |
+| Valor de Frete                  | `produto_vlr_frete`         | Custo de frete associado ao item               |
+| Valor Total do Item             | `produto_vlr_total_item`    | Valor final do item (com descontos e taxas)    |
+| Nome do Vendedor                | `vendedor_nome`             | Nome do vendedor responsável                   |
+| Data da Venda                   | `nf_dt_emissao`             | Data de emissão da venda (formato: DD/MM/AAAA) |
+| Modelo do Documento             | `nf_modelo`                 | Tipo de documento (ex.: 55 - NF-e, 65 - NFC-e) |
+| Forma de Pagamento              | `nf_forma_pagto`            | Método de pagamento (ex.: Dinheiro, Cartão)    |
+
+### Movimentações de Estoque
+
+
+```html title="URL Movimentações de Estoque"
+   http://servidor:porta/syspro/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+```html title="URL Movimentações de Estoque usando o IIS"
+   http://servidor:porta/sysproserverisapi.dll/syspro/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+#### Campos Retornados
+| **Campo Descritivo**   | **Nome na API**         | **Descrição**                                  |
+|-----------------------|-------------------------|------------------------------------------------|
+| Código Auxiliar       | `codigo_auxiliar`      | Código secundário do produto                   |
+| Descrição do Produto  | `produto_descricao`    | Nome ou descrição do produto                   |
+| Data do Movimento     | `data_movimento`       | Data da movimentação (formato: DD/MM/AAAA)     |
+| Quantidade Anterior   | `qtde_anterior`        | Estoque antes do movimento                     |
+| Quantidade Movimentada| `qtde_movimentada`     | Quantidade entrada ou saída                    |
+| Saldo                 | `saldo`                | Estoque após o movimento                       |
+| Documento             | `documento`            | Número do documento (ex.: NF, ordem interna)   |
+| Participante          | `participante`         | Fornecedor ou cliente envolvido                |
+| Operação              | `operacao`             | Tipo de movimento (ex.: Entrada, Saída)        |
+
+### Produção de Produtos
+Consulta dados de produção registrada no sistema.
+
+### Produção de Produtos
+
+```html title="URL Produção de Produtos"
+   http://servidor:porta/syspro/exporta/produto/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+```html title="URL Produção de Produtos usando o IIS"
+   http://servidor:porta/sysproserverisapi.dll/syspro/exporta/produto/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+#### Campos Retornados
+| **Campo Descritivo**   | **Nome na API**         | **Descrição**                                  |
+|-----------------------|-------------------------|------------------------------------------------|
+| Data da Produção      | `data`                 | Data do registro da produção (DD/MM/AAAA)      |
+| Observação            | `observacao`           | Notas ou comentários sobre a produção          |
+| Produto               | `produto`              | Código ou descrição do produto produzido       |
+| Quantidade Prevista   | `quantidade`           | Quantidade planejada para produção             |
+| Quantidade Produzida  | `produzido`            | Quantidade efetivamente produzida              |
+| Operador              | `operador`             | Nome ou ID do responsável pela produção        |
+
+### Títulos a Pagar
+
+```html title="URL Títulos a Pagar usando o IIS"
+http://servidor:porta/sysproserverisapi.dll/syspro/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+```html title="URL Títulos a Pagar"
+http://servidor:porta/syspro/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+#### Campos Retornados
+| **Campo Descritivo**          | **Nome na API**           | **Descrição**                                  |
+|------------------------------|---------------------------|------------------------------------------------|
+| Código da Empresa            | `empresa_codigo`         | Identificador da empresa                       |
+| Número do Documento          | `numero_documento`       | Número do título ou nota                       |
+| Nome do Fornecedor           | `fornecedor_nome`        | Nome do fornecedor                             |
+| Data de Emissão              | `data_emissao`           | Data de emissão do título (DD/MM/AAAA)         |
+| Data de Vencimento           | `data_vencimento`        | Data de vencimento (DD/MM/AAAA)                |
+| Data de Pagamento            | `data_pagamento`         | Data da liquidação, se pago (DD/MM/AAAA)       |
+| Valor Original               | `valor`                  | Valor original do título                       |
+| Juros/Multa                  | `juros_multa`            | Valor de juros ou multa aplicados              |
+| Desconto                     | `desconto`               | Valor de desconto concedido                    |
+| Valor Total                  | `valor_total`            | Valor final após ajustes                       |
+| Forma de Pagamento           | `forma_pagto_liquidacao` | Método de pagamento usado (ex.: Boleto, PIX)   |
+
+### Títulos a Receber
+Retorna informações sobre contas a receber.
+
+```html title="URL Títulos a Receber usando o IIS"
+http://servidor:porta/sysproserverisapi.dll/syspro/exporta/titulo/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+```html title="URL Títulos a Receber"
+http://servidor:porta/syspro/exporta/titulo/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+#### Campos Retornados
+| **Campo Descritivo**          | **Nome na API**           | **Descrição**                                  |
+|------------------------------|---------------------------|------------------------------------------------|
+| Código da Empresa            | `empresa_codigo`         | Identificador da empresa                       |
+| Número do Documento          | `numero_documento`       | Número do título ou nota                       |
+| Nome do Cliente              | `cliente_nome`           | Nome do cliente                                |
+| Tipo de Documento            | `tipo_documento`         | Tipo do título (ex.: Boleto, Duplicata)        |
+| Data de Emissão              | `data_emissao`           | Data de emissão (DD/MM/AAAA)                   |
+| Data de Vencimento           | `data_vencimento`        | Data de vencimento (DD/MM/AAAA)                |
+| Data de Pagamento            | `data_pagamento`         | Data da liquidação, se pago (DD/MM/AAAA)       |
+| Valor Original               | `valor`                  | Valor original do título                       |
+| Juros/Multa                  | `juros_multa`            | Valor de juros ou multa aplicados              |
+| Desconto                     | `desconto`               | Valor de desconto concedido                    |
+| Valor Total                  | `valor_total`            | Valor final após ajustes                       |
+
+### Rotas de Transporte
+Consulta informações sobre transporte de mercadorias.
+
+```html title="URL Rotas de Transporte usando o IIS"
+http://servidor:porta/syspro/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+```html title="URL Rotas de Transporte"
+http://servidor:porta/sysproserverisapi.dll/syspro/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
+```
+
+#### Campos Retornados
+| **Campo Descritivo**   | **Nome na API**         | **Descrição**                                  |
+|-----------------------|-------------------------|------------------------------------------------|
+| Data da Rota          | `data`                 | Data do transporte (DD/MM/AAAA)                |
+| Nome do Cliente       | `cliente`              | Cliente associado à rota                       |
+| Produto Transportado  | `produto`              | Código ou descrição do produto                 |
+| Quantidade            | `quantidade`           | Quantidade transportada                        |
+| Peso da Carga         | `peso`                 | Peso total em kg                               |
+| Veículo               | `veiculo`              | Identificador ou modelo do veículo             |
+| Motorista             | `motorista`            | Nome do motorista                              |
+| Rota Percorrida       | `rotas`                | Descrição ou código da rota                    |
+| Placa do Veículo      | `placa_veiculo`        | Placa do veículo (ex.: ABC-1234)               |
+
+
+

@@ -1,0 +1,89 @@
+---
+title: Sintegra
+description: Sistema Integrado de Informações sobre Operações Interestaduais com Mercadorias e Serviços
+icon: Users
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { AlertTriangle } from 'lucide-react'
+import SuporteSection from '@/components/SuporteSection.tsx'
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+**SINTEGRA (Sistema Integrado de Informações sobre Operações Interestaduais com Mercadorias e Serviços)** foi desenvolvido a partir de 1997 e implantado com a finalidade de consolidar o uso de sistemas informatizados para aprimoramento dos controles do Fisco e simplificar o fornecimento de informações aos contribuintes.
+
+
+<div className='fd-steps [&_h3]:fd-step'>
+### Verificar Cupons em Contingência
+
+1. Acesse o menu: `Movimento > Lançamento de Documentos`.
+2. Clique no botão **Filtrar** e selecione a opção `Contingência Off-line`.
+3. Insira o período do mês que será gerado o Sintegra para verificar se há algum documento pendente de autorização.
+4. Caso não existam documentos pendentes, prossiga para a etapa de Geração do Sintegra.
+5. Caso existam documentos pendentes, resolva todas as pendências antes de prosseguir.
+
+### Geração Sintegra
+
+1. Acesse o menu: `Fiscal > Sintegra`.
+2. Clique no botão **Incluir** e preencha as informações conforme indicado abaixo:
+   - **Convenio**: Selecione `3 - convênio de ICMS 57/95, com as alterações convênio ICMS 76/03`.
+   - **Natureza**: Selecione a opção `3 - Totalidade das operações do informante`.
+   - **Finalidade**: Selecione a opção `Normal`.
+   - **Inventario**: Será informado somente no Sintegra a ser gerado no mês de fevereiro de cada ano.
+   - **Gerar Sintegra**: Selecione a opção `Ambos`.
+   - **Data**: Informe a data inicial e a data final que deseja gerar o arquivo.
+   - **Registro 60D1**: Marque o checkbox.
+   - **Registro 60I2**: Marque o checkbox.
+   - **Registro 60R3**: Marque o checkbox.
+   - **Destino dos arquivos eletrônicos**: Escolha o melhor diretório para salvar o arquivo Sintegra em seu computador.
+3. Clique no botão **Gerar Arquivos**.
+
+### Validação Sintegra
+
+1. Acesse o aplicativo **Validador do Sintegra 2017**.
+2. Valide o arquivo gerado na etapa de Geração do Sintegra.
+3. Caso não apresente erros, prossiga para a próxima etapa.
+4. Caso apresente erros, solucione os erros apresentados, refaça o processo de geração dos arquivos e valide novamente.
+
+### Livro de Entrada
+
+Um **livro de entrada** fiscal é um registro contábil obrigatório onde são lançadas todas as compras de mercadorias e serviços adquiridos por uma empresa, incluindo os respectivos impostos incidentes. Este livro tem como principal objetivo registrar e controlar a entrada de produtos e serviços no estabelecimento, garantindo que todas as operações estejam devidamente documentadas e que os impostos pagos sejam contabilizados corretamente.
+
+1. Acesse o menu: `Relatório > Fiscal > Livros Fiscais > Livro de Entrada`.
+
+### Livro de Saída
+
+Um **livro de saída** fiscal é um registro contábil obrigatório onde são lançadas todas as vendas de mercadorias e serviços realizadas por uma empresa, incluindo os respectivos impostos incidentes. Este livro tem como principal objetivo registrar e controlar a saída de produtos e serviços do estabelecimento, garantindo que todas as operações estejam devidamente documentadas e que os impostos devidos sejam contabilizados corretamente.
+
+1. Acesse o menu: `Relatório > Fiscal > Livros Fiscais > Livro de Saída`.
+
+### Exportar XML
+
+XML (Extensible Markup Language) é um arquivo de texto dentro da norma nacional de escrituração fiscal. Esse arquivo é o formato digital da NF-e e contém todas as informações referentes a emissor, destinatário, produtos e serviços adquiridos.
+
+1. Acesse o menu: `Movimento > Lançamento de Documentos`.
+2. Clique no botão **Importar > XML > Exportar XML**.
+   - Selecione o destino onde o sistema salvará os arquivos XML.
+   - Insira o período desejado.
+   - Clique no botão **Exportar**.
+
+3. Serão geradas duas pastas: `Próprias` e `Terceiros`.
+   - `Próprias`: Contém os XMLs emitidos pela empresa.
+   - `Terceiros`: Contém os XMLs de entrada.
+
+4. Selecione as duas pastas geradas e comprima-as em um arquivo ZIP.
+5. Após comprimir para arquivo ZIP, exclua as duas pastas (`Próprias` e `Terceiros`).
+
+### Enviar arquivos para contabilidade
+
+1. Abra o e-mail.
+2. Anexar todos os arquivos gerados na pasta SINTEGRA.
+3. Enviar para a contabilidade.
+
+</div>
+
+
+---
+
+<SuporteSection modulo="Geração de Sintegra" />
+
+
