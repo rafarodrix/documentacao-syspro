@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { Release } from "./types";
 
-// ... (todo o código de validação Zod permanece o mesmo)
 const ZammadTicketSchema = z.object({
   id: z.number(),
   number: z.string(),
@@ -36,7 +35,6 @@ export async function getReleases(): Promise<Release[]> {
   try {
     const response = await fetch(fullUrl, {
       headers: { Authorization: `Token token=${zammadToken}` },
-      // AQUI ESTÁ A ALTERAÇÃO FINAL:
       next: { tags: ['releases'] }
     });
 

@@ -1,5 +1,5 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
-import { NavTitle } from '@/components/NavTitle'; // Ajuste o caminho conforme necessário
+import { NavTitle } from '@/components/NavTitle';
 
 export const baseOptions: BaseLayoutProps = {
   nav: {
