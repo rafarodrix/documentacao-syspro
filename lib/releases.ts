@@ -8,8 +8,8 @@ export async function getReleases(): Promise<Release[]> {
   const apiUrl = `${baseUrl}/api/releases`;
 
   try {
-    // ALTERAÇÃO: Adicionando { cache: 'no-store' } para forçar uma busca nova
-    const response = await fetch(apiUrl, { cache: 'no-store' });
+    //const response = await fetch(apiUrl, { cache: 'no-store' });
+    const response = await fetch(apiUrl);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch releases: ${response.statusText}`);
