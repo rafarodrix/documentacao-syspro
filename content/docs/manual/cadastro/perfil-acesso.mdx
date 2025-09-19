@@ -3,73 +3,105 @@ title: Perfil de Acesso
 description: Entenda como configurar perfis de acesso para facilitar o controle de permissões no Syspro ERP.
 ---
 
-import { Card, Cards } from 'fumadocs-ui/components/card';
-import { CustomCard } from '@/components/CustomCard';
-import { Building, Package, Search, FileText, BarChart2, ShoppingCart, CreditCard, Truck, Folder, User, Wrench, AlertTriangle, Banknote, Percent, LayoutDashboard, Edit, Smartphone, List, Tag, Scale, Calendar, MessagesSquare, Phone, Mail } from 'lucide-react';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Callout } from 'fumadocs-ui/components/callout';
 import SuporteSection from '@/components/SuporteSection.tsx';
 
-## 📝 Introdução
+## Introdução
 
-O **Perfil de Acesso** é essencial para agrupar diversas permissões e restrições, facilitando a configuração de acessos para usuários com funções semelhantes.
+O **Perfil de Acesso** é uma ferramenta essencial para agrupar permissões e restrições, simplificando a gestão de acessos para múltiplos usuários com funções semelhantes no Syspro ERP.
 
-Quando sua empresa possui vários usuários que desempenham a mesma função, todos eles necessitam de acessos semelhantes aos módulos do sistema. É neste cenário que o Perfil de Acesso se torna útil.
-
-Por exemplo, se você precisa definir as permissões para todos os **vendedores** da sua empresa, pode criar um perfil de acesso específico para essa função e, assim, aplicar as mesmas regras para todos os usuários dessa categoria.
+Em vez de configurar cada usuário individualmente, você pode criar um perfil único (por exemplo, "Vendedores") e atribuí-lo a todos os colaboradores dessa função, garantindo padronização e agilidade.
 
 ---
 
-## 🎯 Vantagens dos Perfis de Acesso
+## Passo a Passo: Criando um Perfil de Acesso
 
-- **Padronização:** Garante que todos os usuários com a mesma função tenham acessos padronizados.
-- **Facilidade de Gestão:** Simplifica o processo de configuração de novos usuários, reduzindo a possibilidade de erros.
-- **Eficiência:** Economiza tempo ao não precisar definir manualmente as permissões para cada novo usuário individualmente.
+<Steps>
+  <Step>
+    ### 1. Acesse a Tela de Perfis
+    No menu principal do Syspro, navegue até:
+    `Cadastro > Usuário > Perfil de Acesso`.
+  </Step>
+  <Step>
+    ### 2. Crie um Novo Perfil
+    Na tela de gerenciamento, clique no botão **Incluir** para abrir o formulário de um novo perfil.
+  </Step>
+  <Step>
+    ### 3. Descreva o Perfil
+    No campo **Descrição**, defina um nome que identifique claramente a função do perfil, como `Vendedores` ou `Financeiro`.
+  </Step>
+  <Step>
+    ### 4. Defina as Permissões
+    A tela de permissões é dividida em duas áreas principais: **Módulos** (à esquerda), onde você concede acesso a partes do sistema, e **Ações** (à direita), onde você define o que o usuário pode fazer nesses módulos.
 
-<Callout variant="info">
-Utilizando perfis de acesso, você assegura que sua equipe tenha os acessos necessários para realizar suas tarefas de forma eficiente e segura, mantendo um controle rigoroso sobre as permissões e restrições aplicadas no sistema.
-</Callout>
+    <div className="my-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Coluna da Esquerda: Módulos */}
+      <div className="p-4 border rounded-lg">
+        <h4 className="font-semibold mb-2 text-green-600">Módulos</h4>
+        <p className="text-sm text-muted-foreground mb-4">Selecione os módulos que o perfil pode acessar.</p>
+        
+        **Compra**
+        - [x] Cotação
+        - [x] Digitação de Preço
+        - [ ] Pedido de Compra
+
+        **Comum**
+        - [x] Cadastro.Empresa
+        - [x] Cadastro.Participante.Participante
+        - [ ] Cadastro.Postal.Cidade
+      </div>
+      
+      {/* Coluna da Direita: Ações */}
+      <div className="p-4 border rounded-lg">
+        <h4 className="font-semibold mb-2 text-green-600">Ações</h4>
+        <p className="text-sm text-muted-foreground mb-4">Selecione as ações permitidas.</p>
+
+        - [x] Alterar Cadastro AO CONSUMIDOR
+        - [x] Alterar Limite de Crédito
+        - [x] Alterar Preço Especial
+        - [ ] Excluir
+        - [x] Incluir
+      </div>
+    </div>
+
+    <Callout type="warning" title="Atenção ao Conceder Permissões">
+    Seja criterioso ao liberar a ação de **Excluir**. Uma vez que um registro é removido, a recuperação pode ser complexa ou impossível.
+    </Callout>
+  </Step>
+  <Step>
+    ### 5. Salve o Perfil
+    Após revisar todas as configurações, clique em **Salvar**. O perfil estará pronto para ser vinculado aos usuários.
+  </Step>
+</Steps>
 
 ---
 
-## 🚶 Passo a Passo
+## Atribuindo o Perfil a um Usuário
 
-### Acessando o Menu de Perfis de Acesso
+Com o perfil criado, o próximo passo é vinculá-lo a um usuário.
 
-1. No menu principal, navegue até: `Cadastro > Usuário > Perfil de Acesso`.
-2. Clique em **Perfil de Acesso** para ser redirecionado para a tela de gerenciamento de perfis.
+1.  Acesse o menu: `Cadastro > Usuário > Usuário`.
+2.  Ao **incluir um novo usuário** ou **editar um existente**, localize o campo **"Perfil de Acesso"**.
+3.  Selecione na lista o perfil que você criou.
+4.  Clique em **Salvar**.
 
-### Criando um Novo Perfil de Acesso
-
-1. Na tela de "Perfil de Acesso", clique em **Incluir** para criar um novo perfil.
-2. No campo **Descrição**, insira um nome descritivo para o perfil, como `Vendedor`.
-
-### Definindo Permissões e Restrições
-
-1. Na seção de **Módulos**, selecione os módulos aos quais o perfil terá acesso, marcando a caixa de seleção **Acessar**.
-2. Na coluna **Ações**, defina quais ações o perfil poderá realizar nos módulos selecionados, como:
-   - Incluir
-   - Editar
-   - Excluir
-   - Clonar
-3. Revise todas as permissões e restrições configuradas para garantir que estejam de acordo com a função do perfil.
-
-### Salvando o Perfil
-
-Após configurar todas as permissões, clique em **Salvar** para concluir a criação do perfil.
-
-O novo perfil estará disponível para ser atribuído a novos usuários ou para ser editado futuramente, conforme necessário.
+O usuário herdará automaticamente todas as permissões do perfil.
 
 ---
 
-## 👥 Atribuindo o Perfil aos Usuários
+## Dúvidas Frequentes
 
-Ao cadastrar novos usuários:
-
-1. Selecione o perfil criado (por exemplo, `Vendedor`) durante o processo de configuração do usuário.
-2. O sistema aplicará automaticamente todas as permissões e restrições definidas no perfil, garantindo que os novos usuários tenham os mesmos acessos e limitações que outros com o mesmo perfil.
-
+<Accordions>
+  <Accordion title="O que fazer se um módulo não aparecer para mim?">
+    Entre em contato com o **administrador do sistema** ou com seu gestor. Eles poderão verificar as permissões do seu perfil de acesso.
+  </Accordion>
+  <Accordion title="Como posso solicitar acesso a uma nova funcionalidade?">
+    Converse com seu gestor para que ele possa avaliar a necessidade e encaminhar a solicitação ao administrador do sistema.
+  </Accordion>
+</Accordions>
 
 ---
 
 <SuporteSection modulo="Perfil de Acesso" />
-
----
