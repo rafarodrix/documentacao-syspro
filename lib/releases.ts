@@ -1,9 +1,7 @@
-// Em: lib/releases.ts
-
 import { z } from "zod";
 import type { Release } from "./types";
 
-// Validação dos dados que vêm do Zammad (mesma lógica da sua antiga API)
+// ... (todo o código de validação Zod permanece o mesmo)
 const ZammadTicketSchema = z.object({
   id: z.number(),
   number: z.string(),
@@ -18,7 +16,7 @@ const ZammadTicketSchema = z.object({
 
 const ZammadResponseSchema = z.array(ZammadTicketSchema);
 
-// Função `getReleases` atualizada
+
 export async function getReleases(): Promise<Release[]> {
   const zammadUrl = process.env.ZAMMAD_URL;
   const zammadToken = process.env.ZAMMAD_TOKEN;
@@ -28,7 +26,6 @@ export async function getReleases(): Promise<Release[]> {
     return [];
   }
 
-  // Mesma lógica de busca que estava na sua API
   const stateIdParaRelease = 4;
   const groupIdParaRelease = 3;
   const searchQuery = `(type:"Melhoria" OR type:"Bug") AND state_id:${stateIdParaRelease} AND group_id:${groupIdParaRelease}`;
@@ -39,6 +36,7 @@ export async function getReleases(): Promise<Release[]> {
   try {
     const response = await fetch(fullUrl, {
       headers: { Authorization: `Token token=${zammadToken}` },
+      // AQUI ESTÁ A ALTERAÇÃO FINAL:
       next: { tags: ['releases'] }
     });
 
@@ -49,7 +47,6 @@ export async function getReleases(): Promise<Release[]> {
     const rawTickets = await response.json();
     const validatedTickets = ZammadResponseSchema.parse(rawTickets);
 
-    // Mapeia os dados para o formato que o Fumadocs espera
     const releases: Release[] = validatedTickets.map((ticket) => {
       const mainModule = ticket.modulo ? ticket.modulo.split("::")[0] : "Geral";
       return {
