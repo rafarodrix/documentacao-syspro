@@ -33,7 +33,7 @@ export async function GET() {
   try {
     const response = await fetch(fullUrl, {
       headers: { Authorization: `Token token=${zammadToken}` },
-      next: { revalidate: 3600 }, // Cache de 1 hora
+      //next: { revalidate: 3600 }, // Cache de 1 hora
     });
 
     if (!response.ok) {
