@@ -39,7 +39,7 @@ export async function getReleases(): Promise<Release[]> {
   try {
     const response = await fetch(fullUrl, {
       headers: { Authorization: `Token token=${zammadToken}` },
-      // Deixamos o Next.js gerenciar o cache. O webhook fará a revalidação.
+      next: { tags: ['releases'] }
     });
 
     if (!response.ok) {
