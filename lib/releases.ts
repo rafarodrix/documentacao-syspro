@@ -1,5 +1,3 @@
-// lib/releases.ts
-
 import type { Release } from "./types";
 
 export async function getReleases(): Promise<Release[]> {

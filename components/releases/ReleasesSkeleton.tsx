@@ -1,9 +1,6 @@
-// components/releases/ReleasesSkeleton.tsx
-
 import { Heading } from "fumadocs-ui/components/heading";
 import { FaRocket, FaBug } from "react-icons/fa";
 
-// Componente de esqueleto simples e reutilizável
 const SkeletonBox = ({ className }: { className?: string }) => (
   <div className={`rounded-lg bg-muted/80 ${className}`} />
 );

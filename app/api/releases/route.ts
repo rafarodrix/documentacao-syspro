@@ -1,5 +1,3 @@
-// app/api/releases/route.ts
-
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Release } from "@/lib/types";
