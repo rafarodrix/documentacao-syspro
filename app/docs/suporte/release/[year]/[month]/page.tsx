@@ -6,7 +6,26 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { MonthlyReleasesClient } from "@/components/releases/MonthlyReleasesClient";
 
-export const dynamic = "force-dynamic";
+// export const dynamic = "force-dynamic";
+
+export async function generateStaticParams() {
+  const allReleases = await getReleases();
+
+  const uniqueMonths = new Set(
+    allReleases.map((release) => {
+      if (!release.isoDate) return null;
+      const [year, month] = release.isoDate.split("-");
+      return `${year}/${month}`;
+    })
+  );
+
+  return Array.from(uniqueMonths)
+    .filter(Boolean) // Remove nulos
+    .map((dateStr) => {
+      const [year, month] = (dateStr as string).split("/");
+      return { year, month };
+    });
+}
 
 export default async function MonthlyReleasePage({
   params,
