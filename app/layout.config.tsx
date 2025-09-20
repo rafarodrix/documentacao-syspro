@@ -5,7 +5,7 @@ export const baseOptions: BaseLayoutProps = {
   nav: {
     title: <NavTitle />,
   },
-  links: [
+  /*links: [
     {
       text: 'Downloads',
       url: 'https://www.trilink.com.br/public/downloads',
@@ -21,5 +21,5 @@ export const baseOptions: BaseLayoutProps = {
       url: 'https://www.trilink.com.br/sign-in',
       active: 'nested-url',
     },
-  ],
+  ], */
 };

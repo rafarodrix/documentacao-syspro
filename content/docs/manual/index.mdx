@@ -5,51 +5,48 @@ icon: Album
 ---
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
 import { CustomCard } from '@/components/CustomCard';
-import { Building, Package, Search, FileText, BarChart2, ShoppingCart, CreditCard, Truck, Folder, User, Wrench, AlertTriangle, Banknote, Percent, LayoutDashboard, Edit, Smartphone, List, Tag, Scale, Calendar, MessagesSquare, Phone, Mail } from 'lucide-react';
+import { FileText, BarChart2, ShoppingCart, CreditCard, Truck, User, Wrench, Banknote, Package, Scale } from 'lucide-react';
 import SuporteSection from '@/components/SuporteSection.tsx';
 
 
-Bem-vindo à visão geral do sistema! Aqui você encontrará uma descrição dos principais módulos disponíveis, projetados para gerenciar diferentes setores de sua empresa de forma eficiente e integrada. 
-
-Clique nos links para acessar páginas detalhadas de cada módulo.
+O Syspro ERP foi desenhado para ser o centro de controle da sua operação. Cada módulo abaixo representa um pilar essencial do seu negócio, funcionando de forma integrada para otimizar processos, reduzir custos e impulsionar o crescimento.
 
 
 <Cards>
   <CustomCard title="Cadastro" href="/docs/manual/cadastro" icon={<User className="h-5 w-5" />}>
-    Registre e gerencie informações de clientes, fornecedores, produtos, empresas e usuários.
+    Centralize as informações vitais da sua empresa para garantir consistência e agilidade nos processos.
   </CustomCard>
   <CustomCard title="Estoque" href="/docs/manual/estoque" icon={<Package className="h-5 w-5" />}>
-    Controle inventário, gerencie produtos, promoções e realize inventários com precisão.
+    Garanta o controle preciso do inventário para evitar perdas, otimizar compras e atender à demanda.
   </CustomCard>
   <CustomCard title="Compra" href="/docs/manual/compra" icon={<CreditCard className="h-5 w-5" />}>
-    Administre cotações, pedidos de compra, requisições e processos de aquisição.
+    Automatize o processo de aquisição, desde a cotação até o pedido, garantindo os melhores preços e prazos.
   </CustomCard>
   <CustomCard title="Financeiro" href="/docs/manual/financeiro" icon={<Banknote className="h-5 w-5" />}>
-    Controle contas a pagar e receber, fluxo de caixa, faturamento e centros de custo.
+    Tenha uma visão clara da saúde financeira da sua empresa, controlando o fluxo de caixa e as obrigações.
   </CustomCard>
   <CustomCard title="Movimento" href="/docs/manual/movimento" icon={<Truck className="h-5 w-5" />}>
-    Acompanhe transações que afetam o estoque, como entregas, perdas e movimentações fiscais.
+    Rastreie todas as transações que impactam o estoque e as finanças, garantindo dados íntegros e confiáveis.
   </CustomCard>
-  <CustomCard title="Fiscal" href="/docs/manual/fiscal" icon={<Truck className="h-5 w-5" />}>
-    O módulo fiscal assegura conformidade com a legistação tributária e os documentos fiscais.
+  <CustomCard title="Fiscal" href="/docs/manual/fiscal" icon={<Scale className="h-5 w-5" />}>
+    Assegure a conformidade com a legislação tributária, automatizando a geração de documentos fiscais.
   </CustomCard>
-  <CustomCard title="Contábil" href="/docs/manual/contabil" icon={<Truck className="h-5 w-5" />}>
-    O módulo Contábil permite a execução de todas as operações contábeis.
+  <CustomCard title="Contábil" href="/docs/manual/contabil" icon={<FileText className="h-5 w-5" />}>
+    Execute operações contábeis com precisão e gere balanços confiáveis para a tomada de decisão.
   </CustomCard>
   <CustomCard title="Produção" href="/docs/manual/producao" icon={<Wrench className="h-5 w-5" />}>
-    Planeje e controle processos de produção, incluindo ordens de serviço, análise e dashboards.
+    Otimize a sua linha de produção, desde o planejamento de materiais até a entrega do produto final.
   </CustomCard>
   <CustomCard title="Venda" href="/docs/manual/vendas" icon={<ShoppingCart className="h-5 w-5" />}>
-    Gerencie vendas, campanhas, metas, orçamentos e pedidos de clientes com automação e eficiência.
+    Gerencie todo o ciclo de vendas de forma eficiente, desde o orçamento até o faturamento, para impulsionar a receita.
   </CustomCard>
   <CustomCard title="Relatório" href="/docs/manual/relatorios" icon={<BarChart2 className="h-5 w-5" />}>
-    Gere relatórios detalhados e personalizados para análise de dados e tomada de decisões informadas.
+    Transforme dados brutos em insights estratégicos com relatórios personalizáveis para decisões assertivas.
   </CustomCard>
 </Cards>
 
 ---
 
 <SuporteSection modulo="Syspro ERP" />
-
----

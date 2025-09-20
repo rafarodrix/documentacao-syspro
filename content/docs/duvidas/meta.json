@@ -1,6 +1,16 @@
 {
-    "root": true,
-    "title": "Dúvidas Frequentes",
-    "description": "Nesta seção estão soluções para dúvidas frequentes.",
-    "icon": "Terminal"
-  }
+  "root": true,
+  "title": "Dúvidas Frequentes",
+  "description": "Seção estão soluções para dúvidas frequentes.",
+  "icon": "HelpCircle",
+  "pages": [
+    "index",
+    "---Erros---",
+    "rejeicoes/nfe-nfce",
+    "---Dúvidas---",
+    "hardware",
+    "tributario",
+    "---Terceiros---",
+    "integracoes"
+  ]
+}

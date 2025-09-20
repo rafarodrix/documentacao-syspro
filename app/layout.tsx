@@ -24,7 +24,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               show: false,
               locale: "pt-br",
             }}
-            buttonText="Ajuda?"
+            buttonText="Posso Ajudar?"
             // Exemplo de como você pode estilizar o botão com classes do TailwindCSS
             className="bg-blue-600 text-white font-bold py-2 px-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
           />

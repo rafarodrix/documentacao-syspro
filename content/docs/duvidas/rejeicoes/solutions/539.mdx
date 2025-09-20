@@ -1,6 +1,7 @@
 ---
-title: 'Duplicidade de NF-e'
+title: 'Rejeicao 539: Duplicidade de NF-e, com diferenca na Chave de Acesso'
 description: 'Como corrigir a rejeição "Duplicidade de NF-e, com diferença na Chave de Acesso" no Syspro, sincronizando a nota com o XML oficial da Sefaz.'
+causa_do_erro: 'Já existe uma NF-e com a mesma chave de acesso, mas com diferenças nos dados. A solução é atualizar o cadastro da nota no Syspro com os dados oficiais da Sefaz.'
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -14,7 +15,7 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 Ao tentar transmitir uma Nota Fiscal Eletrônica (NFe), o sistema pode retornar uma rejeição da Sefaz informando que o documento já existe, mas com conteúdo diferente.
 
 <Callout type="error" title="Erro Apresentado">
-  Rejeicao: Duplicidade de NF-e, com diferenca na Chave de Acesso [chNFe:0000000000000000000000000000000000000000000]
+  Rejeicao: 539 Duplicidade de NF-e, com diferenca na Chave de Acesso [chNFe:0000000000000000000000000000000000000000000]
 </Callout>
 
 
