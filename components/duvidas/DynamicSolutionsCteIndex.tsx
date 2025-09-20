@@ -1,11 +1,11 @@
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { source } from '@/lib/source';
 
-export function DynamicSolutionsIndex() {
+export function DynamicSolutionsCteIndex() {
   const allPages = source.getPages();
 
   const solutionPages = allPages.filter((page) =>
-    page.url.startsWith('/docs/duvidas/rejeicoes/solutions/')
+    page.url.startsWith('/docs/duvidas/rejeicoes/solutions-cte/')
   );
 
   if (!solutionPages || solutionPages.length === 0) {
