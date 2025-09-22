@@ -1,11 +1,15 @@
-import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Card } from 'fumadocs-ui/components/card';
 import { source } from '@/lib/source';
 
-export function DynamicSolutionsCteIndex() {
+export function DynamicSolutionsIndex({ folderPath }: { folderPath: string }) {
+  if (!folderPath) {
+    return <p>Erro: O caminho da pasta não foi fornecido ao componente.</p>;
+  }
+  
   const allPages = source.getPages();
 
   const solutionPages = allPages.filter((page) =>
-    page.url.startsWith('/docs/duvidas/rejeicoes/solutions-cte/')
+    page.url.startsWith(folderPath)
   );
 
   if (!solutionPages || solutionPages.length === 0) {
@@ -22,7 +26,6 @@ export function DynamicSolutionsCteIndex() {
           className="w-full"
         >
           {
-            // Usa optional chaining para evitar erro de TS
             (page.data as any)?.causa_do_erro || 'A causa do erro não foi especificada.'
           }
         </Card>
