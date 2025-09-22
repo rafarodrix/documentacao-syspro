@@ -1,13 +1,102 @@
 ---
 title: Dúvidas Frequentes
-description: Nesta seção você vai aprender soluções para problemas comuns, respostas a dúvidas frequentes e melhores práticas no uso do sistema.
+description: Encontre soluções para problemas comuns, guias de integração, erros fiscais e questões tributárias.
 ---
 
-import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { HardDrive, Share2, AlertTriangle, Landmark, BookText, CreditCard, ShieldCheck, Server, FileText, FileWarning, LandmarkIcon } from 'lucide-react';
+import Link from 'next/link';
 
-<Cards>
-  <Card href="/docs/cadastro" title="Módulo Cadastro" description="Aprenda a gerenciar clientes e produtos." />
-  <Card href="/docs/estoque" title="Módulo Estoque" description="Controle seu inventário com eficiência." />
-  <Card href="/docs/vendas" title="Módulo Venda" description="Automatize suas vendas." />
-  <Card href="/docs/suporte" title="Suporte" description="Obtenha ajuda para suas dúvidas." />
-</Cards>
+<Accordions>
+  <Accordion 
+    title="Hardware" 
+    icon={<HardDrive />}
+  >
+    Encontre guias passo a passo para a instalação, configuração e solução de problemas de equipamentos físicos conectados ao sistema, como impressoras fiscais, leitores de código de barras, balanças e terminais SAT.
+    <div className="mt-4 space-y-2">
+      <Link href="/docs/duvidas/hardware/certificado-erro" className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground not-prose">
+        <ShieldCheck className="size-5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="font-medium text-card-foreground">Erro de Certificado</span>
+          <span>Solucione problemas com o certificado digital da sua empresa.</span>
+        </div>
+      </Link>
+      <Link href="/docs/duvidas/hardware/configuracao-iis" className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground not-prose">
+        <Server className="size-5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="font-medium text-card-foreground">Configuração do IIS</span>
+          <span>Aprenda a configurar o Servidor de Informações da Internet para o Syspro.</span>
+        </div>
+      </Link>
+    </div>
+  </Accordion>
+
+  <Accordion 
+    title="Integrações" 
+    icon={<Share2 />}
+  >
+    Aprenda a conectar o Syspro ERP com outras ferramentas essenciais para o seu negócio. Aqui você encontrará a documentação de APIs, guias para integração com TEF, plataformas de e-commerce e outros sistemas de terceiros.
+    <div className="mt-4 space-y-2">
+      <Link href="/docs/duvidas/integracoes/consulta-api" className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground not-prose">
+        <BookText className="size-5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="font-medium text-card-foreground">Consulta via API</span>
+          <span>Documentação técnica para conectar-se aos dados.</span>
+        </div>
+      </Link>
+      <Link href="/docs/duvidas/integracoes/tef-fiveserv" className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground not-prose">
+        <CreditCard className="size-5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="font-medium text-card-foreground">Integração TEF Fiveserv</span>
+          <span>Configure a transferência eletrônica de fundos.</span>
+        </div>
+      </Link>
+    </div>
+  </Accordion>
+
+  <Accordion 
+    title="Rejeições Fiscais" 
+    icon={<AlertTriangle />}
+  >
+    Um catálogo completo para resolver rapidamente as rejeições de documentos fiscais (NF-e, CT-e, MDF-e) retornadas pela SEFAZ. Encontre o código do erro e siga o passo a passo para corrigir e autorizar seu documento sem demora.
+    <div className="mt-4 space-y-2">
+      <Link href="/docs/duvidas/rejeicoes/nfe-nfce" className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground not-prose">
+        <FileText className="size-5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="font-medium text-card-foreground">Soluções para NF-e e NFC-e</span>
+          <span>Catálogo de erros e soluções para notas fiscais.</span>
+        </div>
+      </Link>
+      <Link href="/docs/duvidas/rejeicoes/cte" className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground not-prose">
+        <FileWarning className="size-5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="font-medium text-card-foreground">Soluções para CT-e</span>
+          <span>Catálogo de erros e soluções para conhecimentos de transporte.</span>
+        </div>
+      </Link>
+    </div>
+  </Accordion>
+
+  <Accordion 
+    title="Tributário" 
+    icon={<Landmark />}
+  >
+    Respostas claras para as principais dúvidas sobre regras fiscais e tributárias. Consulte guias sobre ICMS-ST, funcionamento de alíquotas, códigos (CST, CFOP) e outras configurações que impactam a conformidade fiscal da sua empresa.
+    <div className="mt-4 space-y-2">
+      <Link href="/docs/duvidas/tributario/antecipacao-aliquota" className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground not-prose">
+        <LandmarkIcon className="size-5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="font-medium text-card-foreground">Antecipação de Alíquota</span>
+          <span>Entenda como funciona o cálculo e a aplicação.</span>
+        </div>
+      </Link>
+      <Link href="/docs/duvidas/tributario/cst" className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground not-prose">
+        <FileText className="size-5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="font-medium text-card-foreground">Dúvidas sobre CST</span>
+          <span>Consulte o significado e a aplicação dos códigos.</span>
+        </div>
+      </Link>
+    </div>
+  </Accordion>
+</Accordions>
