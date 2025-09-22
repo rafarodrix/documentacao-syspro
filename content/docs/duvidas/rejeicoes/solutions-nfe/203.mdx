@@ -1,0 +1,64 @@
+---
+title: 'Rejeição 203: Emitente não habilitado para emissão de NF-e'
+description: 'Como corrigir a rejeição "203 - Emitente não habilitado para emissão de NF-e" ao transmitir NFe no Syspro ERP.'
+causa_do_erro: 'O CNPJ do emitente da nota fiscal não está habilitado pela Sefaz para emitir NF-e, geralmente por pendências cadastrais, fiscais ou por ser um cadastro novo em processo de liberação.'
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/SuporteSection.tsx';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+---
+
+## Identificação do Problema
+
+Ao tentar transmitir uma Nota Fiscal Eletrônica (NFe), o sistema retorna uma rejeição da Sefaz com a seguinte mensagem:
+
+<Callout type="error" title="Erro Apresentado">
+  Rejeição: 203 Emitente não habilitado para emissão de NF-e
+</Callout>
+
+<Callout type="info" title="Causa do Erro">
+  A Sefaz realiza uma validação no Cadastro de Contribuintes para verificar se o CNPJ do emitente possui autorização para emitir Notas Fiscais Eletrônicas. A rejeição ocorre quando a empresa está com o cadastro inativo, suspenso, baixado, em processo de habilitação ou possui qualquer outra pendência fiscal que impeça a emissão de documentos.
+</Callout>
+
+## Pré-requisitos
+
+Antes de iniciar, certifique-se de que você possui:
+
+- O contato do **contador responsável** pela empresa.
+- Acesso ao portal da Sefaz do seu estado para consulta da situação cadastral.
+
+## Passo a Passo da Solução
+
+<Steps>
+  <Step title="Verificar a Situação Cadastral">
+    <p>O primeiro passo é confirmar qual a situação cadastral da sua empresa junto à Sefaz. Esta rejeição não é um erro no sistema Syspro, e sim um impedimento fiscal.</p>
+
+    <Callout type="warn" title="Ação Necessária">
+      Entre em contato com o seu **contador**. Ele é o profissional responsável por verificar e regularizar a situação cadastral da empresa junto à Sefaz e à Receita Federal.
+    </Callout>
+  </Step>
+
+  <Step title="Regularizar as Pendências">
+    <p>O contador irá identificar a causa do bloqueio e realizar os procedimentos necessários para a regularização. As causas mais comuns são:</p>
+    1.  **Empresa nova:** Aguardando o credenciamento final na Sefaz para emitir NF-e.
+    2.  **Inscrição Estadual:** Suspensa, baixada ou em processo de alteração.
+    3.  **Pendências Fiscais:** Débitos ou obrigações acessórias em atraso.
+  </Step>
+
+  <Step title="Aguardar a Liberação e Retransmitir a NFe">
+    <p>Após a regularização por parte do contador, pode levar algum tempo para que o sistema da Sefaz atualize o status do seu cadastro e libere a emissão.</p>
+    1.  Assim que o contador confirmar que a situação foi normalizada, aguarde o prazo informado por ele.
+    2.  Retorne ao módulo de notas fiscais do Syspro.
+    3.  **Retransmita a NFe** que havia sido rejeitada.
+
+    <Callout type="success" title="Problema Resolvido">
+      Com o cadastro habilitado na Sefaz, a NFe será autorizada normalmente!
+    </Callout>
+  </Step>
+</Steps>
+
+---
+
+<SuporteSection modulo="NFe" />

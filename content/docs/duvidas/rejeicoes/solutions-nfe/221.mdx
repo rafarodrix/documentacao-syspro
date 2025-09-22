@@ -1,0 +1,67 @@
+---
+title: 'Rejeição 221: Confirmado o recebimento da NF-e pelo destinatário'
+description: 'Como corrigir a rejeição "221 - Confirmado o recebimento da NF-e pelo destinatário" ao tentar cancelar uma NFe no Syspro ERP.'
+causa_do_erro: 'A rejeição ocorre ao tentar cancelar uma NFe para a qual o destinatário já realizou o evento de Manifestação, confirmando o recebimento da mercadoria.'
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/SuporteSection.tsx';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+---
+
+## Identificação do Problema
+
+Ao tentar realizar o **cancelamento** de uma Nota Fiscal Eletrônica (NFe), o sistema retorna uma rejeição da Sefaz com a seguinte mensagem:
+
+<Callout type="error" title="Erro Apresentado">
+  Rejeição: 221 - Confirmado o recebimento da NF-e pelo destinatário
+</Callout>
+
+<Callout type="info" title="Causa do Erro">
+  Isso acontece porque o destinatário da nota já realizou o evento de **Manifestação do Destinatário**, informando à Sefaz que a operação foi concluída e a mercadoria foi recebida. Uma vez que há essa confirmação, a Sefaz bloqueia o cancelamento da NFe para garantir a segurança da operação.
+</Callout>
+
+## Pré-requisitos
+
+Antes de iniciar, certifique-se de que você possui:
+
+- O contato (telefone, e-mail) do **destinatário** da NFe.
+- Os dados da nota fiscal que precisa ser cancelada (número, chave de acesso).
+
+## Passo a Passo da Solução
+
+<Steps>
+  <Step title="Entrar em Contato com o Destinatário">
+    <p>A solução deste problema depende de uma ação do seu cliente (o destinatário da nota). Portanto, o primeiro passo é a comunicação.</p>
+    1. Entre em contato com o responsável fiscal ou financeiro do destinatário.
+    2. Informe sobre a necessidade de cancelar a NFe e explique que a **confirmação de recebimento** que ele registrou está impedindo o processo.
+  </Step>
+
+  <Step title="Solicitar a Alteração da Manifestação">
+    <p>O destinatário precisa alterar o status da manifestação para que a Sefaz permita o cancelamento.</p>
+    1. Peça para que ele acesse o sistema que utiliza para manifestar as notas.
+    2. Ele deverá registrar um dos seguintes eventos para a NFe em questão:
+        - **Operação não Realizada**
+        - **Desconhecimento da Operação**
+
+    <Callout type="warn" title="Ação Exclusiva do Destinatário">
+      Apenas o destinatário da NFe pode alterar o status da manifestação. Não é possível realizar esta etapa pelo Syspro ou por qualquer sistema do emitente.
+    </Callout>
+  </Step>
+
+  <Step title="Cancelar a NFe no Syspro">
+    <p>Após o destinatário confirmar que alterou a manifestação, você poderá cancelar a nota normalmente.</p>
+    1. Aguarde a confirmação do seu cliente.
+    2. Acesse o módulo de NFe no Syspro.
+    3. Localize a nota fiscal e realize o **procedimento de cancelamento** novamente.
+
+    <Callout type="success" title="Problema Resolvido">
+      Com a manifestação do destinatário alterada, a Sefaz irá autorizar o cancelamento da NFe!
+    </Callout>
+  </Step>
+</Steps>
+
+---
+
+<SuporteSection modulo="NFe" />
