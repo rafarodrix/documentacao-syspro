@@ -1,0 +1,89 @@
+---
+title: Produto - Setor
+description: Entenda como configurar o campo "Setor" para produtos com composição (kits) no Syspro ERP e como isso impacta a baixa de estoque e apuração de custos.
+---
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Steps } from 'fumadocs-ui/components/steps';
+import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import SuporteSection from '@/components/SuporteSection.tsx';
+
+## Introdução
+
+A tela de Cadastro de Produtos no Syspro ERP centraliza as informações essenciais de cada item, mas uma de suas parametrizações mais estratégicas é a definição do **comportamento de baixa de estoque para produtos com composição (kits)**. A correta configuração do campo **Setor** define se o sistema deve consumir o estoque do produto principal (acabado) ou dos seus componentes individuais no momento da venda.
+
+Esta funcionalidade é vital para a empresa, pois impacta diretamente a precisão do inventário, o cálculo do custo da mercadoria vendida (CMV) e a eficiência da gestão de estoque. Uma configuração adequada garante que os relatórios de vendas e de estoque reflitam a realidade da operação, seja ela baseada na venda de produtos montados ou na montagem de kits sob demanda.
+
+---
+## Dicionário de Campos
+
+<Cards>
+  <Card
+    title="Setor"
+    body="Campo chave que determina a regra de negócio para a baixa de estoque e apuração de custos de produtos com composição."
+  />
+</Cards>
+
+---
+## Passo a Passo
+
+Para configurar o comportamento de um produto com composição, siga os cenários abaixo.
+
+<Tabs items={['Cenário 1: Baixa no Produto Principal', 'Cenário 2: Baixa nos Componentes']}>
+  <Tab value="Cenário 1: Baixa no Produto Principal">
+    Use este cenário quando o produto principal é um item acabado, que possui estoque próprio, e sua composição serve apenas para fins de ficha técnica ou produção.
+    <div className='fd-steps [&_h3]:fd-step'>
+      ### Acessar o Cadastro de Produtos
+      Navegue até o módulo de Estoque e acesse a tela de Cadastro de Produtos.
+      
+      ### Localizar o Produto
+      Busque e selecione o produto com composição que deseja configurar.
+      
+      ### Preencher o Campo "Setor"
+      Na ficha de cadastro do produto, **preencha o campo `Setor`** com um valor válido.
+      <Callout title="Impacto Direto">
+        Ao preencher este campo, o sistema entende que a baixa de estoque na venda deve ocorrer **apenas no código do produto principal**. Os custos serão apurados com base no cadastro comercial deste item, e os componentes da estrutura não serão movimentados.
+      </Callout>
+      
+      ### Salvar as Alterações
+      Confirme e salve as alterações no cadastro do produto. O item está configurado para dar baixa como um produto único.
+    </div>
+  </Tab>
+  <Tab value="Cenário 2: Baixa nos Componentes">
+    Use este cenário para produtos vendidos como "kits", onde o produto principal não possui estoque físico e a baixa deve ocorrer nos itens que o compõem.
+    <div className='fd-steps [&_h3]:fd-step'>
+      ### Acessar o Cadastro de Produtos
+      Navegue até o módulo de Estoque e acesse a tela de Cadastro de Produtos.
+      
+      ### Localizar o Produto
+      Busque e selecione o produto com composição que deseja configurar.
+      
+      ### Garantir que o Campo "Setor" Esteja Vazio
+      Na ficha de cadastro do produto, **certifique-se de que o campo `Setor` esteja em branco (nulo)**.
+      <Callout title="Impacto Direto">
+        Com este campo vazio, o sistema executará a baixa de estoque **em cada um dos componentes** listados na estrutura do produto. O custo da venda será calculado a partir da **soma dos custos dos componentes**.
+      </Callout>
+      
+      ### Salvar as Alterações
+      Confirme e salve as alterações no cadastro do produto. O item está configurado para operar como um kit.
+    </div>
+  </Tab>
+</Tabs>
+
+---
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="O que acontece se eu alterar essa configuração para um produto que já tem movimentação de estoque?">
+    Alterar essa parametrização para um produto com histórico de movimentação exige atenção. Se um produto que antes dava baixa no item principal (com Setor) passar a dar baixa nos componentes (sem Setor), o estoque do item principal pode ficar inconsistente. É recomendável fazer um ajuste de inventário no produto principal para zerar seu saldo e garantir que as baixas futuras ocorram corretamente nos componentes.
+  </Accordion>
+  <Accordion title="Como essa configuração afeta meus relatórios de vendas e de custos?">
+    A configuração afeta diretamente o Custo da Mercadoria Vendida (CMV). No cenário com "Setor", o custo virá do cadastro do produto principal. No cenário sem "Setor", o custo será a soma dos custos dos componentes no momento da venda. Isso significa que relatórios de margem de lucro e de valor de estoque podem apresentar resultados diferentes dependendo da configuração escolhida.
+  </Accordion>
+  <Accordion title="Onde eu cadastro a composição de um produto?">
+    A estrutura de composição (os "ingredientes" do produto principal) é definida na tela chamada "Composição de Produtos". Este manual foca apenas na parametrização do comportamento da baixa de estoque.
+  </Accordion>
+</Accordions>
+
+<SuporteSection />
