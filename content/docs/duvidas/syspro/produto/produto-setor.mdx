@@ -1,6 +1,7 @@
 ---
-title: Produto - Setor
+title: Setor de Produto
 description: Entenda como configurar o campo "Setor" para produtos com composição (kits) no Syspro ERP e como isso impacta a baixa de estoque e apuração de custos.
+full: true
 ---
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import { Steps } from 'fumadocs-ui/components/steps';
@@ -14,16 +15,6 @@ import SuporteSection from '@/components/SuporteSection.tsx';
 A tela de Cadastro de Produtos no Syspro ERP centraliza as informações essenciais de cada item, mas uma de suas parametrizações mais estratégicas é a definição do **comportamento de baixa de estoque para produtos com composição (kits)**. A correta configuração do campo **Setor** define se o sistema deve consumir o estoque do produto principal (acabado) ou dos seus componentes individuais no momento da venda.
 
 Esta funcionalidade é vital para a empresa, pois impacta diretamente a precisão do inventário, o cálculo do custo da mercadoria vendida (CMV) e a eficiência da gestão de estoque. Uma configuração adequada garante que os relatórios de vendas e de estoque reflitam a realidade da operação, seja ela baseada na venda de produtos montados ou na montagem de kits sob demanda.
-
----
-## Dicionário de Campos
-
-<Cards>
-  <Card
-    title="Setor"
-    body="Campo chave que determina a regra de negócio para a baixa de estoque e apuração de custos de produtos com composição."
-  />
-</Cards>
 
 ---
 ## Passo a Passo
@@ -85,5 +76,3 @@ Para configurar o comportamento de um produto com composição, siga os cenário
     A estrutura de composição (os "ingredientes" do produto principal) é definida na tela chamada "Composição de Produtos". Este manual foca apenas na parametrização do comportamento da baixa de estoque.
   </Accordion>
 </Accordions>
-
-<SuporteSection />

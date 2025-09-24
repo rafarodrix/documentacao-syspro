@@ -1,0 +1,95 @@
+---
+title: 'Ajuste de Estoque'
+description: 'Guia completo para realizar ajustes de estoque no Syspro ERP, seja para um único item via cadastro ou para múltiplos itens via lançamento de documento de inventário.'
+full: true
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/SuporteSection.tsx';
+
+## Introdução
+
+Manter um estoque acurado é vital para a saúde operacional e financeira da empresa. O ajuste de estoque no Syspro ERP é a ferramenta essencial para garantir que o saldo do sistema corresponda exatamente à quantidade física de produtos, corrigindo discrepâncias causadas por avarias, perdas ou erros operacionais.
+
+Um estoque preciso evita compras desnecessárias e rupturas de venda, otimiza o fluxo de caixa e fornece dados confiáveis para o planejamento estratégico. Esta funcionalidade garante a integridade das informações que suportam as decisões mais importantes do seu negócio.
+
+---
+## Métodos de Ajuste
+
+O Syspro oferece duas abordagens para ajustar o estoque: o **Ajuste via Cadastro**, ideal para correções pontuais em um único item, e o **Ajuste via Documento**, projetado para alterações em massa, como a atualização de saldos após um inventário.
+
+<Tabs items={['Ajuste Rápido (Via Cadastro)', 'Ajuste em Massa (Via Documento)']}>
+  <Tab>
+    Este método é perfeito para corrigir a quantidade de **um único produto** de forma rápida, sem a necessidade de um documento formal. Use-o para correções imediatas de pequenas divergências.
+
+    <div className='fd-steps [&_h3]:fd-step'>
+      ### Acesse o Cadastro de Produtos
+      Navegue pelo menu: **Estoque > Produto**.
+
+      ### Selecione e Edite o Produto
+      Utilize os filtros para encontrar o produto, selecione-o e clique no ícone **Editar**.
+
+      ### Acesse a Guia 'Quantidade'
+      No menu lateral esquerdo da tela de edição, clique na guia **Quantidade**.
+
+      ### Edite o Grupo de Estoque
+      A tela exibirá os grupos de estoque onde o produto possui saldo. Dê um duplo-clique sobre o grupo que deseja ajustar ou selecione-o e clique em **Editar**.
+
+      ### Informe a Nova Quantidade
+      Na janela que se abrirá, insira o saldo físico correto do produto no campo **Quantidade**.
+
+      ### Salve as Alterações
+      Clique em **Salvar** na janela de edição e, em seguida, clique em **Salvar** na tela principal do produto para concluir o ajuste.
+    </div>
+  </Tab>
+  
+  <Tab>
+    Este é o método padrão para registrar o resultado de uma contagem de inventário ou para ajustar múltiplos produtos simultaneamente, criando um documento rastreável que garante o controle e o histórico das movimentações.
+
+    <div className='fd-steps [&_h3]:fd-step'>
+      ### Acesse o Lançamento de Documentos
+      Navegue pelo menu: **Movimento > Lançamento de Documentos**.
+
+      ### Selecione o Documento de Ajuste
+      Clique em **Incluir**. Na tela de seleção, localize e confirme o documento de **Ajuste de Estoque** (o código padrão geralmente é **EAJ**).
+
+      ### Preencha o Cabeçalho
+      Informe os dados essenciais como **Empresa**, **Data de Abertura** e **Motivo**.
+      
+      <Callout title="Dica de Boas Práticas">
+      Um motivo bem descrito (ex: "Ajuste de inventário rotativo - Setor A2 - 1T2025") é fundamental para auditorias futuras.
+      </Callout>
+
+      ### Adicione os Produtos
+      Na aba **Itens**, clique em **Incluir** para abrir a tela de consulta e adicione todos os produtos que serão ajustados.
+
+      ### Informe a Quantidade Contada
+      Para cada item na lista, preencha a coluna **Quantidade a Ajustar** com a quantidade física apurada. O sistema calculará automaticamente a diferença a ser lançada.
+      
+      ### Salve e Processe o Documento
+      Após conferir todos os dados, clique em **Salvar**. Dependendo da configuração, pode ser necessário um passo adicional para **Processar** o documento, que efetivamente atualizará o saldo dos itens no estoque.
+    
+    </div>
+  </Tab>
+</Tabs>
+
+---
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="Qual método devo usar: ajuste via cadastro ou via documento?">
+    Use o **ajuste via cadastro** para correções rápidas em um único item. Prefira o **ajuste via documento** para inventários ou ajustes de múltiplos itens, pois ele cria um registro formal que facilita auditorias e o controle de processos.
+  </Accordion>
+  <Accordion title="O que acontece se eu inserir a quantidade errada?">
+    Se o erro for notado imediatamente, realize um novo ajuste para corrigir. Se foi feito via documento já processado, o ideal é criar um novo documento de ajuste para reverter a diferença. Não é possível estornar um documento de ajuste já processado.
+  </Accordion>
+  <Accordion title="Preciso de permissão especial para ajustar o estoque?">
+    Sim. O ajuste de estoque é uma operação crítica que impacta diretamente os ativos da empresa. Normalmente, apenas usuários com perfis específicos (gestores, administradores) possuem essa permissão. Contate o administrador do sistema se não tiver acesso.
+  </Accordion>
+  <Accordion title="Este ajuste afeta o financeiro/contábil da empresa?">
+    Sim. Conforme a configuração do tipo de documento, o sistema pode gerar lançamentos contábeis automáticos para refletir o aumento (valorização do ativo de estoque) ou a diminuição (baixa por perda/dano, registrada como custo ou despesa) no balanço da empresa.
+  </Accordion>
+</Accordions>
