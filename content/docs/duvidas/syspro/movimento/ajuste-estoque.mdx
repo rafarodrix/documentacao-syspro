@@ -9,6 +9,7 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
 import { Callout } from 'fumadocs-ui/components/callout';
 import SuporteSection from '@/components/SuporteSection.tsx';
+import { YouTubeModal } from '@/components/ui/YouTubeModal';
 
 ## Introdução
 
@@ -44,10 +45,21 @@ O Syspro oferece duas abordagens para ajustar o estoque: o **Ajuste via Cadastro
       ### Salve as Alterações
       Clique em **Salvar** na janela de edição e, em seguida, clique em **Salvar** na tela principal do produto para concluir o ajuste.
     </div>
+    
+    <Callout title="Vídeo Explicativo">
+      Use este método para ajustes rápidos e pontuais.
+      <YouTubeModal videoId="EIQ5E95Us7Y" thumbnailTitle="Ajuste Rápido (Via Cadastro)" />
+    </Callout>  
+
   </Tab>
   
   <Tab>
     Este é o método padrão para registrar o resultado de uma contagem de inventário ou para ajustar múltiplos produtos simultaneamente, criando um documento rastreável que garante o controle e o histórico das movimentações.
+
+    {/* Callout adicionado conforme sua solicitação */}
+    <Callout title="Boa Prática de Inventário" type="info">
+      Antes de iniciar a contagem física, uma prática recomendada é zerar o estoque sistêmico de todos os produtos do setor. Isso garante que, ao final do processo, apenas os itens efetivamente contados terão saldo, evitando que produtos esquecidos ou não localizados permaneçam com estoque incorreto no sistema.
+    </Callout>
 
     <div className='fd-steps [&_h3]:fd-step'>
       ### Acesse o Lançamento de Documentos
@@ -71,9 +83,15 @@ O Syspro oferece duas abordagens para ajustar o estoque: o **Ajuste via Cadastro
       
       ### Salve e Processe o Documento
       Após conferir todos os dados, clique em **Salvar**. Dependendo da configuração, pode ser necessário um passo adicional para **Processar** o documento, que efetivamente atualizará o saldo dos itens no estoque.
-    
     </div>
+
+    <Callout title="Vídeo Explicativo">
+      Use este método para inventários ou ajustes que envolvam múltiplos itens.
+      <YouTubeModal videoId="QhjsC-IceTQ" thumbnailTitle="Ajuste Rápido (Via Lançamento de Documento)" />
+    </Callout>  
+
   </Tab>
+
 </Tabs>
 
 ---
