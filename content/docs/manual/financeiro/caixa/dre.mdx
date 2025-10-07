@@ -1,0 +1,176 @@
+---
+title: "Demonstração do Resultado do Exercício (DRE)"
+description: "Entenda a estrutura do DRE no Syspro ERP e como cada etapa do resultado é formada."
+---
+
+import 'katex/dist/katex.min.css';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/SuporteSection.tsx';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { BarChart, PiggyBank, Factory, Target, Calculator, Trophy } from 'lucide-react';
+
+
+
+## Introdução
+
+A **Demonstração do Resultado do Exercício (DRE)** é um relatório financeiro estratégico que detalha como o resultado de uma empresa foi formado em um período específico. Ele apresenta de forma estruturada as **receitas, custos e despesas**, culminando no **lucro ou prejuízo final**.
+
+Este relatório é fundamental para avaliar a eficiência operacional, identificar pontos de melhoria e subsidiar decisões estratégicas com base em dados financeiros concretos.
+
+<Callout title="A Pergunta Fundamental">
+O DRE responde de forma clara à questão: **“A empresa gerou lucro ou prejuízo neste período?”**
+</Callout>
+
+## Passo a Passo: Gerando o DRE no Syspro
+
+Para emitir o relatório no Syspro ERP, siga as etapas abaixo.
+
+<Steps>
+    <Step>
+        ### Acesse o Módulo DRE
+        No menu superior principal, navegue pelo seguinte caminho:
+        **`Financeiro > Caixa > DRE`**
+    </Step>
+    <Step>
+        ### Preencha os Filtros de Geração
+        Na tela que se abre, preencha os campos para definir o escopo do relatório:
+
+        * **Data Inicial e Data Final:** Informe o período que deseja analisar.
+        * **Modelo:** Selecione um dos modelos de DRE pré-configurados ou utilize o modelo padrão.
+        * **Empresa:** Escolha a empresa para a qual o relatório será gerado.
+        * **Regime:** Defina se o DRE deve seguir o regime de **Competência** (considera a data do fato gerador) ou de **Caixa** (considera a data do pagamento/recebimento).
+    </Step>
+    <Step>
+        ### Processe o Relatório
+        Com os filtros devidamente preenchidos, clique no botão **Processar**, localizado no canto superior esquerdo.
+    </Step>
+    <Step>
+        ### 4. Exporte para Análise
+        Após o sistema processar e exibir os dados em tela, você pode clicar em **Exportar Excel** para salvar o arquivo e realizar análises mais detalhadas.
+    </Step>
+</Steps>
+
+## Decifrando a Estrutura do DRE
+
+A estrutura do DRE segue uma ordem lógica de subtrações para apurar o resultado. Abaixo, apresentamos um exemplo simplificado seguido da explicação de seus principais componentes.
+
+$$
+\begin{array}{l r}
+\text{(+) Receita Operacional Bruta} & \text{R\$ 500.000,00} \\
+\quad \text{Receita de Vendas de Produtos e Serviços} \\
+\\
+\text{(-) Deduções da Receita Bruta} & \text{(R\$ 50.000,00)} \\
+\quad \text{Impostos sobre Vendas (ICMS, PIS, COFINS)} \\
+\quad \text{Vendas Canceladas e Devoluções} \\
+\hline
+\textbf{(=) Receita Operacional Líquida} & \textbf{R\$ 450.000,00} \\
+\\
+\text{(-) Custo das Mercadorias Vendidas (CMV)} & \text{(R\$ 200.000,00)} \\
+\hline
+\textbf{(=) Lucro Bruto} & \textbf{R\$ 250.000,00} \\
+\\
+\text{(-) Despesas Operacionais} & \text{(R\$ 120.000,00)} \\
+\quad \text{Despesas com Vendas (Comissões, Marketing)} \\
+\quad \text{Despesas Administrativas (Salários, Aluguel)} \\
+\hline
+\textbf{(=) EBITDA*} & \textbf{R\$ 130.000,00} \\
+\quad \text{*Lucro antes de Juros, Impostos, Depreciação e Amortização} \\
+\\
+\text{(-) Depreciação e Amortização} & \text{(R\$ 10.000,00)} \\
+\hline
+\textbf{(=) Resultado Operacional (EBIT)} & \textbf{R\$ 120.000,00} \\
+\\
+\text{(+/-) Resultado Financeiro} & \text{(R\$ 18.000,00)} \\
+\quad \text{Receitas Financeiras} & \text{R\$ 2.000,00} \\
+\quad \text{Despesas Financeiras (Juros, Taxas de Cartão)} & \text{(R\$ 20.000,00)} \\
+\hline
+\textbf{(=) Resultado Antes dos Impostos (LAIR)} & \textbf{R\$ 102.000,00} \\
+\\
+\text{(-) IRPJ e CSLL} & \text{(R\$ 30.600,00)} \\
+\hline
+\textbf{(=) Resultado Líquido do Exercício} & \textbf{R\$ 71.400,00} \\
+\end{array}
+$$
+
+### Explicação dos Principais Indicadores
+
+<Cards>
+  <Card
+    title="Receita Operacional Líquida"
+    icon={<BarChart />}
+    horizontal
+  >
+    Revela o faturamento real da empresa, calculado a partir da receita bruta menos as deduções (impostos sobre vendas, devoluções e cancelamentos). Este indicador é o ponto de partida para a análise de rentabilidade.
+    <br />
+    <strong>Fórmula Simplificada:</strong> <em>Receita Bruta - Deduções</em>
+  </Card>
+  
+  <Card
+    title="Lucro Bruto"
+    icon={<PiggyBank />}
+    horizontal
+  >
+    Mede a rentabilidade direta da atividade principal do negócio. Um lucro bruto saudável indica que a precificação dos produtos/serviços está correta e os custos de produção ou aquisição estão sob controle.
+    <br />
+    <strong>Fórmula Simplificada:</strong> <em>Receita Líquida - Custo das Vendas (CMV/CSP)</em>
+  </Card>
+
+  <Card
+    title="EBITDA (LAJIDA)"
+    icon={<Factory />}
+    horizontal
+  >
+    Mede a performance puramente operacional da empresa, desconsiderando os efeitos de financiamentos (juros), impostos e decisões contábeis (depreciação). Por isso, é ideal para comparar a eficiência entre empresas do mesmo setor.
+    <br />
+    <strong>Fórmula Simplificada:</strong> <em>Resultado Operacional + Depreciação + Amortização</em>
+  </Card>
+  
+  <Card
+    title="EBIT (Resultado Operacional)"
+    icon={<Target />}
+    horizontal
+  >
+    Também conhecido como LAJIR, representa o lucro gerado exclusivamente pela operação, já considerando o desgaste dos seus ativos (depreciação e amortização). É um indicador fiel da rentabilidade operacional do negócio.
+    <br />
+    <strong>Fórmula Simplificada:</strong> <em>EBITDA - Depreciação - Amortização</em>
+  </Card>
+
+  <Card
+    title="LAIR (Resultado Antes dos Impostos)"
+    icon={<Calculator />}
+    horizontal
+  >
+    Representa a soma de todos os resultados (operacionais e financeiros) antes da apuração dos impostos sobre o lucro. Este é o montante que serve como base de cálculo para o IRPJ e a CSLL.
+    <br />
+    <strong>Fórmula Simplificada:</strong> <em>EBIT +/- Resultado Financeiro</em>
+  </Card>
+  
+  <Card
+    title="Resultado Líquido"
+    icon={<Trophy />}
+    horizontal
+  >
+    Conhecido como "a última linha do DRE", é o resultado final e definitivo da empresa no período. Este é o valor que efetivamente aumenta (ou diminui) o patrimônio do negócio, ficando disponível para reinvestimento ou distribuição.
+    <br />
+    <strong>Fórmula Simplificada:</strong> <em>Resultado Antes dos Impostos - Impostos (IRPJ e CSLL)</em>
+  </Card>
+</Cards>
+
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="Qual a diferença entre Custo e Despesa?">
+    **Custo** é o gasto diretamente ligado à produção ou aquisição do produto/serviço vendido (ex: matéria-prima, mão de obra da fábrica). **Despesa** é o gasto para manter a estrutura da empresa funcionando (ex: aluguel do escritório, salários administrativos, marketing).
+  </Accordion>
+  <Accordion title="Por que uma venda entra no DRE mesmo que o cliente não tenha pago?">
+    O DRE opera pelo **Regime de Competência**. Isso significa que as receitas e despesas são registradas quando o fato gerador ocorre (a venda foi feita, a despesa foi incorrida), e não quando o dinheiro efetivamente entra ou sai do caixa. Isso oferece uma visão econômica mais precisa do desempenho no período.
+  </Accordion>
+  <Accordion title="O DRE da minha empresa precisa seguir este formato exato?">
+    Não necessariamente. O **DRE gerencial**, que é o mais usado para gestão interna, pode ser adaptado. O Syspro ERP permite configurar o plano de contas para que o relatório reflita a estrutura que melhor atende às suas necessidades de análise.
+  </Accordion>
+</Accordions>
+
+<SuporteSection />
