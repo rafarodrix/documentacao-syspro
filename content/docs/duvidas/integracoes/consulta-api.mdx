@@ -140,13 +140,20 @@ A seguir, as principais rotas disponíveis, com URLs, exemplos e campos retornad
 
 ### Vendas de Produtos
 
-```html title="URL Vendas de Produtos"
-   http://servidor:porta/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
-
-```html title="URL Vendas de Produtos usando o IIS"
-   http://servidor:porta/sysproserverisapi.dll/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
+<Tabs items={['Sem IIS', 'Com IIS']}>
+  <Tab value="Sem IIS">
+    <p>Acesso direto à API, sem intermediários.</p>
+    ```html title="URL Padrão (Sem IIS)"
+    http://servidor:porta/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+  <Tab value="Com IIS">
+    <p>Acesso que passa pelo servidor IIS, exigindo <code>sysproserverisapi.dll</code> no caminho.</p>
+    ```html title="URL com IIS"
+    http://servidor:porta/sysproserverisapi.dll/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+</Tabs>
 
 #### Campos Retornados
 | **Campo Descritivo**            | **Nome na API**              | **Descrição**                                  |
@@ -171,16 +178,23 @@ A seguir, as principais rotas disponíveis, com URLs, exemplos e campos retornad
 | Modelo do Documento             | `nf_modelo`                 | Tipo de documento (ex.: 55 - NF-e, 65 - NFC-e) |
 | Forma de Pagamento              | `nf_forma_pagto`            | Método de pagamento (ex.: Dinheiro, Cartão)    |
 
+
 ### Movimentações de Estoque
 
-
-```html title="URL Movimentações de Estoque"
-   http://servidor:porta/api/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
-
-```html title="URL Movimentações de Estoque usando o IIS"
-   http://servidor:porta/sysproserverisapi.dll/api/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
+<Tabs items={['Sem IIS', 'Com IIS']}>
+  <Tab value="Sem IIS">
+    <p>Acesso direto à API, sem intermediários.</p>
+    ```html title="URL Padrão (Sem IIS)"
+    http://servidor:porta/api/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+  <Tab value="Com IIS">
+    <p>Acesso que passa pelo servidor IIS, exigindo <code>sysproserverisapi.dll</code> no caminho.</p>
+    ```html title="URL com IIS"
+    http://servidor:porta/sysproserverisapi.dll/api/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+</Tabs>
 
 #### Campos Retornados
 | **Campo Descritivo**   | **Nome na API**         | **Descrição**                                  |
@@ -196,17 +210,22 @@ A seguir, as principais rotas disponíveis, com URLs, exemplos e campos retornad
 | Operação              | `operacao`             | Tipo de movimento (ex.: Entrada, Saída)        |
 
 ### Produção de Produtos
-Consulta dados de produção registrada no sistema.
 
-### Produção de Produtos
+<Tabs items={['Sem IIS', 'Com IIS']}>
+  <Tab value="Sem IIS">
+    <p>Acesso direto à API, sem intermediários.</p>
+    ```html title="URL Padrão (Sem IIS)"
+    http://servidor:porta/syspro/exporta/api/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+  <Tab value="Com IIS">
+    <p>Acesso que passa pelo servidor IIS, exigindo <code>sysproserverisapi.dll</code> no caminho.</p>
+    ```html title="URL com IIS"
+    http://servidor:porta/sysproserverisapi.dll/api/exporta/produto/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+</Tabs>
 
-```html title="URL Produção de Produtos"
-   http://servidor:porta/syspro/exporta/api/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
-
-```html title="URL Produção de Produtos usando o IIS"
-   http://servidor:porta/sysproserverisapi.dll/api/exporta/produto/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
 
 #### Campos Retornados
 | **Campo Descritivo**   | **Nome na API**         | **Descrição**                                  |
@@ -220,13 +239,21 @@ Consulta dados de produção registrada no sistema.
 
 ### Títulos a Pagar
 
-```html title="URL Títulos a Pagar usando o IIS"
-http://servidor:porta/sysproserverisapi.dll/api/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
+<Tabs items={['Sem IIS', 'Com IIS']}>
+  <Tab value="Sem IIS">
+    <p>Acesso direto à API, sem intermediários.</p>
+    ```html title="URL Padrão (Sem IIS)"
+    http://servidor:porta/api/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+  <Tab value="Com IIS">
+    <p>Acesso que passa pelo servidor IIS, exigindo <code>sysproserverisapi.dll</code> no caminho.</p>
+    ```html title="URL com IIS"
+    http://servidor:porta/sysproserverisapi.dll/api/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+</Tabs>
 
-```html title="URL Títulos a Pagar"
-http://servidor:porta/api/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
 
 #### Campos Retornados
 | **Campo Descritivo**          | **Nome na API**           | **Descrição**                                  |
@@ -244,15 +271,21 @@ http://servidor:porta/api/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10
 | Forma de Pagamento           | `forma_pagto_liquidacao` | Método de pagamento usado (ex.: Boleto, PIX)   |
 
 ### Títulos a Receber
-Retorna informações sobre contas a receber.
 
-```html title="URL Títulos a Receber usando o IIS"
-http://servidor:porta/sysproserverisapi.dll/api/exporta/titulo/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
-
-```html title="URL Títulos a Receber"
-http://servidor:porta/syspro/exporta/api/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
+<Tabs items={['Sem IIS', 'Com IIS']}>
+  <Tab value="Sem IIS">
+    <p>Acesso direto à API, sem intermediários.</p>
+    ```html title="URL Padrão (Sem IIS)"
+    http://servidor:porta/syspro/exporta/api/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+  <Tab value="Com IIS">
+    <p>Acesso que passa pelo servidor IIS, exigindo <code>sysproserverisapi.dll</code> no caminho.</p>
+    ```html title="URL com IIS"
+    http://servidor:porta/sysproserverisapi.dll/api/exporta/titulo/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+</Tabs>
 
 #### Campos Retornados
 | **Campo Descritivo**          | **Nome na API**           | **Descrição**                                  |
@@ -270,15 +303,21 @@ http://servidor:porta/syspro/exporta/api/receber?dt_inicial=01/01/2024&dt_final=
 | Valor Total                  | `valor_total`            | Valor final após ajustes                       |
 
 ### Rotas de Transporte
-Consulta informações sobre transporte de mercadorias.
 
-```html title="URL Rotas de Transporte usando o IIS"
-http://servidor:porta/api/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
-
-```html title="URL Rotas de Transporte"
-http://servidor:porta/sysproserverisapi.dll/api/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
+<Tabs items={['Sem IIS', 'Com IIS']}>
+  <Tab value="Sem IIS">
+    <p>Acesso direto à API, sem intermediários.</p>
+    ```html title="URL Padrão (Sem IIS)"
+    http://servidor:porta/api/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+  <Tab value="Com IIS">
+    <p>Acesso que passa pelo servidor IIS, exigindo <code>sysproserverisapi.dll</code> no caminho.</p>
+    ```html title="URL com IIS"
+    http://servidor:porta/sysproserverisapi.dll/api/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
+    ```
+  </Tab>
+</Tabs>
 
 #### Campos Retornados
 | **Campo Descritivo**   | **Nome na API**         | **Descrição**                                  |
