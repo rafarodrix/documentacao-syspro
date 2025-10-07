@@ -1,0 +1,92 @@
+---
+title: "Configuração da DRE"
+description: "Aprenda a criar, personalizar e gerenciar os modelos de DRE para atender às necessidades de análise da sua empresa."
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/SuporteSection.tsx';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## Introdução
+
+A tela de **Configuração do DRE** é o centro de controle dos seus relatórios de resultado no Syspro. É aqui que você define a estrutura, as contas e as fórmulas que o sistema utilizará para gerar a Demonstração do Resultado do Exercício.
+
+O propósito estratégico desta funcionalidade é oferecer **total flexibilidade**. Em vez de se prender a um formato fixo, você pode criar diferentes visões do DRE garantindo que o relatório sempre responda às perguntas certas para a sua gestão.
+
+---
+
+## Dicionário de Campos
+
+Para dominar a configuração, é crucial entender seus quatro componentes principais:
+
+<Cards>
+  <Card title="1. Modelos de DRE">
+    Um "Modelo" é uma estrutura completa e independente de DRE. Você pode ter vários modelos salvos (ex: DRE Padrão, DRE Detalhado). Ao gerar o relatório, você escolherá qual modelo deseja utilizar.
+  </Card>
+  <Card title="2. Linhas de Lançamento">
+    São as linhas que totalizam os saldos de contas contábeis específicas. Por exemplo, a linha "Gastos com Pessoal" agrupa todas as contas do plano de contas relacionadas a salários, impostos e benefícios.
+  </Card>
+  <Card title="3. Linhas de Resultado (Fórmula)">
+    São linhas calculadas com base em outras linhas do DRE. Por exemplo, a "Receita Líquida" não busca contas contábeis, mas sim utiliza uma fórmula (`+01-02`) para subtrair as "Deduções" (linha 02) da "Receita de Vendas" (linha 01).
+  </Card>
+  <Card title="4. Ordem">
+    É o número de identificação de cada linha dentro do modelo. Este número é fundamental, pois é ele que você usará para criar as fórmulas nas linhas de resultado.
+  </Card>
+</Cards>
+
+---
+
+## Passo a Passo: Configurando um Modelo de DRE
+
+Siga estas etapas para criar ou ajustar um modelo de DRE no sistema.
+
+<Steps>
+  <Step>
+    ### 1. Acesse a Tela de Configuração
+    No menu superior principal, navegue pelo caminho:
+    **`Financeiro > Configuração > Configuração DRE`**
+  </Step>
+  <Step>
+    ### 2. Crie ou Edite um Modelo
+    Na tela principal, você verá a lista de modelos existentes.
+    - Para criar um novo, clique em **+ Incluir**.
+    - Para modificar um existente, selecione-o e clique em **Editar**.
+  </Step>
+  <Step>
+    ### 3. Vincule as Contas Contábeis
+    Para linhas que somam valores (como Custos e Despesas), é preciso vincular as contas do Plano de Contas.
+    1. Selecione a linha desejada (ex: "Gastos com Pessoal").
+    2. No detalhe da linha, clique em **+ Incluir** para abrir a lista do seu Plano de Contas.
+    3. Selecione todas as contas contábeis cujos saldos devem compor essa linha.
+  </Step>
+  <Step>
+    ### 4. Crie as Fórmulas de Resultado
+    Para linhas que são calculadas (como Lucro Bruto e Resultado Líquido):
+    1. Selecione a linha (ex: "Receita Líquida").
+    2. No campo **Fórmula**, insira a operação matemática usando os números da coluna **Ordem** das outras linhas. Por exemplo, `+01-02` para calcular a Receita de Vendas (Ordem 01) menos as Deduções (Ordem 02).
+  </Step>
+  <Step>
+    ### 5. Salve o Modelo
+    Após realizar todas as configurações de linhas, contas e fórmulas, clique em **Salvar** na janela "DRE Editando" para gravar seu modelo.
+  </Step>
+</Steps>
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="Se eu adicionar uma nova conta no Plano de Contas, ela entra automaticamente no DRE?">
+    Não. Toda nova conta contábil que precise ser refletida no DRE deve ser vinculada manualmente a uma linha de lançamento aqui na tela de configuração.
+  </Accordion>
+  <Accordion title="O que acontece se eu errar a fórmula?">
+    Se a fórmula for sintaticamente inválida ou referenciar uma ordem inexistente, o sistema provavelmente apresentará um erro ou valores zerados ao gerar o relatório. É importante revisar as fórmulas com atenção.
+  </Accordion>
+  <Accordion title="Posso ter mais de um tipo de CMV?">
+    Sim. O campo "Critério CMV" no cabeçalho do modelo permite que você defina como o Custo da Mercadoria Vendida será calculado, oferecendo diferentes métodos que podem ser aplicados conforme a necessidade do modelo.
+  </Accordion>
+</Accordions>
+
+<SuporteSection modulo="Configuração DRE"/>
