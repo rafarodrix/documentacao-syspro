@@ -7,56 +7,127 @@ icon: Code
 import { Cards, Card } from 'fumadocs-ui/components/card';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
 ## Introdução
 
 Este manual orienta desenvolvedores e analistas sobre como consultar dados do **Syspro ERP** por meio de sua API. Ele abrange a configuração e o uso de rotas para acessar informações como vendas, estoque, produção, títulos a pagar/receber e transporte. Inclui exemplos de URLs (com e sem IIS), passos para autenticação e integração com ferramentas como Power BI, além de uma lista detalhada dos campos retornados por cada rota.
 
 <Callout title="Pré-requisitos">
-  - Credenciais de acesso (usuário e senha) fornecidas pelo suporte.
   - Endereço do servidor e porta da API (ex.: `api.minhaempresa.com:8080`).
   - Ferramenta para testes (ex.: Postman) ou integração (ex.: Power BI).
 </Callout>
 
-## Estrutura das URLs
+### Entendendo a URL de Requisição
 
-As URLs da API contêm *placeholders* (`servidor` e `porta`) que devem ser substituídos pelos valores reais do ambiente onde a API está hospedada. A estrutura varia dependendo se o sistema usa ou não o **IIS (Internet Information Services)**.
+Para consultar a API, você precisa montar uma URL específica. Ela é composta por quatro partes principais: o **servidor**, a **porta**, o **caminho da rota** e os **parâmetros** da consulta.
 
-### Exemplo Prático
-Considere:
-- **Servidor**: `api.minhaempresa.com`
-- **Porta**: `8080`
-- **Período**: `01/01/2024` a `10/01/2024`
+A parte mais importante a ser observada é o caminho, que muda dependendo se o ambiente utiliza ou não o **IIS (Internet Information Services)** como servidor web.
 
+<Tabs items={['Exemplo Prático: Sem IIS', 'Exemplo Prático: Com IIS']}>
+   <Tab value="Exemplo Prático: Sem IIS">
+   Neste cenário, a URL é mais direta. A rota da API (`/api/exporta/...`) vem logo após o endereço do servidor e porta.
 
-```html title="URL sem IIS"
-   http://api.minhaempresa.com:8080/syspro/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
+   Usando os dados:
+   - **Servidor**: `api.minhaempresa.com`
+   - **Porta**: `8080`
+   - **Rota**: Vendas de produto
+   - **Período**: `01/01/2024` a `10/01/2024`
 
-```html title="URL usando o IIS"
-   http://api.minhaempresa.com:8080/sysproserverisapi.dll/syspro/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
-```
+   A URL final seria:
+   ```html title="URL sem IIS"
+      http://api.minhaempresa.com:8080/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+   ```
+   </Tab>
 
-<Callout title="Nota">
-  Confirme com o administrador do sistema se o IIS está em uso, pois isso afeta o caminho da URL.
+   <Tab value="Exemplo Prático: Com IIS">
+   Quando o IIS está em uso, é necessário adicionar sysproserverisapi.dll ao caminho da URL, antes da rota da API.
+
+   Usando os mesmos dados:
+   - **Servidor**: `api.minhaempresa.com`
+   - **Porta**: `8080`
+   - **Rota**: Vendas de produto
+   - **Período**: `01/01/2024` a `10/01/2024`
+
+   ```html title="URL usando o IIS"
+      http://api.minhaempresa.com:8080/sysproserverisapi.dll/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+
+   ```
+   </Tab>
+</Tabs>
+
+<Callout title="Confirme a sua configuração!" type="warn">
+A única forma de saber qual URL usar é confirmando com o administrador do sistema ou a equipe de TI responsável pelo Syspro ERP. Usar o caminho errado resultará em um erro 404 (Not Found).
 </Callout>
+
+
 
 ## Passo a Passo
 
 Siga estas etapas para acessar a API do Syspro ERP:
 
 <div className='fd-steps [&_h3]:fd-step'>
-  <h3>Obter Credenciais</h3>
-    Solicite ao suporte técnico do Syspro ERP o usuário e senha da API. Use os canais listados na seção "Suporte" abaixo.
+  <h3>Obter URL e Porta</h3>
+    Solicite ao suporte técnico do Syspro ERP o a url e porta para acessar a API. Use os canais listados na seção "Suporte" abaixo.
 
   <h3>Configurar a URL</h3>
     Substitua `servidor` e `porta` na URL pela configuração do seu ambiente (ex.: `api.minhaempresa.com:8080`).
 
-  <h3>Autenticar-se</h3>
-    Utilize as credenciais em um método de autenticação (ex.: Basic Auth ou token, conforme especificado pelo suporte) ao enviar a requisição.
-
   <h3>Consultar Dados</h3>
     Envie a requisição via ferramenta de teste (ex.: Postman) ou integre diretamente em plataformas como Power BI, ajustando os parâmetros (ex.: `dt_inicial` e `dt_final`).
+
+   ### Exemplos de Implementação
+
+Este exemplo em python e utiliza a biblioteca requests para buscar os dados de vendas .
+
+<Tabs items={['Python', 'Power BI']}>
+   <Tab value="Python">
+
+   ```python title="Exemplo consulta em pyton"
+   import requests
+
+   # URL completa da API
+   url = "http://api.minhaempresa.com:8080/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=31/01/2024"
+
+   try:
+      # Executa a requisição
+      response = requests.get(url)
+      
+      # Verifica se a requisição foi bem-sucedida
+      response.raise_for_status() 
+
+      # Imprime os dados recebidos (assumindo que é um JSON)
+      print(response.json())
+
+   except requests.exceptions.RequestException as e:
+      print(f"Ocorreu um erro na requisição: {e}")
+   ```
+
+   </Tab>
+   <Tab value="Power BI">
+   O Power BI pode se conectar diretamente à API do Syspro para criar relatórios dinâmicos.
+
+   1.  **Obter Dados da Web:**
+      Na guia **Página Inicial**, clique em **Obter Dados** e selecione **Web**.
+
+   2.  **Configurar URL:**
+      Na janela que abrir, selecione a opção **Básico**. 
+      - Cole a URL base (`http://api.minhaempresa.com:8080/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=31/01/2024`)
+      - Clique em **OK**.
+
+   3.  **Converter para Tabela:**
+      O Power BI exibirá o editor do Power Query com os dados retornados. Se os dados aparecerem como uma lista de registros, clique em **Para a Tabela** no menu superior e, em seguida, expanda as colunas para visualizar todas as informações.
+
+   4.  **Carregar Dados:**
+      Após os ajustes, clique em **Fechar e Aplicar**. Os dados da API estarão disponíveis para a criação de visuais e relatórios no Power BI.
+
+   <Callout title="Dica" type="tip">
+   Para relatórios dinâmicos, crie **Parâmetros** no Power Query para as datas `dt_inicial` e `dt_final`. Assim, os usuários poderão alterar o período do relatório sem precisar editar a consulta.
+   </Callout>
+
+   </Tab>
+</Tabs>
+
 </div>
 
 <Callout title="Dica" type="tip">
@@ -70,11 +141,11 @@ A seguir, as principais rotas disponíveis, com URLs, exemplos e campos retornad
 ### Vendas de Produtos
 
 ```html title="URL Vendas de Produtos"
-   http://servidor:porta/syspro/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+   http://servidor:porta/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 ```html title="URL Vendas de Produtos usando o IIS"
-   http://servidor:porta/sysproserverisapi.dll/syspro/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
+   http://servidor:porta/sysproserverisapi.dll/api/exporta/produto/venda?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 #### Campos Retornados
@@ -104,11 +175,11 @@ A seguir, as principais rotas disponíveis, com URLs, exemplos e campos retornad
 
 
 ```html title="URL Movimentações de Estoque"
-   http://servidor:porta/syspro/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
+   http://servidor:porta/api/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 ```html title="URL Movimentações de Estoque usando o IIS"
-   http://servidor:porta/sysproserverisapi.dll/syspro/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
+   http://servidor:porta/sysproserverisapi.dll/api/exporta/produto/kardex?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 #### Campos Retornados
@@ -130,11 +201,11 @@ Consulta dados de produção registrada no sistema.
 ### Produção de Produtos
 
 ```html title="URL Produção de Produtos"
-   http://servidor:porta/syspro/exporta/produto/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
+   http://servidor:porta/syspro/exporta/api/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 ```html title="URL Produção de Produtos usando o IIS"
-   http://servidor:porta/sysproserverisapi.dll/syspro/exporta/produto/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
+   http://servidor:porta/sysproserverisapi.dll/api/exporta/produto/producao?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 #### Campos Retornados
@@ -150,11 +221,11 @@ Consulta dados de produção registrada no sistema.
 ### Títulos a Pagar
 
 ```html title="URL Títulos a Pagar usando o IIS"
-http://servidor:porta/sysproserverisapi.dll/syspro/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
+http://servidor:porta/sysproserverisapi.dll/api/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 ```html title="URL Títulos a Pagar"
-http://servidor:porta/syspro/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
+http://servidor:porta/api/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 #### Campos Retornados
@@ -176,11 +247,11 @@ http://servidor:porta/syspro/exporta/titulo/pagar?dt_inicial=01/01/2024&dt_final
 Retorna informações sobre contas a receber.
 
 ```html title="URL Títulos a Receber usando o IIS"
-http://servidor:porta/sysproserverisapi.dll/syspro/exporta/titulo/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
+http://servidor:porta/sysproserverisapi.dll/api/exporta/titulo/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 ```html title="URL Títulos a Receber"
-http://servidor:porta/syspro/exporta/titulo/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
+http://servidor:porta/syspro/exporta/api/receber?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 #### Campos Retornados
@@ -202,11 +273,11 @@ http://servidor:porta/syspro/exporta/titulo/receber?dt_inicial=01/01/2024&dt_fin
 Consulta informações sobre transporte de mercadorias.
 
 ```html title="URL Rotas de Transporte usando o IIS"
-http://servidor:porta/syspro/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
+http://servidor:porta/api/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 ```html title="URL Rotas de Transporte"
-http://servidor:porta/sysproserverisapi.dll/syspro/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
+http://servidor:porta/sysproserverisapi.dll/api/exporta/transporte/rota?dt_inicial=01/01/2024&dt_final=10/01/2024
 ```
 
 #### Campos Retornados
