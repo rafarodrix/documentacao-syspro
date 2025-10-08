@@ -17,7 +17,7 @@ export function AnalisadorXMLTool() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
 
-  // Efeito para pesquisar o status do processo
+  // Efeito para pesquisar o status do processo (polling)
   useEffect(() => {
     if (status !== 'processing' || !jobId) return;
 
@@ -37,31 +37,45 @@ export function AnalisadorXMLTool() {
           setStatusMessage(`Erro durante a análise: ${data.error}`);
           clearInterval(intervalId);
         }
-        // Se ainda estiver 'processing', continua...
       } catch (err) {
         setStatus('error');
         setStatusMessage('Erro ao verificar o status do processo.');
         clearInterval(intervalId);
       }
-    }, 3000); // Pesquisa a cada 3 segundos
+    }, 3000);
 
-    // Limpeza ao sair da página
     return () => clearInterval(intervalId);
   }, [status, jobId]);
 
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setStatus('idle');
+    setResult(null);
+    setStatusMessage('');
+    setFiles(e.target.files);
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!files) return;
+    if (!files || files.length === 0) {
+      setStatus('error');
+      setStatusMessage('Por favor, selecione uma pasta com arquivos XML.');
+      return;
+    }
 
     setStatus('uploading');
     setStatusMessage('Enviando arquivos...');
     setResult(null);
 
     const formData = new FormData();
-    // ... (código para adicionar arquivos e números ao formData)
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
+    formData.append('numerosParaCopiar', numeros);
     
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) throw new Error("URL da API não configurada.");
+
       const response = await fetch(`${apiUrl}/api/analyze`, { method: 'POST', body: formData });
 
       if (!response.ok) {
@@ -85,14 +99,57 @@ export function AnalisadorXMLTool() {
   return (
     <div className="max-w-2xl">
       <div className="bg-card p-6 rounded-lg shadow-md border">
-        {/* ... (O formulário HTML/JSX permanece o mesmo da versão anterior) ... */}
+        {/* ??? ESTA PARTE ESTAVA FALTANDO NO SEU CÓDIGO ??? */}
+        <form onSubmit={handleSubmit}>
+           <div className="mb-6">
+            <label htmlFor="file-upload" className="block text-lg font-medium text-foreground mb-2">
+              1. Selecione a Pasta de XMLs
+            </label>
+            <input
+              id="file-upload"
+              type="file"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+              // @ts-ignore
+              webkitdirectory="true"
+              directory="true"
+              multiple
+            />
+            {files && <p className="text-sm text-muted-foreground mt-2">{files.length} arquivos selecionados.</p>}
+          </div>
+
+          <div className="mb-6">
+            <label htmlFor="numeros" className="block text-lg font-medium text-foreground mb-2">
+              2. Números para Copiar (separados por vírgula)
+            </label>
+            <input
+              id="numeros"
+              type="text"
+              value={numeros}
+              onChange={(e) => setNumeros(e.target.value)}
+              placeholder="Ex: 150, 205, 301"
+              className="mt-1 block w-full px-3 py-2 bg-background border border-border rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-primary focus:border-primary"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={status === 'uploading' || status === 'processing'}
+            className="w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-muted"
+          >
+            { (status === 'uploading' || status === 'processing') ? 'Analisando...' : 'Iniciar Análise'}
+          </button>
+        </form>
+        {/* ??? FIM DA PARTE QUE ESTAVA FALTANDO ??? */}
       </div>
 
-      {/* NOVO: Área de Status e Resultados */}
+      {/* Área de Status e Resultados */}
       {(status === 'uploading' || status === 'processing') && (
-        <div className="mt-8 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-lg font-medium text-muted-foreground mt-4">{statusMessage}</p>
+        <div className="mt-8 text-center p-4 bg-card border rounded-lg">
+          <div className="flex items-center justify-center">
+             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+             <p className="text-lg font-medium text-muted-foreground">{statusMessage}</p>
+          </div>
         </div>
       )}
 
