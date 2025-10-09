@@ -21,7 +21,6 @@ export function AnalisadorXMLTool() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
 
-  // ??? LÓGICA DE POLLING IMPLEMENTADA AQUI ???
   useEffect(() => {
     if (status !== 'processing' || !jobId) return;
 
@@ -54,7 +53,7 @@ export function AnalisadorXMLTool() {
 
     return () => clearInterval(intervalId); // Limpeza ao sair da página
   }, [status, jobId]);
-  // ??? FIM DA LÓGICA DE POLLING ???
+
 
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -70,54 +69,34 @@ export function AnalisadorXMLTool() {
     if (fileInput) fileInput.value = "";
   };
 
-  // ??? LÓGICA DO SUBMIT IMPLEMENTADA AQUI ???
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    // 1. Impede o recarregamento da página
-    e.preventDefault(); 
+const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!files || files.length === 0) return;
 
-    // 2. Define o estado inicial de carregamento
     setStatus('uploading');
     setStatusMessage('Enviando arquivos...');
-    setResult(null);
-    setUploadProgress(0);
 
     const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      formData.append('files', files[i]);
+    
+    const isZipUpload = files.length === 1 && files[0].name.endsWith('.zip');
+
+    if (isZipUpload) {
+      // Se for um ZIP, envia como um único arquivo 'file'
+      formData.append('file', files[0]);
+    } else {
+      // Se for uma pasta, envia como múltiplos arquivos 'files'
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
     }
+
+    
     formData.append('numerosParaCopiar', numeros);
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) throw new Error("URL da API não configurada.");
-
-      // 3. Envia os arquivos para o backend com Axios para obter o progresso
-      const response = await axios.post(`${apiUrl}/api/analyze`, formData, {
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-          setUploadProgress(percentCompleted);
-        },
-      });
-
-      // 4. Inicia o processo de polling (verificação de status)
-      setJobId(response.data.jobId);
-      setStatus('processing');
-      setStatusMessage('Arquivos recebidos. Iniciando análise, por favor aguarde...');
-
     } catch (err: any) {
-      // 5. Captura e exibe qualquer erro que ocorrer
-      setStatus('error');
-      if (err.response) {
-        setStatusMessage(err.response.data.error || 'Erro no servidor.');
-      } else if (err.request) {
-        setStatusMessage('Erro de Conexão: O servidor não respondeu. Verifique se o backend está rodando.');
-      } else {
-        setStatusMessage(err.message);
-      }
     }
   };
-  // ??? FIM DA LÓGICA DO SUBMIT ???
   
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
