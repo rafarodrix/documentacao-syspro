@@ -2,15 +2,16 @@
 import { useState } from 'react';
 import { Sparkles, Loader } from 'lucide-react';
 
-// Recebe os dados fiscais do item como propriedades
+// ▼▼▼ 1. TIPO ATUALIZADO PARA ACEITAR 'null' ▼▼▼
 interface SugestaoERPProps {
   item: {
-    CST_ICMS: string;
-    pICMS: string;
-    CST_PIS: string;
-    CST_COFINS: string;
+    CST_ICMS: string | null;
+    pICMS: number | null;
+    CST_PIS: string | null;
+    CST_COFINS: string | null;
   };
 }
+// ▲▲▲ FIM DA ATUALIZAÇÃO ▲▲▲
 
 export function SugestaoERP({ item }: SugestaoERPProps) {
   const [sugestao, setSugestao] = useState<string | null>(null);
@@ -22,18 +23,27 @@ export function SugestaoERP({ item }: SugestaoERPProps) {
     setError(null);
     setSugestao(null);
 
+    // Validação para garantir que os dados mínimos existem
+    if (!item.CST_ICMS || !item.CST_PIS || !item.CST_COFINS) {
+        setError('CSTs de ICMS, PIS e COFINS são obrigatórios para a sugestão.');
+        setIsLoading(false);
+        return;
+    }
+
     try {
       const response = await fetch('/api/sugerir-tributacao', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        // ▼▼▼ 2. LÓGICA ATUALIZADA PARA ENVIAR VALORES PADRÃO ▼▼▼
         body: JSON.stringify({
-          cstIcms: item.CST_ICMS,
-          pIcms: item.pICMS,
-          cstPis: item.CST_PIS,
-          cstCofins: item.CST_COFINS,
+          cstIcms: item.CST_ICMS || '',      // Garante que nunca seja nulo
+          pIcms: item.pICMS?.toString() || '0', // Converte número para string e garante que não seja nulo
+          cstPis: item.CST_PIS || '',      // Garante que nunca seja nulo
+          cstCofins: item.CST_COFINS || '',// Garante que nunca seja nulo
         }),
+        // ▲▲▲ FIM DA ATUALIZAÇÃO ▲▲▲
       });
 
       if (!response.ok) {
