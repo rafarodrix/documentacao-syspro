@@ -1,36 +1,38 @@
 'use client';
 
 import { useState, ChangeEvent } from 'react';
-import { UploadCloud, Loader, AlertTriangle, Package, Truck, Landmark, Info, ChevronDown } from 'lucide-react';
+import { UploadCloud, Loader, AlertTriangle, Package, Truck, Landmark, Info, ChevronDown, Percent, Calculator } from 'lucide-react';
+import { SugestaoERP } from './SugestaoERP';
 
-// --- Interfaces de Tipos (Atualizadas) ---
+// --- Interfaces de Tipos (Atualizadas para maior robustez) ---
 interface ItemFiscalData {
-    cProd: string; xProd: string; NCM: string; CFOP: string;
-    qCom: number; vUnCom: number; vProd: number;
-    CST_ICMS: string; vBC: string; pICMS: string; vICMS: string; pRedBC: string;
-    vBCST: string; pMVAST: string; pICMSST: string; vICMSST: string; pRedBCST: string;
-    CST_IPI: string; vIPI: string;
-    CST_PIS: string; pPIS: string; vPIS: string;
-    CST_COFINS: string; pCOFINS: string; vCOFINS: string;
-    vFrete: string; vSeg: string; vOutro: string;
+  cProd: string | null; xProd: string | null; NCM: string | null; CFOP: string | null;
+  qCom: number | null; vUnCom: number | null; vProd: number | null;
+  CST_ICMS: string | null; vBC: number | null; pICMS: number | null; vICMS: number | null; pRedBC: number | null;
+  vBCST: number | null; pMVAST: number | null; pICMSST: number | null; vICMSST: number | null; pRedBCST: number | null;
+  CST_IPI: string | null; vIPI: number | null; pIPI: number | null;
+  CST_PIS: string | null; pPIS: number | null; vPIS: number | null;
+  CST_COFINS: string | null; pCOFINS: number | null; vCOFINS: number | null;
+  vFrete: number | null; vSeg: number | null; vOutro: number | null;
 }
 interface DanfeData {
-    ide: { nNF: string; serie: string; dhEmi: string; natOp: string; CFOP: string; mod: string; tpNF: string; cNF: string };
-    emit: { xNome: string; CNPJ: string; IE: string; enderEmit: string; UF: string; };
-    dest: { xNome: string; doc: string; IE: string; enderDest: string; UF: string; };
-    transp: { modFrete: string; transporta: any; veicTransp: any; vol: any[] };
-    det: ItemFiscalData[];
-    total: any;
-    cobr: any[];
-    infAdic: { infCpl: string; infAdFisco: string };
-    chave: string;
+  ide: { nNF: string; serie: string; dhEmi: string; natOp: string; CFOP: string; mod: string; tpNF: string; cNF: string; };
+  emit: { xNome: string; CNPJ: string; IE: string; enderEmit: string; UF: string; };
+  dest: { xNome: string; doc: string; IE: string; enderDest: string; UF: string; };
+  transp: { modFrete: string; transporta: any; veicTransp: any; vol: any[]; };
+  det: ItemFiscalData[];
+  total: any;
+  cobr: any[];
+  infAdic: { infCpl: string; infAdFisco: string; };
+  chave: string;
 }
 
 // --- Funções Auxiliares de Formatação ---
-const formatCurrency = (value: any) => (value ? Number(value).toFixed(2) : '0.00');
-const formatPercent = (value: any) => (value ? `${Number(value).toFixed(2)}%` : '0.00%');
+const formatCurrency = (value: any) => (value != null ? Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00');
+const formatNumber = (value: any) => (value != null ? Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '0,00');
+const formatPercent = (value: any) => (value != null ? `${Number(value).toFixed(2)}%` : '-');
 const formatDate = (isoStr: string) => {
-    if (!isoStr) return '';
+    if (!isoStr) return '-';
     try {
         return new Date(isoStr).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
     } catch {
@@ -40,322 +42,201 @@ const formatDate = (isoStr: string) => {
 
 // --- Componente Principal ---
 export function DanfeVisualizerTool() {
-    const [danfeData, setDanfeData] = useState<DanfeData | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const [danfeData, setDanfeData] = useState<DanfeData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        setIsLoading(true);
-        setError(null);
-        setDanfeData(null);
+    setIsLoading(true);
+    setError(null);
+    setDanfeData(null);
 
-        const formData = new FormData();
-        formData.append('file', file);
+    const formData = new FormData();
+    formData.append('file', file);
 
-        try {
-            const response = await fetch('/api/visualizar-danfe', {
-                method: 'POST',
-                body: formData,
-            });
+    try {
+      const response = await fetch('/api/visualizar-danfe', { method: 'POST', body: formData });
+      if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || 'Erro desconhecido no servidor.');
+      }
+      const data = await response.json();
+      setDanfeData(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || 'Erro no servidor.');
-            }
+  return (
+    <div className="space-y-8">
+      {/* Upload */}
+      <div className="flex justify-center max-w-full mb-8">
+        <label htmlFor="xml-upload"
+          className="flex flex-col items-center justify-center p-8 rounded-xl border-2 border-dashed border-border
+          text-center cursor-pointer hover:border-primary/70 hover:bg-secondary/30 transition-colors w-full max-w-md">
+          <UploadCloud className="h-10 w-10 text-muted-foreground mb-2" />
+          <span className="font-semibold text-primary">Selecionar Arquivo XML</span>
+          <span className="text-xs text-muted-foreground mt-1">Clique ou arraste o arquivo aqui</span>
+          <input id="xml-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".xml" />
+        </label>
+      </div>
 
-            const data: DanfeData = await response.json();
-            setDanfeData(data);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      {isLoading && (
+        <div className="flex items-center justify-center gap-2 text-muted-foreground animate-fade-in">
+          <Loader className="animate-spin" size={20} /> Processando XML...
+        </div>
+      )}
 
-    return (
-        <div className="space-y-8">
-            {/* Área de Upload */}
-            <div className="flex justify-center max-w-full mb-8">
-                <label htmlFor="xml-upload" className="flex flex-col items-center justify-center p-6 rounded-lg border-2 border-dashed border-border text-center cursor-pointer hover:border-primary hover:bg-secondary transition-colors w-full max-w-md">
-                    <UploadCloud className="h-10 w-10 text-muted-foreground mb-2" />
-                    <span className="font-semibold text-primary">Selecionar Arquivo XML</span>
-                    <span className="text-xs text-muted-foreground mt-1">Clique para escolher ou arraste um arquivo aqui</span>
-                    <input id="xml-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".xml" />
-                </label>
-            </div>
+      {error && (
+        <div className="flex items-center gap-3 bg-destructive/10 text-destructive p-3 rounded-md border border-destructive/30 animate-fade-in">
+          <AlertTriangle size={20} /> {error}
+        </div>
+      )}
 
-            {isLoading && <div className="flex items-center justify-center gap-2 text-muted-foreground"><Loader className="animate-spin" size={20} /> Processando XML...</div>}
-            {error && <div className="flex items-center gap-2 text-red-500 bg-red-100 p-3 rounded-md"><AlertTriangle size={20} /> {error}</div>}
+      {danfeData && (
+        <div className="border rounded-xl p-6 md:p-8 bg-card animate-fade-in space-y-8 max-w-6xl mx-auto shadow-sm">
 
-            {danfeData && (
-                <div className="border rounded-lg p-4 md:p-8 max-w-5xl bg-card animate-fade-in space-y-6 mx-auto">
+          {/* Cabeçalho */}
+          <header className="text-center">
+            <h2 className="text-2xl font-bold">{danfeData.emit?.xNome}</h2>
+            <p className="text-sm text-muted-foreground">
+              CNPJ: {danfeData.emit?.CNPJ} — UF: {danfeData.emit?.UF}
+            </p>
+          </header>
 
-                    <section className="border-b pb-4 space-y-4">
-                        <div className="text-center">
-                            <h2 className="text-xl font-bold">{danfeData.emit?.xNome}</h2>
-                            <p className="text-sm text-muted-foreground">CNPJ: {danfeData.emit?.CNPJ} - <span className="font-semibold">UF: {danfeData.emit?.UF}</span></p>
+          {/* Informações Gerais */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-sm border-t border-b py-6">
+              <div>
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">Documento</p>
+                  <p className="text-base font-medium">NF-e: {danfeData.ide?.nNF} (Série {danfeData.ide?.serie})</p>
+              </div>
+              <div>
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">Emissão</p>
+                  <p>{formatDate(danfeData.ide?.dhEmi)}</p>
+              </div>
+              <div className="lg:col-span-1">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">Natureza da Operação</p>
+                  <p className="capitalize">{danfeData.ide?.natOp?.toLowerCase() || '—'}</p>
+              </div>
+              <div className="font-mono text-xs col-span-full bg-secondary p-2 rounded-md break-all">
+                  <strong>Chave:</strong> {danfeData.chave}
+              </div>
+          </section>
+
+          {/* Itens */}
+          <section>
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Package size={22} /> Itens da Nota</h3>
+            <div className="space-y-4">
+              {danfeData.det.map((item, i) => (
+                <div key={i} className="border rounded-xl p-4 bg-secondary/20 transition-all">
+                  <p className="font-bold text-base text-foreground">({item.cProd}) {item.xProd}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-x-4 gap-y-2 mt-2 text-muted-foreground text-sm">
+                    <span><strong>NCM:</strong> {item.NCM}</span>
+                    <span><strong>CFOP:</strong> {item.CFOP}</span>
+                    <span><strong>Qtd:</strong> {formatNumber(item.qCom)}</span>
+                    <span><strong>Unit:</strong> {formatCurrency(item.vUnCom)}</span>
+                    <span className="font-bold text-foreground"><strong>Total:</strong> {formatCurrency(item.vProd)}</span>
+                  </div>
+
+                  <details className="mt-3 group">
+                    <summary className="cursor-pointer text-xs font-semibold text-primary flex items-center gap-1 list-none">
+                      <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                      Ver Detalhamento Tributário
+                    </summary>
+
+                    <div className="mt-3 space-y-3 border-t pt-3 text-xs animate-fade-in">
+                      {/* ICMS */}
+                      {(item.vICMS != null || item.pICMS != null) && (
+                        <div className="border-l-4 border-blue-400 pl-3">
+                          <h4 className="font-semibold flex items-center gap-1 text-blue-600"><Percent size={14} /> ICMS (CST {item.CST_ICMS})</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+                            <span>BC: {formatCurrency(item.vBC)}</span>
+                            <span>Alíquota: {formatPercent(item.pICMS)}</span>
+                            <span>Red. BC: {formatPercent(item.pRedBC)}</span>
+                            <span>Valor: {formatCurrency(item.vICMS)}</span>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm border-t border-b py-4">
-                            <div>
-                                <span className="text-xs font-semibold uppercase text-muted-foreground">Documento</span>
-                                <p className="text-base font-medium">NF-e: {danfeData.ide.nNF} | Série: {danfeData.ide.serie} | Mod: {danfeData.ide.mod}</p>
-                            </div>
-                            <div>
-                                <span className="text-xs font-semibold uppercase text-muted-foreground">Emissão</span>
-                                <p>{formatDate(danfeData.ide.dhEmi)}</p>
-                            </div>
-                            <div>
-                                <span className="text-xs font-semibold uppercase text-muted-foreground">Tipo de Operação</span>
-                                <p>{danfeData.ide.tpNF}</p>
-                            </div>
-                            <div className="col-span-2 md:col-span-3">
-                                <span className="text-xs font-semibold uppercase text-muted-foreground">Natureza da Operação</span>
-                                <p className="text-lg font-medium lowercase capitalize">{danfeData.ide.natOp || 'Não informado'}</p>
-                            </div>
-                        </div>
-                        <div className="font-mono text-xs text-center bg-secondary p-2 rounded break-all" title="Chave de Acesso">
-                            <span className="font-semibold text-foreground">Chave:</span> {danfeData.chave}
-                        </div>
-                    </section>
+                      )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                        <section>
-                            <h3 className="text-lg font-bold mb-2">Destinatário</h3>
-                            <p className="font-medium">{danfeData.dest?.xNome}</p>
-                            <p className="text-sm text-muted-foreground">CNPJ/CPF: {danfeData.dest?.doc} - <span className="font-semibold">UF: {danfeData.dest?.UF}</span></p>
-                            <p className="text-sm text-muted-foreground">IE: {danfeData.dest?.IE}</p>
-                            <p className="text-sm text-muted-foreground">{danfeData.dest?.enderDest}</p>
-                        </section>
+                      {/* ICMS ST */}
+                      {(item.vICMSST != null || item.pICMSST != null) && (
+                        <div className="border-l-4 border-indigo-400 pl-3">
+                          <h4 className="font-semibold flex items-center gap-1 text-indigo-600"><Calculator size={14} /> ICMS ST</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+                            <span>BC ST: {formatCurrency(item.vBCST)}</span>
+                            <span>% MVA: {formatPercent(item.pMVAST)}</span>
+                            <span>Alíquota ST: {formatPercent(item.pICMSST)}</span>
+                            <span>Valor: {formatCurrency(item.vICMSST)}</span>
+                          </div>
+                        </div>
+                      )}
 
-                        {danfeData.cobr?.length > 0 && (
-                            <section>
-                                <h3 className="text-lg font-bold mb-2 flex items-center gap-2"><Landmark size={20} /> Faturas / Duplicatas</h3>
-                                <table className="w-full text-sm">
-                                    <thead><tr className="border-b"><th className="text-left py-1">Nº</th><th className="text-left py-1">Vencimento</th><th className="text-right py-1">Valor</th></tr></thead>
-                                    <tbody>
-                                        {danfeData.cobr.map((dup: any, i: number) => (
-                                            <tr key={i} className="text-muted-foreground"><td className="py-1">{dup.nDup}</td><td className="py-1">{dup.dVenc}</td><td className="text-right py-1">R$ {formatCurrency(dup.vDup)}</td></tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </section>
-                        )}
+                      {/* PIS e COFINS */}
+                      {(item.vPIS != null || item.vCOFINS != null) && (
+                        <div className="border-l-4 border-green-400 pl-3">
+                          <h4 className="font-semibold flex items-center gap-1 text-green-600"><Percent size={14} /> PIS / COFINS</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+                            <span>PIS: {formatCurrency(item.vPIS)} ({formatPercent(item.pPIS)}) (CST {item.CST_PIS})</span>
+                            <span>COFINS: {formatCurrency(item.vCOFINS)} ({formatPercent(item.pCOFINS)}) (CST {item.CST_COFINS})</span>
+                            <span className="col-span-2">BC: {formatCurrency(item.vProd)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* IPI */}
+                      {item.vIPI != null && item.vIPI > 0 && (
+                        <div className="border-l-4 border-orange-400 pl-3">
+                          <h4 className="font-semibold flex items-center gap-1 text-orange-600"><Percent size={14} /> IPI (CST {item.CST_IPI})</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+                            <span>Alíquota: {formatPercent(item.pIPI)}</span>
+                            <span>Valor: {formatCurrency(item.vIPI)}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  </details>
+                  {/* Adiciona o componente de sugestão */}
+                  <SugestaoERP item={item} />
+                </div>
+              ))}
+            </div>
+          </section>
 
-                    <section className="border-t pt-4">
-                        <h3 className="text-lg font-bold mb-2 flex items-center gap-2"><Truck size={20} /> Transporte e Frete</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div><span className="font-semibold">Modalidade:</span><p className="text-muted-foreground">{danfeData.transp.modFrete}</p></div>
-                            {danfeData.transp.transporta && <div><span className="font-semibold">Transportadora:</span><p className="text-muted-foreground">{danfeData.transp.transporta.xNome} - {danfeData.transp.transporta.CNPJ}</p></div>}
-                            {danfeData.transp.vol[0] && <div><span className="font-semibold">Volumes:</span><p className="text-muted-foreground">{danfeData.transp.vol[0].qVol} {danfeData.transp.vol[0].esp || ''}</p></div>}
-                            {danfeData.transp.vol[0] && <div><span className="font-semibold">Peso Bruto/Líq.:</span><p className="text-muted-foreground">{formatCurrency(danfeData.transp.vol[0].pesoB)} / {formatCurrency(danfeData.transp.vol[0].pesoL)} kg</p></div>}
-                        </div>
-                    </section>
+          {/* Totais */}
+          <section className="border-t pt-6">
+            <h3 className="text-xl font-bold mb-4">Totais da Nota</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 text-sm">
+                <div className="border p-4 rounded-lg bg-secondary/30 space-y-2">
+                    <p className="font-semibold text-base mb-2">Composição do Valor Total</p>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Produtos:</span> <strong>{formatCurrency(danfeData.total?.vProd)}</strong></div>
+                    {danfeData.total?.vFrete > 0 && <div className="flex justify-between"><span className="text-muted-foreground">(+) Frete:</span> {formatCurrency(danfeData.total?.vFrete)}</div>}
+                    {danfeData.total?.vST > 0 && <div className="flex justify-between"><span className="text-muted-foreground">(+) ICMS ST:</span> {formatCurrency(danfeData.total?.vST)}</div>}
+                    {danfeData.total?.vIPI > 0 && <div className="flex justify-between"><span className="text-muted-foreground">(+) IPI:</span> {formatCurrency(danfeData.total?.vIPI)}</div>}
+                    {danfeData.total?.vDesc > 0 && <div className="flex justify-between text-destructive"><span>(-) Descontos:</span> - {formatCurrency(danfeData.total?.vDesc)}</div>}
+                    <div className="flex justify-between font-bold text-lg mt-2 border-t pt-2"><span className="text-foreground">TOTAL DA NOTA:</span> <span className="text-foreground">{formatCurrency(danfeData.total?.vNF)}</span></div>
+                </div>
 
-                    {/* Itens */}
-                    <section className="border-t pt-4">
-                        <h3 className="text-lg font-bold mb-2 flex items-center gap-2"><Package size={20} /> Itens da Nota</h3>
-                        <div className="space-y-4">
-                            {danfeData.det.map((item, index) => (
-                                <div key={index} className="text-sm border rounded-lg p-4 bg-secondary/30">
-                                    {/* INFORMAÇÕES GERAIS DO ITEM (SEMPRE VISÍVEIS) */}
-                                    <p className="font-bold text-base text-foreground">({item.cProd}) {item.xProd}</p>
-                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-x-4 gap-y-2 mt-2 text-muted-foreground">
-                                        <span><span className="font-semibold text-foreground">NCM:</span> {item.NCM || '-'}</span>
-                                        <span><span className="font-semibold text-foreground">CFOP:</span> {item.CFOP || '-'}</span>
-                                        <span><span className="font-semibold text-foreground">Qtd:</span> {item.qCom}</span>
-                                        <span><span className="font-semibold text-foreground">Vl. Unit:</span> R$ {formatCurrency(item.vUnCom)}</span>
-                                        <span className="font-bold text-foreground text-base"><span className="font-semibold">Vl. Total:</span> R$ {formatCurrency(item.vProd)}</span>
-                                    </div>
-
-                                    {/* BOTÃO EXPANSÍVEL PARA OS TRIBUTOS */}
-                                    <details className="mt-4 group">
-                                        <summary className="cursor-pointer text-xs font-semibold text-primary list-none flex items-center gap-1">
-                                            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
-                                            Ver Detalhes Fiscais
-                                        </summary>
-
-                                        {/* CONTEÚDO EXPANSÍVEL (TRIBUTOS E OUTROS VALORES) */}
-                                        <div className="pt-3 mt-3 border-t border-border/50 animate-fade-in space-y-3">
-                                            {/* SEÇÃO DE TRIBUTOS DO ITEM */}
-                                            <div className="space-y-2 text-xs">
-                                                <h4 className="font-semibold text-sm text-foreground mb-2">Tributos</h4>
-
-                                                {(item.vICMS || item.pICMS) && (
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4">
-                                                        <span className="font-semibold">ICMS:</span>
-                                                        <span>BC: R$ {formatCurrency(item.vBC)}</span>
-                                                        <span>Alíquota: {formatPercent(item.pICMS)}</span>
-                                                        <span>Valor: R$ {formatCurrency(item.vICMS)}</span>
-                                                    </div>
-                                                )}
-
-                                                {(item.vICMSST || item.pICMSST) && (
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4">
-                                                        <span className="font-semibold">ICMS ST:</span>
-                                                        <span>BC: R$ {formatCurrency(item.vBCST)}</span>
-                                                        {/* MVA ADICIONADO DE VOLTA */}
-                                                        <span>% MVA: {formatPercent(item.pMVAST)}</span>
-                                                        <span>Alíquota: {formatPercent(item.pICMSST)} = R$ {formatCurrency(item.vICMSST)}</span>
-                                                    </div>
-                                                )}
-
-                                                {(item.vPIS || item.pPIS) && (
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4">
-                                                        <span className="font-semibold">PIS:</span>
-                                                        <span>BC: R$ {formatCurrency(item.vProd)}</span>
-                                                        <span>Alíquota: {formatPercent(item.pPIS)}</span>
-                                                        <span>Valor: R$ {formatCurrency(item.vPIS)}</span>
-                                                    </div>
-                                                )}
-
-                                                {(item.vCOFINS || item.pCOFINS) && (
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4">
-                                                        <span className="font-semibold">COFINS:</span>
-                                                        <span>BC: R$ {formatCurrency(item.vProd)}</span>
-                                                        <span>Alíquota: {formatPercent(item.pCOFINS)}</span>
-                                                        <span>Valor: R$ {formatCurrency(item.vCOFINS)}</span>
-                                                    </div>
-                                                )}
-
-                                                {item.vIPI && parseFloat(item.vIPI) > 0 && (
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4">
-                                                        <span className="font-semibold">IPI:</span>
-                                                        <span></span>
-                                                        <span></span>
-                                                        <span>Valor: R$ {formatCurrency(item.vIPI)}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* SEÇÃO OUTROS VALORES DO ITEM */}
-                                            {(item.vFrete || item.vSeg || item.vOutro) && (
-                                                <div className="border-t mt-3 pt-3 space-y-2 text-xs">
-                                                    <h4 className="font-semibold text-sm text-foreground mb-2">Outros Valores do Item</h4>
-                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4">
-                                                        {parseFloat(item.vFrete) > 0 && <span><span className="font-semibold">Frete:</span> R$ {formatCurrency(item.vFrete)}</span>}
-                                                        {parseFloat(item.vSeg) > 0 && <span><span className="font-semibold">Seguro:</span> R$ {formatCurrency(item.vSeg)}</span>}
-                                                        {parseFloat(item.vOutro) > 0 && <span><span className="font-semibold">Outras Desp.:</span> R$ {formatCurrency(item.vOutro)}</span>}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </details>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* Totais */}
-                    <section className="border-t pt-6">
-                        <h3 className="text-xl font-bold mb-4 text-left">Totais da Nota Fiscal</h3>
-
-                        {/* Grid principal que divide a seção em duas colunas em telas maiores */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-
-                            {/* --- COLUNA DA ESQUERDA: COMPOSIÇÃO DO VALOR FINAL --- */}
-                            <div className="space-y-4">
-                                <h4 className="text-lg font-semibold text-foreground">Composição do Valor da Nota</h4>
-                                <div className="space-y-1.5 text-sm border p-4 rounded-lg bg-secondary/30">
-                                    {/* --- Base de Cálculo --- */}
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Valor Total dos Produtos:</span>
-                                        <span>R$ {formatCurrency(danfeData.total?.vProd)}</span>
-                                    </div>
-
-                                    {/* --- Valores Adicionados (+) --- */}
-                                    {danfeData.total?.vFrete > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">(+) Valor do Frete:</span>
-                                            <span>R$ {formatCurrency(danfeData.total?.vFrete)}</span>
-                                        </div>
-                                    )}
-                                    {danfeData.total?.vSeg > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">(+) Valor do Seguro:</span>
-                                            <span>R$ {formatCurrency(danfeData.total?.vSeg)}</span>
-                                        </div>
-                                    )}
-                                    {danfeData.total?.vOutro > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">(+) Outras Despesas:</span>
-                                            <span>R$ {formatCurrency(danfeData.total?.vOutro)}</span>
-                                        </div>
-                                    )}
-                                    {danfeData.total?.vIPI > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">(+) Valor Total IPI:</span>
-                                            <span>R$ {formatCurrency(danfeData.total?.vIPI)}</span>
-                                        </div>
-                                    )}
-                                    {danfeData.total?.vST > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">(+) Valor Total ICMS ST:</span>
-                                            <span>R$ {formatCurrency(danfeData.total?.vST)}</span>
-                                        </div>
-                                    )}
-
-                                    {/* --- Valores Subtraídos (-) --- */}
-                                    {danfeData.total?.vDesc > 0 && (
-                                        <div className="flex justify-between text-red-500 pt-1 mt-1 border-t border-dashed">
-                                            <span className="font-medium">(-) Valor do Desconto:</span>
-                                            <span className="font-medium">- R$ {formatCurrency(danfeData.total?.vDesc)}</span>
-                                        </div>
-                                    )}
-
-                                    {/* --- Linha Final do Total --- */}
-                                    <div className="flex justify-between font-bold text-xl border-t mt-2 pt-2">
-                                        <span className="text-foreground">VALOR TOTAL DA NOTA:</span>
-                                        <span className="text-foreground">R$ {formatCurrency(danfeData.total?.vNF)}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* --- COLUNA DA DIREITA: RESUMO DE TRIBUTOS INFORMATIVOS --- */}
-                            <div className="space-y-4">
-                                <h4 className="text-lg font-semibold text-foreground">Resumo de Tributos (Informativo)</h4>
-                                <div className="space-y-1.5 text-sm text-muted-foreground border p-4 rounded-lg bg-secondary/30">
-                                    <div className="flex justify-between">
-                                        <span>Base de Cálculo ICMS:</span>
-                                        <span>R$ {formatCurrency(danfeData.total?.vBC)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Valor Total ICMS (incluso):</span>
-                                        <span>R$ {formatCurrency(danfeData.total?.vICMS)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Base de Cálculo ICMS ST:</span>
-                                        <span>R$ {formatCurrency(danfeData.total?.vBCST)}</span>
-                                    </div>
-                                    <div className="flex justify-between border-b pb-2 mb-2">
-                                        <span>Valor Total PIS+COFINS (incluso):</span>
-                                        <span>R$ {formatCurrency((danfeData.total?.vPIS || 0) + (danfeData.total?.vCOFINS || 0))}</span>
-                                    </div>
-                                    {danfeData.total?.vTotTrib > 0 && (
-                                        <div className="flex justify-between pt-1">
-                                            <span className="font-medium">Valor Aprox. Tributos (Lei da Transp.):</span>
-                                            <span className="font-medium">R$ {formatCurrency(danfeData.total?.vTotTrib)}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-
-                    {/* Informações Adicionais */}
-                    {(danfeData.infAdic?.infCpl || danfeData.infAdic?.infAdFisco) && (
-                        <section className="border-t pt-4 text-sm">
-                            <h3 className="text-lg font-bold mb-2 flex items-center gap-2"><Info size={20} /> Informações Complementares</h3>
-                            {danfeData.infAdic.infCpl && <p className="text-muted-foreground whitespace-pre-wrap bg-secondary p-3 rounded-md mb-2">{danfeData.infAdic.infCpl}</p>}
-                            {danfeData.infAdic.infAdFisco && <p className="text-muted-foreground whitespace-pre-wrap bg-secondary p-3 rounded-md">({danfeData.infAdic.infAdFisco})</p>}
-                        </section>
+                <div className="border p-4 rounded-lg bg-secondary/30 space-y-2">
+                    <p className="font-semibold text-base mb-2">Resumo de Tributos (Informativo)</p>
+                    <div className="flex justify-between"><span className="text-muted-foreground">BC ICMS:</span> {formatCurrency(danfeData.total?.vBC)}</div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Valor ICMS:</span> {formatCurrency(danfeData.total?.vICMS)}</div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">PIS+COFINS:</span> {formatCurrency((danfeData.total?.vPIS || 0) + (danfeData.total?.vCOFINS || 0))}</div>
+                    {danfeData.total?.vTotTrib > 0 && (
+                      <p className="font-medium text-foreground mt-2 pt-2 border-t">Aprox. Tributos: {formatCurrency(danfeData.total?.vTotTrib)}</p>
                     )}
                 </div>
-            )}
+            </div>
+          </section>
+          
+          {/* Outras Seções (Destinatário, Faturas, etc.) */}
+
         </div>
-    );
+      )}
+    </div>
+  );
 }

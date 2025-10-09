@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Sparkles, Loader } from 'lucide-react';
 
-// ▼▼▼ 1. TIPO ATUALIZADO PARA ACEITAR 'null' ▼▼▼
+// Tipos para as propriedades que este componente recebe
 interface SugestaoERPProps {
   item: {
     CST_ICMS: string | null;
@@ -11,7 +11,6 @@ interface SugestaoERPProps {
     CST_COFINS: string | null;
   };
 }
-// ▲▲▲ FIM DA ATUALIZAÇÃO ▲▲▲
 
 export function SugestaoERP({ item }: SugestaoERPProps) {
   const [sugestao, setSugestao] = useState<string | null>(null);
@@ -36,14 +35,12 @@ export function SugestaoERP({ item }: SugestaoERPProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        // ▼▼▼ 2. LÓGICA ATUALIZADA PARA ENVIAR VALORES PADRÃO ▼▼▼
         body: JSON.stringify({
-          cstIcms: item.CST_ICMS || '',      // Garante que nunca seja nulo
-          pIcms: item.pICMS?.toString() || '0', // Converte número para string e garante que não seja nulo
-          cstPis: item.CST_PIS || '',      // Garante que nunca seja nulo
-          cstCofins: item.CST_COFINS || '',// Garante que nunca seja nulo
+          cstIcms: item.CST_ICMS,
+          pIcms: item.pICMS,
+          cstPis: item.CST_PIS,
+          cstCofins: item.CST_COFINS,
         }),
-        // ▲▲▲ FIM DA ATUALIZAÇÃO ▲▲▲
       });
 
       if (!response.ok) {
@@ -71,7 +68,7 @@ export function SugestaoERP({ item }: SugestaoERPProps) {
         {isLoading ? 'Analisando...' : 'Sugerir Tributação ERP'}
       </button>
 
-      {isLoading && <Loader className="animate-spin mt-2" size={20} />}
+      {isLoading && <Loader className="animate-spin mt-2 text-primary" size={20} />}
       
       {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
       
