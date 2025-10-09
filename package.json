@@ -11,6 +11,7 @@
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
     "axios": "^1.12.2",
+    "fast-xml-parser": "^5.3.0",
     "fumadocs-core": "^15.7.13",
     "fumadocs-mdx": "^11.10.1",
     "fumadocs-ui": "^15.7.13",
