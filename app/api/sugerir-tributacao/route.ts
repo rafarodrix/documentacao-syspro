@@ -1,66 +1,122 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
 
 /**
- * Mapeia o CST do ICMS e a alíquota para o prefixo do ERP (T18%, FF, II, NN).
+ * Retorna o prefixo do ERP (T18%, FF, II, NN, etc.) com base no CST e alíquota do ICMS.
  */
-function getIcmsPrefix(cstIcms: string, pIcmsStr: string): string {
-    const pIcms = parseFloat(pIcmsStr || '0');
+function getIcmsPrefix(cstIcms: string, pIcmsStr?: string): { prefixo: string; motivo: string } {
+  const pIcms = parseFloat(pIcmsStr || '0')
 
-    // Regra para Tributado (Txx%)
-    if (['00', '20'].includes(cstIcms)) {
-        if (pIcms > 0) {
-            return `T${Math.round(pIcms)}%`;
+  switch (true) {
+    // Tributado integralmente (00, 20, 90)
+    case ['00', '20', '90'].includes(cstIcms):
+      if (pIcms > 0) {
+        return {
+          prefixo: `T${Math.round(pIcms)}%`,
+          motivo: `ICMS tributado com alíquota de ${pIcms}%`,
         }
-        return 'T0%'; // Caso seja tributado mas com alíquota zero
-    }
-    // Regra para Substituição Tributária (FF)
-    if (['10', '30', '60', '70'].includes(cstIcms)) {
-        return 'FF';
-    }
-    // Regra para Isento/Imune (II)
-    if (['40', '41', '50'].includes(cstIcms)) {
-        return 'II';
-    }
-    // Regra para Não Tributado (NN) e outros casos
-    return 'NN';
+      }
+      return { prefixo: 'T0%', motivo: 'ICMS tributado com alíquota zero' }
+
+    // Substituição tributária (10, 30, 60, 70)
+    case ['10', '30', '60', '70'].includes(cstIcms):
+      return {
+        prefixo: 'FF',
+        motivo: 'ICMS com substituição tributária',
+      }
+
+    // Diferimento / redução parcial
+    case ['51'].includes(cstIcms):
+      return {
+        prefixo: 'FF',
+        motivo: 'ICMS com diferimento ou redução parcial (CST 51)',
+      }
+
+    // Isento / Imune
+    case ['40', '41', '50'].includes(cstIcms):
+      return {
+        prefixo: 'II',
+        motivo: 'Operação isenta ou imune de ICMS',
+      }
+
+    // Outras situações não tributadas
+    default:
+      return {
+        prefixo: 'NN',
+        motivo: 'Operação não tributada ou sem incidência de ICMS',
+      }
+  }
 }
 
 /**
- * Mapeia os CSTs de PIS/COFINS para o sufixo do ERP (PIS E COFINS 50 | 01).
- * Esta é uma suposição baseada na sua imagem. VALIDE ESTA REGRA!
+ * Retorna o sufixo de PIS/COFINS conforme os CSTs combinados.
  */
-function getPisCofinsSuffix(cstPis: string, cstCofins: string): string {
-    // Exemplo de regra: Se CST de PIS for monofásico, isento, alíquota zero, etc.
-    if (['04', '05', '06', '07', '08', '09'].includes(cstPis)) {
-        // Usa o grupo "70" do seu ERP
-        return `PIS E COFINS 70 | ${cstPis}`;
+function getPisCofinsSuffix(cstPis: string, cstCofins: string): { sufixo: string; motivo: string } {
+  // Ambos tributados normalmente
+  if (['01', '02'].includes(cstPis) && ['01', '02'].includes(cstCofins)) {
+    return {
+      sufixo: `PIS E COFINS 50 | ${cstPis}`,
+      motivo: 'PIS/COFINS tributados normalmente',
     }
-    // Para todas as outras operações (tributadas, etc.), usa o grupo "50"
-    return `PIS E COFINS 50 | ${cstPis}`;
+  }
+
+  // Monofásico ou substituição tributária
+  if (['03'].includes(cstPis) || ['03'].includes(cstCofins)) {
+    return {
+      sufixo: `PIS E COFINS 70 | 03`,
+      motivo: 'PIS/COFINS monofásico ou por substituição tributária',
+    }
+  }
+
+  // Isenção, alíquota zero, não tributado
+  if (['04', '05', '06', '07', '08', '09'].includes(cstPis)) {
+    return {
+      sufixo: `PIS E COFINS 70 | ${cstPis}`,
+      motivo: 'PIS/COFINS isento, alíquota zero ou não tributado',
+    }
+  }
+
+  // Outras combinações – genérico
+  return {
+    sufixo: `PIS E COFINS 50 | ${cstPis}`,
+    motivo: 'Tratamento padrão de PIS/COFINS',
+  }
 }
 
-// --- FIM DAS REGRAS DE MAPEAMENTO ---
-
-
+/**
+ * Função principal da API – gera sugestão de tributação
+ */
 export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const { cstIcms, pIcms, cstPis, cstCofins } = body;
+  try {
+    const body = await request.json()
+    const { cstIcms, pIcms, cstPis, cstCofins } = body
 
-        if (!cstIcms || !cstPis || !cstCofins) {
-            return NextResponse.json({ error: 'CSTs de ICMS, PIS e COFINS são obrigatórios.' }, { status: 400 });
-        }
-        
-        const icmsPrefix = getIcmsPrefix(cstIcms, pIcms);
-        const pisCofinsSuffix = getPisCofinsSuffix(cstPis, cstCofins);
-
-        // Monta a sugestão final
-        const sugestao = `${icmsPrefix} | ${pisCofinsSuffix}`;
-
-        return NextResponse.json({ sugestao });
-
-    } catch (error) {
-        console.error("Erro na sugestão de tributação:", error);
-        return NextResponse.json({ error: 'Falha ao processar a sugestão.' }, { status: 500 });
+    if (!cstIcms || !cstPis || !cstCofins) {
+      return NextResponse.json(
+        { error: 'CSTs de ICMS, PIS e COFINS são obrigatórios.' },
+        { status: 400 }
+      )
     }
+
+    const icms = getIcmsPrefix(cstIcms, pIcms)
+    const pisCofins = getPisCofinsSuffix(cstPis, cstCofins)
+
+    // Monta a descrição completa e padronizada
+    const descricao = `${icms.prefixo} | ${pisCofins.sufixo}`
+    const informacao = `${icms.motivo} | ${pisCofins.motivo}`
+
+    return NextResponse.json({
+      sugestao: descricao,
+      detalhes: {
+        icms: icms.motivo,
+        pisCofins: pisCofins.motivo,
+      },
+      informacao,
+    })
+  } catch (error) {
+    console.error('Erro na sugestão de tributação:', error)
+    return NextResponse.json(
+      { error: 'Falha ao processar a sugestão.' },
+      { status: 500 }
+    )
+  }
 }
