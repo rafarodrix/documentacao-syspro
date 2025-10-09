@@ -1,6 +1,16 @@
 {
-    "root": true,
-    "title": "Suporte",
-    "description": "Seção com informações sobre a equipe de Suporte.",
-    "icon": "Terminal"
-  }
+  "root": true,
+  "title": "Suporte",
+  "description": "Seção com ferramentas e documentação de suporte.",
+  "icon": "Settings",
+  "pages": [
+    "---Ferramentas de Suporte---",
+    "analisador",
+    "visualizador-danfe",
+    "---Documentação e Guias---",
+    "homologcao-producao",
+    "requisitos",
+    "releasenotes",
+    "treinamento"
+  ]
+}

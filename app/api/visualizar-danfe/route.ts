@@ -3,9 +3,9 @@ import { XMLParser } from 'fast-xml-parser';
 
 // Mapa para traduzir o código da modalidade de frete
 const modFreteMap: { [key: string]: string } = {
-  '0': '0 - Emitente (CIF)',
-  '1': '1 - Destinatário (FOB)',
-  '2': '2 - Terceiros',
+  '0': '0 - Por conta do Emitente (CIF)',
+  '1': '1 - Por conta do Destinatário (FOB)',
+  '2': '2 - Por conta de Terceiros',
   '3': '3 - Transporte Próprio (Remetente)',
   '4': '4 - Transporte Próprio (Destinatário)',
   '9': '9 - Sem Transporte',
@@ -49,31 +49,40 @@ export async function POST(request: Request) {
       const prod = item.prod || {};
       const imposto = item.imposto || {};
       const icmsNode = Object.values(imposto.ICMS || {}).find(node => typeof node === 'object') as any || {};
-      const ipiNode = imposto.IPI?.IPITrib || {};
-      const pisNode = imposto.PIS?.PISAliq || imposto.PIS?.PISOutr || {};
-      const cofinsNode = imposto.COFINS?.COFINSAliq || imposto.COFINS?.COFINSOutr || {};
-
+      const ipiNodeContainer = imposto.IPI || {};
+      const ipiNode = ipiNodeContainer.IPITrib || ipiNodeContainer.IPINT || {}; 
+      const pisNode = imposto.PIS ? (imposto.PIS.PISAliq || imposto.PIS.PISOutr || imposto.PIS.PISNT || {}) : {};
+      const cofinsNode = imposto.COFINS ? (imposto.COFINS.COFINSAliq || imposto.COFINS.COFINSOutr || imposto.COFINS.COFINSNT || {}) : {};
 
       return {
+        // Dados do Produto
         cProd: prod.cProd, xProd: prod.xProd, NCM: prod.NCM, CFOP: prod.CFOP,
         qCom: prod.qCom, vUnCom: prod.vUnCom, vProd: prod.vProd,
-        // ICMS
+        vFrete: prod.vFrete, vSeg: prod.vSeg, vOutro: prod.vOutro,
+        
+        // Dados do ICMS
+        CST_ICMS: icmsNode.CST || icmsNode.CSOSN,
         vBC: icmsNode.vBC, pICMS: icmsNode.pICMS, vICMS: icmsNode.vICMS,
-        pRedBC: icmsNode.pRedBC, vRedBC: icmsNode.vRedBC,
-        // ICMS ST
+        pRedBC: icmsNode.pRedBC,
+        
+        // Dados do ICMS ST
         vBCST: icmsNode.vBCST, pMVAST: icmsNode.pMVAST, pICMSST: icmsNode.pICMSST, vICMSST: icmsNode.vICMSST,
-        pRedBCST: icmsNode.pRedBCST, vRedBCST: icmsNode.vRedBCST,
-        // Outros
+        pRedBCST: icmsNode.pRedBCST,
+
+        // Dados do IPI
+        CST_IPI: ipiNode.CST,
         vIPI: ipiNode.vIPI,
+
+        // Dados do PIS
+        CST_PIS: pisNode.CST,
         pPIS: pisNode.pPIS, vPIS: pisNode.vPIS,
+
+        // Dados do COFINS
+        CST_COFINS: cofinsNode.CST,
         pCOFINS: cofinsNode.pCOFINS, vCOFINS: cofinsNode.vCOFINS,
-        vFrete: prod.vFrete,
-        vSeg: prod.vSeg,
-        vOutro: prod.vOutro,
       };
     });
 
-    // Normaliza as duplicatas para sempre serem um array
     const dupArray = Array.isArray(nfeData.cobr?.dup) ? nfeData.cobr.dup : (nfeData.cobr?.dup ? [nfeData.cobr.dup] : []);
 
     const danfe = {
@@ -92,12 +101,14 @@ export async function POST(request: Request) {
           CNPJ: nfeData.emit?.CNPJ || '',
           IE: nfeData.emit?.IE || '',
           enderEmit: formatAddress(nfeData.emit?.enderEmit),
+          UF: nfeData.emit?.enderEmit?.UF,
       },
       dest: {
           xNome: nfeData.dest?.xNome || '',
           doc: nfeData.dest?.CNPJ || nfeData.dest?.CPF || '',
           IE: nfeData.dest?.IE || '',
           enderDest: formatAddress(nfeData.dest?.enderDest),
+          UF: nfeData.dest?.enderDest?.UF,
       },
       transp: {
         modFrete: modFreteMap[nfeData.transp?.modFrete] || nfeData.transp?.modFrete,
