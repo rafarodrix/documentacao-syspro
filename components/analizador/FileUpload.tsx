@@ -1,8 +1,6 @@
 import { ChangeEvent, FormEvent } from 'react';
 import { UploadCloud, File, X } from 'lucide-react';
 
-// ??? ESTA PARTE ESTAVA FALTANDO ???
-// Aqui definimos a "forma" das propriedades que o componente espera receber.
 type FileUploadProps = {
   files: FileList | null;
   numeros: string;
@@ -12,7 +10,6 @@ type FileUploadProps = {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onClear: () => void;
 };
-// ??? FIM DA PARTE QUE FALTAVA ???
 
 export function FileUpload({ files, numeros, status, onFileChange, onNumerosChange, onSubmit, onClear }: FileUploadProps) {
   const isProcessing = status === 'uploading' || status === 'processing';
@@ -39,7 +36,6 @@ export function FileUpload({ files, numeros, status, onFileChange, onNumerosChan
                   />
                 </label>
               </div>
-              <p className="text-xs leading-5 text-muted-foreground">Arraste e solte (em breve)</p>
             </div>
           </div>
         </div>
