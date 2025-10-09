@@ -1,12 +1,12 @@
-'use client';
+'use client'; 
 
-import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
+import { useState, ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
 import { FileUpload } from './FileUpload';
 import { StatusDisplay } from './StatusDisplay';
 import { ResultDisplay } from './ResultDisplay';
 
-type Status = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
+type Status = 'idle' | 'processing' | 'completed' | 'error';
 interface Result {
   summary: string;
   downloadUrl: string;
@@ -18,43 +18,7 @@ export function AnalisadorXMLTool() {
   const [status, setStatus] = useState<Status>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [jobId, setJobId] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
-
-  useEffect(() => {
-    if (status !== 'processing' || !jobId) return;
-
-    const intervalId = setInterval(async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (!apiUrl) throw new Error("URL da API não configurada.");
-        
-        const response = await fetch(`${apiUrl}/api/status/${jobId}`);
-        if (!response.ok) throw new Error("Falha ao buscar status.");
-        
-        const data = await response.json();
-
-        if (data.status === 'completed') {
-          setStatus('completed');
-          setStatusMessage('Análise concluída com sucesso!');
-          setResult({ summary: data.summary, downloadUrl: data.downloadUrl });
-          clearInterval(intervalId);
-        } else if (data.status === 'error') {
-          setStatus('error');
-          setStatusMessage(`Erro durante a análise: ${data.error}`);
-          clearInterval(intervalId);
-        }
-      } catch (err) {
-        setStatus('error');
-        setStatusMessage('Erro de rede ao verificar o status do processo.');
-        clearInterval(intervalId);
-      }
-    }, 3000); // Pesquisa a cada 3 segundos
-
-    return () => clearInterval(intervalId); // Limpeza ao sair da página
-  }, [status, jobId]);
-
-
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     setStatus('idle');
@@ -63,38 +27,58 @@ export function AnalisadorXMLTool() {
     setFiles(e.target.files);
   };
   
-  const handleClearFiles = () => {
-    setFiles(null);
-    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-    if (fileInput) fileInput.value = "";
-  };
+  const handleClearFiles = () => { /* ... */ };
 
-const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!files || files.length === 0) return;
 
-    setStatus('uploading');
-    setStatusMessage('Enviando arquivos...');
+    setStatus('processing'); // Muda direto para 'processing'
+    setStatusMessage('Enviando e analisando arquivos...');
+    setResult(null);
+    setUploadProgress(0);
 
     const formData = new FormData();
-    
     const isZipUpload = files.length === 1 && files[0].name.endsWith('.zip');
-
     if (isZipUpload) {
-      // Se for um ZIP, envia como um único arquivo 'file'
       formData.append('file', files[0]);
     } else {
-      // Se for uma pasta, envia como múltiplos arquivos 'files'
       for (let i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
       }
     }
-
-    
     formData.append('numerosParaCopiar', numeros);
     
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) throw new Error("URL da API não configurada.");
+
+      // Faz a chamada e ESPERA a resposta completa
+      const response = await axios.post(`${apiUrl}/api/analyze`, formData, {
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+          setUploadProgress(percentCompleted);
+          if (percentCompleted < 100) {
+            setStatusMessage('Enviando arquivos...');
+          } else {
+            setStatusMessage('Arquivos enviados. Aguardando análise do servidor...');
+          }
+        },
+      });
+
+      // Se chegamos aqui, a análise terminou com sucesso
+      setResult(response.data);
+      setStatus('completed');
+
     } catch (err: any) {
+      setStatus('error');
+      if (err.response) {
+        setStatusMessage(err.response.data.error || 'Erro no servidor.');
+      } else if (err.request) {
+        setStatusMessage('Erro de Conexão: O servidor não respondeu.');
+      } else {
+        setStatusMessage(err.message);
+      }
     }
   };
   
