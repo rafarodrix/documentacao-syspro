@@ -1,6 +1,8 @@
 import { ChangeEvent, FormEvent } from 'react';
 import { UploadCloud, File, X } from 'lucide-react';
 
+// ??? ESTA PARTE ESTAVA FALTANDO ???
+// Aqui definimos a "forma" das propriedades que o componente espera receber.
 type FileUploadProps = {
   files: FileList | null;
   numeros: string;
@@ -10,16 +12,17 @@ type FileUploadProps = {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onClear: () => void;
 };
+// ??? FIM DA PARTE QUE FALTAVA ???
 
 export function FileUpload({ files, numeros, status, onFileChange, onNumerosChange, onSubmit, onClear }: FileUploadProps) {
   const isProcessing = status === 'uploading' || status === 'processing';
 
   return (
-    <div className="bg-card p-6 rounded-lg shadow-md border">
-      <form onSubmit={onSubmit}>
-        <div className="mb-6">
-          <label htmlFor="file-upload" className="block text-lg font-medium text-foreground mb-2">
-            1. Selecione a Pasta de XMLs
+    <div className="bg-card p-8 rounded-xl shadow-sm border">
+      <form onSubmit={onSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="file-upload" className="block text-lg font-semibold text-foreground mb-2">
+            Selecione a Pasta de XMLs
           </label>
           <div className="mt-2 flex justify-center rounded-lg border border-dashed border-border px-6 py-10 hover:border-primary transition-colors">
             <div className="text-center">
@@ -42,7 +45,7 @@ export function FileUpload({ files, numeros, status, onFileChange, onNumerosChan
         </div>
 
         {files && files.length > 0 && (
-          <div className="mb-6 border-t border-b border-border py-4">
+          <div className="border-t border-b border-border py-4 animate-fade-in">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-sm font-medium text-foreground">Arquivos Selecionados: {files.length}</h3>
                 <button type="button" onClick={onClear} className="text-sm font-semibold text-primary hover:text-primary/80 flex items-center gap-1">
@@ -60,9 +63,9 @@ export function FileUpload({ files, numeros, status, onFileChange, onNumerosChan
           </div>
         )}
 
-        <div className="mb-6">
-          <label htmlFor="numeros" className="block text-lg font-medium text-foreground mb-2">
-            2. Números para Copiar
+        <div>
+          <label htmlFor="numeros" className="block text-lg font-semibold text-foreground mb-2">
+            Xml Para enviar para a Contabilidade
           </label>
           <input
             id="numeros"
@@ -77,7 +80,7 @@ export function FileUpload({ files, numeros, status, onFileChange, onNumerosChan
         <button
           type="submit"
           disabled={isProcessing || !files || files.length === 0}
-          className="w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-muted disabled:cursor-not-allowed"
+          className="w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus-ring-offset-2 focus:ring-primary disabled:bg-muted disabled:cursor-not-allowed"
         >
           {isProcessing ? 'Analisando...' : 'Iniciar Análise'}
         </button>

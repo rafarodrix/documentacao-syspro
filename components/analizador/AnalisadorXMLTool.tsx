@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
-import axios from 'axios'; // Usando axios para o progresso do upload
+import axios from 'axios';
 import { FileUpload } from './FileUpload';
 import { StatusDisplay } from './StatusDisplay';
 import { ResultDisplay } from './ResultDisplay';
@@ -13,6 +13,7 @@ interface Result {
 }
 
 export function AnalisadorXMLTool() {
+
   const [files, setFiles] = useState<FileList | null>(null);
   const [numeros, setNumeros] = useState('');
   const [status, setStatus] = useState<Status>('idle');
@@ -21,7 +22,7 @@ export function AnalisadorXMLTool() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
 
-  useEffect(() => { /* ... Lógica de polling (sem alterações) ... */ }, [status, jobId]);
+  useEffect(() => { /* ... Lógica de polling ... */ }, [status, jobId]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     setStatus('idle');
@@ -32,81 +33,54 @@ export function AnalisadorXMLTool() {
   
   const handleClearFiles = () => {
     setFiles(null);
-    // Limpa o valor do input para permitir selecionar a mesma pasta de novo
     const fileInput = document.getElementById('file-upload') as HTMLInputElement;
     if (fileInput) fileInput.value = "";
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!files || files.length === 0) return;
-
-    setStatus('uploading');
-    setStatusMessage('Enviando arquivos...');
-    setResult(null);
-    setUploadProgress(0);
-
-    const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      formData.append('files', files[i]);
-    }
-    formData.append('numerosParaCopiar', numeros);
-    
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) throw new Error("URL da API não configurada.");
-
-      // Usando Axios para obter o progresso do upload
-      const response = await axios.post(`${apiUrl}/api/analyze`, formData, {
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-          setUploadProgress(percentCompleted);
-        },
-      });
-
-      setJobId(response.data.jobId);
-      setStatus('processing');
-      setStatusMessage('Arquivos recebidos. Iniciando análise, por favor aguarde...');
-
-    } catch (err: any) {
-      setStatus('error');
-      if (err.response) {
-        setStatusMessage(err.response.data.error || 'Erro no servidor.');
-      } else if (err.request) {
-        setStatusMessage('Erro de Conexão: O servidor não respondeu. Verifique se o backend está rodando.');
-      } else {
-        setStatusMessage(err.message);
-      }
-    }
+    // ... Lógica do handleSubmit ...
   };
   
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   return (
-    <div className="max-w-2xl">
-      <FileUpload
-        files={files}
-        numeros={numeros}
-        status={status}
-        onFileChange={handleFileChange}
-        onNumerosChange={(e) => setNumeros(e.target.value)}
-        onSubmit={handleSubmit}
-        onClear={handleClearFiles}
-      />
-      
-      <StatusDisplay
-        status={status}
-        statusMessage={statusMessage}
-        uploadProgress={uploadProgress}
-      />
+    <main className="container mx-auto flex flex-col items-center justify-center px-4 py-12">
+      <div className="w-full max-w-3xl space-y-8">
+        {/* O cabeçalho agora fica aqui dentro para centralizar junto */}
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            Analisador de XML Fiscal
+          </h1>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Uma ferramenta rápida para validar sequências e extrair documentos.
+          </p>
+        </div>
 
-      {status === 'completed' && result && (
-        <ResultDisplay
-          summary={result.summary}
-          downloadUrl={result.downloadUrl}
-          apiUrl={apiUrl}
+        {/* Nossos componentes agora vivem dentro deste container centralizado */}
+        <FileUpload
+          files={files}
+          numeros={numeros}
+          status={status}
+          onFileChange={handleFileChange}
+          onNumerosChange={(e) => setNumeros(e.target.value)}
+          onSubmit={handleSubmit}
+          onClear={handleClearFiles}
         />
-      )}
-    </div>
+        
+        <StatusDisplay
+          status={status}
+          statusMessage={statusMessage}
+          uploadProgress={uploadProgress}
+        />
+
+        {status === 'completed' && result && (
+          <ResultDisplay
+            summary={result.summary}
+            downloadUrl={result.downloadUrl}
+            apiUrl={apiUrl}
+          />
+        )}
+      </div>
+    </main>
   );
 }
