@@ -4,49 +4,53 @@ import { NextResponse } from 'next/server'
  * Retorna o prefixo do ERP (T18%, FF, II, NN, etc.) com base no CST e alíquota do ICMS.
  */
 function getIcmsPrefix(cstIcms: string, pIcmsStr?: string): { prefixo: string; motivo: string } {
-  const pIcms = parseFloat(pIcmsStr || '0')
+  const pIcms = parseFloat(pIcmsStr || '0');
+  const cst = cstIcms.padStart(2, '0'); // garante 2 dígitos
 
   switch (true) {
-    // Tributado integralmente (00, 20, 90)
-    case ['00', '20', '90'].includes(cstIcms):
-      if (pIcms > 0) {
-        return {
-          prefixo: `T${Math.round(pIcms)}%`,
-          motivo: `ICMS tributado com alíquota de ${pIcms}%`,
-        }
-      }
-      return { prefixo: 'T0%', motivo: 'ICMS tributado com alíquota zero' }
+    // Tributado integralmente (00, 90)
+    case ['00', '90'].includes(cst):
+      return {
+        prefixo: `T${Math.round(pIcms)}%`,
+        motivo: `ICMS tributado integralmente (${pIcms}%)`,
+      };
 
-    // Substituição tributária (10, 30, 60, 70)
-    case ['10', '30', '60', '70'].includes(cstIcms):
+    // Tributado com redução de base (20)
+    case cst === '20':
+      return {
+        prefixo: `T${Math.round(pIcms)}%`,
+        motivo: `ICMS tributado com redução de base (${pIcms}% sobre base reduzida)`,
+      };
+
+    // Substituição tributária
+    case ['10', '30', '60', '70'].includes(cst):
       return {
         prefixo: 'FF',
         motivo: 'ICMS com substituição tributária',
-      }
+      };
 
-    // Diferimento / redução parcial
-    case ['51'].includes(cstIcms):
+    // Diferimento parcial
+    case cst === '51':
       return {
         prefixo: 'FF',
-        motivo: 'ICMS com diferimento ou redução parcial (CST 51)',
-      }
+        motivo: 'ICMS com diferimento parcial (CST 51)',
+      };
 
-    // Isento / Imune
-    case ['40', '41', '50'].includes(cstIcms):
+    // Isento/Imune
+    case ['40', '41', '50'].includes(cst):
       return {
         prefixo: 'II',
         motivo: 'Operação isenta ou imune de ICMS',
-      }
+      };
 
     // Outras situações não tributadas
     default:
       return {
         prefixo: 'NN',
         motivo: 'Operação não tributada ou sem incidência de ICMS',
-      }
+      };
   }
 }
-
 /**
  * Retorna o sufixo de PIS/COFINS conforme os CSTs combinados.
  */
