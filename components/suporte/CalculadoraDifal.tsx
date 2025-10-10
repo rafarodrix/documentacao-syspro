@@ -2,6 +2,7 @@
 
 import { useState, useMemo, ChangeEvent } from 'react';
 import { Calculator, X, HelpCircle, ChevronDown } from 'lucide-react';
+import 'katex/dist/katex.min.css';
 
 
 
@@ -152,86 +153,61 @@ export function CalculadoraDifal() {
                     )}
                 </div>
             )}
-            {/* ▼▼▼ SEÇÃO EXPLICATIVA MELHORADA: DIFAL / ANTECIPAÇÃO ▼▼▼ */}
-            {/* ▼▼▼ NOVA SEÇÃO DE EXPLICAÇÃO ▼▼▼ */}
-            <details className="mt-6 text-sm text-muted-foreground bg-card border rounded-lg p-4 group">
+            <details className="mt-8 text-sm group">
                 <summary className="cursor-pointer font-semibold text-primary list-none flex items-center gap-2">
                     <HelpCircle size={16} /> Entenda a Diferença: Antecipação vs. DIFAL de Uso/Consumo
                     <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 ml-auto" />
                 </summary>
 
-                <div className="mt-4 border-t pt-4 space-y-4 animate-fade-in">
-                    <p className="text-base font-semibold text-foreground">🧾 <strong>1. Antecipação de Alíquota (Esta Calculadora)</strong></p>
-                    <p>
-                        A <strong>Antecipação de ICMS</strong> ocorre quando uma empresa do <strong>Simples Nacional</strong> adquire mercadorias de outro estado para <strong>revenda ou industrialização</strong>.
-                        Como o Simples não gera crédito de ICMS na entrada, o estado de destino exige o recolhimento antecipado da diferença entre a alíquota interna e a interestadual.
-                    </p>
-                    <p>
-                        💡 <strong>Observação:</strong> A antecipação só é cobrada sobre <u>produtos tributados</u> pelo ICMS. Produtos com isenção, substituição tributária ou não tributados não geram antecipação.
-                    </p>
+                <div className="mt-4 border-t pt-4 grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
 
-                    <p>
-                        📘 <strong>Base de Cálculo:</strong> Na antecipação <u>não se inclui o IPI</u> na base, pois o imposto é destacado apenas quando o produto é destinado ao consumo.
-                    </p>
-
-                    <p className="font-semibold">📐 Fórmula:</p>
-                    <div className="p-3 bg-muted rounded-md font-mono text-xs">
-                        {`Base de Cálculo = Valor da Mercadoria + Frete + Outras Despesas`}
-                        <br />
-                        {`ICMS Destino = (Base de Cálculo × Alíquota Interna) / (1 - (Alíquota Interna / 100))`}
-                        <br />
-                        {`ICMS Origem = Base de Cálculo × (Alíquota Interestadual / 100)`}
-                        <br />
-                        {`Antecipação = ICMS Destino - ICMS Origem`}
+                    {/* Card 1: Antecipação de Alíquota */}
+                    <div className="border rounded-lg p-4 bg-secondary/30 space-y-4">
+                        <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+                            <span className="bg-blue-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold">1</span>
+                            Antecipação (Revenda/Industrialização)
+                        </h4>
+                        <p className="text-muted-foreground">
+                            Para empresas do **Simples Nacional** que compram para **revender ou industrializar** produtos **tributados integralmente**.
+                        </p>
+                        <div className="p-3 bg-destructive/10 text-destructive-foreground rounded-md text-xs border border-destructive/20">
+                            <p className="font-semibold">Ponto Chave: Base de Cálculo</p>
+                            <p>O valor do **IPI não entra** (não é somado) na formação da Base de Cálculo da antecipação.</p>
+                            {/* Exemplo de fórmula com KaTeX - adicione a biblioteca KaTeX ao seu projeto se necessário */}
+                            <p className="font-mono mt-2">BC = Vl. Mercadoria + Frete + Outras Desp.</p>
+                        </div>
+                        <div>
+                            <p className="font-semibold text-xs uppercase">Fórmula do Valor a Pagar:</p>
+                            <div className="p-2 mt-1 bg-background rounded-md font-mono text-xs leading-relaxed">
+                                <p>BC Dest. = (BC - (BC × Alíq. Inter)) / (1 - Alíq. Destino)</p>
+                                <p>Débito = BC Dest. × Alíq. Destino</p>
+                                <p>Crédito = BC × Alíq. Interestadual</p>
+                                <p className="font-bold">Valor a Pagar = Débito - Crédito</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <p className="font-semibold text-foreground">📍 Exemplo:</p>
-                    <p>
-                        Compra de R$ 1.000,00 de SP (alíquota interestadual 12%) para MG (alíquota interna 18%):
-                    </p>
-                    <div className="p-3 bg-muted rounded-md font-mono text-xs">
-                        {`ICMS Destino = (1000 × 18) / (1 - 0.18) = 219,51`}
-                        <br />
-                        {`ICMS Origem = 1000 × 0.12 = 120,00`}
-                        <br />
-                        {`Antecipação = 219,51 - 120,00 = 99,51`}
+                    {/* Card 2: DIFAL de Uso e Consumo */}
+                    <div className="border rounded-lg p-4 bg-secondary/30 space-y-4">
+                        <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+                            <span className="bg-green-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold">2</span>
+                            DIFAL (Uso, Consumo ou Ativo)
+                        </h4>
+                        <p className="text-muted-foreground">
+                            Para **qualquer empresa** (contribuinte de ICMS) que compra para **uso próprio, consumo ou ativo imobilizado**.
+                        </p>
+                        <div className="p-3 bg-constructive/10 text-constructive-foreground rounded-md text-xs border border-constructive/20">
+                            <p className="font-semibold">Ponto Chave: Base de Cálculo</p>
+                            <p>O valor do **IPI entra (soma)** na formação da Base de Cálculo do DIFAL.</p>
+                            <p className="font-mono mt-2">BC = Vl. Mercadoria + IPI + Frete + Outras Desp.</p>
+                        </div>
+                        <div>
+                            <p className="font-semibold text-xs uppercase">Fórmula do Valor a Pagar:</p>
+                            <div className="p-2 mt-1 bg-background rounded-md font-mono text-xs leading-relaxed">
+                                <p className="font-bold">Valor a Pagar = BC × (Alíq. Destino - Alíq. Interestadual)</p>
+                            </div>
+                        </div>
                     </div>
-
-                    <hr className="my-4" />
-
-                    <p className="text-base font-semibold text-foreground">🏢 <strong>2. DIFAL para Uso, Consumo ou Ativo Imobilizado</strong></p>
-                    <p>
-                        O <strong>DIFAL (Diferencial de Alíquota)</strong> ocorre quando uma empresa compra mercadorias de outro estado para seu <strong>próprio uso, consumo ou ativo imobilizado</strong>.
-                        Neste caso, o objetivo é equilibrar a carga tributária entre o estado de origem e o de destino.
-                    </p>
-
-                    <p>
-                        📘 <strong>Base de Cálculo:</strong> No DIFAL, <u>o IPI integra a base de cálculo</u>, conforme determina o Convênio ICMS 142/18.
-                    </p>
-
-                    <p className="font-semibold">📐 Fórmula Simplificada:</p>
-                    <div className="p-3 bg-muted rounded-md font-mono text-xs">
-                        {`Base de Cálculo = Valor da Mercadoria + IPI + Frete + Outras Despesas`}
-                        <br />
-                        {`DIFAL = (Base de Cálculo × (Alíquota Interna - Alíquota Interestadual)) / 100`}
-                    </div>
-
-                    <p className="font-semibold text-foreground">📍 Exemplo:</p>
-                    <p>
-                        Compra de R$ 1.000,00 + IPI R$ 50,00 de SP (12%) para uso próprio em MG (18%):
-                    </p>
-                    <div className="p-3 bg-muted rounded-md font-mono text-xs">
-                        {`Base de Cálculo = 1050`}
-                        <br />
-                        {`DIFAL = (1050 × (18 - 12)) / 100 = 63,00`}
-                    </div>
-
-                    <hr className="my-4" />
-
-                    <p className="italic text-muted-foreground">
-                        ⚖️ Em resumo: a <strong>antecipação</strong> aplica-se a mercadorias para revenda e <u>não inclui o IPI</u>;
-                        o <strong>DIFAL</strong> aplica-se a bens de uso/consumo e <u>inclui o IPI</u> na base de cálculo.
-                    </p>
                 </div>
             </details>
         </div>
