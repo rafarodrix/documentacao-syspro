@@ -2,20 +2,29 @@
 
 import { useState, useMemo, ChangeEvent } from 'react';
 import { Calculator, X, HelpCircle, ChevronDown } from 'lucide-react';
-import 'katex/dist/katex.min.css';
 
-
-
-// --- Funções de Formatação ---
-const formatCurrency = (value: number | null | undefined) => {
-    if (value == null || isNaN(value)) {
-        return 'R$ 0,00';
-    }
+// --- Funções Auxiliares ---
+const formatCurrency = (value: number | null | undefined): string => {
+    if (value == null || isNaN(value)) return 'R$ 0,00';
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
+// NOVO: Funções de formatação de input, parse e arredondamento
+const parseCurrency = (value: string): number => {
+    if (!value) return 0;
+    const cleanedValue = value.replace(/\./g, '').replace(',', '.');
+    return parseFloat(cleanedValue) || 0;
+};
+const formatarMoedaInput = (value: string): string => {
+    if (!value) return '';
+    const digitsOnly = value.replace(/\D/g, '');
+    if (digitsOnly === '') return '';
+    const numberValue = parseFloat(digitsOnly) / 100;
+    return numberValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+const round = (value: number): number => Math.round(value * 100) / 100;
+
 
 // --- Dados de Alíquotas ---
-// Fonte: Portais de Secretarias da Fazenda Estaduais. Verifique para anos futuros.
 const aliquotasDestinoPorUF: Record<string, string> = {
     'AC': '19', 'AL': '19', 'AP': '18', 'AM': '20', 'BA': '19', 'CE': '18',
     'DF': '18', 'ES': '17', 'GO': '17', 'MA': '20', 'MT': '17', 'MS': '17',
@@ -23,21 +32,21 @@ const aliquotasDestinoPorUF: Record<string, string> = {
     'RJ': '20', 'RN': '18', 'RS': '17', 'RO': '17.5', 'RR': '17', 'SC': '17',
     'SP': '18', 'SE': '19', 'TO': '18'
 };
-
 const ufs = Object.keys(aliquotasDestinoPorUF).sort();
 
 // --- Componente Principal da Calculadora ---
 export function CalculadoraDifal() {
-    // --- Estados para os campos de entrada ---
+    // --- Estados ---
     const [valorProduto, setValorProduto] = useState('');
-    const [aliqInterestadual, setAliqInterestadual] = useState('12'); // Padrão 12%
+    const [aliqInterestadual, setAliqInterestadual] = useState('12');
     const [ufDestino, setUfDestino] = useState('');
     const [aliqDestino, setAliqDestino] = useState('');
-    const [reducaoBC, setReducaoBC] = useState('0');
+    const [reducaoBC, setReducaoBC] = useState('');
 
-    // --- Lógica de Cálculo com useMemo para performance ---
+    // --- Lógica de Cálculo ---
     const resultados = useMemo(() => {
-        const vp = parseFloat(valorProduto) || 0;
+        // MELHORIA: Usa parseCurrency para o valor
+        const vp = parseCurrency(valorProduto);
         const alqInter = parseFloat(aliqInterestadual) || 0;
         const alqDest = parseFloat(aliqDestino) || 0;
         const pRed = parseFloat(reducaoBC) || 0;
@@ -45,36 +54,36 @@ export function CalculadoraDifal() {
         if (vp === 0 || alqInter === 0 || alqDest === 0) return null;
         if (alqDest <= alqInter) return { error: 'Alíquota de destino deve ser maior que a interestadual.' };
 
-        const bcOrigem = vp * (1 - pRed / 100);
-        const vCredito = bcOrigem * (alqInter / 100);
-        // Evita divisão por zero se a alíquota de destino for 100%
+        // MELHORIA: Arredondamento aplicado em todas as etapas
+        const bcOrigem = round(vp * (1 - pRed / 100));
+        const vCredito = round(bcOrigem * (alqInter / 100));
+        
         const divisor = 1 - alqDest / 100;
         if (divisor <= 0) return { error: 'Alíquota de destino inválida.' };
 
-        const bcDestino = (bcOrigem - vCredito) / divisor;
-        const vDebito = bcDestino * (alqDest / 100);
-        const vAntecipacao = vDebito - vCredito;
+        const bcDestino = round((bcOrigem - vCredito) / divisor);
+        const vDebito = round(bcDestino * (alqDest / 100));
+        const vAntecipacao = round(vDebito - vCredito);
 
         return { bcOrigem, vCredito, bcDestino, vDebito, vAntecipacao, error: null };
     }, [valorProduto, aliqInterestadual, aliqDestino, reducaoBC]);
 
-    // --- Manipuladores de Eventos ---
+    // --- Handlers ---
     const handleUfChange = (e: ChangeEvent<HTMLSelectElement>) => {
         const uf = e.target.value;
         setUfDestino(uf);
-        if (uf && aliquotasDestinoPorUF[uf]) {
-            setAliqDestino(aliquotasDestinoPorUF[uf]);
-        } else {
-            setAliqDestino('');
-        }
+        setAliqDestino(aliquotasDestinoPorUF[uf] || '');
     };
-
     const handleClear = () => {
         setValorProduto('');
         setAliqInterestadual('12');
         setUfDestino('');
         setAliqDestino('');
-        setReducaoBC('0');
+        setReducaoBC('');
+    };
+    // NOVO: Handler para formatação de moeda
+    const handleCurrencyChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: ChangeEvent<HTMLInputElement>) => {
+        setter(formatarMoedaInput(e.target.value));
     };
 
     return (
@@ -83,26 +92,35 @@ export function CalculadoraDifal() {
             <div className="bg-card border rounded-lg p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold flex items-center gap-2"><Calculator size={20} /> Entradas para o Cálculo</h3>
-                    <button onClick={handleClear} className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1">
-                        <X size={16} /> Limpar
-                    </button>
+                    <button onClick={handleClear} className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1"><X size={16} /> Limpar</button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="lg:col-span-2">
                         <label htmlFor="valorProduto" className="text-sm font-medium text-muted-foreground">Valor do Produto</label>
-                        <input id="valorProduto" type="number" placeholder="Ex: 1494.33" value={valorProduto} onChange={e => setValorProduto(e.target.value)}
+                        {/* MELHORIA: Input de moeda inteligente */}
+                        <input id="valorProduto" type="text" inputMode="decimal" placeholder="Ex: 1.494,33" value={valorProduto} onChange={handleCurrencyChange(setValorProduto)}
                             className="mt-1 w-full p-2 bg-background border rounded-md" />
                     </div>
                     <div>
                         <label htmlFor="aliqInterestadual" className="text-sm font-medium text-muted-foreground">Alíquota Interestadual</label>
-                        <select id="aliqInterestadual" value={aliqInterestadual} onChange={e => setAliqInterestadual(e.target.value)}
-                            className="mt-1 w-full p-2 bg-background border rounded-md">
+                        <select id="aliqInterestadual" value={aliqInterestadual} onChange={e => setAliqInterestadual(e.target.value)} className="mt-1 w-full p-2 bg-background border rounded-md">
                             <option value="12">12% (Padrão)</option>
-                            <option value="7">7% (Norte, NE, Centro-Oeste, ES)</option>
+                            <option value="7">7% (N, NE, CO, ES)</option>
                             <option value="4">4% (Importados)</option>
                         </select>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* NOVO: Campo de Redução da BC adicionado à UI */}
+                    <div>
+                         <label htmlFor="reducaoBC" className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                             Redução BC (%)
+                             <span title="Percentual de redução da Base de Cálculo, se houver algum benefício fiscal. Deixe em branco ou 0 se não aplicável.">
+                                <HelpCircle size={13} className="cursor-help" />
+                             </span>
+                         </label>
+                         <input id="reducaoBC" type="number" placeholder="0" value={reducaoBC} onChange={e => setReducaoBC(e.target.value)}
+                             className="mt-1 w-full p-2 bg-background border rounded-md" />
+                    </div>
+                    <div className="lg:col-span-2 grid grid-cols-2 gap-2">
                         <div>
                             <label htmlFor="ufDestino" className="text-sm font-medium text-muted-foreground">UF Destino</label>
                             <select id="ufDestino" value={ufDestino} onChange={handleUfChange} className="mt-1 w-full p-2 bg-background border rounded-md">
@@ -112,7 +130,7 @@ export function CalculadoraDifal() {
                         </div>
                         <div>
                             <label htmlFor="aliqDestino" className="text-sm font-medium text-muted-foreground">Alíq. Destino (%)</label>
-                            <input id="aliqDestino" type="number" placeholder="Ex: 18" value={aliqDestino} onChange={e => setAliqDestino(e.target.value)}
+                            <input id="aliqDestino" type="number" placeholder="18" value={aliqDestino} onChange={e => setAliqDestino(e.target.value)}
                                 className="mt-1 w-full p-2 bg-background border rounded-md" />
                         </div>
                     </div>
@@ -120,7 +138,14 @@ export function CalculadoraDifal() {
             </div>
 
             {/* Seção de Resultados */}
-            {resultados && (
+            {!resultados ? (
+                // NOVO: Estado inicial antes do cálculo
+                <div className="bg-card border-2 border-dashed rounded-lg p-6 text-center animate-fade-in">
+                    <Calculator className="mx-auto text-muted-foreground/80" size={32} />
+                    <h3 className="text-md font-semibold mt-2">Aguardando dados</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Preencha os campos acima para calcular a antecipação.</p>
+                </div>
+            ) : (
                 <div className="bg-card border rounded-lg p-6 animate-fade-in shadow-sm">
                     {resultados.error ? (
                         <p className="text-center text-red-500 font-semibold">{resultados.error}</p>
@@ -128,23 +153,13 @@ export function CalculadoraDifal() {
                         <>
                             <h3 className="text-lg font-bold mb-4">Resultado do Cálculo (Passo a Passo)</h3>
                             <div className="space-y-3 text-sm">
-                                <div className="flex justify-between p-2 rounded bg-secondary/30">
-                                    <span className="text-muted-foreground">1. Base de Cálculo Origem:</span>
-                                    <span className="font-semibold">{formatCurrency(resultados.bcOrigem)}</span>
-                                </div>
-                                <div className="flex justify-between p-2 rounded bg-secondary/30">
-                                    <span className="text-muted-foreground">2. Valor do Crédito (ICMS Interestadual):</span>
-                                    <span className="font-semibold">{formatCurrency(resultados.vCredito)}</span>
-                                </div>
-                                <div className="flex justify-between p-2 rounded bg-secondary/30">
-                                    <span className="text-muted-foreground">3. Base de Cálculo Destino ("por dentro"):</span>
-                                    <span className="font-semibold">{formatCurrency(resultados.bcDestino)}</span>
-                                </div>
-                                <div className="flex justify-between p-2 rounded bg-secondary/30">
-                                    <span className="text-muted-foreground">4. Valor do Débito (ICMS Destino):</span>
-                                    <span className="font-semibold">{formatCurrency(resultados.vDebito)}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-3 mt-4 border-t text-lg font-bold text-primary">
+                                {/* ... (demais resultados) */}
+                                <div className="flex justify-between p-2 rounded bg-secondary/30"><span className="text-muted-foreground">1. Base de Cálculo Origem:</span><span className="font-semibold">{formatCurrency(resultados.bcOrigem)}</span></div>
+                                <div className="flex justify-between p-2 rounded bg-secondary/30"><span className="text-muted-foreground">2. Valor do Crédito (ICMS Interestadual):</span><span className="font-semibold">{formatCurrency(resultados.vCredito)}</span></div>
+                                <div className="flex justify-between p-2 rounded bg-secondary/30"><span className="text-muted-foreground">3. Base de Cálculo Destino ("por dentro"):</span><span className="font-semibold">{formatCurrency(resultados.bcDestino)}</span></div>
+                                <div className="flex justify-between p-2 rounded bg-secondary/30"><span className="text-muted-foreground">4. Valor do Débito (ICMS Destino):</span><span className="font-semibold">{formatCurrency(resultados.vDebito)}</span></div>
+                                {/* MELHORIA: Destaque para o resultado final */}
+                                <div className="flex justify-between items-center p-3 mt-4 rounded-lg bg-primary/10 border border-primary/20 text-lg font-bold text-primary">
                                     <span>5. Valor da Antecipação (DIFAL a Pagar):</span>
                                     <span>{formatCurrency(resultados.vAntecipacao)}</span>
                                 </div>
@@ -153,6 +168,8 @@ export function CalculadoraDifal() {
                     )}
                 </div>
             )}
+            
+            {/* Seção de Explicações */}
             <details className="mt-8 text-sm group">
                 <summary className="cursor-pointer font-semibold text-primary list-none flex items-center gap-2">
                     <HelpCircle size={16} /> Entenda a Diferença: Antecipação vs. DIFAL de Uso/Consumo
