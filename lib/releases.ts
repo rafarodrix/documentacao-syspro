@@ -14,6 +14,8 @@ const ZammadTicketSchema = z.object({
 });
 
 const ZammadResponseSchema = z.array(ZammadTicketSchema);
+const ZAMMAD_RELEASE_STATE_ID = 4; //  Ticket Resolvido
+const ZAMMAD_RELEASE_GROUP_ID = 3; // Tiket de Desenvolviment
 
 
 export async function getReleases(): Promise<Release[]> {
@@ -25,9 +27,8 @@ export async function getReleases(): Promise<Release[]> {
     return [];
   }
 
-  const stateIdParaRelease = 4;
-  const groupIdParaRelease = 3;
-  const searchQuery = `(type:"Melhoria" OR type:"Bug") AND state_id:${stateIdParaRelease} AND group_id:${groupIdParaRelease}`;
+  const searchQuery = `(type:"Melhoria" OR type:"Bug") AND state_id:${ZAMMAD_RELEASE_STATE_ID} AND group_id:${ZAMMAD_RELEASE_GROUP_ID}`;
+  
   const fullUrl = `${zammadUrl}/api/v1/tickets/search?query=${encodeURIComponent(
     searchQuery
   )}&limit=100&sort_by=updated_at&order_by=desc&expand=true`;
@@ -51,7 +52,8 @@ export async function getReleases(): Promise<Release[]> {
         id: ticket.number,
         type: ticket.type || "Indefinido",
         isoDate: (ticket.close_at || ticket.updated_at).split("T")[0],
-        title: ticket.release_summary || ticket.title,
+        title: ticket.title, 
+        summary: ticket.release_summary || null, // Adicionamos o summary
         link: `${zammadUrl}/#ticket/zoom/${ticket.id}`,
         videoLink: ticket.video_link || null,
         tags: [mainModule],

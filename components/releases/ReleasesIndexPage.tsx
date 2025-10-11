@@ -21,12 +21,10 @@ export async function ReleasesIndexPage() {
   const monthsByYear = Object.entries(
     releases.reduce((acc, release) => {
       if (!release.isoDate || !release.type) return acc; // Segurança extra
-
+      
       const [year, month] = release.isoDate.split("-");
       if (!acc[year]) acc[year] = {};
       if (!acc[year][month]) acc[year][month] = { bugs: 0, melhorias: 0 };
-
-      // CORREÇÃO: Comparando em minúsculas para ser mais robusto
       if (release.type.toLowerCase() === "bug") {
         acc[year][month].bugs++;
       } else if (release.type.toLowerCase() === "melhoria") {

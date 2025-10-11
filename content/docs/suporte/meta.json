@@ -1,7 +1,7 @@
 {
   "root": true,
   "title": "Suporte",
-  "description": "Ferramentas práticas, calculadoras e guias para auxiliar no dia a dia da operação.",
+  "description": "Nesta Seção estão guias sobre nosso suporte técnico.",
   "icon": "LifeBuoy",
   "pages": [
     "index",

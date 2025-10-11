@@ -6,4 +6,5 @@ export type Release = {
   link?: string;
   videoLink: string | null;
   tags?: string[];
+  summary: string | null; 
 };

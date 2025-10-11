@@ -1,8 +1,8 @@
 {
     "root": false,
     "title": "Syspro ERP",
-    "description": "O módulo de Estoque gerencia todas as informações relativas ao estoque, incluindo quantidades, localizações e movimentações de produtos.",
-    "icon": "Terminal",
+    "description": "Documentação oficial do Syspro ERP, incluindo manuais, guias de suporte e treinamentos.",
+    "icon": "Box",
     "pages": [
       "index",
       "manual",
