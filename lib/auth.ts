@@ -11,7 +11,6 @@ export const authOptions: AuthOptions = {
       type: "oauth",
       authorization: {
         url: `${process.env.ZAMMAD_URL}/oauth/authorize`,
-        params: { scope: "read" },
       },
       token: `${process.env.ZAMMAD_URL}/oauth/token`,
       userinfo: `${process.env.ZAMMAD_URL}/api/v1/users/me`,
