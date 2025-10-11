@@ -1,3 +1,4 @@
+// Provedor de autenticação NextAuth para a aplicação
 'use client';
 
 import { SessionProvider } from "next-auth/react";

@@ -1,3 +1,4 @@
+// Define o tipo Release para representar os dados dos tickets do Zammad
 export type Release = {
   id: string;
   type: string;

@@ -1,9 +1,11 @@
+// Layout raiz da aplicação Next.js com provedores e chat integrado
+
 import './global.css';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import ZammadChat from '@/components/ZammadChat'; 
-import { NextAuthProvider } from "./providers"; // Você já importou corretamente
+import { NextAuthProvider } from "./providers"; 
 
 const inter = Inter({
   subsets: ['latin'],
@@ -17,7 +19,6 @@ export default function Layout({ children }: { children: ReactNode }) {
           <RootProvider>{children}</RootProvider>
         </NextAuthProvider>
         
-        {/* Sua implementação do ZammadChat já está correta e pode continuar aqui. */}
         <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 1000 }}>
           <ZammadChat
             scriptSrc="https://suporte.trilinksoftware.com.br/assets/chat/chat-no-jquery.min.js"

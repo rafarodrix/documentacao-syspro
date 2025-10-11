@@ -1,10 +1,11 @@
+// Componente de formulário de login com tratamento de erros
+
 'use client'; 
 
 import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { LogIn, AlertTriangle } from 'lucide-react';
 
-// Card de erro que criamos anteriormente
 function ErrorCard({ error }: { error: string }) {
     const errorMessages: Record<string, { title: string, message: string }> = {
         'OAuthCallback': {

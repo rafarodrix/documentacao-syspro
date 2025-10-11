@@ -1,3 +1,5 @@
+// Configuração do NextAuth para autenticação via OAuth com Zammad
+
 import { type AuthOptions } from "next-auth";
 
 export const authOptions: AuthOptions = {
@@ -10,7 +12,7 @@ export const authOptions: AuthOptions = {
       
       authorization: {
         url: `${process.env.ZAMMAD_URL}/oauth/authorize`,
-        params: { scope: "" }, // <--- A CORREÇÃO ESTÁ AQUI
+        params: { scope: "" }, 
       },
 
       token: `${process.env.ZAMMAD_URL}/oauth/token`,
