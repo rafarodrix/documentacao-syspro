@@ -4,13 +4,6 @@ description: Demonstrativo de Resultados do Exercício (DRE)
 draft: true
 ---
 
-
-Essa é uma ideia excelente e muito poderosa. Usar o Zammad como um provedor de autenticação é a abordagem profissional para criar uma Central de Ajuda segura, personalizada e verdadeiramente integrada.
-
-O que você descreveu é um fluxo de autenticação padrão e muito seguro chamado **OAuth 2.0**. A sua Central de Ajuda (feita em Next.js/Fumadocs) confiaria no Zammad para verificar a identidade do usuário.
-
-Vamos analisar os prós, os contras e um roteiro de como implementar isso.
-
 ---
 
 ### Análise da Proposta: Prós e Contras
@@ -63,3 +56,5 @@ Antes de começar, vale a pena decidir: você quer que **toda** a documentação
     * **Privado:** Apenas as seções personalizadas, como o painel **"Meus Chamados"**, e talvez algumas documentações de funcionalidades "premium", exigiriam login.
 
 **Conclusão:** Sua ideia é excelente e é o caminho para criar uma experiência de suporte de alto nível. O ponto de partida crucial é **validar a capacidade do Zammad de atuar como provedor OAuth 2.0**. Se a resposta for sim, a biblioteca `NextAuth.js` será sua maior aliada para implementar essa funcionalidade de forma segura e eficiente.
+
+

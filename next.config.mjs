@@ -1,5 +1,5 @@
 import { createMDX } from 'fumadocs-mdx/next';
-import { z } from 'zod'; 
+import { z } from 'zod';
 
 const withMDX = createMDX({
   frontmatterSchema: z.object({
@@ -10,8 +10,10 @@ const withMDX = createMDX({
 });
 
 /** @type {import('next').NextConfig} */
-const config = {
+const nextConfig = {
+  basePath: '/ajuda',
+
   reactStrictMode: true,
 };
 
-export default withMDX(config);
+export default withMDX(nextConfig);
