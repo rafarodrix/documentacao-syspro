@@ -12,7 +12,7 @@ export const authOptions: AuthOptions = {
       
       authorization: {
         url: `${process.env.ZAMMAD_URL}/oauth/authorize`,
-        params: { scope: "" }, 
+        params: { scope: "" },
       },
 
       token: `${process.env.ZAMMAD_URL}/oauth/token`,
