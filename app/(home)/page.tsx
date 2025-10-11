@@ -1,16 +1,9 @@
-// Este é um Server Component, responsável por buscar dados antes de renderizar.
-
-// --- Imports de Pacotes ---
+// --- Imports  ---
 import Link from 'next/link';
-
-// --- Imports de Ícones ---
 import { BookOpen, HelpCircle, GraduationCap, Rocket, MessagesSquare, Phone, Mail, Wrench, Sparkles, Bug, Calendar } from 'lucide-react';
-
-// --- Imports de Lógica ---
 import { getReleases } from '@/lib/releases'; 
 import { formatRecency } from '@/lib/date';
 import { groupReleasesByMonth, type MonthSummary } from '@/lib/releases-helpers';
-// CORREÇÃO: Importando o tipo 'Release' do local correto.
 import type { Release } from '@/lib/types'; 
 
 // --- Dados para os cards de navegação ---
@@ -35,7 +28,7 @@ const navLinks = [
   },
   {
     title: 'Central de Suporte',
-    description: 'Acesse calculadoras, ferramentas e guias para agilizar seu dia a dia.',
+    description:   "Precisa de ajuda? Contate nossa equipe especializada.",
     href: '/docs/suporte',
     icon: <Wrench className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors duration-200" />,
   },
@@ -130,12 +123,10 @@ export default async function HomePage() {
 
                                 <div className="border-t pt-3 space-y-2 text-sm">
                                     <div className="flex items-center justify-between text-muted-foreground">
-                                        {/* AJUSTE FINO: Ícone e cor consistentes */}
                                         <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-green-500" /> Melhorias</span>
                                         <span className="font-medium text-foreground">{summary.melhorias}</span>
                                     </div>
                                     <div className="flex items-center justify-between text-muted-foreground">
-                                         {/* AJUSTE FINO: Ícone consistente */}
                                         <span className="flex items-center gap-1.5"><Bug className="w-4 h-4 text-amber-500" /> Bugs Corrigidos</span>
                                         <span className="font-medium text-foreground">{summary.bugs}</span>
                                     </div>
