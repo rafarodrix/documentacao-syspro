@@ -1,17 +1,18 @@
 import { type AuthOptions } from "next-auth";
 
 export const authOptions: AuthOptions = {
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
   providers: [
     {
       id: "zammad",
       name: "Zammad",
       type: "oauth",
+      
       authorization: {
         url: `${process.env.ZAMMAD_URL}/oauth/authorize`,
+        params: { scope: "" }, // <--- A CORREÇÃO ESTÁ AQUI
       },
+
       token: `${process.env.ZAMMAD_URL}/oauth/token`,
       userinfo: `${process.env.ZAMMAD_URL}/api/v1/users/me`,
       clientId: process.env.ZAMMAD_CLIENT_ID,
