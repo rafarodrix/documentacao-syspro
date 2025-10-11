@@ -1,0 +1,138 @@
+---
+title: Sobre o Suporte
+description: Conheça nossos canais de atendimento, horários, processos e perguntas frequentes sobre o suporte técnico.
+full: true
+---
+
+import { MessagesSquare, Phone, Mail, Clock, AlarmClock } from 'lucide-react';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { CustomCard } from '@/components/CustomCard';
+
+
+## Canais de Atendimento
+
+Estamos aqui para garantir a melhor experiência com nossos produtos! Nosso compromisso é oferecer atendimento de excelência, resolvendo dúvidas, orientando sobre funcionalidades e solucionando problemas técnicos com agilidade e dedicação.
+
+Escolha o canal ideal para sua necessidade:
+
+<Cards>
+  <CustomCard title="WhatsApp: (34) 99771-3731" href="https://wa.me/5534997713731" icon={<MessagesSquare className="h-5 w-5" />}>
+    - Resposta rápida para suas dúvidas ou solicitações.
+  </CustomCard>
+  <CustomCard title="Telefone: (34) 99771-3731" href="tel:+5534997713731" icon={<Phone className="h-5 w-5" />}>
+    - Suporte imediato direto com nossa equipe.
+  </CustomCard>
+  <CustomCard title="E-mail: equipe@trilinksoftware.com.br" href="mailto:equipe@trilinksoftware.com.br" icon={<Mail className="h-5 w-5" />}>
+    - Ideal para solicitações detalhadas ou documentadas.
+  </CustomCard>
+</Cards>
+
+---
+
+## Suporte Técnico
+
+Nossa missão é simplificar seu dia, corrigindo bugs ou esclarecendo funcionalidades.
+
+### Horários de Atendimento
+
+
+
+Confira nossos horários de atendimento:
+
+<Cards>
+  <Card title="Horário Comercial" icon={<Clock className="w-5 h-5 text-muted-foreground" />}>
+    - **Segunda a sexta**: 8h às 18h  
+    - Atendimento completo para todas as suas solicitações.
+  </Card>
+  <Card title="Horário de Plantão" icon={<AlarmClock className="w-5 h-5 text-muted-foreground" />}>
+    - **Segunda a sexta**: 18h às 21h  
+    - **Sábados, domingos e feriados**: 8h às 20h  
+    - Suporte exclusivo para emergências que impactam sua operação.
+  </Card>
+</Cards>
+
+<Callout type="info" title="Atenção">
+  O **WhatsApp** não é monitorado durante o plantão. Para emergências, use o **telefone** e garanta atendimento rápido. Veja o que é uma emergência em [Perguntas Frequentes](#perguntas-frequentes).
+</Callout>
+
+Para oferecer o melhor suporte, pode ser necessário acessar seu computador remotamente. Confira os passos:
+
+<div className='fd-steps [&_h3]:fd-step'>
+  <h3>Abra o programa de Suporte Trilink Software</h3>
+    Localize o ícone verde na bandeja do sistema ou o atalho na área de trabalho chamado `Suporte Trilink Software`.
+
+  <h3>Compartilhe ID e Senha</h3>
+    Forneça o **ID** e a **senha** gerados ao técnico para conexão segura.
+
+  <h3>Aguarde o Atendimento</h3>
+    O acesso é temporário e protegido, garantindo sua privacidade.
+</div>
+
+<Callout type="warn" title="Não tem o programa?">
+  Baixe o [Suporte Trilink](https://www.trilink.com.br/public/downloads) na seção Acesso Remoto.
+</Callout>
+
+--- 
+
+### Pesquisa de Satisfação
+
+Ao final de cada atendimento, avalie-nos via **WhatsApp** com uma nota de **0 a 5**. É rápido e nos ajuda a melhorar!
+
+- **Destaca nossos acertos** para continuarmos aprimorando.
+- **Revela o que precisa de ajustes** para atendê-lo melhor.
+- **Guia nossa evolução** no atendimento.
+
+Agradecemos seu feedback — ele faz toda a diferença! ??
+
+---
+
+## Desenvolvimento
+
+Quer uma nova funcionalidade ou ajuste? Conheça o processo completo para solicitar:
+
+<div className='fd-steps [&_h3]:fd-step'>
+  <h3>Envio da Solicitação</h3>
+    Entre em contato pelos nossos [canais de atendimento](#canais-de-atendimento) para pedir uma nova funcionalidade ou melhoria.
+
+  <h3>Análise Inicial</h3>
+    Nossa equipe avalia a viabilidade técnica e o impacto da solicitação no sistema.
+
+  <h3>Priorização</h3>
+    Classificamos a demanda com base em complexidade, relevância para os clientes e alinhamento com nossos objetivos.
+
+  <h3>Definição de Custos</h3>
+    - **Personalizações**: Solicitações fora do escopo padrão podem ter custo extra, conforme a complexidade.  
+    - **Urgência**: Priorização acelerada pode incluir uma taxa adicional.  
+
+  <h3>Desenvolvimento</h3>
+    Se aprovada, a solicitação é desenvolvida e implementada pela nossa equipe de programação.
+</div>
+
+<Callout type="warn" title="Aviso">
+  O envio de uma solicitação não garante sua execução. Viabilidade, custos e prazos dependem da análise da equipe.
+</Callout>
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="Quando o suporte emergencial está disponível?">
+    O suporte fora do horário comercial é exclusivo para **emergências** que afetam sua operação, como:  
+    - Impossibilidade de emitir notas fiscais (NFe, NFCe).  
+    - Falhas críticas no faturamento ou emissão de boletos.  
+    - Erros que bloqueiam o acesso ao ERP por todos os usuários.  
+    Use o telefone para atendimento rápido em emergências.
+  </Accordion>
+
+  <Accordion title="Qual o prazo de atendimento dos chamados?">
+    Depende da prioridade e complexidade. Atendemos com agilidade, respeitando a ordem e urgência.
+  </Accordion>
+
+  <Accordion title="O que o suporte não cobre?">
+    Nosso foco é suporte técnico ao produto. Não inclui:  
+    - **Consultoria de negócios**: Consulte especialistas em processos.  
+    - **Softwares de terceiros**: Veja com os respectivos fornecedores.  
+    Use nossos materiais de capacitação para mais ajuda.
+  </Accordion>
+</Accordions>

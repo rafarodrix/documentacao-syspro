@@ -3,6 +3,9 @@
 import { useState, useMemo, ChangeEvent } from 'react';
 import { Tag, X, HelpCircle, ChevronDown, Percent, TrendingDown, Target, DollarSign, Briefcase, ShieldAlert, BarChart2 } from 'lucide-react';
 
+import { BlockMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
+
 // --- Funções Auxiliares ---
 const formatCurrency = (value: number) => isNaN(value) ? 'R$ 0,00' : value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const formatPercent = (value: number) => isNaN(value) ? '0,00%' : `${(value || 0).toFixed(2).replace('.', ',')}%`;
@@ -250,14 +253,59 @@ export function CalculadoraPrecificacao() {
             )}
             
             {/* --- Seção de Explicações --- */}
-            <details className="mt-8 text-sm group bg-card border rounded-lg p-4">
-                <summary className="cursor-pointer font-semibold text-primary list-none flex items-center gap-2"><HelpCircle size={16} /> Entendendo os Indicadores de Lucratividade</summary>
+            {/* --- Seção de Explicações --- */}
+            <details className="mt-8 text-sm group bg-card border rounded-lg p-4 shadow-sm">
+                <summary className="cursor-pointer font-semibold text-primary list-none flex items-center gap-2">
+                    <HelpCircle size={16} /> Entendendo os Indicadores de Lucratividade
+                    <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 ml-auto" />
+                </summary>
+
                 <div className="mt-4 border-t pt-4 space-y-4 animate-fade-in text-muted-foreground">
-                    <div className="border rounded-lg p-3 bg-secondary/30"><h4 className="font-semibold text-foreground flex items-center gap-2"><ShieldAlert size={16} /> Preço Mínimo (Ponto de Equilíbrio)</h4><p className="mt-1">Também conhecido como "PMZ" (Preço Mínimo Zero), este é o valor de venda exato onde o **Lucro Líquido é zero**. Ele cobre todos os custos: o custo de aquisição do produto, os impostos da venda e a fatia proporcional das despesas fixas.</p><p className="mt-2 text-xs"><strong>Importância Estratégica:</strong> Vender qualquer valor abaixo deste preço significa que você está pagando para trabalhar, ou seja, tendo **prejuízo** em cada unidade vendida. É o seu piso de negociação.</p><p className="font-mono text-xs mt-2 bg-background p-2 rounded">Fórmula: Custo do Produto / (1 - (% Impostos + % Custo Fixo))</p></div>
-                    <div className="border rounded-lg p-3 bg-secondary/30"><h4 className="font-semibold text-foreground flex items-center gap-2"><Percent size={16} /> Markup sobre o Custo</h4><p className="mt-1">É o índice percentual que você aplica sobre o **custo** do produto para formar o preço de venda. Ele responde à pergunta: "Quanto meu preço de venda é maior que meu custo?".</p><p className="font-mono text-xs mt-2 bg-background p-2 rounded">Fórmula: ((Preço de Venda / Custo do Produto) - 1) * 100</p></div>
-                    <div className="border rounded-lg p-3 bg-secondary/30"><h4 className="font-semibold text-foreground flex items-center gap-2"><DollarSign size={16} /> Margem de Contribuição</h4><p className="mt-1">(Visão **Gerencial**) É o valor que sobra da venda após pagar todos os **custos e impostos variáveis**. Mostra o quanto cada venda "contribui" para pagar as despesas fixas (aluguel, salários) e gerar lucro.</p><p className="font-mono text-xs mt-2 bg-background p-2 rounded">Fórmula: Preço de Venda - (Custo do Produto + Impostos sobre Venda)</p></div>
-                    <div className="border rounded-lg p-3 bg-secondary/30"><h4 className="font-semibold text-foreground flex items-center gap-2"><TrendingDown size={16} /> Lucro Bruto</h4><p className="mt-1">(Visão **Contábil**) É o resultado da **Receita Líquida** (venda já sem impostos) menos o custo do produto. É uma etapa formal do Demonstrativo de Resultados (DRE).</p><p className="font-mono text-xs mt-2 bg-background p-2 rounded">Fórmula: (Preço de Venda - Impostos sobre Venda) - Custo do Produto</p></div>
-                    <div className="border rounded-lg p-3 bg-secondary/30"><h4 className="font-semibold text-foreground flex items-center gap-2"><Target size={16} /> Lucro Líquido</h4><p className="mt-1">O indicador final. É o que realmente sobra no bolso após pagar **todas** as contas (custos variáveis, impostos, e despesas fixas rateadas).</p><p className="font-mono text-xs mt-2 bg-background p-2 rounded">Fórmula: Lucro Bruto - Despesas Fixas</p></div>
+                    <div className="border rounded-lg p-4 bg-secondary/30">
+                        <h4 className="font-semibold text-foreground flex items-center gap-2"><ShieldAlert size={16} /> Preço Mínimo (Ponto de Equilíbrio)</h4>
+                        <p className="mt-1">
+                            Também conhecido como "PMZ" (Preço Mínimo Zero), é o valor de venda onde o Lucro Líquido é zero. Ele cobre todos os custos diretos e a fatia proporcional das despesas fixas. Vender abaixo deste preço gera prejuízo.
+                        </p>
+                        <div className="mt-2 p-3 bg-background rounded-md text-center">
+                            <BlockMath math={`Preço~Mínimo = \\frac{Custo}{1 - \\frac{p_{Impostos} + p_{CustoFixo}}{100}}`} />
+                        </div>
+                    </div>
+                    <div className="border rounded-lg p-4 bg-secondary/30">
+                        <h4 className="font-semibold text-foreground flex items-center gap-2"><Percent size={16} /> Markup sobre o Custo</h4>
+                        <p className="mt-1">
+                            É o índice percentual que você aplica sobre o **custo** do produto para formar o preço de venda. Responde à pergunta: "Quanto meu preço de venda é maior que meu custo?".
+                        </p>
+                         <div className="mt-2 p-3 bg-background rounded-md text-center">
+                            <BlockMath math={`Markup = \\left( \\frac{Venda}{Custo} - 1 \\right) \\times 100`} />
+                        </div>
+                    </div>
+                    <div className="border rounded-lg p-4 bg-secondary/30">
+                        <h4 className="font-semibold text-foreground flex items-center gap-2"><DollarSign size={16} /> Margem de Contribuição</h4>
+                        <p className="mt-1">
+                            (Visão **Gerencial**) É o valor que sobra da venda após pagar os custos e impostos variáveis. Mostra o quanto cada venda "contribui" para pagar as despesas fixas e gerar lucro.
+                        </p>
+                         <div className="mt-2 p-3 bg-background rounded-md text-center">
+                            <BlockMath math={`MC = Venda - (Custo + Impostos_{Var})`} />
+                        </div>
+                    </div>
+                    <div className="border rounded-lg p-4 bg-secondary/30">
+                        <h4 className="font-semibold text-foreground flex items-center gap-2"><TrendingDown size={16} /> Lucro Bruto</h4>
+                        <p className="mt-1">
+                            (Visão **Contábil**) É o resultado da **Receita Líquida** (venda já sem impostos) menos o custo do produto. É uma etapa formal do Demonstrativo de Resultados (DRE).
+                        </p>
+                         <div className="mt-2 p-3 bg-background rounded-md text-center">
+                            <BlockMath math={`Lucro~Bruto = (Venda - Impostos_{Var}) - Custo`} />
+                        </div>
+                    </div>
+                    <div className="border rounded-lg p-4 bg-secondary/30">
+                        <h4 className="font-semibold text-foreground flex items-center gap-2"><Target size={16} /> Lucro Líquido</h4>
+                        <p className="mt-1">
+                            O indicador final. É o que realmente sobra no bolso após pagar **todas** as contas (custos variáveis, impostos, e a fatia rateada das despesas fixas).
+                        </p>
+                         <div className="mt-2 p-3 bg-background rounded-md text-center">
+                            <BlockMath math={`Lucro~Líquido = Lucro~Bruto - Despesas_{Fixas}`} />
+                        </div>
+                    </div>
                 </div>
             </details>
         </div>

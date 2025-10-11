@@ -1,138 +1,70 @@
 ---
-title: Guia do Suporte
-description: Tudo o que você precisa saber sobre nosso suporte técnico e desenvolvimento.
+title: Central de Suporte Syspro
+description: Ferramentas, calculadoras e guias para auxiliar no dia a dia da sua operação e resolver problemas complexos.
+icon: LifeBuoy
 full: true
 ---
 
-import { MessagesSquare, Phone, Mail, Clock, AlarmClock } from 'lucide-react';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
 import { CustomCard } from '@/components/CustomCard';
+import { FileCode, Printer, ShieldQuestion, Calculator, Target, DollarSign, BookOpen, Rocket, Server, Network } from 'lucide-react';
+import SuporteSection from '@/components/SuporteSection.tsx';
 
+Esta seção foi criada para oferecer soluções rápidas para os desafios do dia a dia. Use nossas ferramentas para diagnosticar problemas, planejar com precisão e consulte nossos guias para dominar o sistema.
 
-## Canais de Atendimento
+---
 
-Estamos aqui para garantir a melhor experiência com nossos produtos! Nosso compromisso é oferecer atendimento de excelência, resolvendo dúvidas, orientando sobre funcionalidades e solucionando problemas técnicos com agilidade e dedicação.
-
-Escolha o canal ideal para sua necessidade:
+### Ferramentas de Diagnóstico
+Use estas ferramentas para validar dados, analisar arquivos e resolver problemas rapidamente.
 
 <Cards>
-  <CustomCard title="WhatsApp: (34) 99771-3731" href="https://wa.me/5534997713731" icon={<MessagesSquare className="h-5 w-5" />}>
-    - Resposta rápida para suas dúvidas ou solicitações.
+  <CustomCard title="Decodificador de Rejeições (NF-e)" href="/docs/suporte/decodificador-rejeicoes" icon={<ShieldQuestion />}>
+    Traduza códigos de rejeição da SEFAZ em explicações claras e checklists práticos para resolver o problema na hora.
   </CustomCard>
-  <CustomCard title="Telefone: (34) 99771-3731" href="tel:+5534997713731" icon={<Phone className="h-5 w-5" />}>
-    - Suporte imediato direto com nossa equipe.
+  <CustomCard title="Analisador de XML de NF-e" href="/docs/suporte/analisador-xml" icon={<FileCode />}>
+    Faça o upload de um arquivo XML de Nota Fiscal para extrair e visualizar todas as informações de forma organizada e legível.
   </CustomCard>
-  <CustomCard title="E-mail: equipe@trilinksoftware.com.br" href="mailto:equipe@trilinksoftware.com.br" icon={<Mail className="h-5 w-5" />}>
-    - Ideal para solicitações detalhadas ou documentadas.
+  <CustomCard title="Visualizador Rápido de DANFE" href="/docs/suporte/visualizador-danfe" icon={<Printer />}>
+    Cole a chave de acesso de 44 dígitos de uma NF-e para gerar e visualizar uma representação simplificada da DANFE.
   </CustomCard>
 </Cards>
 
----
-
-## Suporte Técnico
-
-Nossa missão é simplificar seu dia, corrigindo bugs ou esclarecendo funcionalidades.
-
-### Horários de Atendimento
-
-
-
-Confira nossos horários de atendimento:
+### Ferramentas de Gestão e Planejamento
+Calcule, simule e planeje. Estas ferramentas ajudam você a tomar decisões financeiras e fiscais mais inteligentes.
 
 <Cards>
-  <Card title="Horário Comercial" icon={<Clock className="w-5 h-5 text-muted-foreground" />}>
-    - **Segunda a sexta**: 8h às 18h  
-    - Atendimento completo para todas as suas solicitações.
-  </Card>
-  <Card title="Horário de Plantão" icon={<AlarmClock className="w-5 h-5 text-muted-foreground" />}>
-    - **Segunda a sexta**: 18h às 21h  
-    - **Sábados, domingos e feriados**: 8h às 20h  
-    - Suporte exclusivo para emergências que impactam sua operação.
-  </Card>
+  <CustomCard title="Calculadora de Precificação" href="/docs/suporte/calculadora-precificacao" icon={<DollarSign />}>
+    Descubra o preço de venda ideal com base nos seus custos, impostos e meta de lucro para garantir sua rentabilidade.
+  </CustomCard>
+  <CustomCard title="Analisador de Ponto de Equilíbrio" href="/docs/suporte/ponto-equilibrio" icon={<Target />}>
+    Determine o faturamento mínimo para cobrir todos os custos e planeje suas metas de lucro com base em cenários de venda.
+  </CustomCard>
+  <CustomCard title="Calculadora de DIFAL e Antecipação" href="/docs/suporte/calculadora-difal" icon={<Calculator />}>
+    Calcule de forma precisa a Antecipação Parcial (Simples Nacional) e o DIFAL para Uso/Consumo.
+  </CustomCard>
 </Cards>
 
-<Callout type="info" title="Atenção">
-  O **WhatsApp** não é monitorado durante o plantão. Para emergências, use o **telefone** e garanta atendimento rápido. Veja o que é uma emergência em [Perguntas Frequentes](#perguntas-frequentes).
+### Documentação e Guias
+Consulte nossos manuais e documentos de referência para obter respostas detalhadas sobre processos, requisitos e novidades do sistema.
+
+<Cards>
+    <CustomCard title="Guia do Suporte" href="/docs/suporte/sobre-suporte" icon={<BookOpen />}>
+        Entenda nossos canais de atendimento, horários e como abrir um chamado de forma eficaz para uma resolução ágil.
+    </CustomCard>
+    <CustomCard title="Novidades de Versão" href="/docs/suporte/releasenotes" icon={<Rocket />}>
+        Acompanhe todas as melhorias, novas funcionalidades e correções implementadas nas últimas versões do Syspro ERP.
+    </CustomCard>
+    <CustomCard title="Requisitos Mínimos" href="/docs/suporte/requisitos" icon={<Server />}>
+        Verifique os requisitos de sistema e ambiente necessários para garantir a melhor performance do ERP.
+    </CustomCard>
+    <CustomCard title="Ambientes (Homologação e Produção)" href="/docs/suporte/homologcao-producao" icon={<Network />}>
+        Entenda a diferença entre os ambientes de teste e de produção e como utilizá-los corretamente.
+    </CustomCard>
+</Cards>
+
+<Callout title="Precisa de uma ferramenta específica?">
+  Se você tem uma necessidade que ainda não atendemos ou uma sugestão para uma nova calculadora, não hesite em entrar em contato com nossa equipe de suporte. Estamos sempre buscando novas formas de facilitar o seu trabalho!
 </Callout>
 
-Para oferecer o melhor suporte, pode ser necessário acessar seu computador remotamente. Confira os passos:
-
-<div className='fd-steps [&_h3]:fd-step'>
-  <h3>Abra o programa de Suporte Trilink Software</h3>
-    Localize o ícone verde na bandeja do sistema ou o atalho na área de trabalho chamado `Suporte Trilink Software`.
-
-  <h3>Compartilhe ID e Senha</h3>
-    Forneça o **ID** e a **senha** gerados ao técnico para conexão segura.
-
-  <h3>Aguarde o Atendimento</h3>
-    O acesso é temporário e protegido, garantindo sua privacidade.
-</div>
-
-<Callout type="warn" title="Não tem o programa?">
-  Baixe o [Suporte Trilink](https://www.trilink.com.br/public/downloads) na seção Acesso Remoto.
-</Callout>
-
---- 
-
-### Pesquisa de Satisfação
-
-Ao final de cada atendimento, avalie-nos via **WhatsApp** com uma nota de **0 a 5**. É rápido e nos ajuda a melhorar!
-
-- **Destaca nossos acertos** para continuarmos aprimorando.
-- **Revela o que precisa de ajustes** para atendê-lo melhor.
-- **Guia nossa evolução** no atendimento.
-
-Agradecemos seu feedback — ele faz toda a diferença! ??
-
----
-
-## Desenvolvimento
-
-Quer uma nova funcionalidade ou ajuste? Conheça o processo completo para solicitar:
-
-<div className='fd-steps [&_h3]:fd-step'>
-  <h3>Envio da Solicitação</h3>
-    Entre em contato pelos nossos [canais de atendimento](#canais-de-atendimento) para pedir uma nova funcionalidade ou melhoria.
-
-  <h3>Análise Inicial</h3>
-    Nossa equipe avalia a viabilidade técnica e o impacto da solicitação no sistema.
-
-  <h3>Priorização</h3>
-    Classificamos a demanda com base em complexidade, relevância para os clientes e alinhamento com nossos objetivos.
-
-  <h3>Definição de Custos</h3>
-    - **Personalizações**: Solicitações fora do escopo padrão podem ter custo extra, conforme a complexidade.  
-    - **Urgência**: Priorização acelerada pode incluir uma taxa adicional.  
-
-  <h3>Desenvolvimento</h3>
-    Se aprovada, a solicitação é desenvolvida e implementada pela nossa equipe de programação.
-</div>
-
-<Callout type="warn" title="Aviso">
-  O envio de uma solicitação não garante sua execução. Viabilidade, custos e prazos dependem da análise da equipe.
-</Callout>
----
-
-## Perguntas Frequentes
-
-<Accordions>
-  <Accordion title="Quando o suporte emergencial está disponível?">
-    O suporte fora do horário comercial é exclusivo para **emergências** que afetam sua operação, como:  
-    - Impossibilidade de emitir notas fiscais (NFe, NFCe).  
-    - Falhas críticas no faturamento ou emissão de boletos.  
-    - Erros que bloqueiam o acesso ao ERP por todos os usuários.  
-    Use o telefone para atendimento rápido em emergências.
-  </Accordion>
-
-  <Accordion title="Qual o prazo de atendimento dos chamados?">
-    Depende da prioridade e complexidade. Atendemos com agilidade, respeitando a ordem e urgência.
-  </Accordion>
-
-  <Accordion title="O que o suporte não cobre?">
-    Nosso foco é suporte técnico ao produto. Não inclui:  
-    - **Consultoria de negócios**: Consulte especialistas em processos.  
-    - **Softwares de terceiros**: Veja com os respectivos fornecedores.  
-    Use nossos materiais de capacitação para mais ajuda.
-  </Accordion>
-</Accordions>
+<SuporteSection modulo="Ferramentas" />

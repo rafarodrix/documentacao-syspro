@@ -1,20 +1,22 @@
 {
   "root": true,
   "title": "Suporte",
-  "description": "Seção com ferramentas e documentação de suporte.",
-  "icon": "Settings",
+  "description": "Ferramentas práticas, calculadoras e guias para auxiliar no dia a dia da operação.",
+  "icon": "LifeBuoy",
   "pages": [
-    "---Ferramentas de Suporte---",
+    "index",
+    "---Ferramentas de Diagnóstico---",
     "analisador",
     "visualizador-danfe",
+    "decodificador-rejeicoes",
     "---Ferramentas de Gestão---",
-    "calculadora-difal",
     "calculadora-precificacao",
     "ponto-equilibrio",
+    "calculadora-difal",
     "---Documentação e Guias---",
-    "homologcao-producao",
-    "requisitos",
+    "sobre-suporte",
     "releasenotes",
-    "treinamento"
+    "requisitos",
+    "homologcao-producao"
   ]
 }
