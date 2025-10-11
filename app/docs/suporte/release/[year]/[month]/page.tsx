@@ -1,4 +1,5 @@
-// app/docs/suporte/release/[year]/[month]/page.tsx
+// Página para exibir detalhes dos lançamentos de um mês específico
+// Mostra melhorias e correções agrupadas por mês e ano
 
 import { getReleases } from "@/lib/releases";
 import { Heading } from "fumadocs-ui/components/heading";

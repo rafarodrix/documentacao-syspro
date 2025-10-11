@@ -1,4 +1,5 @@
-// app/docs/suporte/release/[year]/[month]/loading.tsx
+// Componente de carregamento para a página de detalhes de lançamentos
+// Mostra um esqueleto de carregamento enquanto os dados são buscados
 
 import { FaRocket, FaBug } from "react-icons/fa";
 

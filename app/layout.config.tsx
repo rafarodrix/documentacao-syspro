@@ -23,8 +23,6 @@ export const baseOptions: BaseLayoutProps = {
       active: 'nested-url',
     },*/
     {
-      // O Fumadocs permite renderizar um componente React diretamente no array de links.
-      // Ele será posicionado à direita no cabeçalho.
       type: 'custom',
       children: <AuthButtons />,
     },

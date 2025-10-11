@@ -1,3 +1,5 @@
+// Rota API para processar e visualizar XML de NF-e (Danfe)
+
 import { NextResponse } from 'next/server';
 import { XMLParser } from 'fast-xml-parser';
 

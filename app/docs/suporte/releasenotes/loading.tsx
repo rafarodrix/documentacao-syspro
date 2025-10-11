@@ -1,8 +1,10 @@
+// Componente de carregamento para a página de notas de lançamento
+// Mostra um esqueleto de carregamento enquanto os dados são buscados
+
 const SkeletonBox = ({ className }: { className?: string }) => (
   <div className={`rounded-lg bg-muted/80 ${className}`} />
 );
 
-// Esqueleto que imita a página de índice de meses
 export default function Loading() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-12 animate-pulse p-4">

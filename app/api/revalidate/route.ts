@@ -1,5 +1,9 @@
+// Rota API para revalidação de cache baseada em webhooks. 
+// Recebe um payload com ticket_id e revalida páginas e tags específicas
+// quando um ticket relevante é atualizado no Zammad.
+// Protegido por um token secreto passado como query param para evitar acessos não autorizados.
+
 import { NextResponse } from 'next/server';
-// 1. Importe o revalidateTag
 import { revalidatePath, revalidateTag } from 'next/cache';
 
 export async function POST(request: Request) {
@@ -20,7 +24,7 @@ export async function POST(request: Request) {
     
     console.log(`Gatilho de revalidação recebido para o Ticket ID: ${ticketId}`);
 
-    // 2. Invalide o cache de DADOS com a tag
+   
     revalidateTag('releases');
 
     // 3. Revalide os caminhos das PÁGINAS

@@ -1,11 +1,12 @@
+// Rota API para sugerir tributação com base em CSTs e alíquotas
+// Recebe CSTs de ICMS, PIS e COFINS e retorna uma sugestão padronizada
+// para uso no sistema, junto com uma explicação dos motivos
+
 import { NextResponse } from 'next/server'
 
-/**
- * Retorna o prefixo do ERP (T18%, FF, II, NN, etc.) com base no CST e alíquota do ICMS.
- */
 function getIcmsPrefix(cstIcms: string, pIcmsStr?: string): { prefixo: string; motivo: string } {
   const pIcms = parseFloat(pIcmsStr || '0');
-  const cst = cstIcms.padStart(2, '0'); // garante 2 dígitos
+  const cst = cstIcms.padStart(2, '0'); 
 
   switch (true) {
     // Tributado integralmente (00, 90)
