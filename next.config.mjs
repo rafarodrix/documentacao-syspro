@@ -11,6 +11,8 @@ const withMDX = createMDX({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  basePath: '/ajuda',
+  trailingSlash: true,
   reactStrictMode: true,
 };
 
