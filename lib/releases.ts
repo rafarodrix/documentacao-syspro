@@ -37,17 +37,18 @@ async function searchZammadTickets(searchQuery: string, limit = 100): Promise<Za
   try {
     const response = await fetch(fullUrl, {
       headers: { Authorization: `Token token=${zammadToken}` },
-      cache: 'no-store', // Para dados do usuário, evitamos cache agressivo
+      next: { 
+        revalidate: 3600, // Tempo em segundos (1 hora). Ajuste conforme sua necessidade.
+        tags: ['releases', 'tickets'] // Adicionamos 'tickets' para o portal
+      }
     });
 
     if (!response.ok) throw new Error(`Falha na API do Zammad: ${response.statusText}`);
     
     const rawTickets = await response.json();
-    return ZammadResponseSchema.parse(rawTickets);
+    return z.array(ZammadTicketAPISchema).parse(rawTickets);
 
   } catch (error) {
-    if (error instanceof z.ZodError) console.error("Erro de validação (Zod) nos dados do Zammad:", error.issues);
-    else console.error("Erro ao buscar tickets do Zammad:", error);
     return [];
   }
 }

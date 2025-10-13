@@ -62,6 +62,7 @@ function TicketList({ tickets }: { tickets: UserTicket[] }) {
 // --- Componente Principal da Página (Server Component) ---
 export default async function PortalPage() {
   const session = await getServerSession(authOptions);
+    console.log("DADOS DA SESSÃO:", session); 
 
   if (!session?.user?.id) {
     redirect('/login?callbackUrl=/portal');
