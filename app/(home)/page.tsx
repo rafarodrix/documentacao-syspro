@@ -104,7 +104,7 @@ export default async function HomePage() {
                     {latestMonthsSnippet.map((summary, index) => (
                         <Link 
                             key={`${summary.year}-${summary.month}`}
-                            href={`/docs/suporte/releasenotes/${summary.year}/${summary.month}`}
+                            href={`/docs/suporte/release/${summary.year}/${summary.month}`}
                             className="no-underline group block"
                         >
                             <div className="h-full p-4 border bg-background/50 rounded-lg transition-all duration-200 ease-in-out hover:shadow-md hover:-translate-y-1 hover:border-primary">

@@ -31,10 +31,9 @@ export async function generateStaticParams() {
 export default async function MonthlyReleasePage({
   params,
 }: {
-  params: Promise<{ year: string; month: string }>;
+  params: { year: string; month: string };
 }) {
-  // ✅ Agora espera a Promise antes de acessar
-  const { year, month } = await params;
+  const { year, month } = params; // Não precisa mais do 'await'
 
   const monthNames = [
     "Janeiro",
