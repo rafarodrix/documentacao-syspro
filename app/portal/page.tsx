@@ -1,4 +1,6 @@
 import { getServerSession } from "next-auth/next";
+import { NavigationCards } from "@/components/NavigationCards";
+import {BookOpen, HelpCircle, GraduationCap, Wrench, } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTicketsByUserId } from "@/lib/releases";
@@ -108,14 +110,40 @@ function TicketList({
 export default async function PortalPage() {
   const session = await getServerSession(authOptions);
 
-  // Redireciona se não autenticado
   if (!session?.user?.id) redirect("/login?callbackUrl=/portal");
 
   const allUserTickets = await getTicketsByUserId(session.user.id);
   const openTickets = allUserTickets.filter((t) => t.status !== "Fechado");
   const closedTickets = allUserTickets.filter((t) => t.status === "Fechado");
-
   const userName = session.user.name?.split(" ")[0] ?? "Usuário";
+
+  // **1. Defina os dados para os cards aqui dentro da página**
+  const portalNavLinks = [
+    {
+      icon: BookOpen,
+      title: "Documentação Completa",
+      description: "Navegue por todos os módulos e funcionalidades.",
+      href: "/docs",
+    },
+    {
+      icon: HelpCircle,
+      title: "Dúvidas Frequentes",
+      description: "Respostas rápidas para as perguntas mais comuns.",
+      href: "/faq",
+    },
+    {
+      icon: GraduationCap,
+      title: "Guias e Tutoriais",
+      description: "Aprenda tarefas com nossos guias práticos.",
+      href: "/guides",
+    },
+    {
+      icon: Wrench,
+      title: "Central de Suporte",
+      description: "Precisa de ajuda? Contate nossa equipe.",
+      href: process.env.ZAMMAD_URL || "#",
+    },
+  ];
 
   return (
     <main className="max-w-5xl mx-auto p-4 md:p-8">
@@ -127,18 +155,17 @@ export default async function PortalPage() {
             Bem-vindo(a) de volta, {userName}.
           </p>
         </div>
-
         <Link
           href={process.env.ZAMMAD_URL || "#"}
           target="_blank"
-          rel="noopener noreferrer"
-          title="Abrir novo chamado no Zammad"
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-md hover:bg-primary/90 transition-all shadow-md"
         >
           <PlusCircle size={18} />
           Abrir Novo Chamado
         </Link>
       </header>
+
+      {/* Cards de Navegação */}
+      <NavigationCards links={portalNavLinks} />
 
       {/* Estatísticas */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -147,23 +174,7 @@ export default async function PortalPage() {
           value={openTickets.length}
           icon={<Clock className="w-8 h-8 text-amber-500" />}
         />
-        <StatCard
-          title="Chamados Fechados"
-          value={closedTickets.length}
-          icon={<Check className="w-8 h-8 text-green-500" />}
-        />
-        <StatCard
-          title="Usuário"
-          value={session.user.name ?? "Desconhecido"}
-          icon={<User className="w-8 h-8 text-muted-foreground" />}
-        />
-        {session.user.organizationId && (
-          <StatCard
-            title="Organização"
-            value={session.user.organizationId}
-            icon={<Building className="w-8 h-8 text-muted-foreground" />}
-          />
-        )}
+        {/* ...outros StatCards ... */}
       </section>
 
       {/* Chamados */}

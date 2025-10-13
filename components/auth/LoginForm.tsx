@@ -1,5 +1,3 @@
-// Componente de formulário de login com tratamento de erros
-
 'use client'; 
 
 import { useSearchParams } from 'next/navigation';
