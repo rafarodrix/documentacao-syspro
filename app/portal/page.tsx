@@ -22,7 +22,9 @@ import {
     BookOpen,
     GraduationCap,
     Globe,
-    Download
+    Download,
+    HelpCircle,
+    Wrench
 } from "lucide-react";
 
 // Revalida a página a cada hora para buscar novos dados
@@ -42,16 +44,28 @@ export default async function PortalPage() {
     // Links rápidos para o portal
     const portalNavLinks: ResourceLink[] = [
         {
-            title: 'Documentação',
+            title: 'Documentação Completa',
             description: 'Navegue por todos os módulos e funcionalidades.',
             href: '/docs/manual',
-            icon: <BookOpen aria-hidden="true" className="w-8 h-8 text-muted-foreground group-hover:text-primary" />,
+            icon: <BookOpen className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors duration-200" />,
+        },
+        {
+            title: 'Dúvidas Frequentes',
+            description: 'Respostas rápidas para as perguntas mais comuns.',
+            href: '/docs/duvidas',
+            icon: <HelpCircle className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors duration-200" />,
         },
         {
             title: 'Guias e Tutoriais',
             description: 'Aprenda tarefas com nossos guias práticos.',
             href: '/docs/treinamento',
-            icon: <GraduationCap aria-hidden="true" className="w-8 h-8 text-muted-foreground group-hover:text-primary" />,
+            icon: <GraduationCap className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors duration-200" />,
+        },
+        {
+            title: 'Central de Suporte',
+            description:   "Precisa de ajuda? Contate nossa equipe especializada.",
+            href: '/docs/suporte',
+            icon: <Wrench className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors duration-200" />,
         },
         {
             title: 'Site Institucional',
