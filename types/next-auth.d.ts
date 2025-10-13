@@ -1,25 +1,27 @@
 import { DefaultSession, DefaultUser } from "next-auth";
-import { JWT, DefaultJWT } from "next-auth/jwt";
+import { DefaultJWT } from "next-auth/jwt";
 
-// Aumenta a tipagem do objeto 'User' retornado pela função profile
+// Extensões para incluir roles e organizationId no usuário, sessão e token JWT
 declare module "next-auth" {
   interface User extends DefaultUser {
+    id: string; 
     roles?: number[];
     organizationId?: number | null;
   }
-
-  // Aumenta a tipagem do objeto 'session' disponível no lado do cliente
+  
   interface Session {
     user?: {
+      id: string; 
       roles?: number[];
       organizationId?: number | null;
     } & DefaultSession["user"];
   }
 }
 
-// Aumenta a tipagem do objeto 'token' (JWT)
+// Extensões para incluir roles e organizationId no token JWT
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
+    id: string; 
     roles?: number[];
     organizationId?: number | null;
   }

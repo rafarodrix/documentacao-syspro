@@ -41,12 +41,12 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.roles = token.roles as number[]; // Cast para garantir o tipo
+        session.user.roles = token.roles as number[]; 
         session.user.organizationId = token.organizationId as number | null;
       }
       return session;
     },
-  }, // <-- SINTAXE CORRIGIDA AQUI
+  }, 
 
   pages: {
     signIn: '/login',
