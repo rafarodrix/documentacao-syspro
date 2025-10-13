@@ -1,37 +1,46 @@
 import Link from 'next/link';
-import type { LucideProps } from 'lucide-react';
-import type { FunctionComponent } from 'react';
+import { ReactNode } from 'react';
 
-// 1. Definimos um tipo para os dados dos links
-export type ResourceLink = {
+// Tipos e Interfaces
+export interface ResourceLink {
   title: string;
   description: string;
   href: string;
-  icon: React.ReactElement<LucideProps>;
-};
-
-// 2. O componente agora recebe um array de links como prop
-interface ResourceCardsProps {
-  links: ResourceLink[];
+  icon: ReactNode;
 }
 
-export function ResourceCards({ links }: ResourceCardsProps) {
-  // 3. Os dados não são mais definidos aqui dentro
+// Propriedades do componente ResourceCards
+export interface ResourceCardsProps {
+  links: ResourceLink[];
+  layout?: 'horizontal' | 'vertical'; 
+}
+
+// Componente que renderiza uma série de cards de recursos com links
+export function ResourceCards({ links, layout = 'horizontal' }: ResourceCardsProps) {
+
+  const containerClasses = layout === 'vertical'
+    ? 'flex flex-col gap-4' 
+    : 'grid grid-cols-1 sm:grid-cols-2 gap-4'; 
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={containerClasses}>
       {links.map((link) => (
         <Link
-          key={link.title}
+          key={link.href}
           href={link.href}
           target={link.href.startsWith('http') ? '_blank' : '_self'}
           rel="noopener noreferrer"
-          className="group block rounded-lg border bg-card p-5 shadow-sm transition-all duration-200 ease-in-out hover:-translate-y-1 hover:border-primary hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="group flex items-start gap-4 p-4 border rounded-lg bg-card text-card-foreground hover:bg-muted/50 transition-colors"
         >
-          {link.icon}
-          <h3 className="mt-3 text-lg font-semibold text-foreground">{link.title}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {link.description}
-          </p>
+          <div>{link.icon}</div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+              {link.title}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {link.description}
+            </p>
+          </div>
         </Link>
       ))}
     </div>
