@@ -12,14 +12,14 @@ const ZammadTicketAPISchema = z.object({
   state_id: z.number(),
   group_id: z.number().optional(),
 
-  // Campos personalizados ficam dentro de object_attributes
+  // Campos personalizados ficam dentro de object_attributes.
   object_attributes: z
     .object({
       modulo: z.string().nullable().optional(),
       video_link: z.string().nullable().optional(),
       release_summary: z.string().nullable().optional(),
     })
-    .optional(),
+    .default({}),
 });
 
 type ZammadTicket = z.infer<typeof ZammadTicketAPISchema>;
@@ -40,7 +40,7 @@ async function searchZammadTickets(searchQuery: string, limit = 100): Promise<Za
   const zammadToken = process.env.ZAMMAD_TOKEN;
 
   if (!zammadUrl || !zammadToken) {
-    console.error("❌ Variáveis de ambiente do Zammad não configuradas.");
+    console.error("Variáveis de ambiente não configuradas.");
     return [];
   }
 
@@ -52,7 +52,7 @@ async function searchZammadTickets(searchQuery: string, limit = 100): Promise<Za
     const response = await fetch(fullUrl, {
       headers: { Authorization: `Token token=${zammadToken}` },
       next: {
-        revalidate: 3600,
+        revalidate: 3600, // 1 hora
         tags: ["releases", "tickets"],
       },
     });
@@ -64,7 +64,7 @@ async function searchZammadTickets(searchQuery: string, limit = 100): Promise<Za
     const rawTickets = await response.json();
     return z.array(ZammadTicketAPISchema).parse(rawTickets);
   } catch (error) {
-    console.error("❌ Erro ao buscar tickets do Zammad:", error);
+    console.error("Erro ao buscar tickets", error);
     return [];
   }
 }
@@ -77,7 +77,8 @@ export async function getReleases(): Promise<Release[]> {
   const tickets = await searchZammadTickets(releaseQuery);
 
   return tickets.map((ticket): Release => {
-    const attrs = ticket.object_attributes || {};
+    // Acessamos diretamente, pois o .default({}) no schema garante que nunca será undefined.
+    const attrs = ticket.object_attributes;
 
     const mainModule = attrs.modulo?.split("::")[0] || "Geral";
     const releaseSummary = attrs.release_summary?.trim() || ticket.title;
