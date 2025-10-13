@@ -35,16 +35,25 @@ export const authOptions: AuthOptions = {
     },
   ],
   
-  // ADIÇÃO 2: Bloco de Callbacks para uma depuração mais completa
+  // Este bloco intercepta e corrige todos os redirecionamentos do NextAuth.
   callbacks: {
-    async jwt({ token, account, profile }) {
-      console.log("--- CALLBACK JWT DO NEXTAUTH ---");
-      console.log("TOKEN:", JSON.stringify(token, null, 2));
-      console.log("ACCOUNT (DO ZAMMAD):", JSON.stringify(account, null, 2));
-      console.log("PROFILE (DO ZAMMAD):", JSON.stringify(profile, null, 2));
-      console.log("--------------------------------");
-      return token;
-    }
+    async redirect({ url, baseUrl }) {
+      // Usa a nossa AUTH_URL como a fonte da verdade, ignorando a detecção automática.
+      const finalBaseUrl = process.env.AUTH_URL || baseUrl;
+
+      // Se a URL de destino for relativa (ex: "/docs/dashboard"),
+      // nós a combinamos com a nossa URL base correta.
+      if (url.startsWith('/')) {
+        return `${finalBaseUrl}${url}`;
+      } 
+      // Se a URL já for absoluta (ex: vinda do Zammad), verifica se é válida.
+      else if (new URL(url).origin === finalBaseUrl) {
+        return url;
+      }
+      
+      // Como fallback de segurança, sempre retorna para a página inicial segura.
+      return finalBaseUrl;
+    },
   },
 
   pages: {
