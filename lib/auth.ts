@@ -20,11 +20,6 @@ export const authOptions: AuthOptions = {
       clientSecret: process.env.ZAMMAD_CLIENT_SECRET,
       
       profile(profile) {
-        // ADIÇÃO 1: Log para inspecionar os dados brutos do perfil
-        console.log("--- PERFIL ZAMMAD RECEBIDO (DENTRO DA FUNÇÃO PROFILE) ---");
-        console.log(JSON.stringify(profile, null, 2));
-        console.log("---------------------------------------------------------");
-        
         return {
           id: profile.id.toString(),
           name: `${profile.firstname} ${profile.lastname}`,
@@ -35,23 +30,19 @@ export const authOptions: AuthOptions = {
     },
   ],
   
-  // Este bloco intercepta e corrige todos os redirecionamentos do NextAuth.
+
+  // Customiza o comportamento de redirecionamento para garantir URLs seguras e corretas
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Usa a nossa AUTH_URL como a fonte da verdade, ignorando a detecção automática.
       const finalBaseUrl = process.env.AUTH_URL || baseUrl;
-
-      // Se a URL de destino for relativa (ex: "/docs/dashboard"),
-      // nós a combinamos com a nossa URL base correta.
+        // Se a URL for relativa, concatena com a baseUrl
       if (url.startsWith('/')) {
         return `${finalBaseUrl}${url}`;
       } 
-      // Se a URL já for absoluta (ex: vinda do Zammad), verifica se é válida.
+        // Se a URL tiver a mesma origem que a baseUrl, permite o redirecionamento
       else if (new URL(url).origin === finalBaseUrl) {
         return url;
       }
-      
-      // Como fallback de segurança, sempre retorna para a página inicial segura.
       return finalBaseUrl;
     },
   },
