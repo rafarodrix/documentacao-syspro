@@ -11,15 +11,9 @@ const ZammadTicketAPISchema = z.object({
   close_at: z.string().nullable(),
   state_id: z.number(),
   group_id: z.number().optional(),
-
-  // Campos personalizados ficam dentro de object_attributes.
-  object_attributes: z
-    .object({
-      modulo: z.string().nullable().optional(),
-      video_link: z.string().nullable().optional(),
-      release_summary: z.string().nullable().optional(),
-    })
-    .default({}),
+  modulo: z.string().nullable().optional(),
+  video_link: z.string().nullable().optional(),
+  release_summary: z.string().nullable().optional(),
 });
 
 type ZammadTicket = z.infer<typeof ZammadTicketAPISchema>;
@@ -77,11 +71,8 @@ export async function getReleases(): Promise<Release[]> {
   const tickets = await searchZammadTickets(releaseQuery);
 
   return tickets.map((ticket): Release => {
-    // Acessamos diretamente, pois o .default({}) no schema garante que nunca será undefined.
-    const attrs = ticket.object_attributes;
-
-    const mainModule = attrs.modulo?.split("::")[0] || "Geral";
-    const releaseSummary = attrs.release_summary?.trim() || ticket.title;
+    const mainModule = ticket.modulo?.split("::")[0] || "Geral";
+    const releaseSummary = ticket.release_summary?.trim() || ticket.title;
 
     return {
       id: ticket.number,
@@ -90,7 +81,7 @@ export async function getReleases(): Promise<Release[]> {
       title: ticket.title,
       summary: releaseSummary,
       link: `${zammadUrl}/#ticket/zoom/${ticket.id}`,
-      videoLink: attrs.video_link || null,
+      videoLink: ticket.video_link || null,
       tags: [mainModule],
     };
   });
