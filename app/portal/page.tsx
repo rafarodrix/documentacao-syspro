@@ -25,8 +25,7 @@ import {
     Download
 } from "lucide-react";
 
-// ==========================================
-
+// Revalida a página a cada hora para buscar novos dados
 export default async function PortalPage() {
     const session = await getServerSession(authOptions);
 
@@ -34,11 +33,13 @@ export default async function PortalPage() {
         redirect("/login?callbackUrl=/portal");
     }
 
+    // Buscar os tickets do usuário logado
     const allUserTickets = await getTicketsByUserId(session.user.id);
     const openTickets = allUserTickets.filter((t) => t.status !== "Fechado");
     const closedTickets = allUserTickets.filter((t) => t.status === "Fechado");
     const userName = session.user.name?.split(" ")[0] ?? "Usuário";
 
+    // Links rápidos para o portal
     const portalNavLinks: ResourceLink[] = [
         {
             title: 'Documentação',
@@ -66,15 +67,15 @@ export default async function PortalPage() {
         },
     ];
 
-    // AJUSTE: Simplificação dos dados de estatísticas, removendo usuário e organização.
+    // Dados para os cards de estatísticas
     const statsData = [
         { title: "Chamados Abertos", value: openTickets.length, icon: <Clock className="w-8 h-8 text-amber-500" /> },
         { title: "Chamados Fechados", value: closedTickets.length, icon: <Check className="w-8 h-8 text-green-500" /> },
     ];
 
+    //
     return (
         <main className="max-w-7xl mx-auto p-4 md:p-8">
-            {/* O cabeçalho permanece similar, mas ajustamos a largura máxima do container geral */}
             <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
                 <div className="flex items-center gap-4">
                     <div>
@@ -96,12 +97,9 @@ export default async function PortalPage() {
                 </Link>
             </header>
 
-            {/* NOVO: Layout principal em duas colunas para telas grandes */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {/* Coluna Principal (2/3 da largura) */}
                 <div className="lg:col-span-2 space-y-8">
-                    {/* Estatísticas agora ficam acima da lista de chamados */}
                     <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {statsData.map(stat => <StatCard key={stat.title} {...stat} />)}
                     </section>
@@ -121,12 +119,11 @@ export default async function PortalPage() {
                     )}
                 </div>
 
-                {/* Coluna Secundária / Barra Lateral (1/3 da largura) */}
                 <aside className="space-y-4">
                     <h2 className="text-xl font-semibold tracking-tight border-b pb-2">
                         Recursos Rápidos
                     </h2>
-                    {/* O componente ResourceCards pode precisar de um ajuste para um layout vertical */}
+
                     <ResourceCards links={portalNavLinks} layout="vertical" />
                 </aside>
             </div>
