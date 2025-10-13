@@ -11,6 +11,8 @@ const withMDX = createMDX({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  basePath: process.env.NODE_ENV === 'production' ? '/ajuda' : '', // Ajuste automático do basePath com base no ambiente de execução 
+  trailingSlash: true,
   reactStrictMode: true,
 };
 
