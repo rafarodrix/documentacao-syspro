@@ -25,6 +25,6 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "zammad.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/Suporte.tsx", "components/releases/ReleasesIndexPage.old"],
+  "include": ["next-env.d.ts", "types/zammad.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/Suporte.tsx", "components/releases/ReleasesIndexPage.old"],
   "exclude": ["node_modules"]
 }
