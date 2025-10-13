@@ -3,17 +3,6 @@
 import Script from 'next/script';
 import { useState, useEffect, useMemo, type FC } from 'react';
 
-// Tipagem mais precisa para a instância do ZammadChat
-declare global {
-  interface Window {
-    ZammadChat?: new (options: any) => {
-      open: () => void;
-      close: () => void;
-      on: (event: string, callback: () => void) => void;
-      off: (event: string, callback: () => void) => void;
-    };
-  }
-}
 
 // Opções que o construtor do ZammadChat aceita
 interface ZammadChatOptions {
@@ -46,8 +35,6 @@ const ZammadChat: FC<ZammadChatProps> = ({
   className = '',
 }) => {
   const [isButtonVisible, setIsButtonVisible] = useState(true);
-  
-  // CORREÇÃO: Usamos InstanceType para obter o tipo da instância de uma classe/construtor.
   const [chatInstance, setChatInstance] = useState<InstanceType<NonNullable<Window['ZammadChat']>> | null>(null);
 
   const finalOptions = useMemo(() => {
