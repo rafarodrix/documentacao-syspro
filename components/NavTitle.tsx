@@ -14,15 +14,19 @@ export function NavTitle() {
     setIsMounted(true);
   }, []);
 
-  // Determina a fonte da logo com base no tema resolvido
-  const logoSrc = resolvedTheme === 'dark' ? '/logo/logo-clara.png' : '/logo/logo-escura.png';
+  // 1. Define o prefixo do caminho apenas se estiver em produção.
+  const basePath = process.env.NODE_ENV === 'production' ? '/ajuda' : '';
 
-  // Enquanto não estiver montado, renderiza um placeholder para evitar erro de hidratação
+  // 2. Monta a URL completa da imagem, incluindo o basePath.
+  const logoSrc = resolvedTheme === 'dark' 
+    ? `${basePath}/logo/logo-clara.png` 
+    : `${basePath}/logo/logo-escura.png`;
+
   if (!isMounted) {
-    // Placeholder com as mesmas dimensões da imagem para evitar "pulos" no layout
     return <div style={{ width: '128px', height: '32px' }} />;
   }
 
+  // Renderiza a imagem da logo com as propriedades ajustadas
    return (
     <Image
       src={logoSrc}
