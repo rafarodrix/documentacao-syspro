@@ -1,153 +1,42 @@
 import { getServerSession } from "next-auth/next";
-import { NavigationCards } from "@/components/NavigationCards";
-import {BookOpen, HelpCircle, GraduationCap, Wrench, } from "lucide-react";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { getTicketsByUserId } from "@/lib/releases";
-import type { UserTicket } from "@/lib/types";
-import {
-  User,
-  Ticket,
-  ExternalLink,
-  Building,
-  PlusCircle,
-  Check,
-  Clock,
-} from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import { redirect } from "next/navigation";
 
-// --- Tipos Auxiliares ---
-interface StatCardProps {
-  title: string;
-  value: number | string;
-  icon: React.ReactNode;
-}
+// Imports de lógica e tipos
+import { authOptions } from "@/lib/auth";
+import { getTicketsByUserId } from "@/lib/releases";
 
-interface TicketListProps {
-  tickets: UserTicket[];
-  title: string;
-  emptyMessage: string;
-  showStatusColors?: boolean;
-}
+// Imports de componentes
+import { ResourceCards } from "@/components/ResourceCards";
+import { StatCard } from "@/components/portal/StatCard";
+import { TicketList } from "@/components/portal/TicketList";
 
-// --- Componente: Cartão de Estatísticas ---
-function StatCard({ title, value, icon }: StatCardProps) {
-  return (
-    <div className="p-4 border rounded-lg bg-card shadow-sm flex items-center gap-4 transition-all hover:border-primary/50 hover:shadow-md">
-      {icon}
-      <div>
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
-      </div>
-    </div>
-  );
-}
+// Imports de ícones
+import { User, Building, PlusCircle, Check, Clock } from "lucide-react";
 
-// --- Componente: Lista de Tickets ---
-function TicketList({
-  tickets,
-  title,
-  emptyMessage,
-  showStatusColors = true,
-}: TicketListProps) {
-  return (
-    <section className="mt-8">
-      <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-        <Ticket className="w-5 h-5 text-muted-foreground" />
-        {title}
-      </h2>
-
-      {tickets.length === 0 ? (
-        <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-          <p>{emptyMessage}</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {tickets.map((ticket) => (
-            <Link
-              key={ticket.id}
-              href={ticket.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Abrir ticket ${ticket.number}`}
-              className="group block p-4 border rounded-lg bg-card transition-all hover:border-primary hover:shadow-md"
-            >
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground group-hover:text-primary transition-colors">
-                    #{ticket.number} — {ticket.title}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Última atualização: {ticket.lastUpdate}
-                  </p>
-                </div>
-
-                {showStatusColors && (
-                  <div className="flex items-center gap-2 text-sm flex-shrink-0">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        ticket.status === "Fechado"
-                          ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                      }`}
-                    >
-                      {ticket.status}
-                    </span>
-                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-// --- Componente Principal: Portal do Cliente ---
 export default async function PortalPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) redirect("/login?callbackUrl=/portal");
+  if (!session?.user?.id) {
+    redirect("/login?callbackUrl=/portal");
+  }
 
+  // Busca e processamento de dados
   const allUserTickets = await getTicketsByUserId(session.user.id);
   const openTickets = allUserTickets.filter((t) => t.status !== "Fechado");
   const closedTickets = allUserTickets.filter((t) => t.status === "Fechado");
   const userName = session.user.name?.split(" ")[0] ?? "Usuário";
 
-  // **1. Defina os dados para os cards aqui dentro da página**
-  const portalNavLinks = [
-    {
-      icon: BookOpen,
-      title: "Documentação Completa",
-      description: "Navegue por todos os módulos e funcionalidades.",
-      href: "/docs",
-    },
-    {
-      icon: HelpCircle,
-      title: "Dúvidas Frequentes",
-      description: "Respostas rápidas para as perguntas mais comuns.",
-      href: "/faq",
-    },
-    {
-      icon: GraduationCap,
-      title: "Guias e Tutoriais",
-      description: "Aprenda tarefas com nossos guias práticos.",
-      href: "/guides",
-    },
-    {
-      icon: Wrench,
-      title: "Central de Suporte",
-      description: "Precisa de ajuda? Contate nossa equipe.",
-      href: process.env.ZAMMAD_URL || "#",
-    },
+  // Dados para os cards de estatísticas (torna a renderização mais limpa)
+  const statsData = [
+    { title: "Chamados Abertos", value: openTickets.length, icon: <Clock className="w-8 h-8 text-amber-500" /> },
+    { title: "Chamados Fechados", value: closedTickets.length, icon: <Check className="w-8 h-8 text-green-500" /> },
+    { title: "Usuário", value: session.user.name ?? "Desconhecido", icon: <User className="w-8 h-8 text-muted-foreground" /> },
+    ...(session.user.organizationId ? [{ title: "Organização", value: session.user.organizationId, icon: <Building className="w-8 h-8 text-muted-foreground" /> }] : []),
   ];
 
   return (
     <main className="max-w-5xl mx-auto p-4 md:p-8">
-      {/* Cabeçalho */}
       <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Portal do Cliente</h1>
@@ -158,26 +47,23 @@ export default async function PortalPage() {
         <Link
           href={process.env.ZAMMAD_URL || "#"}
           target="_blank"
+          rel="noopener noreferrer"
+          title="Abrir novo chamado no Zammad"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-md hover:bg-primary/90 transition-all shadow-md"
         >
           <PlusCircle size={18} />
           Abrir Novo Chamado
         </Link>
       </header>
+      
+      <div className="mb-12">
+        <ResourceCards />
+      </div>
 
-      {/* Cards de Navegação */}
-      <NavigationCards links={portalNavLinks} />
-
-      {/* Estatísticas */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          title="Chamados Abertos"
-          value={openTickets.length}
-          icon={<Clock className="w-8 h-8 text-amber-500" />}
-        />
-        {/* ...outros StatCards ... */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statsData.map(stat => <StatCard key={stat.title} {...stat} />)}
       </section>
 
-      {/* Chamados */}
       <TicketList
         tickets={openTickets}
         title="Meus Chamados Abertos"
