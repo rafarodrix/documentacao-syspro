@@ -66,7 +66,7 @@ export async function getReleases(): Promise<Release[]> {
       type: ticket.type || "Indefinido",
       isoDate: (ticket.close_at || ticket.updated_at).split("T")[0],
       title: ticket.title,
-      summary: ticket.release_summary || null,
+      summary: ticket.release_summary || ticket.title,
       link: `${zammadUrl}/#ticket/zoom/${ticket.id}`,
       videoLink: ticket.video_link || null,
       tags: [mainModule],
@@ -74,7 +74,7 @@ export async function getReleases(): Promise<Release[]> {
   });
 }
 
-// --- NOVA FUNÇÃO PARA TICKETS DO USUÁRIO ---
+// --- Função para Tickets do Usuário ---
 export async function getTicketsByUserId(userId: string): Promise<UserTicket[]> {
     const zammadUrl = process.env.ZAMMAD_URL!;
     if (!userId) return [];

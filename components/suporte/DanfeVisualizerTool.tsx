@@ -2,7 +2,7 @@
 
 import { useState, ChangeEvent } from 'react';
 import { UploadCloud, Loader, AlertTriangle, Package, Truck, Landmark, Info, ChevronDown, Percent, Calculator } from 'lucide-react';
-import { SugestaoERP } from './SugestaoERP';
+import { SugestaoERP } from '../SugestaoERP';
 
 // --- Interfaces de Tipos (Atualizadas para maior robustez) ---
 interface ItemFiscalData {
