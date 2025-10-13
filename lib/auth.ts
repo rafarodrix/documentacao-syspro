@@ -12,8 +12,14 @@ export const authOptions: AuthOptions = {
       
       authorization: {
         url: `${process.env.ZAMMAD_URL}/oauth/authorize`,
-        params: { scope: "" },
+        params: { 
+          scope: "",
+          // --- A SOLUÇÃO FINAL ESTÁ AQUI ---
+          // Força o NextAuth a usar a URL de retorno correta, ignorando a detecção automática.
+          redirect_uri: `${process.env.AUTH_URL}/api/auth/callback/zammad`,
+        },
       },
+
       token: `${process.env.ZAMMAD_URL}/oauth/token`,
       userinfo: `${process.env.ZAMMAD_URL}/api/v1/users/me`,
       clientId: process.env.ZAMMAD_CLIENT_ID,
@@ -30,23 +36,6 @@ export const authOptions: AuthOptions = {
     },
   ],
   
-
-  // Customiza o comportamento de redirecionamento para garantir URLs seguras e corretas
-  callbacks: {
-    async redirect({ url, baseUrl }) {
-      const finalBaseUrl = process.env.AUTH_URL || baseUrl;
-        // Se a URL for relativa, concatena com a baseUrl
-      if (url.startsWith('/')) {
-        return `${finalBaseUrl}${url}`;
-      } 
-        // Se a URL tiver a mesma origem que a baseUrl, permite o redirecionamento
-      else if (new URL(url).origin === finalBaseUrl) {
-        return url;
-      }
-      return finalBaseUrl;
-    },
-  },
-
   pages: {
     signIn: '/login',
   },
