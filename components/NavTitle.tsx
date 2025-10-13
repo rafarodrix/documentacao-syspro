@@ -30,7 +30,8 @@ export function NavTitle() {
       width={128}
       height={32} 
       priority 
-      className="h-8 w-auto" 
+      className="h-8 w-auto"
+      unoptimized 
     />
   );
 }
