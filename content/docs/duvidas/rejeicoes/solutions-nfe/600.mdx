@@ -1,0 +1,76 @@
+---
+title: 'Rejeição 600: CSOSN incompatível na operação com Não Contribuinte'
+description: 'Como corrigir a rejeição "600 - CSOSN incompatível na operação com Não Contribuinte" ao transmitir NFe no Syspro ERP.'
+causa_do_erro: 'A rejeição ocorre quando o CSOSN (Código de Situação da Operação no Simples Nacional) utilizado no item da NFe é permitido apenas para destinatários Contribuintes de ICMS, mas o cliente da operação está cadastrado como "Não Contribuinte".'
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/SuporteSection.tsx';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+---
+
+## Identificação do Problema
+
+Ao tentar transmitir uma Nota Fiscal Eletrônica (NFe), o sistema retorna uma rejeição da Sefaz com a seguinte mensagem, indicando o item com problema (ex: `nItem:2`):
+
+<Callout type="error" title="Erro Apresentado">
+  Rejeição: CSOSN incompativel na operacao com Nao Contribuinte
+</Callout>
+
+<Callout type="info" title="Causa do Erro">
+  Isso acontece porque o **CSOSN** (Código de Situação da Operação no Simples Nacional) utilizado em um dos itens da nota é exclusivo para vendas a **Contribuintes de ICMS** (que possuem Inscrição Estadual). No entanto, o destinatário da nota está identificado como **Não Contribuinte**.
+
+  Geralmente, CSOSNs como `101`, `201` ou `900` causam esse erro, pois indicam permissão de crédito de ICMS.
+</Callout>
+
+## Passo a Passo da Solução
+
+<Steps>
+  <Step title="Verificar a Classificação Fiscal do Destinatário">
+    <p>A causa raiz do problema geralmente está em uma configuração incorreta no cadastro do cliente. É preciso verificar dois campos: a **Classificação** e o **Indicador de Inscrição Estadual** no endereço.</p>
+    
+    **Parte A: Verificar a "Classificação"**
+    1. No menu superior, acesse `Cadastros > Participante`.
+    2. Pesquise e abra o cadastro do cliente da nota.
+    3. Na aba **Principal**, verifique o campo **"Classificação"**. Para um consumidor final ou não contribuinte, este campo geralmente deve ser **"PESSOA FISICA"** ou **"ISENTO"**.
+
+    **Parte B: Verificar o "Indicador de Inscrição Estadual"**
+    1. No mesmo cadastro, vá para a aba **Endereço**.
+    2. Selecione o endereço principal e clique em **Editar**.
+    3. Na janela que se abre, localize o campo **"Indicador Insc.Estadual"** e confirme se está como **"NÃO CONTRIBUINTE"**.
+
+    <Callout type="warn" title="Atenção à Configuração Fiscal Completa">
+      Ambos os campos são importantes. A **"Classificação"** define o perfil tributário geral do participante, enquanto o **"Indicador Insc.Estadual"** confirma o status de contribuinte de ICMS. Uma classificação incorreta (ex: "SIMPLES NACIONAL" para um não contribuinte) pode fazer com que o sistema sugira impostos errados ao criar a NFe.
+      
+      **Corrija os dois campos se necessário.** Se o cadastro estiver correto, siga para o próximo passo.
+    </Callout>
+  </Step>
+
+  <Step title="Ajustar o CSOSN Diretamente na Nota Fiscal">
+    <p>Com o cadastro do cliente confirmado como "Não Contribuinte", o erro deve ser corrigido diretamente no item da nota fiscal.</p>
+    1. Acesse a nota fiscal rejeitada, indo em `Movimento > Lançamento de Documentos`.
+    2. Abra a nota e clique em **Editar**.
+    3. Na aba **Itens**, selecione a linha do produto que causou a rejeição (conforme indicado na mensagem de erro).
+    4. Na parte inferior da tela, nos **Dados do Produto**, localize o campo **CSOSN**.
+    5. Altere o valor incorreto (ex: `0101`) para **`0102`**.
+
+    <Callout type="info" title="Por que usar o CSOSN 102?">
+      O CSOSN **102** significa "Tributada pelo Simples Nacional sem permissão de crédito". Ele é o código correto para a maioria das vendas destinadas a consumidores finais ou não contribuintes do ICMS.
+    </Callout>
+  </Step>
+
+  <Step title="Salvar e Retransmitir a NFe">
+    <p>Após corrigir o item, basta salvar as alterações e enviar a nota novamente.</p>
+    1. Clique em **Salvar** para confirmar as alterações na nota fiscal.
+    2. Utilize a opção de **Processar** a NFe novamente para a Sefaz.
+
+    <Callout type="success" title="Problema Resolvido">
+      Ao ajustar o CSOSN para um código compatível com "Não Contribuinte", a Sefaz irá validar e autorizar sua nota fiscal!
+    </Callout>
+  </Step>
+</Steps>
+
+---
+
+<SuporteSection modulo="NFe" />
