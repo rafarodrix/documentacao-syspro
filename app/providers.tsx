@@ -1,4 +1,3 @@
-// Provedor de autenticação NextAuth para a aplicação
 'use client';
 
 import { SessionProvider } from "next-auth/react";
@@ -8,5 +7,5 @@ type Props = {
 };
 
 export const NextAuthProvider = ({ children }: Props) => {
-  return <SessionProvider basePath="/ajuda/api/auth">{children}</SessionProvider>;
+  return <SessionProvider>{children}</SessionProvider>;
 };
