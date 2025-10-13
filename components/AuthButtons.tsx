@@ -30,7 +30,7 @@ export function AuthButtons() {
 
     return (
         <button
-            onClick={() => signIn('zammad')}
+            onClick={() => signIn('zammad', { callbackUrl: '/portal' })}
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
         >
             <LogIn className="w-5 h-5" />
