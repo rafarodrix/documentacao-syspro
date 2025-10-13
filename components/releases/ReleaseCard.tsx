@@ -10,9 +10,8 @@ interface ReleaseCardProps {
 }
 
 export function ReleaseCard({ release, onVideoClick }: ReleaseCardProps) {
-
   const isBug = release.type.toLowerCase() === "bug";
-  
+
   const badgeText = isBug ? `Bug ${release.id}` : `Melhoria ${release.id}`;
   const badgeClasses = isBug
     ? "bg-amber-500/10 text-amber-600"
@@ -29,7 +28,8 @@ export function ReleaseCard({ release, onVideoClick }: ReleaseCardProps) {
         </div>
       }
     >
-      <p className="text-sm text-foreground mb-2">{release.title}</p>
+      <p className="text-sm text-foreground mb-2">{release.summary}</p>
+
       <div className="flex flex-wrap gap-2">
         {(release.tags || []).map((tag) => (
           <span
@@ -43,18 +43,26 @@ export function ReleaseCard({ release, onVideoClick }: ReleaseCardProps) {
     </Card>
   );
 
-  const linkProps = {
-    className: "block rounded-lg transition-colors hover:bg-muted/40 no-underline cursor-pointer",
-    href: release.link || "#",
-    onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-      if (release.videoLink) {
-        e.preventDefault();
-        onVideoClick(release.videoLink);
-      }
-    },
-    target: release.videoLink ? "_self" : "_blank",
-    rel: release.videoLink ? "" : "noopener noreferrer",
-  };
+  if (release.videoLink) {
+    return (
+      <button
+        onClick={() => onVideoClick(release.videoLink!)}
+        className="block w-full text-left rounded-lg transition-colors hover:bg-muted/40 no-underline cursor-pointer"
+        aria-label={`Ver vídeo da ${badgeText}: ${release.title}`}
+      >
+        {cardContent}
+      </button>
+    );
+  }
 
-  return <a {...linkProps}>{cardContent}</a>;
+  return (
+    <a
+      href={release.link || "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-lg transition-colors hover:bg-muted/40 no-underline"
+    >
+      {cardContent}
+    </a>
+  );
 }
