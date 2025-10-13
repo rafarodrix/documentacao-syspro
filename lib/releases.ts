@@ -59,7 +59,7 @@ export async function getReleases(): Promise<Release[]> {
   const releaseQuery = `(type:"Melhoria" OR type:"Bug") AND state_id:${ZAMMAD_RELEASE_STATE_ID} AND group_id:${ZAMMAD_RELEASE_GROUP_ID}`;
   const tickets = await searchZammadTickets(releaseQuery);
   
-  return tickets.map((ticket): Release => {
+return tickets.map((ticket): Release => {
     const mainModule = ticket.modulo ? ticket.modulo.split("::")[0] : "Geral";
     return {
       id: ticket.number,
