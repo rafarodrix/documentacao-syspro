@@ -32,7 +32,7 @@ interface TicketListProps {
 // --- Componente: Cartão de Estatísticas ---
 function StatCard({ title, value, icon }: StatCardProps) {
   return (
-    <div className="p-4 border rounded-lg bg-card shadow-sm flex items-center gap-4 transition-colors hover:border-primary/40">
+    <div className="p-4 border rounded-lg bg-card shadow-sm flex items-center gap-4 transition-all hover:border-primary/50 hover:shadow-md">
       {icon}
       <div>
         <p className="text-sm text-muted-foreground">{title}</p>
@@ -43,7 +43,12 @@ function StatCard({ title, value, icon }: StatCardProps) {
 }
 
 // --- Componente: Lista de Tickets ---
-function TicketList({ tickets, title, emptyMessage, showStatusColors = true }: TicketListProps) {
+function TicketList({
+  tickets,
+  title,
+  emptyMessage,
+  showStatusColors = true,
+}: TicketListProps) {
   return (
     <section className="mt-8">
       <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -81,8 +86,8 @@ function TicketList({ tickets, title, emptyMessage, showStatusColors = true }: T
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                         ticket.status === "Fechado"
-                          ? "bg-red-500/10 text-red-700"
-                          : "bg-green-500/10 text-green-700"
+                          ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
                       }`}
                     >
                       {ticket.status}
@@ -103,14 +108,10 @@ function TicketList({ tickets, title, emptyMessage, showStatusColors = true }: T
 export default async function PortalPage() {
   const session = await getServerSession(authOptions);
 
-  // Segurança: redireciona se não autenticado
-  if (!session?.user?.id) {
-    redirect("/login?callbackUrl=/portal");
-  }
+  // Redireciona se não autenticado
+  if (!session?.user?.id) redirect("/login?callbackUrl=/portal");
 
-  // Busca tickets do usuário autenticado
   const allUserTickets = await getTicketsByUserId(session.user.id);
-
   const openTickets = allUserTickets.filter((t) => t.status !== "Fechado");
   const closedTickets = allUserTickets.filter((t) => t.status === "Fechado");
 
@@ -127,16 +128,16 @@ export default async function PortalPage() {
           </p>
         </div>
 
-        <a
-          href={process.env.ZAMMAD_URL}
+        <Link
+          href={process.env.ZAMMAD_URL || "#"}
           target="_blank"
           rel="noopener noreferrer"
           title="Abrir novo chamado no Zammad"
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-md hover:bg-primary/90 transition-colors shadow-md"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-md hover:bg-primary/90 transition-all shadow-md"
         >
           <PlusCircle size={18} />
           Abrir Novo Chamado
-        </a>
+        </Link>
       </header>
 
       {/* Estatísticas */}
@@ -153,7 +154,7 @@ export default async function PortalPage() {
         />
         <StatCard
           title="Usuário"
-          value={session.user.name || ""}
+          value={session.user.name ?? "Desconhecido"}
           icon={<User className="w-8 h-8 text-muted-foreground" />}
         />
         {session.user.organizationId && (
