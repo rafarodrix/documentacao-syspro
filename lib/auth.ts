@@ -12,30 +12,26 @@ export const authOptions: AuthOptions = {
       
       authorization: {
         url: `${process.env.ZAMMAD_URL}/oauth/authorize`,
-        params: { 
-          scope: "",
-          // --- A SOLUÇÃO FINAL ESTÁ AQUI ---
-          // Força o NextAuth a usar a URL de retorno correta, ignorando a detecção automática.
-          redirect_uri: `${process.env.AUTH_URL}/api/auth/callback/zammad`,
-        },
+        params: { scope: "" },
       },
-
       token: `${process.env.ZAMMAD_URL}/oauth/token`,
       userinfo: `${process.env.ZAMMAD_URL}/api/v1/users/me`,
       clientId: process.env.ZAMMAD_CLIENT_ID,
       clientSecret: process.env.ZAMMAD_CLIENT_SECRET,
       
       profile(profile) {
+        // Log de depuração que podemos remover depois que tudo funcionar
+        console.log("Perfil recebido do Zammad:", JSON.stringify(profile, null, 2));
+
         return {
           id: profile.id.toString(),
-          name: `${profile.firstname} ${profile.lastname}`,
+          name: `${profile.firstname} ${profile.lastname}`.trim(),
           email: profile.email,
           image: profile.image || null,
         };
       },
     },
   ],
-  
   pages: {
     signIn: '/login',
   },
