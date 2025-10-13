@@ -1,7 +1,7 @@
 import { z } from "zod";
-import type { Release, UserTicket } from "./types"; 
+import type { Release, UserTicket } from "./types";
 
-// --- Esquemas de Validação e Tipos ---
+// --- Esquemas de Validação ---
 const ZammadTicketAPISchema = z.object({
   id: z.number(),
   number: z.string(),
@@ -9,85 +9,110 @@ const ZammadTicketAPISchema = z.object({
   type: z.string().optional(),
   updated_at: z.string(),
   close_at: z.string().nullable(),
-  modulo: z.string().nullable().optional(),
-  video_link: z.string().nullable().optional(),
-  release_summary: z.string().nullable().optional(),
-  state_id: z.number(), // Adicionado para a busca de tickets do usuário
+  state_id: z.number(),
+  group_id: z.number().optional(),
+
+  // Campos personalizados ficam dentro de object_attributes
+  object_attributes: z
+    .object({
+      modulo: z.string().nullable().optional(),
+      video_link: z.string().nullable().optional(),
+      release_summary: z.string().nullable().optional(),
+    })
+    .optional(),
 });
+
 type ZammadTicket = z.infer<typeof ZammadTicketAPISchema>;
-const ZammadResponseSchema = z.array(ZammadTicketAPISchema);
 
 // --- Constantes ---
 const ZAMMAD_RELEASE_STATE_ID = 4;
 const ZAMMAD_RELEASE_GROUP_ID = 3;
-const TICKET_STATUS_MAP: Record<number, string> = { 1: 'Novo', 2: 'Aberto', 3: 'Pendente', 4: 'Fechado' };
+const TICKET_STATUS_MAP: Record<number, string> = {
+  1: "Novo",
+  2: "Aberto",
+  3: "Pendente",
+  4: "Fechado",
+};
 
-// --- Função Auxiliar Genérica de Busca ---
+// --- Função Auxiliar de Busca ---
 async function searchZammadTickets(searchQuery: string, limit = 100): Promise<ZammadTicket[]> {
   const zammadUrl = process.env.ZAMMAD_URL;
   const zammadToken = process.env.ZAMMAD_TOKEN;
 
   if (!zammadUrl || !zammadToken) {
-    console.error("Variáveis de ambiente do Zammad não configuradas.");
+    console.error("❌ Variáveis de ambiente do Zammad não configuradas.");
     return [];
   }
-  
-  const fullUrl = `${zammadUrl}/api/v1/tickets/search?query=${encodeURIComponent(searchQuery)}&limit=${limit}&sort_by=updated_at&order_by=desc&expand=true`;
+
+  const fullUrl = `${zammadUrl}/api/v1/tickets/search?query=${encodeURIComponent(
+    searchQuery
+  )}&limit=${limit}&sort_by=updated_at&order_by=desc&expand=true`;
 
   try {
     const response = await fetch(fullUrl, {
       headers: { Authorization: `Token token=${zammadToken}` },
-      next: { 
-        revalidate: 3600, // Tempo em segundos (1 hora). Ajuste conforme sua necessidade.
-        tags: ['releases', 'tickets'] // Adicionamos 'tickets' para o portal
-      }
+      next: {
+        revalidate: 3600,
+        tags: ["releases", "tickets"],
+      },
     });
 
-    if (!response.ok) throw new Error(`Falha na API do Zammad: ${response.statusText}`);
-    
+    if (!response.ok) {
+      throw new Error(`Falha na API do Zammad: ${response.status} ${response.statusText}`);
+    }
+
     const rawTickets = await response.json();
     return z.array(ZammadTicketAPISchema).parse(rawTickets);
-
   } catch (error) {
+    console.error("❌ Erro ao buscar tickets do Zammad:", error);
     return [];
   }
 }
 
-// --- Função para Releases ---
+// --- Releases ---
 export async function getReleases(): Promise<Release[]> {
   const zammadUrl = process.env.ZAMMAD_URL!;
   const releaseQuery = `(type:"Melhoria" OR type:"Bug") AND state_id:${ZAMMAD_RELEASE_STATE_ID} AND group_id:${ZAMMAD_RELEASE_GROUP_ID}`;
+
   const tickets = await searchZammadTickets(releaseQuery);
-  
-return tickets.map((ticket): Release => {
-    const mainModule = ticket.modulo ? ticket.modulo.split("::")[0] : "Geral";
+
+  return tickets.map((ticket): Release => {
+    const attrs = ticket.object_attributes || {};
+
+    const mainModule = attrs.modulo?.split("::")[0] || "Geral";
+    const releaseSummary = attrs.release_summary?.trim() || ticket.title;
+
     return {
       id: ticket.number,
       type: ticket.type || "Indefinido",
       isoDate: (ticket.close_at || ticket.updated_at).split("T")[0],
       title: ticket.title,
-      summary: ticket.release_summary || ticket.title,
+      summary: releaseSummary,
       link: `${zammadUrl}/#ticket/zoom/${ticket.id}`,
-      videoLink: ticket.video_link || null,
+      videoLink: attrs.video_link || null,
       tags: [mainModule],
     };
   });
 }
 
-// --- Função para Tickets do Usuário ---
+// --- Tickets do Usuário ---
 export async function getTicketsByUserId(userId: string): Promise<UserTicket[]> {
-    const zammadUrl = process.env.ZAMMAD_URL!;
-    if (!userId) return [];
-    
-    const userQuery = `customer_id:${userId}`;
-    const tickets = await searchZammadTickets(userQuery, 50);
+  const zammadUrl = process.env.ZAMMAD_URL!;
+  if (!userId) return [];
 
-    return tickets.map(ticket => ({
-        id: ticket.id,
-        number: ticket.number,
-        title: ticket.title,
-        status: TICKET_STATUS_MAP[ticket.state_id] || 'Desconhecido',
-        lastUpdate: new Date(ticket.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        link: `${zammadUrl}/#ticket/zoom/${ticket.id}`
-    }));
+  const userQuery = `customer_id:${userId}`;
+  const tickets = await searchZammadTickets(userQuery, 50);
+
+  return tickets.map((ticket) => ({
+    id: ticket.id,
+    number: ticket.number,
+    title: ticket.title,
+    status: TICKET_STATUS_MAP[ticket.state_id] || "Desconhecido",
+    lastUpdate: new Date(ticket.updated_at).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }),
+    link: `${zammadUrl}/#ticket/zoom/${ticket.id}`,
+  }));
 }
