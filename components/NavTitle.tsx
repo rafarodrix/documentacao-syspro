@@ -23,7 +23,7 @@ export function NavTitle() {
     return <div style={{ width: '128px', height: '32px' }} />;
   }
 
-  return (
+   return (
     <Image
       src={logoSrc}
       alt="Logo Trilink Software"
