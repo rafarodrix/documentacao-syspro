@@ -14,6 +14,8 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession(authOptions);
 
+  console.log("SESSÃO SENDO VERIFICADA NO ADMIN LAYOUT:", JSON.stringify(session, null, 2));
+
   const userRoles = session?.user?.roles || [];
   
   // Versão final: com tipo explícito para o TypeScript e segura para execução
