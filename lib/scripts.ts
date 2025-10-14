@@ -1,8 +1,12 @@
+// lib/scripts.ts
+'use server';
+
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import matter from 'gray-matter';
 
+// ATUALIZAÇÃO: Adicionamos os novos campos ao schema
 const ScriptFrontmatterSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -10,12 +14,15 @@ const ScriptFrontmatterSchema = z.object({
   category: z.string(),
   author: z.string(),
   createdAt: z.string(),
+  firebirdVersion: z.string().optional(), // Campo opcional
+  tags: z.array(z.string()).optional(), // Um array de strings, opcional
 });
 
 export type SqlScript = z.infer<typeof ScriptFrontmatterSchema> & {
   sql: string;
 };
 
+// O resto da função continua igual
 export function getSqlScripts(): SqlScript[] {
   const scriptsDir = path.join(process.cwd(), 'data/scripts');
 
@@ -35,7 +42,10 @@ export function getSqlScripts(): SqlScript[] {
         const { data, content } = matter(fileContent);
         const sqlMatch = content.match(/```sql\n([\s\S]*?)\n```/);
         const sql = sqlMatch ? sqlMatch[1].trim() : '-- Script SQL não encontrado --';
+        
+        // Esta linha agora validará os novos campos
         const frontmatter = ScriptFrontmatterSchema.parse(data);
+        
         return { ...frontmatter, sql };
       });
 
