@@ -1,10 +1,9 @@
-// lib/scripts.ts
-
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import matter from 'gray-matter';
 
+// --- Esquema de Validação do Frontmatter ---
 const ScriptFrontmatterSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -16,10 +15,12 @@ const ScriptFrontmatterSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+// --- Tipo e Função para Buscar Scripts ---
 export type SqlScript = z.infer<typeof ScriptFrontmatterSchema> & {
   sql: string;
 };
 
+// Função para ler os arquivos MDX e extrair os scripts SQL
 export function getSqlScripts(): SqlScript[] {
   const scriptsDir = path.join(process.cwd(), 'data/scripts');
 
@@ -38,7 +39,6 @@ export function getSqlScripts(): SqlScript[] {
         const fileContent = fs.readFileSync(filePath, 'utf-8');
         const { data, content } = matter(fileContent);
         
-        // AJUSTE: Usando uma expressão regular mais robusta
         const sqlMatch = content.match(/```sql([\s\S]*?)```/);
         
         const sql = sqlMatch ? sqlMatch[1].trim() : '-- Script SQL não encontrado --';

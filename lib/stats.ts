@@ -2,11 +2,11 @@
 import { getZammadTicketsCount } from '@/lib/releases';
 
 const STATE_NAME = {
-  NOVO: "Novo",
-  EM_ANALISE: "Em Análise",
-  EM_DESENVOLVIMENTO: "Em Desenvolvimento",
-  EM_TESTES: "Em Testes",
-  AGUARDANDO_CLIENTE: "Aguardando Validação Cliente",
+  NOVO: "1. Novo",
+  EM_ANALISE: "2. Em Analise", 
+  EM_DESENVOLVIMENTO: "3. Em Desenvolvimento",
+  EM_TESTES: "4. Em Testes",
+  AGUARDANDO_CLIENTE: "5. Aguardando Validação Cliente",
 };
 
 const PRIORITY_ID_ALTA = 3;
