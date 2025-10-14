@@ -1,12 +1,27 @@
+// app/admin/page.tsx
+
+import { Suspense } from 'react';
 import { getSqlScripts } from '@/lib/scripts';
-import { AdminDashboardClient } from '@/components/admin/AdminDashboardClient';
+import { getAdminDashboardStats } from '@/lib/stats';
+import { AdminDashboardClient, DashboardSkeleton } from '@/components/admin/AdminDashboardClient';
+
 
 export default function AdminDashboardPage() {
-  // 1. Busca os dados no servidor.
-  const scripts = getSqlScripts();
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardDataFetcher />
+    </Suspense>
+  );
+}
+
+// Componente que busca os dados no servidor e passa para o cliente
+async function DashboardDataFetcher() {
+  const [stats, scripts] = await Promise.all([
+    getAdminDashboardStats(),
+    getSqlScripts(),
+  ]);
 
   return (
-    // 2. Passa os dados para o componente de cliente.
-    <AdminDashboardClient initialScripts={scripts} />
+    <AdminDashboardClient stats={stats} initialScripts={scripts} />
   );
 }

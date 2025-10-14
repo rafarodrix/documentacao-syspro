@@ -28,8 +28,10 @@ const TICKET_STATUS_MAP: Record<number, string> = {
   4: "Fechado",
 };
 
-// --- Função Auxiliar de Busca ---
-async function searchZammadTickets(searchQuery: string, limit = 100): Promise<ZammadTicket[]> {
+
+
+// --- Busca de Tickets ---
+export async function searchZammadTickets(searchQuery: string, limit = 100): Promise<ZammadTicket[]> {
   const zammadUrl = process.env.ZAMMAD_URL;
   const zammadToken = process.env.ZAMMAD_TOKEN;
 
@@ -60,6 +62,31 @@ async function searchZammadTickets(searchQuery: string, limit = 100): Promise<Za
   } catch (error) {
     console.error("Erro ao buscar tickets", error);
     return [];
+  }
+}
+
+// --- Contagem de Tickets ---
+export async function getZammadTicketsCount(searchQuery: string): Promise<number> {
+  const zammadUrl = process.env.ZAMMAD_URL;
+  const zammadToken = process.env.ZAMMAD_TOKEN;
+  if (!zammadUrl || !zammadToken) return 0;
+
+  const fullUrl = `${zammadUrl}/api/v1/tickets/search?query=${encodeURIComponent(searchQuery)}&limit=1`;
+
+  try {
+    const response = await fetch(fullUrl, {
+      headers: { Authorization: `Token token=${zammadToken}` },
+      next: { revalidate: 600 } // Cache de 10 minutos para estatísticas
+    });
+
+    if (!response.ok) return 0;
+
+    const totalCount = response.headers.get('X-Total-Count');
+    return totalCount ? parseInt(totalCount, 10) : 0;
+
+  } catch (error) {
+    console.error(`Falha ao obter contagem para query "${searchQuery}"`, error);
+    return 0;
   }
 }
 
