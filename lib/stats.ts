@@ -1,9 +1,8 @@
-// lib/stats.ts
 import { getZammadTicketsCount } from '@/lib/releases';
 
 const STATE_NAME = {
   NOVO: "1. Novo",
-  EM_ANALISE: "2. Em Analise", 
+  EM_ANALISE: "2. Em Analise",
   EM_DESENVOLVIMENTO: "3. Em Desenvolvimento",
   EM_TESTES: "4. Em Testes",
   AGUARDANDO_CLIENTE: "5. Aguardando Validação Cliente",
@@ -11,25 +10,13 @@ const STATE_NAME = {
 
 const PRIORITY_ID_ALTA = 3;
 
-export interface AdminDashboardStats {
-  chamadosAbertos: number;
-  chamadosNovos: number;
-  aguardandoCliente: number;
-  bugsCriticos: number;
-}
+export interface AdminDashboardStats { /* ... */ }
 
 export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
-  const abertosQuery = `(state.name:"${STATE_NAME.EM_ANALISE}" OR state.name:"${STATE_NAME.EM_DESENVOLVIMENTO}" OR state.name:"${STATE_NAME.EM_TESTES}" OR state.name:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
-  const novosQuery = `state.name:"${STATE_NAME.NOVO}"`;
-  const pendentesQuery = `(state.name:"${STATE_NAME.EM_TESTES}" OR state.name:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
+  const abertosQuery = `(state:"${STATE_NAME.EM_ANALISE}" OR state:"${STATE_NAME.EM_DESENVOLVIMENTO}" OR state:"${STATE_NAME.EM_TESTES}" OR state:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
+  const novosQuery = `state:"${STATE_NAME.NOVO}"`;
+  const pendentesQuery = `(state:"${STATE_NAME.EM_TESTES}" OR state:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
   const bugsQuery = `type:"Bug" AND priority_id:${PRIORITY_ID_ALTA} AND (${abertosQuery})`;
-
-  // --- LOGS DE DEPURAÇÃO ---
-  console.log("Query para Chamados Abertos:", abertosQuery);
-  console.log("Query para Chamados Novos:", novosQuery);
-  console.log("Query para Aguardando Cliente:", pendentesQuery);
-  console.log("Query para Bugs Críticos:", bugsQuery);
-  // -------------------------
 
   try {
     const [
