@@ -1,5 +1,7 @@
+// lib/stats.ts
 import { getZammadTicketsCount } from '@/lib/releases';
 
+// Constantes com os nomes exatos dos status
 const STATE_NAME = {
   NOVO: "1. Novo",
   EM_ANALISE: "2. Em Analise",
@@ -10,9 +12,16 @@ const STATE_NAME = {
 
 const PRIORITY_ID_ALTA = 3;
 
-export interface AdminDashboardStats { /* ... */ }
+// AJUSTE: A interface agora está corretamente preenchida.
+export interface AdminDashboardStats {
+  chamadosAbertos: number;
+  chamadosNovos: number;
+  aguardandoCliente: number;
+  bugsCriticos: number;
+}
 
 export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
+  // As queries estão corretas com base na nossa última discussão
   const abertosQuery = `(state:"${STATE_NAME.EM_ANALISE}" OR state:"${STATE_NAME.EM_DESENVOLVIMENTO}" OR state:"${STATE_NAME.EM_TESTES}" OR state:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
   const novosQuery = `state:"${STATE_NAME.NOVO}"`;
   const pendentesQuery = `(state:"${STATE_NAME.EM_TESTES}" OR state:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
@@ -31,7 +40,13 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       getZammadTicketsCount(bugsQuery)
     ]);
 
-    return { chamadosAbertos, chamadosNovos, aguardandoCliente, bugsCriticos };
+    return {
+      chamadosAbertos,
+      chamadosNovos,
+      aguardandoCliente,
+      bugsCriticos,
+    };
+
   } catch (error) {
     console.error("Falha ao buscar estatísticas do dashboard:", error);
     return { chamadosAbertos: 0, chamadosNovos: 0, aguardandoCliente: 0, bugsCriticos: 0 };
