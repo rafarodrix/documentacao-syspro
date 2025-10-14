@@ -1,10 +1,12 @@
+// lib/scripts.ts
+'use server';
 
-import fs from 'fs'; 
+import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
-import matter from 'gray-matter'; 
+import matter from 'gray-matter';
 
-// O Schema agora valida apenas o frontmatter
+// O schema e o tipo permanecem os mesmos
 const ScriptFrontmatterSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -14,47 +16,39 @@ const ScriptFrontmatterSchema = z.object({
   createdAt: z.string(),
 });
 
-// O tipo final incluirá a propriedade 'sql' que extrairemos do conteúdo
 export type SqlScript = z.infer<typeof ScriptFrontmatterSchema> & {
   sql: string;
 };
 
-// A nova função que lê e processa os arquivos .mdx
+// A função agora é síncrona e tem tratamento de erros
 export function getSqlScripts(): SqlScript[] {
-  // 1. Encontra o caminho para a pasta de scripts
   const scriptsDir = path.join(process.cwd(), 'data/scripts');
-  
+
+  // MELHORIA 1: Tratamento de erros
   try {
-    // 2. Lê todos os nomes de arquivo dentro da pasta
+    // Verificamos se o diretório existe antes de tentar lê-lo
+    if (!fs.existsSync(scriptsDir)) {
+      console.warn('Diretório de scripts não encontrado em:', scriptsDir);
+      return [];
+    }
+    
     const filenames = fs.readdirSync(scriptsDir);
 
     const scripts = filenames
-      .filter(filename => filename.endsWith('.mdx')) // 3. Pega apenas arquivos .mdx
-      .map(filename => {
-        // 4. Lê o conteúdo de cada arquivo
+      .filter((f) => f.endsWith('.mdx'))
+      .map((filename) => {
         const filePath = path.join(scriptsDir, filename);
         const fileContent = fs.readFileSync(filePath, 'utf-8');
-
-        // 5. Usa o 'gray-matter' para separar metadados (data) e conteúdo (content)
         const { data, content } = matter(fileContent);
-        
-        // 6. Extrai o bloco de código SQL do conteúdo principal do Markdown
         const sqlMatch = content.match(/```sql\n([\s\S]*?)\n```/);
         const sql = sqlMatch ? sqlMatch[1].trim() : '-- Script SQL não encontrado --';
-        
-        // 7. Valida o frontmatter com Zod
         const frontmatter = ScriptFrontmatterSchema.parse(data);
-
-        // 8. Retorna o objeto completo do script
-        return {
-          ...frontmatter,
-          sql,
-        };
+        return { ...frontmatter, sql };
       });
 
     return scripts;
   } catch (error) {
-    console.error("Falha ao ler ou processar os arquivos de script MDX:", error);
-    return [];
+    console.error('Ocorreu um erro ao processar os scripts:', error);
+    return []; // Retorna um array vazio em caso de qualquer outra falha
   }
 }

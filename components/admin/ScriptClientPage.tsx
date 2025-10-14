@@ -1,68 +1,74 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
+import type { SqlScript } from '@/lib/scripts';
 import { Copy, Check } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-interface SqlScript {
-  title: string;
-  sql: string;
-}
-
-export function ScriptClientPage({ script }: { script: SqlScript }) {
+// Este componente precisa ser exportado para ser usado em outros arquivos
+export function ScriptCard({ script }: { script: SqlScript }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(script.sql);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      alert('Não foi possível copiar o conteúdo.');
-    }
+  const handleCopy = () => {
+    navigator.clipboard.writeText(script.sql);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
+  // A função PRECISA ter este 'return' para ser um componente React válido
   return (
-    <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 shadow-sm overflow-hidden mb-6">
-      {/* Cabeçalho */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
-        <h3 className="font-medium text-zinc-800 dark:text-zinc-100 text-sm">
-          {script.title}
-        </h3>
-
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors"
-        >
-          {copied ? (
-            <>
-              <Check size={14} />
-              Copiado
-            </>
-          ) : (
-            <>
-              <Copy size={14} />
-              Copiar
-            </>
-          )}
+    <div className="border rounded-lg bg-card text-card-foreground shadow-sm">
+      <div className="p-4 border-b">
+        <h3 className="font-semibold text-lg">{script.title}</h3>
+        <p className="text-sm text-muted-foreground mt-1">{script.description}</p>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
+          <span className="bg-muted px-2 py-0.5 rounded-full">{script.category}</span>
+          <span>Autor: {script.author}</span>
+          <span>Criado em: {new Date(script.createdAt).toLocaleDateString('pt-BR')}</span>
+        </div>
+      </div>
+      <div className="relative bg-black/80 rounded-b-lg">
+        <div className="p-4">
+          <SyntaxHighlighter language="sql" style={oneDark} customStyle={{ margin: 0, padding: 0, background: 'transparent', fontSize: '14px' }}>
+            {script.sql}
+          </SyntaxHighlighter>
+        </div>
+        <button onClick={handleCopy} title="Copiar script" className="absolute top-3 right-3 p-1.5 bg-white/10 rounded-md text-white hover:bg-white/20 transition-colors">
+          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
         </button>
       </div>
+    </div>
+  );
+}
 
-      {/* Código SQL */}
-      <SyntaxHighlighter
-        language="sql"
-        style={oneDark}
-        customStyle={{
-          margin: 0,
-          borderRadius: 0,
-          fontSize: '0.85rem',
-          padding: '1rem',
-          background: 'transparent',
-        }}
-      >
-        {script.sql}
-      </SyntaxHighlighter>
+// O componente principal da página de scripts
+export function ScriptClientPage({ scripts }: { scripts: SqlScript[] }) {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredScripts = scripts.filter(s => 
+    s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <input
+        type="text"
+        placeholder="Buscar por título, descrição ou categoria..."
+        className="w-full max-w-lg p-2 border rounded-md bg-card"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      
+      <div className="space-y-4">
+        {filteredScripts.length > 0 ? (
+          filteredScripts.map(script => <ScriptCard key={script.id} script={script} />)
+        ) : (
+          <p className="text-muted-foreground text-center py-8">Nenhum script encontrado para "{searchTerm}".</p>
+        )}
+      </div>
     </div>
   );
 }
