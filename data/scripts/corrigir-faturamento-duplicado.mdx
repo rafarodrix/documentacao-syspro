@@ -1,0 +1,13 @@
+---
+id: "SCR-001"
+title: "Corrigir Faturamento Duplicado"
+description: "Este script remove notas fiscais duplicadas para um cliente específico em um período. Use com cuidado e sempre faça backup antes."
+category: "Faturamento"
+author: "Rafael"
+createdAt: "2025-10-14"
+---
+
+```sql
+DELETE FROM faturamento WHERE cliente_id = :cliente_id AND duplicada = TRUE;
+
+-- Lembre-se de substituir :cliente_id pelo ID do cliente.
