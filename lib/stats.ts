@@ -1,10 +1,16 @@
 // lib/stats.ts
-import { getZammadTicketsCount } from '@/lib/releases'; // Importamos a nova função
+import { getZammadTicketsCount } from '@/lib/releases';
 
-// ... (suas constantes de ID continuam aqui) ...
-const STATE_ID_NOVO = 1;
-const STATE_ID_PENDENTE = 3;
-const PRIORITY_ID_ALTA = 3;
+// --- Constantes de Estado e Prioridade ---
+const STATE_NAME = {
+  NOVO: "Novo",
+  EM_ANALISE: "Em Análise",
+  EM_DESENVOLVIMENTO: "Em Desenvolvimento",
+  EM_TESTES: "Em Testes",
+  AGUARDANDO_CLIENTE: "Aguardando Validação Cliente",
+};
+
+const PRIORITY_ID_ALTA = 3; 
 
 export interface AdminDashboardStats {
   chamadosAbertos: number;
@@ -14,14 +20,21 @@ export interface AdminDashboardStats {
 }
 
 export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
-  // As mesmas queries de antes
-  const abertosQuery = `state_id:[1 TO 3]`;
-  const novosQuery = `state_id:${STATE_ID_NOVO}`;
-  const pendentesQuery = `state_id:${STATE_ID_PENDENTE}`;
-  const bugsQuery = `type:"Bug" AND priority_id:${PRIORITY_ID_ALTA} AND state_id:[1 TO 3]`;
+
+
+  // "Chamados Abertos" = Em Análise + Em Desenvolvimento + Em Testes + Aguardando Validação
+  const abertosQuery = `(state.name:"${STATE_NAME.EM_ANALISE}" OR state.name:"${STATE_NAME.EM_DESENVOLVIMENTO}" OR state.name:"${STATE_NAME.EM_TESTES}" OR state.name:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
+  
+  // "Chamados Novos"
+  const novosQuery = `state.name:"${STATE_NAME.NOVO}"`;
+
+  // "Aguardando Cliente" = Em Testes + Aguardando Validação Cliente
+  const pendentesQuery = `(state.name:"${STATE_NAME.EM_TESTES}" OR state.name:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
+  
+  // "Bugs Críticos" = Abertos + Tipo Bug + Prioridade Alta
+  const bugsQuery = `type:"Bug" AND priority_id:${PRIORITY_ID_ALTA} AND (${abertosQuery})`;
 
   try {
-    // Usamos a nova função para buscar as contagens em paralelo
     const [
       chamadosAbertos,
       chamadosNovos,
@@ -34,7 +47,6 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       getZammadTicketsCount(bugsQuery)
     ]);
 
-    // Retornamos os dados REAIS
     return {
       chamadosAbertos,
       chamadosNovos,
