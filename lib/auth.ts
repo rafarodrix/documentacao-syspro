@@ -18,51 +18,37 @@ export const authOptions: AuthOptions = {
             clientId: process.env.ZAMMAD_CLIENT_ID,
             clientSecret: process.env.ZAMMAD_CLIENT_SECRET,
             
-
-            async profile(profile, tokens) {
-                console.log("DADOS BRUTOS DO PERFIL ZAMMAD:", JSON.stringify(profile, null, 2));
+            async profile(profile) {
 
                 if (!profile.id || !profile.email) {
                     throw new Error("Dados essenciais (ID ou Email) não retornados pelo provedor Zammad.");
                 }
 
-                let organizationName: string | null = profile.organization || null;
+                // Extrai o nome da organização, se disponível
+                const organizationName: string | null = profile.organization || null;
 
-                if (!organizationName && profile.organization_id) {
-                    try {
-                        const orgResponse = await fetch(`${process.env.ZAMMAD_URL}/api/v1/organizations/${profile.organization_id}`, {
-                            headers: {
-                                Authorization: `Bearer ${tokens.access_token}`,
-                            },
-                        });
-                        if (orgResponse.ok) {
-                            const orgData = await orgResponse.json();
-                            organizationName = orgData.name || null;
-                        }
-                    } catch (error) {
-                        console.error("Falha ao buscar nome da organização:", error);
-                        organizationName = null;
-                    }
-                }
+                // Mapeia os papéis do usuário
+                const userRoles = (profile.role_ids || []).map((id: number, index: number) => ({
+                    id: id,
+                    name: (profile.roles && profile.roles[index]) ? profile.roles[index] : 'Desconhecido',
+                }));
 
+                // Retorna o usuário no formato esperado pelo NextAuth
                 return {
                     id: profile.id.toString(),
                     name: `${profile.firstname || ''} ${profile.lastname || ''}`.trim(),
                     email: profile.email,
                     image: profile.image || null,
-                    roles: profile.role_ids || [], 
+                    roles: userRoles, 
                     organizationId: profile.organization_id || null,
-                    organization: organizationName, // <-- DADO INCLUÍDO AQUI
+                    organization: organizationName,
                 };
             },
         },
     ],
 
+    // Callbacks para incluir dados adicionais no JWT e na sessão
     callbacks: {
-        async signIn({ user, account, profile }) {
-            return true;
-        },
-
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id; 
@@ -76,7 +62,7 @@ export const authOptions: AuthOptions = {
         async session({ session, token }) {
             if (session.user && token) {
                 session.user.id = token.id as string;
-                session.user.roles = token.roles; // <-- Correção: sem 'as number[]'
+                session.user.roles = token.roles;
                 session.user.organizationId = token.organizationId as number | null;
                 session.user.organization = token.organization as string | null;
             }
