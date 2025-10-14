@@ -74,9 +74,9 @@ export const authOptions: AuthOptions = {
         async session({ session, token }) {
             if (session.user && token) {
                 session.user.id = token.id as string;
-                session.user.roles = token.roles as number[]; 
+                session.user.roles = token.roles; // <-- Correção: sem 'as number[]'
                 session.user.organizationId = token.organizationId as number | null;
-                session.user.organization = token.organization as string | null; // E isto também
+                session.user.organization = token.organization as string | null;
             }
             return session;
         },
