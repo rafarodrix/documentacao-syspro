@@ -40,6 +40,8 @@ export default async function PortalPage() {
     const openTickets = allUserTickets.filter((t) => t.status !== "Fechado");
     const closedTickets = allUserTickets.filter((t) => t.status === "Fechado");
     const userName = session.user.name?.split(" ")[0] ?? "Usuário";
+    const userFullName = session.user.name ?? "Usuário";
+    const userOrganization = session.user.organization ?? null;
 
     // Links rápidos para o portal
     const portalNavLinks: ResourceLink[] = [
@@ -91,24 +93,19 @@ export default async function PortalPage() {
     return (
         <main className="max-w-7xl mx-auto p-4 md:p-8">
             <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-                <div className="flex items-center gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Portal do Cliente</h1>
-                        <p className="text-muted-foreground">
-                            Bem-vindo(a) de volta, {userName}. Gerencie seus chamados e acesse nossos recursos.
-                        </p>
-                    </div>
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Portal do Cliente</h1>
+                    <p className="text-muted-foreground mt-1">
+                        Bem-vindo(a) de volta, {userFullName}.
+                    </p>
+
+                    {userOrganization && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                            <Building className="w-4 h-4" />
+                            <span>{userOrganization}</span>
+                        </div>
+                    )}
                 </div>
-                <Link
-                    href={process.env.ZAMMAD_URL || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Abrir novo chamado no Zammad"
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-md hover:bg-primary/90 transition-all shadow-md"
-                >
-                    <PlusCircle size={18} />
-                    Abrir Novo Chamado
-                </Link>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

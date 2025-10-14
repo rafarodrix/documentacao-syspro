@@ -14,13 +14,33 @@ export const authOptions: AuthOptions = {
             },
 
             token: `${process.env.ZAMMAD_URL}/oauth/token`,
-            userinfo: `${process.env.ZAMMAD_URL}/api/v1/users/me`,
+            userinfo: `${process.env.ZAMMAD_URL}/api/v1/users/me?expand=true`,
             clientId: process.env.ZAMMAD_CLIENT_ID,
             clientSecret: process.env.ZAMMAD_CLIENT_SECRET,
             
-            profile(profile) {
+
+            async profile(profile, tokens) {
                 if (!profile.id || !profile.email) {
                     throw new Error("Dados essenciais (ID ou Email) não retornados pelo provedor Zammad.");
+                }
+
+                let organizationName: string | null = profile.organization || null;
+
+                if (!organizationName && profile.organization_id) {
+                    try {
+                        const orgResponse = await fetch(`${process.env.ZAMMAD_URL}/api/v1/organizations/${profile.organization_id}`, {
+                            headers: {
+                                Authorization: `Bearer ${tokens.access_token}`,
+                            },
+                        });
+                        if (orgResponse.ok) {
+                            const orgData = await orgResponse.json();
+                            organizationName = orgData.name || null;
+                        }
+                    } catch (error) {
+                        console.error("Falha ao buscar nome da organização:", error);
+                        organizationName = null;
+                    }
                 }
 
                 return {
@@ -30,18 +50,15 @@ export const authOptions: AuthOptions = {
                     image: profile.image || null,
                     roles: profile.role_ids || [], 
                     organizationId: profile.organization_id || null,
+                    organization: organizationName, // <-- DADO INCLUÍDO AQUI
                 };
             },
         },
     ],
 
     callbacks: {
-
         async signIn({ user, account, profile }) {
-            if (user && account && profile) {
-                return true; // Login permitido
-            }
-            return false; // Bloqueia o login se algo deu errado
+            return true;
         },
 
         async jwt({ token, user }) {
@@ -49,6 +66,7 @@ export const authOptions: AuthOptions = {
                 token.id = user.id; 
                 token.roles = user.roles;
                 token.organizationId = user.organizationId;
+                token.organization = user.organization; 
             }
             return token;
         },
@@ -58,6 +76,7 @@ export const authOptions: AuthOptions = {
                 session.user.id = token.id as string;
                 session.user.roles = token.roles as number[]; 
                 session.user.organizationId = token.organizationId as number | null;
+                session.user.organization = token.organization as string | null; // E isto também
             }
             return session;
         },
