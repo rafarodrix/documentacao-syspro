@@ -1,12 +1,8 @@
-// lib/scripts.ts
-'use server';
-
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import matter from 'gray-matter';
 
-// O schema e o tipo permanecem os mesmos
 const ScriptFrontmatterSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -20,13 +16,10 @@ export type SqlScript = z.infer<typeof ScriptFrontmatterSchema> & {
   sql: string;
 };
 
-// A função agora é síncrona e tem tratamento de erros
 export function getSqlScripts(): SqlScript[] {
   const scriptsDir = path.join(process.cwd(), 'data/scripts');
 
-  // MELHORIA 1: Tratamento de erros
   try {
-    // Verificamos se o diretório existe antes de tentar lê-lo
     if (!fs.existsSync(scriptsDir)) {
       console.warn('Diretório de scripts não encontrado em:', scriptsDir);
       return [];
@@ -49,6 +42,6 @@ export function getSqlScripts(): SqlScript[] {
     return scripts;
   } catch (error) {
     console.error('Ocorreu um erro ao processar os scripts:', error);
-    return []; // Retorna um array vazio em caso de qualquer outra falha
+    return [];
   }
 }
