@@ -73,6 +73,8 @@ export async function getZammadTicketsCount(searchQuery: string): Promise<number
 
   const fullUrl = `${zammadUrl}/api/v1/tickets/search?query=${encodeURIComponent(searchQuery)}&limit=1`;
 
+    console.log(`Buscando contagem com URL: ${fullUrl}`);
+
   try {
     const response = await fetch(fullUrl, {
       headers: { Authorization: `Token token=${zammadToken}` },
@@ -82,6 +84,9 @@ export async function getZammadTicketsCount(searchQuery: string): Promise<number
     if (!response.ok) return 0;
 
     const totalCount = response.headers.get('X-Total-Count');
+   
+    console.log(`Query: "${searchQuery}" | Resultado do Header X-Total-Count: ${totalCount}`);
+
     return totalCount ? parseInt(totalCount, 10) : 0;
 
   } catch (error) {
