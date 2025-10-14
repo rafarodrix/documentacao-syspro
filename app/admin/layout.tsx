@@ -18,12 +18,12 @@ export default async function AdminLayout({
 
   const userRoles = session?.user?.roles || [];
   
-  // Versão final: com tipo explícito para o TypeScript e segura para execução
+// Verifica se o usuário tem pelo menos um dos papéis permitidos
   const hasAccess = userRoles.some(
     (role: { id: number; name: string }) => 
       role && role.name && ALLOWED_ROLES.includes(role.name.toLowerCase())
   );
-
+// Redireciona se não estiver autenticado ou não tiver o papel adequado
   if (!session?.user || !hasAccess) {
     const redirectUrl = session?.user ? "/portal" : "/login?callbackUrl=/admin";
     redirect(redirectUrl);

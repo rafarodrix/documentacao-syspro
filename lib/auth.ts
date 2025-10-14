@@ -20,6 +20,8 @@ export const authOptions: AuthOptions = {
             
 
             async profile(profile, tokens) {
+                console.log("DADOS BRUTOS DO PERFIL ZAMMAD:", JSON.stringify(profile, null, 2));
+
                 if (!profile.id || !profile.email) {
                     throw new Error("Dados essenciais (ID ou Email) não retornados pelo provedor Zammad.");
                 }
