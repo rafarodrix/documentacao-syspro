@@ -1,0 +1,58 @@
+---
+id: "SCR-004"
+title: "Criar Referência de Fornecedor com Código Fiscal do Produto"
+description: "Cria um registro em 'produto_referencia' para todos os produtos, associando-os a um participante (ex: matriz) e usando o próprio código fiscal do produto como código de referência do fornecedor. Essencial para operações de transferência entre matriz e filial. ATENÇÃO: Backup obrigatório. O script não duplica referências caso já existam."
+category: "Produtos"
+author: "Rafael Rodrigues"
+createdAt: "2025-10-15"
+firebirdVersion: "5.0"
+tags:
+  - "produtos"
+  - "referencia"
+---
+
+```sql
+-- Script: Adicionar código fiscal como referência de produto para um participante
+-- Objetivo: Para cada produto, cria uma entrada na tabela de referência (produto_referencia)
+--           associando-o a um participante específico (geralmente a matriz), utilizando
+--           o campo 'cd_fiscal' como o código do produto no "fornecedor".
+-- Recomendação: Execute um backup completo ANTES de rodar este script.
+--
+-- Parâmetros:
+-- :ID_PARTICIPANTE_FORNECEDOR -> UUID do participante (fornecedor, matriz, etc.) para o qual
+--                                a referência será criada.
+--                                Ex: '{6D7D332C-C88B-4C8D-B465-3A14EE07D382}'
+
+INSERT INTO produto_referencia (
+    id_produto_referencia,
+    id_produto,
+    id_participante_for,
+    ativo,
+    cd_produto_fornecedor,
+    dt_ref,
+    hr_ref,
+    dt_alteracao,
+    hr_alteracao
+)
+SELECT
+    '{' || UUID_TO_CHAR(GEN_UUID()) || '}',
+    pr.id_produto,
+    :ID_PARTICIPANTE_FORNECEDOR,
+    1,
+    pr.cd_fiscal,
+    CURRENT_DATE,
+    CURRENT_TIME,
+    CURRENT_DATE,
+    CURRENT_TIME
+FROM
+    produto pr
+WHERE
+    NOT EXISTS (
+        SELECT 1
+        FROM produto_referencia pr_ex
+        WHERE pr_ex.id_produto = pr.id_produto
+          AND pr_ex.id_participante_for = :ID_PARTICIPANTE_FORNECEDOR -- <<< INFORME AQUI O ID DO PARTICIPANTE (MATRIZ/FILIAL)
+    );
+
+COMMIT;
+```
