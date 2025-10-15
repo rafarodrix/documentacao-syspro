@@ -1,0 +1,35 @@
+---
+id: "SCR-005"
+title: "Verificar Duplicidade de Produtos por Empresa"
+description: "Script de verificação (somente leitura) que lista produtos associados mais de uma vez à mesma empresa na tabela 'PRODUTO_COMERCIAL_EMPRESA'. Ajuda a identificar a causa de itens duplicados em telas e grades de consulta de produtos. Este script não altera nenhum dado."
+category: "Diagnóstico"
+author: "Admin"
+createdAt: "2025-10-15"
+firebirdVersion: "5.0"
+tags:
+  - "diagnostico"
+  - "verificacao"
+  - "duplicidade"
+  - "produtos"
+  - "empresa"
+---
+
+```sql
+-- Script: Verificação de duplicidade na tabela produto_comercial_empresa
+-- Objetivo: Identificar se existem produtos associados mais de uma vez a uma mesma empresa,
+--           o que pode causar inconsistências e duplicatas em visualizações.
+-- Recomendação: Este script é seguro e realiza apenas uma consulta (somente leitura).
+--               Se houver resultados, significa que existem duplicidades que precisam ser corrigidas.
+-- Parâmetros: Não há parâmetros. A verificação é feita em toda a tabela.
+
+SELECT
+    pce.id_empresa,
+    pce.id_produto_comercial,
+    COUNT(*) AS total_ocorrencias
+FROM
+    produto_comercial_empresa pce
+GROUP BY
+    pce.id_empresa, pce.id_produto_comercial
+HAVING
+    COUNT(*) > 1;
+```
