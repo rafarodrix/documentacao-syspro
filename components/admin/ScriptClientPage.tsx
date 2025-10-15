@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import type { SqlScript } from '@/lib/scripts';
 import { Copy, Check } from 'lucide-react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { CodeBlock } from 'fumadocs-ui/components/codeblock';
 
 // Este componente precisa ser exportado para ser usado em outros arquivos
 export function ScriptCard({ script }: { script: SqlScript }) {
@@ -30,9 +29,7 @@ export function ScriptCard({ script }: { script: SqlScript }) {
       </div>
       <div className="relative bg-black/80 rounded-b-lg">
         <div className="p-4">
-          <SyntaxHighlighter language="sql" style={oneDark} customStyle={{ margin: 0, padding: 0, background: 'transparent', fontSize: '14px' }}>
-            {script.sql}
-          </SyntaxHighlighter>
+          <CodeBlock lang="sql">{script.sql}</CodeBlock>
         </div>
         <button onClick={handleCopy} title="Copiar script" className="absolute top-3 right-3 p-1.5 bg-white/10 rounded-md text-white hover:bg-white/20 transition-colors">
           {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
