@@ -1,7 +1,6 @@
 {
   "title": "Financeiro",
   "description": "O módulo Financeiro oferece uma visão completa da saúde financeira da empresa, abrangendo fluxo de caixa, contas a pagar e a receber.",
-  "icon": "Terminal",
   "root": false,
   "pages": [
     "---Caixa---",

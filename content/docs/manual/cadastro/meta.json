@@ -1,7 +1,6 @@
 {
   "title": "Cadastro",
   "description": "The official content source",
-  "icon": "Pencil",
   "root": false,
   "pages": [
     "empresa",

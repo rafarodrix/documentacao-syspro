@@ -2,7 +2,6 @@
   "root": true,
   "title": "Suporte",
   "description": "Nesta Seção estão guias sobre nosso suporte técnico.",
-  "icon": "LifeBuoy",
   "pages": [
     "index",
     "---Ferramentas de Diagnóstico---",

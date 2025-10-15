@@ -1,7 +1,6 @@
 {
   "title": "Estoque",
   "description": "O módulo de Estoque gerencia todas as informações relativas ao estoque, incluindo quantidades, localizações e movimentações de produtos.",
-  "icon": "Pencil",
   "root": false,
   "pages": [
     "departamento",
