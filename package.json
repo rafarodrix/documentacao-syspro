@@ -16,7 +16,6 @@
     "clsx": "^2.1.1",
     "fast-xml-parser": "^5.3.0",
     "framer-motion": "^12.23.24",
-    "fumadocs": "^0.0.0",
     "fumadocs-core": "^15.8.5",
     "fumadocs-mdx": "^12.0.3",
     "fumadocs-ui": "^15.8.5",
