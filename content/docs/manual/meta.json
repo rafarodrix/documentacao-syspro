@@ -2,6 +2,7 @@
   "root": true,
   "title": "Documentação",
   "description": "Nesta seção estão soluções para dúvidas frequentes.",
+  "icon": "Terminal",
   "pages": [
     "index", 
     "cadastro",
