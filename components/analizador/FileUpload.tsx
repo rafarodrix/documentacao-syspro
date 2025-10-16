@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent } from 'react';
-import { UploadCloud, File, X, FileArchive, FolderUp } from 'lucide-react';
+import { X, FileArchive, FolderUp } from 'lucide-react';
 
 type FileUploadProps = {
   files: FileList | null;

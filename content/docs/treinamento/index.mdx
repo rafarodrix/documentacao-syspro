@@ -1,27 +1,61 @@
 ---
-title: Treinamentos
-description: Aprenda processos de negócio completos no Syspro ERP com nossas trilhas de aprendizado guiadas.
+title: Guias e Processos
+description: Aprenda o passo a passo das operações essenciais do seu negócio com nossos guias de processos e tutoriais de configuração.
 full: true
 ---
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
 import { CustomCard } from '@/components/CustomCard';
-import { Rocket, FileCog, PackageCheck, ShoppingCart, Banknote, Users, Wrench, FileText } from 'lucide-react';
+import { FileText, BarChart2, ShoppingCart, CreditCard, Truck, User, Wrench, Banknote, Package, Scale, Rocket, Settings, Navigation, Calculator, ClipboardCheck, ArrowRightLeft, CalendarCheck } from 'lucide-react';
 import SuporteSection from '@/components/SuporteSection.tsx';
 
-## Trilhas de Treinamento Syspro ERP
+## Guias e Processos
 
-Bem-vindo à nossa central de treinamentos. Diferente dos manuais de referência, esta seção foi projetada para ensinar **processos de negócio completos**, do início ao fim. Cada card abaixo representa uma "trilha de aprendizado", um guia passo a passo que levará você através de diversas telas e módulos para completar uma tarefa real do dia a dia.
+Nesta seção, você encontrará guias passo a passo para as operações essenciais do seu negócio, desde a configuração inicial do sistema até os fluxos de trabalho mais complexos do dia a dia.
 
-Se você é um novo usuário ou está aprendendo uma nova função, comece por aqui.
+---
 
-### Treinamentos Essenciais 
+### Primeiros Passos
 
-Estas trilhas cobrem os fluxos de trabalho fundamentais que todo usuário do Syspro ERP precisa dominar.
+É novo no Syspro ERP? Comece por aqui. Estes guias foram feitos para você configurar e entender os conceitos fundamentais do sistema rapidamente.
 
-  <Card title="Geração de Sintegra" href="/docs/treinamento/fiscal/geracao-sintegra" icon={<FileText className="h-5 w-5" />}>
-    Aprenda o passo a passo completo para gerar, validar e enviar o arquivo Sintegra, garantindo a conformidade fiscal da sua empresa.
-  </Card>
-    <Card title="Precificação de Produtos" href="/docs/treinamento/precificacao-produto" icon={<Banknote className="h-5 w-5" />}>
-    Domine a arte de precificar produtos corretamente, considerando custos, margens e impostos para maximizar a lucratividade.
-  </Card>
+<Cards>
+  <CustomCard title="Conhecendo a Interface" href="" icon={<Navigation className="h-5 w-5" />}>
+    Um tour pelas telas principais, menus e atalhos para você se sentir em casa.
+  </CustomCard>
+  <CustomCard title="Configurações Iniciais" href="" icon={<Settings className="h-5 w-5" />}>
+    Aprenda a cadastrar sua empresa, usuários e permissões para começar a operar.
+  </CustomCard>
+  <CustomCard title="Sua Primeira Venda" href="" icon={<Rocket className="h-5 w-5" />}>
+    Um guia prático para realizar sua primeira venda e emitir a primeira nota fiscal.
+  </CustomCard>
+</Cards>
+
+---
+
+### Processos de Negócio
+
+Aprenda o fluxo de trabalho recomendado para operações-chave e garanta consistência e eficiência em sua equipe.
+
+<Cards>
+  <CustomCard title="Precificação de Produtos" href="/docs/treinamento/precificacao-produto" icon={<Banknote className="h-5 w-5" />}>
+    Domine a arte de precificar produtos, considerando custos, margens e impostos para maximizar sua lucratividade.
+  </CustomCard>
+  <CustomCard title="Fechamento de Caixa (PDV)" href="" icon={<Calculator className="h-5 w-5" />}>
+    Siga o passo a passo para conferir, fechar e auditar o caixa do seu Ponto de Venda com segurança.
+  </CustomCard>
+  <CustomCard title="Inventário Físico (Balanço)" href="" icon={<ClipboardCheck className="h-5 w-5" />}>
+    Execute o processo de contagem de estoque de ponta a ponta para garantir a acuracidade dos seus dados.
+  </CustomCard>
+    <CustomCard title="Fluxo de Venda Completo" href="" icon={<ArrowRightLeft className="h-5 w-5" />}>
+    Do orçamento ao recebimento: entenda a jornada completa de uma venda e como registrá-la no sistema.
+  </CustomCard>
+</Cards>
+
+
+<Callout title="Não encontrou o que procurava?">
+  Use a **barra de pesquisa** no topo da página para encontrar um tópico específico. Se a dúvida persistir, nossa equipe de suporte terá prazer em ajudar.
+</Callout>
+
+<SuporteSection modulo="Syspro ERP" />
