@@ -1,7 +1,7 @@
 // components/danfe-visualizer/DanfeHeader.tsx
 import { FC } from 'react';
 import { Building, UserCircle } from 'lucide-react';
-import { DanfeData } from './types';
+import { DanfeData } from '../types';
 
 export const DanfeHeader: FC<{ emit: DanfeData['emit']; dest: DanfeData['dest'] }> = ({ emit, dest }) => (
     <header className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">

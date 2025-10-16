@@ -6,10 +6,10 @@ import { UploadCloud, Loader, AlertTriangle, Package } from 'lucide-react';
 import { DanfeData } from './types';
 
 // Importando todos os nossos componentes separados!
-import { DanfeHeader } from './DanfeHeader';
-import { DanfeGeneralInfo } from './DanfeGeneralInfo';
-import { DanfeItemCard } from './DanfeItemCard';
-import { DanfeTotals } from './DanfeTotals';
+import { DanfeHeader } from './components/DanfeHeader';
+import { DanfeGeneralInfo } from './components/DanfeGeneralInfo';
+import { DanfeItemCard } from './components/DanfeItemCard';
+import { DanfeTotals } from './components/DanfeTotals';
 
 
 export function DanfeVisualizerTool() {

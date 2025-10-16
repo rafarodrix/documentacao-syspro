@@ -22,7 +22,6 @@ interface TributacaoResult {
  */
 function getIcmsInfo(cstIcms: string, pIcmsStr?: string): TributacaoResult {
     const pIcms = parseFloat(pIcmsStr || '0');
-    // Não usa padStart para lidar corretamente com CST (2 dígitos) e CSOSN (3 dígitos)
     const cst = cstIcms;
 
     if (['00', '90'].includes(cst)) {

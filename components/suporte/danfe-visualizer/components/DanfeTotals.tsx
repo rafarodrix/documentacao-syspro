@@ -1,7 +1,7 @@
 // components/danfe-visualizer/DanfeTotals.tsx
 import { FC } from 'react';
-import { DanfeData } from './types';
-import { formatCurrency } from './utils';
+import { DanfeData } from '../types';
+import { formatCurrency } from '../utils';
 
 export const DanfeTotals: FC<{ total: DanfeData['total'] }> = ({ total }) => (
     <section className="border-t pt-6">

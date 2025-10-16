@@ -1,8 +1,8 @@
 // components/danfe-visualizer/DanfeGeneralInfo.tsx
 import { FC } from 'react';
 import { Hash } from 'lucide-react';
-import { DanfeData } from './types';
-import { formatDate } from './utils';
+import { DanfeData } from '../types';
+import { formatDate } from '../utils';
 
 export const DanfeGeneralInfo: FC<{ ide: DanfeData['ide'], chave: string }> = ({ ide, chave }) => (
     <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-sm border-t border-b py-6">

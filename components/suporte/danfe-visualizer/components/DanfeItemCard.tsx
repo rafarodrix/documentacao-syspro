@@ -2,8 +2,8 @@
 
 import { FC, ReactNode } from 'react';
 import { ChevronDown, Percent, Calculator, Landmark, BadgeInfo } from 'lucide-react';
-import { ItemData } from './types';
-import { formatCurrency, formatNumber, formatPercent } from './utils';
+import { ItemData } from '../types';
+import { formatCurrency, formatNumber, formatPercent } from '../utils';
 import { SugestaoERP } from './SugestaoERP';
 
 // Componente auxiliar para seções de impostos
