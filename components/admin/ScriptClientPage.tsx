@@ -2,44 +2,44 @@
 
 import { useState } from 'react';
 import type { SqlScript } from '@/lib/scripts';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, ChevronDown, Search } from 'lucide-react';
 import { CodeBlock } from 'fumadocs-ui/components/codeblock';
 
-// Este componente precisa ser exportado para ser usado em outros arquivos
+
 export function ScriptCard({ script }: { script: SqlScript }) {
-  const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(script.sql);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // A função PRECISA ter este 'return' para ser um componente React válido
   return (
-    <div className="border rounded-lg bg-card text-card-foreground shadow-sm">
-      <div className="p-4 border-b">
-        <h3 className="font-semibold text-lg">{script.title}</h3>
-        <p className="text-sm text-muted-foreground mt-1">{script.description}</p>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
+
+    <details className="border rounded-lg bg-card text-card-foreground shadow-sm group">
+      <summary className="p-4 flex justify-between items-center cursor-pointer list-none">
+        <div>
+          <h3 className="font-semibold text-lg">{script.title}</h3>
+          <p className="text-sm text-muted-foreground mt-1">{script.description}</p>
+        </div>
+        <ChevronDown className="w-5 h-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+      </summary>
+      
+
+      <div className="px-4 pb-4">
+        <div className="relative bg-black/80 rounded-lg">
+          <div className="p-4">
+            <CodeBlock lang="sql">{script.sql}</CodeBlock>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-4">
           <span className="bg-muted px-2 py-0.5 rounded-full">{script.category}</span>
           <span>Autor: {script.author}</span>
           <span>Criado em: {new Date(script.createdAt).toLocaleDateString('pt-BR')}</span>
         </div>
       </div>
-      <div className="relative bg-black/80 rounded-b-lg">
-        <div className="p-4">
-          <CodeBlock lang="sql">{script.sql}</CodeBlock>
-        </div>
-        <button onClick={handleCopy} title="Copiar script" className="absolute top-3 right-3 p-1.5 bg-white/10 rounded-md text-white hover:bg-white/20 transition-colors">
-          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-        </button>
-      </div>
-    </div>
+    </details>
   );
 }
 
-// O componente principal da página de scripts
+/**
+ * Componente principal da página que exibe e filtra os scripts.
+ */
 export function ScriptClientPage({ scripts }: { scripts: SqlScript[] }) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -50,14 +50,18 @@ export function ScriptClientPage({ scripts }: { scripts: SqlScript[] }) {
   );
 
   return (
-    <div className="space-y-6">
-      <input
-        type="text"
-        placeholder="Buscar por título, descrição ou categoria..."
-        className="w-full max-w-lg p-2 border rounded-md bg-card"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
+    <div className="space-y-8">
+      {/* NOVO: Input de busca com ícone para uma UI melhor */}
+      <div className="relative w-full max-w-lg">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Buscar por título, descrição ou categoria..."
+          className="w-full p-2 pl-10 border rounded-md bg-card"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
       
       <div className="space-y-4">
         {filteredScripts.length > 0 ? (
