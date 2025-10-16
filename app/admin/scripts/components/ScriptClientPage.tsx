@@ -7,9 +7,7 @@ import { CodeBlock } from 'fumadocs-ui/components/codeblock';
 
 
 export function ScriptCard({ script }: { script: SqlScript }) {
-
   return (
-
     <details className="border rounded-lg bg-card text-card-foreground shadow-sm group">
       <summary className="p-4 flex justify-between items-center cursor-pointer list-none">
         <div>
@@ -19,15 +17,15 @@ export function ScriptCard({ script }: { script: SqlScript }) {
         <ChevronDown className="w-5 h-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
       </summary>
       
-
       <div className="px-4 pb-4">
-        <div className="relative bg-black/80 rounded-lg">
-          <div className="p-4">
-            <CodeBlock lang="sql">{script.sql}</CodeBlock>
-          </div>
-        </div>
+        <CodeBlock
+          lang="sql"
+          title="Script SQL" 
+        >
+          {script.sql}
+        </CodeBlock>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-4">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-4 pt-4 border-t border-border/50">
           <span className="bg-muted px-2 py-0.5 rounded-full">{script.category}</span>
           <span>Autor: {script.author}</span>
           <span>Criado em: {new Date(script.createdAt).toLocaleDateString('pt-BR')}</span>
