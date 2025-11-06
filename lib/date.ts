@@ -1,3 +1,5 @@
+//arquivo movido para novo projeto em
+//src\lib\formatters.ts
 // Adicione 'export' para que a função possa ser usada em outros arquivos
 export function formatRecency(isoDate: string): string {
   const now = new Date();

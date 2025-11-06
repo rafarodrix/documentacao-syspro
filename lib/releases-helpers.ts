@@ -1,3 +1,6 @@
+//migrado para nova plataforma
+//src\core\use-cases\group-releases.use-case.ts
+
 import type { Release } from "./types";
 
 // Tipo para a estrutura de dados que vamos criar

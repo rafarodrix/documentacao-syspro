@@ -1,3 +1,5 @@
+// ja importado para novo projeto e inserido nas pastas de domain
+
 // Tipo para os dados de uma Release Note (usado na HomePage e páginas de release)
 export type Release = {
   id: string;
