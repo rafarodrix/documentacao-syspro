@@ -1,20 +1,30 @@
 'use client'; 
 
 import { useState, ChangeEvent, FormEvent } from 'react';
-import axios from 'axios';
+import axios from 'axios'; // 👈 NOTA: Esta importação é para a versão JSON
+
 import { FileUpload } from './FileUpload';
 import { StatusDisplay } from './StatusDisplay';
-import { ResultDisplay } from './ResultDisplay'; // Você precisará criar este componente se quiser mostrar o resumo
+import { ResultDisplay } from './ResultDisplay'; // 👈 Assumindo que você quer este fluxo
 
 // Tipos para clareza
 type Status = 'idle' | 'processing' | 'completed' | 'error';
 
 export function AnalisadorXMLTool() {
+  // --- ESTADO DO FORMULÁRIO ---
   const [files, setFiles] = useState<FileList | null>(null);
   const [numeros, setNumeros] = useState('');
+  const [cnpjEmpresa, setCnpjEmpresa] = useState(''); // ✅ 1. Novo estado para o CNPJ
+  const [fileInputKey, setFileInputKey] = useState(Date.now()); // ✅ 2. Chave para resetar o input
+
+  // --- ESTADO DA API/PROCESSO ---
   const [status, setStatus] = useState<Status>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // --- ESTADO DO RESULTADO ---
+  const [summary, setSummary] = useState('');
+  const [downloadUrl, setDownloadUrl] = useState('');
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     setStatus('idle');
@@ -22,12 +32,13 @@ export function AnalisadorXMLTool() {
     setFiles(e.target.files);
   };
   
+  // ✅ 3. Refatorado para usar 'key'
   const handleClearFiles = () => {
     setFiles(null);
-    const fileInputFolder = document.getElementById('folder-upload') as HTMLInputElement;
-    const fileInputZip = document.getElementById('zip-upload') as HTMLInputElement;
-    if (fileInputFolder) fileInputFolder.value = "";
-    if (fileInputZip) fileInputZip.value = "";
+    setStatus('idle');
+    setStatusMessage('');
+    // Força o React a recriar os inputs de arquivo, limpando-os
+    setFileInputKey(Date.now()); 
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -37,10 +48,18 @@ export function AnalisadorXMLTool() {
       setStatusMessage('Por favor, selecione arquivos ou uma pasta.');
       return;
     }
+    // ✅ 4. Validação do CNPJ
+    if (!cnpjEmpresa) {
+        setStatus('error');
+        setStatusMessage('Por favor, digite o CNPJ da sua empresa.');
+        return;
+    }
 
     setStatus('processing');
     setStatusMessage('Enviando arquivos...');
     setUploadProgress(0);
+    setSummary('');
+    setDownloadUrl('');
 
     const formData = new FormData();
     const isZipUpload = files.length === 1 && files[0].name.endsWith('.zip');
@@ -52,14 +71,17 @@ export function AnalisadorXMLTool() {
       }
     }
     formData.append('numerosParaCopiar', numeros);
+    formData.append('cnpjEmpresa', cnpjEmpresa); // ✅ 4. Adiciona o CNPJ ao FormData
     
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) throw new Error("URL da API não configurada.");
       
+      // ✅ 5. Lógica de API para receber JSON (não blob)
       const response = await axios.post(`${apiUrl}/api/analyze`, formData, {
         onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+          const total = progressEvent.total || 1;
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
           setUploadProgress(percentCompleted);
           if (percentCompleted < 100) {
             setStatusMessage('Enviando arquivos...');
@@ -67,41 +89,20 @@ export function AnalisadorXMLTool() {
             setStatusMessage('Arquivos enviados. Aguardando análise do servidor...');
           }
         },
-        responseType: 'blob', // Espera um arquivo (blob) como resposta
+        // responseType: 'blob' // <-- Removido! Esperamos JSON agora.
       });
 
-      // Se chegamos aqui, a resposta foi um sucesso (status 200) e contém o arquivo
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = 'resultados.zip'; // Nome padrão
-      if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-          if (filenameMatch && filenameMatch.length > 1) {
-              filename = filenameMatch[1];
-          }
-      }
-      
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
+      // Salva os resultados do JSON no estado
+      setSummary(response.data.summary);
+      setDownloadUrl(response.data.downloadUrl);
       setStatus('completed');
-      setStatusMessage('Análise concluída! O download foi iniciado.');
+      setStatusMessage('Análise concluída!');
 
     } catch (err: any) {
       setStatus('error');
-      // Se o erro tiver uma resposta (ex: 400 ou 500), o backend enviou um erro em JSON
-      if (err.response && err.response.data.type === 'application/json') {
-          // Precisamos ler o Blob de erro como texto
-          const errorJson = await (err.response.data as Blob).text();
-          const errorObj = JSON.parse(errorJson);
-          setStatusMessage(errorObj.error || 'Ocorreu um erro no servidor.');
+      // Lógica de erro para ler JSON (mais simples que ler blob de erro)
+      if (err.response && err.response.data && err.response.data.error) {
+        setStatusMessage(err.response.data.error);
       } else if (err.request) {
         setStatusMessage('Erro de Conexão: O servidor não respondeu. Verifique se o backend está rodando.');
       } else {
@@ -123,11 +124,14 @@ export function AnalisadorXMLTool() {
         </div>
 
         <FileUpload
+          fileInputKey={fileInputKey} // ✅ Passa a chave de reset
           files={files}
           numeros={numeros}
+          cnpjEmpresa={cnpjEmpresa} // ✅ Passa o estado do CNPJ
           status={status}
           onFileChange={handleFileChange}
           onNumerosChange={(e) => setNumeros(e.target.value)}
+          onCnpjChange={(e) => setCnpjEmpresa(e.target.value)} // ✅ Passa o handler do CNPJ
           onSubmit={handleSubmit}
           onClear={handleClearFiles}
         />
@@ -138,11 +142,13 @@ export function AnalisadorXMLTool() {
           uploadProgress={uploadProgress}
         />
 
+        {/* ✅ Renderiza o ResultDisplay com os dados do estado */}
         {status === 'completed' && (
-           <div className="mt-10 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md animate-fade-in" role="alert">
-                <p className="font-bold">Sucesso!</p>
-                <p>{statusMessage}</p>
-           </div>
+          <ResultDisplay
+            summary={summary}
+            downloadUrl={downloadUrl}
+            apiUrl={process.env.NEXT_PUBLIC_API_URL}
+          />
         )}
       </div>
     </main>
