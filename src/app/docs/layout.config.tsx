@@ -22,9 +22,5 @@ export const baseOptions: BaseLayoutProps = {
       url: 'https://www.trilink.com.br/sign-in',
       active: 'nested-url',
     },*/
-    {
-      type: 'custom',
-      children: <AuthButtons />,
-    },
   ],
 };
