@@ -1,8 +1,8 @@
 // app/admin/page.tsx
 
 import { Suspense } from 'react';
-import { getSqlScripts } from '@/lib/scripts';
-import { getAdminDashboardStats } from '@/lib/stats';
+import { getSqlScripts } from '@/src/lib/scripts';
+import { getAdminDashboardStats } from '@/src/lib/stats';
 import { AdminDashboardClient, DashboardSkeleton } from '@/components/admin/AdminDashboardClient';
 
 

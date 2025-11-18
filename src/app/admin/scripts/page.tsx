@@ -1,6 +1,6 @@
 // app/admin/scripts/page.tsx
 
-import { getSqlScripts } from '@/lib/scripts';
+import { getSqlScripts } from '@/src/lib/scripts';
 import { ScriptClientPage } from '@/src/app/admin/scripts/components/ScriptClientPage';
 
 // Seus metadados estão perfeitos.

@@ -2,7 +2,7 @@
 
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/src/lib/auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 const ALLOWED_ROLES = ['administrador', 'desenvolvedor', 'suporte'];

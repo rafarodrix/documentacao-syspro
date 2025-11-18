@@ -2,8 +2,8 @@ import { Heading } from "fumadocs-ui/components/heading";
 import { Card } from "fumadocs-ui/components/card";
 import Link from "next/link";
 import { Calendar, Bug, Rocket } from "lucide-react";
-import { getReleases } from "@/lib/releases";
-import type { Release } from "@/lib/types";
+import { getReleases } from "@/src/lib/releases";
+import type { Release } from "@/src/lib/types";
 
 export async function ReleasesIndexPage() {
   const releases = await getReleases();

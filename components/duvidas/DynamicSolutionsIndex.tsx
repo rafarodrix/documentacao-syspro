@@ -1,7 +1,7 @@
 // Componente para listar soluções dinâmicas baseado em um caminho de pasta
 
 import { Card } from 'fumadocs-ui/components/card';
-import { source } from '@/lib/source';
+import { source } from '@/src/lib/source';
 
 export function DynamicSolutionsIndex({ folderPath }: { folderPath: string }) {
   if (!folderPath) {

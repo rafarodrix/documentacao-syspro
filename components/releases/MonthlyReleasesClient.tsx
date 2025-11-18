@@ -5,7 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { FaBug, FaRocket } from "react-icons/fa";
 import { X } from "lucide-react";
 import { ReleaseCard } from "./ReleaseCard";
-import type { Release } from "@/lib/types";
+import type { Release } from "@/src/lib/types";
 
 interface MonthlyReleasesClientProps {
   melhorias: Release[];

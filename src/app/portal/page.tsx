@@ -3,8 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 // Lógica e Tipos
-import { authOptions } from "@/lib/auth";
-import { getTicketsByUserId } from "@/lib/releases";
+import { authOptions } from "@/src/lib/auth";
+import { getTicketsByUserId } from "@/src/lib/releases";
 
 // Componentes e seus Tipos
 import { ResourceCards, type ResourceLink } from "@/components/ResourceCards";

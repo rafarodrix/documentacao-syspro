@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import type { SqlScript } from '@/lib/scripts';
+import type { SqlScript } from '@/src/lib/scripts';
 import { Copy, Check, ChevronDown, Search } from 'lucide-react';
 import { CodeBlock } from 'fumadocs-ui/components/codeblock';
 

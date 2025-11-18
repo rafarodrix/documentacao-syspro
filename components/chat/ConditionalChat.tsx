@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/src/lib/auth";
 import ZammadChat from '@/components/chat/ZammadChat';
 
 export async function ConditionalChat() {
