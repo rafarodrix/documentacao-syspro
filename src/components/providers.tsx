@@ -1,4 +1,3 @@
-// src/app/providers.tsx
 "use client";
 
 import * as React from "react";

@@ -1,5 +1,3 @@
-// src/components/CurrencyInput.tsx
-
 import React, { useState, useEffect } from 'react';
 
 interface FormattedCurrencyInputProps {

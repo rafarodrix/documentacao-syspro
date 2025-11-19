@@ -1,4 +1,3 @@
-// components/YouTubeModal.tsx
 'use client';
 
 import { useState } from 'react';

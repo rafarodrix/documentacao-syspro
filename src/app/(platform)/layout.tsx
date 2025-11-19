@@ -1,5 +1,3 @@
-// src/app/(platform)/layout.tsx
-// Este é um Server Component, perfeito para checagens de segurança.
 import { redirect } from 'next/navigation';
 import { getProtectedSession, type UserRole } from '@/lib/auth-helpers';
 import DashboardSidebar from '@/components/platform/DashboardSidebar'; // Componente de UI que vamos assumir que existe

@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { Rocket, Sparkles, Bug, Calendar } from 'lucide-react';
-import { getReleases } from '@/src/lib/releases';
-import { formatRecency } from '@/src/lib/date';
-import { groupReleasesByMonth } from '@/src/lib/releases-helpers';
-import type { Release } from '@/src/lib/types';
+import { getReleases } from '@/lib/releases';
+import { formatRecency } from '@/lib/date';
+import { groupReleasesByMonth } from '@/lib/releases-helpers';
+import type { Release } from '@/lib/types';
 
 export async function ReleaseNotesSection() {
   const allReleases: Release[] = await getReleases();

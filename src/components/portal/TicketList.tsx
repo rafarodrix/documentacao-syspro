@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Ticket, ExternalLink } from 'lucide-react';
-import type { UserTicket } from '@/src/lib/types';
+import type { UserTicket } from '@/lib/types';
 
 interface TicketListProps {
   tickets: UserTicket[];

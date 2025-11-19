@@ -1,5 +1,5 @@
 // lib/stats.ts
-import { getZammadTicketsCount } from '@/src/lib/releases';
+import { getZammadTicketsCount } from '@/lib/releases';
 
 // Constantes com os nomes exatos dos status
 const STATE_NAME = {
