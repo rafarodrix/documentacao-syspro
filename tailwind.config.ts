@@ -1,14 +1,11 @@
-import type { Config } from "tailwindcss";
-import { createPreset } from "fumadocs-ui/tailwind-plugin";
+const { createPreset } = require("fumadocs-ui/tw");
 
-const config = {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
-    // Lê todos os arquivos em sua nova pasta src/
-    "./src/**/*.{ts,tsx}", 
+    "./src/**/*.{js,jsx,ts,tsx}",
     "./content/**/*.{md,mdx}",
-    "./node_modules/fumadocs-ui/dist/**/*.js",
+    "./node_modules/fumadocs-ui/dist/**/*.{js,mjs}"
   ],
   presets: [createPreset()],
-} satisfies Config;
-
-export default config;
+};
