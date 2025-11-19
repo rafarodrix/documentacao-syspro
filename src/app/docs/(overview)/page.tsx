@@ -1,10 +1,10 @@
 // --- Imports  ---
 import Link from 'next/link';
 import { BookOpen, HelpCircle, GraduationCap, Rocket, MessagesSquare, Phone, Mail, Wrench, Sparkles, Bug, Calendar } from 'lucide-react';
-import { getReleases } from '@/src/lib/releases'; 
-import { formatRecency } from '@/src/lib/date';
-import { groupReleasesByMonth, type MonthSummary } from '@/src/lib/releases-helpers';
-import type { Release } from '@/src/lib/types'; 
+import { getReleases } from '@/lib/releases'; 
+import { formatRecency } from '@/lib/date';
+import { groupReleasesByMonth, type MonthSummary } from '@/lib/releases-helpers';
+import type { Release } from '@/lib/types'; 
 
 // --- Dados para os cards de navegação ---
 const navLinks = [

@@ -15,16 +15,22 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+
     "paths": {
-      "@/.source": ["./.source/index.ts"],
-      "@/*": ["./scr/*"]
+      "@/*": ["src/*"]
     },
+
     "plugins": [
       {
         "name": "next"
       }
     ]
   },
-  "include": ["next-env.d.ts", "types/zammad.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/Suporte.tsx", "components/releases/ReleasesIndexPage.old", "components/finance/Step1_GeneralData"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

@@ -3,7 +3,6 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Providers } from '@/components/providers'; 
-import { ConditionalChat } from '@/components/chat/ConditionalChat';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,7 +15,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Providers>
           {children}
         </Providers>
-        <ConditionalChat />
       </body>
     </html>
   );

@@ -1,74 +1,90 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import { LogIn, AlertTriangle, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { authClient } from '@/lib/auth-client';
+import { Loader2 } from 'lucide-react';
 
-// Componente para exibir erros de forma elegante
-function ErrorCard({ error }: { error: string }) {
-    const errorMessages: Record<string, { title: string, message: string }> = {
-        'OAuthCallback': {
-            title: 'Erro na Autenticação',
-            message: 'Não foi possível conectar com o servidor do Zammad. Verifique se suas credenciais (Client Secret) estão corretas e tente novamente.'
-        },
-        'default': {
-            title: 'Erro Desconhecido',
-            message: 'Ocorreu um erro durante o processo de login. Por favor, tente novamente mais tarde.'
-        }
-    };
-    const details = errorMessages[error] || errorMessages.default;
-
-    return (
-        <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-md text-left flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            <div>
-                <p className="font-bold">{details.title}</p>
-                <p className="text-sm mt-1">{details.message}</p>
-            </div>
-        </div>
-    );
-}
-
-// Componente principal do formulário, que é um Client Component
-function LoginForm() {
-    const searchParams = useSearchParams();
-    const error = searchParams.get('error');
-
-    return (
-        <div className="max-w-sm w-full space-y-8">
-            <div className="text-center">
-                {/* Você pode adicionar seu logo aqui */}
-                {/* <img src="/logo.svg" alt="Syspro ERP" className="mx-auto h-12 w-auto" /> */}
-                <h1 className="mt-6 text-3xl font-bold">Acessar Portal do Cliente</h1>
-                <p className="mt-2 text-muted-foreground">Use sua conta do suporte para continuar.</p>
-            </div>
-
-            {error && <ErrorCard error={error} />}
-
-            <button
-                onClick={() => signIn('zammad')}
-                className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-3 rounded-md hover:bg-primary/90 transition-colors shadow-lg hover:shadow-primary/30"
-            >
-                <LogIn className="w-5 h-5" />
-                Entrar com a conta Syspro
-            </button>
-        </div>
-    );
-}
-
-// Componente de Fallback para o Suspense
-function LoadingFallback() {
-    return <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />;
-}
-
-// A página em si, que é um Server Component que usa Suspense
 export default function LoginPage() {
-    return (
-        <main className="flex-1 flex flex-col items-center justify-center p-6 bg-secondary/30">
-            <Suspense fallback={<LoadingFallback />}>
-                <LoginForm />
-            </Suspense>
-        </main>
-    );
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/docs'; // Redireciona para /docs por padrão
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 1. Tenta fazer login usando o cliente do Better Auth
+      await authClient.signIn.email({ email, password });
+
+      // 2. Se for bem-sucedido, redireciona
+      router.push(callbackUrl);
+
+    } catch (err: any) {
+      // 3. Captura e exibe o erro
+      console.error(err);
+      setError('Credenciais inválidas. Verifique seu e-mail e senha.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">Acesso ao Portal</CardTitle>
+          <CardDescription>
+            Entre com suas credenciais Trilink para acessar a documentação e ferramentas.
+          </CardDescription>
+        </CardHeader>
+        
+        <form onSubmit={handleSubmit}>
+          <CardContent className="grid gap-4">
+            
+            {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+            
+            <div className="grid gap-2">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="seunome@empresa.com.br"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button className="w-full" type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Entrar
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
+  );
 }

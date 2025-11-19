@@ -1,6 +1,5 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { NavTitle } from '@/components/NavTitle';
-import { AuthButtons } from '@/components/AuthButtons';
 
 export const baseOptions: BaseLayoutProps = {
   nav: {

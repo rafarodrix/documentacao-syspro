@@ -1,61 +1,42 @@
-// 1. Definição do Banco de Dados
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-// 2. Definição do Cliente Prisma
 generator client {
   provider = "prisma-client-js"
 }
 
-// 3. MODELOS OBRIGATÓRIOS PARA O BETTER AUTH
+// ---------------------------------------------------------
+// MODELOS REQUERIDOS E AJUSTADOS (Melhor Compatibilidade)
+// ---------------------------------------------------------
 
 model User {
   id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  passwordHash  String?
-  image         String?
   
-  // Relações
-  accounts      Account[]
+  // CAMPOS DE AUTENTICAÇÃO
+  email         String    @unique
+  passwordHash  String?   // CORRIGIDO: Agora é passwordHash
+  emailVerified DateTime? // ADICIONADO: Padrão do adaptador
+
+  // CAMPOS CUSTOMIZADOS
+  name          String?
+  role          String    @default("cliente") // Essencial para o RBAC!
+  
+  // CAMPOS DE METADADOS
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // RELAÇÕES OBRIGATÓRIAS
   sessions      Session[]
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
 }
 
 model Session {
   id           String   @id @default(cuid())
-  sessionToken String   @unique
   userId       String
-  expires      DateTime
+  sessionToken String   @unique // OBRIGATÓRIO: Chave de busca para o Better Auth
+  expires      DateTime // CONVENÇÃO: Melhor usar 'expires'
+
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
 }

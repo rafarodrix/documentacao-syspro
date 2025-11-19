@@ -1,8 +1,8 @@
 // Layout personalizado para a seção de documentação usando Fumadocs
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { ReactNode } from 'react';
-import { baseOptions } from '@/src/app/docs/layout.config';
-import { source } from '@/src/lib/source';
+import { baseOptions } from '@/app/docs/layout.config';
+import { source } from '@/lib/source';
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
