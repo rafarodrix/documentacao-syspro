@@ -1,4 +1,3 @@
-// app/api/parse-nfe/route.ts
 import { NextResponse } from 'next/server';
 import { XMLParser } from 'fast-xml-parser';
 

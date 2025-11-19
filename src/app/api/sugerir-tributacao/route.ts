@@ -1,6 +1,3 @@
-// Rota API para sugerir tributação com base em CSTs e alíquotas.
-// Retorna um código padronizado e uma explicação detalhada para apoiar o lançamento fiscal.
-
 import { NextResponse } from 'next/server'
 
 // Define a estrutura esperada no corpo da requisição
