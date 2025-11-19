@@ -1,7 +1,3 @@
-// importado novo projeto e dividido em 2 arquivos 
-//src\core\services\zammad\zammad.service.ts
-//src\core\validation\zammad.schemas.ts
-
 import { z } from "zod";
 import type { Release, UserTicket } from "./types";
 

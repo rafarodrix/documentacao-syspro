@@ -2,7 +2,7 @@
 
 import { Card } from "fumadocs-ui/components/card";
 import { FaVideo } from "react-icons/fa";
-import type { Release } from "@/src/lib/types";
+import type { Release } from "@/lib/types";
 
 interface ReleaseCardProps {
   release: Release;
