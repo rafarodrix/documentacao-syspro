@@ -13,14 +13,16 @@ export default async function AdminLayout({
 
   if (!session) redirect('/login');
 
-  // DEBUG: Veja no terminal do VS Code quem está tentando entrar e qual a role dele
-  console.log(`[AdminLayout] Acesso de: ${session.email} | Role: ${session.role}`);
+  // --- ADICIONE ESTE LOG AQUI ---
+  console.log("🔍 DEBUG ADMIN ACCESS:");
+  console.log("Email:", session.email);
+  console.log("Role no Banco:", session.role);
+  // ------------------------------
 
-  // 🔒 SEGURANÇA RBAC
   const allowedRoles = ['ADMIN', 'DEVELOPER', 'SUPORTE'];
 
   if (!allowedRoles.includes(session.role)) {
-    console.log(`[AdminLayout] Acesso NEGADO. Redirecionando para /client`);
+    console.log("⛔ Acesso Negado! Redirecionando para /client");
     redirect('/client');
   }
 
