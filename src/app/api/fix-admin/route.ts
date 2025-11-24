@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
     try {
         const email = "rafaelrodrix@icloud.com";
-        const newPassword = "123456"; // <--- Sua nova senha aqui
+        const newPassword = "Trilink098"; // <--- Sua nova senha aqui
 
         console.log("🔄 Iniciando processo de correção do Admin...");
 
