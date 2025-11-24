@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
 
 export default async function AdminEmpresasPage() {
-  const { data: companies } = await getCompaniesAction();
+
+  const result = await getCompaniesAction();
+  const companies = result.data || [];
 
   return (
     <div className="space-y-6">

@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react"; // Adicionado useEffect
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCompanySchema, CreateCompanyInput } from "@/core/validation/company-schema";
-// Importe a nova action de update
 import { createCompanyAction, updateCompanyAction } from "@/app/(platform)/admin/_actions/company-actions";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +17,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import { PlusCircle, Loader2, Pencil } from "lucide-react"; // Importe o Pencil
+import { PlusCircle, Loader2, Pencil } from "lucide-react";
 
 // Interface para definir se estamos editando
 interface CompanySheetProps {
@@ -40,7 +38,6 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
 
     const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm<CreateCompanyInput>({
         resolver: zodResolver(createCompanySchema),
-        // Se estiver editando, preenche os valores iniciais
         defaultValues: {
             cnpj: companyToEdit?.cnpj || "",
             razaoSocial: companyToEdit?.razaoSocial || "",
