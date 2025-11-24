@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import {
     LayoutDashboard,
-    LifeBuoy,
     BookOpen,
     LogOut,
     Ticket,
@@ -19,12 +18,12 @@ import {
 // Itens de menu
 const navItems = [
     { title: "Visão Geral", href: "/client", icon: LayoutDashboard },
-    { title: "Meus Chamados", href: "/client/chamados", icon: Ticket },
-    { title: "Meu Perfil", href: "/client/perfil", icon: User },
+    //{ title: "Meus Chamados", href: "/client/chamados", icon: Ticket },
+    //{ title: "Meu Perfil", href: "/client/perfil", icon: User },
 ];
 
 interface ClientSidebarProps {
-    mobile?: boolean; // Nova prop para ajustar estilos
+    mobile?: boolean;
 }
 
 export function ClientSidebar({ mobile = false }: ClientSidebarProps) {
@@ -112,14 +111,6 @@ export function ClientSidebar({ mobile = false }: ClientSidebarProps) {
                     >
                         <Wrench className="h-4 w-4" />
                         Suporte
-                    </Link>
-
-                    <Link
-                        href="/suporte"
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                    >
-                        <LifeBuoy className="h-4 w-4" />
-                        Central de Ajuda
                     </Link>
                 </nav>
             </div>

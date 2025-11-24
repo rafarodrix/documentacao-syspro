@@ -3,7 +3,7 @@ import { Rocket, Sparkles, Bug, Calendar } from 'lucide-react';
 import { getReleases } from '@/core/application/use-cases/get-releases';
 import { formatRecency } from '@/lib/date';
 import { groupReleasesByMonth } from '@/lib/releases-helpers';
-import type { Release } from '@/lib/types';
+import type { Release } from '@/core/domain/entities/release';
 
 export async function ReleaseNotesSection() {
   const allReleases: Release[] = await getReleases();

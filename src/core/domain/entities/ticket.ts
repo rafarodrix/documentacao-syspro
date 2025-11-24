@@ -10,3 +10,5 @@ export interface Ticket {
     date: string;
     lastUpdate: string;
 }
+
+
