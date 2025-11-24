@@ -1,32 +1,34 @@
+// src/components/platform/DashboardSidebar.tsx
 import Link from 'next/link';
 import { LayoutDashboard, Users, Code, BookOpen, Settings } from 'lucide-react';
-import { UserRole } from '@/lib/auth-helpers'; // Importa o tipo definido
+// Agora o import deve funcionar
+import { UserRole } from '@/lib/auth-helpers'; 
+
+// Definindo os links de navegação e as permissões necessárias
+const navItems = [
+  { href: '/client', icon: LayoutDashboard, label: 'Portal do Usuário', roles: ['USER', 'CLIENTE', 'ADMIN', 'DEVELOPER'] }, // Use /client ou /user
+  { href: '/docs', icon: BookOpen, label: 'Documentação Oficial', roles: ['USER', 'CLIENTE', 'ADMIN', 'DEVELOPER'] },
+  { href: '/admin', icon: Users, label: 'Gestão de Usuários', roles: ['ADMIN'] },
+  { href: '/dev', icon: Code, label: 'Ferramentas Dev', roles: ['DEVELOPER', 'ADMIN'] },
+];
 
 interface SidebarProps {
   userRole: UserRole;
 }
 
-const navItems = [
-  { href: '/user', icon: LayoutDashboard, label: 'Portal do Usuário', roles: ['USER', 'ADMIN', 'DEVELOPER'] },
-  { href: '/docs', icon: BookOpen, label: 'Documentação Oficial', roles: ['USER', 'ADMIN', 'DEVELOPER'] },
-  { href: '/admin', icon: Users, label: 'Gestão de Usuários', roles: ['ADMIN'] },
-  { href: '/dev', icon: Code, label: 'Ferramentas Dev', roles: ['DEVELOPER', 'ADMIN'] },
-];
-
 export default function DashboardSidebar({ userRole }: SidebarProps) {
-  const isAdminOrDev = userRole === 'ADMIN' || userRole === 'DEVELOPER';
-
   return (
     <aside className="hidden md:flex flex-col w-64 border-r bg-background p-4 min-h-screen">
       
-      {/* Logo/Título */}
+      {/* Título e Role */}
       <div className="text-xl font-bold text-primary mb-8">
         Syspro | {userRole}
       </div>
 
-      {/* Navegação */}
+      {/* Navegação Principal com RBAC */}
       <nav className="flex flex-col space-y-2">
         {navItems.map((item) => (
+          // Renderiza o link SOMENTE se a role do usuário estiver incluída nas roles permitidas
           (item.roles.includes(userRole)) && (
             <Link 
               key={item.href} 
@@ -40,7 +42,7 @@ export default function DashboardSidebar({ userRole }: SidebarProps) {
         ))}
       </nav>
       
-      {/* Rodapé da Sidebar (Exemplo) */}
+      {/* Opções de Rodapé */}
       <div className="mt-auto pt-4 border-t">
          <Link href="/settings" className="flex items-center gap-3 p-2 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors">
             <Settings className="h-5 w-5" />

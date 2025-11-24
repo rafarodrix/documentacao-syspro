@@ -1,29 +1,51 @@
-
-// Usado para simular/obter o papel do usuário no servidor
-
 import { auth } from "./auth";
+import { headers } from 'next/headers';
 
-// Definindo os papéis de usuário
-export type UserRole = 'USER' | 'ADMIN' | 'DEVELOPER';
+// -----------------------------------------------------
+// DEFINIÇÃO DE TIPOS E INTERFACE
+// -----------------------------------------------------
 
-// Modelo de Sessão (Simplificado)
+export type UserRole = 'USER' | 'ADMIN' | 'DEVELOPER' | 'CLIENTE';
+
 export interface ProtectedSession {
     userId: string;
     email: string;
-    role: UserRole; // A chave para o RBAC
+    role: string;
 }
 
-// ATENÇÃO: Esta é uma função de placeholder.
-// Em produção, você a implementaria para:
-// 1. Usar um hook do Better Auth (como auth.getSession(cookie))
-// 2. Fazer uma consulta ao seu banco de dados (Prisma) para obter o campo 'role'
-//    que você deve adicionar ao modelo User em 'prisma/schema.prisma'.
+// -----------------------------------------------------
+// FUNÇÃO PRINCIPAL DE CHECAGEM DE SESSÃO
+// -----------------------------------------------------
+
+/**
+ * Valida a sessão no Better Auth e retorna o objeto de usuário.
+ * Usado em layouts de Server Component para checagem de RBAC.
+ */
 export async function getProtectedSession(): Promise<ProtectedSession | null> {
-    // Para fins de teste, vamos simular que o usuário logado é um ADMIN
-    // REMOVA esta simulação APÓS implementar a lógica real do DB.
+    
+    // 1. Obtém os headers da requisição (Necessário para o Better Auth ler os cookies automaticamente)
+    // Nota: headers() também é async no Next.js 15
+    const headersList = await headers();
+
+    // 2. Chama a API do Better Auth para validar a sessão
+    // Não precisamos ler o cookie manualmente, passamos os headers e ele resolve.
+    const session = await auth.api.getSession({
+        headers: headersList
+    });
+
+    // 3. Validação: Se não houver sessão ou usuário, retorna null
+    if (!session || !session.user) {
+        return null;
+    }
+
+    // 4. Retorna o objeto de sessão limpo
+    // Nota: O TypeScript pode reclamar de 'role' se você não tiver tipado ele no schema do Better Auth.
+    // O cast (session.user as any) é temporário caso o TS não infira o plugin de roles.
+    const userRole = (session.user as any).role || 'USER'; 
+
     return {
-        userId: '12345',
-        email: 'admin@trilink.com.br',
-        role: 'ADMIN', 
+        userId: session.user.id,
+        email: session.user.email,
+        role: userRole.toUpperCase(), 
     };
 }

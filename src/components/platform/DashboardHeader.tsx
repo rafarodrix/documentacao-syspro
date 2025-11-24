@@ -1,49 +1,55 @@
+// src/components/platform/DashboardHeader.tsx
+// Este arquivo é um Server Component - Focado no layout
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'; 
-import { Button } from '@/components/ui/button';
-import { LogOut, UserCircle } from 'lucide-react';
-import Link from 'next/link';
+import { Search } from 'lucide-react';
+// Importa o novo componente Client-side
+import { LogoutButton } from './LogoutButton'; 
+import { Input } from '@/components/ui/input';
 
 interface HeaderProps {
   userEmail: string;
 }
 
-// Este deve ser um Client Component se o botão de Logout for funcionar com o Better Auth Client.
-// Mas o shell (aqui) é um Server Component, então o botão de Logout deve ser um Client Component separado.
-
 export default function DashboardHeader({ userEmail }: HeaderProps) {
-  // Apenas o componente de Logout faria 'use client' e usaria authClient.signOut()
-  
-  const initials = userEmail.substring(0, 2).toUpperCase();
+  // Gera iniciais de forma segura, garantindo que o email exista
+  const initials = userEmail ? userEmail.substring(0, 2).toUpperCase() : 'US';
 
   return (
-    <header className="flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-sm">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-sm">
       
-      {/* Espaço para o menu mobile ou título (no Desktop ele está oculto) */}
-      <div className="flex-1 md:hidden">
-         <span className="font-semibold text-primary">Syspro ERP</span>
+      {/* 1. Título/Menu Mobile (Visível apenas em Mobile) */}
+      <div className="md:hidden flex items-center gap-3">
+        <span className="font-semibold text-lg text-primary">Syspro</span>
       </div>
 
-      {/* Barra de pesquisa, notificações, etc. (Opcional) */}
-      <div className="flex-1">
-        {/* Futura barra de pesquisa/notificações */}
+      {/* 2. Barra de Pesquisa Central (Foco em funcionalidade) */}
+      <div className="flex-1 max-w-lg hidden md:flex">
+         <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input 
+                type="search" 
+                placeholder="Buscar em Manuais ou Ferramentas..." 
+                className="w-full rounded-lg bg-muted pl-9 pr-4 text-sm"
+            />
+         </div>
       </div>
 
-      {/* Perfil e Logout */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium hidden sm:inline text-foreground/80">
+      {/* 3. Perfil e Logout (Alinhado à direita) */}
+      <div className="ml-auto flex items-center gap-3">
+        
+        {/* Email do Usuário */}
+        <span className="text-sm font-medium hidden lg:inline text-foreground/80">
             {userEmail}
         </span>
         
+        {/* Avatar */}
         <Avatar>
           <AvatarFallback className='bg-primary/10 text-primary font-bold'>{initials}</AvatarFallback>
         </Avatar>
 
-        {/* Placeholder para Logout - Deve ser um componente de Cliente separado */}
-        <Link href="/logout" passHref>
-             <Button variant="outline" size="icon" title="Sair do Portal">
-                <LogOut className="h-5 w-5" />
-             </Button>
-        </Link>
+        {/* Botão de Logout (Componente Cliente) */}
+        <LogoutButton />
       </div>
     </header>
   );
