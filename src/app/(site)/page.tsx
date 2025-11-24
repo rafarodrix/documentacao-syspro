@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/mode-toggle"; // Importe o Toggle
+
 import {
   ArrowRight,
   BookOpen,
@@ -20,28 +20,23 @@ export default function LandingPage() {
   const year = now.getFullYear();
   // Pega o mês (0-11), soma 1 e garante 2 dígitos (ex: "05", "11")
   const month = String(now.getMonth() + 1).padStart(2, "0");
-  
+
   const currentVersion = `v${year}.${month}`;
   const releaseLink = `/releases/${year}/${month}`;
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden transition-colors duration-300">
-      
-      {/* --- HEADER FLUTUANTE (Para o Toggle) --- */}
-      <header className="absolute top-0 right-0 p-6 z-50">
-        <ModeToggle />
-      </header>
 
       {/* --- HERO SECTION --- */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
-        
+
         {/* Background Pattern (Grid) */}
         <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]">
           <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-primary/20 opacity-20 blur-[100px]"></div>
         </div>
 
         <div className="container px-4 md:px-6 mx-auto relative z-10 text-center">
-          
+
           {/* Badge Animado & Dinâmico */}
           <div className="inline-flex items-center justify-center mb-8 transition-all hover:scale-105">
             {/* Envolvemos o badge no Link dinâmico */}
@@ -58,7 +53,7 @@ export default function LandingPage() {
 
           {/* Headline */}
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 max-w-6xl mx-auto bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-            A inteligência que o seu <br className="hidden md:block"/>
+            A inteligência que o seu <br className="hidden md:block" />
             <span className="text-primary">Syspro ERP</span> precisava.
           </h1>
 
@@ -86,15 +81,15 @@ export default function LandingPage() {
 
           {/* Trust Badges */}
           <div className="mt-16 pt-8 border-t border-border/40 flex flex-wrap justify-center gap-8 md:gap-16 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-             <div className="flex items-center gap-2 font-semibold text-sm">
-                <ShieldCheck className="h-5 w-5" /> Segurança Enterprise
-             </div>
-             <div className="flex items-center gap-2 font-semibold text-sm">
-                <CheckCircle2 className="h-5 w-5" /> Compliance Fiscal
-             </div>
-             <div className="flex items-center gap-2 font-semibold text-sm">
-                <Zap className="h-5 w-5" /> Alta Performance
-             </div>
+            <div className="flex items-center gap-2 font-semibold text-sm">
+              <ShieldCheck className="h-5 w-5" /> Segurança Enterprise
+            </div>
+            <div className="flex items-center gap-2 font-semibold text-sm">
+              <CheckCircle2 className="h-5 w-5" /> Compliance Fiscal
+            </div>
+            <div className="flex items-center gap-2 font-semibold text-sm">
+              <Zap className="h-5 w-5" /> Alta Performance
+            </div>
           </div>
 
         </div>
@@ -103,7 +98,7 @@ export default function LandingPage() {
       {/* --- BENTO GRID FEATURES --- */}
       <section className="py-24 bg-muted/20">
         <div className="container px-4 md:px-6 mx-auto">
-          
+
           <div className="mb-16 md:text-center max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
               Ecossistema completo
@@ -114,7 +109,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
             {/* Card Grande - Docs */}
             <div className="md:col-span-2 group relative overflow-hidden rounded-3xl border bg-gradient-to-br from-background to-muted/50 p-8 hover:border-primary/50 transition-all duration-300">
               <div className="relative z-10">
