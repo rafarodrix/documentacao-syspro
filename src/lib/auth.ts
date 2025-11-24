@@ -9,6 +9,12 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
+  baseURL: process.env.BETTER_AUTH_URL, // Garanta que está lendo a variável
+    trustedOrigins: [
+        "http://localhost:3000", // Desenvolvimento
+        "https://ajuda.trilinksoftware.com.br" // Produção (O SEU DOMÍNIO)
+    ],
+
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,
