@@ -1,6 +1,6 @@
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import { getMyTicketsAction } from "./_actions/ticket-actions"; // Importe a action
+import { getMyTicketsAction } from "./_actions/ticket-actions";
 import { Button } from "@/components/ui/button";
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
@@ -134,7 +134,7 @@ export default async function ClientDashboardPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{ticket.priority}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{ticket.date}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{ticket.lastUpdate}</TableCell>
                   </TableRow>
                 ))
               )}

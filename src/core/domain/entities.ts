@@ -27,3 +27,4 @@ export interface Ticket {
     priority: TicketPriority;
     lastUpdate: string; // ou 'date'
 }
+
