@@ -15,8 +15,8 @@ export default async function AdminUsuariosPage() {
         getCompaniesAction()
     ]);
 
-    const users = usersRes.data || [];
-    const companies = companiesRes.data || [];
+    const users = (usersRes.success && usersRes.data) || [];
+    const companies = (companiesRes.success && companiesRes.data) || [];
 
     // Prepara lista simplificada de empresas para o Select do formulário
     const companyOptions = companies.map(c => ({ id: c.id, razaoSocial: c.razaoSocial }));
