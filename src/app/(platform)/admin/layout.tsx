@@ -11,18 +11,17 @@ export default async function AdminLayout({
 }) {
   const session = await getProtectedSession();
 
-  // (O PlatformLayout já checou se existe sessão, mas o TS pode reclamar, 
-  // então pegamos de novo ou passamos via contexto. 
-  // Por segurança e simplicidade, chamamos o helper que é muito rápido).
-
   if (!session) redirect('/login');
 
-  // 🔒 SEGURANÇA RBAC (Role Based Access Control)
-  // Se o cara não for Admin ou Dev, ele não pode ver essa tela.
+  // DEBUG: Veja no terminal do VS Code quem está tentando entrar e qual a role dele
+  console.log(`[AdminLayout] Acesso de: ${session.email} | Role: ${session.role}`);
+
+  // 🔒 SEGURANÇA RBAC
   const allowedRoles = ['ADMIN', 'DEVELOPER', 'SUPORTE'];
+
   if (!allowedRoles.includes(session.role)) {
-    // Redireciona para a área de cliente se ele tentar entrar no admin
-    redirect('/client/dashboard');
+    console.log(`[AdminLayout] Acesso NEGADO. Redirecionando para /client`);
+    redirect('/client');
   }
 
   const currentRole = session.role as UserRole;
