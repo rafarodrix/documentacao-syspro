@@ -11,7 +11,6 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = [
     "/",
     "/login",
-    "/docs",     // Toda a documentação
     "/releases", // Notas de versão
     "/suporte"   // Se houver uma landing page de suporte pública
   ];
