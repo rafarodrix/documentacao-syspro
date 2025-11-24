@@ -10,7 +10,10 @@ import {
     BookOpen,
     LogOut,
     Ticket,
-    User
+    User,
+    HelpCircle,
+    GraduationCap,
+    Wrench
 } from "lucide-react";
 
 // Itens de menu
@@ -80,11 +83,35 @@ export function ClientSidebar({ mobile = false }: ClientSidebarProps) {
 
                     {/* Links Externos */}
                     <Link
-                        href="/docs"
+                        href="/docs/manual"
                         className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                     >
                         <BookOpen className="h-4 w-4" />
                         Documentação
+                    </Link>
+
+                    <Link
+                        href="/docs/duvidas"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                    >
+                        <HelpCircle className="h-4 w-4" />
+                        Dúvidas frequentes
+                    </Link>
+
+                    <Link
+                        href="/docs/treinamento"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                    >
+                        <GraduationCap className="h-4 w-4" />
+                        Treinamentos
+                    </Link>
+
+                    <Link
+                        href="/docs/suporte"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                    >
+                        <Wrench className="h-4 w-4" />
+                        Suporte
                     </Link>
 
                     <Link
