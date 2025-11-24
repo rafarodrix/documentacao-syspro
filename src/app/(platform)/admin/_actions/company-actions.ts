@@ -74,7 +74,7 @@ export async function createCompanyAction(data: CreateCompanyInput) {
         nomeFantasia: data.nomeFantasia,
         emailContato: data.emailContato,
         telefone: data.telefone,
-        website: data.website || null, // Zod pode enviar "", Prisma prefere null
+        website: data.website || null,
 
         // Fiscal
         inscricaoEstadual: data.inscricaoEstadual,
@@ -126,7 +126,6 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput) 
     await prisma.company.update({
       where: { id },
       data: {
-        // Mapeamento IDÊNTICO ao create (copie e cole os campos acima)
         cnpj: data.cnpj,
         razaoSocial: data.razaoSocial,
         nomeFantasia: data.nomeFantasia,
