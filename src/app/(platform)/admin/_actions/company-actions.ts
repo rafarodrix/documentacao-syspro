@@ -68,17 +68,41 @@ export async function createCompanyAction(data: CreateCompanyInput) {
   try {
     await prisma.company.create({
       data: {
+        // Dados Básicos
         cnpj: data.cnpj,
         razaoSocial: data.razaoSocial,
         nomeFantasia: data.nomeFantasia,
         emailContato: data.emailContato,
         telefone: data.telefone,
+        website: data.website || null, // Zod pode enviar "", Prisma prefere null
+
+        // Fiscal
+        inscricaoEstadual: data.inscricaoEstadual,
+        inscricaoMunicipal: data.inscricaoMunicipal,
+        regimeTributario: data.regimeTributario,
+
+        // Endereço
+        cep: data.cep,
+        logradouro: data.logradouro,
+        numero: data.numero,
+        complemento: data.complemento,
+        bairro: data.bairro,
+        cidade: data.cidade,
+        estado: data.estado || null,
+
+        // Extras
+        observacoes: data.observacoes,
+
+        // Relação com Contabilidade (Só conecta se tiver ID válido)
+        accountingFirm: data.accountingFirmId
+          ? { connect: { id: data.accountingFirmId } }
+          : undefined,
       },
     });
 
     revalidatePath("/admin/empresas");
     return { success: true as const };
-  } catch (error) {
+  } catch (error: any) {
     return handleActionError(error);
   }
 }
@@ -102,17 +126,38 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput) 
     await prisma.company.update({
       where: { id },
       data: {
+        // Mapeamento IDÊNTICO ao create (copie e cole os campos acima)
         cnpj: data.cnpj,
         razaoSocial: data.razaoSocial,
         nomeFantasia: data.nomeFantasia,
         emailContato: data.emailContato,
         telefone: data.telefone,
+        website: data.website || null,
+
+        inscricaoEstadual: data.inscricaoEstadual,
+        inscricaoMunicipal: data.inscricaoMunicipal,
+        regimeTributario: data.regimeTributario,
+
+        cep: data.cep,
+        logradouro: data.logradouro,
+        numero: data.numero,
+        complemento: data.complemento,
+        bairro: data.bairro,
+        cidade: data.cidade,
+        estado: data.estado || null,
+
+        observacoes: data.observacoes,
+
+        // Lógica para atualizar a contabilidade
+        accountingFirm: data.accountingFirmId
+          ? { connect: { id: data.accountingFirmId } }
+          : { disconnect: true }, // Se o campo vier vazio, desconecta a contabilidade antiga
       },
     });
 
     revalidatePath("/admin/empresas");
     return { success: true as const };
-  } catch (error) {
+  } catch (error: any) {
     return handleActionError(error);
   }
 }

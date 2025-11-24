@@ -24,6 +24,16 @@ enum CompanyStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+  PENDING_DOCS // Sugestão: Pendente de documentação
+}
+
+// Novo Enum para Enquadramento Fiscal
+enum TaxRegime {
+  SIMPLES_NACIONAL
+  SIMPLES_NACIONAL_EXCESSO
+  LUCRO_PRESUMIDO
+  LUCRO_REAL
+  MEI
 }
 
 // ---------------------------------------------------------
@@ -32,21 +42,51 @@ enum CompanyStatus {
 
 model Company {
   id           String        @id @default(cuid())
+  
+  // DADOS PRINCIPAIS
   cnpj         String        @unique
   razaoSocial  String
   nomeFantasia String?
   status       CompanyStatus @default(ACTIVE)
   
+  // DADOS FISCAIS (Novos)
+  inscricaoEstadual  String?  // Crucial para comércio
+  inscricaoMunicipal String?  // Crucial para serviços
+  regimeTributario   TaxRegime? // Enquadramento
+
+  // CONTATO
   emailContato String?
   telefone     String?
+  website      String?      // Novo
 
+  // ENDEREÇO (Novos)
+  cep         String?
+  logradouro  String?
+  numero      String?
+  complemento String?
+  bairro      String?
+  cidade      String?
+  estado      String?       // UF (Ex: SP, MG)
+
+  // RELAÇÃO COM CONTABILIDADE (Auto-relacionamento)
+  // Uma empresa pode ter uma contabilidade vinculada (que também é uma Company no sistema)
+  accountingFirmId String?
+  accountingFirm   Company?  @relation("AccountantClient", fields: [accountingFirmId], references: [id])
+  
+  // Se esta empresa FOR uma contabilidade, ela terá vários clientes:
+  accountingClients Company[] @relation("AccountantClient")
+
+  // EXTRAS
+  observacoes String? @db.Text // Campo de texto longo para notas internas
+
+  // METADADOS
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  // RELAÇÃO N:N
+  // RELAÇÃO N:N COM USUÁRIOS
   users        User[]        @relation("CompanyUsers")
 
-  @@map("company") // Nome da tabela no banco: "company"
+  @@map("company")
 }
 
 model User {
