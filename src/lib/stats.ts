@@ -21,7 +21,6 @@ export interface AdminDashboardStats {
 }
 
 export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
-  // As queries estão corretas com base na nossa última discussão
   const abertosQuery = `(state:"${STATE_NAME.EM_ANALISE}" OR state:"${STATE_NAME.EM_DESENVOLVIMENTO}" OR state:"${STATE_NAME.EM_TESTES}" OR state:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
   const novosQuery = `state:"${STATE_NAME.NOVO}"`;
   const pendentesQuery = `(state:"${STATE_NAME.EM_TESTES}" OR state:"${STATE_NAME.AGUARDANDO_CLIENTE}")`;
