@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, Info } from 'lucide-react';
 import type { SqlScript } from '@/lib/scripts';
-import type { AdminDashboardStats } from '@/lib/stats';
+import type { AdminDashboardStats } from '@/core/application/use-cases/get-admin-dashboard-stats';
 import { StatCard } from '@/components/admin/StatCard';
 import { Clock, HelpCircle, AlertTriangle, Bug } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -34,7 +34,7 @@ export function AdminDashboardClient({ stats, initialScripts }: AdminDashboardCl
   const [category, setCategory] = useState('Todas');
 
   const categories = useMemo(() => ['Todas', ...new Set(initialScripts.map((s) => s.category))], [initialScripts]);
-  const filteredScripts = useMemo(() => initialScripts.filter(script => 
+  const filteredScripts = useMemo(() => initialScripts.filter(script =>
     (category === 'Todas' || script.category === category) &&
     script.title.toLowerCase().includes(searchTerm.toLowerCase())
   ), [initialScripts, searchTerm, category]);
@@ -58,7 +58,7 @@ export function AdminDashboardClient({ stats, initialScripts }: AdminDashboardCl
         <p className="text-muted-foreground">Recursos e ferramentas para a equipe.</p>
       </motion.div>
 
-      <motion.section 
+      <motion.section
         className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
         variants={containerVariants}
         initial="hidden"
@@ -69,8 +69,8 @@ export function AdminDashboardClient({ stats, initialScripts }: AdminDashboardCl
         <StatCard title="Aguardando Cliente" value={stats.aguardandoCliente} icon={<AlertTriangle className="w-5 h-5 text-amber-500" />} />
         <StatCard title="Bugs Críticos" value={stats.bugsCriticos} icon={<Bug className="w-5 h-5 text-red-500" />} />
       </motion.section>
-      
-      <motion.div 
+
+      <motion.div
         className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6"
         variants={containerVariants}
         initial="hidden"
