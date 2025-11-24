@@ -5,7 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { FaBug, FaRocket } from "react-icons/fa";
 import { X } from "lucide-react";
 import { ReleaseCard } from "./ReleaseCard";
-import type { Release } from "@/lib/types";
+import type { Release } from "@/core/domain/entities";
 
 interface MonthlyReleasesClientProps {
   melhorias: Release[];
@@ -76,15 +76,15 @@ export function MonthlyReleasesClient({ melhorias, bugs }: MonthlyReleasesClient
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/50" />
           <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-5xl -translate-x-1/2 -translate-y-1/2 rounded-lg bg-card shadow-lg">
-              <div className="aspect-video">
-                {playingVideoUrl && ( // Renderiza o iframe apenas se a URL existir
-                  <iframe
-                    className="h-full w-full rounded-t-lg"
-                    src={getYouTubeEmbedUrl(playingVideoUrl) || ""}
-                    // ...
-                  ></iframe>
-                )}
-              </div>
+            <div className="aspect-video">
+              {playingVideoUrl && ( // Renderiza o iframe apenas se a URL existir
+                <iframe
+                  className="h-full w-full rounded-t-lg"
+                  src={getYouTubeEmbedUrl(playingVideoUrl) || ""}
+                // ...
+                ></iframe>
+              )}
+            </div>
             <Dialog.Close className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted">
               <X className="h-5 w-5" />
             </Dialog.Close>
