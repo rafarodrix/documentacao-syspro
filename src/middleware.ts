@@ -4,54 +4,65 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ---------------------------------------------------------
-  // 1. ROTAS PÚBLICAS (EXCEÇÕES DE SEGURANÇA)
+  // 1. DEFINIÇÃO DE ROTAS
   // ---------------------------------------------------------
-  
-  // Lista de padrões que o middleware deve ignorar para todos os usuários
-  const PUBLIC_PATHS = [
-    // Rotas da Aplicação que são Públicas
-    "/",        // Landing Page
-    "/docs",    // Home da Documentação (Acesso permitido)
-    "/login",   // Página de Login (Acesso sempre permitido)
-    
-    // Rotas de Infraestrutura
-    "/api/auth",   // Rotas da API do Better Auth
-    "/_next",      // Arquivos de sistema do Next.js
-    "/static",     // Pasta /public/static
+
+  // Rotas que não precisam de autenticação
+  const publicRoutes = [
+    "/",
+    "/login",
+    "/docs",     // Toda a documentação
+    "/releases", // Notas de versão
+    "/suporte"   // Se houver uma landing page de suporte pública
   ];
 
-  const isPublicRoute = PUBLIC_PATHS.some(path => 
-    pathname === path || pathname.startsWith(path + "/")
+  // Verifica se a rota atual começa com algum dos caminhos públicos
+  const isPublicRoute = publicRoutes.some((route) =>
+    pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  // Exclui arquivos estáticos (.ico, .png, etc.)
-  if (isPublicRoute || pathname.includes(".")) {
-    return NextResponse.next();
-  }
+  // ---------------------------------------------------------
+  // 2. VERIFICAÇÃO DE SESSÃO
+  // ---------------------------------------------------------
+
+  // Tenta obter o token. Em produção (HTTPS), ele pode ter o prefixo __Secure-
+  const sessionToken =
+    request.cookies.get("better-auth.session_token") ||
+    request.cookies.get("__Secure-better-auth.session_token");
+
+  const isAuthenticated = !!sessionToken;
 
   // ---------------------------------------------------------
-  // 2. VERIFICAÇÃO DE SESSÃO (Para todas as rotas restantes)
+  // 3. LÓGICA DE REDIRECIONAMENTO
   // ---------------------------------------------------------
-  
-  // Checa a presença do cookie gerado pelo Better Auth.
-  const sessionToken = request.cookies.get("better-auth.session_token");
 
-  if (!sessionToken) {
-    // Se não houver token, redireciona para Login
+  // CASO A: Usuário tenta acessar rota protegida SEM estar logado
+  if (!isPublicRoute && !isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    
-    // Garante que o usuário volte para onde estava
-    url.searchParams.set("callbackUrl", pathname); 
-    
+    url.searchParams.set("callbackUrl", pathname); // Salva onde ele queria ir
     return NextResponse.redirect(url);
   }
 
-  // Se houver token, permite a passagem para a rota protegida
+  // CASO B: Usuário JÁ LOGADO tenta acessar a página de login
+  // (Melhoria de UX: joga ele direto pro painel)
+  if (pathname === "/login" && isAuthenticated) {
+    const url = request.nextUrl.clone();
+    // Redireciona para a home do admin ou dashboard
+    url.pathname = "/admin/empresas";
+    return NextResponse.redirect(url);
+  }
+
+  // Permite a navegação normal
   return NextResponse.next();
 }
 
 export const config = {
-  // O matcher é o mesmo, garantindo que pegamos todas as rotas que não são arquivos de sistema
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Matcher: Executa em tudo, EXCETO:
+  // - /api/auth (rotas internas do better auth)
+  // - /_next (arquivos de build do next)
+  // - /static, /favicon.ico, imagens, etc.
+  matcher: [
+    "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
