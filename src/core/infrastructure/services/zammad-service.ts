@@ -1,9 +1,12 @@
-import { Ticket, TicketStatus, TicketPriority } from "@/core/domain/entities";
+import { Ticket, TicketPriority, TicketStatus } from "@/core/domain/entities/ticket";
+import { ZammadTicketAPISchema } from "@/core/validation/zammad-schema";
 
 const ZAMMAD_URL = process.env.ZAMMAD_URL;
 const ZAMMAD_TOKEN = process.env.ZAMMAD_TOKEN;
 
-// --- CONSTANTES DE ESTADO ---
+// ---------------------------
+// Estado Zammad → domínio
+// ---------------------------
 const STATE_NAMES = {
     NOVO: "1. Novo",
     EM_ANALISE: "2. Em Analise",
@@ -14,117 +17,100 @@ const STATE_NAMES = {
     MERGED: "merged"
 };
 
-// --- HELPERS DE MAPEAMENTO ---
-
-/**
- * Mapeia o nome técnico do estado no Zammad para um status amigável (TicketStatus).
- */
-function mapStatus(zammadState: string): TicketStatus {
-    const state = zammadState.trim();
-
-    switch (state) {
+function mapStatus(stateName: string): TicketStatus {
+    switch (stateName.trim()) {
         case STATE_NAMES.NOVO:
-            return 'Aberto';
-
+            return "Aberto";
         case STATE_NAMES.EM_ANALISE:
         case STATE_NAMES.EM_DESENVOLVIMENTO:
-            return 'Em Análise';
-
+            return "Em Análise";
         case STATE_NAMES.EM_TESTES:
         case STATE_NAMES.AGUARDANDO_CLIENTE:
-            return 'Pendente';
-
-        case 'closed':
-        case 'merged':
-        case '4':
-            return 'Resolvido';
-
+            return "Pendente";
+        case STATE_NAMES.FECHADO:
+        case STATE_NAMES.MERGED:
+        case "4":
+            return "Resolvido";
         default:
-            return 'Em Análise';
+            return "Em Análise";
     }
 }
 
-/**
- * Mapeia a prioridade.
- */
-function mapPriority(priorityId: number, priorityName: string): TicketPriority {
-    if (priorityId === 3) return 'Alta';
+function mapPriority(priorityId: number, name: string): TicketPriority {
+    const lower = name.toLowerCase();
 
-    const name = priorityName.toLowerCase();
-    if (name.includes('high') || name.includes('alta')) return 'Alta';
-    if (name.includes('low') || name.includes('baixa')) return 'Baixa';
+    if (priorityId === 3) return "Alta";
+    if (lower.includes("high") || lower.includes("alta")) return "Alta";
+    if (lower.includes("low") || lower.includes("baixa")) return "Baixa";
 
-    return 'Média';
+    return "Média";
 }
 
 export const zammadService = {
-    /**
-     * Busca tickets de um cliente específico pelo E-MAIL.
-     */
+    // ---------------------------------------------------------------------
+    // Buscar tickets do usuário por EMAIL
+    // ---------------------------------------------------------------------
     async getUserTickets(userEmail: string): Promise<Ticket[]> {
-        if (!ZAMMAD_URL || !ZAMMAD_TOKEN) {
-            console.error("Zammad credentials not found.");
-            return [];
-        }
+        if (!ZAMMAD_URL || !ZAMMAD_TOKEN) return [];
 
         try {
-            const query = `query=customer.email:${userEmail}&limit=10&sort_by=updated_at&order_by=desc`;
+            const query = `query=customer.email:${userEmail}&limit=10&sort_by=updated_at&order_by=desc&expand=true`;
 
-            const response = await fetch(`${ZAMMAD_URL}/api/v1/tickets/search?${query}`, {
-                headers: {
-                    "Authorization": `Bearer ${ZAMMAD_TOKEN}`,
-                    "Content-Type": "application/json",
-                },
+            const res = await fetch(`${ZAMMAD_URL}/api/v1/tickets/search?${query}`, {
+                headers: { Authorization: `Bearer ${ZAMMAD_TOKEN}` },
                 next: { revalidate: 30 }
             });
 
-            if (!response.ok) {
-                throw new Error(`Zammad API Error: ${response.statusText}`);
-            }
+            if (!res.ok) throw new Error(`Zammad error: ${res.statusText}`);
 
-            const data = await response.json();
+            const data = await res.json();
 
-            const tickets = data.assets?.Ticket ? Object.values(data.assets.Ticket) : [];
+            const rawTickets = data.assets?.Ticket ? Object.values(data.assets.Ticket) : [];
             const stateMap = data.assets?.TicketState || {};
             const priorityMap = data.assets?.TicketPriority || {};
 
-            // Mapeamento para a entidade Ticket
-            const formattedTickets: Ticket[] = (tickets as any[]).map((t) => {
-                const stateName = stateMap[t.state_id]?.name || t.state || '';
-                const priorityName = priorityMap[t.priority_id]?.name || '';
+            return (rawTickets as any[]).map((raw) => {
+                const parsed = ZammadTicketAPISchema.parse(raw);
+
+                const stateName = stateMap[parsed.state_id]?.name || "";
+                const priorityName = priorityMap[parsed.priority_id]?.name || "";
 
                 return {
-                    id: String(t.number), // Garante que ID seja string
-                    number: String(t.number), // Adicionado campo 'number' para compatibilidade
-                    subject: t.title,
+                    id: String(parsed.number),
+                    number: String(parsed.number),
+                    subject: parsed.title,
                     status: mapStatus(stateName),
-                    priority: mapPriority(t.priority_id, priorityName),
-                    date: new Date(t.updated_at).toLocaleDateString('pt-BR', {
-                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                    priority: mapPriority(parsed.priority_id, priorityName),
+                    date: new Date(parsed.updated_at).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit"
                     }),
-                    lastUpdate: new Date(t.updated_at).toISOString() // Adicionado campo lastUpdate
+                    lastUpdate: new Date(parsed.updated_at).toISOString()
                 };
             });
-
-            return formattedTickets;
-
-        } catch (error) {
-            console.error("Erro ao buscar tickets no Zammad:", error);
+        } catch (err) {
+            console.error("Erro ao buscar tickets:", err);
             return [];
         }
     },
 
+    // ---------------------------------------------------------------------
+    // Contagem de tickets
+    // ---------------------------------------------------------------------
     async getTicketCount(query: string): Promise<number> {
         if (!ZAMMAD_URL || !ZAMMAD_TOKEN) return 0;
 
         try {
-            const response = await fetch(`${ZAMMAD_URL}/api/v1/tickets/search?query=${encodeURIComponent(query)}&limit=1`, {
-                headers: { "Authorization": `Bearer ${ZAMMAD_TOKEN}` },
-                next: { revalidate: 60 }
-            });
-            const data = await response.json();
-            return data.tickets_count || 0;
-        } catch (e) {
+            const res = await fetch(
+                `${ZAMMAD_URL}/api/v1/tickets/search?query=${encodeURIComponent(query)}&limit=1`,
+                { headers: { Authorization: `Bearer ${ZAMMAD_TOKEN}` } }
+            );
+
+            const total = res.headers.get("X-Total-Count");
+            return total ? parseInt(total, 10) : 0;
+        } catch {
             return 0;
         }
     }

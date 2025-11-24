@@ -1,10 +1,10 @@
 // --- Imports  ---
 import Link from 'next/link';
 import { BookOpen, HelpCircle, GraduationCap, Rocket, MessagesSquare, Phone, Mail, Wrench, Sparkles, Bug, Calendar } from 'lucide-react';
-import { getReleases } from '@/lib/releases'; 
+import { getReleases } from '@/core/application/use-cases/get-releases';
 import { formatRecency } from '@/lib/date';
 import { groupReleasesByMonth, type MonthSummary } from '@/lib/releases-helpers';
-import type { Release } from '@/lib/types'; 
+import type { Release } from '@/lib/types';
 
 // --- Dados para os cards de navegação ---
 const navLinks = [
@@ -28,7 +28,7 @@ const navLinks = [
   },
   {
     title: 'Central de Suporte',
-    description:   "Precisa de ajuda? Contate nossa equipe especializada.",
+    description: "Precisa de ajuda? Contate nossa equipe especializada.",
     href: '/docs/suporte',
     icon: <Wrench className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors duration-200" />,
   },
@@ -46,7 +46,7 @@ export default async function HomePage() {
 
   return (
     <main className="flex-1 flex flex-col items-center p-6 md:p-12 text-center">
-      
+
       {/* Seção do Título */}
       <section className="max-w-3xl mb-16">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
@@ -71,70 +71,70 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-      
+
       {/* Seção Dinâmica de Novidades de Versão */}
       <section className="w-full max-w-5xl mb-20">
         <div className="border rounded-xl p-6 md:p-8 bg-gradient-to-tr from-card to-secondary/30 flex flex-col items-start gap-6">
           <div className="text-left flex-grow w-full">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                    <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-3">
-                        {latestUpdateText}
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2 text-foreground">
-                        Sempre Evoluindo para Você
-                    </h2>
+              <div>
+                <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-3">
+                  {latestUpdateText}
                 </div>
-                <div className="flex-shrink-0 w-full md:w-auto">
-                    <Link href="/docs/suporte/releasenotes" className="no-underline">
-                        <button className="group w-full md:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-md hover:bg-primary/90 transition-all duration-200 ease-in-out shadow-md hover:scale-105 hover:shadow-lg">
-                            <Rocket className="w-5 h-5 transition-transform duration-200 ease-in-out group-hover:translate-x-1" />
-                            Ver Todas as Atualizações
-                        </button>
-                    </Link>
-                </div>
+                <h2 className="text-2xl font-bold mb-2 text-foreground">
+                  Sempre Evoluindo para Você
+                </h2>
+              </div>
+              <div className="flex-shrink-0 w-full md:w-auto">
+                <Link href="/docs/suporte/releasenotes" className="no-underline">
+                  <button className="group w-full md:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-md hover:bg-primary/90 transition-all duration-200 ease-in-out shadow-md hover:scale-105 hover:shadow-lg">
+                    <Rocket className="w-5 h-5 transition-transform duration-200 ease-in-out group-hover:translate-x-1" />
+                    Ver Todas as Atualizações
+                  </button>
+                </Link>
+              </div>
             </div>
-            
+
             <p className="text-muted-foreground text-sm max-w-2xl mt-2">
               Confira um resumo das implementações e correções dos últimos meses.
             </p>
 
             {latestMonthsSnippet.length > 0 && (
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-6">
-                    {latestMonthsSnippet.map((summary, index) => (
-                        <Link 
-                            key={`${summary.year}-${summary.month}`}
-                            href={`/docs/suporte/release/${summary.year}/${summary.month}`}
-                            className="no-underline group block"
-                        >
-                            <div className="h-full p-4 border bg-background/50 rounded-lg transition-all duration-200 ease-in-out hover:shadow-md hover:-translate-y-1 hover:border-primary">
-                                <div className="flex items-center justify-between mb-2">
-                                    <p className="font-semibold text-foreground flex items-center gap-2">
-                                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                                        {summary.monthName}
-                                    </p>
-                                    {index === 0 && (
-                                        <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">
-                                            Mais Recente
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-xs text-left text-muted-foreground mb-3">{summary.year}</p>
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-6">
+                {latestMonthsSnippet.map((summary, index) => (
+                  <Link
+                    key={`${summary.year}-${summary.month}`}
+                    href={`/docs/suporte/release/${summary.year}/${summary.month}`}
+                    className="no-underline group block"
+                  >
+                    <div className="h-full p-4 border bg-background/50 rounded-lg transition-all duration-200 ease-in-out hover:shadow-md hover:-translate-y-1 hover:border-primary">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-semibold text-foreground flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          {summary.monthName}
+                        </p>
+                        {index === 0 && (
+                          <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">
+                            Mais Recente
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-left text-muted-foreground mb-3">{summary.year}</p>
 
-                                <div className="border-t pt-3 space-y-2 text-sm">
-                                    <div className="flex items-center justify-between text-muted-foreground">
-                                        <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-green-500" /> Melhorias</span>
-                                        <span className="font-medium text-foreground">{summary.melhorias}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-muted-foreground">
-                                        <span className="flex items-center gap-1.5"><Bug className="w-4 h-4 text-amber-500" /> Bugs Corrigidos</span>
-                                        <span className="font-medium text-foreground">{summary.bugs}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
+                      <div className="border-t pt-3 space-y-2 text-sm">
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-green-500" /> Melhorias</span>
+                          <span className="font-medium text-foreground">{summary.melhorias}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span className="flex items-center gap-1.5"><Bug className="w-4 h-4 text-amber-500" /> Bugs Corrigidos</span>
+                          <span className="font-medium text-foreground">{summary.bugs}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -147,9 +147,9 @@ export default async function HomePage() {
           Se não encontrou o que procurava, nossa equipe de suporte está pronta para ajudar.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-            <a href="https://wa.me/5534997713731" target="_blank" rel="noopener noreferrer" className="no-underline group block h-full"><div className="border bg-card rounded-lg p-4 h-full transition-colors group-hover:border-primary"><div className="flex items-center gap-3 mb-2"><MessagesSquare className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" /><h3 className="font-semibold text-foreground">WhatsApp</h3></div><p className="text-sm text-muted-foreground mb-2">Ideal para dúvidas rápidas e suporte ágil.</p><p className="text-sm font-medium text-foreground">(34) 99771-3731</p></div></a>
-            <a href="tel:+5534997713731" className="no-underline group block h-full"><div className="border bg-card rounded-lg p-4 h-full transition-colors group-hover:border-primary"><div className="flex items-center gap-3 mb-2"><Phone className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" /><h3 className="font-semibold text-foreground">Telefone</h3></div><p className="text-sm text-muted-foreground mb-2">Para emergências e suporte por voz.</p><p className="text-sm font-medium text-foreground">(34) 99771-3731</p></div></a>
-            <a href="mailto:equipe@trilinksoftware.com.br" className="no-underline group block h-full"><div className="border bg-card rounded-lg p-4 h-full transition-colors group-hover:border-primary"><div className="flex items-center gap-3 mb-2"><Mail className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" /><h3 className="font-semibold text-foreground">E-mail</h3></div><p className="text-sm text-muted-foreground mb-2">Para solicitações detalhadas.</p><p className="text-sm font-medium text-foreground break-all">equipe@trilinksoftware.com.br</p></div></a>
+          <a href="https://wa.me/5534997713731" target="_blank" rel="noopener noreferrer" className="no-underline group block h-full"><div className="border bg-card rounded-lg p-4 h-full transition-colors group-hover:border-primary"><div className="flex items-center gap-3 mb-2"><MessagesSquare className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" /><h3 className="font-semibold text-foreground">WhatsApp</h3></div><p className="text-sm text-muted-foreground mb-2">Ideal para dúvidas rápidas e suporte ágil.</p><p className="text-sm font-medium text-foreground">(34) 99771-3731</p></div></a>
+          <a href="tel:+5534997713731" className="no-underline group block h-full"><div className="border bg-card rounded-lg p-4 h-full transition-colors group-hover:border-primary"><div className="flex items-center gap-3 mb-2"><Phone className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" /><h3 className="font-semibold text-foreground">Telefone</h3></div><p className="text-sm text-muted-foreground mb-2">Para emergências e suporte por voz.</p><p className="text-sm font-medium text-foreground">(34) 99771-3731</p></div></a>
+          <a href="mailto:equipe@trilinksoftware.com.br" className="no-underline group block h-full"><div className="border bg-card rounded-lg p-4 h-full transition-colors group-hover:border-primary"><div className="flex items-center gap-3 mb-2"><Mail className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" /><h3 className="font-semibold text-foreground">E-mail</h3></div><p className="text-sm text-muted-foreground mb-2">Para solicitações detalhadas.</p><p className="text-sm font-medium text-foreground break-all">equipe@trilinksoftware.com.br</p></div></a>
         </div>
       </section>
     </main>

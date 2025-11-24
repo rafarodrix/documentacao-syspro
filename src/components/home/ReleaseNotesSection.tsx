@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Rocket, Sparkles, Bug, Calendar } from 'lucide-react';
-import { getReleases } from '@/lib/releases';
+import { getReleases } from '@/core/application/use-cases/get-releases';
 import { formatRecency } from '@/lib/date';
 import { groupReleasesByMonth } from '@/lib/releases-helpers';
 import type { Release } from '@/lib/types';

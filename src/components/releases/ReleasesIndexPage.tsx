@@ -2,7 +2,7 @@ import { Heading } from "fumadocs-ui/components/heading";
 import { Card } from "fumadocs-ui/components/card";
 import Link from "next/link";
 import { Calendar, Bug, Rocket } from "lucide-react";
-import { getReleases } from "@/lib/releases";
+import { getReleases } from '@/core/application/use-cases/get-releases';
 
 export async function ReleasesIndexPage() {
   const releases = await getReleases();
@@ -20,7 +20,7 @@ export async function ReleasesIndexPage() {
   const monthsByYear = Object.entries(
     releases.reduce((acc, release) => {
       if (!release.isoDate || !release.type) return acc; // Segurança extra
-      
+
       const [year, month] = release.isoDate.split("-");
       if (!acc[year]) acc[year] = {};
       if (!acc[year][month]) acc[year][month] = { bugs: 0, melhorias: 0 };
@@ -29,7 +29,7 @@ export async function ReleasesIndexPage() {
       } else if (release.type.toLowerCase() === "melhoria") {
         acc[year][month].melhorias++;
       }
-      
+
       return acc;
     }, {} as Record<string, Record<string, { bugs: number; melhorias: number }>>)
   )
