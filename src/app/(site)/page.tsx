@@ -22,7 +22,7 @@ export default function LandingPage() {
   const month = String(now.getMonth() + 1).padStart(2, "0");
 
   const currentVersion = `v${year}.${month}`;
-  const releaseLink = `/docs/suporte/releases/${year}/${month}`;
+  const releaseLink = `/docs/suporte/release/${year}/${month}`;
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden transition-colors duration-300">

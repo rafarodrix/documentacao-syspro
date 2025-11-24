@@ -1,53 +1,52 @@
 import { getProtectedSession } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma"; // Importar o Prisma
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
-  Ticket,
-  PlusCircle,
-  BookOpen,
-  Clock,
-  CheckCircle2,
-  Search
+  Ticket, PlusCircle, BookOpen, Clock, CheckCircle2, Search, Building2
 } from "lucide-react";
 import Link from "next/link";
 
-// Dados Mockados (Simulando chamados reais por enquanto)
+// Dados Mockados (Mantidos por enquanto, até integrarmos o Zammad)
 const recentTickets = [
   { id: "TK-9823", subject: "Erro na emissão de NF-e (Rejeição 203)", status: "Aberto", date: "Hoje, 10:23", priority: "Alta" },
   { id: "TK-9821", subject: "Dúvida sobre cadastro de produto", status: "Em Análise", date: "Ontem, 16:40", priority: "Média" },
   { id: "TK-9755", subject: "Configuração de impressora térmica", status: "Resolvido", date: "22/11/2025", priority: "Baixa" },
-  { id: "TK-9740", subject: "Acesso ao módulo financeiro", status: "Resolvido", date: "20/11/2025", priority: "Alta" },
 ];
 
 export default async function ClientDashboardPage() {
   const session = await getProtectedSession();
-  const userName = session?.email.split('@')[0] || "Cliente"; // Pega o nome do email provisoriamente
+
+  if (!session) return null; // Segurança extra
+
+  // 1. Busca dados detalhados do usuário no banco
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    include: {
+      companies: true // Traz as empresas vinculadas
+    }
+  });
+
+  const userName = user?.name || session.email.split('@')[0];
+  const userCompany = user?.companies[0]?.razaoSocial || "Sem Empresa Vinculada";
 
   return (
     <div className="space-y-8">
 
-      {/* 1. Seção de Boas-vindas e Ação Principal */}
+      {/* 1. Seção de Boas-vindas */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Olá, {userName}</h1>
-          <p className="text-muted-foreground">
-            Aqui está o resumo da sua operação e suporte.
-          </p>
+          <div className="flex items-center gap-2 text-muted-foreground mt-1">
+            <Building2 className="h-4 w-4" />
+            <span>{userCompany}</span>
+          </div>
         </div>
         <div className="flex gap-3">
           <Link href="/docs">
@@ -63,9 +62,10 @@ export default async function ClientDashboardPage() {
         </div>
       </div>
 
-      {/* 2. Cards de Status Rápido */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* ... (O resto dos cards e tabela permanece igual por enquanto) ... */}
+      {/* Apenas copie o resto do seu JSX original abaixo desta linha */}
 
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Chamados Abertos</CardTitle>
@@ -76,7 +76,6 @@ export default async function ClientDashboardPage() {
             <p className="text-xs text-muted-foreground">Aguardando resposta</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tempo Médio</CardTitle>
@@ -87,7 +86,6 @@ export default async function ClientDashboardPage() {
             <p className="text-xs text-muted-foreground">Para primeira resposta</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Resolvidos (Mês)</CardTitle>
@@ -100,7 +98,6 @@ export default async function ClientDashboardPage() {
         </Card>
       </div>
 
-      {/* 3. Atalhos de Autoatendimento */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link href="/docs/manual" className="group">
           <Card className="h-full transition-all hover:border-primary/50 hover:shadow-sm">
@@ -112,10 +109,8 @@ export default async function ClientDashboardPage() {
             </CardHeader>
           </Card>
         </Link>
-        {/* Você pode adicionar mais cards de atalho aqui (Ferramentas, Financeiro, etc) */}
       </div>
 
-      {/* 4. Tabela de Chamados Recentes */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Chamados Recentes</h2>
         <div className="rounded-md border bg-card">
