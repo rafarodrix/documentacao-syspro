@@ -7,14 +7,14 @@ import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Terminal, ArrowLeft } from 'lucide-react'; // Ícones
-import { toast } from "sonner"; // Assumindo que você usa sonner para feedback
+import { Loader2, ArrowLeft, ShieldCheck, Zap, Terminal } from 'lucide-react';
+import { toast } from "sonner";
 
 export function LoginClientPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const router = useRouter();
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get('callbackUrl') || '/docs';
@@ -24,54 +24,61 @@ export function LoginClientPage() {
         setIsLoading(true);
 
         try {
-            await authClient.signIn.email({ 
-                email, 
+            await authClient.signIn.email({
+                email,
                 password,
-                callbackURL: callbackUrl // Passa o callback para o Better Auth
+                callbackURL: callbackUrl
             }, {
                 onSuccess: () => {
-                    toast.success("Login realizado com sucesso!");
+                    toast.success("Bem-vindo de volta!");
                     router.push(callbackUrl);
                 },
                 onError: (ctx) => {
-                    toast.error(ctx.error.message || "Credenciais inválidas.");
-                    setIsLoading(false); // Para o loading apenas no erro
+                    toast.error(ctx.error.message || "E-mail ou senha incorretos.");
+                    setIsLoading(false);
                 }
             });
         } catch (err) {
             console.error(err);
-            toast.error("Ocorreu um erro inesperado.");
+            toast.error("Erro de conexão. Tente novamente.");
             setIsLoading(false);
         }
     };
 
     return (
-        // Container Principal: Grid de 2 Colunas em telas grandes (lg)
-        <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-            
-            {/* --- COLUNA DA ESQUERDA (Formulário) --- */}
-            <div className="flex items-center justify-center py-12">
-                <div className="mx-auto w-full max-w-[350px] space-y-6">
-                    
-                    {/* Link de Voltar */}
-                    <Link 
-                        href="/" 
-                        className="absolute left-4 top-4 md:left-8 md:top-8 inline-flex items-center justify-center rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-                    >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Voltar
-                    </Link>
+        <div className="w-full min-h-screen grid lg:grid-cols-2">
 
+            {/* --- COLUNA 1: Formulário (Esquerda) --- */}
+            <div className="flex items-center justify-center py-12 px-4 sm:px-8 relative bg-background">
+
+                {/* Botão Voltar Flutuante */}
+                <Link
+                    href="/"
+                    className="absolute left-4 top-4 md:left-8 md:top-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors group"
+                >
+                    <div className="p-2 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
+                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                    </div>
+                    Voltar para Home
+                </Link>
+
+                <div className="mx-auto w-full max-w-[400px] space-y-8">
+
+                    {/* Cabeçalho do Form */}
                     <div className="flex flex-col space-y-2 text-center">
+                        <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Terminal className="h-6 w-6 text-primary" />
+                        </div>
                         <h1 className="text-3xl font-bold tracking-tight">Bem-vindo de volta</h1>
                         <p className="text-sm text-muted-foreground">
-                            Entre com seu e-mail corporativo para acessar o portal.
+                            Acesse o Portal Trilink para gerenciar sua operação.
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">E-mail</Label>
+                    {/* Formulário */}
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="space-y-2">
+                            <Label htmlFor="email">E-mail Corporativo</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -80,14 +87,16 @@ export function LoginClientPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={isLoading}
+                                className="h-11"
                             />
                         </div>
-                        <div className="grid gap-2">
+
+                        <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="password">Senha</Label>
                                 <Link
                                     href="/forgot-password"
-                                    className="text-xs text-primary hover:underline"
+                                    className="text-xs font-medium text-primary hover:underline underline-offset-2"
                                 >
                                     Esqueceu a senha?
                                 </Link>
@@ -99,50 +108,87 @@ export function LoginClientPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 disabled={isLoading}
+                                className="h-11"
                             />
                         </div>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Acessar Portal
+
+                        <Button type="submit" className="w-full h-11 text-base font-semibold shadow-lg shadow-primary/20" disabled={isLoading}>
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Autenticando...
+                                </>
+                            ) : (
+                                "Acessar Portal"
+                            )}
                         </Button>
                     </form>
 
-                    <div className="text-center text-sm text-muted-foreground">
-                        Não tem acesso?{" "}
-                        <Link href="/suporte" className="underline underline-offset-4 hover:text-primary">
-                            Fale com o suporte
+                    {/* Rodapé do Form */}
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                                Precisa de ajuda?
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="text-center text-sm">
+                        Não tem credenciais de acesso?{" "}
+                        <Link href="https://wa.me/5534997713731?text=Gostaria%20de%20falar%20com%20o%20Suporte" className="font-medium text-primary hover:underline underline-offset-4">
+                            Fale com o suporte &rarr;
                         </Link>
                     </div>
                 </div>
             </div>
 
-            {/* --- COLUNA DA DIREITA (Branding / Visual) --- */}
-            {/* Oculta em mobile, visível em telas grandes (lg:block) */}
-            <div className="hidden bg-muted lg:block relative">
-                {/* Imagem de Fundo ou Padrão */}
-                <div className="absolute inset-0 bg-zinc-900" />
-                
-                {/* Conteúdo Sobreposto */}
-                <div className="relative z-20 flex h-full flex-col justify-between p-10 text-white">
-                    {/* Logo */}
-                    <div className="flex items-center gap-2 font-bold text-lg">
-                        <Terminal className="h-6 w-6" />
-                        Trilink Software
-                    </div>
+            {/* --- COLUNA 2: Branding (Direita) --- */}
+            <div className="hidden lg:flex relative flex-col justify-between p-12 text-white overflow-hidden bg-zinc-900">
 
-                    {/* Depoimento ou Mensagem de Marketing */}
-                    <div className="space-y-2">
-                        <blockquote className="space-y-2">
-                            <p className="text-lg">
-                                &ldquo;A centralização da documentação e das ferramentas fiscais reduziu nosso tempo de suporte em 40%. Essencial para a operação.&rdquo;
-                            </p>
-                            <footer className="text-sm font-medium text-zinc-400">
-                                Equipe de Operações Syspro
-                            </footer>
-                        </blockquote>
+                {/* Background Dinâmico */}
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-zinc-900 to-zinc-950"></div>
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+                </div>
+
+                {/* Logo da Empresa */}
+                <div className="relative z-10 flex items-center gap-2 text-lg font-medium">
+                    <div className="h-8 w-8 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center border border-white/10">
+                        <Terminal className="h-5 w-5" />
+                    </div>
+                    Trilink Software
+                </div>
+
+                {/* Conteúdo Central */}
+                <div className="relative z-10 max-w-md">
+                    <h2 className="text-3xl font-bold mb-6 leading-tight">
+                        A inteligência que o seu <span className="text-primary">Syspro ERP</span> precisava.
+                    </h2>
+                    <div className="space-y-4 text-zinc-300">
+                        <div className="flex items-start gap-3">
+                            <ShieldCheck className="h-5 w-5 text-primary mt-0.5" />
+                            <p className="text-sm">Acesso seguro e criptografado à documentação confidencial.</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Zap className="h-5 w-5 text-primary mt-0.5" />
+                            <p className="text-sm">Ferramentas de alta performance para sua equipe fiscal.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Rodapé da Coluna */}
+                <div className="relative z-10 flex items-center justify-between text-sm text-zinc-400">
+                    <p>© {new Date().getFullYear()} Trilink Software</p>
+                    <div className="flex gap-4">
+                        <Link href="/privacidade" className="hover:text-white transition-colors">Privacidade</Link>
+                        <Link href="/termos" className="hover:text-white transition-colors">Termos</Link>
                     </div>
                 </div>
             </div>
+
         </div>
     );
 }
