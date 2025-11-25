@@ -20,7 +20,7 @@ export default async function LandingPage() {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const currentVersion = `v${year}.${month}`;
-  const releaseLink = `/docs/suporte/releasenotes/${year}/${month}`;
+  const releaseLink = `/docs/suporte/release/${year}/${month}`;
 
   const allReleases: Release[] = await getReleases();
   const monthlySummaries = groupReleasesByMonth(allReleases).slice(0, 3);
@@ -257,7 +257,7 @@ function ReleaseAnalytics({ summaries, releaseLink }: any) {
           summaries.map((summary: any) => (
             <Link
               key={`${summary.year}-${summary.month}`}
-              href={`/releases/${summary.year}/${summary.month}`}
+              href={`/docs/suporte/release/${summary.year}/${summary.month}`}
               className="block p-3 rounded-lg border bg-muted/30 hover:bg-muted/60 transition-colors"
             >
               <div className="flex items-center gap-2 font-semibold text-sm mb-1">

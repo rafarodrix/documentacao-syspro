@@ -69,14 +69,14 @@ export function SiteFooter() {
           {/* Coluna 3: Suporte (Links Internos) */}
           <div className="flex flex-col gap-3">
             <h4 className="font-semibold text-sm text-foreground">Suporte & Ajuda</h4>
-            <Link href="/docs" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/docs/manual" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Documentação Oficial
             </Link>
             <Link href="/docs/duvidas" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Dúvidas Frequentes
             </Link>
-            <Link href="/docs/manual" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Manual do Sistema
+            <Link href="/docs/suporte" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Suporte
             </Link>
           </div>
 

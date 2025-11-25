@@ -46,13 +46,13 @@ export function SiteHeader() {
 
         {/* 2. Navegação Desktop */}
         <nav className="hidden md:flex gap-6 text-sm font-medium text-muted-foreground">
-          <Link href="/docs" className="hover:text-primary transition-colors">
+          <Link href="/docs/manual" className="hover:text-primary transition-colors">
             Documentação
           </Link>
-          <Link href="/#features" className="hover:text-primary transition-colors">
-            Recursos
+          <Link href="/docs/duvidas" className="hover:text-primary transition-colors">
+            Dúvidas e Soluções
           </Link>
-          <Link href="/suporte" className="hover:text-primary transition-colors">
+          <Link href="/docs/suporte" className="hover:text-primary transition-colors">
             Suporte
           </Link>
         </nav>
