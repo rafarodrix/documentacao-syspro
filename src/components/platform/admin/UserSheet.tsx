@@ -10,16 +10,18 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
 import {
-    Sheet, SheetContent, SheetHeader, SheetTitle,
-    SheetTrigger, SheetDescription, SheetFooter
-} from "@/components/ui/sheet";
-
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-
 import { PlusCircle, Loader2, Pencil } from "lucide-react";
 
 interface UserSheetProps {
@@ -39,14 +41,7 @@ export function UserSheet({ companies, userToEdit }: UserSheetProps) {
 
     const isEditing = !!userToEdit;
 
-    // Formulário
-    const {
-        register,
-        handleSubmit,
-        setValue,
-        reset,
-        formState: { errors }
-    } = useForm<CreateUserInput>({
+    const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<CreateUserInput>({
         resolver: zodResolver(createUserSchema),
         defaultValues: {
             name: "",
@@ -57,45 +52,52 @@ export function UserSheet({ companies, userToEdit }: UserSheetProps) {
         }
     });
 
-    // Preenche ao abrir em modo de edição
     useEffect(() => {
-        if (open && isEditing && userToEdit) {
-            const companyId = userToEdit.companies[0]?.id || "";
-
+        if (open && userToEdit) {
+            const currentCompanyId = userToEdit.companies[0]?.id || "";
             setValue("name", userToEdit.name || "");
             setValue("email", userToEdit.email);
             setValue("role", userToEdit.role as any);
-            setValue("companyId", companyId);
+            setValue("companyId", currentCompanyId);
             setValue("password", "");
-        }
-
-        if (open && !isEditing) {
+        } else if (open && !userToEdit) {
             reset();
         }
-    }, [open, isEditing, userToEdit, reset, setValue]);
+    }, [open, userToEdit, reset, setValue]);
 
-    // Envio do formulário
     async function onSubmit(data: CreateUserInput) {
         setIsPending(true);
+        let result;
 
-        const result = isEditing && userToEdit
-            ? await updateUserAction(userToEdit.id, data)
-            : await createUserAction(data);
+        try {
+            if (isEditing && userToEdit) {
+                result = await updateUserAction(userToEdit.id, data);
+            } else {
+                result = await createUserAction(data);
+            }
 
-        setIsPending(false);
-
-        if (result.success) {
-            toast.success(isEditing ? "Usuário atualizado!" : "Usuário criado!");
-            setOpen(false);
-            if (!isEditing) reset();
-        } else {
-            toast.error(result.error || "Erro ao salvar");
+            if (result.success) {
+                toast.success(isEditing ? "Usuário atualizado!" : "Usuário criado!");
+                setOpen(false);
+                if (!isEditing) reset();
+            } else {
+                const errorMsg = typeof result.error === 'string' ? result.error : "Erro na operação";
+                toast.error(errorMsg);
+            }
+        } catch (error) {
+            toast.error("Erro inesperado ao salvar.");
+        } finally {
+            setIsPending(false);
         }
     }
 
+    const onError = () => {
+        toast.error("Verifique os campos obrigatórios.");
+    };
+
     return (
-        <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
                 {isEditing ? (
                     <Button variant="ghost" size="sm">
                         <Pencil className="mr-2 h-4 w-4" />
@@ -107,110 +109,103 @@ export function UserSheet({ companies, userToEdit }: UserSheetProps) {
                         Novo Usuário
                     </Button>
                 )}
-            </SheetTrigger>
+            </DialogTrigger>
 
-            <SheetContent>
-                <SheetHeader>
-                    <SheetTitle>{isEditing ? "Editar Usuário" : "Cadastrar Usuário"}</SheetTitle>
-                    <SheetDescription>
-                        {isEditing
-                            ? "Atualize os dados do usuário."
-                            : "Crie um acesso ao sistema."}
-                    </SheetDescription>
-                </SheetHeader>
+            {/* Layout Largo e Responsivo */}
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
+                <DialogHeader>
+                    <DialogTitle>{isEditing ? "Editar Usuário" : "Cadastrar Usuário"}</DialogTitle>
+                    <DialogDescription>
+                        {isEditing ? "Altere os dados de acesso." : "Crie um novo acesso ao sistema."}
+                    </DialogDescription>
+                </DialogHeader>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-6">
-                    {/* NOME */}
-                    <div className="space-y-2">
-                        <Label>Nome Completo</Label>
-                        <Input {...register("name")} placeholder="João Silva" />
-                        {errors.name && (
-                            <span className="text-xs text-red-500">{errors.name.message}</span>
-                        )}
-                    </div>
+                <div className="flex-1 overflow-y-auto pr-2 py-4">
+                    <form id="user-form" onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6">
 
-                    {/* EMAIL */}
-                    <div className="space-y-2">
-                        <Label>E-mail</Label>
-                        <Input
-                            type="email"
-                            {...register("email")}
-                            disabled={isEditing}
-                            placeholder="joao@empresa.com"
-                        />
-                        {errors.email && (
-                            <span className="text-xs text-red-500">{errors.email.message}</span>
-                        )}
-                    </div>
+                        {/* DADOS PESSOAIS */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2 col-span-2">
+                                <Label>Nome Completo</Label>
+                                <Input {...register("name")} placeholder="João Silva" />
+                                {errors.name && <span className="text-xs text-red-500">{errors.name.message}</span>}
+                            </div>
 
-                    {/* SENHA */}
-                    {!isEditing ? (
-                        <div className="space-y-2">
-                            <Label>Senha Inicial</Label>
-                            <Input type="password" {...register("password")} placeholder="********" />
-                            {errors.password && (
-                                <span className="text-xs text-red-500">{errors.password.message}</span>
-                            )}
+                            <div className="space-y-2 col-span-1">
+                                <Label>E-mail</Label>
+                                <Input type="email" {...register("email")} placeholder="joao@empresa.com" disabled={isEditing} />
+                                {errors.email && <span className="text-xs text-red-500">{errors.email.message}</span>}
+                            </div>
+
+                            {/* Campo de Senha */}
+                            <div className="space-y-2 col-span-1">
+                                <Label>Senha {isEditing ? "(Opcional)" : ""}</Label>
+                                <Input
+                                    type="password"
+                                    {...register("password")}
+                                    placeholder={isEditing ? "********" : "Mínimo 8 caracteres"}
+                                // Na edição, desativamos visualmente se quiser, ou deixamos ativo para troca
+                                />
+                                {errors.password && <span className="text-xs text-red-500">{errors.password.message}</span>}
+                            </div>
                         </div>
-                    ) : (
-                        <p className="text-xs text-muted-foreground">
-                            A senha não pode ser alterada aqui.
-                        </p>
-                    )}
 
-                    {/* ROLE */}
-                    <div className="space-y-2">
-                        <Label>Nível de Acesso</Label>
-                        <Select
-                            onValueChange={(val) => setValue("role", val as any)}
-                            defaultValue={userToEdit?.role}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="CLIENTE_USER">Cliente (Usuário)</SelectItem>
-                                <SelectItem value="CLIENTE_ADMIN">Cliente (Gestor)</SelectItem>
-                                <SelectItem value="SUPORTE">Suporte Interno</SelectItem>
-                                <SelectItem value="ADMIN">Administrador</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                        {/* PERMISSÕES */}
+                        <div className="space-y-4 border-t pt-4">
+                            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Permissões</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Nível de Acesso</Label>
+                                    <Select
+                                        onValueChange={(val) => setValue("role", val as any, { shouldValidate: true })}
+                                        defaultValue={userToEdit?.role}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="CLIENTE_USER">Cliente (Usuário)</SelectItem>
+                                            <SelectItem value="CLIENTE_ADMIN">Cliente (Gestor)</SelectItem>
+                                            <SelectItem value="SUPORTE">Suporte Interno</SelectItem>
+                                            <SelectItem value="ADMIN">Administrador</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.role && <span className="text-xs text-red-500">{errors.role.message}</span>}
+                                </div>
 
-                    {/* EMPRESA */}
-                    <div className="space-y-2">
-                        <Label>Empresa Vinculada</Label>
-                        <Select
-                            onValueChange={(val) => setValue("companyId", val)}
-                            defaultValue={userToEdit?.companies[0]?.id}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecione uma empresa..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {companies.map((c) => (
-                                    <SelectItem key={c.id} value={c.id}>
-                                        {c.razaoSocial}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                                <div className="space-y-2">
+                                    <Label>Empresa Vinculada</Label>
+                                    <Select
+                                        onValueChange={(val) => setValue("companyId", val, { shouldValidate: true })}
+                                        defaultValue={userToEdit?.companies[0]?.id}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione uma empresa..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {companies.map((c) => (
+                                                <SelectItem key={c.id} value={c.id}>
+                                                    {c.razaoSocial}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.companyId && <span className="text-xs text-red-500">{errors.companyId.message}</span>}
+                                </div>
+                            </div>
+                        </div>
 
-                    {/* BOTÃO */}
-                    <SheetFooter className="pt-4">
-                        <Button type="submit" disabled={isPending} className="w-full">
-                            {isPending ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : isEditing ? (
-                                "Salvar Alterações"
-                            ) : (
-                                "Criar Usuário"
-                            )}
-                        </Button>
-                    </SheetFooter>
-                </form>
-            </SheetContent>
-        </Sheet>
+                    </form>
+                </div>
+
+                <DialogFooter className="pt-4 border-t">
+                    <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                    <Button type="submit" form="user-form" className="w-full sm:w-auto" disabled={isPending}>
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isEditing ? "Salvar Alterações" : "Criar Usuário")}
+                    </Button>
+                </DialogFooter>
+
+            </DialogContent>
+        </Dialog>
     );
 }

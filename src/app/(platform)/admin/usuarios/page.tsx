@@ -1,12 +1,10 @@
 import { getUsersAction } from "../_actions/user-actions";
 import { getCompaniesAction } from "../_actions/company-actions";
-// Importe o componente UserSheet
 import { UserSheet } from "@/components/platform/admin/UserSheet";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Mail, Shield } from "lucide-react";
 
 export default async function AdminUsuariosPage() {
