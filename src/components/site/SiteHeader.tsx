@@ -2,20 +2,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggle";
-import { Menu, ExternalLink } from "lucide-react"; // Importando ícones úteis
+import { Menu, ExternalLink, ChevronRight } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"; // Assumindo que você tem o componente Sheet do shadcn
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+    // Header Sticky com Glassmorphism aprimorado
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-8">
 
-        {/* 1. Logotipo Dinâmico */}
+        {/* 1. Logotipo */}
         <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-85">
+          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
 
-            {/* LOGO - TEMA CLARO 
-                Exibe quando o sistema está no modo light (classe dark:hidden esconde no escuro)
-            */}
+            {/* LOGO - TEMA CLARO */}
             <div className="relative h-8 w-32 dark:hidden">
               <Image
                 src="/logo/logo-escura.png"
@@ -27,9 +27,7 @@ export function SiteHeader() {
               />
             </div>
 
-            {/* LOGO - TEMA ESCURO 
-                Exibe quando o sistema está no modo dark (classe hidden dark:block exibe no escuro)
-            */}
+            {/* LOGO - TEMA ESCURO */}
             <div className="relative h-8 w-32 hidden dark:block">
               <Image
                 src="/logo/logo-clara.png"
@@ -43,42 +41,64 @@ export function SiteHeader() {
           </Link>
         </div>
 
-        {/* 2. Navegação Desktop (Centralizada e Elegante) */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+        {/* 2. Navegação Desktop (Magic UI Style) */}
+        <nav className="hidden md:flex items-center gap-1">
           <NavLink href="/docs/manual">Documentação</NavLink>
           <NavLink href="/docs/duvidas">Dúvidas Frequentes</NavLink>
           <NavLink href="/docs/suporte">Suporte</NavLink>
 
-          {/* Link Externo Opcional (Ex: Site Institucional) */}
+          {/* Separator visual sutil */}
+          <div className="h-4 w-px bg-border/50 mx-2" />
+
           <Link
             href="https://trilink.com.br"
             target="_blank"
-            className="flex items-center gap-1 text-muted-foreground transition-colors hover:text-primary"
+            className="group inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            Institucional <ExternalLink className="h-3 w-3" />
+            Institucional
+            <ExternalLink className="h-3 w-3 opacity-50 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           </Link>
         </nav>
 
-        {/* 3. Ações e Menu Mobile */}
-        <div className="flex items-center gap-4">
+        {/* 3. Ações e Mobile */}
+        <div className="flex items-center gap-2 md:gap-4">
 
-          {/* Toggle de Tema */}
           <ModeToggle />
 
-          {/* Botão de Login (Desktop) */}
           <div className="hidden md:block">
             <Link href="/login">
-              <Button size="sm" className="px-5 font-semibold shadow-sm">
+              <Button size="sm" className="font-semibold shadow-sm hover:shadow-md transition-all">
                 Entrar
+                <ChevronRight className="ml-1 h-3 w-3 opacity-50" />
               </Button>
             </Link>
           </div>
 
-          {/* Menu Mobile (Hambúrguer) - Visível apenas em telas pequenas */}
-          <Button variant="ghost" size="icon" className="md:hidden text-muted-foreground">
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Menu</span>
-          </Button>
+          {/* Menu Mobile (Sheet) */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <div className="flex flex-col gap-6 mt-6">
+                <Link href="/" className="font-bold text-lg">Trilink Software</Link>
+                <div className="flex flex-col gap-2">
+                  <MobileNavLink href="/docs/manual">Documentação</MobileNavLink>
+                  <MobileNavLink href="/docs/duvidas">Dúvidas Frequentes</MobileNavLink>
+                  <MobileNavLink href="/docs/suporte">Suporte</MobileNavLink>
+                  <MobileNavLink href="https://trilink.com.br" external>Institucional</MobileNavLink>
+                </div>
+                <div className="mt-auto border-t pt-6">
+                  <Link href="/login">
+                    <Button className="w-full">Acessar Portal</Button>
+                  </Link>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
 
         </div>
 
@@ -88,18 +108,31 @@ export function SiteHeader() {
 }
 
 /* =======================================================
-   COMPONENTE AUXILIAR: LINK DE NAVEGAÇÃO
-   Padroniza o estilo e hover dos links do menu
+   COMPONENTES AUXILIARES
 ======================================================= */
+
+// Link de Navegação Desktop (Estilo Botão Ghost com Hover suave)
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className="relative text-muted-foreground transition-colors hover:text-foreground group py-2"
+      className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
     >
       {children}
-      {/* Efeito de sublinhado animado sutil */}
-      <span className="absolute left-0 bottom-0 w-0 h-[2px] bg-primary transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-100" />
+    </Link>
+  );
+}
+
+// Link de Navegação Mobile
+function MobileNavLink({ href, children, external }: { href: string; children: React.ReactNode; external?: boolean }) {
+  return (
+    <Link
+      href={href}
+      target={external ? "_blank" : undefined}
+      className="flex items-center justify-between rounded-md p-2 text-base font-medium transition-colors hover:bg-muted"
+    >
+      {children}
+      {external ? <ExternalLink className="h-4 w-4 opacity-50" /> : <ChevronRight className="h-4 w-4 opacity-50" />}
     </Link>
   );
 }

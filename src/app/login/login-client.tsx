@@ -7,7 +7,7 @@ import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, ArrowLeft, ShieldCheck, Zap, Terminal } from 'lucide-react';
+import { Loader2, ArrowLeft, ShieldCheck, Zap, Terminal, CheckCircle2 } from 'lucide-react';
 import { toast } from "sonner";
 
 export function LoginClientPage() {
@@ -49,29 +49,32 @@ export function LoginClientPage() {
         <div className="w-full min-h-screen grid lg:grid-cols-2">
 
             {/* --- COLUNA 1: Formulário (Esquerda) --- */}
-            <div className="flex items-center justify-center py-12 px-4 sm:px-8 relative bg-background">
+            <div className="flex items-center justify-center py-12 px-4 sm:px-8 relative bg-background overflow-hidden">
+
+                {/* Background Grids (Sutil no Light Mode para textura) */}
+                <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
                 {/* Botão Voltar Flutuante */}
                 <Link
                     href="/"
                     className="absolute left-4 top-4 md:left-8 md:top-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors group"
                 >
-                    <div className="p-2 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
+                    <div className="p-2 rounded-full bg-muted/50 border border-border/50 group-hover:border-primary/20 group-hover:bg-primary/5 transition-all">
                         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
                     </div>
-                    Voltar para Home
+                    <span className="hidden sm:inline">Voltar para Home</span>
                 </Link>
 
-                <div className="mx-auto w-full max-w-[400px] space-y-8">
+                <div className="mx-auto w-full max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
                     {/* Cabeçalho do Form */}
                     <div className="flex flex-col space-y-2 text-center">
-                        <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <Terminal className="h-6 w-6 text-primary" />
+                        <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shadow-sm">
+                            <Terminal className="h-7 w-7 text-primary" />
                         </div>
-                        <h1 className="text-3xl font-bold tracking-tight">Bem-vindo de volta</h1>
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Bem-vindo de volta</h1>
                         <p className="text-sm text-muted-foreground">
-                            Acesse o Portal Trilink para gerenciar sua operação.
+                            Digite suas credenciais para acessar o portal.
                         </p>
                     </div>
 
@@ -87,7 +90,7 @@ export function LoginClientPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={isLoading}
-                                className="h-11"
+                                className="h-11 bg-background/50 backdrop-blur-sm transition-all focus:ring-2 focus:ring-primary/20"
                             />
                         </div>
 
@@ -108,11 +111,11 @@ export function LoginClientPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 disabled={isLoading}
-                                className="h-11"
+                                className="h-11 bg-background/50 backdrop-blur-sm transition-all focus:ring-2 focus:ring-primary/20"
                             />
                         </div>
 
-                        <Button type="submit" className="w-full h-11 text-base font-semibold shadow-lg shadow-primary/20" disabled={isLoading}>
+                        <Button type="submit" className="w-full h-11 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" disabled={isLoading}>
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Autenticando...
@@ -126,7 +129,7 @@ export function LoginClientPage() {
                     {/* Rodapé do Form */}
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
+                            <span className="w-full border-t border-border/50" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
                             <span className="bg-background px-2 text-muted-foreground">
@@ -137,7 +140,7 @@ export function LoginClientPage() {
 
                     <div className="text-center text-sm">
                         Não tem credenciais de acesso?{" "}
-                        <Link href="https://wa.me/5534997713731?text=Gostaria%20de%20falar%20com%20o%20Suporte" className="font-medium text-primary hover:underline underline-offset-4">
+                        <Link href="https://wa.me/5534997713731?text=Gostaria%20de%20solicitar%20acesso%20ao%20Portal" target="_blank" className="font-medium text-primary hover:underline underline-offset-4">
                             Fale com o suporte &rarr;
                         </Link>
                     </div>
@@ -145,44 +148,52 @@ export function LoginClientPage() {
             </div>
 
             {/* --- COLUNA 2: Branding (Direita) --- */}
-            <div className="hidden lg:flex relative flex-col justify-between p-12 text-white overflow-hidden bg-zinc-900">
+            <div className="hidden lg:flex relative flex-col justify-between p-12 text-white overflow-hidden bg-zinc-950 border-l border-white/10">
 
                 {/* Background Dinâmico */}
                 <div className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-zinc-900 to-zinc-950"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-zinc-900 to-zinc-950"></div>
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
                 </div>
 
                 {/* Logo da Empresa */}
-                <div className="relative z-10 flex items-center gap-2 text-lg font-medium">
-                    <div className="h-8 w-8 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center border border-white/10">
-                        <Terminal className="h-5 w-5" />
+                <div className="relative z-10 flex items-center gap-3 text-lg font-medium animate-in fade-in slide-in-from-top-4 duration-700">
+                    <div className="h-10 w-10 rounded-xl bg-white/5 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-2xl">
+                        <Terminal className="h-5 w-5 text-white" />
                     </div>
-                    Trilink Software
+                    <span className="tracking-wide">Trilink Software</span>
                 </div>
 
                 {/* Conteúdo Central */}
-                <div className="relative z-10 max-w-md">
-                    <h2 className="text-3xl font-bold mb-6 leading-tight">
-                        A inteligência que o seu <span className="text-primary">Syspro ERP</span> precisava.
+                <div className="relative z-10 max-w-md animate-in fade-in slide-in-from-right-8 duration-1000 delay-200">
+                    <h2 className="text-4xl font-bold mb-8 leading-tight tracking-tight text-white">
+                        A inteligência que o seu <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/50">Syspro ERP</span> precisava.
                     </h2>
-                    <div className="space-y-4 text-zinc-300">
-                        <div className="flex items-start gap-3">
-                            <ShieldCheck className="h-5 w-5 text-primary mt-0.5" />
-                            <p className="text-sm">Acesso seguro e criptografado à documentação confidencial.</p>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Zap className="h-5 w-5 text-primary mt-0.5" />
-                            <p className="text-sm">Ferramentas de alta performance para sua equipe fiscal.</p>
-                        </div>
+
+                    <div className="space-y-6">
+                        <FeatureItem
+                            icon={ShieldCheck}
+                            title="Segurança de Dados"
+                            description="Acesso criptografado e auditável a documentos fiscais."
+                        />
+                        <FeatureItem
+                            icon={Zap}
+                            title="Alta Performance"
+                            description="Ferramentas otimizadas para o fluxo de trabalho da sua equipe."
+                        />
+                        <FeatureItem
+                            icon={CheckCircle2}
+                            title="Sempre Atualizado"
+                            description="Acesse as últimas versões e notas de lançamento em tempo real."
+                        />
                     </div>
                 </div>
 
                 {/* Rodapé da Coluna */}
-                <div className="relative z-10 flex items-center justify-between text-sm text-zinc-400">
+                <div className="relative z-10 flex items-center justify-between text-sm text-zinc-500 animate-in fade-in duration-1000 delay-500">
                     <p>© {new Date().getFullYear()} Trilink Software</p>
-                    <div className="flex gap-4">
+                    <div className="flex gap-6">
                         <Link href="/privacidade" className="hover:text-white transition-colors">Privacidade</Link>
                         <Link href="/termos" className="hover:text-white transition-colors">Termos</Link>
                     </div>
@@ -191,4 +202,18 @@ export function LoginClientPage() {
 
         </div>
     );
+}
+
+function FeatureItem({ icon: Icon, title, description }: { icon: any, title: string, description: string }) {
+    return (
+        <div className="flex gap-4 items-start group">
+            <div className="mt-1 h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-primary/20 group-hover:bg-primary/10 transition-all duration-300">
+                <Icon className="h-4 w-4 text-zinc-400 group-hover:text-primary transition-colors" />
+            </div>
+            <div>
+                <h3 className="font-medium text-zinc-200 text-base mb-1 group-hover:text-white transition-colors">{title}</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed group-hover:text-zinc-300 transition-colors">{description}</p>
+            </div>
+        </div>
+    )
 }
