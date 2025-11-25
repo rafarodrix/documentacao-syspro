@@ -1,141 +1,136 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Instagram, Mail, Youtube, Globe, Download } from "lucide-react";
+import { Instagram, Mail, Youtube, Globe, Download, ExternalLink } from "lucide-react";
 
 export function SiteFooter() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="border-t bg-muted/30 pt-16 pb-8">
-      <div className="container px-4 md:px-6">
+    <footer className="border-t border-border/40 bg-muted/20 pt-16 pb-8">
+      <div className="container max-w-screen-2xl px-4 md:px-8">
 
-        {/* --- PARTE SUPERIOR: Grid de Links e Logo --- */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        {/* --- GRID PRINCIPAL --- */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 mb-16">
 
-          {/* Coluna 1: Marca e Descrição */}
-          <div className="col-span-1 md:col-span-1 space-y-4">
-            <Link href="/" className="inline-block">
+          {/* COLUNA 1: Identidade (Ocupa 4 colunas no desktop) */}
+          <div className="md:col-span-4 space-y-4">
+            <Link href="/" className="inline-block hover:opacity-85 transition-opacity">
               {/* Logo Tema Claro */}
-              <div className="relative h-7 w-auto dark:hidden">
+              <div className="relative h-7 w-32 dark:hidden">
                 <Image
                   src="/logo/logo-escura.png"
                   alt="Trilink Software"
-                  width={120}
-                  height={28}
-                  className="h-7 w-auto object-contain"
+                  fill
+                  className="object-contain object-left"
+                  sizes="150px"
                 />
               </div>
               {/* Logo Tema Escuro */}
-              <div className="relative h-7 w-auto hidden dark:block">
+              <div className="relative h-7 w-32 hidden dark:block">
                 <Image
                   src="/logo/logo-clara.png"
                   alt="Trilink Software"
-                  width={120}
-                  height={28}
-                  className="h-7 w-auto object-contain"
+                  fill
+                  className="object-contain object-left"
+                  sizes="150px"
                 />
               </div>
             </Link>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Soluções robustas para gestão empresarial. Simplificando processos e conectando resultados.
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+              Soluções robustas para gestão empresarial. Simplificando processos, garantindo compliance e conectando resultados.
             </p>
           </div>
 
-          {/* Coluna 2: Acesso Rápido (Links Externos Reais) */}
-          <div className="flex flex-col gap-3">
-            <h4 className="font-semibold text-sm text-foreground">Acesso Rápido</h4>
-
-            <Link
-              href="https://www.trilink.com.br/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
-            >
-              <Globe className="h-3 w-3" /> Site Institucional
-            </Link>
-
-            <Link
-              href="https://www.trilink.com.br/public/downloads"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
-            >
-              <Download className="h-3 w-3" /> Área de Downloads
-            </Link>
-
-            <Link href="/login" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Portal do Cliente (Login)
-            </Link>
+          {/* COLUNA 2: Acesso Rápido (2 colunas) */}
+          <div className="md:col-span-2 md:col-start-6 flex flex-col gap-4">
+            <h4 className="font-semibold text-sm tracking-wide text-foreground">Acesso Rápido</h4>
+            <ul className="space-y-3">
+              <li>
+                <FooterLink href="https://www.trilink.com.br/" external>
+                  <Globe className="h-3.5 w-3.5 mr-2" /> Site Institucional
+                </FooterLink>
+              </li>
+              <li>
+                <FooterLink href="https://www.trilink.com.br/public/downloads" external>
+                  <Download className="h-3.5 w-3.5 mr-2" /> Área de Downloads
+                </FooterLink>
+              </li>
+              <li>
+                <FooterLink href="/login">Portal do Cliente</FooterLink>
+              </li>
+            </ul>
           </div>
 
-          {/* Coluna 3: Suporte (Links Internos) */}
-          <div className="flex flex-col gap-3">
-            <h4 className="font-semibold text-sm text-foreground">Suporte & Ajuda</h4>
-            <Link href="/docs/manual" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Documentação Oficial
-            </Link>
-            <Link href="/docs/duvidas" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Dúvidas Frequentes
-            </Link>
-            <Link href="/docs/suporte" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Suporte
-            </Link>
+          {/* COLUNA 3: Suporte (3 colunas) */}
+          <div className="md:col-span-2 flex flex-col gap-4">
+            <h4 className="font-semibold text-sm tracking-wide text-foreground">Suporte</h4>
+            <ul className="space-y-3">
+              <li><FooterLink href="/docs/manual">Documentação Oficial</FooterLink></li>
+              <li><FooterLink href="/docs/duvidas">Dúvidas Frequentes</FooterLink></li>
+              <li><FooterLink href="/docs/suporte">Abrir Chamado</FooterLink></li>
+              <li><FooterLink href="/status">Status do Sistema</FooterLink></li>
+            </ul>
           </div>
 
-          {/* Coluna 4: Legal e Contato */}
-          <div className="flex flex-col gap-3">
-            <h4 className="font-semibold text-sm text-foreground">Legal</h4>
-            <Link href="/termos" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Termos de Uso
-            </Link>
-            <Link href="/privacidade" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Privacidade
-            </Link>
+          {/* COLUNA 4: Legal (3 colunas) */}
+          <div className="md:col-span-2 flex flex-col gap-4">
+            <h4 className="font-semibold text-sm tracking-wide text-foreground">Legal</h4>
+            <ul className="space-y-3">
+              <li><FooterLink href="/termos">Termos de Uso</FooterLink></li>
+              <li><FooterLink href="/privacidade">Política de Privacidade</FooterLink></li>
+              <li><FooterLink href="/compliance">Compliance</FooterLink></li>
+            </ul>
           </div>
+
         </div>
 
-        {/* --- PARTE INFERIOR: Copyright e Social --- */}
-        <div className="border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        {/* --- RODAPÉ INFERIOR --- */}
+        <div className="border-t border-border/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-xs text-muted-foreground text-center md:text-left">
-            &copy; {new Date().getFullYear()} Trilink Software. Todos os direitos reservados.
+            &copy; {currentYear} Trilink Software Ltda. Todos os direitos reservados.
           </p>
 
-          <div className="flex items-center gap-6">
-            {/* YouTube */}
-            <Link
-              href="https://www.youtube.com/channel/UCcH7GYfmvIE9_UlWAUH8h2Q"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-red-600 transition-colors"
-              title="YouTube Trilink"
-            >
-              <Youtube className="h-5 w-5" />
-              <span className="sr-only">YouTube</span>
-            </Link>
-
-            {/* Instagram */}
-            <Link
-              href="https://www.instagram.com/trilinksoftwares"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-pink-600 transition-colors"
-              title="Instagram Trilink"
-            >
-              <Instagram className="h-5 w-5" />
-              <span className="sr-only">Instagram</span>
-            </Link>
-
-            {/* Email (Genérico, ajuste se tiver um específico) */}
-            <Link
-              href="mailto:contato@trilink.com.br"
-              className="text-muted-foreground hover:text-primary transition-colors"
-              title="E-mail de Contato"
-            >
-              <Mail className="h-5 w-5" />
-              <span className="sr-only">Email</span>
-            </Link>
+          <div className="flex items-center gap-4">
+            <SocialButton href="https://youtube.com/@trilink" icon={Youtube} label="YouTube" hoverColor="hover:text-red-500" />
+            <SocialButton href="https://instagram.com/trilink" icon={Instagram} label="Instagram" hoverColor="hover:text-pink-500" />
+            <SocialButton href="mailto:contato@trilink.com.br" icon={Mail} label="Email" hoverColor="hover:text-primary" />
           </div>
         </div>
 
       </div>
     </footer>
+  );
+}
+
+/* =======================================================
+   COMPONENTES AUXILIARES
+   Reduzem a repetição e padronizam o estilo
+======================================================= */
+
+function FooterLink({ href, children, external }: { href: string; children: React.ReactNode; external?: boolean }) {
+  return (
+    <Link
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center group w-fit"
+    >
+      {children}
+      {external && <ExternalLink className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />}
+    </Link>
+  );
+}
+
+function SocialButton({ href, icon: Icon, label, hoverColor }: { href: string; icon: any; label: string; hoverColor: string }) {
+  return (
+    <Link
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`p-2 rounded-full bg-background border border-border/50 text-muted-foreground transition-all hover:scale-110 hover:border-border ${hoverColor}`}
+      aria-label={label}
+    >
+      <Icon className="h-4 w-4" />
+    </Link>
   );
 }
