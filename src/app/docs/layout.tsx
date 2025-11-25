@@ -1,12 +1,13 @@
-'use client';
-
-import { RootProvider } from 'fumadocs-ui/provider';
+// Layout personalizado para a seção de documentação usando Fumadocs
+import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { ReactNode } from 'react';
+import { baseOptions } from '@/app/docs/layout.config';
+import { source } from '@/lib/source';
 
-export default function DocsLayout({ children }: { children: ReactNode }) {
+export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <RootProvider>
+    <DocsLayout tree={source.pageTree} {...baseOptions}>
       {children}
-    </RootProvider>
+    </DocsLayout>
   );
 }
