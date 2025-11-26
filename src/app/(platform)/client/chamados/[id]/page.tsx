@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, Hash } from "lucide-react";
 import Link from "next/link";
 
-// CORREÇÃO: No Next.js 15, params é uma Promise
 interface PageProps {
     params: Promise<{
         id: string;
@@ -13,7 +12,6 @@ interface PageProps {
 }
 
 export default async function TicketDetailsPage({ params }: PageProps) {
-    // CORREÇÃO: Aguardamos a resolução dos params antes de usar
     const { id } = await params;
 
     const { success, ticket, articles, error } = await getTicketDetailsAction(id);

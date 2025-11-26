@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 // Grupo 1: Navegação Principal
 const mainNav = [
     { title: "Visão Geral", href: "/client", icon: LayoutDashboard },
-    // { title: "Meus Chamados", href: "/client/chamados", icon: Ticket },
+    { title: "Meus Chamados", href: "/client/chamados", icon: Ticket },
 ];
 
 // Grupo 2: Recursos de Ajuda
