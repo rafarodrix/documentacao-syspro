@@ -75,6 +75,7 @@ export async function createCompanyAction(data: CreateCompanyInput) {
         emailContato: data.emailContato,
         telefone: data.telefone,
         website: data.website || null,
+        status: 'ACTIVE', // Padrão ao criar
 
         // Fiscal
         inscricaoEstadual: data.inscricaoEstadual,
@@ -93,7 +94,7 @@ export async function createCompanyAction(data: CreateCompanyInput) {
         // Extras
         observacoes: data.observacoes,
 
-        // Relação com Contabilidade (Só conecta se tiver ID válido)
+        // Relação com Contabilidade (Só conecta se tiver ID válido e não vazio)
         accountingFirm: data.accountingFirmId
           ? { connect: { id: data.accountingFirmId } }
           : undefined,
@@ -157,6 +158,32 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput) 
     revalidatePath("/admin/empresas");
     return { success: true as const };
   } catch (error: any) {
+    return handleActionError(error);
+  }
+}
+
+/**
+ * [NOVO] Alterna o status da empresa (Ativar/Desativar)
+ * Soft Delete: Não remove do banco, apenas muda o status.
+ */
+export async function toggleCompanyStatusAction(id: string, currentStatus: string) {
+  const session = await getProtectedSession();
+
+  if (!session || !WRITE_ROLES.includes(session.role)) {
+    return { success: false as const, error: "Permissão negada." };
+  }
+
+  try {
+    const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+    await prisma.company.update({
+      where: { id },
+      data: { status: newStatus }
+    });
+
+    revalidatePath("/admin/empresas");
+    return { success: true as const, message: `Empresa ${newStatus === 'ACTIVE' ? 'ativada' : 'desativada'} com sucesso.` };
+  } catch (error) {
     return handleActionError(error);
   }
 }

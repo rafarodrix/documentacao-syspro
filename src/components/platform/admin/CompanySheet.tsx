@@ -4,7 +4,11 @@ import { useState, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCompanySchema, CreateCompanyInput } from "@/core/validation/company-schema";
-import { createCompanyAction, updateCompanyAction } from "@/app/(platform)/admin/_actions/company-actions";
+import {
+    createCompanyAction,
+    updateCompanyAction,
+    toggleCompanyStatusAction
+} from "@/app/(platform)/admin/_actions/company-actions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +31,20 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Loader2, Pencil, Search, Building2, MapPin, Phone, FileText } from "lucide-react";
+import {
+    PlusCircle,
+    Loader2,
+    Pencil,
+    Search,
+    Building2,
+    MapPin,
+    Phone,
+    FileText,
+    Power,
+    Ban,
+    CheckCircle
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface CompanySheetProps {
     companyToEdit?: any;
@@ -36,9 +53,11 @@ interface CompanySheetProps {
 export function CompanySheet({ companyToEdit }: CompanySheetProps) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [isStatusPending, startStatusTransition] = useTransition();
     const [loadingCep, setLoadingCep] = useState(false);
 
     const isEditing = !!companyToEdit;
+    const isActive = companyToEdit?.status === 'ACTIVE';
 
     const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateCompanyInput>({
         resolver: zodResolver(createCompanySchema),
@@ -55,29 +74,30 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
             bairro: "",
             cidade: "",
             estado: "",
-            inscricaoEstadual: "",
+            // inscricaoEstadual removida
+            inscricaoMunicipal: "",
             regimeTributario: undefined,
             observacoes: "",
         }
     });
 
-    // Reset form quando abrir/fechar ou mudar a empresa
     useEffect(() => {
         if (open) {
             if (companyToEdit) {
                 reset({
                     ...companyToEdit,
                     regimeTributario: companyToEdit.regimeTributario || undefined,
-                    // Garante que campos opcionais não venham null
                     complemento: companyToEdit.complemento || "",
                     website: companyToEdit.website || "",
                     observacoes: companyToEdit.observacoes || "",
+                    inscricaoMunicipal: companyToEdit.inscricaoMunicipal || "",
+                    // Removemos a IE e Accounting do reset pois não usamos mais
                 });
             } else {
                 reset({
                     cnpj: "", razaoSocial: "", nomeFantasia: "", emailContato: "", telefone: "",
                     website: "", cep: "", logradouro: "", numero: "", bairro: "", cidade: "",
-                    estado: "", inscricaoEstadual: "", inscricaoMunicipal: "", observacoes: "",
+                    estado: "", inscricaoMunicipal: "", observacoes: "",
                     regimeTributario: undefined
                 });
             }
@@ -108,6 +128,20 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
         }
     };
 
+    const handleToggleStatus = () => {
+        if (!companyToEdit) return;
+
+        startStatusTransition(async () => {
+            const result = await toggleCompanyStatusAction(companyToEdit.id, companyToEdit.status);
+            if (result.success) {
+                toast.success(result.message);
+                setOpen(false); // Fecha para atualizar a lista na tabela
+            } else {
+                toast.error(typeof result.error === 'string' ? result.error : "Erro ao alterar status.");
+            }
+        });
+    };
+
     async function onSubmit(data: CreateCompanyInput) {
         startTransition(async () => {
             let result;
@@ -121,7 +155,11 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                 toast.success(isEditing ? "Empresa atualizada!" : "Empresa criada com sucesso!");
                 setOpen(false);
             } else {
-                toast.error(typeof result.error === 'string' ? result.error : "Erro ao salvar empresa.");
+                // Tratamento para erros de validação do Zod retornados pelo server
+                const errorMsg = typeof result.error === 'string'
+                    ? result.error
+                    : "Verifique os campos obrigatórios.";
+                toast.error(errorMsg);
             }
         });
     }
@@ -130,12 +168,12 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
                 {isEditing ? (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted transition-colors">
                         <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary" />
                         <span className="sr-only">Editar</span>
                     </Button>
                 ) : (
-                    <Button className="h-9 shadow-md shadow-primary/20 transition-all hover:shadow-primary/40">
+                    <Button className="h-9 shadow-md shadow-primary/20 transition-all hover:shadow-primary/40 hover:-translate-y-0.5">
                         <PlusCircle className="mr-2 h-4 w-4" /> Nova Empresa
                     </Button>
                 )}
@@ -144,18 +182,48 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
             <SheetContent className="sm:max-w-xl w-full overflow-y-auto flex flex-col gap-0 p-0 border-l-border/50 bg-background/95 backdrop-blur-xl">
 
                 {/* HEADER */}
-                <div className="p-6 border-b border-border/40 bg-muted/10 sticky top-0 z-10 backdrop-blur-md">
-                    <SheetHeader>
-                        <SheetTitle className="flex items-center gap-2 text-xl">
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                <Building2 className="h-5 w-5" />
-                            </div>
-                            {isEditing ? "Editar Empresa" : "Nova Organização"}
-                        </SheetTitle>
-                        <SheetDescription>
-                            Preencha os dados cadastrais da empresa cliente.
-                        </SheetDescription>
-                    </SheetHeader>
+                <div className="p-6 border-b border-border/40 bg-muted/10 sticky top-0 z-10 backdrop-blur-md flex justify-between items-start">
+                    <div>
+                        <SheetHeader>
+                            <SheetTitle className="flex items-center gap-2 text-xl">
+                                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/10">
+                                    <Building2 className="h-5 w-5" />
+                                </div>
+                                {isEditing ? "Gerenciar Empresa" : "Nova Organização"}
+                            </SheetTitle>
+                            <SheetDescription>
+                                {isEditing
+                                    ? "Edite os dados cadastrais ou altere o status."
+                                    : "Preencha os dados para cadastrar um novo cliente."}
+                            </SheetDescription>
+                        </SheetHeader>
+                    </div>
+
+                    {/* Botão de Ativar/Desativar (Só aparece na edição) */}
+                    {isEditing && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleToggleStatus}
+                            disabled={isStatusPending}
+                            className={`ml-4 border-dashed ${isActive
+                                ? "border-red-200 hover:border-red-500 hover:bg-red-50 text-red-600 dark:hover:bg-red-950/20"
+                                : "border-green-200 hover:border-green-500 hover:bg-green-50 text-green-600 dark:hover:bg-green-950/20"
+                                }`}
+                        >
+                            {isStatusPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : isActive ? (
+                                <>
+                                    <Ban className="h-4 w-4 mr-2" /> Desativar
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle className="h-4 w-4 mr-2" /> Ativar
+                                </>
+                            )}
+                        </Button>
+                    )}
                 </div>
 
                 {/* FORMULÁRIO SCROLLÁVEL */}
@@ -164,21 +232,24 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
 
                         {/* SEÇÃO 1: DADOS GERAIS */}
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit">
                                 <FileText className="h-4 w-4" />
-                                <span>Dados Gerais</span>
+                                <span>Dados Corporativos</span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2 col-span-2 sm:col-span-1">
                                     <Label htmlFor="cnpj">CNPJ</Label>
-                                    <Input
-                                        id="cnpj"
-                                        {...register("cnpj")}
-                                        placeholder="00.000.000/0000-00"
-                                        disabled={isEditing}
-                                        className="font-mono bg-muted/30 focus:bg-background transition-colors"
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            id="cnpj"
+                                            {...register("cnpj")}
+                                            placeholder="00.000.000/0000-00"
+                                            disabled={isEditing}
+                                            className="font-mono bg-muted/30 focus:bg-background transition-colors pl-9"
+                                        />
+                                        <FileText className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground opacity-50" />
+                                    </div>
                                     {errors.cnpj && <span className="text-xs text-red-500">{errors.cnpj.message}</span>}
                                 </div>
 
@@ -199,13 +270,19 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
 
                                 <div className="space-y-2 col-span-2">
                                     <Label htmlFor="razaoSocial">Razão Social</Label>
-                                    <Input id="razaoSocial" {...register("razaoSocial")} className="bg-muted/30 focus:bg-background" />
+                                    <Input id="razaoSocial" {...register("razaoSocial")} className="bg-muted/30 focus:bg-background font-medium" />
                                     {errors.razaoSocial && <span className="text-xs text-red-500">{errors.razaoSocial.message}</span>}
                                 </div>
 
                                 <div className="space-y-2 col-span-2">
                                     <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
                                     <Input id="nomeFantasia" {...register("nomeFantasia")} className="bg-muted/30 focus:bg-background" />
+                                </div>
+
+                                {/* Apenas Inscrição Municipal agora */}
+                                <div className="space-y-2 col-span-2 sm:col-span-1">
+                                    <Label>Insc. Municipal</Label>
+                                    <Input {...register("inscricaoMunicipal")} className="bg-muted/30 focus:bg-background" />
                                 </div>
                             </div>
                         </div>
@@ -214,7 +291,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
 
                         {/* SEÇÃO 2: CONTATO */}
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit">
                                 <Phone className="h-4 w-4" />
                                 <span>Contato</span>
                             </div>
@@ -238,7 +315,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
 
                         {/* SEÇÃO 3: ENDEREÇO */}
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit">
                                 <MapPin className="h-4 w-4" />
                                 <span>Endereço</span>
                             </div>
@@ -307,7 +384,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...
                                 </>
                             ) : (
-                                isEditing ? "Salvar Alterações" : "Cadastrar"
+                                isEditing ? "Salvar Alterações" : "Cadastrar Empresa"
                             )}
                         </Button>
                     </div>
