@@ -7,21 +7,25 @@ import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, ArrowLeft, ShieldCheck, Zap, Terminal, CheckCircle2 } from 'lucide-react';
+import { Loader2, ArrowLeft, ShieldCheck, Zap, Terminal, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
+import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 
 export function LoginClientPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null); // Estado local para erro
 
     const router = useRouter();
     const searchParams = useSearchParams();
-    const callbackUrl = searchParams.get('callbackUrl') || '/docs';
+    const callbackUrl = searchParams.get('callbackUrl') || '/client'; // Alterado default para /client (Dashboard)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setError(null); // Limpa erros anteriores
 
         try {
             await authClient.signIn.email({
@@ -30,17 +34,27 @@ export function LoginClientPage() {
                 callbackURL: callbackUrl
             }, {
                 onSuccess: () => {
-                    toast.success("Bem-vindo de volta!");
+                    toast.success("Login realizado com sucesso!");
                     router.push(callbackUrl);
                 },
                 onError: (ctx) => {
-                    toast.error(ctx.error.message || "E-mail ou senha incorretos.");
+                    // Tratamento de erros específicos
+                    const msg = ctx.error.message || "";
+
+                    if (msg.includes("Invalid email or password") || msg.includes("not found")) {
+                        setError("Credenciais inválidas. Verifique seu e-mail e senha.");
+                    } else if (msg.includes("verify your email")) {
+                        setError("Por favor, verifique seu e-mail antes de fazer login.");
+                    } else {
+                        setError("Ocorreu um erro ao tentar entrar. Tente novamente.");
+                    }
+
                     setIsLoading(false);
                 }
             });
         } catch (err) {
             console.error(err);
-            toast.error("Erro de conexão. Tente novamente.");
+            setError("Erro de conexão com o servidor.");
             setIsLoading(false);
         }
     };
@@ -51,10 +65,10 @@ export function LoginClientPage() {
             {/* --- COLUNA 1: Formulário (Esquerda) --- */}
             <div className="flex items-center justify-center py-12 px-4 sm:px-8 relative bg-background overflow-hidden">
 
-                {/* Background Grids (Sutil no Light Mode para textura) */}
+                {/* Background Grids (Sutil) */}
                 <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
-                {/* Botão Voltar Flutuante */}
+                {/* Botão Voltar */}
                 <Link
                     href="/"
                     className="absolute left-4 top-4 md:left-8 md:top-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors group"
@@ -67,16 +81,25 @@ export function LoginClientPage() {
 
                 <div className="mx-auto w-full max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-                    {/* Cabeçalho do Form */}
+                    {/* Cabeçalho */}
                     <div className="flex flex-col space-y-2 text-center">
                         <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shadow-sm">
                             <Terminal className="h-7 w-7 text-primary" />
                         </div>
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Bem-vindo de volta</h1>
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Acesso Restrito</h1>
                         <p className="text-sm text-muted-foreground">
-                            Digite suas credenciais para acessar o portal.
+                            Entre com suas credenciais corporativas.
                         </p>
                     </div>
+
+                    {/* Alerta de Erro (Feedback Visual Claro) */}
+                    {error && (
+                        <Alert variant="destructive" className="animate-in fade-in zoom-in duration-300">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Acesso Negado</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
 
                     {/* Formulário */}
                     <form onSubmit={handleSubmit} className="space-y-5">
@@ -90,7 +113,10 @@ export function LoginClientPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={isLoading}
-                                className="h-11 bg-background/50 backdrop-blur-sm transition-all focus:ring-2 focus:ring-primary/20"
+                                className={cn(
+                                    "h-11 bg-background/50 backdrop-blur-sm transition-all focus:ring-2 focus:ring-primary/20",
+                                    error && "border-red-500 focus:ring-red-500/20" // Borda vermelha no erro
+                                )}
                             />
                         </div>
 
@@ -111,37 +137,46 @@ export function LoginClientPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 disabled={isLoading}
-                                className="h-11 bg-background/50 backdrop-blur-sm transition-all focus:ring-2 focus:ring-primary/20"
+                                className={cn(
+                                    "h-11 bg-background/50 backdrop-blur-sm transition-all focus:ring-2 focus:ring-primary/20",
+                                    error && "border-red-500 focus:ring-red-500/20"
+                                )}
                             />
                         </div>
 
                         <Button type="submit" className="w-full h-11 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" disabled={isLoading}>
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Autenticando...
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando...
                                 </>
                             ) : (
-                                "Acessar Portal"
+                                "Entrar no Portal"
                             )}
                         </Button>
                     </form>
 
-                    {/* Rodapé do Form */}
+                    {/* Rodapé do Form (Suporte) */}
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t border-border/50" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
                             <span className="bg-background px-2 text-muted-foreground">
-                                Precisa de ajuda?
+                                Não tem acesso?
                             </span>
                         </div>
                     </div>
 
-                    <div className="text-center text-sm">
-                        Não tem credenciais de acesso?{" "}
-                        <Link href="https://wa.me/5534997713731?text=Gostaria%20de%20solicitar%20acesso%20ao%20Portal" target="_blank" className="font-medium text-primary hover:underline underline-offset-4">
-                            Fale com o suporte &rarr;
+                    <div className="text-center text-sm p-4 rounded-lg bg-muted/30 border border-border/50">
+                        <p className="text-muted-foreground mb-2">
+                            Se você é um cliente e ainda não possui acesso, entre em contato com nosso suporte.
+                        </p>
+                        <Link
+                            href="https://wa.me/5534997713731?text=Olá,%20sou%20cliente%20e%20gostaria%20de%20solicitar%20acesso%20ao%20Portal"
+                            target="_blank"
+                            className="inline-flex items-center font-medium text-primary hover:underline underline-offset-4 gap-1"
+                        >
+                            Solicitar Acesso via WhatsApp <ArrowLeft className="h-3 w-3 rotate-180" />
                         </Link>
                     </div>
                 </div>
