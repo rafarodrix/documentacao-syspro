@@ -4,7 +4,11 @@ import { useState, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createUserSchema, CreateUserInput } from "@/core/validation/user-schema";
-import { createUserAction, updateUserAction } from "@/app/(platform)/admin/_actions/user-actions";
+import {
+    createUserAction,
+    updateUserAction,
+    toggleUserStatusAction
+} from "@/app/(platform)/admin/_actions/user-actions";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,8 +26,20 @@ import {
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle, Loader2, Pencil, UserPlus, Mail, Key, Shield, Building2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import {
+    PlusCircle,
+    Loader2,
+    Pencil,
+    UserPlus,
+    Mail,
+    Key,
+    Shield,
+    Building2,
+    Ban,
+    CheckCircle,
+    UserCog
+} from "lucide-react";
 
 interface UserSheetProps {
     companies: { id: string; razaoSocial: string }[];
@@ -32,6 +48,7 @@ interface UserSheetProps {
         name: string | null;
         email: string;
         role: string;
+        isActive?: boolean; // Adicionado para controle de status
         companies: { id: string }[];
     };
 }
@@ -39,8 +56,10 @@ interface UserSheetProps {
 export function UserSheet({ companies, userToEdit }: UserSheetProps) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [isStatusPending, startStatusTransition] = useTransition();
 
     const isEditing = !!userToEdit;
+    const isActive = userToEdit?.isActive ?? true; // Assume ativo se novo
 
     const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<CreateUserInput>({
         resolver: zodResolver(createUserSchema),
@@ -56,23 +75,36 @@ export function UserSheet({ companies, userToEdit }: UserSheetProps) {
     useEffect(() => {
         if (open) {
             if (userToEdit) {
-                // Preenche o formulário se estiver editando
                 const currentCompanyId = userToEdit.companies[0]?.id || "";
                 reset({
                     name: userToEdit.name || "",
                     email: userToEdit.email,
                     role: userToEdit.role as any,
                     companyId: currentCompanyId,
-                    password: "", // Senha sempre limpa na edição
+                    password: "", // Senha vazia na edição
                 });
             } else {
-                // Limpa o formulário se estiver criando
                 reset({
                     name: "", email: "", password: "", role: undefined, companyId: ""
                 });
             }
         }
     }, [open, userToEdit, reset]);
+
+    // Handler para alternar status (Bloquear/Desbloquear)
+    const handleToggleStatus = () => {
+        if (!userToEdit) return;
+
+        startStatusTransition(async () => {
+            const result = await toggleUserStatusAction(userToEdit.id, !!userToEdit.isActive);
+            if (result.success) {
+                toast.success(result.message);
+                setOpen(false);
+            } else {
+                toast.error(typeof result.error === 'string' ? result.error : "Erro ao alterar status.");
+            }
+        });
+    };
 
     async function onSubmit(data: CreateUserInput) {
         startTransition(async () => {
@@ -85,7 +117,7 @@ export function UserSheet({ companies, userToEdit }: UserSheetProps) {
                 }
 
                 if (result.success) {
-                    toast.success(isEditing ? "Usuário atualizado com sucesso!" : "Usuário criado com sucesso!");
+                    toast.success(isEditing ? "Usuário atualizado!" : "Usuário criado com sucesso!");
                     setOpen(false);
                 } else {
                     const errorMsg = typeof result.error === 'string' ? result.error : "Erro ao processar operação";
@@ -101,12 +133,12 @@ export function UserSheet({ companies, userToEdit }: UserSheetProps) {
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
                 {isEditing ? (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted transition-colors">
                         <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary" />
                         <span className="sr-only">Editar</span>
                     </Button>
                 ) : (
-                    <Button className="h-9 shadow-md shadow-primary/20 transition-all hover:shadow-primary/40">
+                    <Button className="h-9 shadow-md shadow-primary/20 transition-all hover:shadow-primary/40 hover:-translate-y-0.5">
                         <PlusCircle className="mr-2 h-4 w-4" /> Novo Usuário
                     </Button>
                 )}
@@ -114,30 +146,58 @@ export function UserSheet({ companies, userToEdit }: UserSheetProps) {
 
             <SheetContent className="sm:max-w-xl w-full overflow-y-auto flex flex-col gap-0 p-0 border-l-border/50 bg-background/95 backdrop-blur-xl">
 
-                {/* HEADER FIXO */}
-                <div className="p-6 border-b border-border/40 bg-muted/10 sticky top-0 z-10 backdrop-blur-md">
-                    <SheetHeader>
-                        <SheetTitle className="flex items-center gap-2 text-xl">
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                <UserPlus className="h-5 w-5" />
-                            </div>
-                            {isEditing ? "Editar Usuário" : "Novo Usuário"}
-                        </SheetTitle>
-                        <SheetDescription>
-                            {isEditing
-                                ? "Atualize as informações de acesso e permissões."
-                                : "Crie um novo acesso ao sistema vinculado a uma empresa."}
-                        </SheetDescription>
-                    </SheetHeader>
+                {/* HEADER */}
+                <div className="p-6 border-b border-border/40 bg-muted/10 sticky top-0 z-10 backdrop-blur-md flex justify-between items-start">
+                    <div>
+                        <SheetHeader>
+                            <SheetTitle className="flex items-center gap-2 text-xl">
+                                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/10">
+                                    {isEditing ? <UserCog className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
+                                </div>
+                                {isEditing ? "Gerenciar Usuário" : "Novo Usuário"}
+                            </SheetTitle>
+                            <SheetDescription>
+                                {isEditing
+                                    ? "Edite os dados de acesso ou altere o status do usuário."
+                                    : "Crie um novo acesso vinculado a uma empresa."}
+                            </SheetDescription>
+                        </SheetHeader>
+                    </div>
+
+                    {/* Botão de Status (Apenas Edição) */}
+                    {isEditing && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleToggleStatus}
+                            disabled={isStatusPending}
+                            className={`ml-4 border-dashed ${isActive
+                                ? "border-red-200 hover:border-red-500 hover:bg-red-50 text-red-600 dark:hover:bg-red-950/20"
+                                : "border-green-200 hover:border-green-500 hover:bg-green-50 text-green-600 dark:hover:bg-green-950/20"
+                                }`}
+                        >
+                            {isStatusPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : isActive ? (
+                                <>
+                                    <Ban className="h-4 w-4 mr-2" /> Bloquear
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle className="h-4 w-4 mr-2" /> Ativar
+                                </>
+                            )}
+                        </Button>
+                    )}
                 </div>
 
-                {/* FORMULÁRIO SCROLLÁVEL */}
+                {/* FORMULÁRIO */}
                 <div className="flex-1 p-6 overflow-y-auto">
                     <form id="user-form" onSubmit={handleSubmit(onSubmit)} className="space-y-8">
 
                         {/* SEÇÃO 1: CREDENCIAIS */}
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit">
                                 <Mail className="h-4 w-4" />
                                 <span>Credenciais de Acesso</span>
                             </div>
@@ -185,7 +245,7 @@ export function UserSheet({ companies, userToEdit }: UserSheetProps) {
 
                         {/* SEÇÃO 2: PERMISSÕES */}
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit">
                                 <Shield className="h-4 w-4" />
                                 <span>Permissões & Vínculos</span>
                             </div>

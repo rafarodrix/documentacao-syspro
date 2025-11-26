@@ -15,14 +15,14 @@ const WRITE_ROLES = ["ADMIN", "DEVELOPER"];
 function handleActionError(error: any) {
     console.error("[UserAction Error]:", error);
 
-    // Erro do Prisma (ex: Email já existe)
+    // Erro do Prisma (ex: Email já existe - Código P2002)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
             return { success: false as const, error: "Este e-mail já está em uso por outro usuário." };
         }
     }
 
-    // Erro do Better Auth (APIError)
+    // Erro da API do Better Auth
     if (error?.body?.message) {
         return { success: false as const, error: error.body.message };
     }
@@ -56,7 +56,7 @@ export async function getUsersAction() {
 }
 
 /**
- * Cria um novo usuário
+ * Cria um novo usuário (Auth + Banco)
  */
 export async function createUserAction(data: CreateUserInput) {
     const session = await getProtectedSession();
@@ -71,7 +71,7 @@ export async function createUserAction(data: CreateUserInput) {
     }
 
     try {
-        // 1. Cria no Auth (Garante hash de senha correto e validações de email)
+        // 1. Cria no Auth (Garante hash de senha seguro e validações de email)
         const newUser = await auth.api.signUpEmail({
             body: {
                 email: data.email,
@@ -84,15 +84,17 @@ export async function createUserAction(data: CreateUserInput) {
             return { success: false as const, error: "Erro ao registrar autenticação." };
         }
 
-        // 2. Atualiza dados complementares no Banco (Role e Empresa)
+        // 2. Atualiza dados complementares no Banco (Role e Empresa) via Prisma
+        // O Better Auth já criou o registro básico, agora fazemos o "enrichment"
         await prisma.user.update({
             where: { email: data.email },
             data: {
                 role: data.role as any,
-                emailVerified: true,
-                companies: {
+                emailVerified: true, // Opcional: Auto-verificar se criado por admin
+                isActive: true,      // Garante que nasce ativo
+                companies: data.companyId ? {
                     connect: { id: data.companyId }
-                }
+                } : undefined
             }
         });
 
@@ -106,7 +108,6 @@ export async function createUserAction(data: CreateUserInput) {
 
 /**
  * Atualiza um usuário existente
- * Nota: Não atualiza a senha por aqui (complexidade de hash).
  */
 export async function updateUserAction(id: string, data: Partial<CreateUserInput>) {
     const session = await getProtectedSession();
@@ -115,7 +116,6 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
         return { success: false as const, error: "Você não tem permissão para editar usuários." };
     }
 
-    // Na edição, aceitamos dados parciais (senha não é obrigatória)
     if (!data.email || !data.role) {
         return { success: false as const, error: "Dados incompletos para atualização." };
     }
@@ -127,10 +127,9 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
                 name: data.name,
                 email: data.email,
                 role: data.role as any,
-                // Atualização da Empresa (Relação N:N)
-                // Substitui todas as empresas anteriores pela nova selecionada
+                // Atualização da Empresa: Substitui vínculos anteriores pelo novo
                 companies: {
-                    set: [], // Remove vínculos
+                    set: [], // Limpa vínculos existentes
                     connect: data.companyId ? { id: data.companyId } : undefined
                 }
             }
@@ -139,6 +138,39 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
         revalidatePath("/admin/usuarios");
         return { success: true as const };
 
+    } catch (error) {
+        return handleActionError(error);
+    }
+}
+
+/**
+ * [NOVO] Alterna o status do usuário (Ativar/Desativar)
+ */
+export async function toggleUserStatusAction(id: string, currentStatus: boolean) {
+    const session = await getProtectedSession();
+
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false as const, error: "Permissão negada." };
+    }
+
+    // Segurança: Admin não pode se auto-desativar
+    if (id === session.userId) {
+        return { success: false as const, error: "Você não pode desativar seu próprio usuário." };
+    }
+
+    try {
+        const newStatus = !currentStatus;
+
+        await prisma.user.update({
+            where: { id },
+            data: { isActive: newStatus }
+        });
+
+        revalidatePath("/admin/usuarios");
+        return {
+            success: true as const,
+            message: `Usuário ${newStatus ? 'ativado' : 'desativado'} com sucesso.`
+        };
     } catch (error) {
         return handleActionError(error);
     }
