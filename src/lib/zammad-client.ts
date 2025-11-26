@@ -18,7 +18,6 @@ export class ZammadClient {
      */
     private static async request<T>(path: string, options?: RequestInit): Promise<T> {
         if (!config.token) {
-            // Erro amigável para facilitar o debug em desenvolvimento
             throw new Error('ZAMMAD_TOKEN não está configurado no arquivo .env');
         }
 
@@ -34,7 +33,7 @@ export class ZammadClient {
             const response = await fetch(url, {
                 ...options,
                 headers,
-                // cache: 'no-store' // Opcional: garante dados sempre frescos se necessário
+                cache: 'no-store' // Importante para garantir dados frescos (ex: novas mensagens no chat)
             });
 
             if (!response.ok) {
@@ -51,64 +50,75 @@ export class ZammadClient {
     }
 
     /**
-     * Busca tickets inteligentes.
-     * Lógica:
-     * 1. Busca o usuário no Zammad pelo e-mail.
-     * 2. Se o usuário tiver 'organization_id', busca todos os tickets dessa organização.
-     * 3. Se não, busca apenas os tickets onde ele é o 'customer'.
+     * Busca tickets do usuário ou organização
      */
     static async getTicketsForUser(email: string) {
         try {
-            // 1. Encontrar o usuário para descobrir sua Organização
             const userSearch = await this.request<any[]>(`/users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`);
 
             if (!userSearch || userSearch.length === 0) {
-                console.warn(`[Zammad] Usuário não encontrado para o email: ${email}`);
                 return [];
             }
 
             const zammadUser = userSearch[0];
             let query = '';
 
-            // 2. Decidir a estratégia de busca (Organização vs Pessoal)
             if (zammadUser.organization_id) {
-                // Estratégia Corporativa: Ver tickets da empresa inteira
                 query = `organization_id:${zammadUser.organization_id}`;
             } else {
-                // Estratégia Individual: Ver apenas seus tickets
                 query = `customer.email:${email}`;
             }
 
-            // Adiciona filtro para não trazer tickets arquivados/muito antigos se desejar, 
-            // ou remove filtros de estado para trazer histórico completo.
-            // Ordenação: Mais recentes primeiro.
             const finalQuery = encodeURIComponent(query);
 
+            // Busca estendida para trazer detalhes
             return await this.request<any[]>(`/tickets/search?query=${finalQuery}&expand=true&sort_by=updated_at&order_by=desc`);
 
         } catch (error) {
-            console.error('Erro ao buscar tickets do usuário/organização:', error);
-            return []; // Retorna array vazio para não quebrar a UI
+            console.error('Erro ao buscar tickets:', error);
+            return [];
         }
     }
 
     /**
      * Cria um novo ticket
      */
-    static async createTicket(payload: {
-        title: string;
-        group: string;
-        customer: string; // E-mail do cliente
-        article: {
-            subject: string;
-            body: string;
-            type?: string;
-            internal?: boolean;
-        };
-    }) {
+    static async createTicket(payload: any) {
         return this.request('/tickets', {
             method: 'POST',
             body: JSON.stringify(payload),
+        });
+    }
+
+    // --- MÉTODOS NOVOS (Adicionados para corrigir os erros da Action) ---
+
+    /**
+     * Busca um ticket específico pelo ID
+     */
+    static async getTicketById(ticketId: string | number) {
+        return this.request<any>(`/tickets/${ticketId}`);
+    }
+
+    /**
+     * Busca o histórico de mensagens (artigos) de um ticket
+     */
+    static async getTicketArticles(ticketId: string | number) {
+        return this.request<any[]>(`/ticket_articles/by_ticket/${ticketId}`);
+    }
+
+    /**
+     * Adiciona uma resposta (Nota) ao ticket
+     */
+    static async addTicketReply(ticketId: string | number, body: string) {
+        return this.request('/ticket_articles', {
+            method: 'POST',
+            body: JSON.stringify({
+                ticket_id: ticketId,
+                body: body,
+                type: 'note', // Cria uma nota pública
+                content_type: 'text/html',
+                internal: false, // false = Cliente consegue ver a resposta
+            }),
         });
     }
 }

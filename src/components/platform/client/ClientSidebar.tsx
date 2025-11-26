@@ -10,20 +10,20 @@ import {
     LogOut,
     HelpCircle,
     GraduationCap,
-    Headset, // Trocado Wrench por Headset (mais comum para suporte)
+    Headset,
     Terminal,
-    Ticket,
-    ChevronRight
+    Ticket, // Descomente se for usar a página de chamados listada
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-// Definição dos grupos de menu para melhor organização visual
+// Grupo 1: Navegação Principal
 const mainNav = [
     { title: "Visão Geral", href: "/client", icon: LayoutDashboard },
     // { title: "Meus Chamados", href: "/client/chamados", icon: Ticket },
 ];
 
+// Grupo 2: Recursos de Ajuda
 const helpNav = [
     { title: "Documentação", href: "/docs/manual", icon: BookOpen },
     { title: "Treinamentos", href: "/docs/treinamento", icon: GraduationCap },
@@ -46,12 +46,11 @@ export function ClientSidebar({ mobile = false }: ClientSidebarProps) {
 
     return (
         <div className={cn(
-            "flex h-full flex-col bg-background", // Fundo limpo
-            !mobile && "h-screen" // Altura total apenas no desktop (mobile é controlado pelo Sheet)
+            "flex h-full flex-col bg-background",
+            !mobile && "h-screen" // Altura total apenas no desktop
         )}>
 
-            {/* --- CABEÇALHO DA SIDEBAR --- */}
-            {/* No mobile, o Sheet geralmente não tem header interno duplicado, mas se quiser manter a marca: */}
+            {/* --- CABEÇALHO (Branding Client) --- */}
             <div className={cn("flex h-16 items-center px-6 border-b border-border/40", mobile && "px-4")}>
                 <Link href="/client" className="flex items-center gap-2 font-semibold group">
                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/10 transition-colors group-hover:bg-primary/20">
@@ -64,7 +63,7 @@ export function ClientSidebar({ mobile = false }: ClientSidebarProps) {
             {/* --- CONTEÚDO DE NAVEGAÇÃO --- */}
             <div className="flex-1 overflow-y-auto py-6 px-3">
 
-                {/* Grupo 1: Principal */}
+                {/* Seção Principal */}
                 <nav className="grid gap-1 mb-6">
                     <p className="px-3 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2">
                         Principal
@@ -76,10 +75,10 @@ export function ClientSidebar({ mobile = false }: ClientSidebarProps) {
 
                 <Separator className="my-4 bg-border/40" />
 
-                {/* Grupo 2: Ajuda & Recursos */}
+                {/* Seção de Recursos */}
                 <nav className="grid gap-1">
                     <p className="px-3 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2">
-                        Recursos
+                        Recursos & Ajuda
                     </p>
                     {helpNav.map((item) => (
                         <NavItem key={item.href} item={item} pathname={pathname} />
@@ -103,9 +102,12 @@ export function ClientSidebar({ mobile = false }: ClientSidebarProps) {
     );
 }
 
-/* --- Componente Auxiliar de Item de Menu --- */
+/* --- Componente de Item de Menu (Estilo Magic UI) --- */
 function NavItem({ item, pathname }: { item: any, pathname: string }) {
-    const isActive = pathname === item.href;
+    // Verifica correspondência exata ou sub-rotas (exceto a home para não ficar sempre ativa)
+    const isActive = item.href === "/client"
+        ? pathname === "/client"
+        : pathname.startsWith(item.href);
 
     return (
         <Link href={item.href}>
