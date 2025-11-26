@@ -78,10 +78,10 @@ export function AdminSidebar({ mobile = false }: AdminSidebarProps) {
 
                 <Separator className="my-4 bg-border/40" />
 
-                {/* Sistema */}
+                {/* Documentação */}
                 <nav className="grid gap-1">
                     <p className="px-3 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2">
-                        Sistema
+                        Documentação
                     </p>
                     {helpNav.map((item) => (
                         <NavItem key={item.href} item={item} pathname={pathname} />
