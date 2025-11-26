@@ -28,12 +28,12 @@ export function HeroSection({ currentVersion, releaseLink }: HeroSectionProps) {
 
         {/* Título Principal */}
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 max-w-5xl mx-auto leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-          Expertise <span className="text-primary relative inline-block">
-            Trilink
+          A <span className="text-primary relative inline-block">
+            Central
             {/* Brilho intenso atrás da marca */}
             <span className="absolute inset-0 bg-primary/40 blur-3xl -z-10 opacity-50"></span>
-          </span> para <br className="hidden md:block" />
-          elevar o seu{" "}
+          </span> Oficial <br className="hidden md:block" />
+          do{" "}
           <span className="relative inline-block pb-1">
             {/* Gradiente de Texto Premium */}
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 dark:from-white dark:to-white/60">
@@ -49,7 +49,7 @@ export function HeroSection({ currentVersion, releaseLink }: HeroSectionProps) {
 
         {/* Descrição */}
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed font-light animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-          Acesse a base de conhecimento oficial da <strong>Trilink Software</strong>. Documentação completa, releases e ferramentas exclusivas para potencializar sua operação.
+          Acesse a documentação oficial do <strong>Syspro ERP</strong>. Guias, tutoriais, releases, boas práticas e ferramentas exclusivas da Trilink para apoiar seu dia a dia..
         </p>
 
         {/* Botões de Ação */}
