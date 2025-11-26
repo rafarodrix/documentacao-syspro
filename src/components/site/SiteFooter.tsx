@@ -48,29 +48,24 @@ export function SiteFooter() {
 
             {/* Botões Sociais */}
             <div className="flex items-center gap-2">
-              <SocialButton href="https://youtube.com/@trilink" icon={Youtube} label="YouTube" hoverColor="hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/5" />
-              <SocialButton href="https://instagram.com/trilink" icon={Instagram} label="Instagram" hoverColor="hover:text-pink-500 hover:border-pink-500/20 hover:bg-pink-500/5" />
+              <SocialButton href="https://www.youtube.com/channel/UCcH7GYfmvIE9_UlWAUH8h2Q" icon={Youtube} label="YouTube" hoverColor="hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/5" />
+              <SocialButton href="https://www.instagram.com/trilinksoftwares" icon={Instagram} label="Instagram" hoverColor="hover:text-pink-500 hover:border-pink-500/20 hover:bg-pink-500/5" />
               <SocialButton href="mailto:contato@trilink.com.br" icon={Mail} label="Email" hoverColor="hover:text-primary hover:border-primary/20 hover:bg-primary/5" />
             </div>
           </div>
 
           {/* COLUNA 2: Acesso Rápido */}
           <div className="md:col-span-2 md:col-start-6 flex flex-col gap-4">
-            <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Acesso Rápido</h4>
+            <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Institucional</h4>
             <ul className="space-y-3">
               <li>
                 <FooterLink href="https://www.trilink.com.br/" external>
-                  <Globe className="h-3.5 w-3.5 mr-2 opacity-70" /> Site Institucional
+                  <Globe className="h-3.5 w-3.5 mr-2 opacity-70" /> Site
                 </FooterLink>
               </li>
               <li>
                 <FooterLink href="https://www.trilink.com.br/public/downloads" external>
                   <Download className="h-3.5 w-3.5 mr-2 opacity-70" /> Área de Downloads
-                </FooterLink>
-              </li>
-              <li>
-                <FooterLink href="/login" highlight>
-                  Portal do Cliente
                 </FooterLink>
               </li>
             </ul>
@@ -82,18 +77,16 @@ export function SiteFooter() {
             <ul className="space-y-3">
               <li><FooterLink href="/docs/manual">Documentação Oficial</FooterLink></li>
               <li><FooterLink href="/docs/duvidas">Dúvidas Frequentes</FooterLink></li>
-              <li><FooterLink href="/docs/suporte">Abrir Chamado</FooterLink></li>
-              <li><FooterLink href="/status">Status do Sistema</FooterLink></li>
+              <li><FooterLink href="/docs/suporte">Suporte</FooterLink></li>
             </ul>
           </div>
 
           {/* COLUNA 4: Legal */}
           <div className="md:col-span-2 flex flex-col gap-4">
-            <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Legal</h4>
+            <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Acesso Rápido</h4>
             <ul className="space-y-3">
-              <li><FooterLink href="/termos">Termos de Uso</FooterLink></li>
-              <li><FooterLink href="/privacidade">Política de Privacidade</FooterLink></li>
-              <li><FooterLink href="/compliance">Compliance</FooterLink></li>
+              <li><FooterLink href="/login">Login</FooterLink></li>
+              <li><FooterLink href="/client">Portal do Cliente</FooterLink></li>
             </ul>
           </div>
 
@@ -106,10 +99,8 @@ export function SiteFooter() {
           </p>
 
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
-              Todos os sistemas operacionais
-            </span>
+            <FooterLink href="/termos">Termos de Uso</FooterLink>
+            <FooterLink href="/privacidade">Política de Privacidade</FooterLink>
           </div>
         </div>
 
