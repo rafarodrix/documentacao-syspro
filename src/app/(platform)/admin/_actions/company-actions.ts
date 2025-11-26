@@ -31,7 +31,7 @@ export async function getCompaniesAction() {
   const session = await getProtectedSession();
 
   if (!session || !READ_ROLES.includes(session.role)) {
-    return { success: false as const, error: "Acesso negado." }; // Retornar objeto consistente em vez de throw
+    return { success: false as const, error: "Acesso negado." };
   }
 
   try {
@@ -75,7 +75,7 @@ export async function createCompanyAction(data: CreateCompanyInput) {
         emailContato: data.emailContato,
         telefone: data.telefone,
         website: data.website || null,
-        status: 'ACTIVE', // Padrão ao criar
+        status: 'ACTIVE',
 
         // Fiscal
         inscricaoEstadual: data.inscricaoEstadual,
