@@ -17,12 +17,22 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ClientSidebar } from "./ClientSidebar";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 interface ClientHeaderProps {
     userEmail: string;
 }
 
 export function ClientHeader({ userEmail }: ClientHeaderProps) {
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await authClient.signOut();
+        router.push("/login");
+    };
+
     return (
         // Header Sticky com efeito Glass/Blur aprimorado
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/40 bg-background/60 px-6 backdrop-blur-xl transition-all supports-[backdrop-filter]:bg-background/60">
@@ -101,16 +111,25 @@ export function ClientHeader({ userEmail }: ClientHeaderProps) {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer">
-                            <User className="mr-2 h-4 w-4 text-muted-foreground" /> Perfil
+
+                        {/* Link para a página de Perfil */}
+                        <DropdownMenuItem asChild className="cursor-pointer">
+                            <Link href="/client/perfil" className="flex items-center w-full">
+                                <User className="mr-2 h-4 w-4 text-muted-foreground" /> Perfil
+                            </Link>
                         </DropdownMenuItem>
+
                         <DropdownMenuItem className="cursor-pointer">
                             <Settings className="mr-2 h-4 w-4 text-muted-foreground" /> Configurações
                         </DropdownMenuItem>
+
                         <DropdownMenuSeparator />
 
-                        {/* DICA: Aqui você pode integrar o Logout real do Better Auth futuramente */}
-                        <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer">
+                        {/* Logout Funcional */}
+                        <DropdownMenuItem
+                            className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer"
+                            onClick={handleLogout}
+                        >
                             <LogOut className="mr-2 h-4 w-4" /> Sair
                         </DropdownMenuItem>
                     </DropdownMenuContent>

@@ -1,3 +1,5 @@
+"use client";
+
 import { ModeToggle } from "@/components/mode-toggle";
 import { UserRole } from "@/lib/auth-helpers";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +12,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, ChevronRight, Command, LogOut, Search, Settings, User, ShieldAlert, ShieldCheck, Shield } from "lucide-react";
+import { Bell, ChevronRight, LogOut, Search, Settings, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 interface AdminHeaderProps {
     userEmail: string;
@@ -19,17 +23,24 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ userEmail, userRole }: AdminHeaderProps) {
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await authClient.signOut();
+        router.push("/login");
+    };
+
     return (
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/40 bg-background/60 px-6 backdrop-blur-xl transition-all supports-[backdrop-filter]:bg-background/60">
 
             {/* --- LADO ESQUERDO: Breadcrumbs --- */}
             <div className="hidden md:flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <div className="flex items-center hover:text-foreground transition-colors cursor-pointer">
+                <Link href="/admin" className="flex items-center hover:text-foreground transition-colors cursor-pointer">
                     <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center mr-2 border border-primary/10">
                         <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                     </div>
                     <span className="font-semibold text-foreground">Admin</span>
-                </div>
+                </Link>
                 <ChevronRight className="h-4 w-4 opacity-30" />
                 <span className="bg-muted/50 px-2 py-0.5 rounded-md text-xs border border-border/50">
                     Painel de Controle
@@ -85,14 +96,25 @@ export function AdminHeader({ userEmail, userRole }: AdminHeaderProps) {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer">
-                            <User className="mr-2 h-4 w-4 text-muted-foreground" /> Perfil
+
+                        {/* Link para a página de Perfil */}
+                        <DropdownMenuItem asChild className="cursor-pointer">
+                            <Link href="/admin/perfil" className="flex items-center w-full">
+                                <User className="mr-2 h-4 w-4 text-muted-foreground" /> Perfil
+                            </Link>
                         </DropdownMenuItem>
+
                         <DropdownMenuItem className="cursor-pointer">
                             <Settings className="mr-2 h-4 w-4 text-muted-foreground" /> Configurações
                         </DropdownMenuItem>
+
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer">
+
+                        {/* Logout Funcional */}
+                        <DropdownMenuItem
+                            className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer"
+                            onClick={handleLogout}
+                        >
                             <LogOut className="mr-2 h-4 w-4" /> Sair
                         </DropdownMenuItem>
                     </DropdownMenuContent>
