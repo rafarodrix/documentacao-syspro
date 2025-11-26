@@ -1,195 +1,108 @@
-"use client";
-
-import { useState, useRef, useEffect, useTransition } from "react";
+import { getTicketDetailsAction } from "../../_actions/ticket-actions";
+import { TicketChat } from "@/components/platform/client/TicketChat";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Loader2, User, Headset, Bot, CheckCheck, Lock, MessageSquareDashed } from "lucide-react";
-import { replyTicketAction } from "@/app/(platform)/client/_actions/ticket-actions";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { ArrowLeft, Clock, Hash, AlertCircle } from "lucide-react";
+import Link from "next/link";
 
-interface Article {
-    id: number;
-    body: string;
-    from: string;
-    createdAt: string;
-    sender: string;
+// Interface ajustada para Next.js 15 (params como Promise)
+interface PageProps {
+    params: Promise<{
+        id: string;
+    }>;
 }
 
-interface TicketChatProps {
-    ticketId: string;
-    articles: Article[];
-    ticketStatus: string;
+export default async function TicketDetailsPage({ params }: PageProps) {
+    // 1. Aguarda os parâmetros da rota
+    const { id } = await params;
+
+    // 2. Busca os dados no servidor
+    const { success, ticket, articles, error } = await getTicketDetailsAction(id);
+
+    // 3. Tratamento de Erro (UI amigável em caso de falha)
+    if (!success || !ticket) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] p-8 text-center animate-in fade-in zoom-in duration-500">
+                <div className="h-16 w-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
+                    <AlertCircle className="h-8 w-8" />
+                </div>
+                <h1 className="text-2xl font-bold text-foreground mb-2">Não foi possível carregar o chamado</h1>
+                <p className="text-muted-foreground max-w-md mb-6">
+                    {error || "O ticket pode não existir ou você não tem permissão para visualizá-lo."}
+                </p>
+                <Link href="/client">
+                    <Button variant="outline" className="gap-2">
+                        <ArrowLeft className="h-4 w-4" /> Voltar para Meus Chamados
+                    </Button>
+                </Link>
+            </div>
+        );
+    }
+
+    // 4. Renderização Principal
+    return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto p-4 md:p-0">
+
+            {/* Header de Navegação e Título */}
+            <div className="flex flex-col md:flex-row md:items-center gap-4 mb-2 border-b border-border/40 pb-6">
+                <div className="flex items-start gap-4">
+                    <Link href="/client">
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-muted/80 -ml-2">
+                            <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+                    </Link>
+                    <div className="flex flex-col gap-1">
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground line-clamp-2">
+                            {ticket.title}
+                        </h1>
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-0.5 rounded-md border border-border/50 font-mono text-xs">
+                                <Hash className="h-3 w-3" /> {ticket.number}
+                            </span>
+                            <span className="flex items-center gap-1.5 text-xs">
+                                <Clock className="h-3 w-3" /> Criado em {ticket.createdAt}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="md:ml-auto flex items-center gap-3">
+                    {/* Aqui passamos o status, mas ele pode vir nulo, o componente abaixo agora trata isso */}
+                    <StatusBadge status={ticket.status} />
+                </div>
+            </div>
+
+            {/* Componente de Chat */}
+            <TicketChat
+                ticketId={String(ticket.id)} // Converte para string para garantir compatibilidade
+                articles={articles || []}
+                ticketStatus={ticket.status || ''} // Garante string vazia se nulo
+            />
+
+        </div>
+    );
 }
 
-export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps) {
-    const [message, setMessage] = useState("");
-    const [isPending, startTransition] = useTransition();
-    const scrollRef = useRef<HTMLDivElement>(null);
+/* --- Componente Auxiliar de Badge de Status (Safe) --- */
+function StatusBadge({ status }: { status?: string | null }) {
+    const s = (status || '').toLowerCase();
 
-    // Auto-scroll ao carregar ou receber mensagens
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [articles]);
+    let style = 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700';
 
-    const handleSend = () => {
-        if (!message.trim()) return;
-
-        startTransition(async () => {
-            const result = await replyTicketAction(ticketId, message);
-            if (result.success) {
-                setMessage("");
-                toast.success("Resposta enviada!");
-            } else {
-                toast.error(result.error || "Erro ao enviar.");
-            }
-        });
-    };
-
-    const isClosed = ['closed', 'merged', 'fechado', 'resolvido'].includes((ticketStatus || '').toLowerCase());
+    // Mapeamento de cores conforme status do Zammad
+    if (['novo', 'new', 'aberto', 'open'].some(v => s.includes(v))) {
+        style = 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800';
+    }
+    if (['resolvido', 'closed', 'fechado'].some(v => s.includes(v))) {
+        style = 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800';
+    }
+    if (['pendente', 'pending', 'análise'].some(v => s.includes(v))) {
+        style = 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800';
+    }
 
     return (
-        <div className="flex flex-col h-[650px] border border-border/60 rounded-xl bg-background shadow-sm overflow-hidden">
-
-            {/* Área de Mensagens */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-muted/5 scroll-smooth">
-                {articles.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 gap-2">
-                        <div className="p-4 rounded-full bg-muted/30">
-                            <MessageSquareDashed className="h-8 w-8" />
-                        </div>
-                        <p>Nenhuma mensagem encontrada.</p>
-                    </div>
-                )}
-
-                {articles.map((article) => {
-                    const isMe = article.sender === 'Customer';
-                    const isSystem = article.sender === 'System';
-
-                    // Mensagens do Sistema (Centralizadas)
-                    if (isSystem) {
-                        return (
-                            <div key={article.id} className="flex justify-center my-6 animate-in fade-in zoom-in duration-500">
-                                <span className="text-[10px] bg-muted/40 border border-border/40 px-3 py-1 rounded-full text-muted-foreground flex items-center gap-2 uppercase tracking-wide font-medium">
-                                    <Bot className="h-3 w-3" />
-                                    {article.body.replace(/<[^>]*>?/gm, '')}
-                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
-                                    {article.createdAt}
-                                </span>
-                            </div>
-                        );
-                    }
-
-                    // Mensagens de Usuário/Agente
-                    return (
-                        <div
-                            key={article.id}
-                            className={cn(
-                                "flex gap-4 max-w-[90%] md:max-w-[80%] animate-in slide-in-from-bottom-2 duration-500",
-                                isMe ? "ml-auto flex-row-reverse" : ""
-                            )}
-                        >
-                            {/* Avatar */}
-                            <Avatar className={cn("h-8 w-8 mt-1 border shadow-sm", isMe ? "bg-primary/10" : "bg-background")}>
-                                <AvatarFallback className={cn(
-                                    "text-xs font-bold",
-                                    isMe ? "text-primary" : "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-950/30"
-                                )}>
-                                    {isMe ? <User className="h-4 w-4" /> : <Headset className="h-4 w-4" />}
-                                </AvatarFallback>
-                            </Avatar>
-
-                            <div className={cn(
-                                "flex flex-col gap-1 min-w-0", // min-w-0 evita overflow flex
-                                isMe ? "items-end" : "items-start"
-                            )}>
-                                {/* Cabeçalho da Mensagem */}
-                                <div className="flex items-center gap-2 px-1">
-                                    <span className="text-xs font-medium text-foreground/80">{article.from}</span>
-                                    <span className="text-[10px] text-muted-foreground opacity-70">{article.createdAt}</span>
-                                </div>
-
-                                {/* Balão de Mensagem */}
-                                <div className={cn(
-                                    "px-5 py-3.5 rounded-2xl text-sm shadow-sm relative group transition-all",
-                                    isMe
-                                        ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                        : "bg-white dark:bg-zinc-900 border border-border/60 text-foreground rounded-tl-sm"
-                                )}>
-                                    {/* CORREÇÃO CRÍTICA: 
-                      [&_*] força todos os elementos filhos a herdarem a cor definida no pai.
-                      Isso sobrescreve estilos inline que possam vir do Zammad ou conflitos do 'prose'.
-                  */}
-                                    <div
-                                        className={cn(
-                                            "prose prose-sm max-w-none break-words leading-relaxed",
-                                            isMe
-                                                ? "[&_*]:text-primary-foreground [&_a]:underline [&_a]:decoration-white/50" // Força texto branco no balão do cliente
-                                                : "dark:prose-invert [&_*]:text-foreground" // Texto padrão no balão do agente
-                                        )}
-                                        dangerouslySetInnerHTML={{ __html: article.body }}
-                                    />
-
-                                    {/* Status de Leitura (Visual) */}
-                                    {isMe && (
-                                        <div className="absolute bottom-1 right-1.5 opacity-0 group-hover:opacity-80 transition-opacity">
-                                            <CheckCheck className="h-3 w-3 text-primary-foreground/70" />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
-                <div ref={scrollRef} className="h-1" />
-            </div>
-
-            {/* Área de Input (Rodapé) */}
-            <div className="p-4 bg-background border-t border-border/40">
-                {isClosed ? (
-                    <div className="flex flex-col items-center justify-center gap-2 py-8 text-center bg-muted/20 rounded-xl border border-dashed border-border/60 mx-2 animate-in fade-in">
-                        <div className="p-2.5 rounded-full bg-muted/50 text-muted-foreground">
-                            <Lock className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-medium text-foreground">Este chamado foi encerrado.</p>
-                            <p className="text-xs text-muted-foreground">Para novas dúvidas, abra uma nova solicitação.</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex gap-3 items-end max-w-5xl mx-auto">
-                        <div className="relative flex-1 group">
-                            <Textarea
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                placeholder="Escreva uma resposta para o suporte..."
-                                className="min-h-[60px] max-h-[200px] py-3 pr-12 resize-none bg-muted/20 focus:bg-background transition-all border-border/60 focus:ring-2 focus:ring-primary/10 rounded-xl shadow-sm"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSend();
-                                    }
-                                }}
-                            />
-                            <div className="absolute bottom-2 right-3 hidden sm:flex items-center gap-1 pointer-events-none transition-opacity opacity-40 group-focus-within:opacity-100">
-                                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Enter envia</span>
-                            </div>
-                        </div>
-
-                        <Button
-                            onClick={handleSend}
-                            disabled={isPending || !message.trim()}
-                            size="icon"
-                            className="h-[60px] w-[60px] shrink-0 rounded-xl shadow-md bg-gradient-to-b from-primary to-primary/90 hover:to-primary transition-all hover:scale-105 active:scale-95"
-                        >
-                            {isPending ? <Loader2 className="h-6 w-6 animate-spin" /> : <Send className="h-6 w-6 ml-0.5" />}
-                        </Button>
-                    </div>
-                )}
-            </div>
-        </div>
+        <Badge variant="outline" className={`border ${style} font-medium capitalize px-3 py-1 text-sm`}>
+            {status || 'Desconhecido'}
+        </Badge>
     );
 }
