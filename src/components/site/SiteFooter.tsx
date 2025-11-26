@@ -50,7 +50,7 @@ export function SiteFooter() {
             <div className="flex items-center gap-2">
               <SocialButton href="https://www.youtube.com/channel/UCcH7GYfmvIE9_UlWAUH8h2Q" icon={Youtube} label="YouTube" hoverColor="hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/5" />
               <SocialButton href="https://www.instagram.com/trilinksoftwares" icon={Instagram} label="Instagram" hoverColor="hover:text-pink-500 hover:border-pink-500/20 hover:bg-pink-500/5" />
-              <SocialButton href="mailto:contato@trilink.com.br" icon={Mail} label="Email" hoverColor="hover:text-primary hover:border-primary/20 hover:bg-primary/5" />
+              <SocialButton href="mailto:trilinksuporte@gmail.com" icon={Mail} label="Email" hoverColor="hover:text-primary hover:border-primary/20 hover:bg-primary/5" />
             </div>
           </div>
 

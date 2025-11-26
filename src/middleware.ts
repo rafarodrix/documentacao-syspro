@@ -11,8 +11,8 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = [
     "/",
     "/login",
-    "/releases", // Notas de versão
-    "/suporte"   // Se houver uma landing page de suporte pública
+    "/privacidade",
+    "/termos"
   ];
 
   // Verifica se a rota atual começa com algum dos caminhos públicos
