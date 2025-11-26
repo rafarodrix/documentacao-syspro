@@ -7,30 +7,41 @@ import {
     LayoutDashboard,
     Building2,
     Users,
-    BookOpen,
-    GraduationCap,
+    Settings,
+    FileText,
     ShieldCheck,
     LogOut,
-    HelpCircle,
-    Headset
+    Headset,
+    BookOpen,
+    GraduationCap,
+    HelpCircle
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-// Grupo 1: Operacional
+// Grupo 1: Operacional (Gestão do Negócio)
 const manageNav = [
     { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { title: "Empresas", href: "/admin/empresas", icon: Building2 },
     { title: "Usuários", href: "/admin/usuarios", icon: Users },
 ];
 
-// Grupo 2: Documentação
+// Grupo 2: Sistema (Ferramentas Admin)
+const systemNav = [
+    { title: "Central de Chamados", href: "/admin/chamados", icon: Headset },
+    { title: "Logs do Sistema", href: "/admin/logs", icon: FileText },
+    { title: "Configurações", href: "/admin/configuracoes", icon: Settings },
+];
+
+// Grupo 3: Recursos (Links Úteis/Docs)
 const helpNav = [
     { title: "Documentação", href: "/docs/manual", icon: BookOpen },
     { title: "Treinamentos", href: "/docs/treinamento", icon: GraduationCap },
     { title: "Dúvidas Frequentes", href: "/docs/duvidas", icon: HelpCircle },
-    { title: "Suporte Técnico", href: "/docs/suporte", icon: Headset },
+    // Mantemos o link para a página de explicação do suporte, se necessário
+    // Ou removemos se "Central de Chamados" já for suficiente. Vou manter conforme pedido.
+    { title: "Sobre o Suporte", href: "/docs/suporte", icon: Headset },
 ];
 
 interface AdminSidebarProps {
@@ -55,7 +66,6 @@ export function AdminSidebar({ mobile = false }: AdminSidebarProps) {
             {/* --- CABEÇALHO (Branding Admin) --- */}
             <div className={cn("flex h-16 items-center px-6 border-b border-border/40", mobile && "px-4")}>
                 <Link href="/admin" className="flex items-center gap-2 font-semibold group">
-                    {/* Ícone com tom Roxo para diferenciar do Client */}
                     <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 border border-purple-500/10 transition-colors group-hover:bg-purple-500/20">
                         <ShieldCheck className="h-5 w-5" />
                     </div>
@@ -64,7 +74,7 @@ export function AdminSidebar({ mobile = false }: AdminSidebarProps) {
             </div>
 
             {/* --- NAVEGAÇÃO --- */}
-            <div className="flex-1 overflow-y-auto py-6 px-3">
+            <div className="flex-1 overflow-y-auto py-6 px-3 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
 
                 {/* Gerenciamento */}
                 <nav className="grid gap-1 mb-6">
@@ -78,10 +88,22 @@ export function AdminSidebar({ mobile = false }: AdminSidebarProps) {
 
                 <Separator className="my-4 bg-border/40" />
 
-                {/* Documentação */}
+                {/* Sistema */}
+                <nav className="grid gap-1 mb-6">
+                    <p className="px-3 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2">
+                        Sistema
+                    </p>
+                    {systemNav.map((item) => (
+                        <NavItem key={item.href} item={item} pathname={pathname} />
+                    ))}
+                </nav>
+
+                <Separator className="my-4 bg-border/40" />
+
+                {/* Recursos & Ajuda */}
                 <nav className="grid gap-1">
                     <p className="px-3 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2">
-                        Documentação
+                        Recursos & Ajuda
                     </p>
                     {helpNav.map((item) => (
                         <NavItem key={item.href} item={item} pathname={pathname} />
@@ -107,8 +129,6 @@ export function AdminSidebar({ mobile = false }: AdminSidebarProps) {
 
 /* --- Componente de Item de Menu --- */
 function NavItem({ item, pathname }: { item: any, pathname: string }) {
-    // Verifica se a rota atual começa com o href do item (para sub-rotas)
-    // Exceção para a home do admin (/admin) para não ficar sempre ativa
     const isActive = item.href === "/admin"
         ? pathname === "/admin"
         : pathname.startsWith(item.href);
