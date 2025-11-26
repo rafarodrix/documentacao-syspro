@@ -7,11 +7,12 @@ import {
     LayoutDashboard,
     Building2,
     Users,
-    Settings,
-    FileText,
+    BookOpen,
+    GraduationCap,
     ShieldCheck,
     LogOut,
-    Activity
+    HelpCircle,
+    Headset
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -24,10 +25,12 @@ const manageNav = [
     { title: "Usuários", href: "/admin/usuarios", icon: Users },
 ];
 
-// Grupo 2: Sistema
-const systemNav = [
-    { title: "Logs do Sistema", href: "/admin/logs", icon: FileText },
-    { title: "Configurações", href: "/admin/configuracoes", icon: Settings },
+// Grupo 2: Documentação
+const helpNav = [
+    { title: "Documentação", href: "/docs/manual", icon: BookOpen },
+    { title: "Treinamentos", href: "/docs/treinamento", icon: GraduationCap },
+    { title: "Dúvidas Frequentes", href: "/docs/duvidas", icon: HelpCircle },
+    { title: "Suporte Técnico", href: "/docs/suporte", icon: Headset },
 ];
 
 interface AdminSidebarProps {
@@ -80,7 +83,7 @@ export function AdminSidebar({ mobile = false }: AdminSidebarProps) {
                     <p className="px-3 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2">
                         Sistema
                     </p>
-                    {systemNav.map((item) => (
+                    {helpNav.map((item) => (
                         <NavItem key={item.href} item={item} pathname={pathname} />
                     ))}
                 </nav>

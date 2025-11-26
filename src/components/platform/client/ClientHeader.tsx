@@ -34,7 +34,6 @@ export function ClientHeader({ userEmail }: ClientHeaderProps) {
     };
 
     return (
-        // Header Sticky com efeito Glass/Blur aprimorado
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/40 bg-background/60 px-6 backdrop-blur-xl transition-all supports-[backdrop-filter]:bg-background/60">
 
             {/* --- ESQUERDA: Menu Mobile & Breadcrumbs --- */}
