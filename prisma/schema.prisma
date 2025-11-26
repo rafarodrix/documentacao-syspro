@@ -57,7 +57,7 @@ model Company {
   // CONTATO
   emailContato String?
   telefone     String?
-  website      String?      // Novo
+  website      String?
 
   // ENDEREÇO (Novos)
   cep         String?
@@ -66,7 +66,7 @@ model Company {
   complemento String?
   bairro      String?
   cidade      String?
-  estado      String?       // UF (Ex: SP, MG)
+  estado      String?
 
   // RELAÇÃO COM CONTABILIDADE (Auto-relacionamento)
   // Uma empresa pode ter uma contabilidade vinculada (que também é uma Company no sistema)

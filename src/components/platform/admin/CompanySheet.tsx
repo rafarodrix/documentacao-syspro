@@ -40,11 +40,10 @@ import {
     MapPin,
     Phone,
     FileText,
-    Power,
     Ban,
-    CheckCircle
+    CheckCircle,
+    Landmark
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface CompanySheetProps {
     companyToEdit?: any;
@@ -71,10 +70,11 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
             cep: "",
             logradouro: "",
             numero: "",
+            complemento: "", // Adicionado
             bairro: "",
             cidade: "",
             estado: "",
-            // inscricaoEstadual removida
+            inscricaoEstadual: "", // Restaurado
             inscricaoMunicipal: "",
             regimeTributario: undefined,
             observacoes: "",
@@ -90,14 +90,14 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                     complemento: companyToEdit.complemento || "",
                     website: companyToEdit.website || "",
                     observacoes: companyToEdit.observacoes || "",
+                    inscricaoEstadual: companyToEdit.inscricaoEstadual || "",
                     inscricaoMunicipal: companyToEdit.inscricaoMunicipal || "",
-                    // Removemos a IE e Accounting do reset pois não usamos mais
                 });
             } else {
                 reset({
                     cnpj: "", razaoSocial: "", nomeFantasia: "", emailContato: "", telefone: "",
-                    website: "", cep: "", logradouro: "", numero: "", bairro: "", cidade: "",
-                    estado: "", inscricaoMunicipal: "", observacoes: "",
+                    website: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "",
+                    estado: "", inscricaoEstadual: "", inscricaoMunicipal: "", observacoes: "",
                     regimeTributario: undefined
                 });
             }
@@ -135,7 +135,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
             const result = await toggleCompanyStatusAction(companyToEdit.id, companyToEdit.status);
             if (result.success) {
                 toast.success(result.message);
-                setOpen(false); // Fecha para atualizar a lista na tabela
+                setOpen(false);
             } else {
                 toast.error(typeof result.error === 'string' ? result.error : "Erro ao alterar status.");
             }
@@ -155,7 +155,6 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                 toast.success(isEditing ? "Empresa atualizada!" : "Empresa criada com sucesso!");
                 setOpen(false);
             } else {
-                // Tratamento para erros de validação do Zod retornados pelo server
                 const errorMsg = typeof result.error === 'string'
                     ? result.error
                     : "Verifique os campos obrigatórios.";
@@ -199,7 +198,6 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                         </SheetHeader>
                     </div>
 
-                    {/* Botão de Ativar/Desativar (Só aparece na edição) */}
                     {isEditing && (
                         <Button
                             variant="outline"
@@ -226,7 +224,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                     )}
                 </div>
 
-                {/* FORMULÁRIO SCROLLÁVEL */}
+                {/* FORMULÁRIO */}
                 <div className="flex-1 p-6 overflow-y-auto">
                     <form id="company-form" onSubmit={handleSubmit(onSubmit)} className="space-y-8">
 
@@ -238,6 +236,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
+                                {/* CNPJ */}
                                 <div className="space-y-2 col-span-2 sm:col-span-1">
                                     <Label htmlFor="cnpj">CNPJ</Label>
                                     <div className="relative">
@@ -253,6 +252,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                                     {errors.cnpj && <span className="text-xs text-red-500">{errors.cnpj.message}</span>}
                                 </div>
 
+                                {/* Regime Tributário */}
                                 <div className="space-y-2 col-span-2 sm:col-span-1">
                                     <Label htmlFor="regime">Regime Tributário</Label>
                                     <Select onValueChange={(val) => setValue("regimeTributario", val as any)} defaultValue={companyToEdit?.regimeTributario || undefined}>
@@ -268,20 +268,36 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                                     </Select>
                                 </div>
 
+                                {/* Razão Social */}
                                 <div className="space-y-2 col-span-2">
                                     <Label htmlFor="razaoSocial">Razão Social</Label>
                                     <Input id="razaoSocial" {...register("razaoSocial")} className="bg-muted/30 focus:bg-background font-medium" />
                                     {errors.razaoSocial && <span className="text-xs text-red-500">{errors.razaoSocial.message}</span>}
                                 </div>
 
+                                {/* Nome Fantasia */}
                                 <div className="space-y-2 col-span-2">
                                     <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
                                     <Input id="nomeFantasia" {...register("nomeFantasia")} className="bg-muted/30 focus:bg-background" />
                                 </div>
+                            </div>
+                        </div>
 
-                                {/* Apenas Inscrição Municipal agora */}
+                        <Separator className="bg-border/50" />
+
+                        {/* SEÇÃO 2: INFORMAÇÕES FISCAIS (Restauradas) */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit">
+                                <Landmark className="h-4 w-4" />
+                                <span>Fiscal</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2 col-span-2 sm:col-span-1">
-                                    <Label>Insc. Municipal</Label>
+                                    <Label>Inscrição Estadual</Label>
+                                    <Input {...register("inscricaoEstadual")} placeholder="Isento ou Número" className="bg-muted/30 focus:bg-background" />
+                                </div>
+                                <div className="space-y-2 col-span-2 sm:col-span-1">
+                                    <Label>Inscrição Municipal</Label>
                                     <Input {...register("inscricaoMunicipal")} className="bg-muted/30 focus:bg-background" />
                                 </div>
                             </div>
@@ -289,7 +305,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
 
                         <Separator className="bg-border/50" />
 
-                        {/* SEÇÃO 2: CONTATO */}
+                        {/* SEÇÃO 3: CONTATO */}
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit">
                                 <Phone className="h-4 w-4" />
@@ -297,11 +313,11 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="emailContato">E-mail Principal</Label>
+                                    <Label htmlFor="emailContato">E-mail Financeiro/Admin</Label>
                                     <Input id="emailContato" {...register("emailContato")} type="email" className="bg-muted/30 focus:bg-background" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="telefone">Telefone</Label>
+                                    <Label htmlFor="telefone">Telefone / Celular</Label>
                                     <Input id="telefone" {...register("telefone")} placeholder="(00) 00000-0000" className="bg-muted/30 focus:bg-background" />
                                 </div>
                                 <div className="space-y-2 sm:col-span-2">
@@ -313,7 +329,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
 
                         <Separator className="bg-border/50" />
 
-                        {/* SEÇÃO 3: ENDEREÇO */}
+                        {/* SEÇÃO 4: ENDEREÇO (Com Complemento) */}
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit">
                                 <MapPin className="h-4 w-4" />
@@ -339,21 +355,29 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                                     <Label htmlFor="numero">Número</Label>
                                     <Input id="numero" {...register("numero")} className="bg-muted/30 focus:bg-background" />
                                 </div>
-                                <div className="space-y-2 col-span-3">
+                                <div className="space-y-2 col-span-4 sm:col-span-3">
                                     <Label htmlFor="logradouro">Logradouro</Label>
                                     <Input id="logradouro" {...register("logradouro")} className="bg-muted/30 focus:bg-background" />
                                 </div>
-                                <div className="space-y-2 col-span-1">
+                                <div className="space-y-2 col-span-4 sm:col-span-1">
                                     <Label htmlFor="estado">UF</Label>
                                     <Input id="estado" {...register("estado")} maxLength={2} className="bg-muted/30 focus:bg-background" />
                                 </div>
-                                <div className="space-y-2 col-span-2">
-                                    <Label htmlFor="cidade">Cidade</Label>
-                                    <Input id="cidade" {...register("cidade")} className="bg-muted/30 focus:bg-background" />
+
+                                {/* Campo Complemento Adicionado */}
+                                <div className="space-y-2 col-span-4 sm:col-span-2">
+                                    <Label htmlFor="complemento">Complemento</Label>
+                                    <Input id="complemento" {...register("complemento")} placeholder="Sala, Bloco, Apto..." className="bg-muted/30 focus:bg-background" />
                                 </div>
-                                <div className="space-y-2 col-span-2">
+
+                                <div className="space-y-2 col-span-4 sm:col-span-2">
                                     <Label htmlFor="bairro">Bairro</Label>
                                     <Input id="bairro" {...register("bairro")} className="bg-muted/30 focus:bg-background" />
+                                </div>
+
+                                <div className="space-y-2 col-span-4">
+                                    <Label htmlFor="cidade">Cidade</Label>
+                                    <Input id="cidade" {...register("cidade")} className="bg-muted/30 focus:bg-background" />
                                 </div>
                             </div>
                         </div>
@@ -365,7 +389,7 @@ export function CompanySheet({ companyToEdit }: CompanySheetProps) {
                                 id="observacoes"
                                 {...register("observacoes")}
                                 className="min-h-[100px] bg-muted/30 focus:bg-background resize-y"
-                                placeholder="Informações adicionais sobre o cliente..."
+                                placeholder="Informações adicionais sobre o cliente, responsável técnico, etc..."
                             />
                         </div>
 
