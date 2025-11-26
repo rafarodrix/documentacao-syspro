@@ -41,7 +41,7 @@ export default async function TicketDetailsPage({ params }: PageProps) {
 
     // 4. Renderização Principal
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto p-4 md:p-0">
 
             {/* Header de Navegação e Título */}
             <div className="flex flex-col md:flex-row md:items-center gap-4 mb-2 border-b border-border/40 pb-6">
@@ -67,6 +67,7 @@ export default async function TicketDetailsPage({ params }: PageProps) {
                 </div>
 
                 <div className="md:ml-auto flex items-center gap-3">
+                    {/* Aqui passamos o status, mas ele pode vir nulo, o componente abaixo agora trata isso */}
                     <StatusBadge status={ticket.status} />
                 </div>
             </div>
@@ -75,16 +76,17 @@ export default async function TicketDetailsPage({ params }: PageProps) {
             <TicketChat
                 ticketId={String(ticket.id)} // Converte para string para garantir compatibilidade
                 articles={articles || []}
-                ticketStatus={ticket.status}
+                ticketStatus={ticket.status || ''} // Garante string vazia se nulo
             />
 
         </div>
     );
 }
 
-/* --- Componente Auxiliar de Badge de Status --- */
-function StatusBadge({ status }: { status: string }) {
-    const s = status?.toLowerCase() || '';
+/* --- Componente Auxiliar de Badge de Status (Safe) --- */
+function StatusBadge({ status }: { status?: string | null }) {
+    const s = (status || '').toLowerCase();
+
     let style = 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700';
 
     // Mapeamento de cores conforme status do Zammad
@@ -100,7 +102,7 @@ function StatusBadge({ status }: { status: string }) {
 
     return (
         <Badge variant="outline" className={`border ${style} font-medium capitalize px-3 py-1 text-sm`}>
-            {status}
+            {status || 'Desconhecido'}
         </Badge>
     );
 }
