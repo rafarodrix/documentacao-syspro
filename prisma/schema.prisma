@@ -41,13 +41,13 @@ enum TaxRegime {
 // ---------------------------------------------------------
 
 model Company {
-  id           String        @id @default(cuid())
+  id            String        @id @default(cuid())
   
   // DADOS PRINCIPAIS
-  cnpj         String        @unique
-  razaoSocial  String
-  nomeFantasia String?
-  status       CompanyStatus @default(ACTIVE)
+  cnpj          String        @unique
+  razaoSocial   String
+  nomeFantasia  String?
+  status        CompanyStatus @default(ACTIVE)
   
   // DADOS FISCAIS (Novos)
   inscricaoEstadual  String?  // Crucial para comércio
@@ -76,44 +76,47 @@ model Company {
   // Se esta empresa FOR uma contabilidade, ela terá vários clientes:
   accountingClients Company[] @relation("AccountantClient")
 
+  // RELAÇÃO COM CONTRATOS (CORREÇÃO APLICADA AQUI)
+  contracts Contract[]
+
   // EXTRAS
   observacoes String? @db.Text // Campo de texto longo para notas internas
 
   // METADADOS
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   // RELAÇÃO N:N COM USUÁRIOS
-  users        User[]        @relation("CompanyUsers")
+  users         User[]        @relation("CompanyUsers")
 
   @@map("company")
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id             String    @id @default(cuid())
   
   // Auth Fields
-  email         String    @unique
-  name          String?
-  emailVerified Boolean   @default(false)
-  image         String?
+  email          String    @unique
+  name           String?
+  emailVerified  Boolean   @default(false)
+  image          String?
   
   // CORREÇÃO: Campo de senha adicionado
-  password      String?   
+  password       String?    
   
   // Role & Status
-  role          Role      @default(CLIENTE_USER)
-  isActive      Boolean   @default(true)
+  role           Role      @default(CLIENTE_USER)
+  isActive       Boolean   @default(true)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // RELAÇÃO N:N
-  companies     Company[] @relation("CompanyUsers")
+  companies      Company[] @relation("CompanyUsers")
 
   // Auth Relations
-  sessions      Session[]
-  accounts      Account[]
+  sessions       Session[]
+  accounts       Account[]
 
   @@map("user") // Nome da tabela no banco: "user"
 }
@@ -160,4 +163,24 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+// Adicione ao seu schema.prisma
+
+model Contract {
+  id            String   @id @default(cuid())
+  
+  percentage    Float    // Ex: 10.5 para 10.5%
+  minimumWage   Float    // Valor do salário mínimo base na época (Ex: 1412.00)
+  taxRate       Float    @default(0) // Percentual de imposto a descontar (Ex: 6.0 para 6%)
+  
+  startDate     DateTime @default(now())
+  status        String   @default("ACTIVE") // ACTIVE, CANCELLED, SUSPENDED
+  
+  // Relacionamentos
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

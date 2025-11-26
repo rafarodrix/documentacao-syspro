@@ -15,11 +15,18 @@ Horário de Atendimento: Segunda a Sexta, das 8h às 18h (horário de Brasília)
 
 ```bash
 npm run dev
-# or
-pnpm dev
-# or
-yarn dev
+
 ```
+
+# ALterações no Prisma
+## 1. Atualiza o banco de dados com a nova tabela Contract
+npx prisma db push
+
+## 2. (Opcional) Se o autocomplete não funcionar, force a geração dos tipos
+npx prisma generate
+
+## 3. Inicie o projeto novamente
+npm run dev
 
 Abra http://localhost:3000 no seu navegador para ver o resultado.
 
