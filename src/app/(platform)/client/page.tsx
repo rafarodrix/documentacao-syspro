@@ -10,10 +10,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
-  Ticket, PlusCircle, Search, Building2,
+  Ticket, Search, Building2,
   CheckCircle2, Clock, ArrowUpRight, ExternalLink, Activity
 } from "lucide-react";
 import Link from "next/link";
+
+// Importação do novo componente de Abertura de Chamado
+import { TicketSheet } from "@/components/platform/client/TicketSheet";
 
 export default async function ClientDashboardPage() {
   const session = await getProtectedSession();
@@ -33,8 +36,16 @@ export default async function ClientDashboardPage() {
 
   // Processamento de Tickets
   const tickets = ticketsRes.success && ticketsRes.data ? ticketsRes.data : [];
-  const openTicketsCount = tickets.filter(t => ['Aberto', 'Em Análise', 'Novo'].includes(t.status)).length;
-  const resolvedTicketsCount = tickets.filter(t => ['Resolvido', 'Fechado'].includes(t.status)).length;
+
+  // Filtros flexíveis para pegar status do Zammad (em inglês ou português mapeado)
+  const openTicketsCount = tickets.filter((t: any) =>
+    ['Aberto', 'Em Análise', 'Novo', 'new', 'open', 'pending'].includes(t.status)
+  ).length;
+
+  const resolvedTicketsCount = tickets.filter((t: any) =>
+    ['Resolvido', 'Fechado', 'closed', 'merged'].includes(t.status)
+  ).length;
+
   const recentTickets = tickets.slice(0, 5); // Mostrar apenas os 5 mais recentes na dashboard
 
   return (
@@ -63,12 +74,10 @@ export default async function ClientDashboardPage() {
               Base de Conhecimento
             </Button>
           </Link>
-          <Link href="mailto:suporte@trilink.com.br">
-            <Button className="h-10 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Abrir Novo Chamado
-            </Button>
-          </Link>
+
+          {/* INTEGRAÇÃO REAL: Botão de Novo Chamado via Zammad API */}
+          <TicketSheet />
+
         </div>
       </div>
 
@@ -160,11 +169,12 @@ export default async function ClientDashboardPage() {
                         <Ticket className="h-5 w-5 opacity-50" />
                       </div>
                       <p>Nenhum chamado encontrado.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Seus novos tickets aparecerão aqui.</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                recentTickets.map((ticket) => (
+                recentTickets.map((ticket: any) => (
                   <TableRow key={ticket.id} className="group hover:bg-muted/30 transition-colors cursor-pointer">
                     <TableCell className="font-mono font-medium text-muted-foreground group-hover:text-primary transition-colors">
                       #{ticket.id}
@@ -195,34 +205,34 @@ export default async function ClientDashboardPage() {
 /* --- Subcomponentes para Badges --- */
 
 function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    'Aberto': 'bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-900',
-    'Novo': 'bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-900',
-    'Em Análise': 'bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-900',
-    'Pendente': 'bg-orange-500/10 text-orange-600 border-orange-200 dark:border-orange-900',
-    'Resolvido': 'bg-green-500/10 text-green-600 border-green-200 dark:border-green-900',
-    'Fechado': 'bg-zinc-500/10 text-zinc-600 border-zinc-200 dark:border-zinc-800',
-  };
+  // Normaliza para lowercase para facilitar o match
+  const s = status?.toLowerCase() || '';
 
-  const defaultStyle = 'bg-zinc-100 text-zinc-600 border-zinc-200';
+  let style = 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400';
+
+  if (['novo', 'new', 'aberto', 'open'].includes(s)) {
+    style = 'bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-900 dark:text-blue-400';
+  } else if (['em análise', 'pending', 'pending_reminder'].includes(s)) {
+    style = 'bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-900 dark:text-amber-400';
+  } else if (['resolvido', 'closed', 'fechado', 'merged'].includes(s)) {
+    style = 'bg-green-500/10 text-green-600 border-green-200 dark:border-green-900 dark:text-green-400';
+  }
 
   return (
-    <Badge variant="outline" className={`border ${styles[status] || defaultStyle} font-normal`}>
+    <Badge variant="outline" className={`border ${style} font-normal capitalize`}>
       {status}
     </Badge>
   );
 }
 
 function PriorityBadge({ priority }: { priority: string }) {
-  // Mapeamento simples de cores por prioridade
-  const isHigh = ['Alta', 'Urgente', 'Crítica'].includes(priority);
-  const isMedium = ['Média', 'Normal'].includes(priority);
+  const p = priority?.toLowerCase() || '';
 
-  if (isHigh) {
-    return <div className="flex items-center gap-1.5 text-red-500 text-xs font-medium"><div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" /> {priority}</div>
+  if (p.includes('alta') || p.includes('high') || p.includes('3')) {
+    return <div className="flex items-center gap-1.5 text-red-500 text-xs font-medium"><div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" /> Alta</div>
   }
-  if (isMedium) {
-    return <div className="flex items-center gap-1.5 text-amber-500 text-xs font-medium"><div className="h-1.5 w-1.5 rounded-full bg-amber-500" /> {priority}</div>
+  if (p.includes('média') || p.includes('normal') || p.includes('2')) {
+    return <div className="flex items-center gap-1.5 text-blue-500 text-xs font-medium"><div className="h-1.5 w-1.5 rounded-full bg-blue-500" /> Normal</div>
   }
-  return <div className="flex items-center gap-1.5 text-blue-500 text-xs font-medium"><div className="h-1.5 w-1.5 rounded-full bg-blue-500" /> {priority}</div>
+  return <div className="flex items-center gap-1.5 text-zinc-500 text-xs font-medium"><div className="h-1.5 w-1.5 rounded-full bg-zinc-400" /> Baixa</div>
 }
