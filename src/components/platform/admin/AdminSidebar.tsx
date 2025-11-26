@@ -25,6 +25,7 @@ const manageNav = [
     { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { title: "Empresas", href: "/admin/empresas", icon: Building2 },
     { title: "Usuários", href: "/admin/usuarios", icon: Users },
+    { title: "Contratos", href: "/admin/contratos", icon: FileText },
 ];
 
 // Grupo 2: Sistema (Ferramentas Admin)
