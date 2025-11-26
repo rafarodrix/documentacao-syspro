@@ -12,7 +12,7 @@ import {
     GraduationCap,
     Headset,
     Terminal,
-    Ticket, // Descomente se for usar a página de chamados listada
+    Ticket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -47,7 +47,7 @@ export function ClientSidebar({ mobile = false }: ClientSidebarProps) {
     return (
         <div className={cn(
             "flex h-full flex-col bg-background",
-            !mobile && "h-screen" // Altura total apenas no desktop
+            !mobile && "h-screen"
         )}>
 
             {/* --- CABEÇALHO (Branding Client) --- */}
