@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCompanySchema, CreateCompanyInput } from "@/core/validation/company-schema";
@@ -10,16 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 import {
     Select,
     SelectContent,
@@ -27,15 +26,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle, Loader2, Pencil, Search } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { PlusCircle, Loader2, Pencil, Search, Building2, MapPin, Phone, FileText } from "lucide-react";
 
-interface CompanyDialogProps {
+interface CompanySheetProps {
     companyToEdit?: any;
 }
 
-export function CompanySheet({ companyToEdit }: CompanyDialogProps) { // Pode manter o nome da função se preferir não quebrar imports
+export function CompanySheet({ companyToEdit }: CompanySheetProps) {
     const [open, setOpen] = useState(false);
-    const [isPending, setIsPending] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const [loadingCep, setLoadingCep] = useState(false);
 
     const isEditing = !!companyToEdit;
@@ -61,29 +61,26 @@ export function CompanySheet({ companyToEdit }: CompanyDialogProps) { // Pode ma
         }
     });
 
+    // Reset form quando abrir/fechar ou mudar a empresa
     useEffect(() => {
-        if (open && companyToEdit) {
-            reset({
-                cnpj: companyToEdit.cnpj || "",
-                razaoSocial: companyToEdit.razaoSocial || "",
-                nomeFantasia: companyToEdit.nomeFantasia || "",
-                emailContato: companyToEdit.emailContato || "",
-                telefone: companyToEdit.telefone || "",
-                website: companyToEdit.website || "",
-                cep: companyToEdit.cep || "",
-                logradouro: companyToEdit.logradouro || "",
-                numero: companyToEdit.numero || "",
-                complemento: companyToEdit.complemento || "",
-                bairro: companyToEdit.bairro || "",
-                cidade: companyToEdit.cidade || "",
-                estado: companyToEdit.estado || "",
-                inscricaoEstadual: companyToEdit.inscricaoEstadual || "",
-                inscricaoMunicipal: companyToEdit.inscricaoMunicipal || "",
-                regimeTributario: companyToEdit.regimeTributario || undefined,
-                observacoes: companyToEdit.observacoes || "",
-            });
-        } else if (open && !companyToEdit) {
-            reset();
+        if (open) {
+            if (companyToEdit) {
+                reset({
+                    ...companyToEdit,
+                    regimeTributario: companyToEdit.regimeTributario || undefined,
+                    // Garante que campos opcionais não venham null
+                    complemento: companyToEdit.complemento || "",
+                    website: companyToEdit.website || "",
+                    observacoes: companyToEdit.observacoes || "",
+                });
+            } else {
+                reset({
+                    cnpj: "", razaoSocial: "", nomeFantasia: "", emailContato: "", telefone: "",
+                    website: "", cep: "", logradouro: "", numero: "", bairro: "", cidade: "",
+                    estado: "", inscricaoEstadual: "", inscricaoMunicipal: "", observacoes: "",
+                    regimeTributario: undefined
+                });
+            }
         }
     }, [open, companyToEdit, reset]);
 
@@ -112,182 +109,211 @@ export function CompanySheet({ companyToEdit }: CompanyDialogProps) { // Pode ma
     };
 
     async function onSubmit(data: CreateCompanyInput) {
-        setIsPending(true);
-        let result;
+        startTransition(async () => {
+            let result;
+            if (isEditing && companyToEdit) {
+                result = await updateCompanyAction(companyToEdit.id, data);
+            } else {
+                result = await createCompanyAction(data);
+            }
 
-        if (isEditing && companyToEdit) {
-            result = await updateCompanyAction(companyToEdit.id, data);
-        } else {
-            result = await createCompanyAction(data);
-        }
-
-        setIsPending(false);
-
-        if (result.success) {
-            toast.success(isEditing ? "Empresa atualizada!" : "Empresa criada!");
-            setOpen(false);
-            if (!isEditing) reset();
-        } else {
-            toast.error(typeof result.error === 'string' ? result.error : "Erro ao salvar");
-        }
+            if (result.success) {
+                toast.success(isEditing ? "Empresa atualizada!" : "Empresa criada com sucesso!");
+                setOpen(false);
+            } else {
+                toast.error(typeof result.error === 'string' ? result.error : "Erro ao salvar empresa.");
+            }
+        });
     }
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
+        <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
                 {isEditing ? (
-                    <Button variant="ghost" size="sm">
-                        <Pencil className="h-4 w-4 mr-2" /> Editar
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                        <Pencil className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                        <span className="sr-only">Editar</span>
                     </Button>
                 ) : (
-                    <Button>
+                    <Button className="h-9 shadow-md shadow-primary/20 transition-all hover:shadow-primary/40">
                         <PlusCircle className="mr-2 h-4 w-4" /> Nova Empresa
                     </Button>
                 )}
-            </DialogTrigger>
+            </SheetTrigger>
 
-            {/* MUDANÇA 2: max-w-4xl para ficar bem largo e max-h-[90vh] para não estourar a tela */}
-            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-                <DialogHeader>
-                    <DialogTitle>{isEditing ? "Editar Empresa" : "Cadastrar Empresa"}</DialogTitle>
-                    <DialogDescription>Preencha os dados cadastrais completos.</DialogDescription>
-                </DialogHeader>
+            <SheetContent className="sm:max-w-xl w-full overflow-y-auto flex flex-col gap-0 p-0 border-l-border/50 bg-background/95 backdrop-blur-xl">
 
-                {/* Área de Scroll apenas para o formulário */}
-                <div className="flex-1 overflow-y-auto pr-2">
-                    <form id="company-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
+                {/* HEADER */}
+                <div className="p-6 border-b border-border/40 bg-muted/10 sticky top-0 z-10 backdrop-blur-md">
+                    <SheetHeader>
+                        <SheetTitle className="flex items-center gap-2 text-xl">
+                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                <Building2 className="h-5 w-5" />
+                            </div>
+                            {isEditing ? "Editar Empresa" : "Nova Organização"}
+                        </SheetTitle>
+                        <SheetDescription>
+                            Preencha os dados cadastrais da empresa cliente.
+                        </SheetDescription>
+                    </SheetHeader>
+                </div>
 
-                        {/* DADOS GERAIS - Grid de 3 colunas agora */}
-                        <div className="space-y-3">
-                            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Dados Gerais</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                    <Label>CNPJ</Label>
-                                    <Input {...register("cnpj")} placeholder="00.000.000/0000-00" disabled={isEditing} />
+                {/* FORMULÁRIO SCROLLÁVEL */}
+                <div className="flex-1 p-6 overflow-y-auto">
+                    <form id="company-form" onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+
+                        {/* SEÇÃO 1: DADOS GERAIS */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                <FileText className="h-4 w-4" />
+                                <span>Dados Gerais</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2 col-span-2 sm:col-span-1">
+                                    <Label htmlFor="cnpj">CNPJ</Label>
+                                    <Input
+                                        id="cnpj"
+                                        {...register("cnpj")}
+                                        placeholder="00.000.000/0000-00"
+                                        disabled={isEditing}
+                                        className="font-mono bg-muted/30 focus:bg-background transition-colors"
+                                    />
                                     {errors.cnpj && <span className="text-xs text-red-500">{errors.cnpj.message}</span>}
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Razão Social</Label>
-                                    <Input {...register("razaoSocial")} />
-                                    {errors.razaoSocial && <span className="text-xs text-red-500">{errors.razaoSocial.message}</span>}
-                                </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Nome Fantasia</Label>
-                                    <Input {...register("nomeFantasia")} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Regime Tributário</Label>
+
+                                <div className="space-y-2 col-span-2 sm:col-span-1">
+                                    <Label htmlFor="regime">Regime Tributário</Label>
                                     <Select onValueChange={(val) => setValue("regimeTributario", val as any)} defaultValue={companyToEdit?.regimeTributario || undefined}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="bg-muted/30 focus:bg-background">
                                             <SelectValue placeholder="Selecione..." />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="SIMPLES_NACIONAL">Simples Nacional</SelectItem>
-                                            <SelectItem value="SIMPLES_NACIONAL_EXCESSO">Simples (Excesso)</SelectItem>
                                             <SelectItem value="LUCRO_PRESUMIDO">Lucro Presumido</SelectItem>
                                             <SelectItem value="LUCRO_REAL">Lucro Real</SelectItem>
                                             <SelectItem value="MEI">MEI</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* CONTATO */}
-                        <div className="space-y-3 pt-2 border-t">
-                            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mt-2">Contato</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                    <Label>E-mail</Label>
-                                    <Input {...register("emailContato")} />
+                                <div className="space-y-2 col-span-2">
+                                    <Label htmlFor="razaoSocial">Razão Social</Label>
+                                    <Input id="razaoSocial" {...register("razaoSocial")} className="bg-muted/30 focus:bg-background" />
+                                    {errors.razaoSocial && <span className="text-xs text-red-500">{errors.razaoSocial.message}</span>}
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Telefone</Label>
-                                    <Input {...register("telefone")} placeholder="(00) 00000-0000" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Website</Label>
-                                    <Input {...register("website")} placeholder="https://..." />
+
+                                <div className="space-y-2 col-span-2">
+                                    <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
+                                    <Input id="nomeFantasia" {...register("nomeFantasia")} className="bg-muted/30 focus:bg-background" />
                                 </div>
                             </div>
                         </div>
 
-                        {/* ENDEREÇO */}
-                        <div className="space-y-3 pt-2 border-t">
-                            <div className="flex items-center justify-between mt-2">
-                                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Endereço</h3>
-                                {loadingCep && <span className="text-xs text-primary animate-pulse">Buscando CEP...</span>}
-                            </div>
+                        <Separator className="bg-border/50" />
 
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {/* SEÇÃO 2: CONTATO */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                <Phone className="h-4 w-4" />
+                                <span>Contato</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>CEP</Label>
+                                    <Label htmlFor="emailContato">E-mail Principal</Label>
+                                    <Input id="emailContato" {...register("emailContato")} type="email" className="bg-muted/30 focus:bg-background" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="telefone">Telefone</Label>
+                                    <Input id="telefone" {...register("telefone")} placeholder="(00) 00000-0000" className="bg-muted/30 focus:bg-background" />
+                                </div>
+                                <div className="space-y-2 sm:col-span-2">
+                                    <Label htmlFor="website">Website</Label>
+                                    <Input id="website" {...register("website")} placeholder="https://" className="bg-muted/30 focus:bg-background" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator className="bg-border/50" />
+
+                        {/* SEÇÃO 3: ENDEREÇO */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                <MapPin className="h-4 w-4" />
+                                <span>Endereço</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-4">
+                                <div className="space-y-2 col-span-2">
+                                    <Label htmlFor="cep">CEP</Label>
                                     <div className="relative">
-                                        <Input {...register("cep")} onBlur={handleCepBlur} placeholder="00000-000" />
-                                        <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground opacity-50" />
+                                        <Input
+                                            id="cep"
+                                            {...register("cep")}
+                                            onBlur={handleCepBlur}
+                                            placeholder="00000-000"
+                                            className="pr-8 bg-muted/30 focus:bg-background"
+                                        />
+                                        <div className="absolute right-2.5 top-2.5 text-muted-foreground">
+                                            {loadingCep ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 opacity-50" />}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Cidade</Label>
-                                    <Input {...register("cidade")} />
+                                <div className="space-y-2 col-span-2">
+                                    <Label htmlFor="numero">Número</Label>
+                                    <Input id="numero" {...register("numero")} className="bg-muted/30 focus:bg-background" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>UF</Label>
-                                    <Input {...register("estado")} maxLength={2} />
+                                <div className="space-y-2 col-span-3">
+                                    <Label htmlFor="logradouro">Logradouro</Label>
+                                    <Input id="logradouro" {...register("logradouro")} className="bg-muted/30 focus:bg-background" />
                                 </div>
-                                <div className="space-y-2 md:col-span-3">
-                                    <Label>Logradouro</Label>
-                                    <Input {...register("logradouro")} />
+                                <div className="space-y-2 col-span-1">
+                                    <Label htmlFor="estado">UF</Label>
+                                    <Input id="estado" {...register("estado")} maxLength={2} className="bg-muted/30 focus:bg-background" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Número</Label>
-                                    <Input id="numero" {...register("numero")} />
+                                <div className="space-y-2 col-span-2">
+                                    <Label htmlFor="cidade">Cidade</Label>
+                                    <Input id="cidade" {...register("cidade")} className="bg-muted/30 focus:bg-background" />
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Bairro</Label>
-                                    <Input {...register("bairro")} />
-                                </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Complemento</Label>
-                                    <Input {...register("complemento")} />
+                                <div className="space-y-2 col-span-2">
+                                    <Label htmlFor="bairro">Bairro</Label>
+                                    <Input id="bairro" {...register("bairro")} className="bg-muted/30 focus:bg-background" />
                                 </div>
                             </div>
                         </div>
 
-                        {/* FISCAL & OBS - Lado a Lado */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t">
-                            <div className="space-y-3">
-                                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mt-2">Inscrições</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Insc. Estadual</Label>
-                                        <Input {...register("inscricaoEstadual")} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Insc. Municipal</Label>
-                                        <Input {...register("inscricaoMunicipal")} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3">
-                                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mt-2">Observações</h3>
-                                <Textarea {...register("observacoes")} placeholder="Anotações internas..." className="h-20" />
-                            </div>
+                        {/* EXTRAS */}
+                        <div className="space-y-2">
+                            <Label htmlFor="observacoes">Observações Internas</Label>
+                            <Textarea
+                                id="observacoes"
+                                {...register("observacoes")}
+                                className="min-h-[100px] bg-muted/30 focus:bg-background resize-y"
+                                placeholder="Informações adicionais sobre o cliente..."
+                            />
                         </div>
 
                     </form>
                 </div>
 
-                {/* Footer fixo no final do modal */}
-                <DialogFooter className="pt-4 border-t">
-                    <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                    <Button type="submit" form="company-form" disabled={isPending}>
-                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isEditing ? "Salvar Alterações" : "Salvar Cadastro")}
-                    </Button>
-                </DialogFooter>
+                {/* FOOTER FIXO */}
+                <SheetFooter className="p-6 border-t border-border/40 bg-muted/10 sticky bottom-0 z-10 backdrop-blur-md">
+                    <div className="flex w-full justify-end gap-3">
+                        <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit" form="company-form" disabled={isPending} className="min-w-[120px] shadow-lg shadow-primary/20">
+                            {isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...
+                                </>
+                            ) : (
+                                isEditing ? "Salvar Alterações" : "Cadastrar"
+                            )}
+                        </Button>
+                    </div>
+                </SheetFooter>
 
-            </DialogContent>
-        </Dialog>
+            </SheetContent>
+        </Sheet>
     );
 }
