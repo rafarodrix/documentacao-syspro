@@ -1,13 +1,7 @@
 import { getContractsAction } from "../_actions/contract-actions";
 import { getCompaniesAction } from "../_actions/company-actions";
 import { ContractSheet } from "@/components/platform/admin/ContractSheet";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
     Table,
     TableBody,
