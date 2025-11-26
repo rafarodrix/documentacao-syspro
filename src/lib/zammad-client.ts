@@ -5,17 +5,12 @@ interface ZammadConfig {
     token: string;
 }
 
-// Configuração usando as variáveis de ambiente corretas
 const config: ZammadConfig = {
-    // Garante que a URL não tenha barra no final antes de adicionar o sufixo da API
     endpoint: (process.env.ZAMMAD_URL || 'https://suporte.trilinksoftware.com.br').replace(/\/$/, '') + '/api/v1',
     token: process.env.ZAMMAD_TOKEN || '',
 };
 
 export class ZammadClient {
-    /**
-     * Wrapper genérico para fetch na API do Zammad
-     */
     private static async request<T>(path: string, options?: RequestInit): Promise<T> {
         if (!config.token) {
             throw new Error('ZAMMAD_TOKEN não está configurado no arquivo .env');
@@ -33,7 +28,7 @@ export class ZammadClient {
             const response = await fetch(url, {
                 ...options,
                 headers,
-                cache: 'no-store' // Importante para garantir dados frescos (ex: novas mensagens no chat)
+                cache: 'no-store' // Dados sempre frescos
             });
 
             if (!response.ok) {
@@ -51,40 +46,32 @@ export class ZammadClient {
 
     // --- MÉTODOS DE CLIENTE (User Scope) ---
 
-    /**
-     * Busca tickets do usuário ou organização
-     */
     static async getTicketsForUser(email: string) {
         try {
+            // 1. Busca ID do usuário
             const userSearch = await this.request<any[]>(`/users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`);
 
-            if (!userSearch || userSearch.length === 0) {
-                return [];
-            }
+            if (!userSearch || userSearch.length === 0) return [];
 
             const zammadUser = userSearch[0];
             let query = '';
 
+            // 2. Define escopo (Organização ou Pessoal)
             if (zammadUser.organization_id) {
                 query = `organization_id:${zammadUser.organization_id}`;
             } else {
                 query = `customer.email:${email}`;
             }
 
+            // Busca com ordenação
             const finalQuery = encodeURIComponent(query);
-
-            // Busca estendida para trazer detalhes
             return await this.request<any[]>(`/tickets/search?query=${finalQuery}&expand=true&sort_by=updated_at&order_by=desc`);
-
         } catch (error) {
-            console.error('Erro ao buscar tickets:', error);
+            console.error('Erro ao buscar tickets do usuário:', error);
             return [];
         }
     }
 
-    /**
-     * Cria um novo ticket
-     */
     static async createTicket(payload: any) {
         return this.request('/tickets', {
             method: 'POST',
@@ -92,32 +79,23 @@ export class ZammadClient {
         });
     }
 
-    /**
-     * Busca um ticket específico pelo ID
-     */
     static async getTicketById(ticketId: string | number) {
         return this.request<any>(`/tickets/${ticketId}`);
     }
 
-    /**
-     * Busca o histórico de mensagens (artigos) de um ticket
-     */
     static async getTicketArticles(ticketId: string | number) {
         return this.request<any[]>(`/ticket_articles/by_ticket/${ticketId}`);
     }
 
-    /**
-     * Adiciona uma resposta (Nota) ao ticket
-     */
     static async addTicketReply(ticketId: string | number, body: string) {
         return this.request('/ticket_articles', {
             method: 'POST',
             body: JSON.stringify({
                 ticket_id: ticketId,
                 body: body,
-                type: 'note', // Cria uma nota pública
+                type: 'note',
                 content_type: 'text/html',
-                internal: false, // false = Cliente consegue ver a resposta
+                internal: false,
             }),
         });
     }
@@ -125,20 +103,27 @@ export class ZammadClient {
     // --- MÉTODOS ADMINISTRATIVOS (Admin Scope) ---
 
     /**
-     * Busca TODOS os tickets (Ativos e Histórico) para a fila de suporte.
-     * Filtra por estados relevantes para o Admin.
+     * Busca TODOS os tickets ativos para a fila de suporte.
+     * CORREÇÃO: Sintaxe de query explícita para maior compatibilidade.
      */
     static async getAllTickets(limit = 100) {
         try {
-            // Query ajustada para incluir também 'closed' e 'merged' para o histórico
-            // state:(new OR open OR pending_reminder OR pending_close OR closed OR merged)
-            const query = 'state:(new OR open OR pending_reminder OR pending_close OR closed OR merged)';
+            // Query explícita (funciona sem ElasticSearch)
+            // Traz tickets Novos, Abertos, Pendentes, Fechados e Mesclados
+            const query = 'state:new OR state:open OR state:pending_reminder OR state:pending_close OR state:closed OR state:merged';
 
-            return await this.request<any[]>(
+            const tickets = await this.request<any[]>(
                 `/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&expand=true&sort_by=updated_at&order_by=desc`
             );
+
+            // Debug: Se retornar vazio, avisa no console do servidor
+            if (tickets.length === 0) {
+                console.warn("[Zammad Admin] A busca retornou 0 tickets. Verifique se o TOKEN pertence a um Agente/Admin.");
+            }
+
+            return tickets;
         } catch (error) {
-            console.error('Erro ao buscar todos os tickets:', error);
+            console.error('Erro ao buscar todos os tickets (Admin):', error);
             return [];
         }
     }
