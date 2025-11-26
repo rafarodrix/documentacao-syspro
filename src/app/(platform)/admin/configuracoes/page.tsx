@@ -18,9 +18,6 @@ export default function AdminSettingsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, startTransition] = useTransition();
 
-    // CORREÇÃO LINHA 23:
-    // Mantemos <SettingsInput> para garantir a tipagem do formulário (IntelliSense).
-    // O 'as any' no resolver corrige o conflito de inferência do 'z.coerce'.
     const form = useForm<SettingsInput>({
         resolver: zodResolver(settingsSchema) as any,
         defaultValues: {
@@ -52,9 +49,6 @@ export default function AdminSettingsPage() {
         return () => { isMounted = false; };
     }, [form]);
 
-    // CORREÇÃO LINHA 89:
-    // Agora que o 'useForm<SettingsInput>' é respeitado (graças ao fix acima),
-    // o TypeScript aceita esta função no handleSubmit sem erros.
     const onSubmit: SubmitHandler<SettingsInput> = async (data) => {
         startTransition(async () => {
             const result = await updateSettingsAction(data);
