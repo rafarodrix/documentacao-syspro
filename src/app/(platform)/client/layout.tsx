@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { getProtectedSession } from '@/lib/auth-helpers';
-import { ClientSidebar } from '@/components/platform/client/ClientSidebar';
-import { ClientHeader } from '@/components/platform/client/ClientHeader';
+import { ClientSidebar } from '@/components/platform/client/sidebar/ClientSidebar';
+import { ClientHeader } from '@/components/platform/client/header/ClientHeader';
 
 export default async function ClientLayout({
     children,
