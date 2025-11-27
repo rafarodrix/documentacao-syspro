@@ -5,7 +5,13 @@ import { auth } from "@/lib/auth";
 import { createUserSchema, CreateUserInput } from "@/core/validation/user-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
+
+// --- Tipos ---
+interface GetUsersParams {
+    search?: string;
+    role?: string;
+}
 
 // --- Constantes de Permissão ---
 const READ_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
@@ -33,25 +39,42 @@ function handleActionError(error: any) {
 /**
  * Lista todos os usuários com suas empresas
  */
-export async function getUsersAction() {
+export async function getUsersAction(filters?: GetUsersParams) {
     const session = await getProtectedSession();
-
-    if (!session || !READ_ROLES.includes(session.role)) {
-        return { success: false as const, error: "Acesso negado." };
-    }
+    if (!session) return { success: false, error: "Não autorizado." };
 
     try {
+        // Construção dinâmica do WHERE
+        const whereClause: any = {};
+
+        // 1. Busca por Texto (Nome ou Email)
+        if (filters?.search) {
+            whereClause.OR = [
+                { name: { contains: filters.search, mode: "insensitive" } },
+                { email: { contains: filters.search, mode: "insensitive" } },
+            ];
+        }
+
+        // 2. Filtro por Role
+        if (filters?.role) {
+            // Faz um cast seguro se estiver usando TypeScript estrito com Enums
+            whereClause.role = filters.role as Role;
+        }
+
         const users = await prisma.user.findMany({
-            orderBy: { createdAt: "desc" },
+            where: whereClause,
             include: {
                 companies: {
                     select: { id: true, razaoSocial: true }
                 }
-            }
+            },
+            orderBy: { createdAt: 'desc' }
         });
-        return { success: true as const, data: users };
+
+        return { success: true, data: users };
     } catch (error) {
-        return handleActionError(error);
+        console.error("Erro ao buscar usuários:", error);
+        return { success: false, error: "Erro ao carregar usuários." };
     }
 }
 
