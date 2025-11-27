@@ -12,17 +12,9 @@ export default async function AdminLayout({
   const session = await getProtectedSession();
 
   if (!session) redirect('/login');
-
-  // --- LOGS DE DEBUG DE ACESSO ---
-  console.log("🔍 DEBUG ADMIN ACCESS:");
-  console.log("Email:", session.email);
-  console.log("Role no Banco:", session.role);
-  // ------------------------------
-
   const allowedRoles = ['ADMIN', 'DEVELOPER', 'SUPORTE'];
 
   if (!allowedRoles.includes(session.role)) {
-    console.log("⛔ Acesso Negado! Redirecionando para /client");
     redirect('/client');
   }
 
