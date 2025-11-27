@@ -171,8 +171,8 @@ model Contract {
   
   percentage     Float     
   minimumWage    Float     
-  taxRate        Float     @default(0) 
-  programmerRate Float     @default(0) // Seu novo campo aqui ?
+  taxRate        Float     @default(0)
+  programmerRate Float     @default(0)
   
   startDate      DateTime  @default(now())
   

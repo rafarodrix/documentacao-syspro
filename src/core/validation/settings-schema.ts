@@ -18,16 +18,3 @@ export const SETTING_KEYS = {
     SUPPORT_EMAIL: "supportEmail",
     SUPPORT_PHONE: "supportPhone",
 } as const;
-
-// Schema para criação de contratos
-export const createContractSchema = z.object({
-    companyId: z.string().min(1, "Selecione uma empresa."),
-    percentage: z.coerce.number().min(0.1, "Percentual inválido."),
-    minimumWage: z.coerce.number().min(1, "Valor inválido."),
-    taxRate: z.coerce.number().min(0).default(0),
-    programmerRate: z.coerce.number().min(0).default(0),
-    status: z.enum(["ACTIVE", "CANCELLED", "SUSPENDED"]).default("ACTIVE"),
-    startDate: z.string().optional(),
-});
-
-export type CreateContractInput = z.infer<typeof createContractSchema>;

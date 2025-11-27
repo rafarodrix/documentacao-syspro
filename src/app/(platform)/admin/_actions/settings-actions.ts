@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
-import { settingsSchema, SettingsInput, SETTING_KEYS } from "@/lib/schemas"; // Importe do arquivo novo
+import { settingsSchema, SettingsInput, SETTING_KEYS } from "@/core/validation/settings-schema";
 
 const WRITE_ROLES = ["ADMIN", "DEVELOPER"];
 
