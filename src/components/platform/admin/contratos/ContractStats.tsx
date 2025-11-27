@@ -1,21 +1,15 @@
+"use client"; // Adicione isso se ainda não tiver, pois usamos componentes interativos
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
-// 1. Importe o componente que acabamos de criar
 import NumberTicker from "@/components/magicui/number-ticker";
 
-// --- HELPERS ---
-const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
-
-const formatPercent = (val: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "percent", minimumFractionDigits: 2 }).format(val / 100);
-
-// --- SUB-COMPONENTE STATCARD ---
+// Sub-componente ajustado
 interface StatCardProps {
     title: string;
     value: number;
-    formatter?: (val: number) => string;
+    type?: "currency" | "percent" | "number"; // Nova prop segura
     icon: React.ElementType;
     description: string;
     colorClass: string;
@@ -24,7 +18,7 @@ interface StatCardProps {
 }
 
 function StatCard({
-    title, value, formatter, icon: Icon, description, colorClass, bgClass, decimalPlaces = 0
+    title, value, type = "number", icon: Icon, description, colorClass, bgClass, decimalPlaces = 0
 }: StatCardProps) {
     return (
         <Card className="group relative overflow-hidden border-border/60 bg-background/50 backdrop-blur-xl transition-all hover:border-primary/20 hover:shadow-md">
@@ -39,10 +33,10 @@ function StatCard({
             <CardContent>
                 <div className="flex items-baseline gap-2">
                     <div className="text-2xl font-bold text-foreground">
-                        {/* 2. Uso do NumberTicker com o formatter */}
+                        {/* Passamos apenas strings serializáveis agora */}
                         <NumberTicker
                             value={value}
-                            formatter={formatter}
+                            type={type}
                             decimalPlaces={decimalPlaces}
                             className="tracking-tight"
                         />
@@ -57,7 +51,6 @@ function StatCard({
     );
 }
 
-// --- COMPONENTE PRINCIPAL ---
 export function ContractStats({ contracts }: { contracts: any[] }) {
     const totalContracts = contracts.length;
     const activeContracts = contracts.filter((c) => c.status === 'ACTIVE');
@@ -69,6 +62,7 @@ export function ContractStats({ contracts }: { contracts: any[] }) {
         return acc + (gross - taxDed - progDed);
     }, 0);
 
+    // Calculo de média simples
     const avgPercentage = activeContracts.length > 0
         ? activeContracts.reduce((acc, c) => acc + c.percentage, 0) / activeContracts.length
         : 0;
@@ -78,8 +72,8 @@ export function ContractStats({ contracts }: { contracts: any[] }) {
             <StatCard
                 title="Receita Líquida Mensal"
                 value={monthlyRevenue}
-                formatter={formatCurrency}
-                decimalPlaces={2} // Moeda precisa de 2 casas decimais durante a animação
+                type="currency" // Passando string
+                decimalPlaces={2}
                 icon={DollarSign}
                 colorClass="text-emerald-600 dark:text-emerald-400"
                 bgClass="bg-emerald-500/10"
@@ -89,7 +83,7 @@ export function ContractStats({ contracts }: { contracts: any[] }) {
             <StatCard
                 title="Contratos Ativos"
                 value={activeContracts.length}
-                // Sem formatter específico, usa padrão numérico
+                type="number" // Passando string
                 icon={Users}
                 colorClass="text-blue-600 dark:text-blue-400"
                 bgClass="bg-blue-500/10"
@@ -99,8 +93,8 @@ export function ContractStats({ contracts }: { contracts: any[] }) {
             <StatCard
                 title="Ticket Médio (%)"
                 value={avgPercentage}
-                formatter={formatPercent}
-                decimalPlaces={2} // Percentual também fica melhor com decimais
+                type="percent" // Passando string
+                decimalPlaces={2}
                 icon={Activity}
                 colorClass="text-amber-600 dark:text-amber-400"
                 bgClass="bg-amber-500/10"

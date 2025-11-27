@@ -10,8 +10,7 @@ interface NumberTickerProps {
     delay?: number;
     className?: string;
     decimalPlaces?: number;
-    // Adicionamos o formatter opcional para lidar com Moeda e Porcentagem
-    formatter?: (val: number) => string;
+    type?: "currency" | "percent" | "number";
 }
 
 export default function NumberTicker({
@@ -20,20 +19,14 @@ export default function NumberTicker({
     delay = 0,
     className,
     decimalPlaces = 0,
-    formatter = (v) => v.toFixed(0), // Formatter padrão se nenhum for passado
+    type = "number",
 }: NumberTickerProps) {
     const ref = useRef<HTMLSpanElement>(null);
-
-    // Inicia o valor: Se for "up", começa em 0. Se "down", começa no valor total.
     const motionValue = useMotionValue(direction === "down" ? value : 0);
-
-    // Configuração da "Mola" (Physics) para dar o efeito suave e premium
     const springValue = useSpring(motionValue, {
-        damping: 60,    // Controla o "peso" da parada (quanto maior, menos oscila)
-        stiffness: 100, // Controla a velocidade/rigidez
+        damping: 60,
+        stiffness: 100,
     });
-
-    // Só anima quando o elemento entra na tela
     const isInView = useInView(ref, { once: true, margin: "0px" });
 
     useEffect(() => {
@@ -45,17 +38,31 @@ export default function NumberTicker({
     }, [motionValue, isInView, delay, value, direction]);
 
     useEffect(() => {
-        // Ouve as mudanças do valor animado
         return springValue.on("change", (latest) => {
             if (ref.current) {
-                // 1. Arredonda para as casas decimais desejadas durante a animação
                 const fixedValue = Number(latest.toFixed(decimalPlaces));
 
-                // 2. Aplica o formatador (R$, %, etc) e atualiza o texto direto no DOM (Performance)
-                ref.current.textContent = formatter(fixedValue);
+                let formattedText = String(fixedValue);
+
+                if (type === "currency") {
+                    formattedText = new Intl.NumberFormat("pt-BR", {
+                        style: "currency",
+                        currency: "BRL"
+                    }).format(fixedValue);
+                } else if (type === "percent") {
+                    formattedText = new Intl.NumberFormat("pt-BR", {
+                        minimumFractionDigits: decimalPlaces
+                    }).format(fixedValue) + "%";
+                } else {
+                    formattedText = new Intl.NumberFormat("pt-BR", {
+                        minimumFractionDigits: decimalPlaces
+                    }).format(fixedValue);
+                }
+
+                ref.current.textContent = formattedText;
             }
         });
-    }, [springValue, decimalPlaces, formatter]);
+    }, [springValue, decimalPlaces, type]);
 
     return (
         <span
