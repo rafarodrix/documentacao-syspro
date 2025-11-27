@@ -63,10 +63,10 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
                 <div className="relative z-10 max-w-lg space-y-8 animate-in fade-in slide-in-from-right-8 duration-1000 delay-100">
                     <div>
                         <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight mb-4">
-                            Inteligência para o seu <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-foreground to-primary/60">ERP</span>.
+                            A Central Oficial do Syspro ERP
                         </h2>
                         <p className="text-lg text-zinc-400 leading-relaxed">
-                            Acesse sua conta para gerenciar contratos, usuários e configurações com segurança total.
+                            Acesse sua conta para ter acesso a toda a documentação e configurações com segurança total.
                         </p>
                     </div>
 
@@ -81,8 +81,8 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
                 <div className="relative z-10 flex items-center justify-between text-sm text-zinc-500 pt-8 animate-in fade-in duration-1000 delay-300">
                     <p>Todos os direitos reservados.</p>
                     <div className="flex gap-6">
-                        <Link href="#" className="hover:text-white transition-colors">Termos</Link>
-                        <Link href="#" className="hover:text-white transition-colors">Privacidade</Link>
+                        <Link href="/termos" className="hover:text-white transition-colors">Termos</Link>
+                        <Link href="/privacidade" className="hover:text-white transition-colors">Privacidade</Link>
                     </div>
                 </div>
             </div>
