@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, Activity, ServerCrash, TrendingUp } from "lucide-react";
-import NumberTicker from "@/components/magicui/number-ticker"; // Reutilizando seu componente favorito
+import NumberTicker from "@/components/magicui/number-ticker";
 
 interface DashboardStatsProps {
     companiesCount: number;
