@@ -6,6 +6,12 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 
+// --- Tipagem para os parâmetros de URL que o Next.js injeta automaticamente ---
+interface GetCompaniesParams {
+  search?: string;
+  status?: string; // Usaremos string para facilitar, mas pode ser CompanyStatus
+}
+
 // --- Constantes de Permissão ---
 const READ_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
 const WRITE_ROLES = ["ADMIN", "DEVELOPER"]; // Suporte apenas visualiza
@@ -27,25 +33,42 @@ function handleActionError(error: any) {
 /**
  * Lista todas as empresas
  */
-export async function getCompaniesAction() {
+export async function getCompaniesAction(filters?: GetCompaniesParams) {
   const session = await getProtectedSession();
-
-  if (!session || !READ_ROLES.includes(session.role)) {
-    return { success: false as const, error: "Acesso negado." };
-  }
+  if (!session) return { success: false, error: "Não autorizado." };
 
   try {
+    // Construção da query dinâmica (Cláusula WHERE)
+    const whereClause: any = {};
+
+    // 1. Filtro de Busca (Nome OU CNPJ)
+    if (filters?.search) {
+      whereClause.OR = [
+        { razaoSocial: { contains: filters.search, mode: "insensitive" } }, // Case insensitive
+        { nomeFantasia: { contains: filters.search, mode: "insensitive" } },
+        { cnpj: { contains: filters.search } }, // CNPJ exato ou parcial
+      ];
+    }
+
+    // 2. Filtro de Status
+    if (filters?.status) {
+      whereClause.status = filters.status; // Ex: "ACTIVE"
+    }
+
     const companies = await prisma.company.findMany({
-      orderBy: { createdAt: "desc" },
+      where: whereClause, // Aplica o filtro aqui
       include: {
         _count: {
-          select: { users: true }
-        }
-      }
+          select: { users: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
-    return { success: true as const, data: companies };
+
+    return { success: true, data: companies };
   } catch (error) {
-    return handleActionError(error);
+    console.error("Erro ao buscar empresas:", error);
+    return { success: false, error: "Erro ao carregar empresas." };
   }
 }
 

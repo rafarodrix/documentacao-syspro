@@ -8,15 +8,24 @@ import { CompanyStats } from "@/components/platform/admin/empresa/CompanyStats";
 import { CompaniesToolbar } from "@/components/platform/admin/empresa/CompaniesToolbar";
 import { CompaniesTable } from "@/components/platform/admin/empresa/CompaniesTable";
 
-export default async function AdminEmpresasPage() {
+// Tipagem para os parâmetros de URL que o Next.js injeta automaticamente
+interface PageProps {
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default async function AdminEmpresasPage({ searchParams }: PageProps) {
   // 1. Segurança
   const session = await getProtectedSession();
   if (!session || !["ADMIN", "DEVELOPER", "SUPORTE"].includes(session.role)) {
     redirect("/admin/dashboard");
   }
 
-  // 2. Dados
-  const result = await getCompaniesAction();
+  // 2. Extração dos Filtros da URL
+  const search = typeof searchParams.q === 'string' ? searchParams.q : undefined;
+  const status = typeof searchParams.status === 'string' ? searchParams.status : undefined;
+
+  // 3. Busca de Dados com Filtros
+  const result = await getCompaniesAction({ search, status });
   const companies = (result.success && result.data) ? result.data : [];
 
   return (
@@ -25,7 +34,7 @@ export default async function AdminEmpresasPage() {
       {/* Cabeçalho */}
       <CompaniesPageHeader />
 
-      {/* Dashboard / KPIs */}
+      {/* Dashboard / KPIs (Opcional: você pode querer filtrar os stats também ou mostrar sempre o total global) */}
       <section className="space-y-4">
         <CompanyStats companies={companies} />
       </section>
@@ -34,7 +43,7 @@ export default async function AdminEmpresasPage() {
       <section className="space-y-4">
         <CompaniesToolbar />
 
-        {/* Tabela de Dados */}
+        {/* Tabela de Dados Filtrada */}
         <CompaniesTable companies={companies} />
       </section>
 
