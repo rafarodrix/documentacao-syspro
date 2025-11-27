@@ -64,7 +64,7 @@ export async function createContractAction(data: CreateContractInput) {
     const session = await getProtectedSession();
 
     // Verifica se o usuário tem permissão de escrita
-    if (!session || session.role !== "ADMIN") {
+    if (!session || !WRITE_ROLES.includes(session.role)) {
         return { success: false, error: "Permissão negada." };
     }
 
