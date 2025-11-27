@@ -6,7 +6,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserSheet } from "@/components/platform/admin/UserSheet";
+import { UserSheet } from "@/components/platform/admin/usuarios/UserSheet";
 import { Mail, Building2, Shield, ShieldAlert, Code } from "lucide-react";
 import { cn } from "@/lib/utils";
 
