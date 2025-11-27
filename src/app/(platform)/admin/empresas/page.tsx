@@ -8,23 +8,26 @@ import { CompanyStats } from "@/components/platform/admin/empresa/CompanyStats";
 import { CompaniesToolbar } from "@/components/platform/admin/empresa/CompaniesToolbar";
 import { CompaniesTable } from "@/components/platform/admin/empresa/CompaniesTable";
 
-// Tipagem para os parâmetros de URL que o Next.js injeta automaticamente
+// 1. ATUALIZAÇÃO: searchParams agora é uma Promise
 interface PageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function AdminEmpresasPage({ searchParams }: PageProps) {
-  // 1. Segurança
+export default async function AdminEmpresasPage(props: PageProps) {
+  // 2. ATUALIZAÇÃO: Aguardar a resolução da Promise
+  const searchParams = await props.searchParams;
+
+  // 3. Segurança
   const session = await getProtectedSession();
   if (!session || !["ADMIN", "DEVELOPER", "SUPORTE"].includes(session.role)) {
     redirect("/admin/dashboard");
   }
 
-  // 2. Extração dos Filtros da URL
+  // 4. Extração dos Filtros (agora usando a variável resolvida)
   const search = typeof searchParams.q === 'string' ? searchParams.q : undefined;
   const status = typeof searchParams.status === 'string' ? searchParams.status : undefined;
 
-  // 3. Busca de Dados com Filtros
+  // 5. Busca de Dados com Filtros
   const result = await getCompaniesAction({ search, status });
   const companies = (result.success && result.data) ? result.data : [];
 
@@ -34,7 +37,7 @@ export default async function AdminEmpresasPage({ searchParams }: PageProps) {
       {/* Cabeçalho */}
       <CompaniesPageHeader />
 
-      {/* Dashboard / KPIs (Opcional: você pode querer filtrar os stats também ou mostrar sempre o total global) */}
+      {/* Dashboard / KPIs */}
       <section className="space-y-4">
         <CompanyStats companies={companies} />
       </section>
