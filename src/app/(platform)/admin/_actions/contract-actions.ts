@@ -5,6 +5,7 @@ import { createContractSchema, CreateContractInput } from "@/core/validation/con
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { SETTING_KEYS } from "@/core/validation/settings-schema";
+import { redirect } from "next/navigation";
 
 const WRITE_ROLES = ["ADMIN"];
 
@@ -63,7 +64,7 @@ export async function createContractAction(data: CreateContractInput) {
     const session = await getProtectedSession();
 
     // Verifica se o usuário tem permissão de escrita
-    if (!session || !WRITE_ROLES.includes(session.role)) {
+    if (!session || session.role !== "ADMIN") {
         return { success: false, error: "Permissão negada." };
     }
 
