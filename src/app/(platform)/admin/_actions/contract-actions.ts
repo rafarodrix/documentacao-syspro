@@ -85,14 +85,13 @@ export async function createContractAction(data: CreateContractInput) {
                 finalMinimumWage = 1412; // Fallback final de segurança
             }
         }
-
         await prisma.contract.create({
             data: {
                 companyId: data.companyId,
                 percentage: data.percentage,
-                // Snapshot: Grava o valor do momento da criação
                 minimumWage: finalMinimumWage,
                 taxRate: data.taxRate,
+                programmerRate: data.programmerRate,
                 status: data.status,
                 startDate: data.startDate ? new Date(data.startDate) : new Date(),
             }

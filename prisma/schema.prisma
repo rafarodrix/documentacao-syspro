@@ -24,10 +24,16 @@ enum CompanyStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
-  PENDING_DOCS // Sugestão: Pendente de documentação
+  PENDING_DOCS
 }
 
-// Novo Enum para Enquadramento Fiscal
+// NOVO ENUM: Garante que o contrato só tenha esses estados
+enum ContractStatus {
+  ACTIVE
+  CANCELLED
+  SUSPENDED
+}
+
 enum TaxRegime {
   SIMPLES_NACIONAL
   SIMPLES_NACIONAL_EXCESSO
@@ -49,17 +55,17 @@ model Company {
   nomeFantasia  String?
   status        CompanyStatus @default(ACTIVE)
   
-  // DADOS FISCAIS (Novos)
-  inscricaoEstadual  String?  // Crucial para comércio
-  inscricaoMunicipal String?  // Crucial para serviços
-  regimeTributario   TaxRegime? // Enquadramento
+  // DADOS FISCAIS
+  inscricaoEstadual  String?
+  inscricaoMunicipal String?
+  regimeTributario   TaxRegime?
 
   // CONTATO
   emailContato String?
   telefone     String?
   website      String?
 
-  // ENDEREÇO (Novos)
+  // ENDEREÇO
   cep         String?
   logradouro  String?
   numero      String?
@@ -68,19 +74,16 @@ model Company {
   cidade      String?
   estado      String?
 
-  // RELAÇÃO COM CONTABILIDADE (Auto-relacionamento)
-  // Uma empresa pode ter uma contabilidade vinculada (que também é uma Company no sistema)
+  // RELAÇÃO COM CONTABILIDADE
   accountingFirmId String?
   accountingFirm   Company?  @relation("AccountantClient", fields: [accountingFirmId], references: [id])
-  
-  // Se esta empresa FOR uma contabilidade, ela terá vários clientes:
   accountingClients Company[] @relation("AccountantClient")
 
-  // RELAÇÃO COM CONTRATOS (CORREÇÃO APLICADA AQUI)
+  // RELAÇÃO COM CONTRATOS
   contracts Contract[]
 
   // EXTRAS
-  observacoes String? @db.Text // Campo de texto longo para notas internas
+  observacoes String? @db.Text
 
   // METADADOS
   createdAt     DateTime      @default(now())
@@ -93,44 +96,40 @@ model Company {
 }
 
 model User {
-  id             String    @id @default(cuid())
+  id            String    @id @default(cuid())
   
   // Auth Fields
-  email          String    @unique
-  name           String?
-  emailVerified  Boolean   @default(false)
-  image          String?
-  
-  // CORREÇÃO: Campo de senha adicionado
-  password       String?    
+  email         String    @unique
+  name          String?
+  emailVerified Boolean   @default(false)
+  image         String?
+  password      String?    
   
   // Role & Status
-  role           Role      @default(CLIENTE_USER)
-  isActive       Boolean   @default(true)
+  role          Role      @default(CLIENTE_USER)
+  isActive      Boolean   @default(true)
 
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  // RELAÇÃO N:N
-  companies      Company[] @relation("CompanyUsers")
+  companies     Company[] @relation("CompanyUsers")
 
-  // Auth Relations
-  sessions       Session[]
-  accounts       Account[]
+  sessions      Session[]
+  accounts      Account[]
 
-  @@map("user") // Nome da tabela no banco: "user"
+  @@map("user")
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  expiresAt DateTime 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  token        String   @unique
+  expiresAt    DateTime 
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  ipAddress    String?
+  userAgent    String?
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("session")
 }
@@ -168,28 +167,31 @@ model Verification {
 // Tabela Contrato
 
 model Contract {
-  id            String   @id @default(cuid())
+  id             String    @id @default(cuid())
   
-  percentage    Float    // Ex: 10.5 para 10.5%
-  minimumWage   Float    // Valor do salário mínimo base na época (Ex: 1412.00)
-  taxRate       Float    @default(0) // Percentual de imposto a descontar (Ex: 6.0 para 6%)
+  percentage     Float     
+  minimumWage    Float     
+  taxRate        Float     @default(0) 
+  programmerRate Float     @default(0) // Seu novo campo aqui ?
   
-  startDate     DateTime @default(now())
-  status        String   @default("ACTIVE") // ACTIVE, CANCELLED, SUSPENDED
+  startDate      DateTime  @default(now())
+  
+  // Alterado de String para Enum para maior segurança
+  status         ContractStatus @default(ACTIVE) 
   
   // Relacionamentos
-  companyId     String
-  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId      String
+  company        Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 // Tabela Configuração do Sistema
 
 model SystemSetting {
-  id         String   @id @default(cuid())
-  key        String   @unique
+  id          String   @id @default(cuid())
+  key         String   @unique // Sua correção aqui ?
   value       String
   description String?
   updatedAt   DateTime @updatedAt
