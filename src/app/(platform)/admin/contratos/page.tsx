@@ -3,20 +3,20 @@ import { getCompaniesAction } from "../_actions/company-actions";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 
-// Componentes Refatorados
+// Componentes
 import { ContractSheet } from "@/components/platform/admin/contratos/ContractSheet";
 import { BulkReadjustDialog } from "@/components/platform/admin/contratos/BulkReadjustDialog";
 import { ContractStats } from "@/components/platform/admin/contratos/ContractStats";
 import { ContractsTable } from "@/components/platform/admin/contratos/ContractsTable";
 
 export default async function ContratosPage() {
-    // 1. Segurança
+    // 1. Camada de Segurança
     const session = await getProtectedSession();
     if (!session || session.role !== "ADMIN") {
         redirect("/admin/dashboard");
     }
 
-    // 2. Carregamento de Dados
+    // 2. Carregamento Paralelo de Dados (Performance)
     const [contractsRes, companiesRes] = await Promise.all([
         getContractsAction(),
         getCompaniesAction()
@@ -24,32 +24,49 @@ export default async function ContratosPage() {
 
     const contracts = contractsRes.success && contractsRes.data ? contractsRes.data : [];
     const companies = companiesRes.success && companiesRes.data ? companiesRes.data : [];
+
+    // Prepara opções para o select
     const companyOptions = companies.map(c => ({ id: c.id, razaoSocial: c.razaoSocial }));
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+        <div className="flex flex-col gap-8 p-6 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500 pb-20">
 
-            {/* HEADER E AÇÕES GLOBAIS */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestão de Contratos</h1>
+            {/* --- HEADER DA PÁGINA --- */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-border/40 pb-6">
+                <div className="space-y-1.5">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                        Gestão de Contratos
+                    </h1>
                     <p className="text-muted-foreground text-lg max-w-2xl">
-                        Supervisão financeira e controle de repasses contratuais.
+                        Controle financeiro, reajustes globais e monitoramento de repasses.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    {/* Botão de Reajuste em Massa */}
+
+                {/* Área de Ações */}
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Ações de Manutenção */}
                     <BulkReadjustDialog />
-                    {/* Botão de Novo Contrato */}
+
+                    {/* Divisor Visual (apenas desktop) */}
+                    <div className="h-8 w-[1px] bg-border/60 hidden sm:block mx-1" />
+
+                    {/* Ação Principal */}
                     <ContractSheet companies={companyOptions} />
                 </div>
             </div>
 
-            {/* KPIS / DASHBOARD */}
-            <ContractStats contracts={contracts} />
+            {/* --- DASHBOARD / KPIS --- */}
+            <section className="space-y-4">
+                <ContractStats contracts={contracts} />
+            </section>
 
-            {/* TABELA DE DADOS */}
-            <ContractsTable contracts={contracts} />
+            {/* --- ÁREA OPERACIONAL (TABELA) --- */}
+            <section className="space-y-4">
+                {/* Opcional: Aqui você poderia adicionar filtros de busca antes da tabela */}
+                <div className="rounded-xl border border-border/50 bg-background/50 backdrop-blur-sm overflow-hidden shadow-sm">
+                    <ContractsTable contracts={contracts} />
+                </div>
+            </section>
 
         </div>
     );
