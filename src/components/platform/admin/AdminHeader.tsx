@@ -2,7 +2,6 @@
 
 import { ModeToggle } from "@/components/mode-toggle";
 import { UserRole } from "@/lib/auth-helpers";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,

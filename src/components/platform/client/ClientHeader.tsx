@@ -1,135 +1,161 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { authClient } from "@/lib/auth-client";
 import { ModeToggle } from "@/components/mode-toggle";
-import { Bell, Menu, Search, Settings, LogOut, User, ChevronRight, Command } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ClientSidebar } from "./ClientSidebar"; // Import da Sidebar para o menu mobile
+
+// Ícones
 import {
-    Sheet,
-    SheetContent,
-    SheetTrigger,
+    Bell, Menu, Search, Settings, LogOut, User, ChevronRight,
+    Command, LayoutDashboard, HelpCircle
+} from "lucide-react";
+
+// UI Components
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+    Sheet, SheetContent, SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+    DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ClientSidebar } from "./ClientSidebar";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
 
 interface ClientHeaderProps {
-    userEmail: string;
+    // Agora aceita o objeto completo para repassar à sidebar e usar no avatar
+    user: {
+        name: string;
+        email: string;
+        image?: string | null;
+        role: string;
+    };
 }
 
-export function ClientHeader({ userEmail }: ClientHeaderProps) {
+export function ClientHeader({ user }: ClientHeaderProps) {
     const router = useRouter();
+    const pathname = usePathname();
 
     const handleLogout = async () => {
         await authClient.signOut();
         router.push("/login");
     };
 
-    return (
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/40 bg-background/60 px-6 backdrop-blur-xl transition-all supports-[backdrop-filter]:bg-background/60">
+    // Gera o breadcrumb baseado na rota atual (Ex: /client/chamados -> Chamados)
+    const pageName = pathname === "/client"
+        ? "Visão Geral"
+        : pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase());
 
-            {/* --- ESQUERDA: Menu Mobile & Breadcrumbs --- */}
+    return (
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border/40 bg-background/80 px-6 backdrop-blur-xl transition-all">
+
+            {/* --- ESQUERDA: Menu Mobile & Contexto --- */}
             <div className="flex items-center gap-4">
-                {/* Menu Mobile */}
+
+                {/* Menu Hamburger (Mobile Only) */}
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="md:hidden shrink-0 text-muted-foreground">
+                        <Button variant="ghost" size="icon" className="md:hidden shrink-0 text-muted-foreground hover:bg-muted/50">
                             <Menu className="h-5 w-5" />
                             <span className="sr-only">Menu</span>
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="p-0 w-72 border-r-border/50">
-                        <ClientSidebar mobile />
+                        {/* AQUI ESTAVA O ERRO: Agora passamos o objeto user completo */}
+                        <ClientSidebar mobile user={user} />
                     </SheetContent>
                 </Sheet>
 
-                {/* Breadcrumbs / Contexto (Desktop) */}
+                {/* Breadcrumbs (Desktop) */}
                 <div className="hidden md:flex items-center text-sm font-medium text-muted-foreground">
-                    <div className="flex items-center hover:text-foreground transition-colors cursor-pointer">
-                        <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center mr-2">
-                            <Command className="h-3.5 w-3.5 text-primary" />
+                    <div className="flex items-center hover:text-foreground transition-colors cursor-default">
+                        <div className="h-7 w-7 rounded-lg bg-primary/10 border border-primary/10 flex items-center justify-center mr-2.5">
+                            <LayoutDashboard className="h-4 w-4 text-primary" />
                         </div>
-                        <span className="font-semibold text-foreground">Portal</span>
+                        <span className="font-semibold text-foreground tracking-tight">Portal do Cliente</span>
                     </div>
+
                     <ChevronRight className="mx-2 h-4 w-4 opacity-30" />
-                    <span className="bg-muted/50 px-2 py-0.5 rounded-md text-xs border border-border/50">Dashboard</span>
+
+                    <span className="bg-muted/50 px-2.5 py-1 rounded-md text-xs font-medium border border-border/50 text-foreground/80">
+                        {pageName}
+                    </span>
                 </div>
             </div>
 
-            {/* --- CENTRO: Barra de Busca (Command Palette Placeholder) --- */}
-            {/* Estilo 'Magic UI': Input falso que parece clicável */}
-            <div className="flex-1 flex justify-center max-w-md mx-auto hidden md:flex">
-                <div className="relative w-full group">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    <button className="flex h-9 w-full items-center rounded-lg border border-border/50 bg-muted/30 px-3 py-1 pl-9 text-sm text-muted-foreground shadow-sm transition-all hover:bg-muted/50 hover:border-primary/20 cursor-text text-left">
-                        <span className="opacity-50 truncate">Pesquisar chamados, docs...</span>
-                        <kbd className="pointer-events-none absolute right-2 top-2 hidden h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 sm:flex shadow-sm">
+            {/* --- CENTRO: Command Palette (Visual) --- */}
+            <div className="flex-1 flex justify-center max-w-xl mx-auto hidden md:flex">
+                <button className="relative w-full group flex items-center">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <div className="flex h-9 w-full items-center rounded-lg border border-border/50 bg-muted/40 px-3 pl-10 text-sm text-muted-foreground shadow-sm transition-all hover:bg-background hover:border-border hover:shadow-md cursor-pointer">
+                        <span className="opacity-60 mr-auto">Pesquisar chamados, faturas ou documentos...</span>
+                        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 sm:flex">
                             <span className="text-xs">⌘</span>K
                         </kbd>
-                    </button>
-                </div>
+                    </div>
+                </button>
             </div>
 
-            <div className="flex-1 md:hidden" /> {/* Espaçador para Mobile */}
+            <div className="flex-1 md:hidden" />
 
             {/* --- DIREITA: Ações & Perfil --- */}
             <div className="flex items-center gap-2 md:gap-3">
 
                 {/* Notificações */}
-                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-full h-9 w-9">
                     <Bell className="h-5 w-5" />
-                    {/* Badge de notificação pulsante */}
-                    <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-red-500 border-2 border-background animate-pulse" />
+                    <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-red-500 border-2 border-background animate-pulse" />
                 </Button>
 
                 <ModeToggle />
 
-                {/* Separator Vertical */}
-                <div className="h-6 w-px bg-border/50 mx-1 hidden sm:block" />
+                <div className="h-5 w-px bg-border/60 mx-1 hidden sm:block" />
 
-                {/* User Dropdown (Shadcn) */}
+                {/* User Dropdown */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-9 w-9 rounded-full border border-border/50 bg-muted/50 hover:bg-muted transition-all p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
-                            <span className="font-bold text-sm text-primary">{userEmail[0].toUpperCase()}</span>
+                        <Button variant="ghost" className="relative h-9 w-9 rounded-full border border-border/50 bg-background hover:bg-muted transition-all p-0 focus-visible:ring-offset-0 focus-visible:ring-1 focus-visible:ring-ring">
+                            <Avatar className="h-full w-full">
+                                <AvatarImage src={user.image || ""} alt={user.name} />
+                                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                                    {user.name.substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                            </Avatar>
                         </Button>
                     </DropdownMenuTrigger>
+
                     <DropdownMenuContent align="end" className="w-56" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none">Minha Conta</p>
-                                <p className="text-xs leading-none text-muted-foreground truncate">{userEmail}</p>
+                                <p className="text-sm font-medium leading-none">{user.name}</p>
+                                <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
-                        {/* Link para a página de Perfil */}
-                        <DropdownMenuItem asChild className="cursor-pointer">
-                            <Link href="/client/perfil" className="flex items-center w-full">
-                                <User className="mr-2 h-4 w-4 text-muted-foreground" /> Perfil
-                            </Link>
+                        <DropdownMenuItem className="cursor-pointer group">
+                            <User className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <span>Meu Perfil</span>
                         </DropdownMenuItem>
-
-                        <DropdownMenuItem className="cursor-pointer">
-                            <Settings className="mr-2 h-4 w-4 text-muted-foreground" /> Configurações
+                        <DropdownMenuItem className="cursor-pointer group">
+                            <Settings className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <span>Preferências</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer group">
+                            <HelpCircle className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <span>Ajuda</span>
                         </DropdownMenuItem>
 
                         <DropdownMenuSeparator />
 
-                        {/* Logout Funcional */}
                         <DropdownMenuItem
                             className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer"
                             onClick={handleLogout}
                         >
-                            <LogOut className="mr-2 h-4 w-4" /> Sair
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Sair</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
