@@ -1,5 +1,3 @@
-// Página dinâmica para renderizar documentos baseados em MDX usando Fumadocs
-
 import { source } from '@/lib/source';
 import {
   DocsPage,
