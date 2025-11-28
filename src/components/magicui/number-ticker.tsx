@@ -1,16 +1,17 @@
-"use client"
+"use client";
 
-import { ComponentPropsWithoutRef, useEffect, useRef } from "react"
-import { useInView, useMotionValue, useSpring } from "motion/react"
+import { ComponentPropsWithoutRef, useEffect, useRef } from "react";
+import { useInView, useMotionValue, useSpring } from "motion/react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 interface NumberTickerProps extends ComponentPropsWithoutRef<"span"> {
-  value: number
-  startValue?: number
-  direction?: "up" | "down"
-  delay?: number
-  decimalPlaces?: number
+  value: number;
+  startValue?: number;
+  direction?: "up" | "down";
+  delay?: number;
+  decimalPlaces?: number;
+  type?: "currency" | "percent" | "number";
 }
 
 export function NumberTicker({
@@ -20,48 +21,57 @@ export function NumberTicker({
   delay = 0,
   className,
   decimalPlaces = 0,
+  type = "number",
   ...props
 }: NumberTickerProps) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const motionValue = useMotionValue(direction === "down" ? value : startValue)
+  const ref = useRef<HTMLSpanElement>(null);
+  const motionValue = useMotionValue(direction === "down" ? value : startValue);
   const springValue = useSpring(motionValue, {
     damping: 60,
     stiffness: 100,
-  })
-  const isInView = useInView(ref, { once: true, margin: "0px" })
+  });
+  const isInView = useInView(ref, { once: true, margin: "0px" });
 
   useEffect(() => {
     if (isInView) {
       const timer = setTimeout(() => {
-        motionValue.set(direction === "down" ? startValue : value)
-      }, delay * 1000)
-      return () => clearTimeout(timer)
+        motionValue.set(direction === "down" ? startValue : value);
+      }, delay * 1000);
+      return () => clearTimeout(timer);
     }
-  }, [motionValue, isInView, delay, value, direction, startValue])
+  }, [motionValue, isInView, delay, value, direction, startValue]);
 
   useEffect(
     () =>
       springValue.on("change", (latest) => {
         if (ref.current) {
-          ref.current.textContent = Intl.NumberFormat("en-US", {
+          ref.current.textContent = Intl.NumberFormat("pt-BR", {
+            style: type === "number" ? "decimal" : type,
+            currency: "BRL",
             minimumFractionDigits: decimalPlaces,
             maximumFractionDigits: decimalPlaces,
-          }).format(Number(latest.toFixed(decimalPlaces)))
+          }).format(Number(latest.toFixed(decimalPlaces)));
         }
       }),
-    [springValue, decimalPlaces]
-  )
+    [springValue, decimalPlaces, type]
+  );
 
   return (
     <span
       ref={ref}
       className={cn(
         "inline-block tracking-wider text-black tabular-nums dark:text-white",
-        className
+        className,
       )}
       {...props}
     >
-      {startValue}
+      {/* 4. Formata o valor inicial para evitar layout shift */}
+      {Intl.NumberFormat("pt-BR", {
+        style: type === "number" ? "decimal" : type,
+        currency: "BRL",
+        minimumFractionDigits: decimalPlaces,
+        maximumFractionDigits: decimalPlaces,
+      }).format(startValue)}
     </span>
-  )
+  );
 }

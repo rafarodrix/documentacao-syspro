@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
-import NumberTicker from "@/components/magicui/number-ticker";
+import { NumberTicker } from "@/components/magicui/number-ticker";
 
 // Sub-componente ajustado
 interface StatCardProps {

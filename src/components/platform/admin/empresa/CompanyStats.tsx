@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import NumberTicker from "@/components/magicui/number-ticker"; // Reusando o componente criado anteriormente
+import NumberTicker from "@/components/magicui/NumberTicker"; // Reusando o componente criado anteriormente
 
 interface StatCardProps {
     title: string;
