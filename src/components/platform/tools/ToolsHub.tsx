@@ -8,7 +8,7 @@ export function ToolsHub({ basePath }: { basePath: string }) {
             title: "Analisador XML",
             desc: "Valide e analise arquivos XML de NFe.",
             icon: FileSearch,
-            href: `${basePath}/analisador`,
+            href: `${basePath}/analisador-xml`,
             color: "text-blue-500"
         },
         {
@@ -19,11 +19,25 @@ export function ToolsHub({ basePath }: { basePath: string }) {
             color: "text-green-500"
         },
         {
+            title: "Calculadora Precificação",
+            desc: "Simule o Diferencial de Alíquota.",
+            icon: Calculator,
+            href: `${basePath}/calculadora-precificacao`,
+            color: "text-green-500"
+        },
+        {
             title: "Visualizador DANFE",
             desc: "Visualize o PDF da nota fiscal.",
             icon: FileText,
             href: `${basePath}/visualizador-danfe`,
             color: "text-orange-500"
+        },
+        {
+            title: "Análise Ponto de Equilíbrio",
+            desc: "Simule o Diferencial de Alíquota.",
+            icon: Calculator,
+            href: `${basePath}/analise-ponto-equilibrio`,
+            color: "text-green-500"
         }
     ];
 

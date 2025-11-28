@@ -1,4 +1,3 @@
-// components/danfe-visualizer/DanfeVisualizerTool.tsx
 'use client';
 
 import { useState, useCallback, ChangeEvent } from 'react';
@@ -74,8 +73,8 @@ export function DanfeVisualizerTool() {
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Package size={22} /> Itens da Nota</h3>
             <div className="space-y-4">
               {danfeData.det.map((item, index) => (
-                <DanfeItemCard 
-                  key={item.nItem || index} 
+                <DanfeItemCard
+                  key={item.nItem || index}
                   item={item}
                   ufDest={danfeData.dest.raw.UF}
                 />
