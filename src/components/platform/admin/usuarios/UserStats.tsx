@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ShieldCheck, UserCheck } from "lucide-react";
-import NumberTicker from "@/components/magicui/NumberTicker";
+import { NumberTicker } from "@/components/magicui/number-ticker";
 
 // --- SUB-COMPONENTE DE CARD (Reutilizável) ---
 interface StatCardProps {
