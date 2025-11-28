@@ -1,6 +1,8 @@
 import { useState, useMemo, ChangeEvent } from 'react';
 import { CalculatorState, Finalidade, ResultadoCalculo } from './types';
-import { parseCurrency, formatarMoedaInput, round, ALIQUOTAS_DESTINO } from './utils';
+import { ALIQUOTAS_DESTINO } from './constants';
+import { calcularAntecipacao, calcularBaseTotal, calcularDifalConsumo } from './calculations';
+import { parseCurrency, formatarMoedaInput } from '@/lib/formatters';
 
 export function useDifalCalculator() {
     const [valores, setValores] = useState<CalculatorState>({
@@ -10,6 +12,7 @@ export function useDifalCalculator() {
 
     const [finalidade, setFinalidade] = useState<Finalidade>('revenda');
 
+    // --- Handlers ---
     const handleChange = (campo: keyof CalculatorState, valor: string) => {
         setValores(prev => ({ ...prev, [campo]: valor }));
     };
@@ -35,50 +38,36 @@ export function useDifalCalculator() {
         setFinalidade('revenda');
     };
 
+    // --- Memoização dos Números ---
+    const numeros = useMemo(() => ({
+        vp: parseCurrency(valores.produto),
+        vf: parseCurrency(valores.frete),
+        vod: parseCurrency(valores.outras),
+        vIpi: parseCurrency(valores.ipi),
+        alqInter: parseFloat(valores.aliqInterestadual) || 0,
+        alqDest: parseFloat(valores.aliqDestino) || 0,
+        pRed: parseFloat(valores.reducaoBC) || 0,
+    }), [valores]);
+
+    // --- Execução dos Cálculos ---
     const baseDeCalculo = useMemo(() => {
-        const vp = parseCurrency(valores.produto);
-        const vf = parseCurrency(valores.frete);
-        const vod = parseCurrency(valores.outras);
-        const vIpi = parseCurrency(valores.ipi);
-
-        const bcComum = vp + vf + vod;
-        const bcFinal = finalidade === 'consumo' ? bcComum + vIpi : bcComum;
-
-        return {
-            valor: bcFinal,
-            formula: finalidade === 'consumo' ? "Produtos + Frete + Desp. + IPI" : "Produtos + Frete + Desp."
-        };
-    }, [valores.produto, valores.frete, valores.outras, valores.ipi, finalidade]);
+        return calcularBaseTotal(numeros.vp, numeros.vf, numeros.vod, numeros.vIpi, finalidade);
+    }, [numeros, finalidade]);
 
     const resultados = useMemo((): ResultadoCalculo | null => {
         const bc = baseDeCalculo.valor;
-        const alqInter = parseFloat(valores.aliqInterestadual) || 0;
-        const alqDest = parseFloat(valores.aliqDestino) || 0;
-        const pRed = parseFloat(valores.reducaoBC) || 0;
+        if (bc === 0 || numeros.alqInter === 0 || numeros.alqDest === 0) return null;
 
-        if (bc === 0 || alqInter === 0 || alqDest === 0) return null;
-        if (alqDest <= alqInter) return { type: 'difal', error: 'Alíquota de destino deve ser maior que a interestadual.' };
+        if (numeros.alqDest <= numeros.alqInter) {
+            return { type: 'difal', error: 'Alíquota de destino deve ser maior que a interestadual.' };
+        }
 
         if (finalidade === 'revenda') {
-            const bcOrigem = round(bc * (1 - pRed / 100));
-            const vCredito = round(bcOrigem * (alqInter / 100));
-            const divisor = 1 - alqDest / 100;
-
-            if (divisor <= 0) return { type: 'antecipacao', error: 'Alíquota de destino inválida.' };
-
-            const bcDestino = round((bcOrigem - vCredito) / divisor);
-            const vDebito = round(bcDestino * (alqDest / 100));
-            const vAntecipacao = round(vDebito - vCredito);
-
-            return { type: 'antecipacao', bcOrigem, vCredito, bcDestino, vDebito, vAntecipacao, error: null };
+            return calcularAntecipacao(bc, numeros.alqInter, numeros.alqDest, numeros.pRed);
         } else {
-            const bcReduzida = round(bc * (1 - pRed / 100));
-            const diferencial = (alqDest - alqInter) / 100;
-            const valorAPagar = round(bcReduzida * diferencial);
-
-            return { type: 'difal', baseDeCalculo: bc, bcReduzida, diferencial, valorAPagar, error: null };
+            return calcularDifalConsumo(bc, numeros.alqInter, numeros.alqDest, numeros.pRed);
         }
-    }, [baseDeCalculo.valor, valores.aliqInterestadual, valores.aliqDestino, valores.reducaoBC, finalidade]);
+    }, [baseDeCalculo, numeros, finalidade]);
 
     return {
         valores, finalidade, baseDeCalculo, resultados,
