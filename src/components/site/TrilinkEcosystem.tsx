@@ -148,9 +148,9 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 flex-1">
                 Validadores XML, scripts SQL e utilitários de automação para facilitar o dia a dia.
               </p>
-              <div className="flex items-center text-xs font-medium text-orange-500 gap-1 group-hover:translate-x-1 transition-transform">
+              <Link href="/tools" className="flex items-center text-xs font-medium text-orange-500 gap-1 group-hover:translate-x-1 transition-transform">
                 Acessar Tools <ArrowRight className="h-3 w-3" />
-              </div>
+              </Link>
             </CardContent>
           </Card>
 
