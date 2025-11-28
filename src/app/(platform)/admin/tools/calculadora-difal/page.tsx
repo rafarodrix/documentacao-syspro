@@ -1,4 +1,4 @@
-import { CalculadoraDifal } from "@/components/platform/tools//CalculadoraDifal";
+import { CalculadoraDifal } from "@/components/platform/tools/calculadora-difal/CalculadoraDifal";
 
 export default function AdminCalculadoraPage() {
   return (
