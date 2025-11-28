@@ -11,7 +11,9 @@ import {
     Headset,
     Ticket,
     Users,
-    Sparkles
+    Sparkles,
+    Rocket,
+    Wrench
 } from "lucide-react";
 
 // Imports dos Sub-componentes
@@ -43,7 +45,8 @@ const helpNav: NavItemType[] = [
     { title: "Documentação", href: "/docs/manual", icon: BookOpen },
     { title: "Treinamentos", href: "/docs/treinamento", icon: GraduationCap },
     { title: "Suporte Técnico", href: "/docs/suporte", icon: Headset },
-    { title: "Releases", href: "/releases", icon: Sparkles },
+    { title: "Releases", href: "/releases", icon: Rocket },
+    { title: "Ferramentas", href: "/client/tools", icon: Wrench },
 ];
 
 interface ClientSidebarProps {

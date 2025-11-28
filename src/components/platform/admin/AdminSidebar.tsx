@@ -18,7 +18,7 @@ import {
     HelpCircle,
     ChevronUp,
     Sparkles,
-    TerminalSquare
+    Wrench
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -49,8 +49,7 @@ const manageNav: NavItem[] = [
 
 const systemNav: NavItem[] = [
     { title: "Central de Chamados", href: "/admin/chamados", icon: Headset },
-    { title: "Logs do Sistema", href: "/admin/logs", icon: TerminalSquare, roles: ["DEVELOPER"] }, // Exemplo: Apenas Dev vê logs
-    { title: "Configurações", href: "/admin/configuracoes", icon: Settings },
+    { title: "Ferramentas", href: "/admin/tools", icon: Wrench },
 ];
 
 const helpNav: NavItem[] = [
