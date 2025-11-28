@@ -1,14 +1,10 @@
-// Página para exibir detalhes dos lançamentos de um mês específico
-// Mostra melhorias e correções agrupadas por mês e ano
-
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { getReleases } from "@/core/application/use-cases/get-releases";
-import { Heading } from "fumadocs-ui/components/heading";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { MonthlyReleasesClient } from "@/components/releases/MonthlyReleasesClient";
+import { ReleasesClientPage } from "@/components/releases/client-page";
+import { monthNames } from "@/core/utils/transform-releases";
 
-// export const dynamic = "force-dynamic";
-
+// Mantém a geração estática para performance máxima em docs
 export async function generateStaticParams() {
   const allReleases = await getReleases();
 
@@ -21,73 +17,63 @@ export async function generateStaticParams() {
   );
 
   return Array.from(uniqueMonths)
-    .filter(Boolean) // Remove nulos
+    .filter(Boolean)
     .map((dateStr) => {
       const [year, month] = (dateStr as string).split("/");
       return { year, month };
     });
 }
 
+// 1. Geração de Metadata Dinâmica para SEO e Título da Aba
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ year: string; month: string }>;
+}): Promise<Metadata> {
+  const { year, month } = await params;
+  const monthName = monthNames[Number(month) - 1] || month;
+
+  return {
+    title: `Atualizações de ${monthName} de ${year}`,
+    description: `Confira as melhorias e correções lançadas em ${monthName} de ${year}.`,
+  };
+}
+
+// 2. Componente de Página (Server Component)
 export default async function MonthlyReleasePage({
   params,
 }: {
   params: Promise<{ year: string; month: string }>;
 }) {
-  // ✅ Agora espera a Promise antes de acessar
   const { year, month } = await params;
 
-  const monthNames = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-  ];
-  const monthName = monthNames[Number(month) - 1] || "";
+  // Validação básica
+  const monthIndex = Number(month);
+  if (isNaN(monthIndex) || monthIndex < 1 || monthIndex > 12) {
+    return notFound();
+  }
 
   const allReleases = await getReleases();
 
+  // Filtramos apenas pelo mês/ano no servidor.
+  // Deixamos a separação (Bug/Melhoria) para o Client Component fazer via abas.
   const releasesForMonth = allReleases.filter((release) => {
     if (!release.isoDate) return false;
     const [releaseYear, releaseMonth] = release.isoDate.split("-");
     return releaseYear === year && releaseMonth === month;
   });
 
-  const melhorias = releasesForMonth.filter(
-    (r) => r.type.toLowerCase() === "melhoria"
-  );
-  const bugs = releasesForMonth.filter(
-    (r) => r.type.toLowerCase() === "bug"
-  );
+  // Se não houver nada para este mês (URL manual inválida), 404
+  if (!releasesForMonth || releasesForMonth.length === 0) {
+    return notFound();
+  }
 
+  // Passamos os dados para o componente interativo
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-8">
-      <Link
-        href="/docs/suporte/releasenotes"
-        className="inline-flex items-center gap-2 rounded-md bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para o índice de meses
-      </Link>
-
-      <Heading as="h1" className="text-4xl font-bold">
-        Atualizações de {monthName} / {year}
-      </Heading>
-
-      {releasesForMonth.length > 0 ? (
-        <MonthlyReleasesClient melhorias={melhorias} bugs={bugs} />
-      ) : (
-        <div className="text-center text-muted-foreground py-10">
-          <p>Nenhuma atualização encontrada para este mês.</p>
-        </div>
-      )}
-    </div>
+    <ReleasesClientPage
+      initialReleases={releasesForMonth}
+      year={year}
+      month={month}
+    />
   );
 }
