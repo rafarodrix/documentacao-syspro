@@ -44,9 +44,6 @@ const formatPercent = (value: number) =>
     ? '0,00%'
     : value.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
 
-// ------------------------------------------------------------
-// Subcomponente: HealthStatus (Mantido como estava)
-// ------------------------------------------------------------
 function HealthStatus({ current, target }: { current: number; target: number }) {
   if (target <= 0 || current <= 0 || isNaN(current)) {
     return (
@@ -82,9 +79,7 @@ function HealthStatus({ current, target }: { current: number; target: number }) 
   );
 }
 
-// ============================================================
-// NOVO SUBCOMPONENTE: PASSO 1
-// ============================================================
+
 interface Step1Props {
   totalCost: number;
   onTotalCostChange: (value?: string) => void;
@@ -205,11 +200,10 @@ function Step2_DepartmentManagement({
           <button
             key={mode}
             onClick={() => onAllocationModeChange(mode)}
-            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${
-              allocationMode === mode
+            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${allocationMode === mode
                 ? 'bg-background shadow text-primary'
                 : 'text-muted-foreground hover:bg-background/50'
-            }`}
+              }`}
           >
             {mode === 'auto' ? 'Automático' : 'Manual'}
           </button>

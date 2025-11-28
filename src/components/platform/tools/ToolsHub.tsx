@@ -52,6 +52,13 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
             icon: Calculator,
             href: `${basePath}/analise-ponto-equilibrio`,
             color: "text-purple-500"
+        },
+        {
+            title: "Simulador de Custos Fixos por departamento",
+            description: "Simule custos fixos e calcule margem de lucro.",
+            icon: Calculator,
+            href: `${basePath}/simulador-custos-fixos-departamento`,
+            color: "text-pink-500"
         }
     ];
 
