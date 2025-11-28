@@ -43,6 +43,7 @@ const helpNav: NavItemType[] = [
     { title: "Documentação", href: "/docs/manual", icon: BookOpen },
     { title: "Treinamentos", href: "/docs/treinamento", icon: GraduationCap },
     { title: "Suporte Técnico", href: "/docs/suporte", icon: Headset },
+    { title: "Releases", href: "/releases", icon: Sparkles },
 ];
 
 interface ClientSidebarProps {

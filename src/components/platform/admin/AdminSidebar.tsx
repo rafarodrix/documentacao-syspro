@@ -17,7 +17,7 @@ import {
     GraduationCap,
     HelpCircle,
     ChevronUp,
-    BarChart3,
+    Sparkles,
     TerminalSquare
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,6 +56,7 @@ const systemNav: NavItem[] = [
 const helpNav: NavItem[] = [
     { title: "Documentação Interna", href: "/docs/manual", icon: BookOpen },
     { title: "Base de Conhecimento", href: "/docs/treinamento", icon: GraduationCap },
+    { title: "Releases", href: "/releases", icon: Sparkles },
 ];
 
 interface AdminSidebarProps {
