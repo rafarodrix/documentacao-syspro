@@ -93,7 +93,7 @@ export function DifalResults({ resultados, finalidade }: DifalResultsProps) {
                     icon={Package}
                     label="3. Base de Cálculo Destino"
                     value={formatCurrency(resultados.bcDestino)}
-                    tooltip="Base recalculada 'por dentro' (Gross-up)"
+                    tooltip="Base recalculada 'por dentro"
                 />
 
                 {/* 5. Débito */}
