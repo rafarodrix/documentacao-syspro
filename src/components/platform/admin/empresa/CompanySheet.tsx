@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createCompanySchema, CreateCompanyInput } from "@/core/validation/company-schema";
+import { createCompanySchema, CreateCompanyInput } from "@/core/schema/company-schema";
 import {
     createCompanyAction,
     updateCompanyAction,

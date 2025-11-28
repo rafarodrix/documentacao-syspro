@@ -1,4 +1,4 @@
-import type { Release } from "./types";
+import type { Release } from "@/core/domain/entities/release";
 
 // Tipo para a estrutura de dados que vamos criar
 export type MonthSummary = {
@@ -15,7 +15,7 @@ export function groupReleasesByMonth(releases: Release[]): MonthSummary[] {
 
   const grouped = releases.reduce((acc, release) => {
     if (!release.isoDate || !release.type) return acc;
-    
+
     const [year, month] = release.isoDate.split("-");
     const key = `${year}-${month}`;
 
@@ -28,7 +28,7 @@ export function groupReleasesByMonth(releases: Release[]): MonthSummary[] {
     } else if (release.type.toLowerCase() === "melhoria") {
       acc[key].melhorias++;
     }
-    
+
     return acc;
   }, {} as Record<string, MonthSummary>);
 

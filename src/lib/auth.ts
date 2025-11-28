@@ -11,7 +11,7 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     "http://localhost:3000",
-    "https://ajuda.trilinksoftware.com.br"
+    "https://www.cadens.com.br/"
   ],
 
   emailAndPassword: {

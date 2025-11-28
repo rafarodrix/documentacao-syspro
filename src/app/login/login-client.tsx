@@ -57,9 +57,9 @@ export default function LoginClientPage() {
     return (
         <AuthLayoutWrapper
             title="Acesso ao Portal"
-            description="Entre com suas credenciais corporativas para acessar o painel."
+            description="Entre com suas credenciais para acessar o portal."
         >
-            {/* 1. Botão Voltar (Absolute fora do fluxo do form, mas dentro do wrapper relativo) */}
+            {/* 1. Botão Voltar */}
             <div className="absolute top-8 left-8">
                 <Link
                     href="/"

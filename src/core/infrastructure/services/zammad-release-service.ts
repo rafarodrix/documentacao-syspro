@@ -1,4 +1,4 @@
-import { ZammadTicketAPISchema, ZammadTicketAPI } from "@/core/validation/zammad-schema";
+import { ZammadTicketAPISchema, ZammadTicketAPI } from "@/core/schema/zammad-schema";
 
 const ZAMMAD_URL = process.env.ZAMMAD_URL;
 const ZAMMAD_TOKEN = process.env.ZAMMAD_TOKEN;

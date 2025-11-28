@@ -63,7 +63,7 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
                 <div className="relative z-10 max-w-lg space-y-8 animate-in fade-in slide-in-from-right-8 duration-1000 delay-100">
                     <div>
                         <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight mb-4">
-                            A Central Oficial do Syspro ERP
+                            A Central de Ajuda do Syspro ERP
                         </h2>
                         <p className="text-lg text-zinc-400 leading-relaxed">
                             Acesse sua conta para ter acesso a toda a documentação e configurações com segurança total.
