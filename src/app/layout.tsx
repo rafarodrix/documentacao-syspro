@@ -1,7 +1,7 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
-import { Providers } from '@/components/providers';
+import { Providers } from '@/components/Providers';
 import { RootProvider } from 'fumadocs-ui/provider';
 
 const inter = Inter({

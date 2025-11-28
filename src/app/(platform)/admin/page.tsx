@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { CalendarDateRangePicker } from "@/components/date-range-picker";
+import { CalendarDateRangePicker } from "@/components/DateRangePicker";
 import { Download } from "lucide-react";
 
 // Componentes

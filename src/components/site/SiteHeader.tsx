@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/mode-toggle";
+import { ModeToggle } from "@/components/ModeToggle";
 import { Menu, ExternalLink, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"; // Assumindo que você tem o componente Sheet do shadcn
 
