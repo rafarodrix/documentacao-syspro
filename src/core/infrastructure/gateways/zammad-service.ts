@@ -1,4 +1,4 @@
-import { Ticket, TicketPriority, TicketStatus } from "@/core/domain/entities/ticket";
+import { Ticket, TicketPriority, TicketStatus } from "@/core/domain/entities/ticket.entity";
 import { ZammadTicketAPISchema } from "@/core/application/schema/zammad-schema";
 
 const ZAMMAD_URL = process.env.ZAMMAD_URL;

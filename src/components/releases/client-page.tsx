@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 // Importe seus componentes refatorados anteriormente
 import { ReleasesFilter, type FilterType } from "./ReleasesFilter";
 import { MonthlyReleasesClient } from "./MonthlyReleasesClient";
-import { monthNames } from "@/core/shared/transform-releases";
+import { monthNames } from "@/core/infrastructure/mappers/zammad-release.mapper";
 import type { Release } from "@/core/domain/entities/release.entity";
 
 interface ReleasesClientPageProps {

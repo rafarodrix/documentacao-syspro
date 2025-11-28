@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, Info } from 'lucide-react';
 import type { SqlScript } from '@/lib/scripts';
-import type { AdminDashboardStats } from '@/core/application/use-cases/dashboard-stats.use-case';
+import type { AdminDashboardStats } from '@/core/application/use-cases/get-dashboard-stats.use-case';
 import { StatCard } from '@/components/admin/StatCard';
 import { Clock, HelpCircle, AlertTriangle, Bug } from 'lucide-react';
 import { motion } from 'framer-motion';
