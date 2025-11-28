@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Book, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 
-// Ajuste o título conforme o nome do seu produto
 const PRODUCT_NAME = "SysPro";
 
 export default function ReleasesLayout({
