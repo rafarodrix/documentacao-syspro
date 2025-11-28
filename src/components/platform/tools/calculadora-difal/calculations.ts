@@ -1,13 +1,16 @@
 import { Finalidade, ResultadoCalculo } from './types';
 
-// Helper local de arredondamento
+// Helper local
 const round = (value: number): number => Math.round(value * 100) / 100;
 
 export function calcularBaseTotal(
     vp: number, vf: number, vod: number, vIpi: number, finalidade: Finalidade
 ) {
     const bcComum = vp + vf + vod;
-    // Regra: IPI entra na base se for Consumo
+
+    // === A GRANDE DIFERENÇA ===
+    // Consumo: IPI compõe a base.
+    // Revenda: IPI não compõe a base.
     const valor = finalidade === 'consumo' ? bcComum + vIpi : bcComum;
 
     return {
@@ -18,37 +21,30 @@ export function calcularBaseTotal(
     };
 }
 
-export function calcularAntecipacao(
+export function calcularDifalUnificado(
     bc: number, alqInter: number, alqDest: number, pRed: number
 ): ResultadoCalculo {
-    const bcOrigem = round(bc * (1 - pRed / 100));
-    const vCredito = round(bcOrigem * (alqInter / 100));
-    const divisor = 1 - alqDest / 100;
+    // 1. Aplica Redução de Base (se houver)
+    const baseReduzida = round(bc * (1 - pRed / 100));
 
-    if (divisor <= 0) {
-        return { type: 'antecipacao', error: 'Alíquota de destino muito alta (Divisor zero/negativo).' };
-    }
+    // 2. Calcula Débito e Crédito (Opcional, mas bom para mostrar detalhes)
+    const valorDebito = round(baseReduzida * (alqDest / 100));
+    const valorCredito = round(baseReduzida * (alqInter / 100));
 
-    const bcDestino = round((bcOrigem - vCredito) / divisor);
-    const vDebito = round(bcDestino * (alqDest / 100));
-    const vAntecipacao = round(vDebito - vCredito);
+    // 3. Calcula o Diferencial
+    const diferencialPct = alqDest - alqInter;
 
-    return { type: 'antecipacao', bcOrigem, vCredito, bcDestino, vDebito, vAntecipacao, error: null };
-}
-
-export function calcularDifalConsumo(
-    bc: number, alqInter: number, alqDest: number, pRed: number
-): ResultadoCalculo {
-    const bcReduzida = round(bc * (1 - pRed / 100));
-    const diferencial = (alqDest - alqInter) / 100;
-    const valorAPagar = round(bcReduzida * diferencial);
+    // Fórmula: Base * (Destino - Origem)
+    // ou (Base * Destino) - (Base * Origem) -> matematicamente igual, pequenas diffs de arredondamento
+    const valorAPagar = round(valorDebito - valorCredito);
 
     return {
-        type: 'difal',
-        baseDeCalculo: bc,
-        bcReduzida,
-        diferencial,
-        valorAPagar,
-        error: null
+        error: null,
+        baseOriginal: bc,
+        baseReduzida,
+        valorDebito,
+        valorCredito,
+        diferencialPct,
+        valorAPagar
     };
 }

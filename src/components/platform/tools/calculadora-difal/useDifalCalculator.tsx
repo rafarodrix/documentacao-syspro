@@ -1,7 +1,7 @@
 import { useState, useMemo, ChangeEvent } from 'react';
 import { CalculatorState, Finalidade, ResultadoCalculo } from './types';
 import { ALIQUOTAS_DESTINO } from './constants';
-import { calcularAntecipacao, calcularBaseTotal, calcularDifalConsumo } from './calculations';
+import { calcularBaseTotal, calcularDifalUnificado } from './calculations'; // Importação atualizada
 import { parseCurrency, formatarMoedaInput } from '@/lib/formatters';
 
 export function useDifalCalculator() {
@@ -12,7 +12,6 @@ export function useDifalCalculator() {
 
     const [finalidade, setFinalidade] = useState<Finalidade>('revenda');
 
-    // --- Handlers ---
     const handleChange = (campo: keyof CalculatorState, valor: string) => {
         setValores(prev => ({ ...prev, [campo]: valor }));
     };
@@ -38,7 +37,6 @@ export function useDifalCalculator() {
         setFinalidade('revenda');
     };
 
-    // --- Memoização dos Números ---
     const numeros = useMemo(() => ({
         vp: parseCurrency(valores.produto),
         vf: parseCurrency(valores.frete),
@@ -49,25 +47,26 @@ export function useDifalCalculator() {
         pRed: parseFloat(valores.reducaoBC) || 0,
     }), [valores]);
 
-    // --- Execução dos Cálculos ---
     const baseDeCalculo = useMemo(() => {
         return calcularBaseTotal(numeros.vp, numeros.vf, numeros.vod, numeros.vIpi, finalidade);
     }, [numeros, finalidade]);
 
+    // Lógica Simplificada: Chama sempre a mesma função
     const resultados = useMemo((): ResultadoCalculo | null => {
         const bc = baseDeCalculo.valor;
         if (bc === 0 || numeros.alqInter === 0 || numeros.alqDest === 0) return null;
 
         if (numeros.alqDest <= numeros.alqInter) {
-            return { type: 'difal', error: 'Alíquota de destino deve ser maior que a interestadual.' };
+            return {
+                error: 'Alíquota de destino deve ser maior que a interestadual.',
+                baseOriginal: 0, baseReduzida: 0, valorDebito: 0, valorCredito: 0, diferencialPct: 0, valorAPagar: 0
+            };
         }
 
-        if (finalidade === 'revenda') {
-            return calcularAntecipacao(bc, numeros.alqInter, numeros.alqDest, numeros.pRed);
-        } else {
-            return calcularDifalConsumo(bc, numeros.alqInter, numeros.alqDest, numeros.pRed);
-        }
-    }, [baseDeCalculo, numeros, finalidade]);
+        // O cálculo é o mesmo para ambos, pois a diferença da base já foi tratada em 'baseDeCalculo'
+        return calcularDifalUnificado(bc, numeros.alqInter, numeros.alqDest, numeros.pRed);
+
+    }, [baseDeCalculo, numeros]);
 
     return {
         valores, finalidade, baseDeCalculo, resultados,

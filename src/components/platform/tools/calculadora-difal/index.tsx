@@ -36,6 +36,7 @@ export function CalculadoraDifal() {
             <DifalResults
                 resultados={resultados}
                 reducaoBC={valores.reducaoBC}
+                finalidade={finalidade}
             />
 
             {/* Componente 4: Teoria/Explicação */}

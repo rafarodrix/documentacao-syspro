@@ -12,17 +12,17 @@ export interface CalculatorState {
 }
 
 export interface ResultadoCalculo {
-    type: 'antecipacao' | 'difal';
     error: string | null;
-    // Campos de Antecipação
-    bcOrigem?: number;
-    vCredito?: number;
-    bcDestino?: number;
-    vDebito?: number;
-    vAntecipacao?: number;
-    // Campos de Difal
-    baseDeCalculo?: number;
-    bcReduzida?: number;
-    diferencial?: number;
-    valorAPagar?: number;
+
+    // Dados Comuns
+    baseOriginal: number;    // A base cheia (com ou sem IPI dependendo da finalidade)
+    baseReduzida: number;    // A base após aplicar % de redução
+
+    // Memória de Cálculo
+    valorDebito: number;     // Base * Aliq Interna
+    valorCredito: number;    // Base * Aliq Inter
+
+    // Resultado
+    diferencialPct: number;  // Diferença percentual (ex: 6%)
+    valorAPagar: number;     // O valor final do imposto
 }
