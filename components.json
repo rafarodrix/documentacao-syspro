@@ -4,7 +4,7 @@
   "rsc": true,
   "tsx": true,
   "tailwind": {
-    "config": "tailwind.config.ts", 
+    "config": "tailwind.config.ts",
     "css": "src/app/globals.css",
     "baseColor": "neutral",
     "cssVariables": true,
@@ -18,5 +18,7 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "registries": {}
+  "registries": {
+    "@magicui": "https://magicui.design/r/{name}.json"
+  }
 }

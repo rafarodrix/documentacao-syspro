@@ -97,13 +97,18 @@ const config: Config = {
         "pulse-slow": {
           "0%, 100%": { opacity: "0.4" },
           "50%": { opacity: "0.7" },
-        }
+        },
+        shine: {
+          "0%": { backgroundPosition: "0% 50%" },
+          "100%": { backgroundPosition: "200% 50%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "aurora": "aurora 60s linear infinite",
         "pulse-slow": "pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "shine": "shine 3s linear infinite",
       },
     },
   },
