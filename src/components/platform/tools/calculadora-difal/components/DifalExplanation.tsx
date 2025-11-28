@@ -8,18 +8,17 @@ interface ExplanationCardProps {
     icon: React.ElementType;
     ipiStatus: 'include' | 'exclude';
     description: string;
-    formula: string;
 }
 
-function ExplanationCard({ title, subtitle, icon: Icon, ipiStatus, description, formula }: ExplanationCardProps) {
+function ExplanationCard({ title, subtitle, icon: Icon, ipiStatus, description }: ExplanationCardProps) {
     const isIncluded = ipiStatus === 'include';
 
     return (
-        <div className="flex flex-col border rounded-lg overflow-hidden bg-card">
+        <div className="flex flex-col border rounded-lg overflow-hidden bg-card hover:border-primary/50 transition-colors">
             {/* Cabeçalho do Card */}
             <div className="p-4 bg-secondary/30 border-b flex items-start justify-between gap-4">
                 <div className="flex gap-3">
-                    <div className="p-2 bg-background rounded-md border shadow-sm">
+                    <div className="p-2 bg-background rounded-md border shadow-sm h-fit">
                         <Icon size={20} className="text-primary" />
                     </div>
                     <div>
@@ -28,8 +27,8 @@ function ExplanationCard({ title, subtitle, icon: Icon, ipiStatus, description, 
                     </div>
                 </div>
 
-                {/* Badge do IPI */}
-                <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-1 ${isIncluded
+                {/* Badge do IPI (O grande diferencial) */}
+                <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-1 h-fit ${isIncluded
                         ? 'bg-orange-500/10 text-orange-600 border-orange-200'
                         : 'bg-emerald-500/10 text-emerald-600 border-emerald-200'
                     }`}>
@@ -40,23 +39,26 @@ function ExplanationCard({ title, subtitle, icon: Icon, ipiStatus, description, 
 
             {/* Conteúdo */}
             <div className="p-4 space-y-4 flex-grow flex flex-col">
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed min-h-[40px]">
                     {description}
                 </p>
 
-                {/* Fórmula Visual */}
+                {/* Bloco Visual da Base */}
                 <div className="mt-auto pt-2">
-                    <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 text-center">
-                        Como a Base é formada:
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
+                        Composição da Base:
                     </div>
-                    <div className="bg-secondary/50 rounded-md p-2 text-center text-xs font-medium border border-border/50">
+                    <div className={`rounded-md p-2 text-center text-xs font-mono border ${isIncluded ? 'bg-orange-500/5 border-orange-500/20 text-orange-700' : 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700'
+                        }`}>
                         {isIncluded
                             ? "Produtos + Frete + Desp. + IPI"
                             : "Produtos + Frete + Desp."}
                     </div>
 
-                    <div className="mt-3">
-                        <BlockMath math={formula} />
+                    {/* Fórmula Unificada (Visualmente idêntica para reforçar que o cálculo é igual) */}
+                    <div className="mt-3 opacity-70">
+                        <div className="text-[10px] text-center mb-1 text-muted-foreground">Fórmula de Cálculo:</div>
+                        <BlockMath math={`\\text{Difal} = \\text{Débito}_{Dest} - \\text{Crédito}_{Orig}`} />
                     </div>
                 </div>
             </div>
@@ -76,10 +78,14 @@ export function DifalExplanation() {
             <div className="mt-4 border-t pt-4 animate-in fade-in slide-in-from-top-2">
 
                 {/* Explicação Geral */}
-                <p className="text-muted-foreground mb-6 text-center max-w-2xl mx-auto">
-                    O objetivo é igualar a carga tributária. A diferença principal está na composição da <strong>Base de Cálculo</strong>:
-                    o IPI deve ser somado à base apenas quando a mercadoria é para consumo final.
-                </p>
+                <div className="mb-6 text-center max-w-3xl mx-auto space-y-2">
+                    <p className="text-muted-foreground">
+                        O método de cálculo é o mesmo para ambos os casos (Cálculo "Por Dentro").
+                    </p>
+                    <p className="text-xs bg-muted inline-block px-3 py-1 rounded-full text-foreground/80 font-medium">
+                        A única diferença está na formação da <strong>Base de Cálculo Inicial</strong>:
+                    </p>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -89,8 +95,7 @@ export function DifalExplanation() {
                         subtitle="Antecipação Parcial"
                         icon={Package}
                         ipiStatus="exclude"
-                        description="Para empresas do Simples Nacional que compram para revender. O IPI é removido da base antes de calcular o imposto."
-                        formula={`BC_{Dest} = \\frac{BC_{Origem}}{1 - Alíq_{Dest}}`}
+                        description="O IPI não é considerado custo, pois será recuperado na venda posterior. Logo, é removido da base."
                     />
 
                     {/* Cenário 2: Consumo */}
@@ -99,8 +104,7 @@ export function DifalExplanation() {
                         subtitle="DIFAL Padrão"
                         icon={Archive}
                         ipiStatus="include"
-                        description="Para qualquer empresa que compra materiais para uso próprio. O IPI faz parte do custo, logo, entra na base do imposto."
-                        formula={`Pagar = BC_{Total} \\times (Alíq_{Dest} - Alíq_{Inter})`}
+                        description="O IPI é um custo definitivo para a empresa. Logo, ele deve ser somado para compor a base de cálculo."
                     />
 
                 </div>
