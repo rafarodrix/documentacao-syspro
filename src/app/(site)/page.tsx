@@ -28,7 +28,7 @@ export default async function LandingPage() {
   const month = String(now.getMonth() + 1).padStart(2, "0");
 
   const currentVersion = `v${year}.${month}`;
-  const releaseLink = `/docs/suporte/release/${year}/${month}`;
+  const releaseLink = `/releases/${year}/${month}`;
 
   // 2. Buscando releases do CMS/Banco de Dados
   const allReleases: Release[] = await getReleases();
