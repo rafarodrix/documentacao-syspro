@@ -1,4 +1,4 @@
-import { zammadService } from "@/core/infrastructure/services/zammad-service";
+import { zammadService } from "@/core/infrastructure/gateways/zammad-service";
 
 // Estados usados no Zammad
 const STATE_NAME = {

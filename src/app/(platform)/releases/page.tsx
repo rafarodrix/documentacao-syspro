@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getReleases } from "@/core/application/use-cases/get-releases";
+import { getReleases } from "@/core/application/use-cases/get-releases.use-case";
 import { Calendar, Rocket, Bug, ArrowRight, Sparkles } from "lucide-react";
 
 // Componentes UI
@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
 // Tipos
-import type { Release } from "@/core/domain/entities/release";
+import type { Release } from "@/core/domain/entities/release.entity";
 
 export const metadata: Metadata = {
     title: "Changelog e Atualizações",

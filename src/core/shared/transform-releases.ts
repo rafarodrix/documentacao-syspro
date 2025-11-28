@@ -1,5 +1,5 @@
 // utils/transform-releases.ts
-import { Release } from '@/core/domain/entities/release';
+import { Release } from '@/core/domain/entities/release.entity';
 
 export const monthNames = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",

@@ -1,10 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createContractSchema, CreateContractInput } from "@/core/schema/contract-schema";
+import { createContractSchema, CreateContractInput } from "@/core/application/schema/contract-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
-import { SETTING_KEYS } from "@/core/schema/settings-schema";
+import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 import { redirect } from "next/navigation";
 
 const WRITE_ROLES = ["ADMIN"];

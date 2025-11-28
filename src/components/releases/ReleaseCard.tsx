@@ -3,7 +3,7 @@
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PlayCircle, ExternalLink, Bug, Sparkles } from "lucide-react";
-import type { Release } from "@/core/domain/entities/release";
+import type { Release } from "@/core/domain/entities/release.entity";
 import { cn } from "@/lib/utils"; // Utilitário padrão do shadcn
 
 interface ReleaseCardProps {

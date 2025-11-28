@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getReleases } from "@/core/application/use-cases/get-releases";
+import { getReleases } from "@/core/application/use-cases/get-releases.use-case";
 import { ReleasesClientPage } from "@/components/releases/client-page";
-import { monthNames } from "@/core/utils/transform-releases";
+import { monthNames } from "@/core/shared/transform-releases";
 
 // Mantém a geração estática para performance máxima em docs
 export async function generateStaticParams() {

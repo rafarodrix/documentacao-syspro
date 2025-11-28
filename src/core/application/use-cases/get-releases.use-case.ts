@@ -1,5 +1,5 @@
-import { Release } from "@/core/domain/entities/release";
-import { searchZammadTickets } from "@/core/infrastructure/services/zammad-release-service";
+import { Release } from "@/core/domain/entities/release.entity";
+import { searchZammadTickets } from "@/core/infrastructure/gateways/zammad-release-service";
 
 const ZAMMAD_RELEASE_STATE_ID = 4;
 const ZAMMAD_RELEASE_GROUP_ID = 3;

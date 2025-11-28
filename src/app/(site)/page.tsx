@@ -7,9 +7,9 @@ import { TrilinkEcosystem } from "@/components/site/TrilinkEcosystem";
 import { FinalCTA } from "@/components/site/FinalCTA";
 
 // 2. Lógica de Negócio e Tipos
-import { getReleases } from "@/core/application/use-cases/get-releases";
+import { getReleases } from "@/core/application/use-cases/get-releases.use-case";
 import { groupReleasesByMonth } from "@/lib/releases-helpers";
-import { Release } from "@/core/domain/entities/release";
+import { Release } from "@/core/domain/entities/release.entity";
 
 // Configuração de Revalidação (ISR)
 export const revalidate = 3600; // 1 hora

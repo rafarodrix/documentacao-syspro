@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createCompanySchema, CreateCompanyInput } from "@/core/schema/company-schema";
+import { createCompanySchema, CreateCompanyInput } from "@/core/application/schema/company-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";

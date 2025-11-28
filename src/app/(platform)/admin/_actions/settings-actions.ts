@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
-import { settingsSchema, SettingsInput, SETTING_KEYS } from "@/core/schema/settings-schema";
+import { settingsSchema, SettingsInput, SETTING_KEYS } from "@/core/application/schema/settings-schema";
 import {
     DEFAULT_ACCESS_MATRIX,
     AccessControlMatrix

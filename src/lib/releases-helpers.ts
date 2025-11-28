@@ -1,4 +1,4 @@
-import type { Release } from "@/core/domain/entities/release";
+import type { Release } from "@/core/domain/entities/release.entity";
 
 // Tipo para a estrutura de dados que vamos criar
 export type MonthSummary = {

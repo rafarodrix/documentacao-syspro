@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { createUserSchema, CreateUserInput } from "@/core/schema/user-schema";
+import { createUserSchema, CreateUserInput } from "@/core/application/schema/user-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";

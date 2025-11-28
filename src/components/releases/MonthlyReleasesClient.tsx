@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Bug, Rocket, X } from "lucide-react";
 import { ReleaseCard } from "./ReleaseCard";
-import type { Release } from "@/core/domain/entities/release";
+import type { Release } from "@/core/domain/entities/release.entity";
 
 // Shadcn Components
 import {

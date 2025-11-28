@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createUserSchema, CreateUserInput } from "@/core/schema/user-schema";
+import { createUserSchema, CreateUserInput } from "@/core/application/schema/user-schema";
 import {
     createUserAction,
     updateUserAction,

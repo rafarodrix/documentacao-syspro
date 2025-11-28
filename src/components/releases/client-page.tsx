@@ -10,8 +10,8 @@ import { Separator } from "@/components/ui/separator";
 // Importe seus componentes refatorados anteriormente
 import { ReleasesFilter, type FilterType } from "./ReleasesFilter";
 import { MonthlyReleasesClient } from "./MonthlyReleasesClient";
-import { monthNames } from "@/core/utils/transform-releases";
-import type { Release } from "@/core/domain/entities/release";
+import { monthNames } from "@/core/shared/transform-releases";
+import type { Release } from "@/core/domain/entities/release.entity";
 
 interface ReleasesClientPageProps {
     initialReleases: Release[];
