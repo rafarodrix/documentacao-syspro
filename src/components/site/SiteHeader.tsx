@@ -46,6 +46,7 @@ export function SiteHeader() {
           <NavLink href="/docs/manual">Documentação</NavLink>
           <NavLink href="/docs/duvidas">Dúvidas Frequentes</NavLink>
           <NavLink href="/docs/suporte">Suporte</NavLink>
+          <NavLink href="/releases">Releases</NavLink>
 
           {/* Separator visual sutil */}
           <div className="h-4 w-px bg-border/50 mx-2" />

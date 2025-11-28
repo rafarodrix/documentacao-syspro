@@ -197,7 +197,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
                   summaries.map((summary) => (
                     <Link
                       key={`${summary.year}-${summary.month}`}
-                      href={`/docs/suporte/release/${summary.year}/${summary.month}`}
+                      href={`/releases/${summary.year}/${summary.month}`}
                       className="group/card block p-4 rounded-xl border bg-card hover:bg-accent/50 hover:border-purple-500/30 transition-all hover:-translate-y-1 shadow-sm"
                     >
                       <div className="flex items-center gap-2 font-semibold text-sm mb-3 text-foreground">
