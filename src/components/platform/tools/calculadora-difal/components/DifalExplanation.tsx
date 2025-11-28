@@ -13,6 +13,11 @@ interface ExplanationCardProps {
 function ExplanationCard({ title, subtitle, icon: Icon, ipiStatus, description }: ExplanationCardProps) {
     const isIncluded = ipiStatus === 'include';
 
+    // Fórmula exata do Cálculo por Dentro (Base Dupla)
+    // Traduzindo sua fórmula para LaTeX:
+    // [(Voper - ICMSorig) / (1 - AlqDest)] * AlqDest - ICMSorig
+    const exactFormula = `\\text{Difal} = \\left[ \\frac{V_{oper} - \\text{ICMS}_{orig}}{1 - \\text{Alq}_{dest}} \\right] \\times \\text{Alq}_{dest} - \\text{ICMS}_{orig}`;
+
     return (
         <div className="flex flex-col border rounded-lg overflow-hidden bg-card hover:border-primary/50 transition-colors">
             {/* Cabeçalho do Card */}
@@ -27,7 +32,7 @@ function ExplanationCard({ title, subtitle, icon: Icon, ipiStatus, description }
                     </div>
                 </div>
 
-                {/* Badge do IPI (O grande diferencial) */}
+                {/* Badge do IPI */}
                 <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-1 h-fit ${isIncluded
                         ? 'bg-orange-500/10 text-orange-600 border-orange-200'
                         : 'bg-emerald-500/10 text-emerald-600 border-emerald-200'
@@ -43,23 +48,32 @@ function ExplanationCard({ title, subtitle, icon: Icon, ipiStatus, description }
                     {description}
                 </p>
 
-                {/* Bloco Visual da Base */}
-                <div className="mt-auto pt-2">
-                    <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                        Composição da Base:
-                    </div>
-                    <div className={`rounded-md p-2 text-center text-xs font-mono border ${isIncluded ? 'bg-orange-500/5 border-orange-500/20 text-orange-700' : 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700'
-                        }`}>
-                        {isIncluded
-                            ? "Produtos + Frete + Desp. + IPI"
-                            : "Produtos + Frete + Desp."}
+                {/* Área Técnica */}
+                <div className="mt-auto pt-2 space-y-3">
+
+                    {/* Bloco 1: Composição da Base Inicial */}
+                    <div>
+                        <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
+                            Base Inicial ({`V_{oper}`}):
+                        </div>
+                        <div className={`rounded-md p-2 text-center text-xs font-mono border ${isIncluded ? 'bg-orange-500/5 border-orange-500/20 text-orange-700' : 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700'
+                            }`}>
+                            {isIncluded
+                                ? "Produtos + Frete + Desp. + IPI"
+                                : "Produtos + Frete + Desp."}
+                        </div>
                     </div>
 
-                    {/* Fórmula Unificada (Visualmente idêntica para reforçar que o cálculo é igual) */}
-                    <div className="mt-3 opacity-70">
-                        <div className="text-[10px] text-center mb-1 text-muted-foreground">Fórmula de Cálculo:</div>
-                        <BlockMath math={`\\text{Difal} = \\text{Débito}_{Dest} - \\text{Crédito}_{Orig}`} />
+                    {/* Bloco 2: Fórmula Matemática */}
+                    <div className="opacity-80 overflow-x-auto">
+                        <div className="text-[10px] mb-1 text-muted-foreground font-semibold">
+                            Fórmula (Cálculo por Dentro):
+                        </div>
+                        <div className="text-xs">
+                            <BlockMath math={exactFormula} />
+                        </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -71,7 +85,7 @@ export function DifalExplanation() {
         <details className="mt-8 text-sm group bg-card border rounded-lg p-4 shadow-sm">
             <summary className="cursor-pointer font-semibold text-primary list-none flex items-center gap-2 select-none">
                 <HelpCircle size={16} />
-                Como o cálculo é feito?
+                Entenda o Cálculo (Base Dupla)
                 <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 ml-auto" />
             </summary>
 
@@ -80,10 +94,10 @@ export function DifalExplanation() {
                 {/* Explicação Geral */}
                 <div className="mb-6 text-center max-w-3xl mx-auto space-y-2">
                     <p className="text-muted-foreground">
-                        O método de cálculo é o mesmo para ambos os casos (Cálculo "Por Dentro").
+                        Utilizamos a metodologia do <strong>Cálculo por Dentro</strong> (Gross-up), onde o ICMS de destino integra a sua própria base de cálculo.
                     </p>
-                    <p className="text-xs bg-muted inline-block px-3 py-1 rounded-full text-foreground/80 font-medium">
-                        A única diferença está na formação da <strong>Base de Cálculo Inicial</strong>:
+                    <p className="text-xs bg-muted inline-block px-3 py-1 rounded-full text-foreground/80 font-medium border">
+                        A variável <span className="font-mono italic">V_oper</span> muda conforme a regra do IPI abaixo:
                     </p>
                 </div>
 
@@ -95,7 +109,7 @@ export function DifalExplanation() {
                         subtitle="Antecipação Parcial"
                         icon={Package}
                         ipiStatus="exclude"
-                        description="O IPI não é considerado custo, pois será recuperado na venda posterior. Logo, é removido da base."
+                        description="O IPI é removido da base inicial, pois não é considerado custo na entrada para revenda."
                     />
 
                     {/* Cenário 2: Consumo */}
@@ -104,7 +118,7 @@ export function DifalExplanation() {
                         subtitle="DIFAL Padrão"
                         icon={Archive}
                         ipiStatus="include"
-                        description="O IPI é um custo definitivo para a empresa. Logo, ele deve ser somado para compor a base de cálculo."
+                        description="O IPI é somado à base inicial, pois compõe o custo total da aquisição para uso próprio."
                     />
 
                 </div>
