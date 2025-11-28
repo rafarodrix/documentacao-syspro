@@ -31,25 +31,22 @@ const mainNav: NavItemType[] = [
         title: "Meus Chamados",
         href: "/client/chamados",
         icon: Ticket,
-        badge: "Novo"
     },
     {
         title: "Gestão de Equipe",
         href: "/client/equipe",
         icon: Users,
-        roles: ["CLIENT_ADMIN"]
     },
     {
         title: "Ferramentas",
         href: "/client/tools",
         icon: Wrench,
-        roles: ["CLIENT_ADMIN"]
     }
 ];
 
 const helpNav: NavItemType[] = [
     { title: "Documentação", href: "/docs/manual", icon: BookOpen },
-    { title: "Treinamentos", href: "/docs/treinamento", icon: GraduationCap },
+    { title: "Dúvidas", href: "/docs/duvidas", icon: GraduationCap },
     { title: "Suporte Técnico", href: "/docs/suporte", icon: Headset },
     { title: "Releases", href: "/releases", icon: Rocket },
 ];

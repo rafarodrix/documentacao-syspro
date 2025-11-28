@@ -53,8 +53,8 @@ const systemNav: NavItem[] = [
 ];
 
 const helpNav: NavItem[] = [
-    { title: "Documentação Interna", href: "/docs/manual", icon: BookOpen },
-    { title: "Base de Conhecimento", href: "/docs/treinamento", icon: GraduationCap },
+    { title: "Documentação", href: "/docs/manual", icon: BookOpen },
+    { title: "Dúvidas", href: "/docs/duvidas", icon: GraduationCap },
     { title: "Releases", href: "/releases", icon: Sparkles },
 ];
 
