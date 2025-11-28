@@ -1,10 +1,14 @@
-import { ToolsList } from "@/components/platform/tools/ToolsList";
+import { ToolsHub } from "@/components/platform/tools/ToolsHub";
 
 export default function AdminToolsPage() {
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold">Ferramentas Administrativas</h1>
-            <ToolsList isAdmin={true} />
+            <div>
+                <h1 className="text-3xl font-bold">Ferramentas</h1>
+                <p className="text-muted-foreground">Utilitários para facilitar sua gestão.</p>
+            </div>
+            {/* Passa o caminho base do cliente */}
+            <ToolsHub basePath="/admin/tools" />
         </div>
     );
 }

@@ -39,6 +39,12 @@ const mainNav: NavItemType[] = [
         icon: Users,
         roles: ["CLIENT_ADMIN"]
     },
+    {
+        title: "Ferramentas",
+        href: "/client/tools",
+        icon: Wrench,
+        roles: ["CLIENT_ADMIN"]
+    }
 ];
 
 const helpNav: NavItemType[] = [
@@ -46,7 +52,6 @@ const helpNav: NavItemType[] = [
     { title: "Treinamentos", href: "/docs/treinamento", icon: GraduationCap },
     { title: "Suporte Técnico", href: "/docs/suporte", icon: Headset },
     { title: "Releases", href: "/releases", icon: Rocket },
-    { title: "Ferramentas", href: "/client/tools", icon: Wrench },
 ];
 
 interface ClientSidebarProps {

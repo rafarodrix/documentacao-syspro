@@ -1,9 +1,7 @@
-// src/components/tools/ToolsHub.tsx
 import Link from "next/link";
 import { FileSearch, Calculator, FileText } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
-// Recebe a "basePath" para saber se manda para /admin/tools/... ou /client/tools/...
 export function ToolsHub({ basePath }: { basePath: string }) {
     const tools = [
         {
