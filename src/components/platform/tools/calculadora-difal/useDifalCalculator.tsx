@@ -1,7 +1,7 @@
 import { useState, useMemo, ChangeEvent } from 'react';
 import { CalculatorState, Finalidade, ResultadoCalculo } from './types';
 import { ALIQUOTAS_DESTINO } from './constants';
-import { calcularBaseTotal, calcularDifalUnificado } from './calculations'; // Importação atualizada
+import { calcularBaseTotal, calcularDifalPorDentro } from './calculations';
 import { parseCurrency, formatarMoedaInput } from '@/lib/formatters';
 
 export function useDifalCalculator() {
@@ -51,7 +51,6 @@ export function useDifalCalculator() {
         return calcularBaseTotal(numeros.vp, numeros.vf, numeros.vod, numeros.vIpi, finalidade);
     }, [numeros, finalidade]);
 
-    // Lógica Simplificada: Chama sempre a mesma função
     const resultados = useMemo((): ResultadoCalculo | null => {
         const bc = baseDeCalculo.valor;
         if (bc === 0 || numeros.alqInter === 0 || numeros.alqDest === 0) return null;
@@ -59,12 +58,12 @@ export function useDifalCalculator() {
         if (numeros.alqDest <= numeros.alqInter) {
             return {
                 error: 'Alíquota de destino deve ser maior que a interestadual.',
-                baseOriginal: 0, baseReduzida: 0, valorDebito: 0, valorCredito: 0, diferencialPct: 0, valorAPagar: 0
+                baseOriginal: 0, baseReduzida: 0, vCredito: 0, bcDestino: 0, vDebito: 0, valorAPagar: 0
             };
         }
 
-        // O cálculo é o mesmo para ambos, pois a diferença da base já foi tratada em 'baseDeCalculo'
-        return calcularDifalUnificado(bc, numeros.alqInter, numeros.alqDest, numeros.pRed);
+        // AGORA SEMPRE USA O CÁLCULO POR DENTRO (Gross-up)
+        return calcularDifalPorDentro(bc, numeros.alqInter, numeros.alqDest, numeros.pRed);
 
     }, [baseDeCalculo, numeros]);
 

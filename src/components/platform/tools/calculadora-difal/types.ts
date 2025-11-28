@@ -14,15 +14,15 @@ export interface CalculatorState {
 export interface ResultadoCalculo {
     error: string | null;
 
-    // Dados Comuns
-    baseOriginal: number;    // A base cheia (com ou sem IPI dependendo da finalidade)
-    baseReduzida: number;    // A base após aplicar % de redução
+    // Base Inicial
+    baseOriginal: number;    // Base somada (com ou sem IPI)
+    baseReduzida: number;    // Base após redução
 
-    // Memória de Cálculo
-    valorDebito: number;     // Base * Aliq Interna
-    valorCredito: number;    // Base * Aliq Inter
+    // Cálculo "Por Dentro"
+    vCredito: number;        // ICMS Origem (que será abatido)
+    bcDestino: number;       // Nova base recalculada para o destino (Gross-up)
+    vDebito: number;         // ICMS Destino total
 
-    // Resultado
-    diferencialPct: number;  // Diferença percentual (ex: 6%)
-    valorAPagar: number;     // O valor final do imposto
+    // Resultado Final
+    valorAPagar: number;     // Débito - Crédito
 }
