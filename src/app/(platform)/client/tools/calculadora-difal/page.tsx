@@ -1,4 +1,4 @@
-import { CalculadoraDifal } from "@/components/platform/tools/calculadora-difal/CalculadoraDifal";
+import { CalculadoraDifal } from "@/components/platform/tools/calculadora-difal";
 
 export default function ClientCalculadoraPage() {
   return (
