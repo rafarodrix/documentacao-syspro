@@ -1,153 +1,168 @@
 "use client";
 
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import {
     FileSearch,
-    FileText,
     Calculator,
-    Percent,
-    BarChart3,
-    TrendingUp
+    FileText,
+    TrendingUp,
+    PieChart,
+    LayoutGrid,
+    Divide,
+    Coins
 } from "lucide-react";
 
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+// Componentes UI
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MagicCard } from "@/components/magicui/magic-card";
+import { Badge } from "@/components/ui/badge";
 
-// MAGIC UI
-import { BlurFade } from "@/components/magicui/blur-fade";
-import { ShineBorder } from "@/components/magicui/shine-border";
+// --- Tipagem ---
+type Category = "calculadoras" | "simuladores" | "utilitarios";
 
 type Tool = {
     title: string;
     description: string;
     icon: React.ElementType;
     href: string;
-    color?: string;
+    category: Category;
+    badge?: string; // Opcional: para destacar ferramentas novas
 };
 
 interface ToolsHubProps {
     basePath: string;
 }
 
-const TOOL_GROUPS: {
-    group: string;
-    tools: Tool[];
-}[] = [
+export function ToolsHub({ basePath }: ToolsHubProps) {
+    const { theme } = useTheme();
+
+    // --- Dados das Ferramentas ---
+    const tools: Tool[] = [
+        // Calculadoras
         {
-            group: "Simulações",
-            tools: [
-                {
-                    title: "Custos Fixos por Departamento",
-                    description: "Simule despesas e impacto na margem de lucro.",
-                    icon: BarChart3,
-                    href: "custos-departamento",
-                    color: "text-pink-500"
-                }
-            ]
+            title: "Calculadora DIFAL",
+            description: "Simule o Diferencial de Alíquota e Antecipação de ICMS.",
+            icon: Divide,
+            href: `${basePath}/calculadora-difal`,
+            category: "calculadoras"
         },
         {
-            group: "Calculadoras",
-            tools: [
-                {
-                    title: "DIFAL",
-                    description: "Calcule o Diferencial de Alíquota.",
-                    icon: Calculator,
-                    href: "calculadora-difal",
-                    color: "text-green-500"
-                },
-                {
-                    title: "Precificação",
-                    description: "Calcule markup, margem e preço de venda.",
-                    icon: Percent,
-                    href: "calculadora-precificacao",
-                    color: "text-emerald-500"
-                },
-                {
-                    title: "Ponto de Equilíbrio",
-                    description: "Descubra o faturamento necessário para cobrir custos.",
-                    icon: TrendingUp,
-                    href: "analise-ponto-equilibrio",
-                    color: "text-purple-500"
-                }
-            ]
+            title: "Calculadora Precificação",
+            description: "Formação de preço de venda, markup e margem de lucro.",
+            icon: Coins,
+            href: `${basePath}/calculadora-precificacao`,
+            category: "calculadoras",
+            badge: "Popular"
+        },
+        // Simuladores
+        {
+            title: "Ponto de Equilíbrio",
+            description: "Descubra quanto sua empresa precisa vender para não ter prejuízo.",
+            icon: TrendingUp,
+            href: `${basePath}/analise-ponto-equilibrio`,
+            category: "simuladores"
         },
         {
-            group: "Utilitários",
-            tools: [
-                {
-                    title: "Analisador XML",
-                    description: "Valide e analise arquivos XML de NFe.",
-                    icon: FileSearch,
-                    href: "analisador-xml",
-                    color: "text-blue-500"
-                },
-                {
-                    title: "Visualizador DANFE",
-                    description: "Gere e visualize DANFE a partir de XML.",
-                    icon: FileText,
-                    href: "visualizador-danfe",
-                    color: "text-orange-500"
-                }
-            ]
+            title: "Custos por Departamento",
+            description: "Simule o rateio de custos fixos entre setores da empresa.",
+            icon: PieChart,
+            href: `${basePath}/simulador-custos-fixos-departamento`,
+            category: "simuladores"
+        },
+        // Utilitários
+        {
+            title: "Analisador XML",
+            description: "Valide a estrutura e extraia dados de arquivos XML de NFe.",
+            icon: FileSearch,
+            href: `${basePath}/analisador-xml`,
+            category: "utilitarios"
+        },
+        {
+            title: "Visualizador DANFE",
+            description: "Gere a visualização da DANFE (PDF) a partir do XML.",
+            icon: FileText,
+            href: `${basePath}/visualizador-danfe`,
+            category: "utilitarios"
         }
     ];
 
-export function ToolsHub({ basePath }: ToolsHubProps) {
+    // --- Helper de Renderização ---
+    const ToolsGrid = ({ items }: { items: Tool[] }) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((tool) => {
+                const Icon = tool.icon;
+                return (
+                    <Link key={tool.href} href={tool.href} className="group h-full">
+                        <MagicCard
+                            className="cursor-pointer flex-col items-start h-full p-6 shadow-sm hover:shadow-md transition-all border-border/50"
+                            gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
+                        >
+                            <div className="flex w-full items-start justify-between mb-4">
+                                <div className="p-2.5 bg-primary/10 rounded-lg text-primary group-hover:scale-110 transition-transform duration-300">
+                                    <Icon className="w-6 h-6" />
+                                </div>
+                                {tool.badge && (
+                                    <Badge variant="secondary" className="text-[10px] px-2 h-5">
+                                        {tool.badge}
+                                    </Badge>
+                                )}
+                            </div>
+
+                            <h3 className="font-bold text-lg mb-2 text-foreground group-hover:text-primary transition-colors">
+                                {tool.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                {tool.description}
+                            </p>
+                        </MagicCard>
+                    </Link>
+                );
+            })}
+        </div>
+    );
+
     return (
-        <div className="space-y-12">
-            {TOOL_GROUPS.map(({ group, tools }, indexGroup) => (
-                <BlurFade
-                    key={group}
-                    delay={indexGroup * 0.1}
-                    inView
-                    className="space-y-6"
-                >
-                    <h2 className="text-xl font-semibold">{group}</h2>
+        <div className="space-y-8">
+            <Tabs defaultValue="todos" className="w-full">
 
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {tools.map((tool, indexTool) => {
-                            const Icon = tool.icon;
+                {/* Cabeçalho das Abas */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <TabsList className="grid w-full sm:w-auto grid-cols-2 sm:grid-cols-4 h-auto p-1">
+                        <TabsTrigger value="todos" className="gap-2 py-2">
+                            <LayoutGrid className="w-4 h-4" /> Todos
+                        </TabsTrigger>
+                        <TabsTrigger value="calculadoras" className="gap-2 py-2">
+                            <Calculator className="w-4 h-4" /> Calculadoras
+                        </TabsTrigger>
+                        <TabsTrigger value="simuladores" className="gap-2 py-2">
+                            <TrendingUp className="w-4 h-4" /> Simuladores
+                        </TabsTrigger>
+                        <TabsTrigger value="utilitarios" className="gap-2 py-2">
+                            <FileText className="w-4 h-4" /> Utilitários
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
-                            return (
-                                <BlurFade
-                                    key={tool.href}
-                                    delay={0.15 + indexTool * 0.08}
-                                    inView
-                                >
-                                    <Link href={`${basePath}/${tool.href}`} className="group block">
-                                        <ShineBorder
-                                            className="rounded-xl p-[1px] transition-all"
-                                            borderWidth={2}
-                                            color={tool.color?.replace("text", "from") ?? "from-primary"}
-                                        >
-                                            <Card
-                                                className={cn(
-                                                    "rounded-xl p-4 bg-card hover:bg-card/90 transition-all",
-                                                    "group-hover:shadow-xl group-hover:shadow-primary/10"
-                                                )}
-                                            >
-                                                <CardHeader className="p-0 pb-2">
-                                                    <CardTitle className="flex items-center gap-2 text-lg">
-                                                        <Icon
-                                                            className={cn(
-                                                                "w-6 h-6 transition-all drop-shadow-sm",
-                                                                tool.color,
-                                                                "group-hover:scale-110"
-                                                            )}
-                                                        />
-                                                        {tool.title}
-                                                    </CardTitle>
-                                                    <CardDescription>{tool.description}</CardDescription>
-                                                </CardHeader>
-                                            </Card>
-                                        </ShineBorder>
-                                    </Link>
-                                </BlurFade>
-                            );
-                        })}
-                    </div>
-                </BlurFade>
-            ))}
+                {/* Conteúdo das Abas */}
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <TabsContent value="todos" className="mt-0">
+                        <ToolsGrid items={tools} />
+                    </TabsContent>
+
+                    <TabsContent value="calculadoras" className="mt-0">
+                        <ToolsGrid items={tools.filter(t => t.category === "calculadoras")} />
+                    </TabsContent>
+
+                    <TabsContent value="simuladores" className="mt-0">
+                        <ToolsGrid items={tools.filter(t => t.category === "simuladores")} />
+                    </TabsContent>
+
+                    <TabsContent value="utilitarios" className="mt-0">
+                        <ToolsGrid items={tools.filter(t => t.category === "utilitarios")} />
+                    </TabsContent>
+                </div>
+            </Tabs>
         </div>
     );
 }
