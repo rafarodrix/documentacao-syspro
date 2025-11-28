@@ -45,7 +45,7 @@ export async function ReleasesIndexPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {months.map(({ month, bugs, melhorias }) => {
               const monthIndex = Number(month) - 1;
-              const href = `/docs/suporte/release/${year}/${month}`;
+              const href = `/releases/${year}/${month}`;
               const isLatest = isFirstGlobalCard;
               isFirstGlobalCard = false;
 

@@ -57,7 +57,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
             {/* Header de Navegação */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-in slide-in-from-top-4 duration-500">
                 <div className="space-y-1">
-                    <Link href="/docs/suporte/release">
+                    <Link href="/releases">
                         <Button variant="ghost" className="pl-0 gap-2 text-muted-foreground hover:text-foreground mb-2">
                             <ArrowLeft className="w-4 h-4" /> Voltar para o Índice
                         </Button>

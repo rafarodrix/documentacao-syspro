@@ -21,17 +21,17 @@ export async function POST(request: Request) {
     if (!ticketId) {
       return NextResponse.json({ message: 'Ticket ID not found in payload' }, { status: 400 });
     }
-    
+
     console.log(`Gatilho de revalidação recebido para o Ticket ID: ${ticketId}`);
 
-   
+
     revalidateTag('releases');
 
     // 3. Revalide os caminhos das PÁGINAS
-    revalidatePath('/docs/suporte/releasenotes');
-    revalidatePath('/api/releases'); 
+    revalidatePath('/releases');
+    revalidatePath('/api/releases');
 
-    const revalidatedPaths = ['/docs/suporte/releasenotes', '/api/releases'];
+    const revalidatedPaths = ['/releases', '/api/releases'];
     console.log('Cache de dados (tag: releases) e caminhos revalidados com sucesso:', revalidatedPaths);
 
     return NextResponse.json({ revalidated: true, paths: revalidatedPaths, now: Date.now() });
