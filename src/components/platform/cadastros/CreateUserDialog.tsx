@@ -15,11 +15,8 @@ import {
     Form, FormControl, FormField, FormItem, FormLabel, FormMessage
 } from "@/components/ui/form"
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator
 } from "@/components/ui/select"
-import {
-    DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { UserPlus, Loader2 } from "lucide-react"
@@ -27,14 +24,17 @@ import { UserPlus, Loader2 } from "lucide-react"
 interface CreateUserDialogProps {
     companies: any[]
     isAdmin: boolean
-    context?: 'SYSTEM' | 'CLIENT' // Novo parametro de contexto
+    context?: 'SYSTEM' | 'CLIENT'
 }
 
 export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDialogProps) {
     const [open, setOpen] = useState(false)
 
-    // Se for cliente, pega o ID da empresa dele
+    // Se não for admin, tenta pegar a primeira empresa disponível
     const defaultCompanyId = !isAdmin && companies.length > 0 ? companies[0].id : ""
+    const defaultCompanyName = !isAdmin && companies.length > 0
+        ? (companies[0].nomeFantasia || companies[0].razaoSocial)
+        : "Minha Empresa"
 
     const form = useForm<CreateUserInput>({
         resolver: zodResolver(createUserSchema),
@@ -42,7 +42,6 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
             name: "",
             email: "",
             password: "",
-            // Define o padrão baseado no contexto
             role: context === 'SYSTEM' ? Role.SUPORTE : Role.CLIENTE_USER,
             companyId: defaultCompanyId
         }
@@ -51,13 +50,12 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
     const { isSubmitting } = form.formState
 
     const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
-        // Força o ID da empresa se for cliente (segurança extra de UI)
+        // Regra de Negócio: Se for cliente, força o ID da empresa dele
         if (!isAdmin && defaultCompanyId) {
             data.companyId = defaultCompanyId
         }
 
-        // Se for equipe interna (SYSTEM), removemos o companyId para criar sem vínculo (se desejado)
-        // ou mantemos vazio se o Super Admin não tiver empresa.
+        // Regra de Negócio: Se for Equipe Interna, não vincula a empresa (opcional)
         if (context === 'SYSTEM') {
             data.companyId = undefined;
         }
@@ -78,7 +76,6 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
             <DialogTrigger asChild>
                 <Button className="w-full sm:w-auto gap-2">
                     <UserPlus className="h-4 w-4" />
-                    {/* Texto dinâmico baseado no contexto */}
                     {context === 'SYSTEM' ? "Novo Administrador" : (isAdmin ? "Criar Usuário" : "Convidar Membro")}
                 </Button>
             </DialogTrigger>
@@ -104,9 +101,7 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Nome Completo</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Ex: João da Silva" {...field} />
-                                    </FormControl>
+                                    <FormControl><Input placeholder="Ex: João da Silva" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -118,9 +113,7 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>E-mail Corporativo</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="joao@empresa.com" type="email" {...field} />
-                                    </FormControl>
+                                    <FormControl><Input placeholder="joao@empresa.com" type="email" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -132,16 +125,14 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Senha Inicial</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="******" type="password" {...field} />
-                                    </FormControl>
+                                    <FormControl><Input placeholder="******" type="password" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
                         <div className="grid grid-cols-2 gap-4">
-                            {/* LÓGICA DE EXIBIÇÃO DAS ROLES */}
+                            {/* ROLE */}
                             <FormField
                                 control={form.control}
                                 name="role"
@@ -149,11 +140,7 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                                     <FormItem>
                                         <FormLabel>Nível de Acesso</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione..." />
-                                                </SelectTrigger>
-                                            </FormControl>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
                                             <SelectContent>
 
                                                 {/* Opções para Clientes */}
@@ -164,11 +151,10 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                                                     </>
                                                 )}
 
-                                                {/* Opções para Sistema Interno (Apenas Admin vê) */}
+                                                {/* Opções para Sistema Interno */}
                                                 {isAdmin && context !== 'CLIENT' && (
                                                     <>
-                                                        {/* Separador visual se estiver misturado */}
-                                                        {context !== 'SYSTEM' && <div className="h-px bg-muted my-1" />}
+                                                        {context !== 'SYSTEM' && <SelectSeparator />}
                                                         <SelectItem value={Role.SUPORTE}>Suporte Técnico</SelectItem>
                                                         <SelectItem value={Role.DEVELOPER}>Desenvolvedor</SelectItem>
                                                         <SelectItem value={Role.ADMIN}>Super Admin</SelectItem>
@@ -181,8 +167,7 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                                 )}
                             />
 
-                            {/* CAMPO EMPRESA */}
-                            {/* Se for SYSTEM, não mostra empresa (eles são globais) */}
+                            {/* EMPRESA */}
                             {context !== 'SYSTEM' && (
                                 isAdmin ? (
                                     <FormField
@@ -192,11 +177,7 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                                             <FormItem>
                                                 <FormLabel>Empresa</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Selecione a empresa" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         {companies.map((company) => (
                                                             <SelectItem key={company.id} value={company.id}>
@@ -210,11 +191,10 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                                         )}
                                     />
                                 ) : (
-                                    // Cliente vê campo fixo
                                     <div className="space-y-2 opacity-70">
                                         <FormLabel>Empresa</FormLabel>
                                         <div className="h-10 px-3 py-2 border rounded-md text-sm bg-muted text-muted-foreground flex items-center overflow-hidden whitespace-nowrap text-ellipsis">
-                                            {companies[0]?.nomeFantasia || "Minha Empresa"}
+                                            {defaultCompanyName}
                                         </div>
                                     </div>
                                 )

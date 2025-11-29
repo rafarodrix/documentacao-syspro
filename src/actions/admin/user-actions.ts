@@ -14,7 +14,7 @@ interface GetUsersParams {
     role?: string;
 }
 
-// --- Constantes de Permissão (Usando Enum do Prisma) ---
+// --- Constantes de Permissão (CORRIGIDO COM Role[]) ---
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
@@ -22,19 +22,16 @@ const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 function handleActionError(error: any) {
     console.error("[UserAction Error]:", error);
 
-    // Erro de Unicidade do Prisma
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
             return { success: false as const, error: "Este e-mail já está em uso." };
         }
     }
 
-    // Erro vindo da API do Better Auth (APIError)
     if (error?.body?.message) {
         return { success: false as const, error: error.body.message };
     }
 
-    // Erro genérico
     return { success: false as const, error: error.message || "Ocorreu um erro interno." };
 }
 
@@ -43,6 +40,7 @@ function handleActionError(error: any) {
  */
 export async function getUsersAction(filters?: GetUsersParams) {
     const session = await getProtectedSession();
+
     if (!session || !READ_ROLES.includes(session.role)) {
         return { success: false, error: "Não autorizado." };
     }
@@ -50,7 +48,6 @@ export async function getUsersAction(filters?: GetUsersParams) {
     try {
         const whereClause: Prisma.UserWhereInput = {};
 
-        // 1. Busca por Texto
         if (filters?.search) {
             whereClause.OR = [
                 { name: { contains: filters.search, mode: "insensitive" } },
@@ -58,7 +55,6 @@ export async function getUsersAction(filters?: GetUsersParams) {
             ];
         }
 
-        // 2. Filtro por Role
         if (filters?.role && filters.role !== "ALL") {
             whereClause.role = filters.role as Role;
         }
@@ -77,7 +73,6 @@ export async function getUsersAction(filters?: GetUsersParams) {
             orderBy: { createdAt: 'desc' }
         });
 
-        // Flatten para o Frontend
         const formattedUsers = users.map(user => ({
             ...user,
             companyName: user.memberships[0]?.company?.nomeFantasia || "Sem Vínculo",
@@ -108,7 +103,6 @@ export async function createUserAction(data: CreateUserInput) {
 
     try {
         // 1. Cria no Auth (Gera hash seguro automaticamente)
-        // OBS: Passamos headers para o Better Auth saber o contexto, mas a criação é segura.
         const newUserResponse = await auth.api.signUpEmail({
             body: {
                 email: data.email,
@@ -126,12 +120,12 @@ export async function createUserAction(data: CreateUserInput) {
 
         // 2. Transação para configurar Role e Empresa
         await prisma.$transaction(async (tx) => {
-            // A. Atualiza dados que o signUpEmail não preenche (Role, Status, Verificação)
+            // A. Atualiza dados que o signUpEmail não preenche
             await tx.user.update({
                 where: { id: newUserId },
                 data: {
                     role: data.role as Role,
-                    emailVerified: true, // Criado por Admin = Verificado
+                    emailVerified: true,
                     isActive: true,
                 }
             });
@@ -142,7 +136,6 @@ export async function createUserAction(data: CreateUserInput) {
                     data: {
                         userId: newUserId,
                         companyId: data.companyId,
-                        // Define a role dentro da empresa baseada na role do sistema
                         role: (data.role === Role.CLIENTE_ADMIN || data.role === Role.ADMIN)
                             ? Role.ADMIN
                             : Role.CLIENTE_USER
@@ -151,12 +144,11 @@ export async function createUserAction(data: CreateUserInput) {
             }
         });
 
-        revalidatePath("/admin/usuarios");
+        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
         return { success: true as const };
 
     } catch (error) {
-        // Se falhar no meio, tentamos limpar o usuário criado no Auth (Rollback manual)
-        // Isso é avançado, mas idealmente seria tratado aqui.
         return handleActionError(error);
     }
 }
@@ -177,7 +169,6 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
 
     try {
         await prisma.$transaction(async (tx) => {
-            // 1. Atualiza dados básicos
             await tx.user.update({
                 where: { id },
                 data: {
@@ -187,15 +178,12 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
                 }
             });
 
-            // 2. Gerencia a troca de empresa (Single Tenant Logic)
-            // Se o admin selecionou uma empresa diferente ou nenhuma:
+            // Gerencia a troca de empresa (Single Tenant Logic)
             if (data.companyId !== undefined) {
-                // Remove todos os vínculos anteriores (Garante que o usuário só tenha 1 empresa)
                 await tx.membership.deleteMany({
                     where: { userId: id }
                 });
 
-                // Se houver ID, cria o novo vínculo
                 if (data.companyId) {
                     await tx.membership.create({
                         data: {
@@ -210,7 +198,8 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
             }
         });
 
-        revalidatePath("/admin/usuarios");
+        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
         return { success: true as const };
 
     } catch (error) {
@@ -228,7 +217,6 @@ export async function toggleUserStatusAction(id: string, currentStatus: boolean)
         return { success: false as const, error: "Permissão negada." };
     }
 
-    // Impede o admin de se banir acidentalmente
     if (id === session.userId) {
         return { success: false as const, error: "Você não pode desativar seu próprio usuário." };
     }
@@ -241,10 +229,9 @@ export async function toggleUserStatusAction(id: string, currentStatus: boolean)
             data: { isActive: newStatus }
         });
 
-        // Se desativou, podemos também invalidar as sessões do usuário (Opcional Better Auth)
-        // await auth.api.revokeSessions({ ... }) 
+        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
 
-        revalidatePath("/admin/usuarios");
         return {
             success: true as const,
             message: `Usuário ${newStatus ? 'ativado' : 'desativado'} com sucesso.`
