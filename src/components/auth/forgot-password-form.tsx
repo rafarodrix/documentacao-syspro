@@ -1,43 +1,29 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
+import { useForgotPassword } from "@/hooks/use-forgot-password" // Importa o Hook
+import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert"
 import { Loader2, Mail, AlertCircle, CheckCircle2 } from "lucide-react"
-import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { cn } from "@/lib/utils"
-import { authGateway } from "@/core/infrastructure/gateways/auth-gateway"
 
 export function ForgotPasswordForm() {
-    const [email, setEmail] = useState("")
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState("")
-    const [success, setSuccess] = useState(false)
+    // 1. Uma linha para trazer toda a lógica
+    const { formState, setEmail, setSuccess, submitRequest } = useForgotPassword()
+    const { email, loading, error, success } = formState
 
-    async function handleSubmit(e: React.FormEvent) {
+    // 2. Handler de UI simples
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        setLoading(true)
-        setError("")
-        setSuccess(false)
-
-        const result = await authGateway.requestPasswordReset(email)
-
-        if (result.success) {
-            setSuccess(true)
-        } else {
-            setError(result.error || "Erro ao solicitar recuperação.")
-        }
-
-        setLoading(false)
+        submitRequest()
     }
 
     return (
         <AuthLayoutWrapper
             title="Recuperar Senha"
-            description="Digite seu e-mail para receber as instruções de redefinição."
+            description="Digite seu e-mail para receber as instruções."
             backButton={true}
         >
             {success ? (
@@ -46,12 +32,10 @@ export function ForgotPasswordForm() {
                         <CheckCircle2 className="h-8 w-8 text-green-600" />
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-xl font-semibold text-foreground">Verifique seu e-mail</h3>
-                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                            Enviamos um link de recuperação para <strong className="text-foreground">{email}</strong>.
-                        </p>
+                        <h3 className="text-xl font-semibold">Verifique seu e-mail</h3>
+                        <p className="text-sm text-muted-foreground">Enviamos um link para <strong>{email}</strong>.</p>
                     </div>
-                    <Button variant="outline" className="w-full h-11 border-dashed hover:border-solid" onClick={() => setSuccess(false)}>
+                    <Button variant="outline" className="w-full" onClick={() => setSuccess(false)}>
                         Tentar outro e-mail
                     </Button>
                 </div>
@@ -64,23 +48,27 @@ export function ForgotPasswordForm() {
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
+
                     <div className="space-y-2">
-                        <Label htmlFor="email" className={cn("text-xs uppercase font-semibold", error ? "text-red-500" : "text-muted-foreground")}>E-mail Corporativo</Label>
+                        <Label htmlFor="email" className={cn("text-xs uppercase font-bold", error ? "text-red-500" : "text-muted-foreground")}>E-mail</Label>
                         <div className="relative group">
-                            <div className={cn("absolute left-3 top-2.5", error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary")}><Mail className="h-5 w-5" /></div>
-                            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} className={cn("pl-10 h-11 bg-muted/30 border-muted-foreground/20", error && "border-red-500 bg-red-500/5")} />
+                            <div className={cn("absolute left-3 top-2.5", error ? "text-red-500" : "text-muted-foreground")}><Mail className="h-5 w-5" /></div>
+                            <Input
+                                id="email"
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                disabled={loading}
+                                className={cn("pl-10", error && "border-red-500 bg-red-50")}
+                            />
                         </div>
                     </div>
-                    <Button type="submit" disabled={loading} className="w-full h-11">
-                        {loading ? <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</div> : "Enviar Link de Recuperação"}
+
+                    <Button type="submit" disabled={loading} className="w-full">
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Link"}
                     </Button>
                 </form>
-            )}
-
-            {!success && (
-                <div className="relative text-center pt-4">
-                    <Link href="/login" className="text-sm font-medium text-primary hover:underline">Lembrei minha senha</Link>
-                </div>
             )}
         </AuthLayoutWrapper>
     )

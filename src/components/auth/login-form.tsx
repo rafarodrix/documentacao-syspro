@@ -1,58 +1,35 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React from 'react';
 import Link from 'next/link';
-import { authClient } from '@/lib/auth-client';
+import { useLogin } from "@/hooks/use-login"; // Hook novo
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, ArrowLeft, Mail, Lock, AlertCircle } from 'lucide-react';
-import { toast } from "sonner";
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper";
 
 export function LoginForm() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    // 1. Lógica extraída
+    const {
+        email, setEmail,
+        password, setPassword,
+        isLoading, error, submitLogin
+    } = useLogin();
 
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const callbackUrl = searchParams.get('callbackUrl') || '/client';
-
-    const handleSubmit = async (e: React.FormEvent) => {
+    // 2. Handler simples
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-
-        await authClient.signIn.email({
-            email,
-            password,
-            callbackURL: callbackUrl
-        }, {
-            onSuccess: () => {
-                toast.success("Login realizado com sucesso!");
-                router.push(callbackUrl);
-            },
-            onError: (ctx) => {
-                const msg = ctx.error.message || "";
-                if (msg.includes("Invalid email or password") || msg.includes("not found")) {
-                    setError("Credenciais inválidas. Verifique seu e-mail e senha.");
-                } else {
-                    setError("Ocorreu um erro ao tentar entrar. Tente novamente.");
-                }
-                setIsLoading(false);
-            }
-        });
+        submitLogin();
     };
 
     return (
         <AuthLayoutWrapper
             title="Acesso ao Portal"
             description="Entre com suas credenciais para acessar o portal."
+            backButton={true} // Se quiser botão voltar na home
         >
             {/* Alerta de Erro */}
             {error && (
@@ -66,28 +43,15 @@ export function LoginForm() {
             {/* Formulário */}
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-4">
-
                     {/* CAMPO DE E-MAIL */}
                     <div className="space-y-2">
-                        <Label
-                            htmlFor="email"
-                            className={cn(
-                                "text-xs uppercase font-semibold tracking-wider transition-colors",
-                                error ? "text-red-500" : "text-muted-foreground"
-                            )}
-                        >
+                        <Label htmlFor="email" className={cn("text-xs uppercase font-semibold tracking-wider transition-colors", error ? "text-red-500" : "text-muted-foreground")}>
                             E-mail Corporativo
                         </Label>
-
                         <div className="relative group">
-                            {/* Ícone com condicional de cor */}
-                            <div className={cn(
-                                "absolute left-3 top-2.5 transition-colors duration-200",
-                                error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary"
-                            )}>
+                            <div className={cn("absolute left-3 top-2.5 transition-colors duration-200", error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary")}>
                                 <Mail className="h-5 w-5" />
                             </div>
-
                             <Input
                                 id="email"
                                 type="email"
@@ -97,12 +61,8 @@ export function LoginForm() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={isLoading}
                                 className={cn(
-                                    "pl-10 h-11 transition-all duration-200",
-                                    "bg-muted/30 border-muted-foreground/20",
-                                    // Lógica Condicional
-                                    error
-                                        ? "border-red-500 focus-visible:ring-red-500/30 bg-red-500/5 placeholder:text-red-300"
-                                        : "focus-visible:border-primary/50"
+                                    "pl-10 h-11 transition-all duration-200 bg-muted/30 border-muted-foreground/20",
+                                    error ? "border-red-500 focus-visible:ring-red-500/30 bg-red-500/5 placeholder:text-red-300" : "focus-visible:border-primary/50"
                                 )}
                             />
                         </div>
@@ -111,28 +71,17 @@ export function LoginForm() {
                     {/* CAMPO DE SENHA */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <Label
-                                htmlFor="password"
-                                className={cn(
-                                    "text-xs uppercase font-semibold tracking-wider transition-colors",
-                                    error ? "text-red-500" : "text-muted-foreground"
-                                )}
-                            >
+                            <Label htmlFor="password" className={cn("text-xs uppercase font-semibold tracking-wider transition-colors", error ? "text-red-500" : "text-muted-foreground")}>
                                 Senha
                             </Label>
                             <Link href="/forgot-password" className="text-xs font-medium text-primary hover:text-primary/80 transition-colors">
                                 Esqueceu?
                             </Link>
                         </div>
-
                         <div className="relative group">
-                            <div className={cn(
-                                "absolute left-3 top-2.5 transition-colors duration-200",
-                                error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary"
-                            )}>
+                            <div className={cn("absolute left-3 top-2.5 transition-colors duration-200", error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary")}>
                                 <Lock className="h-5 w-5" />
                             </div>
-
                             <Input
                                 id="password"
                                 type="password"
@@ -142,11 +91,8 @@ export function LoginForm() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 disabled={isLoading}
                                 className={cn(
-                                    "pl-10 h-11 transition-all duration-200",
-                                    "bg-muted/30 border-muted-foreground/20",
-                                    error
-                                        ? "border-red-500 focus-visible:ring-red-500/30 bg-red-500/5 placeholder:text-red-300"
-                                        : "focus-visible:border-primary/50"
+                                    "pl-10 h-11 transition-all duration-200 bg-muted/30 border-muted-foreground/20",
+                                    error ? "border-red-500 focus-visible:ring-red-500/30 bg-red-500/5 placeholder:text-red-300" : "focus-visible:border-primary/50"
                                 )}
                             />
                         </div>
@@ -158,14 +104,12 @@ export function LoginForm() {
                     disabled={isLoading}
                     className={cn(
                         "w-full h-11 text-base font-medium shadow-md transition-all",
-                        "hover:shadow-lg hover:translate-y-[-1px]", // Micro-interação de subida
+                        "hover:shadow-lg hover:translate-y-[-1px]",
                         isLoading && "opacity-80 cursor-not-allowed hover:translate-y-0"
                     )}
                 >
                     {isLoading ? (
-                        <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" /> Verificando...
-                        </div>
+                        <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Verificando...</div>
                     ) : "Entrar no Sistema"}
                 </Button>
             </form>
@@ -180,7 +124,6 @@ export function LoginForm() {
                         <span className="bg-background px-2 text-muted-foreground">Precisa de acesso?</span>
                     </div>
                 </div>
-
                 <div className="text-center">
                     <Link
                         href="https://wa.me/5534997713731?text=Olá"

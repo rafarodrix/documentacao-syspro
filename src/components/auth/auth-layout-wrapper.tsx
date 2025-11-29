@@ -1,22 +1,30 @@
 import Link from "next/link";
 import { Terminal, ShieldCheck, Zap, CheckCircle2, ArrowLeft, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils"; // Supondo que você tenha o cn configurado, senão pode remover
+import { cn } from "@/lib/utils";
 
 interface AuthLayoutWrapperProps {
     children: React.ReactNode;
     title: string;
     description: string;
     backButton?: boolean;
+    className?: string; // Adicionado para flexibilidade (padrão Shadcn)
 }
 
-export function AuthLayoutWrapper({ children, title, description, backButton = true }: AuthLayoutWrapperProps) {
+export function AuthLayoutWrapper({
+    children,
+    title,
+    description,
+    backButton = true,
+    className
+}: AuthLayoutWrapperProps) {
     return (
-        <div className="w-full min-h-screen grid lg:grid-cols-2">
+        // Usamos 'cn' aqui para permitir estilos externos se necessário
+        <div className={cn("w-full min-h-screen grid lg:grid-cols-2", className)}>
 
             {/* --- COLUNA 1: Área do Formulário --- */}
             <div className="flex flex-col justify-center px-4 sm:px-12 relative bg-background overflow-y-auto">
 
-                {/* Botão Voltar (Integrado ao Wrapper) */}
+                {/* Botão Voltar */}
                 {backButton && (
                     <div className="absolute top-6 left-6 md:top-8 md:left-8 z-20 animate-in fade-in slide-in-from-left-4 duration-500">
                         <Link
@@ -36,7 +44,7 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
 
                 <div className="mx-auto w-full max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 py-12 lg:py-0">
 
-                    {/* Cabeçalho do Form */}
+                    {/* Cabeçalho */}
                     <div className="flex flex-col space-y-2 text-center">
                         <div className="mx-auto mb-6 h-12 w-12 rounded-xl bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
                             <Terminal className="h-6 w-6 text-primary-foreground" />
@@ -47,12 +55,12 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
                         </p>
                     </div>
 
-                    {/* CONTEÚDO (Children) */}
+                    {/* CONTEÚDO */}
                     <main>
                         {children}
                     </main>
 
-                    {/* Footer Comum */}
+                    {/* Footer */}
                     <div className="text-center text-xs text-muted-foreground pt-4">
                         © {new Date().getFullYear()} Trilink Software
                     </div>
@@ -108,7 +116,7 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
     );
 }
 
-// Subcomponente tipado corretamente
+// Subcomponente puramente visual
 function FeatureItem({ icon: Icon, title, desc }: { icon: LucideIcon, title: string, desc: string }) {
     return (
         <div className="flex items-start gap-4 group cursor-default">

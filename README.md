@@ -23,6 +23,10 @@ O **Syspro ERP** é uma plataforma de gestão empresarial (SaaS) focada em manuf
 
 O projeto segue uma estrutura híbrida que separa a camada de apresentação (Next.js) do núcleo da aplicação (Core/Domain).
 
+UI (Componente): Só deve se preocupar com COMO as coisas aparecem (JSX, Tailwind, Ícones). Ele deve ser "burro".
+Logic (Custom Hook): Só deve se preocupar com O QUE a tela faz (Estados, Loading, chama a função, trata erro).
+Core (Gateway/Services): Só deve se preocupar com QUEM resolve o problema (API, Banco de Dados, Cálculos).
+
 ```text
 src/
 ├── actions/                  # Server Actions (Controllers) - Ponto de entrada do Backend

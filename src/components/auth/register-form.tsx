@@ -1,32 +1,24 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import { registerUser } from "@/actions/auth/register"
+import { useRegister } from "@/hooks/use-register"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert"
-import { Loader2, ArrowLeft, Mail, Lock, User, AlertCircle } from "lucide-react"
+import { Loader2, Mail, Lock, User, AlertCircle } from "lucide-react"
 import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { cn } from "@/lib/utils"
 
 export function RegisterForm() {
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState("")
+    // 1. Lógica extraída
+    const { loading, error, submitRegister } = useRegister()
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    // 2. Handler simplificado
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-        setLoading(true)
-        setError("")
-
         const formData = new FormData(event.currentTarget)
-        const result = await registerUser(formData)
-
-        if (result?.error) {
-            setError(result.error)
-            setLoading(false)
-        }
+        submitRegister(formData)
     }
 
     return (
@@ -49,9 +41,11 @@ export function RegisterForm() {
 
                     {/* Campo Nome */}
                     <div className="space-y-2">
-                        <Label htmlFor="name" className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">Nome Completo</Label>
+                        <Label htmlFor="name" className={cn("text-xs uppercase font-semibold tracking-wider transition-colors", error ? "text-red-500" : "text-muted-foreground")}>
+                            Nome Completo
+                        </Label>
                         <div className="relative group">
-                            <div className="absolute left-3 top-2.5 text-muted-foreground group-focus-within:text-primary transition-colors">
+                            <div className={cn("absolute left-3 top-2.5 transition-colors duration-200", error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary")}>
                                 <User className="h-5 w-5" />
                             </div>
                             <Input
@@ -62,8 +56,8 @@ export function RegisterForm() {
                                 required
                                 disabled={loading}
                                 className={cn(
-                                    "pl-10 h-11 bg-muted/30 border-muted-foreground/20 focus:border-primary/50 transition-all",
-                                    error && "border-red-500 focus:ring-red-500/20"
+                                    "pl-10 h-11 transition-all duration-200 bg-muted/30 border-muted-foreground/20",
+                                    error ? "border-red-500 focus-visible:ring-red-500/30 bg-red-500/5" : "focus-visible:border-primary/50"
                                 )}
                             />
                         </div>
@@ -71,9 +65,11 @@ export function RegisterForm() {
 
                     {/* Campo Email */}
                     <div className="space-y-2">
-                        <Label htmlFor="email" className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">E-mail Corporativo</Label>
+                        <Label htmlFor="email" className={cn("text-xs uppercase font-semibold tracking-wider transition-colors", error ? "text-red-500" : "text-muted-foreground")}>
+                            E-mail Corporativo
+                        </Label>
                         <div className="relative group">
-                            <div className="absolute left-3 top-2.5 text-muted-foreground group-focus-within:text-primary transition-colors">
+                            <div className={cn("absolute left-3 top-2.5 transition-colors duration-200", error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary")}>
                                 <Mail className="h-5 w-5" />
                             </div>
                             <Input
@@ -84,8 +80,8 @@ export function RegisterForm() {
                                 required
                                 disabled={loading}
                                 className={cn(
-                                    "pl-10 h-11 bg-muted/30 border-muted-foreground/20 focus:border-primary/50 transition-all",
-                                    error && "border-red-500 focus:ring-red-500/20"
+                                    "pl-10 h-11 transition-all duration-200 bg-muted/30 border-muted-foreground/20",
+                                    error ? "border-red-500 focus-visible:ring-red-500/30 bg-red-500/5" : "focus-visible:border-primary/50"
                                 )}
                             />
                         </div>
@@ -93,9 +89,11 @@ export function RegisterForm() {
 
                     {/* Campo Senha */}
                     <div className="space-y-2">
-                        <Label htmlFor="password" className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">Senha</Label>
+                        <Label htmlFor="password" className={cn("text-xs uppercase font-semibold tracking-wider transition-colors", error ? "text-red-500" : "text-muted-foreground")}>
+                            Senha
+                        </Label>
                         <div className="relative group">
-                            <div className="absolute left-3 top-2.5 text-muted-foreground group-focus-within:text-primary transition-colors">
+                            <div className={cn("absolute left-3 top-2.5 transition-colors duration-200", error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary")}>
                                 <Lock className="h-5 w-5" />
                             </div>
                             <Input
@@ -105,7 +103,10 @@ export function RegisterForm() {
                                 placeholder="••••••••"
                                 required
                                 disabled={loading}
-                                className="pl-10 h-11 bg-muted/30 border-muted-foreground/20 focus:border-primary/50 transition-all"
+                                className={cn(
+                                    "pl-10 h-11 transition-all duration-200 bg-muted/30 border-muted-foreground/20",
+                                    error ? "border-red-500 focus-visible:ring-red-500/30 bg-red-500/5" : "focus-visible:border-primary/50"
+                                )}
                             />
                         </div>
                         <p className="text-[11px] text-muted-foreground ml-1">Mínimo de 6 caracteres</p>
@@ -114,10 +115,17 @@ export function RegisterForm() {
 
                 {/* Nota Informativa */}
                 <div className="bg-primary/5 border border-primary/10 p-3 rounded-md text-xs text-primary/80">
-                    <strong>Nota:</strong> Se você deseja <strong>contratar o Syspro</strong> para sua empresa, entre em contato com nosso setor comercial. Esta tela é exclusiva para colaboradores.
+                    <strong>Nota:</strong> Se você deseja <strong>contratar o Syspro</strong> para sua empresa, entre em contato com nosso setor comercial.
                 </div>
 
-                <Button type="submit" className="w-full h-11 text-base font-medium shadow-md hover:shadow-lg transition-all" disabled={loading}>
+                <Button
+                    type="submit"
+                    className={cn(
+                        "w-full h-11 text-base font-medium shadow-md transition-all hover:shadow-lg hover:translate-y-[-1px]",
+                        loading && "opacity-80 cursor-not-allowed hover:translate-y-0"
+                    )}
+                    disabled={loading}
+                >
                     {loading ? (
                         <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Criando Conta...</div>
                     ) : "Criar Minha Conta"}
