@@ -25,7 +25,7 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     "http://localhost:3000",
-    "https://www.cadens.com.br/"
+    "https://ajuda.trilinksoftware.com.br/"
   ],
 
   session: {
