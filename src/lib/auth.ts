@@ -10,10 +10,14 @@ export const auth = betterAuth({
 
   // Configuração do envio de e-mail
   emailAndPassword: {
-    enabled: true,
-    disableSignUp: false,
-    sendResetPassword: async ({ user, url, token }, request) => {
-      await sendResetPasswordEmail(user.email, url, user.name || "Usuário");       // Chama nosso serviço de e-mail
+    enabled: true, // <--- Tem que ser true
+    disableSignUp: false, // Permite cadastros
+    requireEmailVerification: false, // Ajuste conforme necessidade
+
+    // Função de envio de e-mail (que configuramos antes)
+    sendResetPassword: async ({ user, url, token }) => {
+      console.log("Enviando email para:", user.email);
+      await sendResetPasswordEmail(user.email, url, user.name || "Usuário");
     }
   },
 

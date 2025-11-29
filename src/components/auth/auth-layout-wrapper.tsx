@@ -59,11 +59,6 @@ export function AuthLayoutWrapper({
                     <main>
                         {children}
                     </main>
-
-                    {/* Footer */}
-                    <div className="text-center text-xs text-muted-foreground pt-4">
-                        © {new Date().getFullYear()} Trilink Software
-                    </div>
                 </div>
             </div>
 
@@ -105,7 +100,7 @@ export function AuthLayoutWrapper({
 
                 {/* Footer Links */}
                 <div className="relative z-10 flex items-center justify-between text-sm text-zinc-500 pt-8 animate-in fade-in duration-1000 delay-300">
-                    <p>Todos os direitos reservados.</p>
+                    <p>© {new Date().getFullYear()} Trilink Software. Todos os direitos reservados.</p>
                     <div className="flex gap-6">
                         <Link href="/termos" className="hover:text-white transition-colors">Termos</Link>
                         <Link href="/privacidade" className="hover:text-white transition-colors">Privacidade</Link>

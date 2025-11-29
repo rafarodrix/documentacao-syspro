@@ -60,7 +60,12 @@ export function ForgotPasswordForm() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={loading}
-                                className={cn("pl-10", error && "border-red-500 bg-red-50")}
+                                className={cn(
+                                    "pl-10 h-11 transition-all duration-200 bg-muted/30 border-muted-foreground/20",
+                                    error
+                                        ? "border-red-500 focus-visible:ring-red-500/30 bg-red-50 text-red-900 placeholder:text-red-400"
+                                        : "focus-visible:border-primary/50"
+                                )}
                             />
                         </div>
                     </div>
