@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { CreateCompanyDialog } from "@/components/platform/cadastros/CreateCompanyDialog"
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table"
@@ -41,6 +42,15 @@ export function CompanyTab({ data, isAdmin }: CompanyTabProps) {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
+
+                <div className="relative w-full sm:w-72">
+                    {/* Input de busca... */}
+                </div>
+
+                {/* Apenas Admin cria novas empresas */}
+                {isAdmin && (
+                    <CreateCompanyDialog />
+                )}
 
                 {/* Apenas Admin cria novas empresas */}
                 {isAdmin && (
