@@ -12,7 +12,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper";
 
 export function LoginForm() {
-    // 1. Lógica extraída
     const {
         email, setEmail,
         password, setPassword,
@@ -29,7 +28,7 @@ export function LoginForm() {
         <AuthLayoutWrapper
             title="Acesso ao Portal"
             description="Entre com suas credenciais para acessar o portal."
-            backButton={true} // Se quiser botão voltar na home
+            backButton={true}
         >
             {/* Alerta de Erro */}
             {error && (
@@ -57,8 +56,8 @@ export function LoginForm() {
                                 type="email"
                                 placeholder="nome@empresa.com"
                                 required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                value={email} // Vem do Hook
+                                onChange={(e) => setEmail(e.target.value)} // Vem do Hook
                                 disabled={isLoading}
                                 className={cn(
                                     "pl-10 h-11 transition-all duration-200 bg-muted/30 border-muted-foreground/20",
@@ -74,7 +73,12 @@ export function LoginForm() {
                             <Label htmlFor="password" className={cn("text-xs uppercase font-semibold tracking-wider transition-colors", error ? "text-red-500" : "text-muted-foreground")}>
                                 Senha
                             </Label>
-                            <Link href="/forgot-password" className="text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+
+                            {/* LINK DE ESQUECEU SENHA */}
+                            <Link
+                                href="/forgot-password"
+                                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors z-10 relative"
+                            >
                                 Esqueceu?
                             </Link>
                         </div>
@@ -87,8 +91,8 @@ export function LoginForm() {
                                 type="password"
                                 placeholder="••••••••"
                                 required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                value={password} // Vem do Hook
+                                onChange={(e) => setPassword(e.target.value)} // Vem do Hook
                                 disabled={isLoading}
                                 className={cn(
                                     "pl-10 h-11 transition-all duration-200 bg-muted/30 border-muted-foreground/20",
