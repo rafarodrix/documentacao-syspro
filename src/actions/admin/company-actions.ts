@@ -4,24 +4,23 @@ import { prisma } from "@/lib/prisma";
 import { createCompanySchema, CreateCompanyInput } from "@/core/application/schema/company-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
-import { Prisma, CompanyStatus } from "@prisma/client"; // Importe o Enum do Prisma
+import { Prisma, CompanyStatus, Role } from "@prisma/client";
 
-// --- Tipagem para os parâmetros de URL ---
+// --- Tipagem ---
 interface GetCompaniesParams {
   search?: string;
   status?: string;
 }
 
-// --- Constantes de Permissão ---
-const READ_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
-const WRITE_ROLES = ["ADMIN", "DEVELOPER"];
+// --- Permissões com Enum ---
+const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
-// --- Helper de Tratamento de Erros ---
+// --- Helper de Erro ---
 function handleActionError(error: any) {
   console.error("[CompanyAction Error]:", error);
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    // P2002: Unique constraint failed
     if (error.code === 'P2002') {
       return { success: false as const, error: "Este CNPJ já está cadastrado no sistema." };
     }
@@ -35,12 +34,15 @@ function handleActionError(error: any) {
  */
 export async function getCompaniesAction(filters?: GetCompaniesParams) {
   const session = await getProtectedSession();
-  if (!session) return { success: false, error: "Não autorizado." };
+
+  // Verifica se a role do usuário está na lista de permissão
+  if (!session || !READ_ROLES.includes(session.role)) {
+    return { success: false, error: "Não autorizado." };
+  }
 
   try {
     const whereClause: Prisma.CompanyWhereInput = {};
 
-    // 1. Filtro de Busca
     if (filters?.search) {
       whereClause.OR = [
         { razaoSocial: { contains: filters.search, mode: "insensitive" } },
@@ -49,9 +51,7 @@ export async function getCompaniesAction(filters?: GetCompaniesParams) {
       ];
     }
 
-    // 2. Filtro de Status
     if (filters?.status && filters.status !== "ALL") {
-      // Convertendo string para o Enum, se necessário
       whereClause.status = filters.status as CompanyStatus;
     }
 
@@ -59,20 +59,15 @@ export async function getCompaniesAction(filters?: GetCompaniesParams) {
       where: whereClause,
       include: {
         _count: {
-          // --- MUDANÇA IMPORTANTE AQUI ---
-          // Antes era 'users', agora contamos 'memberships'
-          // pois a relação é através da tabela pivô.
           select: { memberships: true },
         },
-        // Opcional: Se quiser mostrar o nome da contabilidade na lista
         accountingFirm: {
-          select: { nomeFantasia: true }
+          select: { id: true, nomeFantasia: true } // Pegamos ID também para facilitar edição
         }
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Mapeamos para facilitar o uso no frontend (para chamar .usersCount ao invés de ._count.memberships)
     const formattedCompanies = companies.map(c => ({
       ...c,
       usersCount: c._count.memberships
@@ -110,7 +105,7 @@ export async function createCompanyAction(data: CreateCompanyInput) {
         emailContato: data.emailContato,
         telefone: data.telefone,
         website: data.website || null,
-        status: CompanyStatus.ACTIVE, // Usando Enum
+        status: CompanyStatus.ACTIVE,
 
         // Fiscal
         inscricaoEstadual: data.inscricaoEstadual,
@@ -136,7 +131,7 @@ export async function createCompanyAction(data: CreateCompanyInput) {
       },
     });
 
-    revalidatePath("/admin/empresas");
+    revalidatePath("/admin/cadastros"); // Atualizamos a rota correta do admin
     return { success: true as const };
   } catch (error: any) {
     return handleActionError(error);
@@ -149,8 +144,22 @@ export async function createCompanyAction(data: CreateCompanyInput) {
 export async function updateCompanyAction(id: string, data: CreateCompanyInput) {
   const session = await getProtectedSession();
 
-  if (!session || !WRITE_ROLES.includes(session.role)) {
-    return { success: false as const, error: "Você não tem permissão para editar empresas." };
+  if (!session) return { success: false, error: "Não autorizado." };
+
+  // Permissão: Admin Global OU Admin da própria empresa
+  const isGlobalAdmin = session.role === Role.ADMIN || session.role === Role.DEVELOPER;
+
+  if (!isGlobalAdmin) {
+    // Verifica vínculo se for cliente
+    const isCompanyAdmin = await prisma.membership.findUnique({
+      where: {
+        userId_companyId: { userId: session.userId, companyId: id }
+      }
+    });
+
+    if (!isCompanyAdmin || isCompanyAdmin.role !== Role.ADMIN) {
+      return { success: false, error: "Permissão negada para editar esta empresa." };
+    }
   }
 
   const validation = createCompanySchema.safeParse(data);
@@ -183,13 +192,15 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput) 
 
         observacoes: data.observacoes,
 
+        // Lógica segura para atualizar relacionamento opcional
         accountingFirm: data.accountingFirmId
           ? { connect: { id: data.accountingFirmId } }
           : { disconnect: true },
       },
     });
 
-    revalidatePath("/admin/empresas");
+    revalidatePath("/admin/cadastros");
+    revalidatePath("/app/cadastros");
     return { success: true as const };
   } catch (error: any) {
     return handleActionError(error);
@@ -197,7 +208,7 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput) 
 }
 
 /**
- * Alterna o status da empresa (Ativar/Desativar)
+ * Alterna o status da empresa
  */
 export async function toggleCompanyStatusAction(id: string, currentStatus: string) {
   const session = await getProtectedSession();
@@ -207,7 +218,6 @@ export async function toggleCompanyStatusAction(id: string, currentStatus: strin
   }
 
   try {
-    // Lógica com Enum para garantir segurança
     const newStatus = currentStatus === CompanyStatus.ACTIVE
       ? CompanyStatus.INACTIVE
       : CompanyStatus.ACTIVE;
@@ -217,7 +227,7 @@ export async function toggleCompanyStatusAction(id: string, currentStatus: strin
       data: { status: newStatus }
     });
 
-    revalidatePath("/admin/empresas");
+    revalidatePath("/admin/cadastros");
     return { success: true as const, message: `Empresa alterada para ${newStatus}.` };
   } catch (error) {
     return handleActionError(error);

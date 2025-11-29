@@ -1,42 +1,57 @@
 import { z } from "zod";
+import { TaxRegime } from "@prisma/client";
 
-// Definindo o Enum igual ao do Prisma para validação
-export const TaxRegimeEnum = z.enum([
-  "SIMPLES_NACIONAL",
-  "SIMPLES_NACIONAL_EXCESSO",
-  "LUCRO_PRESUMIDO",
-  "LUCRO_REAL",
-  "MEI"
-]);
+// Helper para converter string vazia ("") em undefined para o Prisma ignorar
+const emptyToUndefined = z.string().transform((val) => val === "" ? undefined : val);
 
 export const createCompanySchema = z.object({
   // --- DADOS PRINCIPAIS ---
-  cnpj: z.string().min(14, "CNPJ inválido").max(18, "CNPJ inválido"),
-  razaoSocial: z.string().min(3, "Razão Social é obrigatória"),
-  nomeFantasia: z.string().optional(),
+  cnpj: z.string()
+    .min(14, "CNPJ incompleto")
+    .max(18, "CNPJ inválido")
+    .transform((val) => val.replace(/\D/g, "")), // Remove pontos e traços
+
+  razaoSocial: z.string()
+    .min(3, "Razão Social é obrigatória")
+    .trim(),
+
+  nomeFantasia: z.string().optional().or(emptyToUndefined),
 
   // --- DADOS DE CONTATO ---
-  emailContato: z.string().email("E-mail inválido").optional().or(z.literal("")),
-  telefone: z.string().optional(),
-  website: z.string().url("URL inválida").optional().or(z.literal("")), // Novo
+  emailContato: z.string()
+    .email("E-mail inválido")
+    .optional()
+    .or(z.literal("")),
+
+  telefone: z.string().optional().or(emptyToUndefined),
+
+  website: z.string().url("URL inválida").optional().or(z.literal("")),
 
   // --- DADOS FISCAIS ---
-  inscricaoEstadual: z.string().optional(),
-  inscricaoMunicipal: z.string().optional(),
-  regimeTributario: TaxRegimeEnum.optional(),
+  inscricaoEstadual: z.string().optional().or(emptyToUndefined),
+  inscricaoMunicipal: z.string().optional().or(emptyToUndefined),
+
+  // CORREÇÃO AQUI: Removemos o errorMap.
+  // z.nativeEnum(TaxRegime) já valida se é uma das opções do banco.
+  regimeTributario: z.nativeEnum(TaxRegime).optional(),
 
   // --- ENDEREÇO ---
-  cep: z.string().optional(),
-  logradouro: z.string().optional(),
-  numero: z.string().optional(),
-  complemento: z.string().optional(),
-  bairro: z.string().optional(),
-  cidade: z.string().optional(),
-  estado: z.string().length(2, "UF deve ter 2 letras").optional().or(z.literal("")),
+  cep: z.string().optional().or(emptyToUndefined),
+  logradouro: z.string().optional().or(emptyToUndefined),
+  numero: z.string().optional().or(emptyToUndefined),
+  complemento: z.string().optional().or(emptyToUndefined),
+  bairro: z.string().optional().or(emptyToUndefined),
+  cidade: z.string().optional().or(emptyToUndefined),
+
+  estado: z.string()
+    .length(2, "UF deve ter 2 letras")
+    .toUpperCase()
+    .optional()
+    .or(z.literal("")),
 
   // --- VÍNCULOS E EXTRAS ---
-  // ID da contabilidade (se houver). Se vier string vazia, tratamos como undefined.
-  accountingFirmId: z.string().optional().or(z.literal("")),
+  accountingFirmId: z.string().optional().transform(val => val || undefined),
+
   observacoes: z.string().optional(),
 });
 
