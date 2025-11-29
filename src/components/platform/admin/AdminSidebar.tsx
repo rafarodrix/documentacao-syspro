@@ -42,9 +42,8 @@ type NavItem = {
 // --- MENU CONFIG ---
 const manageNav: NavItem[] = [
     { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
-    { title: "Usuários", href: "/admin/usuarios", icon: Users },
-    { title: "Contratos", href: "/admin/contratos", icon: FileText },
     { title: "Gestão de Equipe", href: "/admin/cadastros", icon: Users },
+    { title: "Contratos", href: "/admin/contratos", icon: FileText },
 ];
 
 const systemNav: NavItem[] = [
