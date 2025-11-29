@@ -9,10 +9,12 @@ export async function middleware(request: NextRequest) {
 
   const publicRoutes = [
     "/",
-    "/login",
-    "/register",
     "/privacidade",
     "/termos",
+    "/login",
+    "/register",
+    "/forgot-password", // Permite pedir o reset
+    "/reset-password"  // Permite definir a nova senha (link do email)
   ];
 
   // Função auxiliar para verificar se é pública

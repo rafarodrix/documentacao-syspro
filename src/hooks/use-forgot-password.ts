@@ -15,7 +15,7 @@ export function useForgotPassword() {
         setError("")
         setSuccess(false)
 
-        // Chama o Core (que criamos antes)
+        // Chama o Core 
         const result = await authGateway.requestPasswordReset(email)
 
         if (result.success) {
@@ -29,7 +29,7 @@ export function useForgotPassword() {
 
     // Retorna apenas o necessário para a tela desenhar
     return {
-        formState: { email, loading, error, success }, // Agrupei os estados
+        formState: { email, loading, error, success },
         setEmail,
         setSuccess, // Para o botão de "Tentar outro"
         submitRequest
