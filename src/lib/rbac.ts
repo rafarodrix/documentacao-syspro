@@ -1,33 +1,35 @@
-import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { AccessControlMatrix, DEFAULT_ACCESS_MATRIX } from "@/core/config/permissions";
+import { ACCESS_MATRIX, PermissionKey } from "@/core/config/permissions";
 
-export async function hasPermission(role: Role, permission: string): Promise<boolean> {
-    // 1. Busca do banco
-    const setting = await prisma.systemSetting.findUnique({
-        where: { key: "access_control_config" },
-    });
+/**
+ * Verifica se uma Role tem permissão para realizar uma ação.
+ * Esta função é SÍNCRONA (instantânea) e não consome banco de dados.
+ */
+export function hasPermission(role: Role, permission: PermissionKey): boolean {
 
-    let matrix: AccessControlMatrix = DEFAULT_ACCESS_MATRIX;
-
-    if (setting?.value) {
-        try {
-            matrix = JSON.parse(setting.value);
-        } catch {
-            // Se falhar o parse, mantém o padrão silenciosamente
-        }
+    // 1. Failsafe de Segurança: Super Admins e Devs sempre podem tudo
+    if (role === 'ADMIN' || role === 'DEVELOPER') {
+        return true;
     }
 
-    // 2. Verifica a role na matriz
-    const userPerms = matrix[role];
+    // 2. Busca as permissões da Role na Matriz Estática
+    const allowedPermissions = ACCESS_MATRIX[role];
 
-    // Se a role não existir na matriz (ex: nova role criada no banco mas não no config), nega acesso
-    if (!userPerms) return false;
+    // Se a role não estiver configurada, nega por segurança
+    if (!allowedPermissions) {
+        return false;
+    }
 
-    // Admin/Dev sempre tem acesso total (failsafe de segurança)
+    // 3. Verifica se a permissão existe na lista
+    return allowedPermissions.includes(permission);
+}
+
+/**
+ * Verifica se o usuário tem PELO MENOS UMA das permissões listadas.
+ * Útil para menus que agrupam várias funções (ex: Menu Cadastros).
+ */
+export function hasAnyPermission(role: Role, permissions: PermissionKey[]): boolean {
     if (role === 'ADMIN' || role === 'DEVELOPER') return true;
 
-    // 3. Verifica se a permissão está na lista
-    // Usamos 'as any' para permitir checar string genérica contra tipos literais
-    return userPerms.includes(permission as any);
+    return permissions.some((p) => hasPermission(role, p));
 }

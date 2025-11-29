@@ -1,7 +1,9 @@
-import { getCadastrosData } from "@/actions/admin/get-cadastros-data" // Reusa a MESMA action!
+import { getCadastrosData } from "@/actions/admin/get-cadastros-data"
 import { CadastrosContainer } from "@/components/platform/cadastros/CadastrosContainer"
+import { getProtectedSession } from "@/lib/auth-helpers"
 
-export default async function ClientCadastrosPage() {
+export default async function AdminCadastrosPage() {
+    const session = await getProtectedSession();
     const { companies, users, error } = await getCadastrosData()
 
     if (error) return <div>Erro: {error}</div>
@@ -10,7 +12,7 @@ export default async function ClientCadastrosPage() {
         <CadastrosContainer
             companies={companies || []}
             users={users || []}
-            isAdmin={false} // Modo restrito (cliente)
+            currentUserRole={session?.role!}
         />
     )
 }
