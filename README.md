@@ -13,7 +13,7 @@ O **Syspro ERP** é uma plataforma de gestão empresarial (SaaS) focada em manuf
   * **Banco de Dados:** PostgreSQL (via [Supabase](https://supabase.com/))
   * **ORM:** [Prisma](https://www.prisma.io/)
   * **Autenticação:** Better Auth
-  * **Estilização:** Tailwind CSS + ShadcnUI
+  * **Estilização:** Tailwind CSS + ShadcnUI + Magic UI
   * **Arquitetura:** Clean Architecture & DDD (Domain-Driven Design)
   * **Integrações:** Zammad (Helpdesk)
 
@@ -105,11 +105,10 @@ Como utilizamos PostgreSQL com Prisma, siga os comandos abaixo dependendo do cen
 Use este comando sempre que alterar o `schema.prisma`. Ele cria o arquivo de migração e aplica no banco.
 
 ```bash
-npx prisma migrate dev
+npx prisma migrate dev --name nome_da_migração
 ```
 
-**2. Apenas gerar a tipagem (Se o VS Code reclamar de erro):**
-Se você fez um `pull` do git e o código está vermelho, rode isso:
+**2. Apenas ger
 
 ```bash
 npx prisma generate
