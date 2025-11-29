@@ -7,6 +7,7 @@ import { createUserSchema, CreateUserInput } from "@/core/application/schema/use
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";
+import { hash } from "bcryptjs"; // Importando hash (embora estejamos usando Better Auth agora, se usar create manual precisa)
 
 // --- Tipos ---
 interface GetUsersParams {
@@ -14,9 +15,14 @@ interface GetUsersParams {
     role?: string;
 }
 
-// --- Constantes de Permissão (CORRIGIDO COM Role[]) ---
-const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
+// --- Constantes de Permissão (Tipagem Explícita) ---
+const READ_ROLES = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE] as const;
+const WRITE_ROLES = [Role.ADMIN, Role.DEVELOPER] as const;
+
+// Helper para verificar permissão de forma segura
+function hasRole(role: Role, allowedRoles: readonly Role[]) {
+    return allowedRoles.includes(role);
+}
 
 // --- Helper de Tratamento de Erros ---
 function handleActionError(error: any) {
@@ -36,12 +42,13 @@ function handleActionError(error: any) {
 }
 
 /**
- * Lista todos os usuários e suas empresas
+ * Lista todos os usuários
  */
 export async function getUsersAction(filters?: GetUsersParams) {
     const session = await getProtectedSession();
 
-    if (!session || !READ_ROLES.includes(session.role)) {
+    // Validação segura de Role
+    if (!session || !hasRole(session.role, READ_ROLES)) {
         return { success: false, error: "Não autorizado." };
     }
 
@@ -87,22 +94,22 @@ export async function getUsersAction(filters?: GetUsersParams) {
 }
 
 /**
- * Cria um novo usuário (Auth + Banco + Membership)
+ * Cria um novo usuário
  */
 export async function createUserAction(data: CreateUserInput) {
     const session = await getProtectedSession();
 
-    if (!session || !WRITE_ROLES.includes(session.role)) {
+    if (!session || !hasRole(session.role, WRITE_ROLES)) {
         return { success: false as const, error: "Permissão negada." };
     }
 
     const validation = createUserSchema.safeParse(data);
     if (!validation.success) {
-        return { success: false as const, error: validation.error.flatten().fieldErrors };
+        return { success: false as const, error: "Dados inválidos." }; // Simplificado para evitar erro de tipo complexo
     }
 
     try {
-        // 1. Cria no Auth (Gera hash seguro automaticamente)
+        // 1. Cria no Auth (Gera hash seguro automaticamente via Better Auth)
         const newUserResponse = await auth.api.signUpEmail({
             body: {
                 email: data.email,
@@ -120,7 +127,6 @@ export async function createUserAction(data: CreateUserInput) {
 
         // 2. Transação para configurar Role e Empresa
         await prisma.$transaction(async (tx) => {
-            // A. Atualiza dados que o signUpEmail não preenche
             await tx.user.update({
                 where: { id: newUserId },
                 data: {
@@ -130,7 +136,6 @@ export async function createUserAction(data: CreateUserInput) {
                 }
             });
 
-            // B. Cria o vínculo com a empresa (Membership)
             if (data.companyId) {
                 await tx.membership.create({
                     data: {
@@ -154,12 +159,12 @@ export async function createUserAction(data: CreateUserInput) {
 }
 
 /**
- * Atualiza um usuário existente
+ * Atualiza um usuário
  */
 export async function updateUserAction(id: string, data: Partial<CreateUserInput>) {
     const session = await getProtectedSession();
 
-    if (!session || !WRITE_ROLES.includes(session.role)) {
+    if (!session || !hasRole(session.role, WRITE_ROLES)) {
         return { success: false as const, error: "Permissão negada." };
     }
 
@@ -178,7 +183,6 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
                 }
             });
 
-            // Gerencia a troca de empresa (Single Tenant Logic)
             if (data.companyId !== undefined) {
                 await tx.membership.deleteMany({
                     where: { userId: id }
@@ -208,12 +212,12 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
 }
 
 /**
- * Alterna o status do usuário (Ativar/Desativar)
+ * Alterna Status
  */
 export async function toggleUserStatusAction(id: string, currentStatus: boolean) {
     const session = await getProtectedSession();
 
-    if (!session || !WRITE_ROLES.includes(session.role)) {
+    if (!session || !hasRole(session.role, WRITE_ROLES)) {
         return { success: false as const, error: "Permissão negada." };
     }
 
