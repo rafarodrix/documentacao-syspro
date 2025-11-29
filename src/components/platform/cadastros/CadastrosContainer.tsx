@@ -16,14 +16,18 @@ interface CadastrosContainerProps {
 
 export function CadastrosContainer({ companies, users, currentUserRole }: CadastrosContainerProps) {
 
-    // 1. Lógica de Visão Global
+    // 1. Lógica de Visão Global (Para saber se mostra botões de admin, etc)
     const isGlobalView = ['ADMIN', 'DEVELOPER', 'SUPORTE'].includes(currentUserRole)
 
-    // 2. Filtros de dados
+    // 2. Filtros de dados (SEPARAÇÃO ESTRITA)
+
+    // Lista A: Apenas Equipe do Sistema
     const systemUsers = users.filter(u => ['ADMIN', 'DEVELOPER', 'SUPORTE'].includes(u.role))
 
-    // Admin vê TUDO na aba geral. Cliente vê só os dele (que já vem filtrado do servidor).
-    const clientUsers = isGlobalView ? users : users.filter(u => ['CLIENTE_ADMIN', 'CLIENTE_USER'].includes(u.role))
+    // Lista B: Apenas Clientes (Removemos a lógica que mostrava tudo para o Admin)
+    // Agora, Admin ou não, esta lista só conterá usuários de clientes.
+    const clientUsers = users.filter(u => ['CLIENTE_ADMIN', 'CLIENTE_USER'].includes(u.role))
+
 
     // 3. Permissões
     const canViewEmpresas = hasPermission(currentUserRole, 'companies:view')
@@ -42,11 +46,13 @@ export function CadastrosContainer({ companies, users, currentUserRole }: Cadast
         )
     }
 
+    // Define aba padrão inteligente
     const defaultTab = canViewEmpresas ? "empresa" : (canViewUsuarios ? "usuarios" : "sistema")
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
+            {/* Cabeçalho da Página */}
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Cadastros</h1>
                 <p className="text-muted-foreground mt-1">
@@ -70,7 +76,7 @@ export function CadastrosContainer({ companies, users, currentUserRole }: Cadast
 
                         {canViewUsuarios && (
                             <TabsTrigger value="usuarios" className="gap-2 px-4 h-9 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
-                                <Users className="h-4 w-4" /> {isGlobalView ? "Todos Usuários" : "Minha Equipe"}
+                                <Users className="h-4 w-4" /> {isGlobalView ? "Clientes" : "Minha Equipe"}
                             </TabsTrigger>
                         )}
 
@@ -90,7 +96,6 @@ export function CadastrosContainer({ companies, users, currentUserRole }: Cadast
                             <h3 className="text-lg font-medium">{isGlobalView ? "Empresas Cadastradas" : "Dados da Organização"}</h3>
                             <p className="text-sm text-muted-foreground">Visualize e edite as informações cadastrais.</p>
                         </div>
-                        {/* Passamos currentUserRole aqui, certifique-se que CompanyTab aceita essa prop! */}
                         <CompanyTab data={companies} isAdmin={isGlobalView} />
                     </TabsContent>
                 )}
@@ -98,10 +103,14 @@ export function CadastrosContainer({ companies, users, currentUserRole }: Cadast
                 {canViewUsuarios && (
                     <TabsContent value="usuarios" className="space-y-4 focus-visible:outline-none">
                         <div className="flex flex-col gap-1 px-1">
+                            {/* Título ajustado para refletir que são apenas clientes */}
                             <h3 className="text-lg font-medium">{isGlobalView ? "Usuários dos Clientes" : "Gestão de Equipe"}</h3>
-                            <p className="text-sm text-muted-foreground">Controle quem tem acesso ao sistema.</p>
+                            <p className="text-sm text-muted-foreground">
+                                {isGlobalView
+                                    ? "Listagem de usuários vinculados às empresas clientes."
+                                    : "Controle quem tem acesso ao sistema."}
+                            </p>
                         </div>
-                        {/* ATENÇÃO: Se o UserTab não aceitar currentUserRole, remova a prop da chamada abaixo */}
                         <UserTab data={clientUsers} companies={companies} isAdmin={isGlobalView} />
                     </TabsContent>
                 )}
