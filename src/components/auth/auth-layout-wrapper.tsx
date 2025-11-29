@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Terminal, ShieldCheck, Zap, CheckCircle2 } from "lucide-react";
+import { Terminal, ShieldCheck, Zap, CheckCircle2, ArrowLeft, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils"; // Supondo que você tenha o cn configurado, senão pode remover
 
 interface AuthLayoutWrapperProps {
     children: React.ReactNode;
@@ -12,13 +13,28 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
     return (
         <div className="w-full min-h-screen grid lg:grid-cols-2">
 
-            {/* --- COLUNA 1: Área do Formulário (Dinâmica) --- */}
-            <div className="flex flex-col justify-center px-4 sm:px-12 relative bg-background overflow-hidden">
+            {/* --- COLUNA 1: Área do Formulário --- */}
+            <div className="flex flex-col justify-center px-4 sm:px-12 relative bg-background overflow-y-auto">
+
+                {/* Botão Voltar (Integrado ao Wrapper) */}
+                {backButton && (
+                    <div className="absolute top-6 left-6 md:top-8 md:left-8 z-20 animate-in fade-in slide-in-from-left-4 duration-500">
+                        <Link
+                            href="/"
+                            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group"
+                        >
+                            <div className="p-2 rounded-full bg-muted/50 border border-border/50 group-hover:border-primary/20 group-hover:bg-primary/5 transition-all">
+                                <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                            </div>
+                            <span className="hidden sm:inline">Voltar</span>
+                        </Link>
+                    </div>
+                )}
 
                 {/* Background Grids Sutil */}
                 <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
-                <div className="mx-auto w-full max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="mx-auto w-full max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 py-12 lg:py-0">
 
                     {/* Cabeçalho do Form */}
                     <div className="flex flex-col space-y-2 text-center">
@@ -31,20 +47,22 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
                         </p>
                     </div>
 
-                    {/* O CONTEÚDO ESPECÍFICO (Formulário) ENTRA AQUI */}
-                    {children}
+                    {/* CONTEÚDO (Children) */}
+                    <main>
+                        {children}
+                    </main>
 
                     {/* Footer Comum */}
-                    <div className="text-center text-xs text-muted-foreground">
+                    <div className="text-center text-xs text-muted-foreground pt-4">
                         © {new Date().getFullYear()} Trilink Software
                     </div>
                 </div>
             </div>
 
-            {/* --- COLUNA 2: Branding (Fixa e Reutilizável) --- */}
-            <div className="hidden lg:flex relative flex-col justify-between p-12 text-white bg-[#09090b] overflow-hidden border-l border-white/10">
+            {/* --- COLUNA 2: Branding (Fixa) --- */}
+            <div className="hidden lg:flex relative flex-col justify-between p-12 text-white bg-zinc-950 overflow-hidden border-l border-white/10">
 
-                {/* Background Effects (Magic UI) */}
+                {/* Background Effects */}
                 <div className="absolute inset-0 z-0 pointer-events-none">
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] opacity-50 mix-blend-screen animate-pulse-slow"></div>
                     <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] opacity-30 mix-blend-screen"></div>
@@ -62,11 +80,11 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
                 {/* Features */}
                 <div className="relative z-10 max-w-lg space-y-8 animate-in fade-in slide-in-from-right-8 duration-1000 delay-100">
                     <div>
-                        <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight mb-4">
+                        <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight mb-4 text-white">
                             A Central de Ajuda do Syspro ERP
                         </h2>
                         <p className="text-lg text-zinc-400 leading-relaxed">
-                            Acesse sua conta para ter acesso a toda a documentação e configurações com segurança total.
+                            Acesse sua conta para ter acesso a toda a documentação, chamados e configurações com segurança total.
                         </p>
                     </div>
 
@@ -90,10 +108,11 @@ export function AuthLayoutWrapper({ children, title, description, backButton = t
     );
 }
 
-function FeatureItem({ icon: Icon, title, desc }: { icon: any, title: string, desc: string }) {
+// Subcomponente tipado corretamente
+function FeatureItem({ icon: Icon, title, desc }: { icon: LucideIcon, title: string, desc: string }) {
     return (
-        <div className="flex items-start gap-4 group">
-            <div className="mt-1 h-10 w-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center group-hover:bg-primary/20 group-hover:border-primary/30 transition-all duration-500">
+        <div className="flex items-start gap-4 group cursor-default">
+            <div className="mt-1 h-10 w-10 shrink-0 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center group-hover:bg-primary/20 group-hover:border-primary/30 transition-all duration-500">
                 <Icon className="h-5 w-5 text-zinc-400 group-hover:text-white transition-colors" />
             </div>
             <div>

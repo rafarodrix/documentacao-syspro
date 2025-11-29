@@ -34,19 +34,6 @@ export function RegisterForm() {
             title="Crie sua conta"
             description="Junte-se à equipe da sua empresa no Syspro ERP."
         >
-            {/* Botão Voltar */}
-            <div className="absolute top-8 left-8">
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group"
-                >
-                    <div className="p-2 rounded-full bg-muted/50 border border-border/50 group-hover:border-primary/20 group-hover:bg-primary/5 transition-all">
-                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                    </div>
-                    Voltar
-                </Link>
-            </div>
-
             {/* Alerta de Erro */}
             {error && (
                 <Alert variant="destructive" className="animate-in fade-in zoom-in-95 duration-300 border-red-500/50 bg-red-500/10 text-red-600">

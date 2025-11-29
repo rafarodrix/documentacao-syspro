@@ -54,19 +54,6 @@ export function LoginForm() {
             title="Acesso ao Portal"
             description="Entre com suas credenciais para acessar o portal."
         >
-            {/* Botão Voltar */}
-            <div className="absolute top-8 left-8">
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group"
-                >
-                    <div className="p-2 rounded-full bg-muted/50 border border-border/50 group-hover:border-primary/20 group-hover:bg-primary/5 transition-all">
-                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                    </div>
-                    Voltar
-                </Link>
-            </div>
-
             {/* Alerta de Erro */}
             {error && (
                 <Alert variant="destructive" className="animate-in fade-in zoom-in-95 duration-300 border-red-500/50 bg-red-500/10 text-red-600">
@@ -79,12 +66,28 @@ export function LoginForm() {
             {/* Formulário */}
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-4">
+
+                    {/* CAMPO DE E-MAIL */}
                     <div className="space-y-2">
-                        <Label htmlFor="email" className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">E-mail Corporativo</Label>
+                        <Label
+                            htmlFor="email"
+                            className={cn(
+                                "text-xs uppercase font-semibold tracking-wider transition-colors",
+                                error ? "text-red-500" : "text-muted-foreground"
+                            )}
+                        >
+                            E-mail Corporativo
+                        </Label>
+
                         <div className="relative group">
-                            <div className="absolute left-3 top-2.5 text-muted-foreground group-focus-within:text-primary transition-colors">
+                            {/* Ícone com condicional de cor */}
+                            <div className={cn(
+                                "absolute left-3 top-2.5 transition-colors duration-200",
+                                error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary"
+                            )}>
                                 <Mail className="h-5 w-5" />
                             </div>
+
                             <Input
                                 id="email"
                                 type="email"
@@ -94,24 +97,42 @@ export function LoginForm() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={isLoading}
                                 className={cn(
-                                    "pl-10 h-11 bg-muted/30 border-muted-foreground/20 focus:border-primary/50 transition-all",
-                                    error && "border-red-500 focus:ring-red-500/20"
+                                    "pl-10 h-11 transition-all duration-200",
+                                    "bg-muted/30 border-muted-foreground/20",
+                                    // Lógica Condicional
+                                    error
+                                        ? "border-red-500 focus-visible:ring-red-500/30 bg-red-500/5 placeholder:text-red-300"
+                                        : "focus-visible:border-primary/50"
                                 )}
                             />
                         </div>
                     </div>
 
+                    {/* CAMPO DE SENHA */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <Label htmlFor="password" className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">Senha</Label>
+                            <Label
+                                htmlFor="password"
+                                className={cn(
+                                    "text-xs uppercase font-semibold tracking-wider transition-colors",
+                                    error ? "text-red-500" : "text-muted-foreground"
+                                )}
+                            >
+                                Senha
+                            </Label>
                             <Link href="/forgot-password" className="text-xs font-medium text-primary hover:text-primary/80 transition-colors">
                                 Esqueceu?
                             </Link>
                         </div>
+
                         <div className="relative group">
-                            <div className="absolute left-3 top-2.5 text-muted-foreground group-focus-within:text-primary transition-colors">
+                            <div className={cn(
+                                "absolute left-3 top-2.5 transition-colors duration-200",
+                                error ? "text-red-500" : "text-muted-foreground group-focus-within:text-primary"
+                            )}>
                                 <Lock className="h-5 w-5" />
                             </div>
+
                             <Input
                                 id="password"
                                 type="password"
@@ -120,15 +141,31 @@ export function LoginForm() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 disabled={isLoading}
-                                className="pl-10 h-11 bg-muted/30 border-muted-foreground/20 focus:border-primary/50 transition-all"
+                                className={cn(
+                                    "pl-10 h-11 transition-all duration-200",
+                                    "bg-muted/30 border-muted-foreground/20",
+                                    error
+                                        ? "border-red-500 focus-visible:ring-red-500/30 bg-red-500/5 placeholder:text-red-300"
+                                        : "focus-visible:border-primary/50"
+                                )}
                             />
                         </div>
                     </div>
                 </div>
 
-                <Button type="submit" className="w-full h-11 text-base font-medium shadow-md hover:shadow-lg transition-all" disabled={isLoading}>
+                <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className={cn(
+                        "w-full h-11 text-base font-medium shadow-md transition-all",
+                        "hover:shadow-lg hover:translate-y-[-1px]", // Micro-interação de subida
+                        isLoading && "opacity-80 cursor-not-allowed hover:translate-y-0"
+                    )}
+                >
                     {isLoading ? (
-                        <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Verificando...</div>
+                        <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" /> Verificando...
+                        </div>
                     ) : "Entrar no Sistema"}
                 </Button>
             </form>
