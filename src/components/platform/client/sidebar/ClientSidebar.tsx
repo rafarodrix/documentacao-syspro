@@ -34,7 +34,7 @@ const mainNav: NavItemType[] = [
     },
     {
         title: "Gestão de Equipe",
-        href: "/client/gestao-equipes",
+        href: "/client/cadastros",
         icon: Users,
     },
     {
