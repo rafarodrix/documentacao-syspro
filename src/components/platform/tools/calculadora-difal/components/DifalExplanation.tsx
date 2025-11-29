@@ -34,8 +34,8 @@ function ExplanationCard({ title, subtitle, icon: Icon, ipiStatus, description }
 
                 {/* Badge do IPI */}
                 <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-1 h-fit ${isIncluded
-                        ? 'bg-orange-500/10 text-orange-600 border-orange-200'
-                        : 'bg-emerald-500/10 text-emerald-600 border-emerald-200'
+                    ? 'bg-orange-500/10 text-orange-600 border-orange-200'
+                    : 'bg-emerald-500/10 text-emerald-600 border-emerald-200'
                     }`}>
                     {isIncluded ? <Check size={10} strokeWidth={4} /> : <XIcon size={10} strokeWidth={4} />}
                     IPI na Base
@@ -94,7 +94,7 @@ export function DifalExplanation() {
                 {/* Explicação Geral */}
                 <div className="mb-6 text-center max-w-3xl mx-auto space-y-2">
                     <p className="text-muted-foreground">
-                        Utilizamos a metodologia do <strong>Cálculo por Dentro</strong> (Gross-up), onde o ICMS de destino integra a sua própria base de cálculo.
+                        Utilizamos a metodologia do <strong>Cálculo por Dentro</strong>, onde o ICMS de destino integra a sua própria base de cálculo.
                     </p>
                     <p className="text-xs bg-muted inline-block px-3 py-1 rounded-full text-foreground/80 font-medium border">
                         A variável <span className="font-mono italic">V_oper</span> muda conforme a regra do IPI abaixo:
