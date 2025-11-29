@@ -7,9 +7,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button" // <--- Import Adicionado
+import { Button } from "@/components/ui/button"
 import {
-    Search, MoreHorizontal, ShieldAlert, Code2, Headset
+    Search, MoreHorizontal, ShieldAlert, Code2, Headset, UserX, UserCheck
 } from "lucide-react"
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator
@@ -32,26 +32,29 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
 
     return (
         <div className="space-y-4">
+
+            {/* --- TOPO --- */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
-                <div className="relative w-full sm:w-72">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <div className="relative w-full sm:w-72 group">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
-                        placeholder="Buscar membro da equipe..."
-                        className="pl-8"
+                        placeholder="Buscar membro..."
+                        className="pl-9 bg-background border-border focus-visible:ring-primary/20"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
-                {/* Modal de Criação com Contexto de SISTEMA */}
+                {/* Modal de Criação (Contexto SYSTEM) */}
                 <CreateUserDialog companies={companies} isAdmin={true} context="SYSTEM" />
             </div>
 
-            <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+            {/* --- TABELA --- */}
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-muted/50">
-                            <TableHead>Membro da Equipe</TableHead>
+                        <TableRow className="bg-muted/40 hover:bg-muted/40">
+                            <TableHead className="w-[350px]">Membro da Equipe</TableHead>
                             <TableHead>Nível de Acesso</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
@@ -59,51 +62,66 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
                     </TableHeader>
                     <TableBody>
                         {filteredData.length === 0 ? (
+                            // EMPTY STATE
                             <TableRow>
-                                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
-                                    Nenhum administrador encontrado.
+                                <TableCell colSpan={4} className="h-64 text-center">
+                                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                        <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-2">
+                                            <ShieldAlert className="h-6 w-6 opacity-50" />
+                                        </div>
+                                        <p className="text-base font-medium text-foreground">Nenhum administrador encontrado</p>
+                                        <p className="text-sm">
+                                            {searchTerm ? "Tente buscar por outro termo." : "Adicione membros à equipe interna do sistema."}
+                                        </p>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ) : (
                             filteredData.map((user) => (
-                                <TableRow key={user.id} className="hover:bg-muted/30">
-                                    <TableCell className="flex items-center gap-3 py-3">
-                                        <Avatar className="h-9 w-9 border border-purple-200">
-                                            <AvatarImage src={user.image} />
-                                            <AvatarFallback className="bg-purple-100 text-purple-700 font-bold text-xs">
-                                                {user.name?.substring(0, 2).toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex flex-col">
-                                            <span className="font-medium text-sm text-foreground">{user.name}</span>
-                                            <span className="text-xs text-muted-foreground">{user.email}</span>
+                                <TableRow key={user.id} className="hover:bg-muted/30 transition-colors cursor-default">
+
+                                    {/* Coluna 1: Identificação */}
+                                    <TableCell className="py-3">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-9 w-9 border border-purple-200/50">
+                                                <AvatarImage src={user.image} />
+                                                <AvatarFallback className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-bold text-xs">
+                                                    {user.name?.substring(0, 2).toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-sm text-foreground">{user.name}</span>
+                                                <span className="text-xs text-muted-foreground">{user.email}</span>
+                                            </div>
                                         </div>
                                     </TableCell>
 
+                                    {/* Coluna 2: Role Badge */}
                                     <TableCell>
                                         <RoleBadge role={user.role} />
                                     </TableCell>
 
+                                    {/* Coluna 3: Status */}
                                     <TableCell>
-                                        <div className={`flex items-center gap-1.5 text-xs font-medium ${user.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                                            <div className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
-                                            {user.isActive ? "Ativo" : "Inativo"}
-                                        </div>
+                                        <StatusBadge isActive={user.isActive} />
                                     </TableCell>
 
+                                    {/* Coluna 4: Ações */}
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted">
+                                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted data-[state=open]:bg-muted">
                                                     <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
+                                            <DropdownMenuContent align="end" className="w-[160px]">
                                                 <DropdownMenuLabel>Gerenciar</DropdownMenuLabel>
                                                 <DropdownMenuItem className="cursor-pointer">Editar Dados</DropdownMenuItem>
                                                 <DropdownMenuItem className="cursor-pointer">Resetar Senha</DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="text-red-600 cursor-pointer">Desativar Acesso</DropdownMenuItem>
+                                                <DropdownMenuItem className={`cursor-pointer ${user.isActive ? "text-red-600 focus:text-red-600 focus:bg-red-50" : "text-green-600 focus:text-green-600 focus:bg-green-50"}`}>
+                                                    {user.isActive ? "Desativar Acesso" : "Reativar Acesso"}
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -117,12 +135,43 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
     )
 }
 
+// Componentes Helper (Estilizados)
+
 function RoleBadge({ role }: { role: string }) {
     if (role === 'DEVELOPER') {
-        return <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50 gap-1"><Code2 className="w-3 h-3" /> Developer</Badge>
+        return (
+            <Badge variant="outline" className="border-blue-500/30 text-blue-600 bg-blue-500/10 gap-1.5 px-2 py-0.5 font-normal">
+                <Code2 className="w-3 h-3" /> Developer
+            </Badge>
+        )
     }
     if (role === 'SUPORTE') {
-        return <Badge variant="outline" className="border-orange-500 text-orange-600 bg-orange-50 gap-1"><Headset className="w-3 h-3" /> Suporte</Badge>
+        return (
+            <Badge variant="outline" className="border-orange-500/30 text-orange-600 bg-orange-500/10 gap-1.5 px-2 py-0.5 font-normal">
+                <Headset className="w-3 h-3" /> Suporte
+            </Badge>
+        )
     }
-    return <Badge variant="default" className="bg-purple-600 gap-1 hover:bg-purple-700"><ShieldAlert className="w-3 h-3" /> Super Admin</Badge>
+    return (
+        <Badge variant="default" className="bg-purple-600/90 hover:bg-purple-700 border-transparent gap-1.5 px-2 py-0.5 shadow-sm shadow-purple-500/20">
+            <ShieldAlert className="w-3 h-3" /> Super Admin
+        </Badge>
+    )
+}
+
+function StatusBadge({ isActive }: { isActive: boolean }) {
+    if (isActive) {
+        return (
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border w-fit bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Ativo
+            </div>
+        )
+    }
+    return (
+        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border w-fit bg-zinc-500/15 text-zinc-700 dark:text-zinc-400 border-zinc-500/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+            Inativo
+        </div>
+    )
 }
