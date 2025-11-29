@@ -4,16 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { settingsSchema, SettingsInput, SETTING_KEYS } from "@/core/application/schema/settings-schema";
-import {
-    DEFAULT_ACCESS_MATRIX,
-    AccessControlMatrix
-} from "@/core/config/permissions"; // Certifique-se de ter criado este arquivo conforme o passo anterior
+import { Role } from "@prisma/client";
 
-const WRITE_ROLES = ["ADMIN", "DEVELOPER"];
-const ACCESS_CONTROL_KEY = "access_control_config";
+// Usamos Role[] para tipagem correta
+const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
 // =========================================================
-// SEÇÃO 1: CONFIGURAÇÕES GERAIS (Salário, Manutenção, etc.)
+// CONFIGURAÇÕES GERAIS (Salário, Manutenção, Suporte)
 // =========================================================
 
 export async function getSettingsAction() {
@@ -47,6 +44,7 @@ export async function getSettingsAction() {
 export async function updateSettingsAction(data: SettingsInput) {
     const session = await getProtectedSession();
 
+    // Verificação de permissão segura com Enum
     if (!session || !WRITE_ROLES.includes(session.role)) {
         return { success: false, error: "Permissão negada." };
     }
@@ -86,65 +84,5 @@ export async function updateSettingsAction(data: SettingsInput) {
     } catch (error) {
         console.error(error);
         return { success: false, error: "Erro interno ao salvar." };
-    }
-}
-
-// =========================================================
-// SEÇÃO 2: CONTROLE DE ACESSO (RBAC)
-// =========================================================
-
-export async function getAccessControlAction() {
-    const session = await getProtectedSession();
-    if (!session) return { success: false, error: "Não autorizado." };
-
-    try {
-        const setting = await prisma.systemSetting.findUnique({
-            where: { key: ACCESS_CONTROL_KEY }
-        });
-
-        let matrix: AccessControlMatrix = DEFAULT_ACCESS_MATRIX;
-
-        if (setting?.value) {
-            try {
-                // Tenta fazer o parse do JSON salvo
-                matrix = JSON.parse(setting.value);
-            } catch (e) {
-                console.error("Erro ao parsear permissões, usando padrão.", e);
-                // Se falhar o parse, retorna o padrão para não quebrar a UI
-            }
-        }
-
-        return { success: true, data: matrix };
-    } catch (error) {
-        console.error("Erro ao buscar matriz de acesso:", error);
-        return { success: false, error: "Erro ao buscar permissões." };
-    }
-}
-
-export async function updateAccessControlAction(matrix: AccessControlMatrix) {
-    const session = await getProtectedSession();
-
-    // Segurança crítica: Apenas ADMIN e DEVELOPER podem alterar permissões
-    // Isso impede que um suporte mal-intencionado se dê acesso de admin, por exemplo.
-    if (!session || !["ADMIN", "DEVELOPER"].includes(session.role)) {
-        return { success: false, error: "Permissão negada. Apenas Administradores." };
-    }
-
-    try {
-        await prisma.systemSetting.upsert({
-            where: { key: ACCESS_CONTROL_KEY },
-            update: { value: JSON.stringify(matrix) },
-            create: {
-                key: ACCESS_CONTROL_KEY,
-                value: JSON.stringify(matrix),
-                description: "Matriz de Controle de Acesso (RBAC)"
-            }
-        });
-
-        revalidatePath("/admin/configuracoes");
-        return { success: true, message: "Permissões de acesso atualizadas com sucesso!" };
-    } catch (error) {
-        console.error("Erro ao salvar permissões:", error);
-        return { success: false, error: "Erro ao salvar permissões." };
     }
 }
