@@ -7,7 +7,6 @@ import { createUserSchema, CreateUserInput } from "@/core/application/schema/use
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";
-import { hash } from "bcryptjs"; // Importando hash (embora estejamos usando Better Auth agora, se usar create manual precisa)
 
 // --- Tipos ---
 interface GetUsersParams {

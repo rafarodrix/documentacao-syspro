@@ -9,24 +9,24 @@ export async function middleware(request: NextRequest) {
 
   const publicRoutes = [
     "/",
-    "/privacidade",
-    "/termos",
     "/login",
     "/register",
-    "/forgot-password", // Permite pedir o reset
-    "/reset-password"  // Permite definir a nova senha (link do email)
+    "/forgot-password",
+    "/reset-password",
+    "/privacidade",
+    "/termos",
   ];
 
-  // Função auxiliar para verificar se é pública
-  const isPublicRoute = publicRoutes.some((route) =>
-    pathname === route || pathname.startsWith("/api/webhooks") // Exceção para Webhooks externos
-  );
+  // Verifica se a rota exata está na lista ou se é uma rota pública de API/Webhook
+  const isPublicRoute =
+    publicRoutes.includes(pathname) ||
+    pathname.startsWith("/api/webhooks") ||
+    pathname.startsWith("/api/auth"); // Garante que o Auth nunca seja bloqueado
 
   // ---------------------------------------------------------
-  // 2. VERIFICAÇÃO DE SESSÃO (Better Auth)
+  // 2. VERIFICAÇÃO DE SESSÃO
   // ---------------------------------------------------------
 
-  // O Better Auth usa esses cookies. Em HTTPS produtivo usa o prefixo __Secure-
   const sessionToken =
     request.cookies.get("better-auth.session_token") ||
     request.cookies.get("__Secure-better-auth.session_token");
@@ -34,37 +34,36 @@ export async function middleware(request: NextRequest) {
   const isAuthenticated = !!sessionToken;
 
   // ---------------------------------------------------------
-  // 3. LÓGICA DE PROTEÇÃO (Fluxo Deslogado)
+  // 3. PROTEÇÃO DE ROTAS (Bloqueia acesso não autorizado)
   // ---------------------------------------------------------
 
-  // Se o usuário tenta acessar uma rota protegida (Admin ou App) SEM estar logado
   if (!isPublicRoute && !isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("callbackUrl", pathname); // Guarda a intenção para redirecionar depois
+    url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
   // ---------------------------------------------------------
-  // 4. LÓGICA DE REDIRECIONAMENTO (Fluxo Logado)
+  // 4. REDIRECIONAMENTO INTELIGENTE (Usuário já logado)
   // ---------------------------------------------------------
 
-  // Se o usuário JÁ LOGADO tenta acessar Login ou Register
-  if ((pathname === "/login" || pathname === "/register") && isAuthenticated) {
+  // Se já está logado e tenta acessar páginas de auth, manda para a raiz.
+  // Lá na raiz (page.tsx), faremos a verificação de Role para mandar 
+  // Admin -> /admin e Cliente -> /app
+  if (isAuthenticated && (pathname === "/login" || pathname === "/register")) {
     const url = request.nextUrl.clone();
-
-    // Redireciona para o Painel do Cliente (/app) por padrão.
-    url.pathname = "/app";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
-  // Se passou por tudo, segue o fluxo normal
   return NextResponse.next();
 }
 
 export const config = {
-  // O matcher ignora arquivos estáticos e rotas internas do Next/Auth
+  // Matcher otimizado:
+  // Ignora arquivos estáticos, imagens e ícones para não gastar processamento
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
