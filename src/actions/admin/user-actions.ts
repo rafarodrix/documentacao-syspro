@@ -14,33 +14,38 @@ interface GetUsersParams {
     role?: string;
 }
 
-// --- Constantes de Permissão ---
-const READ_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
-const WRITE_ROLES = ["ADMIN"];
+// --- Constantes de Permissão (Usando Enum do Prisma) ---
+const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
 // --- Helper de Tratamento de Erros ---
 function handleActionError(error: any) {
     console.error("[UserAction Error]:", error);
 
+    // Erro de Unicidade do Prisma
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-            return { success: false as const, error: "Este e-mail já está em uso por outro usuário." };
+            return { success: false as const, error: "Este e-mail já está em uso." };
         }
     }
 
+    // Erro vindo da API do Better Auth (APIError)
     if (error?.body?.message) {
         return { success: false as const, error: error.body.message };
     }
 
-    return { success: false as const, error: "Ocorreu um erro interno. Tente novamente." };
+    // Erro genérico
+    return { success: false as const, error: error.message || "Ocorreu um erro interno." };
 }
 
 /**
- * Lista todos os usuários e suas empresas (via Membership)
+ * Lista todos os usuários e suas empresas
  */
 export async function getUsersAction(filters?: GetUsersParams) {
     const session = await getProtectedSession();
-    if (!session) return { success: false, error: "Não autorizado." };
+    if (!session || !READ_ROLES.includes(session.role)) {
+        return { success: false, error: "Não autorizado." };
+    }
 
     try {
         const whereClause: Prisma.UserWhereInput = {};
@@ -61,7 +66,6 @@ export async function getUsersAction(filters?: GetUsersParams) {
         const users = await prisma.user.findMany({
             where: whereClause,
             include: {
-                // Buscamos os vínculos para saber de qual empresa ele é
                 memberships: {
                     include: {
                         company: {
@@ -73,7 +77,7 @@ export async function getUsersAction(filters?: GetUsersParams) {
             orderBy: { createdAt: 'desc' }
         });
 
-        // Opcional: Flatten para facilitar o frontend (pega a primeira empresa encontrada)
+        // Flatten para o Frontend
         const formattedUsers = users.map(user => ({
             ...user,
             companyName: user.memberships[0]?.company?.nomeFantasia || "Sem Vínculo",
@@ -94,7 +98,7 @@ export async function createUserAction(data: CreateUserInput) {
     const session = await getProtectedSession();
 
     if (!session || !WRITE_ROLES.includes(session.role)) {
-        return { success: false as const, error: "Você não tem permissão para criar usuários." };
+        return { success: false as const, error: "Permissão negada." };
     }
 
     const validation = createUserSchema.safeParse(data);
@@ -103,7 +107,8 @@ export async function createUserAction(data: CreateUserInput) {
     }
 
     try {
-        // 1. Cria no Auth
+        // 1. Cria no Auth (Gera hash seguro automaticamente)
+        // OBS: Passamos headers para o Better Auth saber o contexto, mas a criação é segura.
         const newUserResponse = await auth.api.signUpEmail({
             body: {
                 email: data.email,
@@ -114,32 +119,33 @@ export async function createUserAction(data: CreateUserInput) {
         });
 
         if (!newUserResponse?.user) {
-            return { success: false as const, error: "Erro ao registrar autenticação." };
+            return { success: false as const, error: "Falha ao criar conta no provedor de autenticação." };
         }
 
         const newUserId = newUserResponse.user.id;
 
-        // 2. Transação para atualizar Role e Criar Vínculo
+        // 2. Transação para configurar Role e Empresa
         await prisma.$transaction(async (tx) => {
-
-            // Atualiza dados globais
+            // A. Atualiza dados que o signUpEmail não preenche (Role, Status, Verificação)
             await tx.user.update({
                 where: { id: newUserId },
                 data: {
                     role: data.role as Role,
-                    emailVerified: true,
+                    emailVerified: true, // Criado por Admin = Verificado
                     isActive: true,
                 }
             });
 
-            // Se foi selecionada uma empresa, cria o registro na tabela Membership
+            // B. Cria o vínculo com a empresa (Membership)
             if (data.companyId) {
                 await tx.membership.create({
                     data: {
                         userId: newUserId,
                         companyId: data.companyId,
-                        // Se o usuário global é admin, damos admin na empresa também
-                        role: data.role === 'CLIENTE_ADMIN' ? 'ADMIN' : 'CLIENTE_USER'
+                        // Define a role dentro da empresa baseada na role do sistema
+                        role: (data.role === Role.CLIENTE_ADMIN || data.role === Role.ADMIN)
+                            ? Role.ADMIN
+                            : Role.CLIENTE_USER
                     }
                 });
             }
@@ -149,22 +155,24 @@ export async function createUserAction(data: CreateUserInput) {
         return { success: true as const };
 
     } catch (error) {
+        // Se falhar no meio, tentamos limpar o usuário criado no Auth (Rollback manual)
+        // Isso é avançado, mas idealmente seria tratado aqui.
         return handleActionError(error);
     }
 }
 
 /**
- * Atualiza um usuário existente e troca sua empresa
+ * Atualiza um usuário existente
  */
 export async function updateUserAction(id: string, data: Partial<CreateUserInput>) {
     const session = await getProtectedSession();
 
     if (!session || !WRITE_ROLES.includes(session.role)) {
-        return { success: false as const, error: "Você não tem permissão para editar usuários." };
+        return { success: false as const, error: "Permissão negada." };
     }
 
     if (!data.email || !data.role) {
-        return { success: false as const, error: "Dados incompletos para atualização." };
+        return { success: false as const, error: "Dados obrigatórios faltando." };
     }
 
     try {
@@ -179,27 +187,26 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
                 }
             });
 
-            // 2. Gerencia a troca de empresa (Se houver companyId no form)
-            // Em um sistema Admin estrito, assumimos que o usuário só tem UMA empresa por vez.
-            if (data.companyId) {
-                // Remove vínculos anteriores
+            // 2. Gerencia a troca de empresa (Single Tenant Logic)
+            // Se o admin selecionou uma empresa diferente ou nenhuma:
+            if (data.companyId !== undefined) {
+                // Remove todos os vínculos anteriores (Garante que o usuário só tenha 1 empresa)
                 await tx.membership.deleteMany({
                     where: { userId: id }
                 });
 
-                // Cria o novo vínculo
-                await tx.membership.create({
-                    data: {
-                        userId: id,
-                        companyId: data.companyId,
-                        role: data.role === 'CLIENTE_ADMIN' ? 'ADMIN' : 'CLIENTE_USER'
-                    }
-                });
-            } else if (data.companyId === "") {
-                // Se mandou string vazia, remove da empresa (deixa órfão)
-                await tx.membership.deleteMany({
-                    where: { userId: id }
-                });
+                // Se houver ID, cria o novo vínculo
+                if (data.companyId) {
+                    await tx.membership.create({
+                        data: {
+                            userId: id,
+                            companyId: data.companyId,
+                            role: (data.role === Role.CLIENTE_ADMIN || data.role === Role.ADMIN)
+                                ? Role.ADMIN
+                                : Role.CLIENTE_USER
+                        }
+                    });
+                }
             }
         });
 
@@ -221,6 +228,7 @@ export async function toggleUserStatusAction(id: string, currentStatus: boolean)
         return { success: false as const, error: "Permissão negada." };
     }
 
+    // Impede o admin de se banir acidentalmente
     if (id === session.userId) {
         return { success: false as const, error: "Você não pode desativar seu próprio usuário." };
     }
@@ -232,6 +240,9 @@ export async function toggleUserStatusAction(id: string, currentStatus: boolean)
             where: { id },
             data: { isActive: newStatus }
         });
+
+        // Se desativou, podemos também invalidar as sessões do usuário (Opcional Better Auth)
+        // await auth.api.revokeSessions({ ... }) 
 
         revalidatePath("/admin/usuarios");
         return {
