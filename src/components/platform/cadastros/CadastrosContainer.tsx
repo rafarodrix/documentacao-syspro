@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Building2, Users, ShieldCheck } from "lucide-react"
 import { CompanyTab } from "./CompanyTab"
 import { UserTab } from "./UserTab"
-import { SystemUserTab } from "./SystemUserTab" // <--- Importe o novo componente
+import { SystemUserTab } from "./SystemUserTab"
 
 interface CadastrosContainerProps {
     companies: any[]
@@ -15,9 +15,13 @@ interface CadastrosContainerProps {
 
 export function CadastrosContainer({ companies, users, isAdmin }: CadastrosContainerProps) {
 
-    // 1. SEPARAR OS USUÁRIOS
+    // 1. FILTRO PARA ABA "EQUIPE INTERNA" (Apenas Admins/Devs/Suporte)
     const systemUsers = users.filter(u => ['ADMIN', 'DEVELOPER', 'SUPORTE'].includes(u.role))
-    const clientUsers = users.filter(u => ['CLIENTE_ADMIN', 'CLIENTE_USER'].includes(u.role))
+
+    // 2. FILTRO PARA ABA "CLIENTES/GERAL"
+    // Se for Admin: Mostra TUDO (incluindo ele mesmo), para ter visão global.
+    // Se for Cliente: A Server Action já filtrou, então mostra tudo que veio.
+    const allUsersList = users;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -37,10 +41,11 @@ export function CadastrosContainer({ companies, users, isAdmin }: CadastrosConta
                     </TabsTrigger>
 
                     <TabsTrigger value="usuarios" className="gap-2">
-                        <Users className="h-4 w-4" /> {isAdmin ? "Clientes" : "Minha Equipe"}
+                        {/* Se for Admin, chama de "Todos Usuários" para indicar que vê tudo */}
+                        <Users className="h-4 w-4" /> {isAdmin ? "Todos Usuários" : "Minha Equipe"}
                     </TabsTrigger>
 
-                    {/* ABA NOVA - SÓ PARA ADMIN */}
+                    {/* ABA EXCLUSIVA DE GESTÃO INTERNA */}
                     {isAdmin && (
                         <TabsTrigger value="sistema" className="gap-2">
                             <ShieldCheck className="h-4 w-4" /> Equipe Interna
@@ -61,31 +66,35 @@ export function CadastrosContainer({ companies, users, isAdmin }: CadastrosConta
                     </Card>
                 </TabsContent>
 
-                {/* ABA USUÁRIOS (CLIENTES) */}
+                {/* ABA USUÁRIOS (GERAL) */}
                 <TabsContent value="usuarios">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Usuários dos Clientes</CardTitle>
-                            <CardDescription>Gestão de acesso das empresas cadastradas.</CardDescription>
+                            <CardTitle>{isAdmin ? "Todos os Usuários" : "Usuários da Empresa"}</CardTitle>
+                            <CardDescription>
+                                {isAdmin
+                                    ? "Visão completa de todos os usuários do sistema."
+                                    : "Gerencie o acesso dos membros da sua equipe."}
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {/* Passamos apenas os clientUsers para não misturar */}
-                            <UserTab data={clientUsers} companies={companies} isAdmin={isAdmin} />
+                            {/* Passamos a lista completa 'allUsersList' */}
+                            <UserTab data={allUsersList} companies={companies} isAdmin={isAdmin} />
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* ABA SISTEMA (INTERNO) */}
+                {/* ABA SISTEMA (FILTRADO) */}
                 {isAdmin && (
                     <TabsContent value="sistema">
                         <Card className="border-purple-200/20 bg-purple-500/5">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <ShieldCheck className="h-5 w-5 text-purple-600" />
-                                    Equipe do Sistema
+                                    Gestão da Equipe Interna
                                 </CardTitle>
                                 <CardDescription>
-                                    Administradores, Desenvolvedores e Suporte Técnico da plataforma.
+                                    Acesso rápido aos administradores e desenvolvedores da plataforma.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
