@@ -2,35 +2,19 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "@/lib/prisma";
 import { sendResetPasswordEmail } from "./email";
+import { nextCookies } from "better-auth/next-js";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
 
-  // --- ADICIONE ESTA OPÇÃO ---
-  advanced: {
-    cookiePrefix: "better-auth", // Garante consistência de cookie
-  },
-  logger: {
-    level: "debug", // Isso vai mostrar o erro real nos logs da Vercel
-    disabled: false
-  },
-  // ---------------------------
-
+  // Configuração do cookie email e senha
+  plugins: [nextCookies()],
   emailAndPassword: {
     enabled: true,
-    disableSignUp: false,
-    requireEmailVerification: false,
     sendResetPassword: async ({ user, url }) => {
-      console.log("🚀 [DEBUG] Tentando enviar email para:", user.email);
-      try {
-        await sendResetPasswordEmail(user.email, url, user.name || "Usuário");
-        console.log("✅ [DEBUG] Email enviado com sucesso!");
-      } catch (error) {
-        console.error("❌ [DEBUG] Erro ao enviar email:", error);
-        throw error; // Lança o erro para o Better Auth pegar
-      }
+      await sendResetPasswordEmail(user.email, url, user.name || "Usuário");
     }
   },
 
