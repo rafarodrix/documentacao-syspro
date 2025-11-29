@@ -102,7 +102,6 @@ model User {
   name          String?
   emailVerified Boolean   @default(false)
   image         String?
-  password      String?   
   
   // Role Global (Sistema)
   role          Role      @default(CLIENTE_USER) 
@@ -179,6 +178,7 @@ model Account {
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
   scope                 String?
+  password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

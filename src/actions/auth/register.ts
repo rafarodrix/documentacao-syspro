@@ -12,29 +12,38 @@ export async function registerUser(formData: FormData) {
     const password = formData.get("password") as string
 
     if (!name || !email || !password) {
-        return { error: "Preencha todos os campos obrigatórios." }
+        return { error: "Preencha todos os campos." }
     }
 
     try {
-        // 1. Cria usuário no Better Auth (Hash seguro)
+        // O Better Auth cria User e Account (com a senha) automaticamente aqui
         const authResponse = await auth.api.signUpEmail({
-            body: { email, password, name },
+            body: {
+                email,
+                password,
+                name,
+            },
             headers: await headers()
         })
 
-        if (!authResponse?.user) throw new Error("Falha na autenticação.")
+        if (!authResponse?.user) {
+            return { error: "Erro ao registrar usuário." }
+        }
 
-        // 2. Define role inicial como CLIENTE_USER (sem poder) no Prisma
+        // Atualizamos apenas campos extras que o Better Auth não conhece (Role)
         await prisma.user.update({
             where: { id: authResponse.user.id },
-            data: { role: Role.CLIENTE_USER, isActive: true }
+            data: {
+                role: Role.CLIENTE_USER,
+                isActive: true
+            }
         })
 
     } catch (error: any) {
+        // Se der erro de APIError, pegamos a mensagem
         if (error?.body?.message) return { error: error.body.message }
-        return { error: "Erro ao criar conta. Tente novamente." }
+        return { error: "Erro ao processar cadastro." }
     }
 
-    // Redireciona para o App (onde cairá na tela de "Aguardando Vínculo")
     redirect("/app")
 }

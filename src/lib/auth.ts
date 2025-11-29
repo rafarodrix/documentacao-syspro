@@ -9,18 +9,21 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
-  baseURL: process.env.BETTER_AUTH_URL,
-
-  // Configuração de Email e Senha
+  // Habilitar Email e Senha (PADRÃO)
   emailAndPassword: {
     enabled: true,
-    // Se você seguiu nossa conversa anterior e criou a página de registro manual,
-    // mantenha disableSignUp: false.
-    disableSignUp: false,
+    disableSignUp: false, // Permite que a função signUpEmail funcione
+    requireEmailVerification: false,
+
+    // NÃO definimos 'password: { hash... }'. 
+    // Assim ele usa o padrão Scrypt automaticamente.
+
     sendResetPassword: async ({ user, url }) => {
       await sendResetPasswordEmail(user.email, url, user.name || "Usuário");
     }
   },
+
+  baseURL: process.env.BETTER_AUTH_URL,
 
   trustedOrigins: [
     "http://localhost:3000",
@@ -28,12 +31,9 @@ export const auth = betterAuth({
   ],
 
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 dias
-    updateAge: 60 * 60 * 24, // 24 horas
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
   },
 
-  // A documentação recomenda que plugins fiquem por último
-  plugins: [
-    nextCookies()
-  ]
+  plugins: [nextCookies()]
 });

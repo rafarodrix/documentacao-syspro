@@ -52,7 +52,7 @@ export function RegisterForm() {
                                 id="name"
                                 name="name"
                                 type="text"
-                                placeholder="Ex: Rafael Rodrigues"
+                                placeholder="Ex: Meu Nome Completo"
                                 required
                                 disabled={loading}
                                 className={cn(
