@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper";
 
-export default function LoginClientPage() {
+export function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -28,30 +28,25 @@ export default function LoginClientPage() {
         setIsLoading(true);
         setError(null);
 
-        try {
-            await authClient.signIn.email({
-                email,
-                password,
-                callbackURL: callbackUrl
-            }, {
-                onSuccess: () => {
-                    toast.success("Login realizado com sucesso!");
-                    router.push(callbackUrl);
-                },
-                onError: (ctx) => {
-                    const msg = ctx.error.message || "";
-                    if (msg.includes("Invalid email or password") || msg.includes("not found")) {
-                        setError("Credenciais inválidas. Verifique seu e-mail e senha.");
-                    } else {
-                        setError("Ocorreu um erro ao tentar entrar. Tente novamente.");
-                    }
-                    setIsLoading(false);
+        await authClient.signIn.email({
+            email,
+            password,
+            callbackURL: callbackUrl
+        }, {
+            onSuccess: () => {
+                toast.success("Login realizado com sucesso!");
+                router.push(callbackUrl);
+            },
+            onError: (ctx) => {
+                const msg = ctx.error.message || "";
+                if (msg.includes("Invalid email or password") || msg.includes("not found")) {
+                    setError("Credenciais inválidas. Verifique seu e-mail e senha.");
+                } else {
+                    setError("Ocorreu um erro ao tentar entrar. Tente novamente.");
                 }
-            });
-        } catch (err) {
-            setError("Erro de conexão com o servidor.");
-            setIsLoading(false);
-        }
+                setIsLoading(false);
+            }
+        });
     };
 
     return (
@@ -59,7 +54,7 @@ export default function LoginClientPage() {
             title="Acesso ao Portal"
             description="Entre com suas credenciais para acessar o portal."
         >
-            {/* 1. Botão Voltar */}
+            {/* Botão Voltar */}
             <div className="absolute top-8 left-8">
                 <Link
                     href="/"
@@ -72,7 +67,7 @@ export default function LoginClientPage() {
                 </Link>
             </div>
 
-            {/* 2. Alerta de Erro */}
+            {/* Alerta de Erro */}
             {error && (
                 <Alert variant="destructive" className="animate-in fade-in zoom-in-95 duration-300 border-red-500/50 bg-red-500/10 text-red-600">
                     <AlertCircle className="h-4 w-4" />
@@ -81,7 +76,7 @@ export default function LoginClientPage() {
                 </Alert>
             )}
 
-            {/* 3. Formulário */}
+            {/* Formulário */}
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-4">
                     <div className="space-y-2">
@@ -138,7 +133,7 @@ export default function LoginClientPage() {
                 </Button>
             </form>
 
-            {/* 4. Rodapé do Formulário */}
+            {/* Rodapé */}
             <div className="space-y-4">
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -151,7 +146,7 @@ export default function LoginClientPage() {
 
                 <div className="text-center">
                     <Link
-                        href="https://wa.me/5534997713731?text=Olá,%20gostaria%20de%20solicitar%20acesso%20ao%20Trilink"
+                        href="https://wa.me/5534997713731?text=Olá"
                         target="_blank"
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group"
                     >
