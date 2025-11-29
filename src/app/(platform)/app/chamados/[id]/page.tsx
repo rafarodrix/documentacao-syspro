@@ -1,4 +1,4 @@
-import { getTicketDetailsAction } from "../../_actions/ticket-actions";
+import { getTicketDetailsAction } from "../../../../../actions/app/ticket-actions";
 import { TicketChat } from "@/components/platform/client/TicketChat";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

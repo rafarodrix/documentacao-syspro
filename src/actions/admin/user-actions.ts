@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { createUserSchema, CreateUserInput } from "@/core/application/schema/user-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
@@ -15,20 +16,18 @@ interface GetUsersParams {
 
 // --- Constantes de Permissão ---
 const READ_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
-const WRITE_ROLES = ["ADMIN", "DEVELOPER"];
+const WRITE_ROLES = ["ADMIN"];
 
 // --- Helper de Tratamento de Erros ---
 function handleActionError(error: any) {
     console.error("[UserAction Error]:", error);
 
-    // Erro do Prisma (ex: Email já existe - Código P2002)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
             return { success: false as const, error: "Este e-mail já está em uso por outro usuário." };
         }
     }
 
-    // Erro da API do Better Auth
     if (error?.body?.message) {
         return { success: false as const, error: error.body.message };
     }
@@ -37,17 +36,16 @@ function handleActionError(error: any) {
 }
 
 /**
- * Lista todos os usuários com suas empresas
+ * Lista todos os usuários e suas empresas (via Membership)
  */
 export async function getUsersAction(filters?: GetUsersParams) {
     const session = await getProtectedSession();
     if (!session) return { success: false, error: "Não autorizado." };
 
     try {
-        // Construção dinâmica do WHERE
-        const whereClause: any = {};
+        const whereClause: Prisma.UserWhereInput = {};
 
-        // 1. Busca por Texto (Nome ou Email)
+        // 1. Busca por Texto
         if (filters?.search) {
             whereClause.OR = [
                 { name: { contains: filters.search, mode: "insensitive" } },
@@ -56,22 +54,33 @@ export async function getUsersAction(filters?: GetUsersParams) {
         }
 
         // 2. Filtro por Role
-        if (filters?.role) {
-            // Faz um cast seguro se estiver usando TypeScript estrito com Enums
+        if (filters?.role && filters.role !== "ALL") {
             whereClause.role = filters.role as Role;
         }
 
         const users = await prisma.user.findMany({
             where: whereClause,
             include: {
-                companies: {
-                    select: { id: true, razaoSocial: true }
+                // Buscamos os vínculos para saber de qual empresa ele é
+                memberships: {
+                    include: {
+                        company: {
+                            select: { id: true, nomeFantasia: true, razaoSocial: true }
+                        }
+                    }
                 }
             },
             orderBy: { createdAt: 'desc' }
         });
 
-        return { success: true, data: users };
+        // Opcional: Flatten para facilitar o frontend (pega a primeira empresa encontrada)
+        const formattedUsers = users.map(user => ({
+            ...user,
+            companyName: user.memberships[0]?.company?.nomeFantasia || "Sem Vínculo",
+            companyId: user.memberships[0]?.companyId || null
+        }));
+
+        return { success: true, data: formattedUsers };
     } catch (error) {
         console.error("Erro ao buscar usuários:", error);
         return { success: false, error: "Erro ao carregar usuários." };
@@ -79,7 +88,7 @@ export async function getUsersAction(filters?: GetUsersParams) {
 }
 
 /**
- * Cria um novo usuário (Auth + Banco)
+ * Cria um novo usuário (Auth + Banco + Membership)
  */
 export async function createUserAction(data: CreateUserInput) {
     const session = await getProtectedSession();
@@ -94,30 +103,45 @@ export async function createUserAction(data: CreateUserInput) {
     }
 
     try {
-        // 1. Cria no Auth (Garante hash de senha seguro e validações de email)
-        const newUser = await auth.api.signUpEmail({
+        // 1. Cria no Auth
+        const newUserResponse = await auth.api.signUpEmail({
             body: {
                 email: data.email,
                 password: data.password,
                 name: data.name,
-            }
+            },
+            headers: await headers()
         });
 
-        if (!newUser) {
+        if (!newUserResponse?.user) {
             return { success: false as const, error: "Erro ao registrar autenticação." };
         }
 
-        // 2. Atualiza dados complementares no Banco (Role e Empresa) via Prisma
-        // O Better Auth já criou o registro básico, agora fazemos o "enrichment"
-        await prisma.user.update({
-            where: { email: data.email },
-            data: {
-                role: data.role as any,
-                emailVerified: true, // Opcional: Auto-verificar se criado por admin
-                isActive: true,      // Garante que nasce ativo
-                companies: data.companyId ? {
-                    connect: { id: data.companyId }
-                } : undefined
+        const newUserId = newUserResponse.user.id;
+
+        // 2. Transação para atualizar Role e Criar Vínculo
+        await prisma.$transaction(async (tx) => {
+
+            // Atualiza dados globais
+            await tx.user.update({
+                where: { id: newUserId },
+                data: {
+                    role: data.role as Role,
+                    emailVerified: true,
+                    isActive: true,
+                }
+            });
+
+            // Se foi selecionada uma empresa, cria o registro na tabela Membership
+            if (data.companyId) {
+                await tx.membership.create({
+                    data: {
+                        userId: newUserId,
+                        companyId: data.companyId,
+                        // Se o usuário global é admin, damos admin na empresa também
+                        role: data.role === 'CLIENTE_ADMIN' ? 'ADMIN' : 'CLIENTE_USER'
+                    }
+                });
             }
         });
 
@@ -130,7 +154,7 @@ export async function createUserAction(data: CreateUserInput) {
 }
 
 /**
- * Atualiza um usuário existente
+ * Atualiza um usuário existente e troca sua empresa
  */
 export async function updateUserAction(id: string, data: Partial<CreateUserInput>) {
     const session = await getProtectedSession();
@@ -144,17 +168,38 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
     }
 
     try {
-        await prisma.user.update({
-            where: { id },
-            data: {
-                name: data.name,
-                email: data.email,
-                role: data.role as any,
-                // Atualização da Empresa: Substitui vínculos anteriores pelo novo
-                companies: {
-                    set: [], // Limpa vínculos existentes
-                    connect: data.companyId ? { id: data.companyId } : undefined
+        await prisma.$transaction(async (tx) => {
+            // 1. Atualiza dados básicos
+            await tx.user.update({
+                where: { id },
+                data: {
+                    name: data.name,
+                    email: data.email,
+                    role: data.role as Role,
                 }
+            });
+
+            // 2. Gerencia a troca de empresa (Se houver companyId no form)
+            // Em um sistema Admin estrito, assumimos que o usuário só tem UMA empresa por vez.
+            if (data.companyId) {
+                // Remove vínculos anteriores
+                await tx.membership.deleteMany({
+                    where: { userId: id }
+                });
+
+                // Cria o novo vínculo
+                await tx.membership.create({
+                    data: {
+                        userId: id,
+                        companyId: data.companyId,
+                        role: data.role === 'CLIENTE_ADMIN' ? 'ADMIN' : 'CLIENTE_USER'
+                    }
+                });
+            } else if (data.companyId === "") {
+                // Se mandou string vazia, remove da empresa (deixa órfão)
+                await tx.membership.deleteMany({
+                    where: { userId: id }
+                });
             }
         });
 
@@ -167,7 +212,7 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
 }
 
 /**
- * [NOVO] Alterna o status do usuário (Ativar/Desativar)
+ * Alterna o status do usuário (Ativar/Desativar)
  */
 export async function toggleUserStatusAction(id: string, currentStatus: boolean) {
     const session = await getProtectedSession();
@@ -176,7 +221,6 @@ export async function toggleUserStatusAction(id: string, currentStatus: boolean)
         return { success: false as const, error: "Permissão negada." };
     }
 
-    // Segurança: Admin não pode se auto-desativar
     if (id === session.userId) {
         return { success: false as const, error: "Você não pode desativar seu próprio usuário." };
     }

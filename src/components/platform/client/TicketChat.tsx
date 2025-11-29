@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Loader2, User, Headset, Bot } from "lucide-react";
-import { replyTicketAction } from "@/app/(platform)/client/_actions/ticket-actions";
+import { replyTicketAction } from "@/actions/app/ticket-actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

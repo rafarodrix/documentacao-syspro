@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getMyTicketsAction } from "../_actions/ticket-actions";
+import { getMyTicketsAction } from "../../../../actions/app/ticket-actions";
 import { TicketSheet } from "@/components/platform/client/TicketSheet";
 import {
     Card,

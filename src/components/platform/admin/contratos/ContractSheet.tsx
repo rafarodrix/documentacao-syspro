@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createContractSchema, CreateContractInput } from "@/core/application/schema/contract-schema";
-import { createContractAction, getSystemParamsAction } from "@/app/(platform)/admin/_actions/contract-actions";
+import { createContractAction, getSystemParamsAction } from "@/actions/admin/contract-actions";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

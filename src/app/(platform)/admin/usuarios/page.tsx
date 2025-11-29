@@ -1,5 +1,5 @@
-import { getUsersAction } from "../_actions/user-actions";
-import { getCompaniesAction } from "../_actions/company-actions";
+import { getUsersAction } from "../../../../actions/admin/user-actions";
+import { getCompaniesAction } from "../../../../actions/admin/company-actions";
 
 // Componentes
 import { UsersPageHeader } from "@/components/platform/admin/usuarios/UsersPageHeader";

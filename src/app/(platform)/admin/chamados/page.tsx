@@ -1,4 +1,4 @@
-import { getAdminTicketsAction } from "../_actions/ticket-actions";
+import { getAdminTicketsAction } from "../../../../actions/admin/ticket-actions";
 import { AdminTicketsClient } from "@/components/platform/admin/AdminTicketsClient";
 import { AlertTriangle } from "lucide-react";
 

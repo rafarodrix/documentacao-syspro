@@ -8,7 +8,7 @@ import {
     createUserAction,
     updateUserAction,
     toggleUserStatusAction
-} from "@/app/(platform)/admin/_actions/user-actions";
+} from "@/actions/admin/user-actions";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

@@ -4,24 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { createCompanySchema, CreateCompanyInput } from "@/core/application/schema/company-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { Prisma, CompanyStatus } from "@prisma/client"; // Importe o Enum do Prisma
 
-// --- Tipagem para os parâmetros de URL que o Next.js injeta automaticamente ---
+// --- Tipagem para os parâmetros de URL ---
 interface GetCompaniesParams {
   search?: string;
-  status?: string; // Usaremos string para facilitar, mas pode ser CompanyStatus
+  status?: string;
 }
 
 // --- Constantes de Permissão ---
 const READ_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
-const WRITE_ROLES = ["ADMIN", "DEVELOPER"]; // Suporte apenas visualiza
+const WRITE_ROLES = ["ADMIN", "DEVELOPER"];
 
 // --- Helper de Tratamento de Erros ---
 function handleActionError(error: any) {
-  console.error("[CompanyAction Error]:", error); // Log para o desenvolvedor ver no terminal
+  console.error("[CompanyAction Error]:", error);
 
-  // Erro de Unicidade do Prisma (ex: CNPJ duplicado)
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    // P2002: Unique constraint failed
     if (error.code === 'P2002') {
       return { success: false as const, error: "Este CNPJ já está cadastrado no sistema." };
     }
@@ -38,34 +38,47 @@ export async function getCompaniesAction(filters?: GetCompaniesParams) {
   if (!session) return { success: false, error: "Não autorizado." };
 
   try {
-    // Construção da query dinâmica (Cláusula WHERE)
-    const whereClause: any = {};
+    const whereClause: Prisma.CompanyWhereInput = {};
 
-    // 1. Filtro de Busca (Nome OU CNPJ)
+    // 1. Filtro de Busca
     if (filters?.search) {
       whereClause.OR = [
-        { razaoSocial: { contains: filters.search, mode: "insensitive" } }, // Case insensitive
+        { razaoSocial: { contains: filters.search, mode: "insensitive" } },
         { nomeFantasia: { contains: filters.search, mode: "insensitive" } },
-        { cnpj: { contains: filters.search } }, // CNPJ exato ou parcial
+        { cnpj: { contains: filters.search } },
       ];
     }
 
     // 2. Filtro de Status
-    if (filters?.status) {
-      whereClause.status = filters.status; // Ex: "ACTIVE"
+    if (filters?.status && filters.status !== "ALL") {
+      // Convertendo string para o Enum, se necessário
+      whereClause.status = filters.status as CompanyStatus;
     }
 
     const companies = await prisma.company.findMany({
-      where: whereClause, // Aplica o filtro aqui
+      where: whereClause,
       include: {
         _count: {
-          select: { users: true },
+          // --- MUDANÇA IMPORTANTE AQUI ---
+          // Antes era 'users', agora contamos 'memberships'
+          // pois a relação é através da tabela pivô.
+          select: { memberships: true },
         },
+        // Opcional: Se quiser mostrar o nome da contabilidade na lista
+        accountingFirm: {
+          select: { nomeFantasia: true }
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return { success: true, data: companies };
+    // Mapeamos para facilitar o uso no frontend (para chamar .usersCount ao invés de ._count.memberships)
+    const formattedCompanies = companies.map(c => ({
+      ...c,
+      usersCount: c._count.memberships
+    }));
+
+    return { success: true, data: formattedCompanies };
   } catch (error) {
     console.error("Erro ao buscar empresas:", error);
     return { success: false, error: "Erro ao carregar empresas." };
@@ -82,7 +95,6 @@ export async function createCompanyAction(data: CreateCompanyInput) {
     return { success: false as const, error: "Você não tem permissão para criar empresas." };
   }
 
-  // Validação Zod
   const validation = createCompanySchema.safeParse(data);
   if (!validation.success) {
     return { success: false as const, error: validation.error.flatten().fieldErrors };
@@ -98,7 +110,7 @@ export async function createCompanyAction(data: CreateCompanyInput) {
         emailContato: data.emailContato,
         telefone: data.telefone,
         website: data.website || null,
-        status: 'ACTIVE',
+        status: CompanyStatus.ACTIVE, // Usando Enum
 
         // Fiscal
         inscricaoEstadual: data.inscricaoEstadual,
@@ -117,7 +129,7 @@ export async function createCompanyAction(data: CreateCompanyInput) {
         // Extras
         observacoes: data.observacoes,
 
-        // Relação com Contabilidade (Só conecta se tiver ID válido e não vazio)
+        // Relação com Contabilidade
         accountingFirm: data.accountingFirmId
           ? { connect: { id: data.accountingFirmId } }
           : undefined,
@@ -171,10 +183,9 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput) 
 
         observacoes: data.observacoes,
 
-        // Lógica para atualizar a contabilidade
         accountingFirm: data.accountingFirmId
           ? { connect: { id: data.accountingFirmId } }
-          : { disconnect: true }, // Se o campo vier vazio, desconecta a contabilidade antiga
+          : { disconnect: true },
       },
     });
 
@@ -186,8 +197,7 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput) 
 }
 
 /**
- * [NOVO] Alterna o status da empresa (Ativar/Desativar)
- * Soft Delete: Não remove do banco, apenas muda o status.
+ * Alterna o status da empresa (Ativar/Desativar)
  */
 export async function toggleCompanyStatusAction(id: string, currentStatus: string) {
   const session = await getProtectedSession();
@@ -197,7 +207,10 @@ export async function toggleCompanyStatusAction(id: string, currentStatus: strin
   }
 
   try {
-    const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    // Lógica com Enum para garantir segurança
+    const newStatus = currentStatus === CompanyStatus.ACTIVE
+      ? CompanyStatus.INACTIVE
+      : CompanyStatus.ACTIVE;
 
     await prisma.company.update({
       where: { id },
@@ -205,7 +218,7 @@ export async function toggleCompanyStatusAction(id: string, currentStatus: strin
     });
 
     revalidatePath("/admin/empresas");
-    return { success: true as const, message: `Empresa ${newStatus === 'ACTIVE' ? 'ativada' : 'desativada'} com sucesso.` };
+    return { success: true as const, message: `Empresa alterada para ${newStatus}.` };
   } catch (error) {
     return handleActionError(error);
   }

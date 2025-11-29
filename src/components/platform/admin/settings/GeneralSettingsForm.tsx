@@ -5,7 +5,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { settingsSchema, type SettingsInput } from "@/core/application/schema/settings-schema";
-import { getSettingsAction, updateSettingsAction } from "@/app/(platform)/admin/_actions/settings-actions";
+import { getSettingsAction, updateSettingsAction } from "@/actions/admin/settings-actions";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

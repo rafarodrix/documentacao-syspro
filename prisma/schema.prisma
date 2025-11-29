@@ -27,7 +27,6 @@ enum CompanyStatus {
   PENDING_DOCS
 }
 
-// NOVO ENUM: Garante que o contrato só tenha esses estados
 enum ContractStatus {
   ACTIVE
   CANCELLED
@@ -43,7 +42,7 @@ enum TaxRegime {
 }
 
 // ---------------------------------------------------------
-// MODELOS
+// MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
 
 model Company {
@@ -89,8 +88,8 @@ model Company {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  // RELAÇÃO N:N COM USUÁRIOS
-  users         User[]        @relation("CompanyUsers")
+  // RELAÇÃO MULTI-TENANT
+  memberships   Membership[]
 
   @@map("company")
 }
@@ -103,22 +102,56 @@ model User {
   name          String?
   emailVerified Boolean   @default(false)
   image         String?
-  password      String?    
+  password      String?   
   
-  // Role & Status
-  role          Role      @default(CLIENTE_USER)
+  // Role Global (Sistema)
+  role          Role      @default(CLIENTE_USER) 
   isActive      Boolean   @default(true)
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  companies     Company[] @relation("CompanyUsers")
+  // RELAÇÃO MULTI-TENANT
+  memberships   Membership[]
 
   sessions      Session[]
   accounts      Account[]
 
   @@map("user")
 }
+
+// Relação entre Usuário e Empresa (Tabela Pivô)
+model Membership {
+  id        String   @id @default(cuid())
+
+  // O Cargo ESPECÍFICO nesta empresa
+  role      Role     @default(CLIENTE_USER)
+
+  // Chaves Estrangeiras
+  userId    String
+  companyId String
+
+  // Relacionamentos
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Metadados
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Regra: Um usuário não pode ter 2 cargos na MESMA empresa
+  @@unique([userId, companyId])
+  
+  // Índices para performance
+  @@index([userId])
+  @@index([companyId])
+
+  @@map("membership")
+}
+
+// ---------------------------------------------------------
+// MODELOS DE AUTENTICAÇÃO E OUTROS
+// ---------------------------------------------------------
 
 model Session {
   id           String   @id @default(cuid())
@@ -164,34 +197,28 @@ model Verification {
   @@map("verification")
 }
 
-// Tabela Contrato
-
 model Contract {
-  id             String    @id @default(cuid())
+  id             String         @id @default(cuid())
   
   percentage     Float     
   minimumWage    Float     
-  taxRate        Float     @default(0)
-  programmerRate Float     @default(0)
+  taxRate        Float          @default(0)
+  programmerRate Float          @default(0)
   
-  startDate      DateTime  @default(now())
+  startDate      DateTime       @default(now())
   
-  // Alterado de String para Enum para maior segurança
   status         ContractStatus @default(ACTIVE) 
   
-  // Relacionamentos
   companyId      String
-  company        Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
-
-// Tabela Configuração do Sistema
 
 model SystemSetting {
   id          String   @id @default(cuid())
-  key         String   @unique // Sua correção aqui ?
+  key         String   @unique 
   value       String
   description String?
   updatedAt   DateTime @updatedAt

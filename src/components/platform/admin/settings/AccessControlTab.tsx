@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import {
     getAccessControlAction,
     updateAccessControlAction
-} from "@/app/(platform)/admin/_actions/settings-actions";
+} from "@/actions/admin/settings-actions";
 import {
     SYSTEM_PERMISSIONS,
     ROLE_LABELS,

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { batchReadjustContractsAction } from "@/app/(platform)/admin/_actions/contract-actions";
+import { batchReadjustContractsAction } from "@/actions/admin/contract-actions";
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";

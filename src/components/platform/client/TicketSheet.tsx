@@ -45,7 +45,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { createTicketAction } from '@/app/(platform)/client/_actions/ticket-actions';
+import { createTicketAction } from '@/actions/app/ticket-actions';
 import { Label } from '@radix-ui/react-dropdown-menu';
 
 // Schema aprimorado

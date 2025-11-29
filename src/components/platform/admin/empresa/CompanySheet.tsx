@@ -8,7 +8,7 @@ import {
     createCompanyAction,
     updateCompanyAction,
     toggleCompanyStatusAction
-} from "@/app/(platform)/admin/_actions/company-actions";
+} from "@/actions/admin/company-actions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

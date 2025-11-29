@@ -1,4 +1,4 @@
-import { getCompaniesAction } from "../_actions/company-actions";
+import { getCompaniesAction } from "../../../../actions/admin/company-actions";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 

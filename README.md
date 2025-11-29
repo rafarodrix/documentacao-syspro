@@ -1,39 +1,173 @@
-# Documentação do Syspro ERP - Trilink Software
+# Syspro ERP - Plataforma SaaS Multi-tenant
 
-Este guia abrange a integração, customização e uso do Syspro ERP, um sistema de planejamento de recursos empresariais (ERP) voltado para manufatura, distribuição e gestão financeira. Nosso objetivo é ajudar você a implementar e gerenciar o Syspro ERP de forma eficiente.
+**Desenvolvido por Trilink Software**
 
-# Contato e Suporte
-Suporte Técnico: rafael@trilink.com.br
+O **Syspro ERP** é uma plataforma de gestão empresarial (SaaS) focada em manufatura, distribuição e gestão financeira. Este projeto utiliza uma arquitetura moderna baseada em **Next.js App Router**, **Clean Architecture** para regras de negócio complexas e **Multi-tenancy** via vínculo de membros.
 
-Telefone: +55 (34) 99771-3731
+-----
 
-Site: www.trilink.com.br
+## Stack
 
-Horário de Atendimento: Segunda a Sexta, das 8h às 18h (horário de Brasília).
+  * **Framework:** [Next.js 14+](https://nextjs.org/) (App Router & Server Actions)
+  * **Linguagem:** TypeScript
+  * **Banco de Dados:** PostgreSQL (via [Supabase](https://supabase.com/))
+  * **ORM:** [Prisma](https://www.prisma.io/)
+  * **Autenticação:** Better Auth
+  * **Estilização:** Tailwind CSS + ShadcnUI
+  * **Arquitetura:** Clean Architecture & DDD (Domain-Driven Design)
+  * **Integrações:** Zammad (Helpdesk)
 
-# Inicie o servidor de desenvolvimento
+-----
+
+## Estrutura do Projeto
+
+O projeto segue uma estrutura híbrida que separa a camada de apresentação (Next.js) do núcleo da aplicação (Core/Domain).
+
+```text
+src/
+├── actions/                  # Server Actions (Controllers) - Ponto de entrada do Backend
+│   ├── auth/                 # Login, Registro, Logout
+│   ├── admin/                # Ações do Super Admin (Global)
+│   ├── app/                  # Ações dos Usuários/Clientes (Tenants)
+│   └── tickets/              # Ações compartilhadas (ex: Zammad)
+│
+├── app/                      # Roteamento e UI (Next.js App Router)
+│   ├── (auth)/               # Rotas públicas (Login, Register) - Sem Sidebar
+│   ├── (platform)/           # Rotas protegidas
+│   │   ├── admin/            # Painel do Super Admin (Gestão de Saas)
+│   │   └── app/              # Painel do Cliente (Dashboard, Equipe, Configs)
+│   └── api/                  # Webhooks e rotas REST externas
+│
+├── components/               # Componentes UI Reutilizáveis
+│   ├── ui/                   # ShadcnUI (Botões, Inputs)
+│   └── ...                   # Componentes específicos
+│
+├── core/                     # Clean Architecture (Regras de Negócio Puras)
+│   ├── application/          # Use Cases e Schemas (Zod)
+│   ├── domain/               # Entidades e Interfaces do Domínio
+│   ├── infrastructure/       # Implementações (Gateways, Mappers, Services Externos)
+│   └── config/               # Permissões e Configurações estáticas
+│
+├── lib/                      # Configurações de bibliotecas (Prisma Client, Utils)
+└── prisma/                   # Schema do Banco de Dados e Migrations
+```
+
+-----
+
+## Como Rodar o Projeto
+
+### Pré-requisitos
+
+Certifique-se de ter o Node.js instalado (v18 ou superior).
+
+### Instalação
+
+```bash
+# Clone o repositório
+git clone https://github.com/seu-repo/syspro.git
+
+# Instale as dependências
+npm install
+```
+
+### 3\. Configuração de Ambiente (.env)
+
+Crie um arquivo `.env` na raiz baseado no `.env.example`:
+
+```env
+DATABASE_URL="postgresql://user:pass@host:5432/db?pgbouncer=true"
+DIRECT_URL="postgresql://user:pass@host:5432/db"
+BETTER_AUTH_SECRET="sua-chave-secreta"
+# Outras chaves (Zammad, AWS, etc.)
+```
+
+### 4\. Iniciar o Servidor
 
 ```bash
 npm run dev
-
 ```
 
-# ALterações no Prisma
-## 1. Atualiza o banco de dados com a nova tabela Contract
-npx prisma db push
+O sistema estará rodando em `http://localhost:3000`.
 
-## 2. (Opcional) Se o autocomplete não funcionar, force a geração dos tipos
+-----
+
+## Gerenciamento do Banco de Dados (Prisma)
+
+Como utilizamos PostgreSQL com Prisma, siga os comandos abaixo dependendo do cenário:
+
+### Em Desenvolvimento (Local)
+
+**1. Aplicar mudanças no Schema (Criar tabelas/colunas):**
+Use este comando sempre que alterar o `schema.prisma`. Ele cria o arquivo de migração e aplica no banco.
+
+```bash
+npx prisma migrate dev
+```
+
+**2. Apenas gerar a tipagem (Se o VS Code reclamar de erro):**
+Se você fez um `pull` do git e o código está vermelho, rode isso:
+
+```bash
 npx prisma generate
+```
 
-## 3. Inicie o projeto novamente
-npm run dev
+**3. Popular o banco (Seed):**
+Para criar a empresa padrão e o usuário Admin inicial (conforme configurado em `prisma/seed.ts`):
 
-Abra http://localhost:3000 no seu navegador para ver o resultado.
+```bash
+npx prisma db seed
+```
 
-# Saiba Mais
+**4. Visualizar o banco (Admin Visual):**
 
-Para aprender mais sobre Next.js e Fumadocs, confira os seguintes recursos:
+```bash
+npx prisma studio
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) -  Documentação sobre as funcionalidades e a API do Next.js.
-- [Learn Next.js](https://nextjs.org/learn) - Tutorial interativo sobre Next.js.
-- [Fumadocs](https://fumadocs.vercel.app) -  Documentação sobre o Fumadocs.
+### Em Produção
+
+**1. Aplicar migrações:**
+
+```bash
+npx prisma migrate deploy
+```
+
+**2. Gerar cliente:**
+Geralmente feito automaticamente no `build`, mas se necessário:
+
+```bash
+npx prisma generate
+```
+
+-----
+
+## 🔐 Fluxos de Acesso e Permissões
+
+O sistema possui uma divisão lógica de acessos baseada em **Roles** e **Tenancy**:
+
+1.  **Rota `/register` (Público):**
+      * Cria uma nova `Company` e um novo `User`.
+      * Gera automaticamente um vínculo `Membership` com role `ADMIN`.
+2.  **Rota `/admin` (Super Admin):**
+      * Exclusivo para gestão da plataforma (Criar planos, banir empresas).
+      * Requer permissão global.
+3.  **Rota `/app` (Cliente):**
+      * Área de trabalho da empresa.
+      * Usuários `ADMIN` podem convidar novos membros em `/app/settings/team`.
+      * Usuários `USER` acessam apenas suas funções permitidas.
+
+-----
+
+## Contato e Suporte
+
+**Trilink Software**
+
+  * **Suporte Técnico:** [rafael@trilinksoftware.com.br](mailto:rafael@trilinksoftware.com.br)
+  * **Telefone/WhatsApp:** +55 (34) 99771-3731
+  * **Site:** [www.trilinksoftware.com.br](https://www.google.com/search?q=http://www.trilinksoftware.com.br)
+  * **Horário:** Segunda a Sexta, das 8h às 18h (Horário de Brasília).
+
+-----
+
+> **Nota:**
+> Ao criar novas funcionalidades que envolvam lógica de negócio complexa (ex: Integração Zammad), utilize a pasta `src/core`. Evite colocar regras de negócio pesadas dentro dos componentes React ou Server Actions. As Actions devem apenas orquestrar a chamada para os Use Cases.
