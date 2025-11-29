@@ -8,16 +8,29 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
-  // Configuração do envio de e-mail
-  emailAndPassword: {
-    enabled: true, // <--- Tem que ser true
-    disableSignUp: false, // Permite cadastros
-    requireEmailVerification: false, // Ajuste conforme necessidade
+  // --- ADICIONE ESTA OPÇÃO ---
+  advanced: {
+    cookiePrefix: "better-auth", // Garante consistência de cookie
+  },
+  logger: {
+    level: "debug", // Isso vai mostrar o erro real nos logs da Vercel
+    disabled: false
+  },
+  // ---------------------------
 
-    // Função de envio de e-mail (que configuramos antes)
-    sendResetPassword: async ({ user, url, token }) => {
-      console.log("Enviando email para:", user.email);
-      await sendResetPasswordEmail(user.email, url, user.name || "Usuário");
+  emailAndPassword: {
+    enabled: true,
+    disableSignUp: false,
+    requireEmailVerification: false,
+    sendResetPassword: async ({ user, url }) => {
+      console.log("🚀 [DEBUG] Tentando enviar email para:", user.email);
+      try {
+        await sendResetPasswordEmail(user.email, url, user.name || "Usuário");
+        console.log("✅ [DEBUG] Email enviado com sucesso!");
+      } catch (error) {
+        console.error("❌ [DEBUG] Erro ao enviar email:", error);
+        throw error; // Lança o erro para o Better Auth pegar
+      }
     }
   },
 
