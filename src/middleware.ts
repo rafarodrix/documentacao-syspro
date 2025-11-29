@@ -13,8 +13,8 @@ export async function middleware(request: NextRequest) {
     "/termos",
     "/login",
     "/register",
-    "/resetar-senha", // Permite pedir o reset
-    "/recuperar-senha"  // Permite definir a nova senha (link do email)
+    "/forgot-password", // Permite pedir o reset
+    "/reset-password"  // Permite definir a nova senha (link do email)
   ];
 
   // Função auxiliar para verificar se é pública
