@@ -7,6 +7,7 @@ import { createUserSchema, CreateUserInput } from "@/core/application/schema/use
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";
+import { z } from "zod"; // Import necessário para o schema local
 
 // --- Tipos ---
 interface GetUsersParams {
@@ -14,11 +15,21 @@ interface GetUsersParams {
     role?: string;
 }
 
-// --- Constantes de Permissão (Tipagem Explícita) ---
+// Schema para validar o vínculo de usuário existente
+const linkUserSchema = z.object({
+    email: z.string().email("E-mail inválido"),
+    role: z.nativeEnum(Role),
+    companyId: z.string().min(1, "Selecione uma empresa"),
+});
+
+// Exportamos o tipo para usar no frontend se precisar
+export type LinkUserInput = z.infer<typeof linkUserSchema>;
+
+// --- Constantes de Permissão ---
 const READ_ROLES = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE] as const;
 const WRITE_ROLES = [Role.ADMIN, Role.DEVELOPER] as const;
 
-// Helper para verificar permissão de forma segura
+// Helper de verificação segura
 function hasRole(role: Role, allowedRoles: readonly Role[]) {
     return allowedRoles.includes(role);
 }
@@ -29,7 +40,8 @@ function handleActionError(error: any) {
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-            return { success: false as const, error: "Este e-mail já está em uso." };
+            // Mensagem genérica para duplicidade, pode ser email ou membership
+            return { success: false as const, error: "Registro duplicado (e-mail ou vínculo já existe)." };
         }
     }
 
@@ -41,12 +53,11 @@ function handleActionError(error: any) {
 }
 
 /**
- * Lista todos os usuários
+ * Lista todos os usuários e suas empresas
  */
 export async function getUsersAction(filters?: GetUsersParams) {
     const session = await getProtectedSession();
 
-    // Validação segura de Role
     if (!session || !hasRole(session.role, READ_ROLES)) {
         return { success: false, error: "Não autorizado." };
     }
@@ -93,7 +104,7 @@ export async function getUsersAction(filters?: GetUsersParams) {
 }
 
 /**
- * Cria um novo usuário
+ * Cria um novo usuário (Auth + Banco + Membership)
  */
 export async function createUserAction(data: CreateUserInput) {
     const session = await getProtectedSession();
@@ -104,11 +115,11 @@ export async function createUserAction(data: CreateUserInput) {
 
     const validation = createUserSchema.safeParse(data);
     if (!validation.success) {
-        return { success: false as const, error: "Dados inválidos." }; // Simplificado para evitar erro de tipo complexo
+        return { success: false as const, error: "Dados inválidos." };
     }
 
     try {
-        // 1. Cria no Auth (Gera hash seguro automaticamente via Better Auth)
+        // 1. Cria no Auth
         const newUserResponse = await auth.api.signUpEmail({
             body: {
                 email: data.email,
@@ -158,7 +169,7 @@ export async function createUserAction(data: CreateUserInput) {
 }
 
 /**
- * Atualiza um usuário
+ * Atualiza um usuário existente
  */
 export async function updateUserAction(id: string, data: Partial<CreateUserInput>) {
     const session = await getProtectedSession();
@@ -167,37 +178,33 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
         return { success: false as const, error: "Permissão negada." };
     }
 
-    if (!data.email || !data.role) {
-        return { success: false as const, error: "Dados obrigatórios faltando." };
-    }
-
     try {
         await prisma.$transaction(async (tx) => {
-            await tx.user.update({
-                where: { id },
-                data: {
-                    name: data.name,
-                    email: data.email,
-                    role: data.role as Role,
-                }
-            });
-
-            if (data.companyId !== undefined) {
-                await tx.membership.deleteMany({
-                    where: { userId: id }
+            // Atualiza dados básicos
+            if (data.email || data.name || data.role) {
+                await tx.user.update({
+                    where: { id },
+                    data: {
+                        name: data.name,
+                        email: data.email,
+                        role: data.role as Role,
+                    }
                 });
+            }
 
-                if (data.companyId) {
-                    await tx.membership.create({
-                        data: {
-                            userId: id,
-                            companyId: data.companyId,
-                            role: (data.role === Role.CLIENTE_ADMIN || data.role === Role.ADMIN)
-                                ? Role.ADMIN
-                                : Role.CLIENTE_USER
-                        }
-                    });
-                }
+            // Se companyId vier preenchido, atualiza o vínculo principal
+            // Nota: Isso remove vínculos anteriores se for single-tenant mode na UI de edição
+            if (data.companyId) {
+                await tx.membership.deleteMany({ where: { userId: id } });
+                await tx.membership.create({
+                    data: {
+                        userId: id,
+                        companyId: data.companyId,
+                        role: (data.role === Role.CLIENTE_ADMIN || data.role === Role.ADMIN)
+                            ? Role.ADMIN
+                            : Role.CLIENTE_USER
+                    }
+                });
             }
         });
 
@@ -211,7 +218,7 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
 }
 
 /**
- * Alterna Status
+ * Alterna o status do usuário
  */
 export async function toggleUserStatusAction(id: string, currentStatus: boolean) {
     const session = await getProtectedSession();
@@ -225,11 +232,9 @@ export async function toggleUserStatusAction(id: string, currentStatus: boolean)
     }
 
     try {
-        const newStatus = !currentStatus;
-
         await prisma.user.update({
             where: { id },
-            data: { isActive: newStatus }
+            data: { isActive: !currentStatus }
         });
 
         revalidatePath("/admin/cadastros");
@@ -237,8 +242,65 @@ export async function toggleUserStatusAction(id: string, currentStatus: boolean)
 
         return {
             success: true as const,
-            message: `Usuário ${newStatus ? 'ativado' : 'desativado'} com sucesso.`
+            message: `Status alterado com sucesso.`
         };
+    } catch (error) {
+        return handleActionError(error);
+    }
+}
+
+/**
+ * [NOVO] VINCULAR USUÁRIO EXISTENTE A UMA EMPRESA
+ */
+export async function linkUserToCompanyAction(data: LinkUserInput) {
+    const session = await getProtectedSession();
+
+    // Permite Admin Global e Cliente Admin (para vincular pessoas à sua empresa)
+    if (!session || !["ADMIN", "DEVELOPER", "CLIENTE_ADMIN"].includes(session.role)) {
+        return { success: false, error: "Permissão negada." };
+    }
+
+    const validation = linkUserSchema.safeParse(data);
+    if (!validation.success) return { success: false, error: "Dados inválidos." };
+
+    try {
+        // 1. Procurar se o usuário existe
+        const targetUser = await prisma.user.findUnique({
+            where: { email: data.email }
+        });
+
+        if (!targetUser) {
+            return { success: false, error: "Usuário não encontrado no sistema. Use a aba 'Criar Novo'." };
+        }
+
+        // 2. Verificar se já existe vínculo nesta empresa exata
+        const existingMembership = await prisma.membership.findUnique({
+            where: {
+                userId_companyId: {
+                    userId: targetUser.id,
+                    companyId: data.companyId
+                }
+            }
+        });
+
+        if (existingMembership) {
+            return { success: false, error: "Este usuário já está vinculado a esta empresa." };
+        }
+
+        // 3. Criar o vínculo (Membership)
+        await prisma.membership.create({
+            data: {
+                userId: targetUser.id,
+                companyId: data.companyId,
+                role: data.role
+            }
+        });
+
+        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
+
+        return { success: true, message: "Usuário vinculado com sucesso!" };
+
     } catch (error) {
         return handleActionError(error);
     }
