@@ -1,6 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
+import { toggleUserStatusAction } from "@/actions/admin/user-actions"
+
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table"
@@ -9,13 +12,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-    Search, MoreHorizontal, ShieldAlert, Code2, Headset, UserX, UserCheck
+    Search, MoreHorizontal, ShieldAlert, Code2, Headset, UserX, UserCheck, Loader2, Mail
 } from "lucide-react"
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 
+// Modais
 import { CreateUserDialog } from "./CreateUserDialog"
+import { EditUserDialog } from "./EditUserDialog" // <--- Importamos o Editor
 
 interface SystemUserTabProps {
     data: any[]
@@ -25,15 +30,48 @@ interface SystemUserTabProps {
 export function SystemUserTab({ data, companies }: SystemUserTabProps) {
     const [searchTerm, setSearchTerm] = useState("")
 
+    // --- ESTADOS DE AÇÃO ---
+    const [userToEdit, setUserToEdit] = useState<any | null>(null)
+    const [isEditOpen, setIsEditOpen] = useState(false)
+    const [loadingId, setLoadingId] = useState<string | null>(null)
+
     const filteredData = data.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
+    // --- HANDLERS ---
+
+    function handleEdit(user: any) {
+        setUserToEdit(user)
+        setIsEditOpen(true)
+    }
+
+    async function handleToggleStatus(userId: string, currentStatus: boolean) {
+        setLoadingId(userId)
+        const result = await toggleUserStatusAction(userId, currentStatus)
+
+        if (result.success) {
+            toast.success(result.message)
+        } else {
+            toast.error(result.error || "Erro ao alterar status")
+        }
+        setLoadingId(null)
+    }
+
     return (
         <div className="space-y-4">
 
-            {/* --- TOPO --- */}
+            {/* MODAL DE EDIÇÃO */}
+            <EditUserDialog
+                open={isEditOpen}
+                onOpenChange={setIsEditOpen}
+                user={userToEdit}
+                companies={companies}
+                isAdmin={true} // Equipe interna é sempre gerenciada por admin
+            />
+
+            {/* TOPO */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
                 <div className="relative w-full sm:w-72 group">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -45,11 +83,11 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
                     />
                 </div>
 
-                {/* Modal de Criação (Contexto SYSTEM) */}
+                {/* Modal de Criação */}
                 <CreateUserDialog companies={companies} isAdmin={true} context="SYSTEM" />
             </div>
 
-            {/* --- TABELA --- */}
+            {/* TABELA */}
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
@@ -62,16 +100,15 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
                     </TableHeader>
                     <TableBody>
                         {filteredData.length === 0 ? (
-                            // EMPTY STATE
                             <TableRow>
                                 <TableCell colSpan={4} className="h-64 text-center">
                                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                                         <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-2">
-                                            <ShieldAlert className="h-6 w-6 opacity-50" />
+                                            <UserX className="h-6 w-6 opacity-50" />
                                         </div>
                                         <p className="text-base font-medium text-foreground">Nenhum administrador encontrado</p>
                                         <p className="text-sm">
-                                            {searchTerm ? "Tente buscar por outro termo." : "Adicione membros à equipe interna do sistema."}
+                                            {searchTerm ? "Tente buscar por outro termo." : "Adicione membros à equipe interna."}
                                         </p>
                                     </div>
                                 </TableCell>
@@ -80,7 +117,7 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
                             filteredData.map((user) => (
                                 <TableRow key={user.id} className="hover:bg-muted/30 transition-colors cursor-default">
 
-                                    {/* Coluna 1: Identificação */}
+                                    {/* Identificação */}
                                     <TableCell className="py-3">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-9 w-9 border border-purple-200/50">
@@ -96,34 +133,49 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
                                         </div>
                                     </TableCell>
 
-                                    {/* Coluna 2: Role Badge */}
+                                    {/* Role */}
                                     <TableCell>
                                         <RoleBadge role={user.role} />
                                     </TableCell>
 
-                                    {/* Coluna 3: Status */}
+                                    {/* Status */}
                                     <TableCell>
                                         <StatusBadge isActive={user.isActive} />
                                     </TableCell>
 
-                                    {/* Coluna 4: Ações */}
+                                    {/* Ações */}
                                     <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted data-[state=open]:bg-muted">
-                                                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-[160px]">
-                                                <DropdownMenuLabel>Gerenciar</DropdownMenuLabel>
-                                                <DropdownMenuItem className="cursor-pointer">Editar Dados</DropdownMenuItem>
-                                                <DropdownMenuItem className="cursor-pointer">Resetar Senha</DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className={`cursor-pointer ${user.isActive ? "text-red-600 focus:text-red-600 focus:bg-red-50" : "text-green-600 focus:text-green-600 focus:bg-green-50"}`}>
-                                                    {user.isActive ? "Desativar Acesso" : "Reativar Acesso"}
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        {loadingId === user.id ? (
+                                            <div className="flex justify-end pr-2"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+                                        ) : (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted data-[state=open]:bg-muted">
+                                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-[180px]">
+                                                    <DropdownMenuLabel>Gerenciar</DropdownMenuLabel>
+
+                                                    <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => handleEdit(user)}>
+                                                        <UserCheck className="w-4 h-4" /> Editar Dados
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                                        <Mail className="w-4 h-4" /> Resetar Senha
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuSeparator />
+
+                                                    <DropdownMenuItem
+                                                        className={`cursor-pointer gap-2 ${user.isActive ? "text-red-600 focus:text-red-600 focus:bg-red-50" : "text-green-600 focus:text-green-600 focus:bg-green-50"}`}
+                                                        onClick={() => handleToggleStatus(user.id, user.isActive)}
+                                                    >
+                                                        {user.isActive ? "Desativar Acesso" : "Reativar Acesso"}
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -135,7 +187,7 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
     )
 }
 
-// Componentes Helper (Estilizados)
+// Helpers Visuais
 
 function RoleBadge({ role }: { role: string }) {
     if (role === 'DEVELOPER') {
