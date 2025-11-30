@@ -1,22 +1,26 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
+import { toggleUserStatusAction } from "@/actions/admin/user-actions"
+
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
-    Search, MoreHorizontal, Shield, Building, UserX, Mail, UserCheck
+    Search, MoreHorizontal, Shield, Building, UserX, Mail, UserCheck, Loader2
 } from "lucide-react"
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 
-// Componente do Modal de Criação
+// Modais
 import { CreateUserDialog } from "./CreateUserDialog"
+import { EditUserDialog } from "./EditUserDialog" // <--- IMPORTANTE
 
 interface UserTabProps {
     data: any[]
@@ -27,17 +31,50 @@ interface UserTabProps {
 export function UserTab({ data, companies, isAdmin }: UserTabProps) {
     const [searchTerm, setSearchTerm] = useState("")
 
-    // Filtro de busca local
+    // --- ESTADOS ---
+    const [userToEdit, setUserToEdit] = useState<any | null>(null)
+    const [isEditOpen, setIsEditOpen] = useState(false)
+    const [loadingId, setLoadingId] = useState<string | null>(null) // ID do usuário sendo alterado
+
+    // Filtro Local
     const filteredData = data.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
+    // --- AÇÕES ---
+
+    function handleEdit(user: any) {
+        setUserToEdit(user)
+        setIsEditOpen(true)
+    }
+
+    async function handleToggleStatus(userId: string, currentStatus: boolean) {
+        setLoadingId(userId)
+        const result = await toggleUserStatusAction(userId, currentStatus)
+
+        if (result.success) {
+            toast.success(result.message)
+        } else {
+            toast.error(result.error || "Erro ao alterar status")
+        }
+        setLoadingId(null)
+    }
+
     return (
         <div className="space-y-4">
-            {/* --- TOPO: Busca e Ação --- */}
+
+            {/* MODAL DE EDIÇÃO */}
+            <EditUserDialog
+                open={isEditOpen}
+                onOpenChange={setIsEditOpen}
+                user={userToEdit}
+                companies={companies}
+                isAdmin={isAdmin}
+            />
+
+            {/* --- TOPO --- */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
-                {/* Barra de Busca com Ícone e Focus State */}
                 <div className="relative w-full sm:w-72 group">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
@@ -48,11 +85,10 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                     />
                 </div>
 
-                {/* Modal de Criação Integrado */}
                 <CreateUserDialog companies={companies} isAdmin={isAdmin} context="CLIENT" />
             </div>
 
-            {/* --- TABELA (Visual Moderno) --- */}
+            {/* --- TABELA --- */}
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
@@ -66,7 +102,6 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                     </TableHeader>
                     <TableBody>
                         {filteredData.length === 0 ? (
-                            // --- EMPTY STATE MELHORADO ---
                             <TableRow>
                                 <TableCell colSpan={5} className="h-64 text-center">
                                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -84,7 +119,7 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                             filteredData.map((user) => (
                                 <TableRow key={user.id} className="hover:bg-muted/30 transition-colors cursor-default">
 
-                                    {/* Coluna 1: Avatar e Identificação */}
+                                    {/* Coluna 1: Identificação */}
                                     <TableCell className="py-3">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-9 w-9 border border-border/50">
@@ -102,7 +137,7 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                                         </div>
                                     </TableCell>
 
-                                    {/* Coluna 2: Role Global */}
+                                    {/* Coluna 2: Role */}
                                     <TableCell>
                                         {user.role === 'ADMIN' || user.role === 'DEVELOPER' ? (
                                             <Badge variant="default" className="text-[10px] bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/20 gap-1 px-2 hover:bg-purple-500/25">
@@ -115,7 +150,7 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                                         )}
                                     </TableCell>
 
-                                    {/* Coluna 3: Vínculos (Multi-tenant) */}
+                                    {/* Coluna 3: Vínculos */}
                                     <TableCell>
                                         <div className="flex flex-wrap gap-1.5 max-w-[250px]">
                                             {user.memberships && user.memberships.length > 0 ? (
@@ -145,28 +180,39 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
 
                                     {/* Coluna 5: Ações */}
                                     <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted data-[state=open]:bg-muted">
-                                                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-[180px]">
-                                                <DropdownMenuLabel>Gerenciar</DropdownMenuLabel>
-                                                <DropdownMenuItem className="cursor-pointer gap-2">
-                                                    <UserCheck className="w-4 h-4" /> Editar Dados
-                                                </DropdownMenuItem>
-                                                {isAdmin && (
-                                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                                        <Mail className="w-4 h-4" /> Reenviar Convite
+                                        {loadingId === user.id ? (
+                                            <div className="flex justify-end pr-2"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+                                        ) : (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted data-[state=open]:bg-muted">
+                                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-[180px]">
+                                                    <DropdownMenuLabel>Gerenciar</DropdownMenuLabel>
+
+                                                    <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => handleEdit(user)}>
+                                                        <UserCheck className="w-4 h-4" /> Editar Dados
                                                     </DropdownMenuItem>
-                                                )}
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className={`cursor-pointer gap-2 ${user.isActive ? "text-red-600 focus:text-red-600 focus:bg-red-50" : "text-green-600 focus:text-green-600 focus:bg-green-50"}`}>
-                                                    {user.isActive ? "Desativar Acesso" : "Reativar Acesso"}
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+
+                                                    {isAdmin && (
+                                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                                            <Mail className="w-4 h-4" /> Reenviar Convite
+                                                        </DropdownMenuItem>
+                                                    )}
+
+                                                    <DropdownMenuSeparator />
+
+                                                    <DropdownMenuItem
+                                                        className={`cursor-pointer gap-2 ${user.isActive ? "text-red-600 focus:text-red-600 focus:bg-red-50" : "text-green-600 focus:text-green-600 focus:bg-green-50"}`}
+                                                        onClick={() => handleToggleStatus(user.id, user.isActive)}
+                                                    >
+                                                        {user.isActive ? "Desativar Acesso" : "Reativar Acesso"}
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -178,7 +224,6 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
     )
 }
 
-// Helper Visual para Status (Estilo Moderno)
 function StatusBadge({ isActive }: { isActive: boolean }) {
     if (isActive) {
         return (

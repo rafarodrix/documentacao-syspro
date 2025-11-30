@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Role } from "@prisma/client"
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table"
@@ -14,27 +15,46 @@ import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 
-// Importamos o Modal de Criação
+// Modais
 import { CreateCompanyDialog } from "./CreateCompanyDialog"
+import { EditCompanyDialog } from "./EditCompanyDialog"
 
 interface CompanyTabProps {
     data: any[]
     isAdmin: boolean
+    currentUserRole?: Role // Opcional para controle fino futuro
 }
 
 export function CompanyTab({ data, isAdmin }: CompanyTabProps) {
     const [searchTerm, setSearchTerm] = useState("")
+
+    // --- ESTADOS DE EDIÇÃO ---
+    const [companyToEdit, setCompanyToEdit] = useState<any | null>(null)
+    const [isEditOpen, setIsEditOpen] = useState(false)
 
     const filteredData = data.filter(company =>
         company.razaoSocial?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         company.cnpj?.includes(searchTerm)
     )
 
+    // Handler para abrir edição
+    function handleEdit(company: any) {
+        setCompanyToEdit(company)
+        setIsEditOpen(true)
+    }
+
     return (
         <div className="space-y-4">
-            {/* --- TOPO: Filtros e Botão de Ação --- */}
+
+            {/* MODAL DE EDIÇÃO (Renderizado condicionalmente) */}
+            <EditCompanyDialog
+                open={isEditOpen}
+                onOpenChange={setIsEditOpen}
+                company={companyToEdit}
+            />
+
+            {/* --- TOPO --- */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
-                {/* Barra de Busca com Ícone */}
                 <div className="relative w-full sm:w-72 group">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
@@ -51,7 +71,7 @@ export function CompanyTab({ data, isAdmin }: CompanyTabProps) {
                 )}
             </div>
 
-            {/* --- TABELA (Com correção de Dark Mode) --- */}
+            {/* --- TABELA --- */}
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
@@ -65,7 +85,6 @@ export function CompanyTab({ data, isAdmin }: CompanyTabProps) {
                     </TableHeader>
                     <TableBody>
                         {filteredData.length === 0 ? (
-                            // --- EMPTY STATE MELHORADO ---
                             <TableRow>
                                 <TableCell colSpan={5} className="h-64 text-center">
                                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -82,7 +101,8 @@ export function CompanyTab({ data, isAdmin }: CompanyTabProps) {
                         ) : (
                             filteredData.map((company) => (
                                 <TableRow key={company.id} className="hover:bg-muted/30 transition-colors cursor-default">
-                                    {/* Nome e Fantasia */}
+
+                                    {/* Coluna 1: Identificação */}
                                     <TableCell>
                                         <div className="flex flex-col">
                                             <span className="font-medium text-foreground">{company.razaoSocial}</span>
@@ -90,36 +110,41 @@ export function CompanyTab({ data, isAdmin }: CompanyTabProps) {
                                         </div>
                                     </TableCell>
 
-                                    {/* CNPJ Formatado (Monoespaçado) */}
+                                    {/* Coluna 2: CNPJ */}
                                     <TableCell className="font-mono text-xs text-muted-foreground">
                                         {company.cnpj}
                                     </TableCell>
 
-                                    {/* Status Badge */}
+                                    {/* Coluna 3: Status */}
                                     <TableCell>
                                         <StatusBadge status={company.status} />
                                     </TableCell>
 
-                                    {/* Contador de Membros */}
+                                    {/* Coluna 4: Membros */}
                                     <TableCell className="text-center">
                                         <Badge variant="secondary" className="font-normal bg-muted text-muted-foreground hover:bg-muted">
                                             {company._count?.memberships || company.usersCount || 0} usuários
                                         </Badge>
                                     </TableCell>
 
-                                    {/* Menu de Ações */}
+                                    {/* Coluna 5: Ações */}
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted">
+                                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted data-[state=open]:bg-muted">
                                                     <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-48">
                                                 <DropdownMenuLabel>Gerenciar</DropdownMenuLabel>
-                                                <DropdownMenuItem className="gap-2 cursor-pointer">
+
+                                                <DropdownMenuItem
+                                                    className="gap-2 cursor-pointer"
+                                                    onClick={() => handleEdit(company)} // Conectado ao Modal
+                                                >
                                                     <Settings className="h-4 w-4" /> Editar Dados
                                                 </DropdownMenuItem>
+
                                                 <DropdownMenuItem className="gap-2 cursor-pointer">
                                                     <FileText className="h-4 w-4" /> Ver Contratos
                                                 </DropdownMenuItem>
@@ -136,9 +161,8 @@ export function CompanyTab({ data, isAdmin }: CompanyTabProps) {
     )
 }
 
-// Helper Visual para Status (Compatível com Dark Mode)
+// Helper Visual para Status
 function StatusBadge({ status }: { status: string }) {
-    // Mapeamento de cores usando classes do Tailwind que funcionam bem no Dark/Light
     const styles: Record<string, string> = {
         ACTIVE: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
         INACTIVE: "bg-zinc-500/15 text-zinc-700 dark:text-zinc-400 border-zinc-500/20",
