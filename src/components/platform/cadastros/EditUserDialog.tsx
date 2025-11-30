@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { createUserSchema, CreateUserInput } from "@/core/application/schema/user-schema"
 import { updateUserAction } from "@/actions/admin/user-actions"
@@ -19,183 +19,141 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { Loader2, Save } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
+// Importa o componente de lista de vínculos
+import { UserMembershipsList } from "./UserMembershipsList"
 
 interface EditUserDialogProps {
-    user: any // Dados do usuário a ser editado
-    companies: any[]
-    isAdmin: boolean
     open: boolean
     onOpenChange: (open: boolean) => void
+    user: any // Dados do usuário vindo da tabela
+    companies: any[]
+    isAdmin: boolean
 }
 
-export function EditUserDialog({ user, companies, isAdmin, open, onOpenChange }: EditUserDialogProps) {
+// --- VERIFIQUE SE ESTA LINHA ESTÁ COM 'export' (sem default) ---
+export function EditUserDialog({ open, onOpenChange, user, companies, isAdmin }: EditUserDialogProps) {
 
-    // Encontrar o ID da empresa atual do usuário (se houver)
-    const currentCompanyId = user?.memberships?.[0]?.companyId || ""
+    // Identifica se o usuário sendo editado é da equipe interna
+    const isTargetSystemUser = user ? ['ADMIN', 'DEVELOPER', 'SUPORTE'].includes(user.role) : false
 
     const form = useForm<CreateUserInput>({
         resolver: zodResolver(createUserSchema),
         defaultValues: {
             name: "",
             email: "",
-            password: "placeholder", // O Zod exige senha, passamos uma fake que o backend vai ignorar se não mudarmos
+            password: "placeholder", // Senha fake para passar na validação Zod
             role: Role.CLIENTE_USER,
             companyId: ""
         }
     })
 
-    // Preenche o formulário quando o usuário muda
+    // Efeito para preencher o formulário
     useEffect(() => {
         if (user) {
             form.reset({
                 name: user.name || "",
                 email: user.email || "",
-                password: "placeholder", // Senha fake para passar na validação (não enviamos pro update se não mudar)
+                password: "placeholder",
                 role: user.role as Role,
-                companyId: currentCompanyId
+                companyId: ""
             })
         }
-    }, [user, currentCompanyId, form])
+    }, [user, form])
 
     const { isSubmitting } = form.formState
 
-    async function onSubmit(data: CreateUserInput) {
+    // Submit apenas dos dados básicos (Nome/Email/Role Global)
+    const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
         if (!user) return
 
-        // Removemos a senha do objeto para não alterar (a action de update ignora se não enviarmos, ou ajustamos lá)
-        // No seu updateUserAction atual, ele não atualiza senha, o que é correto.
+        // Limpamos companyId do payload pois a gestão de empresa é feita separadamente
+        const { companyId, ...payload } = data
 
-        const result = await updateUserAction(user.id, {
-            ...data,
-            // Garante que se for cliente, mantém a empresa (caso a UI tenha perdido)
-            companyId: isAdmin ? data.companyId : currentCompanyId
-        })
+        const result = await updateUserAction(user.id, payload)
 
         if (result.success) {
-            toast.success("Usuário atualizado com sucesso!")
+            toast.success("Dados básicos atualizados!")
             onOpenChange(false)
         } else {
-            toast.error(result.error || "Erro ao atualizar")
+            toast.error(typeof result.error === 'string' ? result.error : "Erro ao atualizar dados")
         }
     }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-[550px] p-0 flex flex-col max-h-[90vh]">
+                <DialogHeader className="p-6 pb-2">
                     <DialogTitle>Editar Usuário</DialogTitle>
-                    <DialogDescription>
-                        Alterar dados cadastrais de {user?.name}.
-                    </DialogDescription>
+                    <DialogDescription>Alterando dados de <strong>{user?.name}</strong>.</DialogDescription>
                 </DialogHeader>
 
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                <ScrollArea className="flex-1 p-6 pt-0">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
 
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nome Completo</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>E-mail</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* Ocultamos senha na edição para simplificar. Reset de senha é outra ação. */}
-                        <input type="hidden" {...form.register("password")} />
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="role"
-                                render={({ field }) => (
+                            {/* SEÇÃO 1: DADOS BÁSICOS */}
+                            <div className="space-y-4">
+                                <FormField control={form.control} name="name" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Nível de Acesso</FormLabel>
+                                        <FormLabel>Nome Completo</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+
+                                <FormField control={form.control} name="email" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>E-mail</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+
+                                {/* Input oculto para senha */}
+                                <input type="hidden" {...form.register("password")} />
+                            </div>
+
+                            {/* SEÇÃO 2: ROLE DE SISTEMA (Apenas se for equipe interna) */}
+                            {isTargetSystemUser && (
+                                <FormField control={form.control} name="role" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Função no Sistema</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione..." />
-                                                </SelectTrigger>
-                                            </FormControl>
+                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                <SelectItem value={Role.CLIENTE_USER}>Usuário Comum</SelectItem>
-                                                <SelectItem value={Role.CLIENTE_ADMIN}>Gestor (Admin)</SelectItem>
-                                                {isAdmin && (
-                                                    <>
-                                                        <SelectItem value={Role.SUPORTE}>Suporte Técnico</SelectItem>
-                                                        <SelectItem value={Role.ADMIN}>Super Admin</SelectItem>
-                                                    </>
-                                                )}
+                                                <SelectItem value={Role.SUPORTE}>Suporte</SelectItem>
+                                                <SelectItem value={Role.DEVELOPER}>Desenvolvedor</SelectItem>
+                                                <SelectItem value={Role.ADMIN}>Super Admin</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
                                     </FormItem>
-                                )}
-                            />
-
-                            {isAdmin ? (
-                                <FormField
-                                    control={form.control}
-                                    name="companyId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Empresa</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione..." />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {companies.map((company) => (
-                                                        <SelectItem key={company.id} value={company.id}>
-                                                            {company.nomeFantasia || company.razaoSocial}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            ) : (
-                                <div className="space-y-2 opacity-70">
-                                    <FormLabel>Empresa</FormLabel>
-                                    <div className="h-10 px-3 py-2 border rounded-md text-sm bg-muted text-muted-foreground flex items-center overflow-hidden text-ellipsis whitespace-nowrap">
-                                        {companies.find(c => c.id === currentCompanyId)?.nomeFantasia || "Minha Empresa"}
-                                    </div>
-                                </div>
+                                )} />
                             )}
-                        </div>
 
-                        <DialogFooter className="pt-4">
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                                Cancelar
-                            </Button>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Salvar Alterações
-                            </Button>
-                        </DialogFooter>
+                            {/* SEÇÃO 3: VÍNCULOS COM EMPRESAS (Multi-tenant) */}
+                            {!isTargetSystemUser && user && (
+                                <UserMembershipsList
+                                    userId={user.id}
+                                    userEmail={user.email}
+                                    memberships={user.memberships || []}
+                                    companies={companies}
+                                />
+                            )}
 
-                    </form>
-                </Form>
+                            <DialogFooter className="pt-2">
+                                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                    Salvar Dados Básicos
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     )

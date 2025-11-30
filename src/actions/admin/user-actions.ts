@@ -305,3 +305,54 @@ export async function linkUserToCompanyAction(data: LinkUserInput) {
         return handleActionError(error);
     }
 }
+
+/**
+ * REMOVER VÍNCULO (Remove acesso de uma empresa específica)
+ */
+export async function removeUserFromCompanyAction(userId: string, companyId: string) {
+    const session = await getProtectedSession();
+    if (!session || !hasRole(session.role, WRITE_ROLES)) {
+        return { success: false, error: "Permissão negada." };
+    }
+
+    try {
+        // Impede remover o último vínculo (usuário ficaria órfão)
+        const count = await prisma.membership.count({ where: { userId } });
+        if (count <= 1) {
+            return { success: false, error: "O usuário deve ter pelo menos uma empresa vinculada." };
+        }
+
+        await prisma.membership.delete({
+            where: {
+                userId_companyId: { userId, companyId }
+            }
+        });
+
+        revalidatePath("/admin/cadastros");
+        return { success: true, message: "Acesso removido com sucesso." };
+    } catch (error) {
+        return handleActionError(error);
+    }
+}
+
+/**
+ * ATUALIZAR ROLE EM UMA EMPRESA ESPECÍFICA
+ */
+export async function updateMembershipRoleAction(userId: string, companyId: string, newRole: Role) {
+    const session = await getProtectedSession();
+    if (!session || !hasRole(session.role, WRITE_ROLES)) {
+        return { success: false, error: "Permissão negada." };
+    }
+
+    try {
+        await prisma.membership.update({
+            where: { userId_companyId: { userId, companyId } },
+            data: { role: newRole }
+        });
+
+        revalidatePath("/admin/cadastros");
+        return { success: true, message: "Permissão atualizada." };
+    } catch (error) {
+        return handleActionError(error);
+    }
+}
