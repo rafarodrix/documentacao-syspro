@@ -21,24 +21,27 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin }: TicketsCo
 
     // --- LÓGICA DE CATEGORIZAÇÃO  ---
     const getCategory = (status: string): TicketStatusGroup => {
-        const s = status.toLowerCase(); // Converte para minúsculo para facilitar
+        // Normaliza para evitar problemas de Case
+        const s = status.toLowerCase();
 
-        // 1. Abertos / Novos (Fila de Triagem)
-        if (s.includes('1. novo') || s.includes('1.novo')) return 'open';
+        // 1. ABERTOS (Fila de Entrada)
+        // Status que indicam que ninguém mexeu ou que requer atenção imediata
+        if (s.includes('new') || s.includes('novo')) return 'open';
 
-        // 2. Fechados / Histórico (Status 7, 8, 9)
+        // 2. FECHADOS (Arquivo)
+        // Status finais de ciclo de vida
         if (
-            s.includes('7. finalizado') ||
-            s.includes('8. não foi possível reproduzir') ||
-            s.includes('9. recusado') ||
-            s.includes('fechado') ||
-            s.includes('merged')
+            s.includes('closed') || s.includes('fechado') ||
+            s.includes('merged') || s.includes('mesclado') ||
+            s.includes('removed') || s.includes('removido') ||
+            s.includes('rejected') || s.includes('recusado')
         ) {
             return 'closed';
         }
 
-        // 3. Em Análise / Pendentes (Todo o resto: 2, 3, 4, 5)
-        // "2. Em Analise", "3. Em Desenvolvimento", "4. Em Testes", "5. Aguardando..."
+        // 3. PENDENTES / EM ANÁLISE (O "Meio de Campo")
+        // Qualquer coisa que não é novo nem fechado (Open, Pending Reminder, Pending Action)
+        // Isso captura "Em Análise", "Em Desenvolvimento", "Aguardando Cliente", etc.
         return 'pending';
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTicketChat } from "@/hooks/use-ticket-chat"; // <--- Hook Novo
+import { useTicketChat } from "@/hooks/use-ticket-chat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -22,11 +22,12 @@ interface TicketChatProps {
 }
 
 export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps) {
+    // 1. Toda a lógica complexa vem do Hook
     const {
         message, setMessage, isPending, scrollRef, handleSend, isMe, isSystem
     } = useTicketChat(ticketId, articles);
 
-    const isClosed = ['closed', 'merged', 'fechado', 'resolvido'].includes((ticketStatus || '').toLowerCase());
+    const isClosed = ['closed', 'merged', 'fechado', 'resolvido', 'finalizado'].includes((ticketStatus || '').toLowerCase());
 
     return (
         <div className="flex flex-col h-[600px] border rounded-xl bg-muted/10 overflow-hidden shadow-sm">
@@ -37,17 +38,20 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                     const messageIsMe = isMe(article.from);
                     const messageIsSystem = isSystem(article.from);
 
+                    // MENSAGEM DO SISTEMA (Centralizada)
                     if (messageIsSystem) {
                         return (
                             <div key={article.id} className="flex justify-center my-4">
                                 <span className="text-xs bg-muted px-3 py-1 rounded-full text-muted-foreground flex items-center gap-2 border border-border/50">
                                     <Bot className="h-3 w-3" />
+                                    {/* Remove tags HTML para log limpo */}
                                     {article.body.replace(/<[^>]*>?/gm, '')} • {article.createdAt}
                                 </span>
                             </div>
                         );
                     }
 
+                    // MENSAGEM DE USUÁRIO (Direita/Esquerda)
                     return (
                         <div
                             key={article.id}
@@ -76,6 +80,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                         ? "bg-primary text-primary-foreground rounded-tr-none dark:text-white"
                                         : "bg-card border rounded-tl-none text-foreground dark:bg-zinc-900"
                                 )}>
+                                    {/* Renderiza HTML seguro do Zammad */}
                                     <div
                                         className={cn(
                                             "prose prose-sm max-w-none break-words",

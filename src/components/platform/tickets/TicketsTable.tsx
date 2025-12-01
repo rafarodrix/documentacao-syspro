@@ -85,39 +85,50 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
 
 // --- HELPERS VISUAIS ---
 
+// Configuração de Cores e Keywords
+// A ordem importa: o sistema vai pegar o primeiro que der "match"
+const STATUS_CONFIG = [
+    {
+        // Status: 1. Novo
+        keywords: ['1. novo', 'new'],
+        color: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400'
+    },
+    {
+        // Status: 2 e 3 (Fase de Trabalho)
+        keywords: ['2. em analise', '3. em desenvolvimento', 'pending', 'pendente'],
+        color: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
+    },
+    {
+        // Status: 4 e 5 (Fase de Validação)
+        keywords: ['4. em testes', '5. aguardando', 'validação'],
+        color: 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400'
+    },
+    {
+        // Status: 7 (Sucesso)
+        keywords: ['7. finalizado', 'resolvido', 'fechado', 'closed', 'merged', 'aberto', 'open'],
+        // Nota: 'aberto' e 'open' geralmente são verdes em sistemas de ticket, mas ajuste se preferir outra cor
+        color: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
+    },
+    {
+        // Status: 8 e 9 (Falha/Recusa)
+        keywords: ['8. não foi', '9. recusado', 'rejected', 'removed'],
+        color: 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400'
+    }
+];
+
 function StatusBadge({ status, rawStatus }: { status: string, rawStatus: string }) {
-    const s = (rawStatus || status || '').toLowerCase();
+    // 1. Normalização
+    const term = (rawStatus || status || '').toLowerCase();
 
-    // Padrão (Cinza)
-    let style = 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400';
+    // 2. Busca Inteligente (Strategy Pattern)
+    const matchedConfig = STATUS_CONFIG.find(config =>
+        config.keywords.some(keyword => term.includes(keyword))
+    );
 
-    // 1. AZUL: Apenas o "Novo"
-    if (s.includes('1. novo')) {
-        style = 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400';
-    }
+    // 3. Definição do Estilo
+    const style = matchedConfig ? matchedConfig.color : DEFAULT_STYLE;
 
-    // 2. LARANJA: Fases de Análise e Desenvolvimento
-    else if (s.includes('2. em analise') || s.includes('3. em desenvolvimento')) {
-        style = 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400';
-    }
-
-    // 3. ROXO/INDIGO: Fases de Teste e Validação (Quase pronto)
-    else if (s.includes('4. em testes') || s.includes('5. aguardando')) {
-        style = 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400';
-    }
-
-    // 4. VERDE/CINZA: Finalizados
-    else if (s.includes('7. finalizado') || s.includes('fechado')) {
-        style = 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400';
-    }
-
-    // 5. VERMELHO/ROSA: Recusados ou Não Reproduzidos
-    else if (s.includes('8. não foi') || s.includes('9. recusado')) {
-        style = 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400';
-    }
-
-    // Limpeza do nome para exibição (Opcional: Remove os números "1. ", "2. " para ficar mais limpo na tela)
-    // Se quiser manter o número, apague esta linha.
+    // 4. Limpeza do Label (Remove "1. ", "2. " etc)
     const label = status.replace(/^\d+\.\s*/, '');
 
     return (
@@ -126,6 +137,9 @@ function StatusBadge({ status, rawStatus }: { status: string, rawStatus: string 
         </Badge>
     );
 }
+
+// Estilo Padrão (Fallback)
+const DEFAULT_STYLE = 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400';
 
 function PriorityBadge({ priority }: { priority: number }) {
     if (priority === 3) return <Badge variant="destructive" className="text-[10px] px-2 rounded-full">Alta</Badge>;
