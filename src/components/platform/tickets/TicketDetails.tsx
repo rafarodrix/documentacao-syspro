@@ -7,15 +7,14 @@ import { ArrowLeft, Clock, Hash, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 interface TicketDetailsProps {
-    ticket: any; // Tipar melhor depois
+    ticket: any;
     articles: any[];
-    isAdmin: boolean; // Para controlar o link de "Voltar"
+    isAdmin: boolean;
     error?: string;
 }
 
 export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetailsProps) {
 
-    // URL de retorno baseada no perfil
     const backUrl = isAdmin ? "/admin/chamados" : "/app/chamados";
 
     if (error || !ticket) {
@@ -28,46 +27,53 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                 <p className="text-muted-foreground max-w-md mb-6">
                     {error || "O ticket pode não existir ou você não tem permissão."}
                 </p>
-                <Link href={backUrl}>
-                    <Button variant="outline" className="gap-2">
+                <Button variant="outline" asChild className="gap-2">
+                    <Link href={backUrl}>
                         <ArrowLeft className="h-4 w-4" /> Voltar para Lista
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
             </div>
         );
     }
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto p-4 md:p-0">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center gap-4 mb-2 border-b border-border/40 pb-6">
-                <div className="flex items-start gap-4">
-                    <Link href={backUrl}>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-muted/80 -ml-2">
+
+            {/* --- HEADER --- */}
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-2 border-b border-border/40 pb-6">
+
+                <div className="flex items-start gap-3 flex-1 min-w-0"> {/* min-w-0 garante truncate funcionar */}
+
+                    {/* Botão Voltar */}
+                    <Button variant="ghost" size="icon" asChild className="h-9 w-9 rounded-full hover:bg-muted/80 shrink-0 mt-1">
+                        <Link href={backUrl}>
                             <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-                        </Button>
-                    </Link>
-                    <div className="flex flex-col gap-1">
-                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground line-clamp-2">
+                        </Link>
+                    </Button>
+
+                    <div className="flex flex-col gap-1.5 min-w-0">
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground break-words leading-snug">
                             {ticket.title}
                         </h1>
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-0.5 rounded-md border border-border/50 font-mono text-xs">
+
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                            <Badge variant="secondary" className="gap-1 font-mono text-xs font-normal bg-muted/50 border-border/50">
                                 <Hash className="h-3 w-3" /> {ticket.number}
-                            </span>
-                            <span className="flex items-center gap-1.5 text-xs">
+                            </Badge>
+
+                            <span className="text-xs flex items-center gap-1">
                                 <Clock className="h-3 w-3" /> Criado em {ticket.createdAt}
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="md:ml-auto flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                     <StatusBadge status={ticket.status} />
                 </div>
             </div>
 
-            {/* Chat */}
+            {/* --- CHAT --- */}
             <TicketChat
                 ticketId={String(ticket.id)}
                 articles={articles || []}
@@ -77,13 +83,10 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
     );
 }
 
-/* --- Componente Auxiliar de Badge de Status (Safe) --- */
 function StatusBadge({ status }: { status?: string | null }) {
     const s = (status || '').toLowerCase();
-
     let style = 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700';
 
-    // Mapeamento de cores conforme status do Zammad
     if (['novo', 'new', 'aberto', 'open'].some(v => s.includes(v))) {
         style = 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800';
     }

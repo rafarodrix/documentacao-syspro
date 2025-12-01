@@ -38,7 +38,6 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin }: TicketsCo
         }
 
         // 3. Em Análise / Pendentes (Todo o resto: 2, 3, 4, 5)
-        // "2. Em Analise", "3. Em Desenvolvimento", "4. Em Testes", "5. Aguardando..."
         return 'pending';
     }
 
