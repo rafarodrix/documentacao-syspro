@@ -15,17 +15,31 @@ interface TicketsContainerProps {
 
 export function TicketsContainer({ tickets: initialTickets, isAdmin }: TicketsContainerProps) {
     const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("open"); // Padrão: Abertos
+    const [statusFilter, setStatusFilter] = useState("open");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    // --- LÓGICA DE CATEGORIZAÇÃO ---
+    // --- LÓGICA DE CATEGORIZAÇÃO  ---
     const getCategory = (status: string): TicketStatusGroup => {
-        const s = status.toLowerCase();
-        if (['novo', 'new', 'aberto', 'open'].some(v => s.includes(v))) return 'open';
-        if (['pendente', 'pending', 'análise'].some(v => s.includes(v))) return 'pending';
-        if (['resolvido', 'closed', 'fechado', 'merged'].some(v => s.includes(v))) return 'closed';
-        return 'pending'; // Fallback seguro
+        const s = status.toLowerCase(); // Converte para minúsculo para facilitar
+
+        // 1. Abertos / Novos (Fila de Triagem)
+        if (s.includes('1. novo') || s.includes('1.novo')) return 'open';
+
+        // 2. Fechados / Histórico (Status 7, 8, 9)
+        if (
+            s.includes('7. finalizado') ||
+            s.includes('8. não foi possível reproduzir') ||
+            s.includes('9. recusado') ||
+            s.includes('fechado') ||
+            s.includes('merged')
+        ) {
+            return 'closed';
+        }
+
+        // 3. Em Análise / Pendentes (Todo o resto: 2, 3, 4, 5)
+        // "2. Em Analise", "3. Em Desenvolvimento", "4. Em Testes", "5. Aguardando..."
+        return 'pending';
     }
 
     // --- FILTRAGEM ---

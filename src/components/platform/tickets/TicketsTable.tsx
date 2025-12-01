@@ -86,16 +86,43 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
 // --- HELPERS VISUAIS ---
 
 function StatusBadge({ status, rawStatus }: { status: string, rawStatus: string }) {
-    const s = (rawStatus || '').toLowerCase();
+    const s = (rawStatus || status || '').toLowerCase();
+
+    // Padrão (Cinza)
     let style = 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400';
 
-    if (['novo', 'new', 'aberto', 'open'].some(v => s.includes(v))) { style = 'bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'; }
-    if (['pendente', 'pending'].some(v => s.includes(v))) { style = 'bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800'; }
-    if (['fechado', 'closed', 'resolvido', 'merged'].some(v => s.includes(v))) { style = 'bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800'; }
+    // 1. AZUL: Apenas o "Novo"
+    if (s.includes('1. novo')) {
+        style = 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400';
+    }
+
+    // 2. LARANJA: Fases de Análise e Desenvolvimento
+    else if (s.includes('2. em analise') || s.includes('3. em desenvolvimento')) {
+        style = 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400';
+    }
+
+    // 3. ROXO/INDIGO: Fases de Teste e Validação (Quase pronto)
+    else if (s.includes('4. em testes') || s.includes('5. aguardando')) {
+        style = 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400';
+    }
+
+    // 4. VERDE/CINZA: Finalizados
+    else if (s.includes('7. finalizado') || s.includes('fechado')) {
+        style = 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400';
+    }
+
+    // 5. VERMELHO/ROSA: Recusados ou Não Reproduzidos
+    else if (s.includes('8. não foi') || s.includes('9. recusado')) {
+        style = 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400';
+    }
+
+    // Limpeza do nome para exibição (Opcional: Remove os números "1. ", "2. " para ficar mais limpo na tela)
+    // Se quiser manter o número, apague esta linha.
+    const label = status.replace(/^\d+\.\s*/, '');
 
     return (
-        <Badge variant="outline" className={`border ${style} font-medium px-2.5 py-0.5 rounded-full text-[10px]`}>
-            {status}
+        <Badge variant="outline" className={`border ${style} font-medium px-2.5 py-0.5 rounded-full text-[10px] whitespace-nowrap`}>
+            {label}
         </Badge>
     );
 }

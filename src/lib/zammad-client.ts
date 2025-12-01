@@ -77,19 +77,29 @@ export class ZammadClient {
 
     static async getAllTickets(limit = 100) {
         try {
-            const query = 'state:new OR state:open OR state:pending_reminder OR state:pending_close OR state:closed OR state:merged';
+            // CORREÇÃO: Usando os nomes exatos conforme sua imagem
+            // Nota: Coloquei entre aspas duplas para garantir que espaços funcionem
+            const activeStates = [
+                'state:"1. Novo"',
+                'state:"2. Em Analise"',
+                'state:"3. Em Desenvolvimento"',
+                'state:"4. Em Testes"',
+                'state:"5. Aguardando Validação Cliente"'
+            ].join(' OR ');
 
-            const response = await this.request<any>(
+            // Query final: Busca todos esses estados ativos
+            const query = `(${activeStates})`;
+
+            const tickets = await this.request<any[]>(
                 `/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&expand=true&sort_by=updated_at&order_by=desc`
             );
 
-            return this.normalizeResponse(response);
+            return this.normalizeResponse(tickets);
         } catch (error) {
             console.error('Erro ao buscar tickets admin:', error);
             return [];
         }
     }
-
     // --- HELPERS DE NORMALIZAÇÃO ---
 
     // O Zammad pode retornar array direto [] OU objeto { assets:..., tickets: [...] }
