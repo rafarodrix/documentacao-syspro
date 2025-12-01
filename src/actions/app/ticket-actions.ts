@@ -46,7 +46,7 @@ export async function createTicketAction(prevState: TicketState, formData: FormD
         });
 
         // 4. Revalidação
-        revalidatePath('/client'); // Atualiza a dashboard do cliente
+        revalidatePath('/app'); // Atualiza a dashboard do cliente
 
         return { success: true, message: 'Chamado criado com sucesso!', data: newTicket };
 

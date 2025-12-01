@@ -1,26 +1,18 @@
-import { getProtectedSession } from "@/lib/auth-helpers";
-import { zammadService } from "@/core/infrastructure/gateways/zammad-service";
+import { getTicketsAction } from "@/actions/tickets/ticket-actions";
 import { TicketsContainer } from "@/components/platform/tickets/TicketsContainer";
 
 export default async function ClientTicketsPage() {
-    const session = await getProtectedSession();
-    if (!session) return null;
+    // 1. Chama a MESMA Action Unificada, backend detecta que é um usuário comum e filtra apenas os tickets dele
+    const { data, success } = await getTicketsAction();
 
-    // 1. Buscar Tickets DO USUÁRIO (Lógica de Cliente)
-    const ticketsRaw = await zammadService.getUserTickets(session.email); // Seu método de filtro por email
+    if (!success || !data) {
+        return (
+            <div className="p-10 text-center text-muted-foreground">
+                Não foi possível carregar seus chamados.
+            </div>
+        );
+    }
 
-    // 2. Mapear
-    const tickets = ticketsRaw.map((t: any) => ({
-        id: t.id,
-        number: t.number,
-        title: t.title,
-        group: t.group,
-        status: t.state,
-        priority: t.priority_id,
-        customer: "Eu", // Não importa para o cliente
-        createdAt: t.created_at,
-        updatedAt: t.updated_at
-    }));
-
-    return <TicketsContainer tickets={tickets} isAdmin={false} />;
+    // 3. Renderiza o Container isAdmin={false} esconde colunas administrativas
+    return <TicketsContainer tickets={data} isAdmin={false} />;
 }
