@@ -30,7 +30,7 @@ import {
     Building2
 } from "lucide-react";
 import Link from "next/link";
-import { TicketSheet } from "@/components/platform/client/TicketSheet"; // Importe seu modal de criar
+import { TicketSheet } from "@/components/platform/tickets/TicketSheet";
 
 // Interface genérica para o Ticket
 interface TicketData {

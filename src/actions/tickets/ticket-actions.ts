@@ -1,9 +1,8 @@
 "use server";
 
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { ZammadClient } from "@/lib/zammad-client"; // Sua lib do Zammad
+import { ZammadClient } from "@/lib/zammad-client";
 import { revalidatePath } from "next/cache";
-import { Role } from "@prisma/client";
 
 // --- Helpers de Mapeamento (Privados) ---
 
@@ -18,12 +17,6 @@ function mapZammadStatus(state: string): string {
         'removed': 'Removido'
     };
     return map[state] || state;
-}
-
-function mapZammadPriority(priorityId: number): string {
-    if (priorityId === 1) return 'Baixa';
-    if (priorityId === 3) return 'Alta';
-    return 'Normal';
 }
 
 // --- AÇÕES PÚBLICAS ---
@@ -43,10 +36,11 @@ export async function getTicketsAction() {
         let ticketsRaw = [];
 
         if (isAdmin) {
-            // Admin vê a fila global
+            // Admin vê a fila global (limitada a 100 para performance)
             ticketsRaw = await ZammadClient.getAllTickets(100);
         } else {
             // Cliente vê apenas os seus
+            // IMPORTANTE: Garante que busca pelo email da sessão
             ticketsRaw = await ZammadClient.getTicketsForUser(session.email);
         }
 
@@ -56,21 +50,27 @@ export async function getTicketsAction() {
             number: t.number,
             title: t.title,
             group: t.group,
-            status: t.state, // Mantemos o original para lógica, o front traduz se quiser
-            statusLabel: mapZammadStatus(t.state), // Traduzido
+            status: t.state, // Mantemos o original para lógica
+            statusLabel: mapZammadStatus(t.state), // Traduzido para UI
             priority: t.priority_id,
             customer: t.customer_id, // Útil para o Admin saber de quem é
-            createdAt: new Date(t.created_at).toISOString(), // ISO é melhor para ordenação no front
-            updatedAt: new Date(t.updated_at).toISOString(),
+            createdAt: t.created_at ? new Date(t.created_at).toISOString() : new Date().toISOString(),
+            updatedAt: t.updated_at ? new Date(t.updated_at).toISOString() : new Date().toISOString(),
         }));
 
         return { success: true, data: formattedTickets };
 
     } catch (error) {
         console.error("Erro ao buscar tickets:", error);
+        // Retorna array vazio em vez de erro fatal para não quebrar a UI
         return { success: false, error: "Erro ao carregar chamados.", data: [] };
     }
 }
+
+// --- ALIAS PARA COMPATIBILIDADE ---
+// Isso permite que códigos antigos que chamam getMyTicketsAction continuem funcionando
+export const getMyTicketsAction = getTicketsAction;
+export const getAdminTicketsAction = getTicketsAction;
 
 /**
  * Cria um novo ticket
@@ -81,6 +81,7 @@ export async function createTicketAction(prevState: any, formData: FormData) {
 
     const subject = formData.get('subject') as string;
     const description = formData.get('description') as string;
+    const priority = formData.get('priority') as string || '2 normal';
 
     if (!subject || !description) {
         return { success: false, message: 'Preencha todos os campos.' };
@@ -89,8 +90,9 @@ export async function createTicketAction(prevState: any, formData: FormData) {
     try {
         const newTicket = await ZammadClient.createTicket({
             title: subject,
-            group: 'Users', // Ajuste conforme seu Zammad
+            group: 'Users',
             customer: session.email, // Vincula ao usuário logado
+            priority_id: parseInt(priority.charAt(0)) || 2, // Extrai o ID da string "2 normal"
             article: {
                 subject: subject,
                 body: description,
@@ -121,18 +123,14 @@ export async function getTicketDetailsAction(ticketId: string) {
     try {
         const ticket = await ZammadClient.getTicketById(ticketId);
 
-        // SEGURANÇA: Se não for admin, verifica se o ticket pertence ao usuário
-        // (Assumindo que o Zammad retorna customer_id ou email do cliente no objeto ticket)
-        // if (!isAdmin && ticket.customer !== session.email) {
-        //    return { success: false, error: "Acesso negado a este chamado." };
-        // }
+        // Opcional: Adicionar verificação se o ticket pertence ao usuário (se não for admin)
 
         const articles = await ZammadClient.getTicketArticles(ticketId);
 
         // Filtra notas internas se for cliente
         const visibleArticles = articles.filter((a: any) => {
-            if (isAdmin) return true; // Admin vê tudo (inclusive notas internas)
-            return !a.internal;       // Cliente só vê notas públicas
+            if (isAdmin) return true;
+            return !a.internal;
         });
 
         return {
@@ -142,6 +140,7 @@ export async function getTicketDetailsAction(ticketId: string) {
                 title: ticket.title,
                 status: mapZammadStatus(ticket.state),
                 number: ticket.number,
+                priority: ticket.priority_id,
                 createdAt: new Date(ticket.created_at).toLocaleDateString('pt-BR'),
             },
             articles: visibleArticles.map((a: any) => ({
@@ -150,6 +149,7 @@ export async function getTicketDetailsAction(ticketId: string) {
                 body: a.body,
                 createdAt: new Date(a.created_at).toLocaleString('pt-BR'),
                 isInternal: a.internal,
+                sender: a.sender || (a.internal ? 'Agent' : 'Customer') // Fallback simples
             }))
         };
 
@@ -171,7 +171,6 @@ export async function replyTicketAction(ticketId: string, message: string) {
     try {
         await ZammadClient.addTicketReply(ticketId, message);
 
-        // Revalida ambas as rotas para garantir
         revalidatePath(`/app/chamados/${ticketId}`);
         revalidatePath(`/admin/chamados/${ticketId}`);
         return { success: true };

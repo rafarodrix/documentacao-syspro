@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useTransition } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Loader2, User, Headset, Bot } from "lucide-react";
-import { replyTicketAction } from "@/actions/app/ticket-actions";
+import { replyTicketAction } from "@/actions/tickets/ticket-actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/lib/auth-client";
 
 interface Article {
     id: number;
     body: string;
     from: string;
     createdAt: string;
-    sender: string; // 'Customer', 'Agent', 'System'
+    isInternal: boolean;
 }
 
 interface TicketChatProps {
@@ -29,7 +29,11 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
     const [isPending, startTransition] = useTransition();
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll para o final
+    // Pegamos a sessão no cliente para saber "quem sou eu"
+    const { data: session } = useSession();
+    const currentUserEmail = session?.user?.email;
+
+    // Auto-scroll
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollIntoView({ behavior: "smooth" });
@@ -58,15 +62,18 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
             {/* Área de Mensagens */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-background/50">
                 {articles.map((article) => {
-                    const isMe = article.sender === 'Customer';
-                    const isSystem = article.sender === 'System';
+                    // Lógica inteligente de remetente
+                    // Se o 'from' contém o email do usuário logado, é "Eu"
+                    // Caso contrário, é "Agente" ou "Sistema"
+                    const isMe = currentUserEmail && article.from.includes(currentUserEmail);
+                    const isSystem = !article.from.includes('@'); // Zammad System messages usually don't have email in 'from'
 
                     if (isSystem) {
                         return (
                             <div key={article.id} className="flex justify-center my-4">
                                 <span className="text-xs bg-muted px-3 py-1 rounded-full text-muted-foreground flex items-center gap-2 border border-border/50">
                                     <Bot className="h-3 w-3" />
-                                    {/* Remove tags HTML simples para log do sistema */}
+                                    {/* Remove tags HTML para log do sistema ficar limpo */}
                                     {article.body.replace(/<[^>]*>?/gm, '')} • {article.createdAt}
                                 </span>
                             </div>
@@ -92,7 +99,9 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                 isMe ? "items-end" : "items-start"
                             )}>
                                 <div className="flex items-center gap-2 mb-1 px-1">
-                                    <span className="text-xs font-semibold text-foreground">{article.from}</span>
+                                    <span className="text-xs font-semibold text-foreground">
+                                        {isMe ? "Você" : article.from.split('<')[0].trim()} {/* Mostra só o nome */}
+                                    </span>
                                     <span className="text-[10px] text-muted-foreground">{article.createdAt}</span>
                                 </div>
 
@@ -107,7 +116,8 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                     <div
                                         className={cn(
                                             "prose prose-sm max-w-none break-words",
-                                            isMe ? "prose-headings:text-primary-foreground prose-p:text-primary-foreground prose-a:text-primary-foreground/90 prose-strong:text-primary-foreground prose-li:text-primary-foreground text-white dark:text-white"
+                                            // Ajuste de cores para links e negritos dentro do balão azul
+                                            isMe ? "prose-p:text-primary-foreground prose-a:text-white prose-a:underline prose-strong:text-white text-white"
                                                 : "text-foreground dark:prose-invert"
                                         )}
                                         dangerouslySetInnerHTML={{ __html: article.body }}

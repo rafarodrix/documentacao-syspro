@@ -1,4 +1,4 @@
-import { getTicketDetailsAction } from "@/actions/app/ticket-actions";
+import { getTicketDetailsAction } from "@/actions/tickets/ticket-actions";
 import { TicketDetails } from "@/components/platform/tickets/TicketDetails";
 
 interface PageProps {
@@ -7,12 +7,13 @@ interface PageProps {
 
 export default async function ClientTicketPage({ params }: PageProps) {
     const { id } = await params;
+    // A action pode retornar articles como undefined se der erro
     const { ticket, articles, error } = await getTicketDetailsAction(id);
 
     return (
         <TicketDetails
             ticket={ticket}
-            // CORREÇÃO AQUI: Adicionando '|| []' para garantir que nunca seja undefined
+            // CORREÇÃO: Garante array vazio se undefined
             articles={articles || []}
             error={error}
             isAdmin={false}

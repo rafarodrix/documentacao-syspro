@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { getProtectedSession } from "@/lib/auth-helpers"
-import { getMyTicketsAction } from "@/actions/app/ticket-actions" // Reutilizando sua action existente
+import { getMyTicketsAction } from "@/actions/tickets/ticket-actions" // Reutilizando sua action existente
 
 export async function getClientDashboardData() {
     const session = await getProtectedSession()

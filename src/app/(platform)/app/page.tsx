@@ -1,10 +1,10 @@
-import { getClientDashboardData } from "@/actions/app/dashboard"
+import { getClientDashboardData } from "@/actions/tickets/dashboard"
 import { Button } from "@/components/ui/button"
 import { Building2, Search } from "lucide-react"
 import Link from "next/link"
 
 // Importação dos Componentes Refatorados
-import { TicketSheet } from "@/components/platform/client/TicketSheet"
+import { TicketSheet } from "@/components/platform/tickets/TicketSheet"
 import { DashboardStats } from "@/components/platform/client/dashboard/DashboardStats"
 import { RecentTicketsTable } from "@/components/platform/client/dashboard/RecentTicketsTable"
 

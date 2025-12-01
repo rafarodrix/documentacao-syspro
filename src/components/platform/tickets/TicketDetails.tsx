@@ -1,6 +1,6 @@
 "use client";
 
-import { TicketChat } from "@/components/platform/client/TicketChat";
+import { TicketChat } from "@/components/platform/tickets/TicketChat";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, Hash, AlertCircle } from "lucide-react";
