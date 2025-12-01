@@ -8,6 +8,7 @@ import { createCompanyAction } from "@/actions/admin/company-actions"
 import { TaxRegime } from "@prisma/client"
 import { toast } from "sonner"
 import { formatCNPJ, formatCEP, formatPhone } from "@/lib/formatters"
+import { useAddressLookup } from "@/hooks/use-address-lookup"
 
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
@@ -40,6 +41,7 @@ export function CreateCompanyDialog() {
     })
 
     const { isSubmitting } = form.formState
+    const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue)
 
     const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
         const result = await createCompanyAction(data)
@@ -161,23 +163,50 @@ export function CreateCompanyDialog() {
                                                 <FormField control={form.control} name="cep" render={({ field }) => (
                                                     <FormItem className="col-span-1">
                                                         <FormLabel>CEP</FormLabel>
-                                                        <FormControl><Input placeholder="00000-000" maxLength={9} {...field} onChange={(e) => field.onChange(formatCEP(e.target.value))} value={field.value || ""} /></FormControl>
+                                                        <div className="relative">
+                                                            <FormControl>
+                                                                <Input
+                                                                    placeholder="00000-000"
+                                                                    maxLength={9}
+                                                                    {...field}
+                                                                    // Substituímos o onChange padrão pelo do Hook
+                                                                    onChange={(e) => handleCepChange(e.target.value)}
+                                                                    value={field.value || ""}
+                                                                    // Desabilita enquanto busca
+                                                                    disabled={isLoadingCep || form.formState.isSubmitting}
+                                                                />
+                                                            </FormControl>
+                                                            {/* Spinner de Loading Absoluto */}
+                                                            {isLoadingCep && (
+                                                                <div className="absolute right-2 top-2.5">
+                                                                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
+
                                                 <FormField control={form.control} name="logradouro" render={({ field }) => (
                                                     <FormItem className="col-span-3">
                                                         <FormLabel>Logradouro</FormLabel>
-                                                        <FormControl><Input placeholder="Rua, Av..." {...field} value={field.value || ""} /></FormControl>
+                                                        <FormControl>
+                                                            {/* Adicionamos readOnly se quiser que venha da API, ou deixa livre */}
+                                                            <Input placeholder="Rua, Av..." {...field} value={field.value || ""} />
+                                                        </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
                                             </div>
+
                                             <div className="grid grid-cols-4 gap-3">
                                                 <FormField control={form.control} name="numero" render={({ field }) => (
                                                     <FormItem className="col-span-1">
                                                         <FormLabel>Número</FormLabel>
-                                                        <FormControl><Input {...field} value={field.value || ""} /></FormControl>
+                                                        <FormControl>
+                                                            {/* ID para foco automático */}
+                                                            <Input id="numero-input" {...field} value={field.value || ""} />
+                                                        </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
@@ -189,6 +218,8 @@ export function CreateCompanyDialog() {
                                                     </FormItem>
                                                 )} />
                                             </div>
+
+                                            {/* ... Resto dos campos (Bairro, Cidade, Estado) ... */}
                                             <div className="grid grid-cols-3 gap-3">
                                                 <FormField control={form.control} name="bairro" render={({ field }) => (
                                                     <FormItem>
@@ -207,7 +238,7 @@ export function CreateCompanyDialog() {
                                                 <FormField control={form.control} name="estado" render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>UF</FormLabel>
-                                                        <FormControl><Input placeholder="SP" maxLength={2} className="uppercase" {...field} value={field.value || ""} /></FormControl>
+                                                        <FormControl><Input maxLength={2} className="uppercase" {...field} value={field.value || ""} /></FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />

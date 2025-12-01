@@ -7,7 +7,7 @@ import { createUserSchema, CreateUserInput } from "@/core/application/schema/use
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";
-import { z } from "zod"; // Import necessário para o schema local
+import { z } from "zod";
 
 // --- Tipos ---
 interface GetUsersParams {

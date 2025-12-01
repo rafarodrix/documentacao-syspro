@@ -24,22 +24,22 @@ import { UserProfile } from "./user-profile";
 const mainNav: NavItemType[] = [
     {
         title: "Visão Geral",
-        href: "/client",
+        href: "/app",
         icon: LayoutDashboard
     },
     {
         title: "Meus Chamados",
-        href: "/client/chamados",
+        href: "/app/chamados",
         icon: Ticket,
     },
     {
         title: "Gestão de Equipe",
-        href: "/client/cadastros",
+        href: "/app/cadastros",
         icon: Users,
     },
     {
         title: "Ferramentas",
-        href: "/client/tools",
+        href: "/app/tools",
         icon: Wrench,
     }
 ];
@@ -101,8 +101,8 @@ export function ClientSidebar({ mobile = false, user }: ClientSidebarProps) {
                         Operacional
                     </p>
                     {filterNav(mainNav).map((item) => {
-                        const isActive = item.href === "/client"
-                            ? pathname === "/client"
+                        const isActive = item.href === "/app"
+                            ? pathname === "/app"
                             : pathname.startsWith(item.href);
 
                         return <NavItem key={item.href} item={item} isActive={isActive} />;
