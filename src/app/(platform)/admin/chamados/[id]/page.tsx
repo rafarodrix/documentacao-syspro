@@ -12,6 +12,7 @@ export default async function ClientTicketPage({ params }: PageProps) {
     return (
         <TicketDetails
             ticket={ticket}
+            // CORREÇÃO AQUI: Adicionando '|| []' para garantir que nunca seja undefined
             articles={articles || []}
             error={error}
             isAdmin={false}

@@ -18,7 +18,7 @@ export default async function AdminLayout({
   // Apenas estes perfis podem ver o layout Admin
   const allowedRoles = ['ADMIN', 'DEVELOPER', 'SUPORTE'];
   if (!allowedRoles.includes(session.role)) {
-    redirect('/client');
+    redirect('/app');
   }
 
   const currentRole = session.role as UserRole;
