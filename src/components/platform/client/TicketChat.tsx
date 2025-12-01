@@ -103,16 +103,10 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                         ? "bg-primary text-primary-foreground rounded-tr-none dark:text-white"
                                         : "bg-card border rounded-tl-none text-foreground dark:bg-zinc-900"
                                 )}>
-                                    {/* CORREÇÃO DE ESTILO:
-                     1. 'prose': Aplica estilos base para HTML.
-                     2. 'prose-sm': Tamanho de fonte adequado.
-                     3. 'dark:prose-invert': Inverte cores no modo escuro (texto claro).
-                     4. Estilos inline específicos para garantir contraste no balão do cliente (que tem fundo azul).
-                  */}
+
                                     <div
                                         className={cn(
                                             "prose prose-sm max-w-none break-words",
-                                            // Se for eu (fundo azul/primary), forçamos texto branco/claro para contraste
                                             isMe ? "prose-headings:text-primary-foreground prose-p:text-primary-foreground prose-a:text-primary-foreground/90 prose-strong:text-primary-foreground prose-li:text-primary-foreground text-white dark:text-white"
                                                 : "text-foreground dark:prose-invert"
                                         )}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getMyTicketsAction } from "../../../../actions/app/ticket-actions";
+import { getMyTicketsAction } from "@/actions/app/ticket-actions";
 import { TicketSheet } from "@/components/platform/client/TicketSheet";
 import {
     Card,
@@ -108,7 +108,7 @@ export default async function ChamadosPage() {
                                 ticketList.map((ticket: any) => (
                                     <TableRow key={ticket.id} className="group hover:bg-muted/40 transition-colors cursor-pointer relative">
                                         <TableCell className="pl-6 font-mono font-medium text-muted-foreground group-hover:text-primary transition-colors">
-                                            <Link href={`/client/chamados/${ticket.id}`} className="absolute inset-0 z-10" />
+                                            <Link href={`/app/chamados/${ticket.id}`} className="absolute inset-0 z-10" />
                                             #{ticket.id}
                                         </TableCell>
                                         <TableCell>
