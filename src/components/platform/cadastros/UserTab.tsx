@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import { toggleUserStatusAction } from "@/actions/admin/user-actions"
+import { Role } from "@prisma/client"
 
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
@@ -20,12 +21,13 @@ import {
 
 // Modais
 import { CreateUserDialog } from "./CreateUserDialog"
-import { EditUserDialog } from "./EditUserDialog" // <--- IMPORTANTE
+import { EditUserDialog } from "./EditUserDialog"
 
 interface UserTabProps {
     data: any[]
     companies: any[]
     isAdmin: boolean
+    currentUserRole?: Role
 }
 
 export function UserTab({ data, companies, isAdmin }: UserTabProps) {

@@ -22,7 +22,7 @@ import { EditCompanyDialog } from "./EditCompanyDialog"
 interface CompanyTabProps {
     data: any[]
     isAdmin: boolean
-    currentUserRole?: Role // Opcional para controle fino futuro
+    currentUserRole?: Role
 }
 
 export function CompanyTab({ data, isAdmin }: CompanyTabProps) {
