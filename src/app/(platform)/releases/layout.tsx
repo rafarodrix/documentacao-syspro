@@ -1,4 +1,4 @@
-import { SiteHeader } from "@/components/site/SiteHeader";
+import { SiteHeader } from "@/components/site/Header";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
 export default function ReleasesLayout({
