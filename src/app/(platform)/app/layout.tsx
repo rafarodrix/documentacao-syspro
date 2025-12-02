@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { getProtectedSession } from '@/lib/auth-helpers';
-import { ClientSidebar } from '@/components/platform/app/sidebar/ClientSidebar';
+import { ClientSidebar } from '@/components/platform/app/app-layout/ClientSidebar';
 import { ClientHeader } from '@/components/platform/app/header/ClientHeader';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";

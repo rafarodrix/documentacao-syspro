@@ -113,6 +113,15 @@ export function CreateCompanyDialog() {
                                                 <FormMessage />
                                             </FormItem>
                                         )} />
+                                        {/* Contato Rápido */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="emailContato" render={({ field }) => (
+                                                <FormItem><FormLabel>E-mail</FormLabel><FormControl><Input type="email" placeholder="contato@empresa.com" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="telefone" render={({ field }) => (
+                                                <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(00) 00000-0000" {...field} onChange={(e) => field.onChange(formatPhone(e.target.value))} maxLength={15} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                        </div>
                                     </TabsContent>
 
                                     {/* --- TAB 2: DADOS FISCAIS --- */}
@@ -145,16 +154,6 @@ export function CreateCompanyDialog() {
 
                                     {/* --- TAB 3: ENDEREÇO & CONTATO --- */}
                                     <TabsContent value="contato" className="space-y-5 mt-0">
-                                        {/* Contato Rápido */}
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <FormField control={form.control} name="emailContato" render={({ field }) => (
-                                                <FormItem><FormLabel>E-mail</FormLabel><FormControl><Input type="email" placeholder="contato@empresa.com" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="telefone" render={({ field }) => (
-                                                <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(00) 00000-0000" {...field} onChange={(e) => field.onChange(formatPhone(e.target.value))} maxLength={15} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                        </div>
-
                                         <div className="h-px bg-border/50" />
 
                                         {/* Endereço Completo */}

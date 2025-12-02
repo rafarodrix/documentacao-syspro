@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { getProtectedSession, type UserRole } from '@/lib/auth-helpers';
-import { AdminSidebar } from '@/components/platform/admin/sidebar/AdminSidebar';
-import { AdminHeader } from '@/components/platform/admin/AdminHeader';
+import { AdminSidebar } from '@/components/platform/admin/admin-layout/AdminSidebar';
+import { AdminHeader } from '@/components/platform/admin/admin-layout/AdminHeader';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";

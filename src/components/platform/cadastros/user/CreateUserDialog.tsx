@@ -137,8 +137,8 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                     <SelectContent>
                         {context !== 'SYSTEM' && (
                             <>
-                                <SelectItem value={Role.CLIENTE_USER}>Usuário Comum</SelectItem>
-                                <SelectItem value={Role.CLIENTE_ADMIN}>Gestor (Admin)</SelectItem>
+                                <SelectItem value={Role.CLIENTE_USER}>Usuário</SelectItem>
+                                <SelectItem value={Role.CLIENTE_ADMIN}>Gestor</SelectItem>
                             </>
                         )}
                         {isAdmin && context !== 'CLIENT' && (
