@@ -115,7 +115,6 @@ export async function createUserAction(data: CreateUserInput) {
         return { success: false as const, error: "Dados inválidos." };
     }
 
-    // --- CORREÇÃO AQUI ---
     // Como a senha é opcional no schema (para edição), precisamos garantir que ela existe na criação.
     if (!data.password) {
         return { success: false as const, error: "A senha é obrigatória para novos usuários." };
@@ -126,7 +125,7 @@ export async function createUserAction(data: CreateUserInput) {
         const newUserResponse = await auth.api.signUpEmail({
             body: {
                 email: data.email,
-                password: data.password, // Agora o TS sabe que é string
+                password: data.password,
                 name: data.name,
             },
             headers: await headers()
