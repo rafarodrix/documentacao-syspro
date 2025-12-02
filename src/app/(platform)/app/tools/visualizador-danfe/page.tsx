@@ -1,6 +1,6 @@
 import { DanfeVisualizerTool } from "@/components/platform/tools/visualizador-danfe";
 
-export default function ClientDanfeVisualizerToolPage() {
+export default function AppDanfeVisualizerToolPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">

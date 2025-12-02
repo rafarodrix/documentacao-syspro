@@ -8,7 +8,7 @@ export default function ClientToolsPage() {
                 <p className="text-muted-foreground">Utilitários para facilitar sua gestão.</p>
             </div>
             {/* Passa o caminho base do cliente */}
-            <ToolsHub basePath="/client/tools" />
+            <ToolsHub basePath="/app/tools" />
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { CalculadoraPrecificacao } from "@/components/platform/tools/calculadora-precificacao";
 
-export default function ClientCalculadoraPrecificacaoPage() {
+export default function AppCalculadoraPrecificacaoPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
