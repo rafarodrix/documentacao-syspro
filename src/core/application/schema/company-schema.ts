@@ -9,7 +9,7 @@ export const createCompanySchema = z.object({
   cnpj: z.string()
     .min(14, "CNPJ incompleto")
     .max(18, "CNPJ inválido")
-    .transform((val) => val.replace(/\D/g, "")), // Remove pontos e traços
+    .transform((val) => val.replace(/\D/g, "")),
 
   razaoSocial: z.string()
     .min(3, "Razão Social é obrigatória")
@@ -17,9 +17,21 @@ export const createCompanySchema = z.object({
 
   nomeFantasia: z.string().optional().or(emptyToUndefined),
 
+  // Data de Fundação recebe string do input date ("2023-10-25") e converte para Date do JS para o Prisma
+  dataFundacao: z.string()
+    .optional()
+    .or(z.literal(""))
+    .transform((val) => (val ? new Date(val) : undefined)),
+
   // --- DADOS DE CONTATO ---
   emailContato: z.string()
     .email("E-mail inválido")
+    .optional()
+    .or(z.literal("")),
+
+  // Email Financeiro
+  emailFinanceiro: z.string()
+    .email("E-mail financeiro inválido")
     .optional()
     .or(z.literal("")),
 
@@ -31,8 +43,10 @@ export const createCompanySchema = z.object({
   inscricaoEstadual: z.string().optional().or(emptyToUndefined),
   inscricaoMunicipal: z.string().optional().or(emptyToUndefined),
 
-  // CORREÇÃO AQUI: Removemos o errorMap.
-  // z.nativeEnum(TaxRegime) já valida se é uma das opções do banco.
+  // CNAE e Suframa
+  cnae: z.string().optional().or(emptyToUndefined),
+  codSuframa: z.string().optional().or(emptyToUndefined),
+
   regimeTributario: z.nativeEnum(TaxRegime).optional(),
 
   // --- ENDEREÇO ---

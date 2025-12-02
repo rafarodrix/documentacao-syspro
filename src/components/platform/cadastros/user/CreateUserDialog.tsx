@@ -31,7 +31,7 @@ interface CreateUserDialogProps {
 export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDialogProps) {
     const [open, setOpen] = useState(false)
 
-    // --- CONFIGURAÇÃO PADRÃO ---
+    // Configuração Padrão
     const defaultCompanyId = !isAdmin && companies.length > 0 ? companies[0].id : ""
     const defaultRole = context === 'SYSTEM' ? Role.SUPORTE : Role.CLIENTE_USER
 
@@ -46,10 +46,11 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
     })
 
     // --- FORM 2: VINCULAR EXISTENTE ---
-    const formLink = useForm({
+    // Usamos any aqui pois o schema de vínculo é diferente do de criação (não precisa de senha/nome)
+    const formLink = useForm<any>({
         defaultValues: {
             email: "",
-            role: defaultRole,
+            role: Role.CLIENTE_USER,
             companyId: defaultCompanyId
         }
     })
@@ -67,7 +68,6 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
     const onSubmitLink = async (data: any) => {
         if (!isAdmin && defaultCompanyId) data.companyId = defaultCompanyId
 
-        // Validação extra manual para garantir que tem empresa selecionada
         if (!data.companyId && context !== 'SYSTEM') {
             toast.error("Selecione uma empresa.")
             return
@@ -79,7 +79,7 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
 
     const handleResult = (result: any, form: any) => {
         if (result.success) {
-            toast.success(result.message || "Sucesso!")
+            toast.success(result.message || "Operação realizada com sucesso!")
             setOpen(false)
             form.reset()
         } else {
@@ -87,7 +87,7 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
         }
     }
 
-    // Renderiza campos comuns (Empresa e Role) para evitar duplicação de código
+    // Componente interno para campos comuns (Role e Empresa)
     const CommonFields = ({ form }: { form: any }) => (
         <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -165,7 +165,7 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                     <DialogDescription>Adicione um novo usuário ou vincule um existente.</DialogDescription>
                 </DialogHeader>
 
-                {/* Se for SYSTEM, não precisa de abas, só criar */}
+                {/* MODO SISTEMA (SÓ CRIAR) */}
                 {context === 'SYSTEM' ? (
                     <Form {...formCreate}>
                         <form onSubmit={formCreate.handleSubmit(onSubmitCreate)} className="space-y-4">
@@ -178,13 +178,19 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                             <FormField control={formCreate.control} name="password" render={({ field }) => (
                                 <FormItem><FormLabel>Senha</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
+
                             <CommonFields form={formCreate} />
+
                             <DialogFooter>
-                                <Button type="submit" disabled={formCreate.formState.isSubmitting}>Criar Admin</Button>
+                                <Button type="submit" disabled={formCreate.formState.isSubmitting}>
+                                    {formCreate.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Criar Admin
+                                </Button>
                             </DialogFooter>
                         </form>
                     </Form>
                 ) : (
+                    // MODO CLIENTE (ABAS: CRIAR OU VINCULAR)
                     <Tabs defaultValue="create" className="w-full">
                         <TabsList className="grid w-full grid-cols-2 mb-4">
                             <TabsTrigger value="create">Criar Novo</TabsTrigger>
@@ -204,7 +210,9 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                                     <FormField control={formCreate.control} name="password" render={({ field }) => (
                                         <FormItem><FormLabel>Senha</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
+
                                     <CommonFields form={formCreate} />
+
                                     <DialogFooter>
                                         <Button type="submit" disabled={formCreate.formState.isSubmitting}>
                                             {formCreate.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -219,17 +227,20 @@ export function CreateUserDialog({ companies, isAdmin, context }: CreateUserDial
                         <TabsContent value="link">
                             <Form {...formLink}>
                                 <form onSubmit={formLink.handleSubmit(onSubmitLink)} className="space-y-4">
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md text-xs text-blue-700 dark:text-blue-300 mb-2">
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md text-xs text-blue-700 dark:text-blue-300 mb-2 border border-blue-100 dark:border-blue-800">
                                         Adicione um usuário que já tem conta em outra empresa (Matriz/Filial) a esta organização.
                                     </div>
+
                                     <FormField control={formLink.control} name="email" render={({ field }) => (
                                         <FormItem><FormLabel>E-mail do Usuário</FormLabel><FormControl><Input placeholder="usuario@existente.com" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
+
                                     <CommonFields form={formLink} />
+
                                     <DialogFooter>
-                                        <Button type="submit" variant="secondary" disabled={formLink.formState.isSubmitting}>
-                                            {formLink.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
-                                            Vincular
+                                        <Button type="submit" variant="secondary" disabled={formLink.formState.isSubmitting} className="gap-2">
+                                            {formLink.formState.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
+                                            Vincular Acesso
                                         </Button>
                                     </DialogFooter>
                                 </form>

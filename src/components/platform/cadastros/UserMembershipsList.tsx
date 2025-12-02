@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Trash2, Building2, Plus, Save, Loader2 } from "lucide-react"
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue

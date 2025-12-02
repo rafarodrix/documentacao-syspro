@@ -1,4 +1,10 @@
-# Syspro ERP - Plataforma SaaS Multi-tenant
+Aqui está o arquivo **`README.md`** atualizado e profissional, refletindo a arquitetura moderna (Clean Architecture) que implementamos, com as explicações sobre a responsabilidade de cada camada (UI, Hooks, Core) e as novas integrações (Zammad, Email).
+
+Você pode copiar e colar este conteúdo na raiz do seu projeto.
+
+-----
+
+# 🚀 Syspro ERP - Plataforma SaaS Multi-tenant
 
 **Desenvolvido por Trilink Software**
 
@@ -6,65 +12,69 @@ O **Syspro ERP** é uma plataforma de gestão empresarial (SaaS) focada em manuf
 
 -----
 
-## Stack
+## 🛠 Tech Stack
 
   * **Framework:** [Next.js 14+](https://nextjs.org/) (App Router & Server Actions)
   * **Linguagem:** TypeScript
   * **Banco de Dados:** PostgreSQL (via [Supabase](https://supabase.com/))
   * **ORM:** [Prisma](https://www.prisma.io/)
-  * **Autenticação:** Better Auth
+  * **Autenticação:** Better Auth (Scrypt Hashing)
   * **Estilização:** Tailwind CSS + ShadcnUI + Magic UI
-  * **Arquitetura:** Clean Architecture & DDD (Domain-Driven Design)
-  * **Integrações:** Zammad (Helpdesk)
+  * **Arquitetura:** Clean Architecture & MVVM (Model-View-ViewModel)
+  * **Integrações:** Zammad (Helpdesk/Suporte)
 
 -----
 
-## Estrutura do Projeto
+## 🧠 Arquitetura do Projeto
 
-O projeto segue uma estrutura híbrida que separa a camada de apresentação (Next.js) do núcleo da aplicação (Core/Domain).
+O projeto segue uma estrutura híbrida que separa a camada de apresentação (Next.js) do núcleo da aplicação (Core/Domain). Seguimos o princípio de **Separação de Responsabilidades**:
 
-UI (Componente): Só deve se preocupar com COMO as coisas aparecem (JSX, Tailwind, Ícones). Ele deve ser "burro".
-Logic (Custom Hook): Só deve se preocupar com O QUE a tela faz (Estados, Loading, chama a função, trata erro).
-Core (Gateway/Services): Só deve se preocupar com QUEM resolve o problema (API, Banco de Dados, Cálculos).
+1.  **UI (Components):** Responsável apenas por **COMO** as coisas aparecem (JSX, Tailwind, Ícones). São componentes "burros" que recebem dados via props.
+2.  **Logic (Hooks):** Responsável por **O QUE** a tela faz (Gerencia Estados `useState`, Loading, chama a função, trata erro `try/catch`).
+3.  **Core (Gateways/Actions):** Responsável por **QUEM** resolve o problema (API Externa, Banco de Dados, Regras de Negócio, Cálculos).
+
+### Estrutura de Pastas
 
 ```text
 src/
-├── actions/                  # Server Actions (Controllers) - Ponto de entrada do Backend
-│   ├── auth/                 # Login, Registro, Logout
-│   ├── admin/                # Ações do Super Admin (Global)
-│   ├── app/                  # Ações dos Usuários/Clientes (Tenants)
-│   └── tickets/              # Ações compartilhadas (ex: Zammad)
+├── actions/                  # Server Actions (Controllers) - O Backend do Next.js
+│   ├── admin/                # Ações exclusivas de Admin (Gestão de Empresas, Usuários)
+│   ├── auth/                 # Ações de Registro (autenticação é via API route)
+│   └── tickets/              # Ações unificadas de Suporte (Zammad Integration)
 │
-├── app/                      # Roteamento e UI (Next.js App Router)
-│   ├── (auth)/               # Rotas públicas (Login, Register) - Sem Sidebar
-│   ├── (platform)/           # Rotas protegidas
-│   │   ├── admin/            # Painel do Super Admin (Gestão de Saas)
-│   │   └── app/              # Painel do Cliente (Dashboard, Equipe, Configs)
-│   └── api/                  # Webhooks e rotas REST externas
+├── app/                      # Roteamento (Next.js App Router)
+│   ├── (auth)/               # Rotas públicas (Login, Register, Recover)
+│   ├── (platform)/           # Rotas protegidas (Layout com Sidebar)
+│   │   ├── admin/            # Painel do Super Admin
+│   │   └── app/              # Painel do Cliente (Tenant)
+│   └── api/                  # Webhooks e Rotas de API (Auth, Zammad Hooks)
 │
-├── components/               # Componentes UI Reutilizáveis
-│   ├── ui/                   # ShadcnUI (Botões, Inputs)
-│   └── ...                   # Componentes específicos
+├── components/               # Camada de Apresentação (UI)
+│   ├── platform/             # Componentes de Negócio (TicketChat, UserTab, CompanyForm)
+│   └── ui/                   # Componentes Base (Button, Input, Dialog - Shadcn)
 │
-├── core/                     # Clean Architecture (Regras de Negócio Puras)
-│   ├── application/          # Use Cases e Schemas (Zod)
-│   ├── domain/               # Entidades e Interfaces do Domínio
-│   ├── infrastructure/       # Implementações (Gateways, Mappers, Services Externos)
-│   └── config/               # Permissões e Configurações estáticas
+├── core/                     # O Coração da Aplicação (Regras Puras)
+│   ├── application/          # DTOs e Schemas de Validação (Zod)
+│   ├── infrastructure/       # Implementações Técnicas
+│   │   └── gateways/         # Adaptadores para APIs (ZammadGateway, AuthGateway)
+│   └── config/               # Configurações Estáticas (Permissões RBAC)
 │
-├── lib/                      # Configurações de bibliotecas (Prisma Client, Utils)
-└── prisma/                   # Schema do Banco de Dados e Migrations
+├── hooks/                    # Camada de Lógica de Estado (Client-Side)
+│   ├── use-ticket-chat.ts    # Ex: Lógica de envio, scroll e user identification
+│   └── use-address-lookup.ts # Ex: Busca de CEP automática
+│
+└── lib/                      # Configurações de bibliotecas (Prisma, Utils, Auth Client)
 ```
 
 -----
 
 ## Como Rodar o Projeto
 
-### Pré-requisitos
+### 1. Pré-requisitos
 
 Certifique-se de ter o Node.js instalado (v18 ou superior).
 
-### Instalação
+### 2. Instalação
 
 ```bash
 # Clone o repositório
@@ -74,18 +84,29 @@ git clone https://github.com/seu-repo/syspro.git
 npm install
 ```
 
-### 3\. Configuração de Ambiente (.env)
+### 3. Configuração de Ambiente (.env)
 
-Crie um arquivo `.env` na raiz baseado no `.env.example`:
+Crie um arquivo `.env` na raiz baseado nas chaves necessárias:
 
 ```env
-DATABASE_URL="postgresql://user:pass@host:5432/db?pgbouncer=true"
+# Banco de Dados (Supabase)
+DATABASE_URL="postgresql://user:pass@host:6543/db?pgbouncer=true"
 DIRECT_URL="postgresql://user:pass@host:5432/db"
-BETTER_AUTH_SECRET="sua-chave-secreta"
-# Outras chaves (Zammad, AWS, etc.)
+
+# Autenticação (Better Auth)
+BETTER_AUTH_SECRET="sua-chave-secreta-gerada"
+BETTER_AUTH_URL="http://localhost:3000" # Em produção: https://seu-dominio.com
+
+# Integração Zammad (Suporte)
+ZAMMAD_URL="https://suporte.suaempresa.com.br"
+ZAMMAD_TOKEN="seu-token-de-agente"
+
+# Envio de E-mail (Gmail SMTP)
+GMAIL_USER="seu-email@gmail.com"
+GMAIL_PASS="sua-senha-de-app"
 ```
 
-### 4\. Iniciar o Servidor
+### 4. Iniciar o Servidor
 
 ```bash
 npm run dev
@@ -95,69 +116,56 @@ O sistema estará rodando em `http://localhost:3000`.
 
 -----
 
-## Gerenciamento do Banco de Dados (Prisma)
+## 🗄️ Gerenciamento do Banco de Dados (Prisma)
 
-Como utilizamos PostgreSQL com Prisma, siga os comandos abaixo dependendo do cenário:
+### Em Desenvolvimento
 
-### Em Desenvolvimento (Local)
-
-**1. Aplicar mudanças no Schema (Criar tabelas/colunas):**
-Use este comando sempre que alterar o `schema.prisma`. Ele cria o arquivo de migração e aplica no banco.
+**1. Aplicar mudanças no Schema:**
+Use este comando sempre que alterar o `schema.prisma`.
 
 ```bash
-npx prisma migrate dev --name nome_da_migração
+npx prisma migrate dev --name descricao_da_mudanca
 ```
 
-**2. Apenas ger
+**2. Gerar tipagem (Se o TS reclamar):**
 
 ```bash
 npx prisma generate
 ```
 
-**3. Popular o banco (Seed):**
-Para criar a empresa padrão e o usuário Admin inicial (conforme configurado em `prisma/seed.ts`):
-
-```bash
-npx prisma db seed
-```
-
-**4. Visualizar o banco (Admin Visual):**
+**3. Visualizar o banco (Admin Visual):**
 
 ```bash
 npx prisma studio
 ```
 
-### Em Produção
+### Em Produção (Vercel/Deploy)
 
-**1. Aplicar migrações:**
+O comando de build já deve incluir o `prisma generate`, mas para aplicar migrações no banco de produção:
 
 ```bash
 npx prisma migrate deploy
 ```
 
-**2. Gerar cliente:**
-Geralmente feito automaticamente no `build`, mas se necessário:
-
-```bash
-npx prisma generate
-```
-
 -----
 
-## 🔐 Fluxos de Acesso e Permissões
+## Controle de Acesso (RBAC)
 
-O sistema possui uma divisão lógica de acessos baseada em **Roles** e **Tenancy**:
+O sistema utiliza um modelo de permissões estático e performático definido em `src/core/config/permissions.ts`.
 
-1.  **Rota `/register` (Público):**
-      * Cria uma nova `Company` e um novo `User`.
-      * Gera automaticamente um vínculo `Membership` com role `ADMIN`.
-2.  **Rota `/admin` (Super Admin):**
-      * Exclusivo para gestão da plataforma (Criar planos, banir empresas).
-      * Requer permissão global.
-3.  **Rota `/app` (Cliente):**
-      * Área de trabalho da empresa.
-      * Usuários `ADMIN` podem convidar novos membros em `/app/settings/team`.
-      * Usuários `USER` acessam apenas suas funções permitidas.
+  * **ADMIN:** Acesso irrestrito (Visão Global).
+  * **DEVELOPER:** Acesso Restrito visão somente dos tickets de desenvolviment.
+  * **SUPORTE:** Acesso a chamados e visualização básica de cadastros.
+  * **CLIENTE_ADMIN:** Gestão total da própria empresa (cria usuários, vê contratos).
+  * **CLIENTE_USER:** Acesso operacional limitado.
+
+### Fluxo de Cadastro
+
+1.  **Novo Cliente:** Criado via Painel Admin (Action `createCompany`).
+2.  **Novo Usuário:**
+      * Pode ser criado pelo Admin (vinculado a qualquer empresa).
+      * Pode ser convidado pelo Gestor do Cliente (vinculado apenas à empresa dele).
+3.  **Multi-Tenant:** Um mesmo e-mail pode ser vinculado a múltiplas empresas (tabela `Membership`).
 
 -----
 
@@ -166,11 +174,11 @@ O sistema possui uma divisão lógica de acessos baseada em **Roles** e **Tenanc
 **Trilink Software**
 
   * **Suporte Técnico:** [rafael@trilinksoftware.com.br](mailto:rafael@trilinksoftware.com.br)
-  * **Telefone/WhatsApp:** +55 (34) 99771-3731
-  * **Site:** [www.trilinksoftware.com.br](https://www.google.com/search?q=http://www.trilinksoftware.com.br)
-  * **Horário:** Segunda a Sexta, das 8h às 18h (Horário de Brasília).
+  * **Telefone:** +55 (34) 99771-3731
+  * **Site:** [www.trilinksoftware.com.br](https://www.trilinksoftware.com.br)
+  * **Horário:** Segunda a Sexta, das 8h às 18h.
 
 -----
 
-> **Nota:**
-> Ao criar novas funcionalidades que envolvam lógica de negócio complexa (ex: Integração Zammad), utilize a pasta `src/core`. Evite colocar regras de negócio pesadas dentro dos componentes React ou Server Actions. As Actions devem apenas orquestrar a chamada para os Use Cases.
+> **Nota para Desenvolvedores:**
+> Ao criar novas funcionalidades, evite colocar lógica de negócio (regras, cálculos, chamadas de API) dentro dos arquivos `page.tsx` ou componentes visuais. Crie um **Hook** para o estado e uma **Server Action/Gateway** para o processamento de dados.

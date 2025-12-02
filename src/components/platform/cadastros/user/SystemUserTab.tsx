@@ -3,17 +3,16 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import { toggleUserStatusAction } from "@/actions/admin/user-actions"
-import { Role } from "@prisma/client"
 
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
-    Search, MoreHorizontal, Shield, Building, UserX, Mail, UserCheck, Loader2
+    Search, MoreHorizontal, ShieldAlert, Code2, Headset, UserX, UserCheck, Loader2, Mail
 } from "lucide-react"
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator
@@ -23,28 +22,25 @@ import {
 import { CreateUserDialog } from "./CreateUserDialog"
 import { EditUserDialog } from "./EditUserDialog"
 
-interface UserTabProps {
+interface SystemUserTabProps {
     data: any[]
     companies: any[]
-    isAdmin: boolean
-    currentUserRole?: Role
 }
 
-export function UserTab({ data, companies, isAdmin }: UserTabProps) {
+export function SystemUserTab({ data, companies }: SystemUserTabProps) {
     const [searchTerm, setSearchTerm] = useState("")
 
-    // --- ESTADOS ---
+    // --- ESTADOS DE AÇÃO ---
     const [userToEdit, setUserToEdit] = useState<any | null>(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
-    const [loadingId, setLoadingId] = useState<string | null>(null) // ID do usuário sendo alterado
+    const [loadingId, setLoadingId] = useState<string | null>(null)
 
-    // Filtro Local
     const filteredData = data.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
-    // --- AÇÕES ---
+    // --- HANDLERS ---
 
     function handleEdit(user: any) {
         setUserToEdit(user)
@@ -66,16 +62,16 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
     return (
         <div className="space-y-4">
 
-            {/* MODAL DE EDIÇÃO */}
+            {/* --- MODAL DE EDIÇÃO (ADICIONADO AQUI) --- */}
             <EditUserDialog
                 open={isEditOpen}
                 onOpenChange={setIsEditOpen}
                 user={userToEdit}
-                companies={companies}
-                isAdmin={isAdmin}
+                companies={companies} // Passando companies mesmo que Admins não usem
+                isAdmin={true}
             />
 
-            {/* --- TOPO --- */}
+            {/* TOPO */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
                 <div className="relative w-full sm:w-72 group">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -87,17 +83,17 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                     />
                 </div>
 
-                <CreateUserDialog companies={companies} isAdmin={isAdmin} context="CLIENT" />
+                {/* Modal de Criação */}
+                <CreateUserDialog companies={companies} isAdmin={true} context="SYSTEM" />
             </div>
 
-            {/* --- TABELA --- */}
+            {/* TABELA */}
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
-                            <TableHead className="w-[300px]">Usuário</TableHead>
-                            <TableHead>Função</TableHead>
-                            <TableHead>Vínculos</TableHead>
+                            <TableHead className="w-[350px]">Membro da Equipe</TableHead>
+                            <TableHead>Nível de Acesso</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
@@ -105,14 +101,14 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                     <TableBody>
                         {filteredData.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-64 text-center">
+                                <TableCell colSpan={4} className="h-64 text-center">
                                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                                         <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-2">
                                             <UserX className="h-6 w-6 opacity-50" />
                                         </div>
-                                        <p className="text-base font-medium text-foreground">Nenhum usuário encontrado</p>
+                                        <p className="text-base font-medium text-foreground">Nenhum administrador encontrado</p>
                                         <p className="text-sm">
-                                            {searchTerm ? "Tente buscar por outro termo." : "Convide membros para compor sua equipe."}
+                                            {searchTerm ? "Tente buscar por outro termo." : "Adicione membros à equipe interna."}
                                         </p>
                                     </div>
                                 </TableCell>
@@ -121,66 +117,33 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                             filteredData.map((user) => (
                                 <TableRow key={user.id} className="hover:bg-muted/30 transition-colors cursor-default">
 
-                                    {/* Coluna 1: Identificação */}
+                                    {/* Identificação */}
                                     <TableCell className="py-3">
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="h-9 w-9 border border-border/50">
+                                            <Avatar className="h-9 w-9 border border-purple-200/50">
                                                 <AvatarImage src={user.image} />
-                                                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                                                    {user.name ? user.name.substring(0, 2).toUpperCase() : "??"}
+                                                <AvatarFallback className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-bold text-xs">
+                                                    {user.name?.substring(0, 2).toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="flex flex-col">
                                                 <span className="font-medium text-sm text-foreground">{user.name}</span>
-                                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    {user.email}
-                                                </span>
+                                                <span className="text-xs text-muted-foreground">{user.email}</span>
                                             </div>
                                         </div>
                                     </TableCell>
 
-                                    {/* Coluna 2: Role */}
+                                    {/* Role */}
                                     <TableCell>
-                                        {user.role === 'ADMIN' || user.role === 'DEVELOPER' ? (
-                                            <Badge variant="default" className="text-[10px] bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/20 gap-1 px-2 hover:bg-purple-500/25">
-                                                <Shield className="w-3 h-3" /> Global Admin
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="font-normal text-muted-foreground bg-muted/50">
-                                                {user.role === 'CLIENTE_ADMIN' ? 'Gestor' : 'Colaborador'}
-                                            </Badge>
-                                        )}
+                                        <RoleBadge role={user.role} />
                                     </TableCell>
 
-                                    {/* Coluna 3: Vínculos */}
-                                    <TableCell>
-                                        <div className="flex flex-wrap gap-1.5 max-w-[250px]">
-                                            {user.memberships && user.memberships.length > 0 ? (
-                                                user.memberships.map((m: any) => (
-                                                    <Badge
-                                                        key={m.company.id}
-                                                        variant="outline"
-                                                        className="text-[10px] gap-1 font-normal bg-background border-border/60 text-muted-foreground"
-                                                    >
-                                                        <Building className="w-3 h-3 opacity-70" />
-                                                        {m.company.nomeFantasia || m.company.razaoSocial}
-                                                        {m.role === 'ADMIN' && (
-                                                            <span className="text-amber-500 font-bold ml-0.5" title="Admin da Empresa">*</span>
-                                                        )}
-                                                    </Badge>
-                                                ))
-                                            ) : (
-                                                <span className="text-xs text-muted-foreground/50 italic">Sem vínculo</span>
-                                            )}
-                                        </div>
-                                    </TableCell>
-
-                                    {/* Coluna 4: Status */}
+                                    {/* Status */}
                                     <TableCell>
                                         <StatusBadge isActive={user.isActive} />
                                     </TableCell>
 
-                                    {/* Coluna 5: Ações */}
+                                    {/* Ações */}
                                     <TableCell className="text-right">
                                         {loadingId === user.id ? (
                                             <div className="flex justify-end pr-2"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
@@ -198,11 +161,9 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                                                         <UserCheck className="w-4 h-4" /> Editar Dados
                                                     </DropdownMenuItem>
 
-                                                    {isAdmin && (
-                                                        <DropdownMenuItem className="cursor-pointer gap-2">
-                                                            <Mail className="w-4 h-4" /> Reenviar Convite
-                                                        </DropdownMenuItem>
-                                                    )}
+                                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                                        <Mail className="w-4 h-4" /> Resetar Senha
+                                                    </DropdownMenuItem>
 
                                                     <DropdownMenuSeparator />
 
@@ -223,6 +184,30 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                 </Table>
             </div>
         </div>
+    )
+}
+
+// Helpers Visuais
+
+function RoleBadge({ role }: { role: string }) {
+    if (role === 'DEVELOPER') {
+        return (
+            <Badge variant="outline" className="border-blue-500/30 text-blue-600 bg-blue-500/10 gap-1.5 px-2 py-0.5 font-normal">
+                <Code2 className="w-3 h-3" /> Developer
+            </Badge>
+        )
+    }
+    if (role === 'SUPORTE') {
+        return (
+            <Badge variant="outline" className="border-orange-500/30 text-orange-600 bg-orange-500/10 gap-1.5 px-2 py-0.5 font-normal">
+                <Headset className="w-3 h-3" /> Suporte
+            </Badge>
+        )
+    }
+    return (
+        <Badge variant="default" className="bg-purple-600/90 hover:bg-purple-700 border-transparent gap-1.5 px-2 py-0.5 shadow-sm shadow-purple-500/20">
+            <ShieldAlert className="w-3 h-3" /> Super Admin
+        </Badge>
     )
 }
 

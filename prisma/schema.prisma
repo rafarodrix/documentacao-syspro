@@ -58,9 +58,13 @@ model Company {
   inscricaoEstadual  String?
   inscricaoMunicipal String?
   regimeTributario   TaxRegime?
+  cnae          String?
+  codSuframa    String?
+  dataFundacao  DateTime?
 
   // CONTATO
   emailContato String?
+  emailFinanceiro String?
   telefone     String?
   website      String?
 
@@ -97,22 +101,34 @@ model Company {
 model User {
   id            String    @id @default(cuid())
   
-  // Auth Fields
+  // --- AUTH (Existentes) ---
   email         String    @unique
   name          String?
   emailVerified Boolean   @default(false)
   image         String?
   
-  // Role Global (Sistema)
+  // --- DADOS PROFISSIONAIS (Novos) ---
+  jobTitle      String?   // Ex: "Gerente Financeiro", "Vendedor"
+  phone         String?   // WhatsApp/Celular para contato rápido ou 2FA
+  cpf           String?   // Opcional: Útil se o sistema tiver módulo de RH ou Logs fiscais
+  
+  // --- PREFERÊNCIAS (Novos) ---
+  // JSON para configurações de UI (Tema, notificações, idioma)
+  // Evita criar muitas colunas para configs simples.
+  preferences   Json?     @default("{}") 
+
+  // --- AUDITORIA (Novos) ---
+  lastLoginAt   DateTime? // Para saber se o usuário está ativo
+  
+  // --- SISTEMA (Existentes) ---
   role          Role      @default(CLIENTE_USER) 
   isActive      Boolean   @default(true)
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // RELAÇÃO MULTI-TENANT
+  // RELAÇÕES
   memberships   Membership[]
-
   sessions      Session[]
   accounts      Account[]
 
@@ -198,21 +214,31 @@ model Verification {
 
 model Contract {
   id             String         @id @default(cuid())
+
+  // --- DADOS FINANCEIROS (Use Decimal para dinheiro/porcentagem precisa) ---
+  percentage     Decimal        @db.Decimal(5, 2) // Ex: 10.50
+  minimumWage    Decimal        @db.Decimal(10, 2) // Ex: 1412.00
+  taxRate        Decimal        @default(0) @db.Decimal(5, 2)
+  programmerRate Decimal        @default(0) @db.Decimal(10, 2)
   
-  percentage     Float     
-  minimumWage    Float     
-  taxRate        Float          @default(0)
-  programmerRate Float          @default(0)
-  
+  // Opcional: Valor total calculado do contrato (cache)
+  totalValue     Decimal?       @db.Decimal(12, 2) 
+
+  // --- VIGÊNCIA ---
   startDate      DateTime       @default(now())
+  endDate        DateTime?      // Se nulo, é indeterminado
+
+  // --- ESTADO ---
+  status         ContractStatus @default(ACTIVE)
   
-  status         ContractStatus @default(ACTIVE) 
-  
+  // --- RELACIONAMENTOS ---
   companyId      String
   company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
+
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+
+  @@map("contract")
 }
 
 model SystemSetting {

@@ -3,8 +3,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Building2, Users, ShieldCheck, Lock } from "lucide-react"
 import { CompanyTab } from "./CompanyTab"
-import { UserTab } from "./UserTab"
-import { SystemUserTab } from "./SystemUserTab"
+import { UserTab } from "./user/UserTab"
+import { SystemUserTab } from "./user/SystemUserTab"
 import { Role } from "@prisma/client"
 import { hasPermission } from "@/lib/rbac"
 
