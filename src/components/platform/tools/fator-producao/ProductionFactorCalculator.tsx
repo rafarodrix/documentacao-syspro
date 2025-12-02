@@ -3,7 +3,7 @@
 import { useState } from "react"
 import {
     Plus, Trash2, Calculator, FileDown, HelpCircle,
-    ArrowRight, Package, Scale, RefreshCcw
+    ArrowRight, Package, Scale, RefreshCcw, Settings
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -22,18 +22,16 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-
-// Importações para PDF
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
-// Tipo para o item da receita
 interface RecipeItem {
     id: string
     productName: string
-    packageWeight: number // Peso da embalagem (ex: 40kg)
-    productionQty: number // Quanto vai usar na receita (ex: 450kg)
+    packageWeight: number
+    productionQty: number
 }
 
 export function ProductionFactorCalculator() {
@@ -41,7 +39,8 @@ export function ProductionFactorCalculator() {
         { id: "1", productName: "MILHETO MOIDO", packageWeight: 40, productionQty: 450 }
     ])
 
-    // --- AÇÕES DE GERENCIAMENTO ---
+    // NOVO ESTADO: Rendimento da Receita
+    const [recipeYield, setRecipeYield] = useState<number>(25)
 
     const addItem = () => {
         setItems([
@@ -55,172 +54,182 @@ export function ProductionFactorCalculator() {
     }
 
     const clearAll = () => {
-        if (confirm("Deseja limpar toda a lista?")) {
-            setItems([])
-        }
+        if (confirm("Deseja limpar toda a lista?")) setItems([])
     }
 
     const updateItem = (id: string, field: keyof RecipeItem, value: string | number) => {
         setItems(items.map(item => {
-            if (item.id === id) {
-                return { ...item, [field]: value }
-            }
+            if (item.id === id) return { ...item, [field]: value }
             return item
         }))
     }
 
-    // --- CÁLCULOS AUXILIARES ---
     const calculateFactor = (weight: number) => weight > 0 ? (1 / weight) : 0
+
+    // Cálculo da Baixa Total
     const calculateDraw = (qty: number, factor: number) => qty * factor
 
-    // --- EXPORTAÇÃO PDF ---
+    // Cálculo do Fator de Produção (Unitário por Rendimento)
+    // Ex: Se gasto 11,25 sacos para fazer 25un, quanto gasto pra fazer 1?
+    // Ou: (Qtd / Rendimento) * Fator
+    const calculateProductionFactor = (qty: number, factor: number) => {
+        if (recipeYield === 0) return 0;
+        return (qty / recipeYield) * factor;
+    }
+
     const handleExportPDF = () => {
         const doc = new jsPDF()
-
-        // Título
         doc.setFontSize(18)
-        doc.text("Relatório de Fatores de Produção", 14, 20)
-
+        doc.text("Ficha Técnica de Produção", 14, 20)
         doc.setFontSize(10)
-        doc.text(`Gerado em: ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`, 14, 28)
+        doc.text(`Rendimento Base: ${recipeYield} unidades`, 14, 28)
 
-        // Preparar dados para a tabela
         const tableData = items.map(item => {
             const factor = calculateFactor(item.packageWeight)
+            const prodFactor = calculateProductionFactor(item.productionQty, factor)
             const draw = calculateDraw(item.productionQty, factor)
 
             return [
-                item.productName || "Sem nome",
+                item.productName,
                 `${item.packageWeight} kg`,
                 factor.toFixed(4),
                 `${item.productionQty} kg`,
+                prodFactor.toFixed(4), // Novo campo no PDF
                 `${draw.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} UN`
             ]
         })
 
-        // Gerar Tabela
         autoTable(doc, {
             startY: 35,
-            head: [['Produto / Matéria Prima', 'Peso Emb.', 'Fator (1/Peso)', 'Qtd. Receita', 'Baixa Estoque']],
+            head: [['Produto', 'Peso Emb.', 'Fator (1/Peso)', 'Qtd. Total', 'Fator Prod.', 'Baixa Total']],
             body: tableData,
-            headStyles: { fillColor: [22, 163, 74] }, // Cor verde (Emerald 600)
-            styles: { fontSize: 10, cellPadding: 3 },
-            alternateRowStyles: { fillColor: [240, 253, 244] } // Verde bem claro
+            headStyles: { fillColor: [22, 163, 74] },
+            styles: { fontSize: 9, cellPadding: 2 },
         })
 
-        // Rodapé com explicação
-        const finalY = (doc as any).lastAutoTable.finalY || 40
-        doc.setFontSize(8)
-        doc.text("Fórmula: Fator = 1 / Peso Embalagem. Baixa = Qtd Receita * Fator.", 14, finalY + 10)
-
-        doc.save("fator_producao.pdf")
-        toast.success("PDF gerado com sucesso!")
+        doc.save("ficha_tecnica.pdf")
+        toast.success("PDF gerado!")
     }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
 
-            {/* --- CABEÇALHO E AÇÕES --- */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            {/* CABEÇALHO E RENDIMENTO */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-card p-4 rounded-xl border shadow-sm">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Calculadora de Produção</h2>
-                    <p className="text-muted-foreground">Defina composições e converta KG para Unidades de estoque.</p>
+                    <p className="text-muted-foreground">Defina a composição e fatores de conversão.</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={clearAll} disabled={items.length === 0}>
-                        <RefreshCcw className="w-4 h-4 mr-2" /> Limpar
-                    </Button>
-                    <Button onClick={handleExportPDF} className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled={items.length === 0}>
-                        <FileDown className="w-4 h-4 mr-2" /> Exportar PDF
-                    </Button>
+
+                {/* INPUT DE RENDIMENTO */}
+                <div className="flex items-end gap-3">
+                    <div className="space-y-1.5">
+                        <Label className="text-xs uppercase font-bold text-muted-foreground">Rendimento Receita</Label>
+                        <div className="relative">
+                            <Settings className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="number"
+                                className="pl-9 w-32 bg-background border-primary/20 focus:border-primary font-bold text-lg"
+                                value={recipeYield}
+                                onChange={(e) => setRecipeYield(Number(e.target.value))}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="icon" onClick={clearAll} title="Limpar">
+                            <RefreshCcw className="w-4 h-4" />
+                        </Button>
+                        <Button onClick={handleExportPDF} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                            <FileDown className="w-4 h-4 mr-2" /> PDF
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            {/* --- ÁREA DA TABELA (CARD PRINCIPAL) --- */}
+            {/* TABELA */}
             <Card className="border-border/60 shadow-sm">
                 <CardContent className="p-0">
                     <div className="rounded-md overflow-hidden">
                         <Table>
                             <TableHeader className="bg-muted/40">
                                 <TableRow>
-                                    <TableHead className="w-[35%] pl-4">Produto (Matéria Prima)</TableHead>
-                                    <TableHead className="text-center">Peso Embalagem (KG)</TableHead>
-                                    <TableHead className="text-center text-blue-600 font-semibold">Fator (Un -&gt; Kg)</TableHead>
-                                    <TableHead className="text-center">Qtd. Receita (KG)</TableHead>
-                                    <TableHead className="text-center text-emerald-600 font-bold bg-emerald-500/5">Baixa Estoque (UN)</TableHead>
+                                    <TableHead className="w-[30%] pl-4">Insumo</TableHead>
+                                    <TableHead className="text-center">Peso Emb. (KG)</TableHead>
+                                    <TableHead className="text-center text-blue-600 font-semibold">Fator (Unit)</TableHead>
+                                    <TableHead className="text-center">Qtd. Total (KG)</TableHead>
+
+                                    {/* COLUNA NOVA: Fator Produção */}
+                                    <TableHead className="text-center bg-amber-50/50 text-amber-700 font-bold border-l border-r border-amber-100">
+                                        Fator Prod.
+                                    </TableHead>
+
+                                    <TableHead className="text-center text-emerald-600 font-bold bg-emerald-50/30">
+                                        Baixa Total (UN)
+                                    </TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {items.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                                            Nenhuma composição adicionada. Clique em "Adicionar Item".
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    items.map((item) => {
-                                        const factor = calculateFactor(item.packageWeight);
-                                        const finalStockDraw = calculateDraw(item.productionQty, factor);
+                                {items.map((item) => {
+                                    const factor = calculateFactor(item.packageWeight);
+                                    const prodFactor = calculateProductionFactor(item.productionQty, factor);
+                                    const finalStockDraw = calculateDraw(item.productionQty, factor);
 
-                                        return (
-                                            <TableRow key={item.id}>
-                                                <TableCell className="pl-4">
-                                                    <Input
-                                                        placeholder="Nome do insumo"
-                                                        value={item.productName}
-                                                        onChange={(e) => updateItem(item.id, "productName", e.target.value)}
-                                                        className="border-transparent bg-transparent hover:bg-muted/50 focus:bg-background focus:border-primary transition-all"
-                                                    />
-                                                </TableCell>
+                                    return (
+                                        <TableRow key={item.id}>
+                                            <TableCell className="pl-4">
+                                                <Input
+                                                    value={item.productName}
+                                                    onChange={(e) => updateItem(item.id, "productName", e.target.value)}
+                                                    className="border-transparent bg-transparent hover:bg-muted/50 focus:bg-background focus:border-primary transition-all font-medium"
+                                                />
+                                            </TableCell>
 
-                                                <TableCell>
-                                                    <div className="flex justify-center">
-                                                        <Input
-                                                            type="number"
-                                                            placeholder="0"
-                                                            className="w-24 text-center border-border/50 focus:border-primary"
-                                                            value={item.packageWeight || ""}
-                                                            onChange={(e) => updateItem(item.id, "packageWeight", Number(e.target.value))}
-                                                        />
-                                                    </div>
-                                                </TableCell>
+                                            <TableCell>
+                                                <Input
+                                                    type="number"
+                                                    className="text-center border-transparent hover:border-input focus:border-primary"
+                                                    value={item.packageWeight || ""}
+                                                    onChange={(e) => updateItem(item.id, "packageWeight", Number(e.target.value))}
+                                                />
+                                            </TableCell>
 
-                                                <TableCell className="text-center font-mono text-sm text-blue-600 bg-blue-50/30 dark:bg-blue-900/10">
-                                                    {factor > 0 ? factor.toFixed(4) : "-"}
-                                                </TableCell>
+                                            <TableCell className="text-center font-mono text-sm text-blue-600">
+                                                {factor > 0 ? factor.toFixed(4) : "-"}
+                                            </TableCell>
 
-                                                <TableCell>
-                                                    <div className="flex justify-center">
-                                                        <Input
-                                                            type="number"
-                                                            placeholder="0"
-                                                            className="w-24 text-center border-border/50 focus:border-primary"
-                                                            value={item.productionQty || ""}
-                                                            onChange={(e) => updateItem(item.id, "productionQty", Number(e.target.value))}
-                                                        />
-                                                    </div>
-                                                </TableCell>
+                                            <TableCell>
+                                                <Input
+                                                    type="number"
+                                                    className="text-center border-transparent hover:border-input focus:border-primary font-bold"
+                                                    value={item.productionQty || ""}
+                                                    onChange={(e) => updateItem(item.id, "productionQty", Number(e.target.value))}
+                                                />
+                                            </TableCell>
 
-                                                <TableCell className="text-center font-bold text-emerald-700 bg-emerald-50/30 dark:bg-emerald-900/20 text-lg">
-                                                    {finalStockDraw > 0 ? finalStockDraw.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "-"}
-                                                    <span className="text-[10px] font-normal text-muted-foreground ml-1 align-top">UN</span>
-                                                </TableCell>
+                                            {/* COLUNA NOVA */}
+                                            <TableCell className="text-center font-bold text-amber-700 bg-amber-50/30 text-lg border-l border-r border-amber-100">
+                                                {prodFactor > 0 ? prodFactor.toFixed(4) : "-"}
+                                            </TableCell>
 
-                                                <TableCell>
-                                                    <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-red-500 hover:bg-red-50">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })
-                                )}
+                                            <TableCell className="text-center font-bold text-emerald-700 bg-emerald-50/30 text-lg">
+                                                {finalStockDraw > 0 ? finalStockDraw.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "-"}
+                                                <span className="text-[10px] font-normal text-muted-foreground ml-1 align-top">UN</span>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-red-500">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
                             </TableBody>
                         </Table>
                     </div>
 
-                    {/* Botão de Adicionar na parte inferior da tabela */}
                     <div className="p-4 border-t bg-muted/10">
                         <Button onClick={addItem} variant="outline" className="w-full border-dashed border-2 hover:border-primary hover:text-primary hover:bg-primary/5">
                             <Plus className="w-4 h-4 mr-2" /> Adicionar Composição
@@ -229,46 +238,43 @@ export function ProductionFactorCalculator() {
                 </CardContent>
             </Card>
 
-            {/* --- ÁREA EXPLICATIVA (Passo a Passo) --- */}
+            {/* EXPLICATIVO ATUALIZADO */}
             <Accordion type="single" collapsible className="w-full bg-card border rounded-lg px-4">
                 <AccordionItem value="explanation" className="border-none">
                     <AccordionTrigger className="hover:no-underline">
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <HelpCircle className="w-4 h-4" />
-                            <span className="text-sm font-medium">Entenda o cálculo passo a passo</span>
+                            <span className="text-sm font-medium">Entenda a fórmula de cálculo</span>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent>
                         <div className="grid md:grid-cols-3 gap-4 pt-2 pb-4">
 
-                            {/* Passo 1 */}
                             <div className="p-4 rounded-lg border bg-muted/30 flex flex-col gap-2">
                                 <div className="flex items-center gap-2 text-blue-600 font-semibold text-sm">
-                                    <Package className="w-4 h-4" /> Passo 1: Fator Unitário
+                                    <Package className="w-4 h-4" /> Fator Unitário
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Primeiro, descobrimos quanto vale <strong>1 KG</strong> em relação à embalagem que temos no estoque.
-                                </p>
                                 <div className="bg-background p-2 rounded border text-center font-mono text-xs mt-auto">
                                     1 ÷ Peso Embalagem = Fator
                                 </div>
                             </div>
 
-                            {/* Ícone Seta */}
-                            <div className="hidden md:flex items-center justify-center text-muted-foreground">
-                                <ArrowRight className="w-6 h-6 opacity-20" />
+                            <div className="p-4 rounded-lg border bg-amber-50/50 border-amber-200 flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm">
+                                    <Settings className="w-4 h-4" /> Fator Produção
+                                </div>
+                                <p className="text-xs text-muted-foreground">Proporção para o rendimento definido ({recipeYield}).</p>
+                                <div className="bg-background p-2 rounded border text-center font-mono text-xs mt-auto text-amber-700">
+                                    (Qtd Total ÷ Rendimento) × Fator
+                                </div>
                             </div>
 
-                            {/* Passo 2 */}
-                            <div className="p-4 rounded-lg border bg-muted/30 flex flex-col gap-2">
-                                <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
-                                    <Scale className="w-4 h-4" /> Passo 2: Baixa de Estoque
+                            <div className="p-4 rounded-lg border bg-emerald-50/50 border-emerald-200 flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-emerald-700 font-semibold text-sm">
+                                    <Scale className="w-4 h-4" /> Baixa Total (Estoque)
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Multiplicamos a quantidade necessária na receita pelo fator encontrado para saber quantos sacos baixar.
-                                </p>
-                                <div className="bg-background p-2 rounded border text-center font-mono text-xs mt-auto">
-                                    Qtd. Receita × Fator = Baixa (UN)
+                                <div className="bg-background p-2 rounded border text-center font-mono text-xs mt-auto text-emerald-700">
+                                    Qtd Total × Fator = Baixa (UN)
                                 </div>
                             </div>
 
