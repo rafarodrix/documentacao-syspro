@@ -1,8 +1,8 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
-import { Providers } from '@/components/providers';
 import { RootProvider } from 'fumadocs-ui/provider';
+import { ThemeProvider } from '@/providers/theme-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -10,13 +10,17 @@ const inter = Inter({
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR" className={inter.className} suppressHydrationWarning>
-      <body className="flex flex-col min-h-screen bg-background text-foreground">
-        <RootProvider>
-          <Providers>
+    <html
+      lang="pt-BR"
+      suppressHydrationWarning
+      className={inter.className}
+    >
+      <body className="min-h-screen bg-background text-foreground antialiased">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <RootProvider>
             {children}
-          </Providers>
-        </RootProvider>
+          </RootProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
