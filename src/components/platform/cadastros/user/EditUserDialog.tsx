@@ -9,7 +9,7 @@ import { Role } from "@prisma/client"
 import { toast } from "sonner"
 
 import {
-    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
+    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
 } from "@/components/ui/dialog"
 import {
     Form, FormControl, FormField, FormItem, FormLabel, FormMessage
@@ -20,11 +20,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2, Save, User, Building2 } from "lucide-react"
+import { Loader2, Save, User, Building2, Briefcase, Phone } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-// Importa o componente de lista de vínculos
-import { UserMembershipsList } from "../UserMembershipsList"
+import { UserMembershipsList } from "./UserMembershipsList"
 
 interface EditUserDialogProps {
     open: boolean
@@ -43,7 +42,9 @@ export function EditUserDialog({ open, onOpenChange, user, companies, isAdmin }:
         resolver: zodResolver(createUserSchema),
         defaultValues: {
             name: "", email: "", password: "placeholder",
-            role: Role.CLIENTE_USER, companyId: ""
+            role: Role.CLIENTE_USER, companyId: "",
+            // Novos campos
+            jobTitle: "", phone: ""
         }
     })
 
@@ -54,7 +55,10 @@ export function EditUserDialog({ open, onOpenChange, user, companies, isAdmin }:
                 email: user.email || "",
                 password: "placeholder",
                 role: user.role as Role,
-                companyId: "" // Vínculos são gerenciados separadamente
+                companyId: "",
+                // Popula novos campos
+                jobTitle: user.jobTitle || "",
+                phone: user.phone || ""
             })
         }
     }, [user, form])
@@ -63,11 +67,7 @@ export function EditUserDialog({ open, onOpenChange, user, companies, isAdmin }:
 
     const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
         if (!user) return
-
-        const { companyId, ...payload } = data // Remove companyId do update básico
-
-        // Se não for admin, força a manter o vínculo atual (segurança extra)
-        // Mas a action updateUserAction já cuida disso.
+        const { companyId, ...payload } = data
 
         const result = await updateUserAction(user.id, payload)
 
@@ -96,7 +96,6 @@ export function EditUserDialog({ open, onOpenChange, user, companies, isAdmin }:
                         <ScrollArea className="flex-1">
                             <div className="p-6">
 
-                                {/* SE FOR CLIENTE, USA ABAS PARA ORGANIZAR */}
                                 {!isTargetSystemUser ? (
                                     <Tabs defaultValue="dados" className="w-full">
                                         <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -120,7 +119,6 @@ export function EditUserDialog({ open, onOpenChange, user, companies, isAdmin }:
                                         </TabsContent>
                                     </Tabs>
                                 ) : (
-                                    // SE FOR SISTEMA, MOSTRA TUDO JUNTO (Não tem vínculos múltiplos)
                                     <div className="space-y-4">
                                         <UserFields form={form} isSystemUser={true} isAdmin={isAdmin} />
                                     </div>
@@ -141,38 +139,67 @@ export function EditUserDialog({ open, onOpenChange, user, companies, isAdmin }:
     )
 }
 
-// Subcomponente para campos comuns
+// Subcomponente Refatorado com Novos Campos
 function UserFields({ form, isSystemUser, isAdmin }: { form: any, isSystemUser: boolean, isAdmin: boolean }) {
     return (
         <>
+            {/* Dados Pessoais */}
             <FormField control={form.control} name="name" render={({ field }) => (
                 <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )} />
 
-            <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem><FormLabel>E-mail</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-
-            {/* Senha oculta */}
-            <input type="hidden" {...form.register("password")} />
-
-            {/* Role de Sistema (Só aparece se for equipe interna) */}
-            {isSystemUser && (
-                <FormField control={form.control} name="role" render={({ field }) => (
+            <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem><FormLabel>E-mail</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="phone" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Função no Sistema</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                <SelectItem value={Role.SUPORTE}>Suporte</SelectItem>
-                                <SelectItem value={Role.DEVELOPER}>Desenvolvedor</SelectItem>
-                                <SelectItem value={Role.ADMIN}>Super Admin</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <FormLabel>Telefone / WhatsApp</FormLabel>
+                        <FormControl>
+                            <div className="relative">
+                                <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input {...field} className="pl-9" placeholder="(00) 00000-0000" />
+                            </div>
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
-            )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="jobTitle" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Cargo / Função</FormLabel>
+                        <FormControl>
+                            <div className="relative">
+                                <Briefcase className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input {...field} className="pl-9" placeholder="Ex: Gerente" />
+                            </div>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+
+                {/* Role de Sistema (Só aparece se for equipe interna) */}
+                {isSystemUser && (
+                    <FormField control={form.control} name="role" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Função no Sistema</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value={Role.SUPORTE}>Suporte</SelectItem>
+                                    <SelectItem value={Role.DEVELOPER}>Desenvolvedor</SelectItem>
+                                    <SelectItem value={Role.ADMIN}>Super Admin</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                )}
+            </div>
+
+            <input type="hidden" {...form.register("password")} />
         </>
     )
 }
