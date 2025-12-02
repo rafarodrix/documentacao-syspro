@@ -3,7 +3,7 @@
 import { useState } from "react"
 import {
     Plus, Trash2, FileDown, HelpCircle,
-    ArrowRight, Package, Scale, RefreshCcw, Settings, Box
+    Package, Scale, RefreshCcw, Settings, Box
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -29,7 +29,7 @@ import autoTable from "jspdf-autotable"
 
 interface RecipeItem {
     id: string
-    code: string        // Novo Campo: Código do Insumo
+    code: string
     productName: string
     packageWeight: number
     productionQty: number
@@ -42,7 +42,7 @@ export function ProductionFactorCalculator() {
     const [recipeYield, setRecipeYield] = useState<number>(25)
 
     const [items, setItems] = useState<RecipeItem[]>([
-        { id: "1", code: "5115", productName: "MILHETO MOIDO", packageWeight: 40, productionQty: 450 }
+        { id: "1", code: "1002", productName: "MATERIA PRIMA 1", packageWeight: 40, productionQty: 450 }
     ])
 
     const addItem = () => {
@@ -106,7 +106,7 @@ export function ProductionFactorCalculator() {
             startY: 45,
             head: [['Cód.', 'Insumo', 'Peso Emb.', 'Fator', 'Qtd. Total', 'Fator Prod.', 'Baixa Total']],
             body: tableData,
-            headStyles: { fillColor: [40, 40, 40] }, // Cinza escuro profissional
+            headStyles: { fillColor: [40, 40, 40] },
             styles: { fontSize: 9, cellPadding: 2 },
         })
 
@@ -149,7 +149,7 @@ export function ProductionFactorCalculator() {
                     <div className="space-y-1.5 md:col-span-2">
                         <Label className="text-xs font-medium text-muted-foreground">Descrição do Produto</Label>
                         <Input
-                            placeholder="Ex: Ração Bovina Engorda"
+                            placeholder="Ex: Produto Acabado 1001"
                             value={mainProductDesc}
                             onChange={(e) => setMainProductDesc(e.target.value)}
                             className="h-9 bg-muted/30 focus:bg-background"
