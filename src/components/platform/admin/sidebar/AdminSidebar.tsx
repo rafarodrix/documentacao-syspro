@@ -31,12 +31,12 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Definição dos Tipos
+// --- TIPOS ---
 type NavItem = {
     title: string;
     href: string;
     icon: React.ElementType;
-    roles?: string[]; // RBAC
+    roles?: string[];
 };
 
 // --- MENU CONFIG ---
@@ -59,6 +59,7 @@ const helpNav: NavItem[] = [
 
 interface AdminSidebarProps {
     mobile?: boolean;
+    onClose?: () => void; // Callback para fechar o menu mobile ao clicar
     user: {
         name: string;
         email: string;
@@ -67,7 +68,8 @@ interface AdminSidebarProps {
     };
 }
 
-export function AdminSidebar({ mobile = false, user }: AdminSidebarProps) {
+// --- COMPONENTE PRINCIPAL ---
+export function AdminSidebar({ mobile = false, onClose, user }: AdminSidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
 
@@ -76,20 +78,19 @@ export function AdminSidebar({ mobile = false, user }: AdminSidebarProps) {
         router.push("/login");
     };
 
-    // Filtra itens por Role
     const filterNav = (items: NavItem[]) => {
         return items.filter(item => !item.roles || item.roles.includes(user.role));
     };
 
     return (
         <div className={cn(
-            "flex h-full flex-col bg-background border-r border-border/40",
-            !mobile && "h-screen"
+            "flex flex-col bg-background border-r border-border/40",
+            mobile ? "h-full w-full" : "h-screen w-72 fixed left-0 top-0 hidden md:flex"
         )}>
 
             {/* --- HEADER --- */}
-            <div className="flex h-16 items-center px-6 border-b border-border/40 bg-muted/5">
-                <Link href="/admin" className="flex items-center gap-2.5 font-semibold group w-full">
+            <div className="flex h-16 items-center px-6 border-b border-border/40 bg-muted/5 shrink-0">
+                <Link href="/admin" className="flex items-center gap-2.5 font-semibold group w-full" onClick={onClose}>
                     <div className="h-9 w-9 rounded-xl bg-purple-600 flex items-center justify-center text-white shadow-sm group-hover:bg-purple-700 transition-colors">
                         <ShieldCheck className="h-5 w-5" />
                     </div>
@@ -100,57 +101,48 @@ export function AdminSidebar({ mobile = false, user }: AdminSidebarProps) {
                 </Link>
             </div>
 
-            {/* --- NAVEGAÇÃO --- */}
+            {/* --- NAVEGAÇÃO (SCROLLÁVEL) --- */}
             <div className="flex-1 overflow-y-auto py-6 px-3 space-y-6">
 
-                {/* Grupo 1 */}
-                <nav className="grid gap-1">
-                    <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-                        Gerenciamento
-                    </p>
+                {/* Grupo 1: Gestão */}
+                <NavGroup title="Gerenciamento">
                     {filterNav(manageNav).map((item) => (
-                        <SidebarItem key={item.href} item={item} pathname={pathname} />
+                        <SidebarItem key={item.href} item={item} pathname={pathname} onClick={onClose} />
                     ))}
-                </nav>
+                </NavGroup>
 
                 <Separator className="bg-border/40" />
 
-                {/* Grupo 2 */}
-                <nav className="grid gap-1">
-                    <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-                        Sistema
-                    </p>
+                {/* Grupo 2: Sistema */}
+                <NavGroup title="Sistema">
                     {filterNav(systemNav).map((item) => (
-                        <SidebarItem key={item.href} item={item} pathname={pathname} />
+                        <SidebarItem key={item.href} item={item} pathname={pathname} onClick={onClose} />
                     ))}
-                </nav>
+                </NavGroup>
 
                 <Separator className="bg-border/40" />
 
-                {/* Grupo 3 */}
-                <nav className="grid gap-1">
-                    <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-                        Recursos
-                    </p>
+                {/* Grupo 3: Recursos */}
+                <NavGroup title="Recursos">
                     {filterNav(helpNav).map((item) => (
-                        <SidebarItem key={item.href} item={item} pathname={pathname} />
+                        <SidebarItem key={item.href} item={item} pathname={pathname} onClick={onClose} />
                     ))}
-                </nav>
+                </NavGroup>
 
             </div>
 
-            {/* --- RODAPÉ: USER PROFILE --- */}
-            <div className="p-3 border-t border-border/40 bg-muted/5">
+            {/* --- RODAPÉ: PERFIL --- */}
+            <div className="p-3 border-t border-border/40 bg-muted/5 shrink-0">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <button className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-muted transition-colors outline-none group">
+                        <button className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-muted transition-colors outline-none group text-left">
                             <Avatar className="h-9 w-9 border border-border/50">
                                 <AvatarImage src={user.image || ""} />
                                 <AvatarFallback className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 text-xs font-bold">
                                     {user.name?.substring(0, 2).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
-                            <div className="flex flex-col items-start text-left flex-1 min-w-0">
+                            <div className="flex flex-col items-start flex-1 min-w-0">
                                 <span className="text-sm font-medium text-foreground truncate w-full group-hover:text-purple-600 transition-colors">
                                     {user.name}
                                 </span>
@@ -172,11 +164,11 @@ export function AdminSidebar({ mobile = false, user }: AdminSidebarProps) {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/admin/configuracoes')}>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => { router.push('/admin/configuracoes'); onClose?.(); }}>
                             <Settings className="mr-2 h-4 w-4" />
                             Configurações
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => { /* Link suporte */ onClose?.(); }}>
                             <HelpCircle className="mr-2 h-4 w-4" />
                             Suporte
                         </DropdownMenuItem>
@@ -195,14 +187,26 @@ export function AdminSidebar({ mobile = false, user }: AdminSidebarProps) {
     );
 }
 
-// --- SUB-COMPONENTE DE ITEM ---
-function SidebarItem({ item, pathname }: { item: NavItem, pathname: string }) {
+// --- SUBCOMPONENTES ---
+
+function NavGroup({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <nav className="grid gap-1">
+            <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                {title}
+            </p>
+            {children}
+        </nav>
+    )
+}
+
+function SidebarItem({ item, pathname, onClick }: { item: NavItem, pathname: string, onClick?: () => void }) {
     const isActive = item.href === "/admin"
         ? pathname === "/admin"
         : pathname.startsWith(item.href);
 
     return (
-        <Link href={item.href}>
+        <Link href={item.href} onClick={onClick}>
             <span className={cn(
                 "group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive

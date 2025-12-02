@@ -1,8 +1,12 @@
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { getProtectedSession, type UserRole } from '@/lib/auth-helpers';
-import { AdminSidebar } from '@/components/platform/admin/AdminSidebar';
+import { AdminSidebar } from '@/components/platform/admin/sidebar/AdminSidebar';
 import { AdminHeader } from '@/components/platform/admin/AdminHeader';
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
+import Link from 'next/link';
 
 export default async function AdminLayout({
   children,
@@ -15,7 +19,6 @@ export default async function AdminLayout({
   if (!session) redirect('/login');
 
   // 2. Verificação de Permissão (RBAC)
-  // Apenas estes perfis podem ver o layout Admin
   const allowedRoles = ['ADMIN', 'DEVELOPER', 'SUPORTE'];
   if (!allowedRoles.includes(session.role)) {
     redirect('/app');
@@ -23,8 +26,7 @@ export default async function AdminLayout({
 
   const currentRole = session.role as UserRole;
 
-  // 3. Preparação do Objeto de Usuário para a Sidebar
-  // Sanitizamos os dados para evitar erros de tipagem no componente visual
+  // 3. Dados do Usuário
   const userForSidebar = {
     name: (session as any).name || session.email.split('@')[0] || "Administrador",
     email: session.email,
@@ -35,31 +37,53 @@ export default async function AdminLayout({
   return (
     <div className="flex h-screen w-full bg-muted/5 overflow-hidden">
 
-      {/* --- SIDEBAR (Desktop) --- */}
-      {/* Fixa à esquerda (w-72), altura total (h-full), z-index alto */}
-      <aside className="hidden md:flex w-72 flex-col fixed inset-y-0 z-50">
+      {/* --- SIDEBAR DESKTOP (Fixa) --- */}
+      <aside className="hidden md:flex w-72 flex-col fixed inset-y-0 z-50 border-r bg-background">
         <AdminSidebar user={userForSidebar} />
       </aside>
 
       {/* --- ÁREA PRINCIPAL --- */}
-      {/* Empurrada para a direita (pl-72) para não ficar embaixo da sidebar */}
       <div className="flex-1 flex flex-col md:pl-72 transition-all duration-300 ease-in-out h-full">
 
-        {/* Header (Sticky) */}
-        {/* Fica fixo no topo enquanto o conteúdo rola por baixo */}
-        <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md border-b border-border/40">
-          <AdminHeader userEmail={session.email} userRole={currentRole} />
+        {/* HEADER (Mobile + Desktop) */}
+        <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md border-b border-border/40 h-16 flex items-center px-4 sm:px-6 justify-between">
+
+          {/* Mobile: Botão Menu */}
+          <div className="md:hidden flex items-center">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="-ml-2">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Abrir menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                {/* Passamos mobile=true para adaptar o estilo */}
+                {/* O componente Sidebar precisa suportar a prop onClose para fechar ao clicar, se implementado */}
+                <AdminSidebar user={userForSidebar} mobile />
+              </SheetContent>
+            </Sheet>
+
+            {/* Logo Mobile (Opcional) */}
+            <Link href="/admin" className="ml-2 font-bold text-lg truncate">
+              Trilink<span className="text-purple-600">Admin</span>
+            </Link>
+          </div>
+
+          {/* Desktop/Mobile: Header Actions (Perfil, Notificações) */}
+          <div className="flex flex-1 justify-end md:justify-between items-center">
+            {/* Espaço vazio no desktop (pode ter breadcrumbs aqui) */}
+            <div className="hidden md:block"></div>
+
+            <AdminHeader userEmail={session.email} userRole={currentRole} />
+          </div>
         </header>
 
-        {/* Conteúdo Scrollável */}
+        {/* CONTEÚDO SCROLLÁVEL */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
-
-          {/* Container Centralizado */}
-          {/* Limita a largura em telas ultrawide (ex: 34" curvados) para não quebrar o layout */}
           <div className="max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
             {children}
           </div>
-
         </main>
 
       </div>
