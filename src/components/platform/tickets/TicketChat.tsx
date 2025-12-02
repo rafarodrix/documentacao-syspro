@@ -4,7 +4,7 @@ import { useTicketChat } from "@/hooks/use-ticket-chat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Loader2, User, Headset, Bot } from "lucide-react";
+import { Send, Loader2, User, Headset, Bot, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Article {
@@ -22,20 +22,28 @@ interface TicketChatProps {
 }
 
 export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps) {
-    // Hook com a lógica de estado, envio e scroll
     const {
-        message, setMessage, isPending, scrollRef, handleSend, isMe, isSystem
+        message,
+        setMessage,
+        isPending,
+        scrollRef,
+        handleSend,
+        isMe,
+        isSystem,
     } = useTicketChat(ticketId, articles);
 
-    // Verifica se o ticket está fechado para desabilitar o input
-    const isClosed = ['closed', 'merged', 'fechado', 'resolvido', 'finalizado', 'recusado'].includes((ticketStatus || '').toLowerCase());
+    const isClosed = [
+        "closed",
+        "merged",
+        "fechado",
+        "resolvido",
+        "finalizado",
+        "recusado",
+    ].includes((ticketStatus || "").toLowerCase());
 
     return (
-        // Container principal com altura fixa e borda
         <div className="flex flex-col h-[600px] border border-border/40 rounded-xl bg-background overflow-hidden shadow-sm transition-all">
-
             {/* --- ÁREA DE MENSAGENS (COM SCROLL) --- */}
-            // Fundo sutilmente diferente para dar profundidade
             <div className="flex-1 overflow-y-auto p-4 space-y-8 bg-muted/20">
                 {articles.map((article) => {
                     const messageIsMe = isMe(article.from);
@@ -49,7 +57,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                     <Bot className="h-3 w-3 shrink-0" />
                                     <span className="truncate max-w-[300px] md:max-w-full">
                                         {/* Remove tags HTML para log limpo */}
-                                        {article.body.replace(/<[^>]*>?/gm, '')}
+                                        {article.body.replace(/<[^>]*>?/gm, "")}
                                     </span>
                                     <span className="opacity-70">• {article.createdAt}</span>
                                 </span>
@@ -61,7 +69,6 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                     return (
                         <div
                             key={article.id}
-                            // Define o lado e a largura máxima do conjunto avatar + balão
                             className={cn(
                                 "flex gap-3 md:gap-4 max-w-[90%] md:max-w-[80%]",
                                 messageIsMe ? "ml-auto flex-row-reverse" : "mr-auto"
@@ -69,23 +76,35 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                         >
                             {/* AVATAR */}
                             <Avatar className="h-8 w-8 md:h-10 md:w-10 mt-0.5 border border-border/50 shadow-sm shrink-0">
-                                <AvatarFallback className={cn(
-                                    "text-sm font-medium transition-colors",
-                                    messageIsMe
-                                        ? "bg-primary/10 text-primary" // Cor do usuário
-                                        : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" // Cor do atendente
-                                )}>
-                                    {messageIsMe ? <User className="h-4 w-4 md:h-5 md:w-5" /> : <Headset className="h-4 w-4 md:h-5 md:w-5" />}
+                                <AvatarFallback
+                                    className={cn(
+                                        "text-sm font-medium transition-colors",
+                                        messageIsMe
+                                            ? "bg-primary/10 text-primary" // Cor do usuário
+                                            : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" // Cor do atendente
+                                    )}
+                                >
+                                    {messageIsMe ? (
+                                        <User className="h-4 w-4 md:h-5 md:w-5" />
+                                    ) : (
+                                        <Headset className="h-4 w-4 md:h-5 md:w-5" />
+                                    )}
                                 </AvatarFallback>
                             </Avatar>
 
                             {/* CONTEÚDO (Nome + Balão) */}
-                            <div className={cn("flex flex-col min-w-0", messageIsMe ? "items-end" : "items-start")}>
-
+                            <div
+                                className={cn(
+                                    "flex flex-col min-w-0",
+                                    messageIsMe ? "items-end" : "items-start"
+                                )}
+                            >
                                 {/* Cabeçalho da Mensagem (Nome e Data) */}
                                 <div className="flex items-center gap-2 mb-1.5 px-1">
                                     <span className="text-xs md:text-sm font-medium text-foreground truncate max-w-[200px]">
-                                        {messageIsMe ? "Você" : article.from.split('<')[0].trim()}
+                                        {messageIsMe
+                                            ? "Você"
+                                            : article.from.split("<")[0].trim()}
                                     </span>
                                     <span className="text-[10px] md:text-xs text-muted-foreground tabular-nums">
                                         {article.createdAt}
@@ -93,15 +112,17 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                 </div>
 
                                 {/* --- O BALÃO DE MENSAGEM --- */}
-                                <div className={cn(
-                                    // Estilos Base: Padding, Borda arredondada, Sombra, Quebra de palavra
-                                    "p-3 md:p-4 rounded-2xl text-sm shadow-sm relative break-words min-w-0 transition-colors",
+                                <div
+                                    className={cn(
+                                        // Estilos Base: Padding, Borda arredondada, Sombra, Quebra de palavra
+                                        "p-3 md:p-4 rounded-2xl text-sm shadow-sm relative break-words min-w-0 transition-colors",
 
-                                    // Estilos Condicionais (Eu vs Eles)
-                                    messageIsMe
-                                        ? "bg-primary text-primary-foreground rounded-tr-sm" // Balão do Usuário (Cor de destaque, bico na direita)
-                                        : "bg-muted border border-border/50 text-foreground rounded-tl-sm" // Balão do Atendente (Cor neutra, bico na esquerda)
-                                )}>
+                                        // Estilos Condicionais (Eu vs Eles)
+                                        messageIsMe
+                                            ? "bg-primary text-primary-foreground rounded-tr-sm" // Balão do Usuário (Cor de destaque, bico na direita)
+                                            : "bg-muted border border-border/50 text-foreground rounded-tl-sm" // Balão do Atendente (Cor neutra, bico na esquerda)
+                                    )}
+                                >
                                     {/* Renderizador de HTML Rico (Tailwind Typography) */}
                                     <div
                                         className={cn(
@@ -138,7 +159,9 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                             <AlertCircle className="h-4 w-4 text-muted-foreground" />
                             Chamado Encerrado
                         </span>
-                        <p className="text-xs text-muted-foreground">Não é possível enviar novas mensagens.</p>
+                        <p className="text-xs text-muted-foreground">
+                            Não é possível enviar novas mensagens.
+                        </p>
                     </div>
                 ) : (
                     // Campo de Texto e Botão de Enviar
@@ -150,7 +173,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                             className="min-h-[50px] max-h-[150px] resize-none bg-muted/40 hover:bg-muted/60 focus:bg-background pr-14 py-3 transition-all scrollbar-hide rounded-xl resize-y"
                             onKeyDown={(e) => {
                                 // Envia com Enter (sem Shift)
-                                if (e.key === 'Enter' && !e.shiftKey) {
+                                if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault();
                                     handleSend();
                                 }
@@ -163,7 +186,9 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                             size="icon"
                             className={cn(
                                 "absolute right-2 bottom-2 h-9 w-9 rounded-lg shadow-sm transition-all",
-                                message.trim() ? "hover:scale-105 active:scale-95" : "opacity-50"
+                                message.trim()
+                                    ? "hover:scale-105 active:scale-95"
+                                    : "opacity-50"
                             )}
                         >
                             {isPending ? (
@@ -179,6 +204,3 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
         </div>
     );
 }
-
-// Import necessário que pode ter faltado no seu arquivo
-import { AlertCircle } from "lucide-react";
