@@ -5,8 +5,8 @@ import Link from "next/link"
 
 // Importação dos Componentes Refatorados
 import { TicketSheet } from "@/components/platform/tickets/TicketSheet"
-import { DashboardStats } from "@/components/platform/client/dashboard/DashboardStats"
-import { RecentTicketsTable } from "@/components/platform/client/dashboard/RecentTicketsTable"
+import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats"
+import { RecentTicketsTable } from "@/components/platform/app/dashboard/RecentTicketsTable"
 
 export default async function ClientDashboardPage() {
   // 1. Busca todos os dados de uma vez na Action otimizada
