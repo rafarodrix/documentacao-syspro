@@ -67,7 +67,14 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
             title: "Custos por Departamento",
             description: "Simule o rateio de custos fixos entre setores da empresa.",
             icon: PieChart,
-            href: `${basePath}/simulador-custos-fixos-departamento`,
+            href: `${basePath}/custos-departamento`,
+            category: "simuladores"
+        },
+        {
+            title: "Fator de Produção",
+            description: "Defina a conversão de KG para Unidade de Estoque.",
+            icon: PieChart,
+            href: `${basePath}/fator-producao`,
             category: "simuladores"
         },
         // Utilitários
