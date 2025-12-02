@@ -22,14 +22,12 @@ const linkUserSchema = z.object({
     companyId: z.string().min(1, "Selecione uma empresa"),
 });
 
-// Exportamos o tipo para usar no frontend se precisar
 export type LinkUserInput = z.infer<typeof linkUserSchema>;
 
 // --- Constantes de Permissão ---
 const READ_ROLES = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE] as const;
 const WRITE_ROLES = [Role.ADMIN, Role.DEVELOPER] as const;
 
-// Helper de verificação segura
 function hasRole(role: Role, allowedRoles: readonly Role[]) {
     return allowedRoles.includes(role);
 }
@@ -40,8 +38,7 @@ function handleActionError(error: any) {
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-            // Mensagem genérica para duplicidade, pode ser email ou membership
-            return { success: false as const, error: "Registro duplicado (e-mail ou vínculo já existe)." };
+            return { success: false as const, error: "Este e-mail já está em uso." };
         }
     }
 
@@ -104,7 +101,7 @@ export async function getUsersAction(filters?: GetUsersParams) {
 }
 
 /**
- * Cria um novo usuário (Auth + Banco + Membership)
+ * Cria um novo usuário
  */
 export async function createUserAction(data: CreateUserInput) {
     const session = await getProtectedSession();
@@ -118,12 +115,18 @@ export async function createUserAction(data: CreateUserInput) {
         return { success: false as const, error: "Dados inválidos." };
     }
 
+    // --- CORREÇÃO AQUI ---
+    // Como a senha é opcional no schema (para edição), precisamos garantir que ela existe na criação.
+    if (!data.password) {
+        return { success: false as const, error: "A senha é obrigatória para novos usuários." };
+    }
+
     try {
         // 1. Cria no Auth
         const newUserResponse = await auth.api.signUpEmail({
             body: {
                 email: data.email,
-                password: data.password,
+                password: data.password, // Agora o TS sabe que é string
                 name: data.name,
             },
             headers: await headers()
@@ -143,6 +146,9 @@ export async function createUserAction(data: CreateUserInput) {
                     role: data.role as Role,
                     emailVerified: true,
                     isActive: true,
+                    // jobTitle e phone se você tiver adicionado ao schema
+                    jobTitle: data.jobTitle || null,
+                    phone: data.phone || null,
                 }
             });
 
@@ -188,12 +194,13 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
                         name: data.name,
                         email: data.email,
                         role: data.role as Role,
+                        jobTitle: data.jobTitle || null,
+                        phone: data.phone || null,
                     }
                 });
             }
 
             // Se companyId vier preenchido, atualiza o vínculo principal
-            // Nota: Isso remove vínculos anteriores se for single-tenant mode na UI de edição
             if (data.companyId) {
                 await tx.membership.deleteMany({ where: { userId: id } });
                 await tx.membership.create({
@@ -250,13 +257,12 @@ export async function toggleUserStatusAction(id: string, currentStatus: boolean)
 }
 
 /**
- * [NOVO] VINCULAR USUÁRIO EXISTENTE A UMA EMPRESA
+ * VINCULAR USUÁRIO EXISTENTE A UMA EMPRESA
  */
 export async function linkUserToCompanyAction(data: LinkUserInput) {
     const session = await getProtectedSession();
 
-    // Permite Admin Global e Cliente Admin (para vincular pessoas à sua empresa)
-    if (!session || !["ADMIN", "DEVELOPER", "CLIENTE_ADMIN"].includes(session.role)) {
+    if (!session || !["ADMIN", "CLIENTE_ADMIN"].includes(session.role)) {
         return { success: false, error: "Permissão negada." };
     }
 
@@ -264,16 +270,14 @@ export async function linkUserToCompanyAction(data: LinkUserInput) {
     if (!validation.success) return { success: false, error: "Dados inválidos." };
 
     try {
-        // 1. Procurar se o usuário existe
         const targetUser = await prisma.user.findUnique({
             where: { email: data.email }
         });
 
         if (!targetUser) {
-            return { success: false, error: "Usuário não encontrado no sistema. Use a aba 'Criar Novo'." };
+            return { success: false, error: "Usuário não encontrado. Use a aba 'Criar Novo'." };
         }
 
-        // 2. Verificar se já existe vínculo nesta empresa exata
         const existingMembership = await prisma.membership.findUnique({
             where: {
                 userId_companyId: {
@@ -287,7 +291,6 @@ export async function linkUserToCompanyAction(data: LinkUserInput) {
             return { success: false, error: "Este usuário já está vinculado a esta empresa." };
         }
 
-        // 3. Criar o vínculo (Membership)
         await prisma.membership.create({
             data: {
                 userId: targetUser.id,
