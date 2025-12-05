@@ -248,3 +248,69 @@ model SystemSetting {
   description String?
   updatedAt   DateTime @updatedAt
 }
+
+
+// cst
+model TaxCST {
+  id                 String   @id @default(cuid())
+  cst               String   @unique
+  description        String   
+  
+  // Indicadores (Flags do nível CST)
+  indIBSCBS          Boolean
+  indRedBC           Boolean
+  indRedAliq         Boolean
+  indTransfCred      Boolean
+  indDif             Boolean
+  indAjusteCompet    Boolean
+  indIBSCBSMono      Boolean
+  indCredPresIBSZFM  Boolean
+  
+  // Vigência do CST
+  publishDate        DateTime // "Publicacao"
+  startDate          DateTime // "InicioVigencia"
+  endDate            DateTime? // "FimVigencia"
+
+  // Relacionamento
+  classifications    TaxClassification[] //Um CST pode ter várias Classificações Tributárias
+
+  lastUpdated        DateTime @default(now())
+  
+  @@map("tax_cst")
+}
+
+// cClassTrib
+model TaxClassification {
+  id                 String   @id @default(cuid())
+  
+  // Chave Estrangeira para o CST
+  cstId              String
+  cst                TaxCST   @relation(fields: [cstId], references: [id], onDelete: Cascade)
+  
+  code               String   @unique // "cClassTrib": "000001"
+  description        String   // "DescricaoClassTrib"
+  
+  // Valores Específicos
+  pRedIBS            Float    // "pRedIBS"
+  pRedCBS            Float    // "pRedCBS"
+  tipoAliquota       String   // "TipoAliquota"
+  link               String?  // "Link"
+
+  // Indicadores Específicos (Flags da Classificação)
+  indTribRegular     Boolean
+  indCredPresOper    Boolean
+  indEstornoCred     Boolean
+  
+  // Flags de Documentos (Onde essa classificação se aplica)
+  indNFe             Boolean
+  indNFCe            Boolean
+  indCTe             Boolean
+  indNFSe            Boolean
+
+  // Vigência da Classificação
+  publishDate        DateTime
+  startDate          DateTime
+  endDate            DateTime?
+
+  @@map("tax_classification")
+}

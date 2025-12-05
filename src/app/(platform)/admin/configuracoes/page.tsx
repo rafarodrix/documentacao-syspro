@@ -3,14 +3,17 @@ import { redirect } from "next/navigation";
 
 // UI Components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, ShieldCheck, Sliders } from "lucide-react";
+// Adicionei 'Landmark' (bom para fiscal/banco) ou 'FileText' aos imports
+import { Settings, ShieldCheck, Sliders, Landmark } from "lucide-react";
 
 // Feature Components
 import GeneralSettingsForm from "@/components/platform/admin/settings/GeneralSettingsForm";
 import { AccessControlTab } from "@/components/platform/admin/settings/AccessControlTab";
+// VERIFIQUE O CAMINHO: No passo anterior você disse que criou em src/components/platform/tax/SyncTaxButton.tsx
+// Se for isso, ajuste o import abaixo:
+import { SyncTaxButton } from "@/components/platform/admin/settings/SyncTaxButton";
 
 export default async function SettingsPage() {
-    // 1. Segurança: Apenas Admins e Devs acessam configurações
     const session = await getProtectedSession();
     if (!session || !["ADMIN"].includes(session.role)) {
         redirect("/admin/dashboard");
@@ -42,6 +45,7 @@ export default async function SettingsPage() {
                             <Settings className="h-4 w-4" />
                             <span className="font-medium">Geral & Financeiro</span>
                         </TabsTrigger>
+
                         <TabsTrigger
                             value="access"
                             className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
@@ -49,6 +53,16 @@ export default async function SettingsPage() {
                             <ShieldCheck className="h-4 w-4" />
                             <span className="font-medium">Perfis de Acesso</span>
                         </TabsTrigger>
+
+                        {/* --- NOVO TRIGGER ADICIONADO AQUI --- */}
+                        <TabsTrigger
+                            value="tax"
+                            className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                        >
+                            <Landmark className="h-4 w-4" />
+                            <span className="font-medium">Fiscal & Tributário</span>
+                        </TabsTrigger>
+
                     </TabsList>
                 </div>
 
@@ -63,6 +77,14 @@ export default async function SettingsPage() {
                 <TabsContent value="access" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-5xl">
                         <AccessControlTab />
+                    </div>
+                </TabsContent>
+
+                {/* --- CONTEÚDO: TABELAS FISCAIS --- */}
+                <TabsContent value="tax" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
+                    <div className="max-w-5xl">
+                        <h3 className="text-lg font-medium mb-4">Sincronização de Tabelas</h3>
+                        <SyncTaxButton />
                     </div>
                 </TabsContent>
 
