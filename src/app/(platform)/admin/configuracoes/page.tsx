@@ -1,5 +1,6 @@
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 // UI Components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,9 +10,8 @@ import { Settings, ShieldCheck, Sliders, Landmark } from "lucide-react";
 // Feature Components
 import GeneralSettingsForm from "@/components/platform/admin/settings/GeneralSettingsForm";
 import { AccessControlTab } from "@/components/platform/admin/settings/AccessControlTab";
-// VERIFIQUE O CAMINHO: No passo anterior você disse que criou em src/components/platform/tax/SyncTaxButton.tsx
-// Se for isso, ajuste o import abaixo:
 import { SyncTaxButton } from "@/components/platform/tax/SyncTaxButton";
+import { TaxClassificationList } from "@/components/platform/tax/TaxClassificationList";
 
 export default async function SettingsPage() {
     const session = await getProtectedSession();
