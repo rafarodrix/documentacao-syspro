@@ -11,7 +11,7 @@ import GeneralSettingsForm from "@/components/platform/admin/settings/GeneralSet
 import { AccessControlTab } from "@/components/platform/admin/settings/AccessControlTab";
 // VERIFIQUE O CAMINHO: No passo anterior você disse que criou em src/components/platform/tax/SyncTaxButton.tsx
 // Se for isso, ajuste o import abaixo:
-import { SyncTaxButton } from "@/components/platform/admin/settings/SyncTaxButton";
+import { SyncTaxButton } from "@/components/platform/tax/SyncTaxButton";
 
 export default async function SettingsPage() {
     const session = await getProtectedSession();
@@ -84,7 +84,17 @@ export default async function SettingsPage() {
                 <TabsContent value="tax" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-5xl">
                         <h3 className="text-lg font-medium mb-4">Sincronização de Tabelas</h3>
+
+                        {/* Botão de Ação */}
                         <SyncTaxButton />
+
+                        {/* Listagem de Dados */}
+                        <div className="mt-8">
+                            <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Carregando dados fiscais...</div>}>
+                                <TaxClassificationList />
+                            </Suspense>
+                        </div>
+
                     </div>
                 </TabsContent>
 

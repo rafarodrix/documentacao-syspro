@@ -252,65 +252,69 @@ model SystemSetting {
 
 // cst
 model TaxCST {
-  id                 String   @id @default(cuid())
-  cst               String   @unique
-  description        String   
+  id               String   @id @default(cuid())
+  cst              String   @unique // Ex: "01", "50"
+  description      String   @db.Text // Descrições fiscais podem ser longas
   
   // Indicadores (Flags do nível CST)
-  indIBSCBS          Boolean
-  indRedBC           Boolean
-  indRedAliq         Boolean
-  indTransfCred      Boolean
-  indDif             Boolean
-  indAjusteCompet    Boolean
-  indIBSCBSMono      Boolean
-  indCredPresIBSZFM  Boolean
+  indIBSCBS        Boolean  @default(false)
+  indRedBC         Boolean  @default(false)
+  indRedAliq       Boolean  @default(false)
+  indTransfCred    Boolean  @default(false)
+  indDif           Boolean  @default(false)
+  indAjusteCompet  Boolean  @default(false)
+  indIBSCBSMono    Boolean  @default(false)
+  indCredPresIBSZFM Boolean @default(false)
   
   // Vigência do CST
-  publishDate        DateTime // "Publicacao"
-  startDate          DateTime // "InicioVigencia"
-  endDate            DateTime? // "FimVigencia"
+  publishDate      DateTime 
+  startDate        DateTime 
+  endDate          DateTime?
 
   // Relacionamento
-  classifications    TaxClassification[] //Um CST pode ter várias Classificações Tributárias
+  classifications  TaxClassification[]
 
-  lastUpdated        DateTime @default(now())
+  lastUpdated      DateTime @default(now())
   
   @@map("tax_cst")
 }
 
 // cClassTrib
 model TaxClassification {
-  id                 String   @id @default(cuid())
+  id               String   @id @default(cuid())
   
   // Chave Estrangeira para o CST
-  cstId              String
-  cst                TaxCST   @relation(fields: [cstId], references: [id], onDelete: Cascade)
+  cstId            String
+  cst              TaxCST   @relation(fields: [cstId], references: [id], onDelete: Cascade)
   
-  code               String   @unique // "cClassTrib": "000001"
-  description        String   // "DescricaoClassTrib"
+  code             String   @unique // "cClassTrib": "000001"
+  description      String   @db.Text
   
-  // Valores Específicos
-  pRedIBS            Float    // "pRedIBS"
-  pRedCBS            Float    // "pRedCBS"
-  tipoAliquota       String   // "TipoAliquota"
-  link               String?  // "Link"
-
-  // Indicadores Específicos (Flags da Classificação)
-  indTribRegular     Boolean
-  indCredPresOper    Boolean
-  indEstornoCred     Boolean
+  // Valores Específicos: USE DECIMAL PARA CÁLCULOS
+  // @db.Decimal(precisão, casas_decimais)
+  pRedIBS          Decimal? @db.Decimal(5, 2) // Permite valores como 100.00 ou 50.55
+  pRedCBS          Decimal? @db.Decimal(5, 2)
   
-  // Flags de Documentos (Onde essa classificação se aplica)
-  indNFe             Boolean
-  indNFCe            Boolean
-  indCTe             Boolean
-  indNFSe            Boolean
+  tipoAliquota     String?  // Pode ser nulo dependendo da API
+  link             String? 
 
-  // Vigência da Classificação
-  publishDate        DateTime
-  startDate          DateTime
-  endDate            DateTime?
+  // Indicadores Específicos
+  indTribRegular   Boolean  @default(false)
+  indCredPresOper  Boolean  @default(false)
+  indEstornoCred   Boolean  @default(false)
+  
+  // Flags de Documentos
+  indNFe           Boolean  @default(false)
+  indNFCe          Boolean  @default(false)
+  indCTe           Boolean  @default(false)
+  indNFSe          Boolean  @default(false)
 
+  // Vigência
+  publishDate      DateTime
+  startDate        DateTime
+  endDate          DateTime?
+
+  @@index([cstId]) // Index para performance no Join
+  @@index([code])  // Index para buscar rapidament pelo código na emissão de NFe
   @@map("tax_classification")
 }
