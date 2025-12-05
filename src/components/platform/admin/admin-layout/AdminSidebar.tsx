@@ -18,7 +18,8 @@ import {
     HelpCircle,
     ChevronUp,
     Sparkles,
-    Wrench
+    Wrench,
+    Scale
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -49,6 +50,7 @@ const manageNav: NavItem[] = [
 const systemNav: NavItem[] = [
     { title: "Central de Chamados", href: "/admin/chamados", icon: Headset },
     { title: "Ferramentas", href: "/admin/tools", icon: Wrench },
+    { title: "Reforma Tributária", href: "/admin/reforma-tributaria", icon: Scale },
 ];
 
 const helpNav: NavItem[] = [
