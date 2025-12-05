@@ -8,14 +8,14 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Database } from "lucide-react";
+import { FileText, Database, ArrowRight } from "lucide-react";
 
 export async function TaxClassificationList() {
-    // Busca direta no banco (Server Component)
     const items = await prisma.taxClassification.findMany({
-        orderBy: {
-            code: "asc",
-        },
+        orderBy: { code: "asc" },
+        include: {
+            cst: true, // <--- AGORA PODEMOS BUSCAR O PAI (CST)
+        }
     });
 
     if (items.length === 0) {
@@ -37,30 +37,46 @@ export async function TaxClassificationList() {
                 </h3>
             </div>
 
-            <div className="relative w-full overflow-auto max-h-[400px]">
+            <div className="relative w-full overflow-auto max-h-[600px]">
                 <Table>
                     <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                         <TableRow>
-                            <TableHead className="w-[80px]">Código</TableHead>
-                            <TableHead>Descrição da Classificação</TableHead>
-                            <TableHead className="w-[150px] text-right">Início Vigência</TableHead>
+                            <TableHead className="w-[180px]">Vínculo CST</TableHead>
+                            <TableHead className="w-[100px]">Cód. Class.</TableHead>
+                            <TableHead>Descrição Detalhada</TableHead>
+                            <TableHead className="w-[120px] text-right">Reduções</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {items.map((item) => (
                             <TableRow key={item.id}>
+                                {/* Coluna do CST (Pai) */}
+                                <TableCell>
+                                    {item.cst ? (
+                                        <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md w-fit">
+                                            <span>CST {item.cst.cst}</span>
+                                            <ArrowRight className="h-3 w-3" />
+                                        </div>
+                                    ) : (
+                                        <span className="text-destructive text-xs">Sem Vínculo</span>
+                                    )}
+                                </TableCell>
+
                                 <TableCell className="font-medium">
                                     <Badge variant="outline" className="font-mono">
                                         {item.code}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                    {/* CORREÇÃO 1: 'name' virou 'description' */}
+
+                                <TableCell className="text-sm text-muted-foreground max-w-[400px] truncate" title={item.description}>
                                     {item.description}
                                 </TableCell>
-                                <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
-                                    {/* CORREÇÃO 2: 'updatedAt' não existe mais, usando 'startDate' */}
-                                    {item.startDate.toLocaleDateString("pt-BR")}
+
+                                <TableCell className="text-right text-xs tabular-nums">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-muted-foreground">IBS: {Number(item.pRedIBS)}%</span>
+                                        <span className="text-muted-foreground">CBS: {Number(item.pRedCBS)}%</span>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}
