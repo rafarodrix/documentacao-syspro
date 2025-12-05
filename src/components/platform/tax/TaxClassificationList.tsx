@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma"; // Verifique se o seu import é 'db' ou 'prisma'
+import { prisma } from "@/lib/prisma";
 import {
     Table,
     TableBody,
@@ -43,7 +43,7 @@ export async function TaxClassificationList() {
                         <TableRow>
                             <TableHead className="w-[80px]">Código</TableHead>
                             <TableHead>Descrição da Classificação</TableHead>
-                            <TableHead className="w-[150px] text-right">Atualizado em</TableHead>
+                            <TableHead className="w-[150px] text-right">Início Vigência</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -55,10 +55,12 @@ export async function TaxClassificationList() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
-                                    {item.name}
+                                    {/* CORREÇÃO 1: 'name' virou 'description' */}
+                                    {item.description}
                                 </TableCell>
                                 <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
-                                    {item.updatedAt.toLocaleDateString("pt-BR")}
+                                    {/* CORREÇÃO 2: 'updatedAt' não existe mais, usando 'startDate' */}
+                                    {item.startDate.toLocaleDateString("pt-BR")}
                                 </TableCell>
                             </TableRow>
                         ))}
