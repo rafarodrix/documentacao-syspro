@@ -1,428 +1,483 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, ReactNode } from 'react';
 import {
-  PlusCircle,
+  Plus,
   Trash2,
   Target,
-  Zap,
+  Settings2,
   ShieldCheck,
   AlertTriangle,
-  Briefcase,
-  BarChart2,
-  HelpCircle,
-  ChevronDown,
-  X,
+  AlertCircle,
+  BarChart3,
+  Calculator,
+  RotateCcw,
+  LayoutDashboard,
+  Coins,
+  ArrowRightLeft
 } from 'lucide-react';
 import { BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
-import { FormattedCurrencyInput } from './CurrencyInput';
+import { FormattedCurrencyInput } from './CurrencyInput'; // Mantendo sua importação original
 
-// ------------------------------------------------------------
-// Tipos e Constantes
-// ------------------------------------------------------------
+// ============================================================================
+// 1. TYPES & CONSTANTS
+// ============================================================================
+
 type AllocationMode = 'auto' | 'manual';
 
-interface Department {
+export interface Department {
   id: number;
   name: string;
   totalRevenue: number;
   manualCost?: number;
 }
 
-const initialDepartments: Department[] = [
+const INITIAL_DEPARTMENTS: Department[] = [
   { id: 1, name: 'FILTRO AR', totalRevenue: 36847 },
   { id: 2, name: 'FILTRO COMBUSTÍVEL', totalRevenue: 41007 },
   { id: 3, name: 'LUBRIFICANTE', totalRevenue: 146620.1 },
 ];
 
-const formatCurrency = (value: number) =>
-  isNaN(value) ? 'R$ 0,00' : value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+// Utilitários de Formatação
+const formatCurrency = (val: number) =>
+  isNaN(val) ? 'R$ 0,00' : val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-const formatPercent = (value: number) =>
-  isNaN(value)
-    ? '0,00%'
-    : value.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
+const formatPercent = (val: number) =>
+  isNaN(val) ? '0,00%' : val.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
 
-function HealthStatus({ current, target }: { current: number; target: number }) {
-  if (target <= 0 || current <= 0 || isNaN(current)) {
-    return (
-      <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 border h-full">
-        <div>
-          <p className="text-sm text-muted-foreground">Status Financeiro</p>
-          <p className="text-lg font-semibold">Aguardando dados...</p>
-        </div>
-      </div>
-    );
-  }
+// ============================================================================
+// 2. UI ATOMS (Componentes Visuais Reutilizáveis)
+// ============================================================================
 
-  let status: 'healthy' | 'warning' | 'critical' = 'healthy';
-  if (current > target * 1.1) status = 'critical';
-  else if (current > target) status = 'warning';
+const Card = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
+  <div className={`bg-white border border-slate-200 rounded-xl shadow-sm ${className}`}>
+    {children}
+  </div>
+);
 
-  const config = {
-    healthy: { icon: ShieldCheck, label: 'Saudável', color: 'text-green-500' },
-    warning: { icon: AlertTriangle, label: 'Atenção', color: 'text-amber-500' },
-    critical: { icon: Zap, label: 'Crítico', color: 'text-red-500' },
-  }[status];
+const CardHeader = ({ title, icon: Icon, action }: { title: string; icon?: any; action?: ReactNode }) => (
+  <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
+    <div className="flex items-center gap-2 text-slate-700 font-semibold">
+      {Icon && <Icon className="w-5 h-5 text-slate-500" />}
+      {title}
+    </div>
+    {action && <div>{action}</div>}
+  </div>
+);
 
-  const { icon: Icon, label, color } = config;
+const Badge = ({ children, variant = 'default' }: { children: ReactNode; variant?: 'default' | 'success' | 'warning' | 'danger' | 'neutral' }) => {
+  const styles = {
+    default: 'bg-slate-100 text-slate-700',
+    neutral: 'bg-gray-100 text-gray-600 border border-gray-200',
+    success: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    warning: 'bg-amber-50 text-amber-700 border border-amber-200',
+    danger: 'bg-rose-50 text-rose-700 border border-rose-200',
+  };
+  return <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[variant]}`}>{children}</span>;
+};
+
+// ============================================================================
+// 3. SUB-COMPONENTS (Lógica de Negócio Modularizada)
+// ============================================================================
+
+// --- 3.1 Painel de KPIs (Métricas Principais) ---
+interface KPIGridProps {
+  totalCost: number;
+  costTarget: number;
+  currentCostPercent: number;
+  onTotalCostChange: (val: string | undefined) => void;
+  onTargetChange: (val: number) => void;
+}
+
+function KPIGrid({ totalCost, costTarget, currentCostPercent, onTotalCostChange, onTargetChange }: KPIGridProps) {
+  // Lógica de Status
+  const getStatus = () => {
+    if (totalCost <= 0) return { label: 'Sem Dados', variant: 'neutral' as const, icon: AlertCircle };
+    if (currentCostPercent > costTarget * 1.1) return { label: 'Crítico', variant: 'danger' as const, icon: AlertTriangle };
+    if (currentCostPercent > costTarget) return { label: 'Atenção', variant: 'warning' as const, icon: AlertTriangle };
+    return { label: 'Saudável', variant: 'success' as const, icon: ShieldCheck };
+  };
+
+  const status = getStatus();
+  const StatusIcon = status.icon;
 
   return (
-    <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 border h-full">
-      <Icon className={`h-8 w-8 ${color}`} />
-      <div>
-        <p className="text-sm text-muted-foreground">Status Financeiro</p>
-        <p className={`text-lg font-semibold ${color}`}>{label}</p>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* Card 1: Input Principal */}
+      <Card className="p-5 flex flex-col justify-between relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-3 opacity-5"><Coins size={64} /></div>
+        <label className="text-sm font-medium text-slate-500 mb-1">Custo Fixo Total (Meta)</label>
+        <div className="relative z-10">
+          <FormattedCurrencyInput
+            value={totalCost}
+            onValueChange={onTotalCostChange}
+            className="text-2xl font-bold text-slate-800 bg-transparent border-none p-0 focus:ring-0 w-full placeholder:text-slate-300"
+          />
+          <p className="text-xs text-slate-400 mt-1">Valor base para distribuição</p>
+        </div>
+      </Card>
+
+      {/* Card 2: Meta Percentual */}
+      <Card className="p-5 flex flex-col justify-between relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-3 opacity-5"><Target size={64} /></div>
+        <label className="text-sm font-medium text-slate-500 mb-1">Meta de Custo (%)</label>
+        <div className="flex items-baseline gap-1 z-10">
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={Math.round(costTarget * 100)}
+            onChange={(e) => onTargetChange(parseFloat(e.target.value) / 100)}
+            className="text-2xl font-bold text-slate-800 bg-transparent border-b border-slate-200 w-20 focus:outline-none focus:border-blue-500 transition-colors"
+          />
+          <span className="text-lg text-slate-400 font-medium">%</span>
+        </div>
+        <p className="text-xs text-slate-400 mt-1">Limite ideal sobre faturamento</p>
+      </Card>
+
+      {/* Card 3: Status (Calculado) */}
+      <Card className={`p-5 flex flex-col justify-between border-l-4 ${status.variant === 'success' ? 'border-l-emerald-500' :
+          status.variant === 'warning' ? 'border-l-amber-500' :
+            status.variant === 'danger' ? 'border-l-rose-500' : 'border-l-slate-300'
+        }`}>
+        <div className="flex justify-between items-start">
+          <div>
+            <label className="text-sm font-medium text-slate-500">Status Financeiro</label>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-2xl font-bold text-slate-800">{formatPercent(currentCostPercent)}</span>
+              <Badge variant={status.variant}>{status.label}</Badge>
+            </div>
+          </div>
+          <StatusIcon className={`w-8 h-8 ${status.variant === 'success' ? 'text-emerald-500' :
+              status.variant === 'warning' ? 'text-amber-500' :
+                status.variant === 'danger' ? 'text-rose-500' : 'text-slate-300'
+            }`} />
+        </div>
+        <p className="text-xs text-slate-400 mt-1">
+          {currentCostPercent > costTarget
+            ? `Excedendo meta em ${formatPercent(currentCostPercent - costTarget)}`
+            : 'Dentro do limite estipulado'}
+        </p>
+      </Card>
     </div>
   );
 }
 
-
-interface Step1Props {
-  totalCost: number;
-  onTotalCostChange: (value?: string) => void;
-  costTarget: number;
-  onCostTargetChange: (value: number) => void;
-  totalCostPercent: number;
-  onClear: () => void;
+// --- 3.2 Tabela de Departamentos ---
+interface DepartmentTableProps {
+  departments: Department[];
+  allocationMode: AllocationMode;
+  companyTotalFixedCost: number;
+  totalRevenue: number;
+  onUpdateDepartment: (id: number, field: keyof Department, value: any) => void;
+  onDelete: (id: number) => void;
+  lastAddedRef: React.Ref<HTMLInputElement>;
 }
 
-function Step1_GeneralData({
-  totalCost,
-  onTotalCostChange,
-  costTarget,
-  onCostTargetChange,
-  totalCostPercent,
-  onClear,
-}: Step1Props) {
-  return (
-    <section className="bg-card border rounded-lg p-6 shadow-sm">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-lg font-bold flex items-center gap-2">
-            <Briefcase size={20} /> Passo 1: Dados Gerais e Metas
-          </h3>
-          <p className="text-sm text-muted-foreground mt-2">
-            Informe o custo fixo total e a meta de custo sobre o faturamento.
-          </p>
-        </div>
-        <button
-          onClick={onClear}
-          className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1"
-        >
-          <X size={16} /> Limpar Dados
-        </button>
-      </div>
+function DepartmentTable({
+  departments,
+  allocationMode,
+  companyTotalFixedCost,
+  totalRevenue,
+  onUpdateDepartment,
+  onDelete,
+  lastAddedRef
+}: DepartmentTableProps) {
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <label htmlFor="total-cost" className="font-medium text-muted-foreground text-sm">
-            Custo Fixo Total (R$)
-          </label>
-          <FormattedCurrencyInput
-            id="total-cost"
-            value={totalCost}
-            onValueChange={onTotalCostChange}
-            className="p-3 text-lg font-semibold mt-1"
-          />
-        </div>
-        <div>
-          <label htmlFor="target-cost" className="font-medium text-muted-foreground text-sm flex items-center gap-1.5">
-            <Target size={14} /> Meta de Custo Fixo (%)
-          </label>
-          <div className="relative">
-            <input
-              id="target-cost"
-              type="number"
-              min="0"
-              max="100"
-              value={costTarget * 100}
-              onChange={(e) => onCostTargetChange((parseFloat(e.target.value) || 0) / 100)}
-              className="mt-1 w-full p-2 bg-background border rounded-md font-semibold text-lg pr-8"
-            />
-            <span className="absolute inset-y-0 right-3 flex items-center text-muted-foreground text-sm">%</span>
-          </div>
-        </div>
-        <HealthStatus current={totalCostPercent} target={costTarget} />
-      </div>
-    </section>
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-left">
+        <thead className="bg-slate-50 border-y border-slate-200 text-slate-500 font-medium uppercase text-xs tracking-wider">
+          <tr>
+            <th className="px-6 py-3 w-[35%]">Departamento</th>
+            <th className="px-6 py-3 text-right">Faturamento</th>
+            <th className="px-6 py-3 text-right">Participação</th>
+            <th className="px-6 py-3 text-right bg-slate-100/50">
+              {allocationMode === 'auto' ? (
+                <span className="flex items-center justify-end gap-1"><Settings2 size={12} /> Alocação Auto</span>
+              ) : (
+                <span className="flex items-center justify-end gap-1"><Calculator size={12} /> Custo Manual</span>
+              )}
+            </th>
+            <th className="px-4 py-3 text-center w-[50px]"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {departments.map((dept, index) => {
+            const participation = totalRevenue > 0 ? dept.totalRevenue / totalRevenue : 0;
+            const allocatedCost = allocationMode === 'auto'
+              ? companyTotalFixedCost * participation
+              : dept.manualCost || 0;
+
+            return (
+              <tr key={dept.id} className="group hover:bg-slate-50/80 transition-colors">
+                <td className="px-6 py-3">
+                  <input
+                    ref={index === departments.length - 1 ? lastAddedRef : null}
+                    type="text"
+                    value={dept.name}
+                    onChange={(e) => onUpdateDepartment(dept.id, 'name', e.target.value)}
+                    className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none text-slate-700 font-medium py-1 transition-colors"
+                    placeholder="Nome do departamento..."
+                  />
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <FormattedCurrencyInput
+                    value={dept.totalRevenue}
+                    onValueChange={(val) => onUpdateDepartment(dept.id, 'totalRevenue', parseFloat(val || '0'))}
+                    className="text-right bg-transparent w-full border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none py-1 text-slate-600"
+                  />
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <Badge variant="neutral">{formatPercent(participation)}</Badge>
+                </td>
+                <td className={`px-6 py-3 text-right font-medium ${allocationMode === 'auto' ? 'text-slate-500 bg-slate-50/30' : 'text-blue-600'}`}>
+                  {allocationMode === 'auto' ? (
+                    formatCurrency(allocatedCost)
+                  ) : (
+                    <FormattedCurrencyInput
+                      value={dept.manualCost || 0}
+                      onValueChange={(val) => onUpdateDepartment(dept.id, 'manualCost', parseFloat(val || '0'))}
+                      className="text-right bg-white border border-slate-200 rounded px-2 py-1 w-28 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
+                    />
+                  )}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    onClick={() => onDelete(dept.id)}
+                    className="text-slate-300 hover:text-rose-500 transition-colors p-1"
+                    title="Remover"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+          {departments.length === 0 && (
+            <tr>
+              <td colSpan={5} className="py-8 text-center text-slate-400 italic">
+                Nenhum departamento cadastrado. Adicione um para começar.
+              </td>
+            </tr>
+          )}
+        </tbody>
+        <tfoot className="bg-slate-50 border-t border-slate-200 font-semibold text-slate-700">
+          <tr>
+            <td className="px-6 py-3">Total</td>
+            <td className="px-6 py-3 text-right">{formatCurrency(totalRevenue)}</td>
+            <td className="px-6 py-3 text-right">100%</td>
+            <td className="px-6 py-3 text-right">
+              {allocationMode === 'auto'
+                ? formatCurrency(companyTotalFixedCost)
+                : formatCurrency(departments.reduce((acc, d) => acc + (d.manualCost || 0), 0))
+              }
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   );
 }
 
-// ============================================================
-// NOVO SUBCOMPONENTE: PASSO 2
-// ============================================================
-interface Step2Props {
-  departments: Department[];
-  allocationMode: AllocationMode;
-  onAllocationModeChange: (mode: AllocationMode) => void;
-  companyTotalFixedCost: number;
-  totalRevenue: number;
-  totalManualCost: number;
-  balanceToAllocate: number;
-  onAddDepartment: () => void;
-  onDeleteDepartment: (id: number) => void;
-  onNameChange: (id: number, name: string) => void;
-  onRevenueChange: (id: number, value?: string) => void;
-  onManualCostChange: (id: number, value?: string) => void;
-  lastAddedInputRef: React.Ref<HTMLInputElement>;
-}
+// --- 3.3 Rodapé de Explicação Técnica ---
+function CalculationFooter() {
+  const [isOpen, setIsOpen] = useState(false);
 
-function Step2_DepartmentManagement({
-  departments,
-  allocationMode,
-  onAllocationModeChange,
-  companyTotalFixedCost,
-  totalRevenue,
-  totalManualCost,
-  balanceToAllocate,
-  onAddDepartment,
-  onDeleteDepartment,
-  onNameChange,
-  onRevenueChange,
-  onManualCostChange,
-  lastAddedInputRef,
-}: Step2Props) {
   return (
-    <section className="bg-card border rounded-lg p-6 shadow-sm">
-      <h3 className="text-lg font-bold flex items-center gap-2">
-        <BarChart2 size={20} /> Passo 2: Gerencie e Simule Departamentos
-      </h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        Adicione, edite e remova departamentos. Altere o modo de alocação para simular diferentes cenários.
-      </p>
+    <div className="mt-8 border-t border-slate-200 pt-6">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors"
+      >
+        <Calculator size={16} />
+        {isOpen ? 'Ocultar detalhes do cálculo' : 'Como o cálculo é feito?'}
+      </button>
 
-      {/* Seletor de Modo */}
-      <div className="flex justify-center gap-2 my-4 p-1 rounded-lg bg-muted w-fit mx-auto">
-        {(['auto', 'manual'] as AllocationMode[]).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => onAllocationModeChange(mode)}
-            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${allocationMode === mode
-                ? 'bg-background shadow text-primary'
-                : 'text-muted-foreground hover:bg-background/50'
-              }`}
-          >
-            {mode === 'auto' ? 'Automático' : 'Manual'}
-          </button>
-        ))}
-      </div>
-
-      {/* Sumário do Modo Manual */}
-      {allocationMode === 'manual' && (
-        <div className="grid md:grid-cols-3 gap-4 mb-6 text-center">
-          <div className="p-3 bg-muted/30 rounded-lg border">
-            <p className="text-muted-foreground text-sm">Total Manual</p>
-            <p className="text-lg font-semibold">{formatCurrency(totalManualCost)}</p>
+      {isOpen && (
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-lg border border-slate-200 animate-in fade-in slide-in-from-top-2">
+          <div>
+            <h4 className="font-semibold text-slate-800 mb-2 text-sm">Custo Automático (Rateio)</h4>
+            <p className="text-xs text-slate-500 mb-3">O custo fixo é distribuído proporcionalmente com base na receita de cada departamento.</p>
+            <div className="bg-white p-3 rounded border border-slate-200 text-xs">
+              <BlockMath math={`P_{dept} = \\frac{Faturamento_{dept}}{Faturamento_{Total}}`} />
+              <div className="h-2" />
+              <BlockMath math={`Custo_{alocado} = Custo_{Total} \\times P_{dept}`} />
+            </div>
           </div>
-          <div className="p-3 bg-muted/30 rounded-lg border">
-            <p className="text-muted-foreground text-sm">Custo Fixo Total</p>
-            <p className="text-lg font-semibold">{formatCurrency(companyTotalFixedCost)}</p>
-          </div>
-          <div className="p-3 bg-muted/30 rounded-lg border">
-            <p className="text-muted-foreground text-sm">Saldo a Alocar</p>
-            <p className={`text-lg font-semibold ${balanceToAllocate < 0 ? 'text-red-500' : 'text-primary'}`}>
-              {formatCurrency(balanceToAllocate)}
-            </p>
+          <div>
+            <h4 className="font-semibold text-slate-800 mb-2 text-sm">Modo Manual</h4>
+            <p className="text-xs text-slate-500 mb-3">Permite override manual. Útil para simular cenários onde um departamento absorve mais custo independente da receita.</p>
+            <ul className="list-disc list-inside text-xs text-slate-600 space-y-1">
+              <li>Valida se a soma manual bate com o custo total da empresa.</li>
+              <li>Exibe saldo restante (positivo ou negativo) em tempo real.</li>
+            </ul>
           </div>
         </div>
       )}
-
-      {/* Tabela de Departamentos */}
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-muted/50 border-b">
-            <tr>
-              <th className="p-3 text-left">Departamento</th>
-              <th className="p-3 text-right">Faturamento (R$)</th>
-              <th className="p-3 text-right">% Participação</th>
-              <th className="p-3 text-right">Custo Fixo</th>
-              <th className="p-3 text-center">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {departments.map((dept, i) => {
-              const participacao = totalRevenue > 0 ? dept.totalRevenue / totalRevenue : 0;
-              const custoFixo =
-                allocationMode === 'auto'
-                  ? companyTotalFixedCost * participacao
-                  : dept.manualCost || 0;
-              return (
-                <tr key={dept.id} className={i % 2 === 0 ? 'bg-transparent' : 'bg-muted/20'}>
-                  <td className="p-2 w-2/5">
-                    <input
-                      ref={i === departments.length - 1 ? lastAddedInputRef : null}
-                      type="text"
-                      placeholder="Nome do Departamento"
-                      value={dept.name}
-                      onChange={(e) => onNameChange(dept.id, e.target.value)}
-                      className="w-full bg-background/50 p-2 rounded-md border focus:ring-2 focus:ring-primary focus:outline-none"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <FormattedCurrencyInput
-                      value={dept.totalRevenue}
-                      onValueChange={(value) => onRevenueChange(dept.id, value)}
-                      className="text-right p-2"
-                    />
-                  </td>
-                  <td className="p-3 text-right font-mono">{formatPercent(participacao)}</td>
-                  <td className="p-2">
-                    {allocationMode === 'manual' ? (
-                      <FormattedCurrencyInput
-                        value={dept.manualCost || 0}
-                        onValueChange={(value) => onManualCostChange(dept.id, value)}
-                        className="text-right p-2"
-                      />
-                    ) : (
-                      <p className="text-right font-semibold text-primary">{formatCurrency(custoFixo)}</p>
-                    )}
-                  </td>
-                  <td className="p-3 text-center">
-                    <button
-                      onClick={() => onDeleteDepartment(dept.id)}
-                      title="Remover Departamento"
-                      className="text-muted-foreground hover:text-destructive p-1 rounded-md transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <button
-        onClick={onAddDepartment}
-        className="mt-4 flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-      >
-        <PlusCircle className="w-4 h-4" /> Adicionar Departamento
-      </button>
-    </section>
+    </div>
   );
 }
 
-// ============================================================
-// NOVO SUBCOMPONENTE: EXPLICAÇÕES
-// ============================================================
-function CalculationsExplanation() {
-  return (
-    <details className="text-sm group bg-card border rounded-lg p-4 shadow-sm">
-      <summary className="cursor-pointer font-semibold text-primary list-none flex items-center gap-2">
-        <HelpCircle size={16} /> Entendendo os Cálculos
-        <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 ml-auto" />
-      </summary>
-      <div className="mt-4 border-t pt-4 space-y-3 text-muted-foreground animate-fade-in">
-        <p>
-          <strong>% Participação:</strong> representa o peso do faturamento do departamento sobre o total.
-        </p>
-        <div className="p-3 bg-background rounded-md text-center">
-          <BlockMath math={`P_{dept} = \\frac{Faturamento_{dept}}{Faturamento_{Total}}`} />
-        </div>
-        <p>
-          <strong>Custo Fixo Alocado:</strong> no modo automático, é calculado proporcionalmente à participação no faturamento.
-        </p>
-        <div className="p-3 bg-background rounded-md text-center">
-          <BlockMath math={`CustoFixo_{dept} = CustoFixo_{Total} \\times P_{dept}`} />
-        </div>
-      </div>
-    </details>
-  );
-}
+// ============================================================================
+// 4. MAIN COMPONENT (Controller)
+// ============================================================================
 
-// ============================================================
-// COMPONENTE PRINCIPAL (CONTAINER)
-// ============================================================
 export function FixedCostSimulator() {
-  const [departments, setDepartments] = useState<Department[]>(initialDepartments);
+  const [departments, setDepartments] = useState<Department[]>(INITIAL_DEPARTMENTS);
   const [companyTotalFixedCost, setCompanyTotalFixedCost] = useState(103000);
-  const [costTarget, setCostTarget] = useState(0.4);
+  const [costTarget, setCostTarget] = useState(0.4); // 40%
   const [allocationMode, setAllocationMode] = useState<AllocationMode>('auto');
+
   const lastAddedInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Cálculos Principais (Mantidos no componente pai) ---
+  // --- Cálculos Derivados ---
   const totalRevenue = useMemo(() => departments.reduce((sum, d) => sum + d.totalRevenue, 0), [departments]);
-  const totalCostPercent = useMemo(
-    () => (totalRevenue > 0 ? companyTotalFixedCost / totalRevenue : 0),
-    [companyTotalFixedCost, totalRevenue]
-  );
-  const totalManualCost = useMemo(() => departments.reduce((sum, d) => sum + (d.manualCost || 0), 0), [departments]);
-  const balanceToAllocate = companyTotalFixedCost - totalManualCost;
+  const currentCostPercent = useMemo(() => (totalRevenue > 0 ? companyTotalFixedCost / totalRevenue : 0), [companyTotalFixedCost, totalRevenue]);
 
-  // --- Manipuladores (Mantidos no componente pai) ---
-  const handleRevenueChange = (id: number, value?: string) =>
-    setDepartments((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, totalRevenue: parseFloat(value || '0') } : d))
-    );
+  // Apenas para modo manual
+  const totalManualAllocated = useMemo(() => departments.reduce((sum, d) => sum + (d.manualCost || 0), 0), [departments]);
+  const balanceToAllocate = companyTotalFixedCost - totalManualAllocated;
 
-  const handleManualCostChange = (id: number, value?: string) =>
-    setDepartments((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, manualCost: parseFloat(value || '0') } : d))
-    );
+  // --- Actions ---
+  const handleUpdateDepartment = (id: number, field: keyof Department, value: any) => {
+    setDepartments(prev => prev.map(d => d.id === id ? { ...d, [field]: value } : d));
+  };
 
   const handleAddDepartment = () => {
-    const newId = departments.length ? Math.max(...departments.map((d) => d.id)) + 1 : 1;
+    const newId = departments.length ? Math.max(...departments.map(d => d.id)) + 1 : 1;
     setDepartments([...departments, { id: newId, name: '', totalRevenue: 0 }]);
   };
 
-  const handleDeleteDepartment = (id: number) => setDepartments((prev) => prev.filter((d) => d.id !== id));
-
-  const handleNameChange = (id: number, name: string) =>
-    setDepartments((prev) => prev.map((d) => (d.id === id ? { ...d, name } : d)));
-
-  const handleClear = () => {
-    setDepartments(initialDepartments);
-    setCompanyTotalFixedCost(103000);
-    setCostTarget(0.4);
-    setAllocationMode('auto');
+  const handleDeleteDepartment = (id: number) => {
+    setDepartments(prev => prev.filter(d => d.id !== id));
   };
 
-  // --- Efeitos (Mantidos no componente pai) ---
+  const handleReset = () => {
+    if (confirm('Isso irá restaurar os dados iniciais. Continuar?')) {
+      setDepartments(INITIAL_DEPARTMENTS);
+      setCompanyTotalFixedCost(103000);
+      setAllocationMode('auto');
+    }
+  };
+
+  // Efeito para focar no input novo
+  useEffect(() => {
+    if (departments.length > INITIAL_DEPARTMENTS.length) {
+      lastAddedInputRef.current?.focus();
+    }
+  }, [departments.length]);
+
+  // Efeito para limpar custos manuais ao voltar para auto
   useEffect(() => {
     if (allocationMode === 'auto') {
-      setDepartments((prev) => prev.map((d) => ({ ...d, manualCost: undefined })));
+      setDepartments(prev => prev.map(d => ({ ...d, manualCost: undefined })));
     }
   }, [allocationMode]);
 
-  useEffect(() => {
-    lastAddedInputRef.current?.focus();
-  }, [departments.length]);
-
-  // ------------------------------------------------------------
-  // Renderização usando os novos subcomponentes
-  // ------------------------------------------------------------
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <Step1_GeneralData
+    <div className="max-w-7xl mx-auto p-6 space-y-8 bg-slate-50/50 min-h-screen">
+      {/* Header da Página */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <LayoutDashboard className="text-blue-600" />
+            Simulador de Custos Fixos
+          </h1>
+          <p className="text-slate-500 mt-1">Gerenciamento estratégico de rateio por departamento</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm"
+          >
+            <RotateCcw size={16} /> Restaurar Padrões
+          </button>
+        </div>
+      </div>
+
+      {/* Seção 1: Indicadores Globais */}
+      <KPIGrid
         totalCost={companyTotalFixedCost}
-        onTotalCostChange={(value) => setCompanyTotalFixedCost(parseFloat(value || '0'))}
+        onTotalCostChange={(val) => setCompanyTotalFixedCost(parseFloat(val || '0'))}
         costTarget={costTarget}
-        onCostTargetChange={setCostTarget}
-        totalCostPercent={totalCostPercent}
-        onClear={handleClear}
+        onTargetChange={setCostTarget}
+        currentCostPercent={currentCostPercent}
       />
 
-      <Step2_DepartmentManagement
-        departments={departments}
-        allocationMode={allocationMode}
-        onAllocationModeChange={setAllocationMode}
-        companyTotalFixedCost={companyTotalFixedCost}
-        totalRevenue={totalRevenue}
-        totalManualCost={totalManualCost}
-        balanceToAllocate={balanceToAllocate}
-        onAddDepartment={handleAddDepartment}
-        onDeleteDepartment={handleDeleteDepartment}
-        onNameChange={handleNameChange}
-        onRevenueChange={handleRevenueChange}
-        onManualCostChange={handleManualCostChange}
-        lastAddedInputRef={lastAddedInputRef}
-      />
+      {/* Seção 2: Gerenciamento (Tabela Principal) */}
+      <Card>
+        <CardHeader
+          title="Detalhamento por Departamento"
+          icon={BarChart3}
+          action={
+            <div className="flex bg-slate-100 p-1 rounded-lg">
+              <button
+                onClick={() => setAllocationMode('auto')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${allocationMode === 'auto' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                <Settings2 size={14} /> Automático
+              </button>
+              <button
+                onClick={() => setAllocationMode('manual')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${allocationMode === 'manual' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                <Calculator size={14} /> Manual
+              </button>
+            </div>
+          }
+        />
 
-      <CalculationsExplanation />
+        {/* Barra de Alerta para Modo Manual */}
+        {allocationMode === 'manual' && (
+          <div className={`px-6 py-3 border-b flex items-center justify-between text-sm ${balanceToAllocate === 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
+              balanceToAllocate > 0 ? 'bg-blue-50 text-blue-800 border-blue-100' : 'bg-rose-50 text-rose-800 border-rose-100'
+            }`}>
+            <div className="flex items-center gap-2">
+              <ArrowRightLeft size={16} />
+              <span className="font-semibold">Modo de Alocação Manual Ativo</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span>Total Empresa: <strong>{formatCurrency(companyTotalFixedCost)}</strong></span>
+              <span>Alocado: <strong>{formatCurrency(totalManualAllocated)}</strong></span>
+              <span className={`px-2 py-0.5 rounded border ${balanceToAllocate === 0 ? 'bg-emerald-200/50 border-emerald-300' : 'bg-white border-current'
+                }`}>
+                Restante: <strong>{formatCurrency(balanceToAllocate)}</strong>
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="p-0">
+          <DepartmentTable
+            departments={departments}
+            allocationMode={allocationMode}
+            companyTotalFixedCost={companyTotalFixedCost}
+            totalRevenue={totalRevenue}
+            onUpdateDepartment={handleUpdateDepartment}
+            onDelete={handleDeleteDepartment}
+            lastAddedRef={lastAddedInputRef}
+          />
+        </div>
+
+        <div className="p-4 border-t border-slate-100 bg-slate-50/30 rounded-b-xl flex justify-center">
+          <button
+            onClick={handleAddDepartment}
+            className="group flex items-center gap-2 px-4 py-2 bg-white border border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
+          >
+            <div className="bg-slate-100 group-hover:bg-blue-100 rounded-full p-1 transition-colors">
+              <Plus size={14} />
+            </div>
+            Adicionar Novo Departamento
+          </button>
+        </div>
+      </Card>
+
+      <CalculationFooter />
     </div>
   );
 }
