@@ -14,32 +14,35 @@ import {
   RotateCcw,
   LayoutDashboard,
   Coins,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Percent,
+  CheckCircle2
 } from 'lucide-react';
 import { BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
-import { FormattedCurrencyInput } from './CurrencyInput'; // Mantendo sua importação original
+import { FormattedCurrencyInput } from '@/components/platform/tools/custos-departamento/CurrencyInput';
 
 // ============================================================================
 // 1. TYPES & CONSTANTS
 // ============================================================================
 
-type AllocationMode = 'auto' | 'manual';
+// Adicionado 'strategic' aos modos
+type AllocationMode = 'auto' | 'manual' | 'strategic';
 
 export interface Department {
   id: number;
   name: string;
   totalRevenue: number;
   manualCost?: number;
+  strategicTargetPercent?: number; // Novo campo para o modo estratégico
 }
 
 const INITIAL_DEPARTMENTS: Department[] = [
-  { id: 1, name: 'FILTRO AR', totalRevenue: 36847 },
-  { id: 2, name: 'FILTRO COMBUSTÍVEL', totalRevenue: 41007 },
-  { id: 3, name: 'LUBRIFICANTE', totalRevenue: 146620.1 },
+  { id: 1, name: 'FILTRO AR', totalRevenue: 36847, strategicTargetPercent: 0 },
+  { id: 2, name: 'FILTRO COMBUSTÍVEL', totalRevenue: 41007, strategicTargetPercent: 0 },
+  { id: 3, name: 'LUBRIFICANTE', totalRevenue: 146620.1, strategicTargetPercent: 0 },
 ];
 
-// Utilitários de Formatação
 const formatCurrency = (val: number) =>
   isNaN(val) ? 'R$ 0,00' : val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -47,41 +50,42 @@ const formatPercent = (val: number) =>
   isNaN(val) ? '0,00%' : val.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
 
 // ============================================================================
-// 2. UI ATOMS (Componentes Visuais Reutilizáveis)
+// 2. UI ATOMS
 // ============================================================================
 
 const Card = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
-  <div className={`bg-white border border-slate-200 rounded-xl shadow-sm ${className}`}>
+  <div className={`bg-card text-card-foreground border border-border rounded-xl shadow-sm ${className}`}>
     {children}
   </div>
 );
 
 const CardHeader = ({ title, icon: Icon, action }: { title: string; icon?: any; action?: ReactNode }) => (
-  <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
-    <div className="flex items-center gap-2 text-slate-700 font-semibold">
-      {Icon && <Icon className="w-5 h-5 text-slate-500" />}
+  <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/40 rounded-t-xl">
+    <div className="flex items-center gap-2 text-foreground font-semibold">
+      {Icon && <Icon className="w-5 h-5 text-muted-foreground" />}
       {title}
     </div>
     {action && <div>{action}</div>}
   </div>
 );
 
-const Badge = ({ children, variant = 'default' }: { children: ReactNode; variant?: 'default' | 'success' | 'warning' | 'danger' | 'neutral' }) => {
+const Badge = ({ children, variant = 'default' }: { children: ReactNode; variant?: 'default' | 'success' | 'warning' | 'danger' | 'neutral' | 'info' }) => {
   const styles = {
-    default: 'bg-slate-100 text-slate-700',
-    neutral: 'bg-gray-100 text-gray-600 border border-gray-200',
-    success: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-    warning: 'bg-amber-50 text-amber-700 border border-amber-200',
-    danger: 'bg-rose-50 text-rose-700 border border-rose-200',
+    default: 'bg-secondary text-secondary-foreground',
+    neutral: 'bg-muted text-muted-foreground border border-border',
+    success: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20',
+    warning: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20',
+    danger: 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/20',
+    info: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/20',
   };
   return <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[variant]}`}>{children}</span>;
 };
 
 // ============================================================================
-// 3. SUB-COMPONENTS (Lógica de Negócio Modularizada)
+// 3. SUB-COMPONENTS
 // ============================================================================
 
-// --- 3.1 Painel de KPIs (Métricas Principais) ---
+// --- 3.1 Painel de KPIs ---
 interface KPIGridProps {
   totalCost: number;
   costTarget: number;
@@ -91,7 +95,6 @@ interface KPIGridProps {
 }
 
 function KPIGrid({ totalCost, costTarget, currentCostPercent, onTotalCostChange, onTargetChange }: KPIGridProps) {
-  // Lógica de Status
   const getStatus = () => {
     if (totalCost <= 0) return { label: 'Sem Dados', variant: 'neutral' as const, icon: AlertCircle };
     if (currentCostPercent > costTarget * 1.1) return { label: 'Crítico', variant: 'danger' as const, icon: AlertTriangle };
@@ -104,24 +107,22 @@ function KPIGrid({ totalCost, costTarget, currentCostPercent, onTotalCostChange,
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      {/* Card 1: Input Principal */}
-      <Card className="p-5 flex flex-col justify-between relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-3 opacity-5"><Coins size={64} /></div>
-        <label className="text-sm font-medium text-slate-500 mb-1">Custo Fixo Total (Meta)</label>
+      <Card className="p-5 flex flex-col justify-between relative overflow-hidden group hover:border-primary/50 transition-colors">
+        <div className="absolute top-0 right-0 p-3 opacity-5 dark:opacity-10 text-primary"><Coins size={64} /></div>
+        <label className="text-sm font-medium text-muted-foreground mb-1">Custo Fixo Total (Meta)</label>
         <div className="relative z-10">
           <FormattedCurrencyInput
             value={totalCost}
             onValueChange={onTotalCostChange}
-            className="text-2xl font-bold text-slate-800 bg-transparent border-none p-0 focus:ring-0 w-full placeholder:text-slate-300"
+            className="text-2xl font-bold text-foreground bg-transparent border-none p-0 focus:ring-0 w-full placeholder:text-muted"
           />
-          <p className="text-xs text-slate-400 mt-1">Valor base para distribuição</p>
+          <p className="text-xs text-muted-foreground mt-1">Valor base para distribuição</p>
         </div>
       </Card>
 
-      {/* Card 2: Meta Percentual */}
-      <Card className="p-5 flex flex-col justify-between relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-3 opacity-5"><Target size={64} /></div>
-        <label className="text-sm font-medium text-slate-500 mb-1">Meta de Custo (%)</label>
+      <Card className="p-5 flex flex-col justify-between relative overflow-hidden group hover:border-primary/50 transition-colors">
+        <div className="absolute top-0 right-0 p-3 opacity-5 dark:opacity-10 text-primary"><Target size={64} /></div>
+        <label className="text-sm font-medium text-muted-foreground mb-1">Meta Global de Custo (%)</label>
         <div className="flex items-baseline gap-1 z-10">
           <input
             type="number"
@@ -129,32 +130,31 @@ function KPIGrid({ totalCost, costTarget, currentCostPercent, onTotalCostChange,
             max="100"
             value={Math.round(costTarget * 100)}
             onChange={(e) => onTargetChange(parseFloat(e.target.value) / 100)}
-            className="text-2xl font-bold text-slate-800 bg-transparent border-b border-slate-200 w-20 focus:outline-none focus:border-blue-500 transition-colors"
+            className="text-2xl font-bold text-foreground bg-transparent border-b border-border w-20 focus:outline-none focus:border-primary transition-colors"
           />
-          <span className="text-lg text-slate-400 font-medium">%</span>
+          <span className="text-lg text-muted-foreground font-medium">%</span>
         </div>
-        <p className="text-xs text-slate-400 mt-1">Limite ideal sobre faturamento</p>
+        <p className="text-xs text-muted-foreground mt-1">Limite ideal sobre faturamento total</p>
       </Card>
 
-      {/* Card 3: Status (Calculado) */}
       <Card className={`p-5 flex flex-col justify-between border-l-4 ${status.variant === 'success' ? 'border-l-emerald-500' :
-          status.variant === 'warning' ? 'border-l-amber-500' :
-            status.variant === 'danger' ? 'border-l-rose-500' : 'border-l-slate-300'
+        status.variant === 'warning' ? 'border-l-amber-500' :
+          status.variant === 'danger' ? 'border-l-rose-500' : 'border-l-muted'
         }`}>
         <div className="flex justify-between items-start">
           <div>
-            <label className="text-sm font-medium text-slate-500">Status Financeiro</label>
+            <label className="text-sm font-medium text-muted-foreground">Status Global</label>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-2xl font-bold text-slate-800">{formatPercent(currentCostPercent)}</span>
+              <span className="text-2xl font-bold text-foreground">{formatPercent(currentCostPercent)}</span>
               <Badge variant={status.variant}>{status.label}</Badge>
             </div>
           </div>
           <StatusIcon className={`w-8 h-8 ${status.variant === 'success' ? 'text-emerald-500' :
-              status.variant === 'warning' ? 'text-amber-500' :
-                status.variant === 'danger' ? 'text-rose-500' : 'text-slate-300'
+            status.variant === 'warning' ? 'text-amber-500' :
+              status.variant === 'danger' ? 'text-rose-500' : 'text-muted-foreground'
             }`} />
         </div>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {currentCostPercent > costTarget
             ? `Excedendo meta em ${formatPercent(currentCostPercent - costTarget)}`
             : 'Dentro do limite estipulado'}
@@ -188,65 +188,103 @@ function DepartmentTable({
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left">
-        <thead className="bg-slate-50 border-y border-slate-200 text-slate-500 font-medium uppercase text-xs tracking-wider">
+        <thead className="bg-muted/50 border-y border-border text-muted-foreground font-medium uppercase text-xs tracking-wider">
           <tr>
-            <th className="px-6 py-3 w-[35%]">Departamento</th>
+            <th className="px-6 py-3 w-[30%]">Departamento</th>
             <th className="px-6 py-3 text-right">Faturamento</th>
-            <th className="px-6 py-3 text-right">Participação</th>
-            <th className="px-6 py-3 text-right bg-slate-100/50">
-              {allocationMode === 'auto' ? (
-                <span className="flex items-center justify-end gap-1"><Settings2 size={12} /> Alocação Auto</span>
+
+            {/* Coluna Dinâmica Baseada no Modo */}
+            <th className="px-6 py-3 text-right">
+              {allocationMode === 'strategic' ? (
+                <span className="text-purple-600 font-bold">Meta de Absorção (%)</span>
               ) : (
-                <span className="flex items-center justify-end gap-1"><Calculator size={12} /> Custo Manual</span>
+                'Participação (%)'
               )}
+            </th>
+
+            <th className="px-6 py-3 text-right bg-muted/30">
+              Custo Fixo Alocado
             </th>
             <th className="px-4 py-3 text-center w-[50px]"></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border">
           {departments.map((dept, index) => {
-            const participation = totalRevenue > 0 ? dept.totalRevenue / totalRevenue : 0;
-            const allocatedCost = allocationMode === 'auto'
-              ? companyTotalFixedCost * participation
-              : dept.manualCost || 0;
+            const revenueShare = totalRevenue > 0 ? dept.totalRevenue / totalRevenue : 0;
+
+            // Lógica Central de Cálculo por Modo
+            let allocatedCost = 0;
+            let displayPercent = 0;
+
+            if (allocationMode === 'auto') {
+              allocatedCost = companyTotalFixedCost * revenueShare;
+              displayPercent = revenueShare;
+            } else if (allocationMode === 'manual') {
+              allocatedCost = dept.manualCost || 0;
+              displayPercent = dept.totalRevenue > 0 ? allocatedCost / dept.totalRevenue : 0;
+            } else if (allocationMode === 'strategic') {
+              // Modo Estratégico: Input é a %, Custo é a consequência
+              displayPercent = (dept.strategicTargetPercent || 0) / 100;
+              allocatedCost = dept.totalRevenue * displayPercent;
+            }
 
             return (
-              <tr key={dept.id} className="group hover:bg-slate-50/80 transition-colors">
+              <tr key={dept.id} className="group hover:bg-muted/50 transition-colors">
                 <td className="px-6 py-3">
                   <input
                     ref={index === departments.length - 1 ? lastAddedRef : null}
                     type="text"
                     value={dept.name}
                     onChange={(e) => onUpdateDepartment(dept.id, 'name', e.target.value)}
-                    className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none text-slate-700 font-medium py-1 transition-colors"
-                    placeholder="Nome do departamento..."
+                    className="w-full bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none text-foreground font-medium py-1 transition-colors placeholder:text-muted-foreground/50"
+                    placeholder="Nome..."
                   />
                 </td>
                 <td className="px-6 py-3 text-right">
                   <FormattedCurrencyInput
                     value={dept.totalRevenue}
                     onValueChange={(val) => onUpdateDepartment(dept.id, 'totalRevenue', parseFloat(val || '0'))}
-                    className="text-right bg-transparent w-full border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none py-1 text-slate-600"
+                    className="text-right bg-transparent w-full border-b border-transparent hover:border-border focus:border-primary focus:outline-none py-1 text-muted-foreground focus:text-foreground transition-colors"
                   />
                 </td>
+
+                {/* Coluna de Porcentagem / Input Estratégico */}
                 <td className="px-6 py-3 text-right">
-                  <Badge variant="neutral">{formatPercent(participation)}</Badge>
-                </td>
-                <td className={`px-6 py-3 text-right font-medium ${allocationMode === 'auto' ? 'text-slate-500 bg-slate-50/30' : 'text-blue-600'}`}>
-                  {allocationMode === 'auto' ? (
-                    formatCurrency(allocatedCost)
+                  {allocationMode === 'strategic' ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={dept.strategicTargetPercent || 0}
+                        onChange={(e) => onUpdateDepartment(dept.id, 'strategicTargetPercent', parseFloat(e.target.value))}
+                        className="text-right bg-background border border-purple-200 dark:border-purple-800 rounded px-2 py-1 w-20 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 focus:outline-none font-bold text-purple-700 dark:text-purple-400"
+                      />
+                      <span className="text-muted-foreground">%</span>
+                    </div>
                   ) : (
+                    <Badge variant="neutral">{formatPercent(displayPercent)}</Badge>
+                  )}
+                </td>
+
+                <td className={`px-6 py-3 text-right font-medium ${allocationMode === 'manual' ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                  {allocationMode === 'manual' ? (
                     <FormattedCurrencyInput
                       value={dept.manualCost || 0}
                       onValueChange={(val) => onUpdateDepartment(dept.id, 'manualCost', parseFloat(val || '0'))}
-                      className="text-right bg-white border border-slate-200 rounded px-2 py-1 w-28 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
+                      className="text-right bg-background border border-border rounded px-2 py-1 w-28 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
                     />
+                  ) : (
+                    <span className={allocationMode === 'strategic' ? 'text-purple-700 dark:text-purple-400 font-semibold' : ''}>
+                      {formatCurrency(allocatedCost)}
+                    </span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <button
                     onClick={() => onDelete(dept.id)}
-                    className="text-slate-300 hover:text-rose-500 transition-colors p-1"
+                    className="text-muted-foreground hover:text-destructive transition-colors p-1 opacity-0 group-hover:opacity-100"
                     title="Remover"
                   >
                     <Trash2 size={16} />
@@ -255,23 +293,21 @@ function DepartmentTable({
               </tr>
             );
           })}
-          {departments.length === 0 && (
-            <tr>
-              <td colSpan={5} className="py-8 text-center text-slate-400 italic">
-                Nenhum departamento cadastrado. Adicione um para começar.
-              </td>
-            </tr>
-          )}
         </tbody>
-        <tfoot className="bg-slate-50 border-t border-slate-200 font-semibold text-slate-700">
+        <tfoot className="bg-muted/30 border-t border-border font-semibold text-foreground">
           <tr>
             <td className="px-6 py-3">Total</td>
             <td className="px-6 py-3 text-right">{formatCurrency(totalRevenue)}</td>
-            <td className="px-6 py-3 text-right">100%</td>
+            <td className="px-6 py-3 text-right">
+              {/* Média ponderada ou Vazio */}
+              -
+            </td>
             <td className="px-6 py-3 text-right">
               {allocationMode === 'auto'
                 ? formatCurrency(companyTotalFixedCost)
-                : formatCurrency(departments.reduce((acc, d) => acc + (d.manualCost || 0), 0))
+                : allocationMode === 'manual'
+                  ? formatCurrency(departments.reduce((acc, d) => acc + (d.manualCost || 0), 0))
+                  : formatCurrency(departments.reduce((acc, d) => acc + (d.totalRevenue * ((d.strategicTargetPercent || 0) / 100)), 0))
               }
             </td>
             <td></td>
@@ -287,33 +323,40 @@ function CalculationFooter() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="mt-8 border-t border-slate-200 pt-6">
+    <div className="mt-8 border-t border-border pt-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors"
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <Calculator size={16} />
-        {isOpen ? 'Ocultar detalhes do cálculo' : 'Como o cálculo é feito?'}
+        {isOpen ? 'Ocultar detalhes do cálculo' : 'Como os cálculos são feitos?'}
       </button>
 
       {isOpen && (
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-lg border border-slate-200 animate-in fade-in slide-in-from-top-2">
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/30 p-6 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
           <div>
-            <h4 className="font-semibold text-slate-800 mb-2 text-sm">Custo Automático (Rateio)</h4>
-            <p className="text-xs text-slate-500 mb-3">O custo fixo é distribuído proporcionalmente com base na receita de cada departamento.</p>
-            <div className="bg-white p-3 rounded border border-slate-200 text-xs">
-              <BlockMath math={`P_{dept} = \\frac{Faturamento_{dept}}{Faturamento_{Total}}`} />
-              <div className="h-2" />
-              <BlockMath math={`Custo_{alocado} = Custo_{Total} \\times P_{dept}`} />
+            <h4 className="font-semibold text-foreground mb-2 text-sm flex items-center gap-2">
+              <Settings2 size={14} /> Rateio Automático (Padrão)
+            </h4>
+            <p className="text-xs text-muted-foreground mb-3">Distribuição puramente matemática baseada no volume de vendas.</p>
+            <div className="bg-background p-3 rounded border border-border text-xs text-foreground">
+              <BlockMath math={`Custo = CustoTotal \\times \\frac{Fat_{Dept}}{Fat_{Total}}`} />
             </div>
           </div>
           <div>
-            <h4 className="font-semibold text-slate-800 mb-2 text-sm">Modo Manual</h4>
-            <p className="text-xs text-slate-500 mb-3">Permite override manual. Útil para simular cenários onde um departamento absorve mais custo independente da receita.</p>
-            <ul className="list-disc list-inside text-xs text-slate-600 space-y-1">
-              <li>Valida se a soma manual bate com o custo total da empresa.</li>
-              <li>Exibe saldo restante (positivo ou negativo) em tempo real.</li>
-            </ul>
+            <h4 className="font-semibold text-foreground mb-2 text-sm flex items-center gap-2">
+              <Calculator size={14} /> Alocação Manual (R$)
+            </h4>
+            <p className="text-xs text-muted-foreground mb-3">Você define o valor exato em reais. Útil para custos fixos dedicados (ex: aluguel de galpão específico).</p>
+          </div>
+          <div>
+            <h4 className="font-semibold text-foreground mb-2 text-sm flex items-center gap-2">
+              <Percent size={14} /> Estratégico (%)
+            </h4>
+            <p className="text-xs text-muted-foreground mb-3">Você define quanto da receita daquele departamento será "comida" pelo custo fixo.</p>
+            <div className="bg-background p-3 rounded border border-border text-xs text-foreground">
+              <BlockMath math={`Custo = Fat_{Dept} \\times Meta\\%`} />
+            </div>
           </div>
         </div>
       )}
@@ -337,9 +380,18 @@ export function FixedCostSimulator() {
   const totalRevenue = useMemo(() => departments.reduce((sum, d) => sum + d.totalRevenue, 0), [departments]);
   const currentCostPercent = useMemo(() => (totalRevenue > 0 ? companyTotalFixedCost / totalRevenue : 0), [companyTotalFixedCost, totalRevenue]);
 
-  // Apenas para modo manual
-  const totalManualAllocated = useMemo(() => departments.reduce((sum, d) => sum + (d.manualCost || 0), 0), [departments]);
-  const balanceToAllocate = companyTotalFixedCost - totalManualAllocated;
+  // Cálculos Específicos por Modo
+  const allocatedSum = useMemo(() => {
+    if (allocationMode === 'manual') {
+      return departments.reduce((sum, d) => sum + (d.manualCost || 0), 0);
+    }
+    if (allocationMode === 'strategic') {
+      return departments.reduce((sum, d) => sum + (d.totalRevenue * ((d.strategicTargetPercent || 0) / 100)), 0);
+    }
+    return companyTotalFixedCost;
+  }, [departments, allocationMode, companyTotalFixedCost]);
+
+  const balanceToAllocate = companyTotalFixedCost - allocatedSum;
 
   // --- Actions ---
   const handleUpdateDepartment = (id: number, field: keyof Department, value: any) => {
@@ -348,7 +400,7 @@ export function FixedCostSimulator() {
 
   const handleAddDepartment = () => {
     const newId = departments.length ? Math.max(...departments.map(d => d.id)) + 1 : 1;
-    setDepartments([...departments, { id: newId, name: '', totalRevenue: 0 }]);
+    setDepartments([...departments, { id: newId, name: '', totalRevenue: 0, strategicTargetPercent: 0 }]);
   };
 
   const handleDeleteDepartment = (id: number) => {
@@ -370,35 +422,27 @@ export function FixedCostSimulator() {
     }
   }, [departments.length]);
 
-  // Efeito para limpar custos manuais ao voltar para auto
-  useEffect(() => {
-    if (allocationMode === 'auto') {
-      setDepartments(prev => prev.map(d => ({ ...d, manualCost: undefined })));
-    }
-  }, [allocationMode]);
-
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8 bg-slate-50/50 min-h-screen">
-      {/* Header da Página */}
+    <div className="max-w-7xl mx-auto p-6 space-y-8 min-h-screen">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <LayoutDashboard className="text-blue-600" />
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <LayoutDashboard className="text-primary" />
             Simulador de Custos Fixos
           </h1>
-          <p className="text-slate-500 mt-1">Gerenciamento estratégico de rateio por departamento</p>
+          <p className="text-muted-foreground mt-1">Gerenciamento estratégico de rateio por departamento</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handleReset}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground bg-background border border-border rounded-lg hover:bg-muted hover:text-foreground transition-all shadow-sm"
           >
             <RotateCcw size={16} /> Restaurar Padrões
           </button>
         </div>
       </div>
 
-      {/* Seção 1: Indicadores Globais */}
       <KPIGrid
         totalCost={companyTotalFixedCost}
         onTotalCostChange={(val) => setCompanyTotalFixedCost(parseFloat(val || '0'))}
@@ -407,47 +451,84 @@ export function FixedCostSimulator() {
         currentCostPercent={currentCostPercent}
       />
 
-      {/* Seção 2: Gerenciamento (Tabela Principal) */}
       <Card>
         <CardHeader
           title="Detalhamento por Departamento"
           icon={BarChart3}
           action={
-            <div className="flex bg-slate-100 p-1 rounded-lg">
+            <div className="flex bg-muted p-1 rounded-lg gap-1">
               <button
                 onClick={() => setAllocationMode('auto')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${allocationMode === 'auto' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${allocationMode === 'auto' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                   }`}
               >
                 <Settings2 size={14} /> Automático
               </button>
               <button
                 onClick={() => setAllocationMode('manual')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${allocationMode === 'manual' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${allocationMode === 'manual' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                   }`}
               >
-                <Calculator size={14} /> Manual
+                <Calculator size={14} /> Manual (R$)
+              </button>
+              <button
+                onClick={() => setAllocationMode('strategic')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${allocationMode === 'strategic' ? 'bg-background text-purple-600 shadow-sm ring-1 ring-purple-100' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                  }`}
+              >
+                <Percent size={14} /> Estratégico (%)
               </button>
             </div>
           }
         />
 
-        {/* Barra de Alerta para Modo Manual */}
-        {allocationMode === 'manual' && (
-          <div className={`px-6 py-3 border-b flex items-center justify-between text-sm ${balanceToAllocate === 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
-              balanceToAllocate > 0 ? 'bg-blue-50 text-blue-800 border-blue-100' : 'bg-rose-50 text-rose-800 border-rose-100'
+        {/* --- BARRA DE STATUS PARA MODO MANUAL E ESTRATÉGICO --- */}
+        {(allocationMode === 'manual' || allocationMode === 'strategic') && (
+          <div className={`px-6 py-4 border-b flex flex-col md:flex-row md:items-center justify-between text-sm gap-4 transition-colors duration-300 ${Math.abs(balanceToAllocate) < 1
+            ? 'bg-emerald-500/10 border-emerald-500/20'
+            : balanceToAllocate > 0
+              ? 'bg-amber-500/10 border-amber-500/20'
+              : 'bg-rose-500/10 border-rose-500/20'
             }`}>
-            <div className="flex items-center gap-2">
-              <ArrowRightLeft size={16} />
-              <span className="font-semibold">Modo de Alocação Manual Ativo</span>
+
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${Math.abs(balanceToAllocate) < 1 ? 'bg-emerald-500/20 text-emerald-600' : 'bg-background text-muted-foreground'}`}>
+                {Math.abs(balanceToAllocate) < 1 ? <CheckCircle2 size={18} /> : <ArrowRightLeft size={18} />}
+              </div>
+              <div>
+                <p className={`font-bold ${Math.abs(balanceToAllocate) < 1 ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'}`}>
+                  {allocationMode === 'strategic' ? 'Alocação Estratégica por Margem' : 'Alocação Manual Direta'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {Math.abs(balanceToAllocate) < 1
+                    ? 'Você atingiu o custo fixo exato!'
+                    : balanceToAllocate > 0
+                      ? 'Você ainda precisa alocar mais custos para cobrir o total.'
+                      : 'Você alocou mais do que o custo fixo total.'}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span>Total Empresa: <strong>{formatCurrency(companyTotalFixedCost)}</strong></span>
-              <span>Alocado: <strong>{formatCurrency(totalManualAllocated)}</strong></span>
-              <span className={`px-2 py-0.5 rounded border ${balanceToAllocate === 0 ? 'bg-emerald-200/50 border-emerald-300' : 'bg-white border-current'
-                }`}>
-                Restante: <strong>{formatCurrency(balanceToAllocate)}</strong>
-              </span>
+
+            <div className="flex items-center gap-4 bg-background/50 p-2 rounded-lg border border-border/50">
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Meta Total</p>
+                <p className="font-semibold">{formatCurrency(companyTotalFixedCost)}</p>
+              </div>
+              <div className="h-8 w-px bg-border"></div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Alocado</p>
+                <p className="font-semibold">{formatCurrency(allocatedSum)}</p>
+              </div>
+              <div className="h-8 w-px bg-border"></div>
+              <div className="text-right min-w-[100px]">
+                <p className="text-xs text-muted-foreground">Diferença</p>
+                <span className={`font-bold block px-2 py-0.5 rounded text-center ${Math.abs(balanceToAllocate) < 1
+                  ? 'bg-emerald-500 text-white dark:bg-emerald-600'
+                  : 'bg-foreground text-background'
+                  }`}>
+                  {formatCurrency(balanceToAllocate)}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -464,12 +545,12 @@ export function FixedCostSimulator() {
           />
         </div>
 
-        <div className="p-4 border-t border-slate-100 bg-slate-50/30 rounded-b-xl flex justify-center">
+        <div className="p-4 border-t border-border bg-muted/20 rounded-b-xl flex justify-center">
           <button
             onClick={handleAddDepartment}
-            className="group flex items-center gap-2 px-4 py-2 bg-white border border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
+            className="group flex items-center gap-2 px-4 py-2 bg-background border border-dashed border-border rounded-lg text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all text-sm font-medium"
           >
-            <div className="bg-slate-100 group-hover:bg-blue-100 rounded-full p-1 transition-colors">
+            <div className="bg-muted group-hover:bg-primary/20 rounded-full p-1 transition-colors">
               <Plus size={14} />
             </div>
             Adicionar Novo Departamento
