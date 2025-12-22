@@ -29,19 +29,16 @@ interface DocumentoFormProps {
 }
 
 export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoFormProps) {
-    // Hook customizado já corrigido sem Tipagem Genérica explícita no useForm
     const form = useDocumentoForm(initialValues);
-
-    // Verifica  o campo finalidadeNFe em tempo real para renderização condicional
     const finalidade = useWatch({ control: form.control, name: "finalidadeNFe" });
 
     return (
-        <div className="bg-white rounded-lg shadow border p-6 animate-in slide-in-from-right-4 duration-300">
-            <div className="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 className="text-xl font-semibold text-slate-800">
+        <div className="bg-card text-card-foreground rounded-lg shadow border border-border p-6 animate-in slide-in-from-right-4 duration-300">
+            <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
+                <h2 className="text-xl font-semibold">
                     {initialValues ? "Editar Modelo de Documento" : "Novo Modelo de Documento"}
                 </h2>
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs text-muted-foreground font-mono">
                     ID: {initialValues?.id || "Novo"}
                 </span>
             </div>
@@ -58,7 +55,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 <FormItem>
                                     <FormLabel>Empresa (Opcional)</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Código da empresa..." {...field} />
+                                        <Input placeholder="Código da empresa..." className="bg-background" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -74,7 +71,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 <FormItem>
                                     <FormLabel>Descrição do Modelo *</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Ex: Nota Fiscal de Saída Padrão" {...field} />
+                                        <Input placeholder="Ex: Nota Fiscal de Saída Padrão" className="bg-background" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -91,7 +88,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 <FormItem>
                                     <FormLabel>Modelo *</FormLabel>
                                     <FormControl>
-                                        <Input className="text-center font-mono" maxLength={2} {...field} />
+                                        <Input className="text-center font-mono bg-background" maxLength={2} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -107,7 +104,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 <FormItem>
                                     <FormLabel>Série *</FormLabel>
                                     <FormControl>
-                                        <Input className="text-center font-mono" maxLength={3} {...field} />
+                                        <Input className="text-center font-mono bg-background" maxLength={3} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -124,7 +121,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                     <FormLabel>Grupo de Negócio *</FormLabel>
                                     <FormControl>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <SelectTrigger>
+                                            <SelectTrigger className="bg-background">
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -149,7 +146,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                     <FormLabel>Movimenta Estoque?</FormLabel>
                                     <FormControl>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <SelectTrigger>
+                                            <SelectTrigger className="bg-background">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -165,9 +162,9 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                         />
                     </div>
 
-                    {/* === REFORMA TRIBUTÁRIA (Condicional) === */}
-                    <div className="col-span-12 p-5 border border-blue-100 rounded-lg bg-blue-50/50">
-                        <h3 className="text-sm font-bold text-blue-900 mb-4 flex items-center gap-2">
+                    {/* === REFORMA TRIBUTÁRIA (Adaptada para Dark Mode) === */}
+                    <div className="col-span-12 p-5 border border-blue-100 dark:border-blue-900 rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
+                        <h3 className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-4 flex items-center gap-2">
                             Reforma Tributária (IBS/CBS)
                         </h3>
 
@@ -180,7 +177,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                         <FormLabel>Finalidade de Emissão</FormLabel>
                                         <FormControl>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <SelectTrigger className="bg-white">
+                                                <SelectTrigger className="bg-background">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -207,7 +204,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                             <FormLabel>Motivo Nota de Crédito</FormLabel>
                                             <FormControl>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger className="bg-white">
+                                                    <SelectTrigger className="bg-background">
                                                         <SelectValue placeholder="Selecione o motivo..." />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -234,7 +231,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                             <FormLabel>Motivo Nota de Débito</FormLabel>
                                             <FormControl>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger className="bg-white">
+                                                    <SelectTrigger className="bg-background">
                                                         <SelectValue placeholder="Selecione o motivo..." />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -254,7 +251,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
 
                     {/* === CFOPS PADRÃO === */}
                     <div className="col-span-12">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 border rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/50 p-4 border border-border rounded-lg">
                             <FormField
                                 control={form.control}
                                 name="cfopEstadual"
@@ -262,7 +259,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                     <FormItem>
                                         <FormLabel>CFOP Estadual (Padrão)</FormLabel>
                                         <FormControl>
-                                            <Input className="font-mono bg-white" placeholder="Ex: 5102" {...field} />
+                                            <Input className="font-mono bg-background" placeholder="Ex: 5102" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -276,7 +273,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                     <FormItem>
                                         <FormLabel>CFOP Interestadual (Padrão)</FormLabel>
                                         <FormControl>
-                                            <Input className="font-mono bg-white" placeholder="Ex: 6102" {...field} />
+                                            <Input className="font-mono bg-background" placeholder="Ex: 6102" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -286,11 +283,11 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                     </div>
 
                     {/* === BOTÕES DE AÇÃO === */}
-                    <div className="col-span-12 flex justify-end gap-3 mt-4 pt-4 border-t">
+                    <div className="col-span-12 flex justify-end gap-3 mt-4 pt-4 border-t border-border">
                         <Button variant="outline" type="button" onClick={onCancel}>
                             Cancelar
                         </Button>
-                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700 min-w-[150px]">
+                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 min-w-[150px] text-white">
                             Salvar Configuração
                         </Button>
                     </div>
