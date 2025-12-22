@@ -2,7 +2,7 @@
 
 import { useDocumentoForm } from "@/hooks/use-documento-form";
 import { DocumentoFormValues } from "@/core/application/schema/documento-schema";
-import { useWatch } from "react-hook-form";
+import { GRUPOS_DOCUMENTO } from "@/core/constants/grupos-documento";
 
 import {
     Form,
@@ -30,7 +30,8 @@ interface DocumentoFormProps {
 
 export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoFormProps) {
     const form = useDocumentoForm(initialValues);
-    const finalidade = useWatch({ control: form.control, name: "finalidadeNFe" });
+
+    // Removi o useWatch pois a lógica condicional da Reforma Tributária foi retirada.
 
     return (
         <div className="bg-card text-card-foreground rounded-lg shadow border border-border p-6 animate-in slide-in-from-right-4 duration-300">
@@ -112,6 +113,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                         />
                     </div>
 
+                    {/* === GRUPOS (Via Constante) === */}
                     <div className="col-span-12 md:col-span-4">
                         <FormField
                             control={form.control}
@@ -124,10 +126,19 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                             <SelectTrigger className="bg-background">
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="VENDA_PDV">Emissão Venda PDV</SelectItem>
-                                                <SelectItem value="DEVOLUCAO">Devolução</SelectItem>
-                                                <SelectItem value="FATURAMENTO">Faturamento</SelectItem>
+
+                                            {/* Adicionado max-h-[300px] para scroll se a lista for grande */}
+                                            <SelectContent className="max-h-[300px]">
+                                                {GRUPOS_DOCUMENTO.map((grupo, index) => (
+                                                    <SelectItem
+                                                        // Usando index como fallback para garantir key única se houver códigos duplicados
+                                                        key={`${grupo.value}-${index}`}
+                                                        value={grupo.value}
+                                                    >
+                                                        <span className="font-mono font-bold mr-2">{grupo.value}</span>
+                                                        - {grupo.label}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </FormControl>
@@ -160,93 +171,6 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 </FormItem>
                             )}
                         />
-                    </div>
-
-                    {/* === REFORMA TRIBUTÁRIA (Adaptada para Dark Mode) === */}
-                    <div className="col-span-12 p-5 border border-blue-100 dark:border-blue-900 rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
-                        <h3 className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-4 flex items-center gap-2">
-                            Reforma Tributária (IBS/CBS)
-                        </h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="finalidadeNFe"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Finalidade de Emissão</FormLabel>
-                                        <FormControl>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <SelectTrigger className="bg-background">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="1">1 - NF-e normal</SelectItem>
-                                                    <SelectItem value="2">2 - NF-e complementar</SelectItem>
-                                                    <SelectItem value="3">3 - NF-e de ajuste</SelectItem>
-                                                    <SelectItem value="4">4 - Devolução</SelectItem>
-                                                    <SelectItem value="5">5 - Nota de Crédito (IBS/CBS)</SelectItem>
-                                                    <SelectItem value="6">6 - Nota de Débito (IBS/CBS)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Renderização Condicional: Crédito */}
-                            {finalidade === "5" && (
-                                <FormField
-                                    control={form.control}
-                                    name="tpNFCredito"
-                                    render={({ field }) => (
-                                        <FormItem className="animate-in fade-in zoom-in-95 duration-200">
-                                            <FormLabel>Motivo Nota de Crédito</FormLabel>
-                                            <FormControl>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger className="bg-background">
-                                                        <SelectValue placeholder="Selecione o motivo..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="01">01 - Multa e juros</SelectItem>
-                                                        <SelectItem value="02">02 - Crédito presumido</SelectItem>
-                                                        <SelectItem value="03">03 - Retorno por recusa</SelectItem>
-                                                        <SelectItem value="04">04 - Redução de valores</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            )}
-
-                            {/* Renderização Condicional: Débito */}
-                            {finalidade === "6" && (
-                                <FormField
-                                    control={form.control}
-                                    name="tpNFDebito"
-                                    render={({ field }) => (
-                                        <FormItem className="animate-in fade-in zoom-in-95 duration-200">
-                                            <FormLabel>Motivo Nota de Débito</FormLabel>
-                                            <FormControl>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger className="bg-background">
-                                                        <SelectValue placeholder="Selecione o motivo..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="01">01 - Transf. crédito Cooperativa</SelectItem>
-                                                        <SelectItem value="02">02 - Anulação de Crédito</SelectItem>
-                                                        <SelectItem value="03">03 - Débitos não processados</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            )}
-                        </div>
                     </div>
 
                     {/* === CFOPS PADRÃO === */}
