@@ -8,10 +8,10 @@ import { GRUPOS_DOCUMENTO } from "@/core/constants/grupos-documento";
 import { COMPORTAMENTOS_DOCUMENTO } from "@/core/constants/comportamentos-documento";
 import { TIPOS_NOTA_CREDITO, TIPOS_NOTA_DEBITO } from "@/core/constants/tipos-notas";
 import { useWatch } from "react-hook-form";
-import { Printer, Save } from "lucide-react"; // Ícones
+import { Printer, Save, PanelRightOpen, PanelRightClose, Info } from "lucide-react"; // Novos ícones
 
-import { TechnicalPanel } from "./technical-panel"; // <--- Import do Raio-X
-import { PrintableConfig } from "./printable-config"; // <--- Import do Template de Impressão
+import { TechnicalPanel } from "./technical-panel";
+import { PrintableConfig } from "./printable-config";
 
 import {
     Form,
@@ -45,24 +45,30 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
     const form = useDocumentoForm(initialValues);
     const finalidade = useWatch({ control: form.control, name: "finalidadeNFe" });
 
-    // Estado para o Raio-X Técnico
+    // Estados visuais
     const [focusedField, setFocusedField] = useState<string | null>(null);
+    const [showTechnicalPanel, setShowTechnicalPanel] = useState(false); // <--- Começa fechado
 
-    // Configuração de Impressão
+    // Impressão
     const componentRef = useRef<HTMLDivElement>(null);
     const handlePrint = useReactToPrint({
-        contentRef: componentRef, // API atualizada do react-to-print
+        contentRef: componentRef,
     });
 
-    // Helper para simplificar o onFocus
-    const handleFocus = (fieldName: string) => () => setFocusedField(fieldName);
+    const handleFocus = (fieldName: string) => () => {
+        setFocusedField(fieldName);
+        // Opcional: Se quiser abrir o painel automaticamente ao focar, descomente abaixo:
+        // setShowTechnicalPanel(true); 
+    };
 
     return (
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 animate-in fade-in duration-500">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 animate-in fade-in duration-500 relative">
 
-            {/* === COLUNA DA ESQUERDA: FORMULÁRIO (Ocupa 8 colunas) === */}
-            <div className="xl:col-span-8 space-y-6">
+            {/* === COLUNA DO FORMULÁRIO (Dinâmica) === */}
+            <div className={`transition-all duration-300 ease-in-out ${showTechnicalPanel ? "xl:col-span-8" : "xl:col-span-12"}`}>
                 <div className="bg-card text-card-foreground rounded-lg shadow border border-border p-6">
+
+                    {/* Header do Form */}
                     <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
                         <div>
                             <h2 className="text-xl font-semibold">
@@ -72,16 +78,30 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 ID: {initialValues?.id || "Novo"}
                             </span>
                         </div>
-                        {/* Botão de Impressão */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePrint()}
-                            className="gap-2 border-dashed border-slate-400 hover:border-blue-500 hover:text-blue-600"
-                        >
-                            <Printer size={16} />
-                            Imprimir Ficha
-                        </Button>
+
+                        <div className="flex gap-2">
+                            {/* Botão Toggle do Painel */}
+                            <Button
+                                variant={showTechnicalPanel ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => setShowTechnicalPanel(!showTechnicalPanel)}
+                                className="gap-2"
+                                title={showTechnicalPanel ? "Ocultar Detalhes" : "Mostrar Detalhes Técnicos"}
+                            >
+                                {showTechnicalPanel ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+                                <span className="hidden sm:inline">Info Técnica</span>
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePrint()}
+                                className="gap-2 border-dashed"
+                            >
+                                <Printer size={16} />
+                                <span className="hidden sm:inline">Ficha</span>
+                            </Button>
+                        </div>
                     </div>
 
                     <Form {...form}>
@@ -109,7 +129,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                             <Select
                                                                 onValueChange={field.onChange}
                                                                 defaultValue={field.value}
-                                                                onOpenChange={(isOpen) => isOpen && setFocusedField("grupoDocumento")} // Select usa onOpenChange
+                                                                onOpenChange={(isOpen) => isOpen && setFocusedField("grupoDocumento")}
                                                             >
                                                                 <SelectTrigger className="h-12 bg-background text-lg" onFocus={handleFocus("grupoDocumento")}>
                                                                     <SelectValue placeholder="Selecione o tipo de operação..." />
@@ -124,6 +144,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                                 </SelectContent>
                                                             </Select>
                                                         </FormControl>
+                                                        <FormDescription>Define as regras contábeis principais.</FormDescription>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}
@@ -159,7 +180,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                 name="modelo"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Modelo *</FormLabel>
+                                                        <FormLabel>Modelo</FormLabel>
                                                         <FormControl>
                                                             <Input className="text-center font-mono bg-background" maxLength={2} {...field} onFocus={handleFocus("modelo")} />
                                                         </FormControl>
@@ -175,7 +196,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                 name="serie"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Série *</FormLabel>
+                                                        <FormLabel>Série</FormLabel>
                                                         <FormControl>
                                                             <Input className="text-center font-mono bg-background" maxLength={3} {...field} onFocus={handleFocus("serie")} />
                                                         </FormControl>
@@ -370,7 +391,6 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 </TabsContent>
                             </Tabs>
 
-                            {/* Botões */}
                             <div className="flex justify-end gap-3 pt-4 border-t border-border">
                                 <Button variant="outline" type="button" onClick={onCancel}>Cancelar</Button>
                                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
@@ -382,16 +402,21 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                 </div>
             </div>
 
-            {/* === COLUNA DA DIREITA: RAIO-X TÉCNICO (Ocupa 4 colunas) === */}
-            <div className="xl:col-span-4 hidden xl:block">
-                <TechnicalPanel focusedField={focusedField} />
-            </div>
+            {/* === COLUNA DO RAIO-X (Condicional e Anulada) === */}
+            {showTechnicalPanel && (
+                <div className="xl:col-span-4 animate-in fade-in slide-in-from-right-10 duration-300">
+                    <TechnicalPanel
+                        focusedField={focusedField}
+                        onClose={() => setShowTechnicalPanel(false)}
+                    />
+                </div>
+            )}
 
-            {/* === COMPONENTE OCULTO DE IMPRESSÃO === */}
+            {/* Print Hidden */}
             <div style={{ display: "none" }}>
                 <PrintableConfig
                     ref={componentRef}
-                    data={form.getValues()} // Passa os valores atuais do form
+                    data={form.getValues()}
                 />
             </div>
         </div>

@@ -1,62 +1,74 @@
-import { Info, FileCode, Database, AlertTriangle } from "lucide-react";
+import { Info, FileCode, Database, AlertTriangle, X } from "lucide-react";
 import { FIELD_METADATA } from "@/core/constants/field-metadata";
+import { Button } from "@/components/ui/button";
 
 interface TechnicalPanelProps {
     focusedField: string | null;
+    onClose: () => void; // Adicionamos a função de fechar
 }
 
-export function TechnicalPanel({ focusedField }: TechnicalPanelProps) {
-    // Se não tiver campo focado ou o campo não existir nos metadados, usa o default
+export function TechnicalPanel({ focusedField, onClose }: TechnicalPanelProps) {
     const data = FIELD_METADATA[focusedField || "default"] || FIELD_METADATA["default"];
 
     return (
-        <div className="bg-slate-900 text-white rounded-lg p-5 shadow-xl border border-slate-700 sticky top-6 h-fit transition-all duration-300">
-            <div className="flex items-center gap-2 mb-4 border-b border-slate-700 pb-3">
-                <Info className="text-blue-400" size={20} />
-                <h3 className="font-bold text-lg tracking-wide">Raio-X Técnico</h3>
-            </div>
+        <div className="h-fit sticky top-6 space-y-4">
 
-            <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300" key={focusedField}> {/* Key força animação ao trocar */}
-
-                <div>
-                    <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Campo</span>
-                    <h4 className="text-xl font-semibold text-blue-200">{data.label}</h4>
-                </div>
-
-                <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
-                    <div className="flex items-center gap-2 mb-1">
-                        <FileCode size={14} className="text-yellow-500" />
-                        <span className="text-xs font-mono text-yellow-500 font-bold">XML / DANFE</span>
+            {/* Cartão Principal */}
+            <div className="bg-card text-card-foreground rounded-lg p-5 shadow border border-border transition-all duration-300">
+                <div className="flex items-center justify-between mb-4 border-b border-border pb-3">
+                    <div className="flex items-center gap-2">
+                        <Info className="text-blue-600 dark:text-blue-400" size={20} />
+                        <h3 className="font-bold text-lg tracking-wide">Raio-X Técnico</h3>
                     </div>
-                    <code className="text-sm font-mono text-slate-300 break-all">{data.xmlTag}</code>
+                    <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6">
+                        <X size={16} />
+                    </Button>
                 </div>
 
-                <div>
-                    <p className="text-sm text-slate-300 leading-relaxed">
-                        {data.description}
-                    </p>
-                </div>
+                <div className="space-y-5 animate-in fade-in slide-in-from-right-2 duration-300" key={focusedField}>
 
-                <div className="flex gap-3">
-                    <div className="flex-1 bg-red-950/30 p-3 rounded border border-red-900/50">
+                    <div>
+                        <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Campo Selecionado</span>
+                        <h4 className="text-xl font-semibold text-primary">{data.label}</h4>
+                    </div>
+
+                    {/* Box XML */}
+                    <div className="bg-muted/50 p-3 rounded border border-border">
                         <div className="flex items-center gap-2 mb-1">
-                            <AlertTriangle size={14} className="text-red-400" />
-                            <span className="text-xs font-bold text-red-400">Impacto</span>
+                            <FileCode size={14} className="text-amber-600 dark:text-amber-400" />
+                            <span className="text-xs font-mono text-amber-600 dark:text-amber-400 font-bold">XML / DANFE</span>
                         </div>
-                        <p className="text-xs text-red-100/80 leading-tight">
+                        <code className="text-sm font-mono text-foreground break-all">{data.xmlTag}</code>
+                    </div>
+
+                    {/* Descrição */}
+                    <div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            {data.description}
+                        </p>
+                    </div>
+
+                    {/* Impacto (Alerta) */}
+                    <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded border border-red-200 dark:border-red-900/50">
+                        <div className="flex items-center gap-2 mb-1">
+                            <AlertTriangle size={14} className="text-red-600 dark:text-red-400" />
+                            <span className="text-xs font-bold text-red-600 dark:text-red-400">Impacto e Validação</span>
+                        </div>
+                        <p className="text-xs text-red-800 dark:text-red-200/80 leading-tight">
                             {data.impact}
                         </p>
                     </div>
-                </div>
 
-                {data.sped && (
-                    <div className="bg-green-950/30 p-2 rounded border border-green-900/50 flex items-center gap-2">
-                        <Database size={14} className="text-green-400" />
-                        <span className="text-xs text-green-100">
-                            <strong>SPED:</strong> {data.sped}
-                        </span>
-                    </div>
-                )}
+                    {/* SPED */}
+                    {data.sped && (
+                        <div className="bg-emerald-50 dark:bg-emerald-950/30 p-2 rounded border border-emerald-200 dark:border-emerald-900/50 flex items-center gap-2">
+                            <Database size={14} className="text-emerald-600 dark:text-emerald-400" />
+                            <span className="text-xs text-emerald-800 dark:text-emerald-200">
+                                <strong>SPED:</strong> {data.sped}
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
