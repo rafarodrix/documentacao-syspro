@@ -91,6 +91,13 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
             icon: FileText,
             href: `${basePath}/visualizador-danfe`,
             category: "utilitarios"
+        },
+        {
+            title: "Configuração de Documentos",
+            description: "Gerencie os documentos de sua empresa.",
+            icon: FileText,
+            href: `${basePath}/configuracao-documentos`,
+            category: "utilitarios"
         }
     ];
 
