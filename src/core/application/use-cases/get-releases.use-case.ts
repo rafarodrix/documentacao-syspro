@@ -1,5 +1,5 @@
 import { Release } from "@/core/domain/entities/release.entity";
-import { searchZammadTickets } from "@/core/infrastructure/gateways/zammad-release.gateway";
+import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 
 const ZAMMAD_RELEASE_STATE_ID = 4;
 const ZAMMAD_RELEASE_GROUP_ID = 3;
@@ -7,7 +7,7 @@ const ZAMMAD_RELEASE_GROUP_ID = 3;
 export async function getReleases(): Promise<Release[]> {
     const query = `(type:"Melhoria" OR type:"Bug") AND state_id:${ZAMMAD_RELEASE_STATE_ID} AND group_id:${ZAMMAD_RELEASE_GROUP_ID}`;
 
-    const tickets = await searchZammadTickets(query);
+    const tickets = await ZammadGateway.searchTickets(query);
 
     return tickets.map((t) => {
         const mainModule = t.modulo?.split("::")[0] || "Geral";

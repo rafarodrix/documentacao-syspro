@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useTicketSheet } from '@/core/application/use-cases/use-ticket-sheet';
+import { useTicketSheet } from '@/hooks/use-ticket-sheet';
 
 import {
     PlusCircle, Loader2, Send, FileText, AlertCircle,

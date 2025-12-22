@@ -1,4 +1,4 @@
-import { zammadService } from "@/core/infrastructure/gateways/zammad-service";
+import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 
 // Estados usados no Zammad
 const STATE_NAME = {
@@ -38,10 +38,10 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       aguardandoCliente,
       bugsCriticos
     ] = await Promise.all([
-      zammadService.getTicketCount(abertosQuery),
-      zammadService.getTicketCount(novosQuery),
-      zammadService.getTicketCount(pendentesQuery),
-      zammadService.getTicketCount(bugsQuery),
+      ZammadGateway.getTicketCount(abertosQuery),
+      ZammadGateway.getTicketCount(novosQuery),
+      ZammadGateway.getTicketCount(pendentesQuery),
+      ZammadGateway.getTicketCount(bugsQuery),
     ]);
 
     return {
