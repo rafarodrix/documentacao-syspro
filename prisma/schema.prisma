@@ -46,27 +46,27 @@ enum TaxRegime {
 // ---------------------------------------------------------
 
 model Company {
-  id            String        @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // DADOS PRINCIPAIS
-  cnpj          String        @unique
-  razaoSocial   String
-  nomeFantasia  String?
-  status        CompanyStatus @default(ACTIVE)
-  
+  cnpj         String        @unique
+  razaoSocial  String
+  nomeFantasia String?
+  status       CompanyStatus @default(ACTIVE)
+
   // DADOS FISCAIS
   inscricaoEstadual  String?
   inscricaoMunicipal String?
   regimeTributario   TaxRegime?
-  cnae          String?
-  codSuframa    String?
-  dataFundacao  DateTime?
+  cnae               String?
+  codSuframa         String?
+  dataFundacao       DateTime?
 
   // CONTATO
-  emailContato String?
+  emailContato    String?
   emailFinanceiro String?
-  telefone     String?
-  website      String?
+  telefone        String?
+  website         String?
 
   // ENDEREÇO
   cep         String?
@@ -78,8 +78,8 @@ model Company {
   estado      String?
 
   // RELAÇÃO COM CONTABILIDADE
-  accountingFirmId String?
-  accountingFirm   Company?  @relation("AccountantClient", fields: [accountingFirmId], references: [id])
+  accountingFirmId  String?
+  accountingFirm    Company?  @relation("AccountantClient", fields: [accountingFirmId], references: [id])
   accountingClients Company[] @relation("AccountantClient")
 
   // RELAÇÃO COM CONTRATOS
@@ -89,66 +89,66 @@ model Company {
   observacoes String? @db.Text
 
   // METADADOS
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // RELAÇÃO MULTI-TENANT
-  memberships   Membership[]
+  memberships Membership[]
 
   @@map("company")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // --- AUTH (Existentes) ---
-  email         String    @unique
+  email         String  @unique
   name          String?
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean @default(false)
   image         String?
-  
+
   // --- DADOS PROFISSIONAIS (Novos) ---
-  jobTitle      String?   // Ex: "Gerente Financeiro", "Vendedor"
-  phone         String?   // WhatsApp/Celular para contato rápido ou 2FA
-  cpf           String?   // Opcional: Útil se o sistema tiver módulo de RH ou Logs fiscais
-  
+  jobTitle String? // Ex: "Gerente Financeiro", "Vendedor"
+  phone    String? // WhatsApp/Celular para contato rápido ou 2FA
+  cpf      String? // Opcional: Útil se o sistema tiver módulo de RH ou Logs fiscais
+
   // --- PREFERÊNCIAS (Novos) ---
   // JSON para configurações de UI (Tema, notificações, idioma)
   // Evita criar muitas colunas para configs simples.
-  preferences   Json?     @default("{}") 
+  preferences Json? @default("{}")
 
   // --- AUDITORIA (Novos) ---
-  lastLoginAt   DateTime? // Para saber se o usuário está ativo
-  
-  // --- SISTEMA (Existentes) ---
-  role          Role      @default(CLIENTE_USER) 
-  isActive      Boolean   @default(true)
+  lastLoginAt DateTime? // Para saber se o usuário está ativo
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  // --- SISTEMA (Existentes) ---
+  role     Role    @default(CLIENTE_USER)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // RELAÇÕES
-  memberships   Membership[]
-  sessions      Session[]
-  accounts      Account[]
+  memberships Membership[]
+  sessions    Session[]
+  accounts    Account[]
 
   @@map("user")
 }
 
 // Relação entre Usuário e Empresa (Tabela Pivô)
 model Membership {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // O Cargo ESPECÍFICO nesta empresa
-  role      Role     @default(CLIENTE_USER)
+  role Role @default(CLIENTE_USER)
 
   // Chaves Estrangeiras
   userId    String
   companyId String
 
   // Relacionamentos
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // Metadados
   createdAt DateTime @default(now())
@@ -156,11 +156,9 @@ model Membership {
 
   // Regra: Um usuário não pode ter 2 cargos na MESMA empresa
   @@unique([userId, companyId])
-  
   // Índices para performance
   @@index([userId])
   @@index([companyId])
-
   @@map("membership")
 }
 
@@ -169,15 +167,15 @@ model Membership {
 // ---------------------------------------------------------
 
 model Session {
-  id           String   @id @default(cuid())
-  token        String   @unique
-  expiresAt    DateTime 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  ipAddress    String?
-  userAgent    String?
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("session")
 }
@@ -213,108 +211,137 @@ model Verification {
 }
 
 model Contract {
-  id             String         @id @default(cuid())
+  id String @id @default(cuid())
 
   // --- DADOS FINANCEIROS (Use Decimal para dinheiro/porcentagem precisa) ---
-  percentage     Decimal        @db.Decimal(5, 2) // Ex: 10.50
-  minimumWage    Decimal        @db.Decimal(10, 2) // Ex: 1412.00
-  taxRate        Decimal        @default(0) @db.Decimal(5, 2)
-  programmerRate Decimal        @default(0) @db.Decimal(10, 2)
-  
+  percentage     Decimal @db.Decimal(5, 2) // Ex: 10.50
+  minimumWage    Decimal @db.Decimal(10, 2) // Ex: 1412.00
+  taxRate        Decimal @default(0) @db.Decimal(5, 2)
+  programmerRate Decimal @default(0) @db.Decimal(10, 2)
+
   // Opcional: Valor total calculado do contrato (cache)
-  totalValue     Decimal?       @db.Decimal(12, 2) 
+  totalValue Decimal? @db.Decimal(12, 2)
 
   // --- VIGÊNCIA ---
-  startDate      DateTime       @default(now())
-  endDate        DateTime?      // Se nulo, é indeterminado
+  startDate DateTime  @default(now())
+  endDate   DateTime? // Se nulo, é indeterminado
 
   // --- ESTADO ---
-  status         ContractStatus @default(ACTIVE)
-  
-  // --- RELACIONAMENTOS ---
-  companyId      String
-  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  status ContractStatus @default(ACTIVE)
 
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  // --- RELACIONAMENTOS ---
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("contract")
 }
 
 model SystemSetting {
   id          String   @id @default(cuid())
-  key         String   @unique 
+  key         String   @unique
   value       String
   description String?
   updatedAt   DateTime @updatedAt
 }
 
-
 // cst
 model TaxCST {
-  id               String   @id @default(cuid())
-  cst              String   @unique // Ex: "01", "50"
-  description      String   @db.Text // Descrições fiscais podem ser longas
-  
+  id          String @id @default(cuid())
+  cst         String @unique // Ex: "01", "50"
+  description String @db.Text // Descrições fiscais podem ser longas
+
   // Indicadores (Flags do nível CST)
-  indIBSCBS        Boolean  @default(false)
-  indRedBC         Boolean  @default(false)
-  indRedAliq       Boolean  @default(false)
-  indTransfCred    Boolean  @default(false)
-  indDif           Boolean  @default(false)
-  indAjusteCompet  Boolean  @default(false)
-  indIBSCBSMono    Boolean  @default(false)
+  indIBSCBS         Boolean @default(false)
+  indRedBC          Boolean @default(false)
+  indRedAliq        Boolean @default(false)
+  indTransfCred     Boolean @default(false)
+  indDif            Boolean @default(false)
+  indAjusteCompet   Boolean @default(false)
+  indIBSCBSMono     Boolean @default(false)
   indCredPresIBSZFM Boolean @default(false)
-  
+
   // Vigência do CST
-  publishDate      DateTime 
-  startDate        DateTime 
-  endDate          DateTime?
+  publishDate DateTime
+  startDate   DateTime
+  endDate     DateTime?
 
   // Relacionamento
-  classifications  TaxClassification[]
+  classifications TaxClassification[]
 
-  lastUpdated      DateTime @default(now())
-  
+  lastUpdated DateTime @default(now())
+
   @@map("tax_cst")
 }
 
 // cClassTrib
 model TaxClassification {
-  id               String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Chave Estrangeira para o CST
-  cstId            String
-  cst              TaxCST   @relation(fields: [cstId], references: [id], onDelete: Cascade)
-  
-  code             String   @unique // "cClassTrib": "000001"
-  description      String   @db.Text
-  
+  cstId String
+  cst   TaxCST @relation(fields: [cstId], references: [id], onDelete: Cascade)
+
+  code        String @unique // "cClassTrib": "000001"
+  description String @db.Text
+
   // Valores Específicos: USE DECIMAL PARA CÁLCULOS
   // @db.Decimal(precisão, casas_decimais)
-  pRedIBS          Decimal? @db.Decimal(5, 2) // Permite valores como 100.00 ou 50.55
-  pRedCBS          Decimal? @db.Decimal(5, 2)
-  
-  tipoAliquota     String?  // Pode ser nulo dependendo da API
-  link             String? 
+  pRedIBS Decimal? @db.Decimal(5, 2) // Permite valores como 100.00 ou 50.55
+  pRedCBS Decimal? @db.Decimal(5, 2)
+
+  tipoAliquota String? // Pode ser nulo dependendo da API
+  link         String?
 
   // Indicadores Específicos
-  indTribRegular   Boolean  @default(false)
-  indCredPresOper  Boolean  @default(false)
-  indEstornoCred   Boolean  @default(false)
-  
+  indTribRegular  Boolean @default(false)
+  indCredPresOper Boolean @default(false)
+  indEstornoCred  Boolean @default(false)
+
   // Flags de Documentos
-  indNFe           Boolean  @default(false)
-  indNFCe          Boolean  @default(false)
-  indCTe           Boolean  @default(false)
-  indNFSe          Boolean  @default(false)
+  indNFe  Boolean @default(false)
+  indNFCe Boolean @default(false)
+  indCTe  Boolean @default(false)
+  indNFSe Boolean @default(false)
 
   // Vigência
-  publishDate      DateTime
-  startDate        DateTime
-  endDate          DateTime?
+  publishDate DateTime
+  startDate   DateTime
+  endDate     DateTime?
 
   @@index([cstId]) // Index para performance no Join
-  @@index([code])  // Index para buscar rapidament pelo código na emissão de NFe
+  @@index([code]) // Index para buscar rapidament pelo código na emissão de NFe
   @@map("tax_classification")
+}
+
+model DocumentoConfig {
+  id             String @id @default(uuid())
+  empresa        String // Ex: EMPRESA
+  descricao      String // Ex: EMISSÃO DE IMPORTAÇÃO DE VENDA...
+  grupoDocumento String // Ex: EMISSAO DE NOTA FISCAL...
+  modelo         String // Ex: 99
+  serie          String // Ex: 99
+
+  // Classificações
+  emitente   String // Ex: PROPRIO
+  tipoPessoa String // Ex: CLIENTE
+  setor      String?
+
+  // Regras de Negócio (Flags e Enums)
+  atualizaComercial  Boolean @default(true)
+  movimentaEstoque   String // Ex: SAIDA, ENTRADA, NAO
+  processamentoEtapa Boolean @default(false)
+  finalidadeNFe      String // Ex: NFE - NORMAL
+
+  // Fiscal / CFOPs
+  cfopEstadual      String? // Código (Ex: 5102)
+  cfopInterestadual String? // Código (Ex: 6102)
+  cfopInternacional String? // Código (Ex: 7102)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("documento_config")
 }
