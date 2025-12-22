@@ -320,25 +320,30 @@ model DocumentoConfig {
   id String @id @default(uuid())
 
   // Dados Gerais
-  empresa          String? @default("")
-  descricao        String
-  grupoDocumento   String
-  modelo           String  @default("55")
-  serie            String  @default("1")
-  movimentaEstoque String  @default("SAIDA")
+  empresa        String? @default("")
+  descricao      String
+  grupoDocumento String
+  modelo         String  @default("55")
+  serie          String  @default("1")
+
+  emitente           String?  @default("PROPRIO")
+  maximoItens        Int?     @default(999)
+  atualizaComercial  Boolean? @default(true)
+  processamentoEtapa Boolean? @default(false)
+
+  movimentaEstoque String @default("SAIDA")
 
   // Fiscal
   finalidadeNFe String  @default("1")
-  tpNFCredito   String? // Novo: Motivo Crédito (quando finNFe = 5)
-  tpNFDebito    String? // Novo: Motivo Débito (quando finNFe = 6)
+  tpNFCredito   String?
+  tpNFDebito    String?
 
   // CFOPs
   cfopEstadual      String?
   cfopInterestadual String?
   cfopInternacional String?
 
-  // Regras e Automação
-  // Nota: Se usar PostgreSQL, use String[]. Se usar MySQL, mude para Json.
+  // Regras
   comportamentos String[]
 
   createdAt DateTime @default(now())

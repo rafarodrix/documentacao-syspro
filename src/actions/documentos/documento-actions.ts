@@ -1,6 +1,6 @@
 'use server'
 
-import { prisma } from "@/lib/prisma" // Certifique-se que o caminho do seu prisma client está correto
+import { prisma } from "@/lib/prisma"
 import { DocumentoFormValues, documentoSchema } from "@/core/application/schema/documento-schema"
 import { revalidatePath } from "next/cache"
 
@@ -26,16 +26,26 @@ export async function saveDocumento(data: DocumentoFormValues) {
         return { success: false, error: "Dados inválidos." }
     }
 
-    const { id, ...payload } = validation.data
+    // 2. Sanitização (A CORREÇÃO DO ERRO ESTÁ AQUI)
+    // Separamos o ID e os campos que NÃO existem no banco para não enviá-los ao Prisma
+    const {
+        id,
+        emitente,           // Removido do payload
+        maximoItens,        // Removido do payload
+        atualizaComercial,  // Removido do payload
+        processamentoEtapa, // Removido do payload
+        ...payload          // O resto vai para o banco
+    } = validation.data
 
     try {
+        // Verifica se é Edição (ID existe e é válido)
         if (id && id.length > 10) {
             // --- ATUALIZAR (UPDATE) ---
             await prisma.documentoConfig.update({
                 where: { id },
                 data: {
                     ...payload,
-                    // Garante que array venha vazio se for undefined
+                    // Garante array vazio se undefined para evitar erro no banco
                     comportamentos: payload.comportamentos || []
                 },
             })
@@ -49,13 +59,13 @@ export async function saveDocumento(data: DocumentoFormValues) {
             })
         }
 
-        // Atualiza a tela sem recarregar a página
+        // Atualiza o cache da listagem
         revalidatePath("/platform/tools/configuracao-documentos")
         return { success: true }
 
     } catch (error) {
-        console.error("Erro ao salvar:", error)
-        return { success: false, error: "Erro de banco de dados." }
+        console.error("Erro crítico ao salvar no Prisma:", error)
+        return { success: false, error: "Erro interno ao persistir dados." }
     }
 }
 
@@ -66,6 +76,7 @@ export async function deleteDocumento(id: string) {
         revalidatePath("/platform/tools/configuracao-documentos")
         return { success: true }
     } catch (error) {
-        return { success: false, error: "Erro ao excluir." }
+        console.error("Erro ao excluir:", error)
+        return { success: false, error: "Erro ao excluir registro." }
     }
 }
