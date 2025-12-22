@@ -25,6 +25,7 @@ export const documentoSchema = z.object({
 
     // Reforma Tributária
     finalidadeNFe: z.string().default("1"),
+    comportamentos: z.array(z.string()).optional().default([]),
     tpNFCredito: z.string().optional().default(""),
     tpNFDebito: z.string().optional().default(""),
 

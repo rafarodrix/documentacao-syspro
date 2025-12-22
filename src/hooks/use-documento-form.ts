@@ -21,6 +21,7 @@ export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | 
 
         grupoDocumento: initialValues?.grupoDocumento ?? "",
 
+
         // Garante que o Enum seja válido (fallback para SAIDA)
         movimentaEstoque: (["SAIDA", "ENTRADA", "NAO"].includes(initialValues?.movimentaEstoque as string)
             ? initialValues?.movimentaEstoque
@@ -30,6 +31,7 @@ export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | 
         processamentoEtapa: initialValues?.processamentoEtapa ?? false,
 
         finalidadeNFe: initialValues?.finalidadeNFe || "1",
+        comportamentos: initialValues?.comportamentos ?? [],
         tpNFCredito: initialValues?.tpNFCredito ?? "",
         tpNFDebito: initialValues?.tpNFDebito ?? "",
 
