@@ -1,4 +1,3 @@
-// utils/transform-releases.ts
 import { Release } from '@/core/domain/entities/release.entity';
 
 export const monthNames = [

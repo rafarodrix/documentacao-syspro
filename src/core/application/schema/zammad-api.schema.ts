@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const ZammadTicketAPISchema = z.object({
+// Schema estrito para validar o que vem do Zammad
+export const zammadTicketAPISchema = z.object({
     id: z.number(),
     number: z.string(),
     title: z.string(),
@@ -10,9 +11,12 @@ export const ZammadTicketAPISchema = z.object({
     state_id: z.number(),
     priority_id: z.number(),
     group_id: z.number().optional(),
+
+    // Campos opcionais/nullable garantem que a app não quebre se o Zammad mudar algo leve
     modulo: z.string().nullable().optional(),
     video_link: z.string().nullable().optional(),
     release_summary: z.string().nullable().optional(),
 });
 
-export type ZammadTicketAPI = z.infer<typeof ZammadTicketAPISchema>;
+// Use este tipo nos seus Gateways ao invés de criar interfaces manuais
+export type ZammadTicketAPI = z.infer<typeof zammadTicketAPISchema>;

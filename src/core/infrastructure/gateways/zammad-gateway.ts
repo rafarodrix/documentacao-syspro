@@ -1,5 +1,5 @@
 import { Ticket, TicketPriority, TicketStatus } from "@/core/domain/entities/ticket.entity";
-import { ZammadTicketAPISchema, ZammadTicketAPI } from "@/core/application/schema/zammad-schema";
+import { zammadTicketAPISchema, ZammadTicketAPI } from "@/core/application/schema/zammad-api.schema";
 
 const ZAMMAD_URL = process.env.ZAMMAD_URL;
 const ZAMMAD_TOKEN = process.env.ZAMMAD_TOKEN;
@@ -77,7 +77,7 @@ export const ZammadGateway = {
             const priorityMap = data.assets?.TicketPriority || {};
 
             return (rawTickets as any[]).map((raw) => {
-                const result = ZammadTicketAPISchema.safeParse(raw);
+                const result = zammadTicketAPISchema.safeParse(raw);
                 if (!result.success) return null; // Pula tickets inválidos
 
                 const parsed = result.data;
@@ -144,7 +144,7 @@ export const ZammadGateway = {
             }
 
             return rawTickets
-                .map((t) => ZammadTicketAPISchema.safeParse(t))
+                .map((t) => zammadTicketAPISchema.safeParse(t))
                 .filter((r) => r.success)
                 .map((r) => r.data as ZammadTicketAPI);
 

@@ -3,7 +3,7 @@
 import { useState, useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ticketSchema, TicketFormInput } from "@/core/application/schema/ticket-schema";
+import { ticketFormSchema, TicketFormInput } from "@/core/application/schema/ticket-form.schema";
 import { ticketGateway } from "@/core/infrastructure/gateways/ticket-gateway";
 import { toast } from "sonner";
 
@@ -13,7 +13,7 @@ export function useTicketSheet(onSuccess: () => void) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const form = useForm<any>({
-        resolver: zodResolver(ticketSchema),
+        resolver: zodResolver(ticketFormSchema),
         defaultValues: {
             subject: "",
             type: "incident",

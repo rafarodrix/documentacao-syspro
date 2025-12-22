@@ -1,5 +1,5 @@
 import { createTicketAction } from "@/actions/tickets/ticket-actions";
-import { TicketFormInput } from "@/core/application/schema/ticket-schema";
+import { TicketFormInput } from "@/core/application/schema/ticket-form.schema";
 import { Result } from "@/core/application/dto/result.dto";
 
 export const ticketGateway = {
