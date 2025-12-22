@@ -57,11 +57,7 @@ export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | 
     // 2. Inicialização do Form
     return useForm({
         resolver: zodResolver(documentoSchema),
-
-        // O 'as any' silencia o erro estrito de tipagem entre Optional vs Default
-        // Mas a segurança é mantida pelo zodResolver acima.
         defaultValues: defaultValues as any,
-
         mode: "onChange"
     });
 }
