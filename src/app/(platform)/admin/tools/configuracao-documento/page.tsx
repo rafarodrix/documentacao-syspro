@@ -1,15 +1,15 @@
-import DocumentosContainer from '@/components/platform/tools/configuracao-documentos/documentos';
+import { Metadata } from "next";
+import DocumentosContainer from "@/components/platform/tools/configuracao-documentos/documentos";
 
-export default function ConfiguracaoDocumentoPage() {
+export const metadata: Metadata = {
+    title: "Configuração de Documentos | Syspro",
+    description: "Gerencie os parâmetros de emissão e regras fiscais.",
+};
+
+export default function AdminConfiguracaoDocumentosToolPage() {
     return (
-        <main className="p-6 max-w-6xl mx-auto">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900">Configuração de Documentos Syspro</h1>
-                <p className="text-slate-500">Definição de parâmetros fiscais, estoque e financeiro por tipo de documento.</p>
-            </div>
-
-            {/* O componente principal é chamado aqui */}
+        <div className="w-full max-w-[1600px] mx-auto py-6 px-4">
             <DocumentosContainer />
-        </main>
+        </div>
     );
 }
