@@ -32,6 +32,13 @@ export const documentoSchema = z.object({
     // Fiscais
     cfopEstadual: z.string().optional().default(""),
     cfopInterestadual: z.string().optional().default(""),
+
+    cfopEstadualST: z.string().optional().default(""),
+    cfopInterestadualST: z.string().optional().default(""),
+
+    cfopEstadualConsumidor: z.string().optional().default(""),
+    cfopInterestadualConsumidor: z.string().optional().default(""),
+
     cfopInternacional: z.string().optional().default(""),
 });
 

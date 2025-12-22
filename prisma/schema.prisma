@@ -338,10 +338,21 @@ model DocumentoConfig {
   tpNFCredito   String?
   tpNFDebito    String?
 
-  // CFOPs
-  cfopEstadual      String?
-  cfopInterestadual String?
-  cfopInternacional String?
+  // === CFOPs ===
+  // 1. Regra Geral (Tributado Integral)
+  cfopEstadual      String? // Ex: 5102
+  cfopInterestadual String? // Ex: 6102
+
+  // 2. Substituição Tributária (ST)
+  cfopEstadualST      String? // Novo (Ex: 5405)
+  cfopInterestadualST String? // Novo (Ex: 6403)
+
+  // 3. Consumidor Final (Uso e Consumo)
+  cfopEstadualConsumidor      String? // Novo (Ex: 5102)
+  cfopInterestadualConsumidor String? // Novo (Ex: 6108)
+
+  // 4. Exterior
+  cfopInternacional String? // Ex: 7101
 
   // Regras
   comportamentos String[]
