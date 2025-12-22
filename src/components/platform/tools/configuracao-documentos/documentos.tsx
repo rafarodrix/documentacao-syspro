@@ -61,28 +61,28 @@ export default function DocumentosContainer() {
     return (
         <div className="space-y-4 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
+            <div className="flex justify-between items-center bg-card p-4 rounded-lg border border-border shadow-sm">
                 <div>
-                    <h2 className="text-lg font-bold text-slate-800">Modelos Configurados</h2>
-                    <p className="text-sm text-slate-500">Gerencie os parâmetros fiscais e de estoque.</p>
+                    <h2 className="text-lg font-bold text-card-foreground">Modelos Configurados</h2>
+                    <p className="text-sm text-muted-foreground">Gerencie os parâmetros fiscais e de estoque.</p>
                 </div>
-                <Button onClick={handleAddNew} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleAddNew} className="flex items-center gap-2">
                     <Plus size={16} />
                     Novo Modelo
                 </Button>
             </div>
 
             {/* Tabela */}
-            <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+            <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
                 {documents.length === 0 ? (
-                    <div className="p-12 text-center flex flex-col items-center text-slate-400">
+                    <div className="p-12 text-center flex flex-col items-center text-muted-foreground">
                         <Inbox size={48} className="mb-4 opacity-50" />
-                        <p className="text-lg font-medium">Nenhum modelo configurado</p>
+                        <p className="text-lg font-medium text-card-foreground">Nenhum modelo configurado</p>
                         <p className="text-sm">Clique em "Novo Modelo" para começar.</p>
                     </div>
                 ) : (
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50 text-slate-600 border-b">
+                        <thead className="bg-muted/50 text-muted-foreground border-b border-border">
                             <tr>
                                 <th className="p-4 font-semibold">Descrição</th>
                                 <th className="p-4 font-semibold">Grupo</th>
@@ -91,35 +91,35 @@ export default function DocumentosContainer() {
                                 <th className="p-4 font-semibold text-right">Ações</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-border">
                             {documents.map((doc) => (
-                                <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
+                                <tr key={doc.id} className="hover:bg-muted/50 transition-colors">
                                     <td className="p-4 flex items-center gap-3">
-                                        <div className="p-2 bg-blue-50 text-blue-600 rounded">
+                                        <div className="p-2 bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400 rounded">
                                             <FileCode size={18} />
                                         </div>
-                                        <span className="font-medium text-slate-700">{doc.descricao}</span>
+                                        <span className="font-medium text-card-foreground">{doc.descricao}</span>
                                     </td>
-                                    <td className="p-4 text-slate-600">{doc.grupoDocumento}</td>
+                                    <td className="p-4 text-muted-foreground">{doc.grupoDocumento}</td>
                                     <td className="p-4 text-center">
-                                        <span className="px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-600 border">
+                                        <span className="px-2 py-1 bg-muted rounded text-xs font-bold text-muted-foreground border border-border">
                                             {doc.modelo} / {doc.serie}
                                         </span>
                                     </td>
-                                    <td className="p-4 font-mono text-slate-600">
+                                    <td className="p-4 font-mono text-muted-foreground">
                                         {doc.cfopEstadual || "-"}
                                     </td>
                                     <td className="p-4 text-right whitespace-nowrap">
                                         <button
                                             onClick={() => handleEdit(doc)}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors mr-1"
+                                            className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950 rounded-full transition-colors mr-1"
                                             title="Editar"
                                         >
                                             <Edit size={16} />
                                         </button>
                                         <button
                                             onClick={() => handleDelete(doc.id)}
-                                            className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                            className="p-2 text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 rounded-full transition-colors"
                                             title="Excluir"
                                         >
                                             <Trash2 size={16} />
