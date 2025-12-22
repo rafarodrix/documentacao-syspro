@@ -4,6 +4,8 @@ import { useDocumentoForm } from "@/hooks/use-documento-form";
 import { DocumentoFormValues } from "@/core/application/schema/documento-schema";
 import { GRUPOS_DOCUMENTO } from "@/core/constants/grupos-documento";
 import { COMPORTAMENTOS_DOCUMENTO } from "@/core/constants/comportamentos-documento";
+import { TIPOS_NOTA_CREDITO, TIPOS_NOTA_DEBITO } from "@/core/constants/tipos-notas"; // <--- Import Novo
+import { useWatch } from "react-hook-form"; // <--- Import Necessário
 
 import {
     Form,
@@ -36,6 +38,9 @@ interface DocumentoFormProps {
 export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoFormProps) {
     const form = useDocumentoForm(initialValues);
 
+    // Monitora a finalidade para exibir campos condicionais
+    const finalidade = useWatch({ control: form.control, name: "finalidadeNFe" });
+
     return (
         <div className="bg-card text-card-foreground rounded-lg shadow border border-border p-6 animate-in slide-in-from-right-4 duration-300">
             <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
@@ -59,6 +64,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                         {/* === ABA 1: DADOS GERAIS === */}
                         <TabsContent value="geral" className="mt-6">
                             <div className="grid grid-cols-12 gap-6">
+
                                 {/* Empresa */}
                                 <div className="col-span-12 md:col-span-4">
                                     <FormField
@@ -93,7 +99,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                     />
                                 </div>
 
-                                {/* Linha de Configurações Fiscais */}
+                                {/* Modelo e Série */}
                                 <div className="col-span-6 md:col-span-2">
                                     <FormField
                                         control={form.control}
@@ -126,34 +132,8 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                     />
                                 </div>
 
-                                {/* Finalidade NFe (Restaurada) */}
-                                <div className="col-span-12 md:col-span-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="finalidadeNFe"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Finalidade NFe</FormLabel>
-                                                <FormControl>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <SelectTrigger className="bg-background">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="1">1 - NF-e normal</SelectItem>
-                                                            <SelectItem value="2">2 - NF-e complementar</SelectItem>
-                                                            <SelectItem value="3">3 - NF-e de ajuste</SelectItem>
-                                                            <SelectItem value="4">4 - Devolução</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <div className="col-span-12 md:col-span-4">
+                                {/* Movimenta Estoque */}
+                                <div className="col-span-12 md:col-span-8">
                                     <FormField
                                         control={form.control}
                                         name="movimentaEstoque"
@@ -176,6 +156,93 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                             </FormItem>
                                         )}
                                     />
+                                </div>
+
+                                {/* === FINALIDADE NFE (ATUALIZADO) === */}
+                                <div className="col-span-12">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border border-border rounded-lg bg-muted/20">
+                                        <FormField
+                                            control={form.control}
+                                            name="finalidadeNFe"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Finalidade NFe</FormLabel>
+                                                    <FormControl>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <SelectTrigger className="bg-background">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="1">1 - NF-e normal</SelectItem>
+                                                                <SelectItem value="2">2 - NF-e complementar</SelectItem>
+                                                                <SelectItem value="3">3 - NF-e de ajuste</SelectItem>
+                                                                <SelectItem value="4">4 - Devolução</SelectItem>
+                                                                <SelectItem value="5">5 - Nota de Crédito (IBS/CBS)</SelectItem>
+                                                                <SelectItem value="6">6 - Nota de Débito (IBS/CBS)</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {/* CONDICIONAL: Tipo de Nota de CRÉDITO (5) */}
+                                        {finalidade === "5" && (
+                                            <FormField
+                                                control={form.control}
+                                                name="tpNFCredito"
+                                                render={({ field }) => (
+                                                    <FormItem className="animate-in fade-in zoom-in-95 duration-200">
+                                                        <FormLabel>Tipo de Nota de Crédito</FormLabel>
+                                                        <FormControl>
+                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                                <SelectTrigger className="bg-background">
+                                                                    <SelectValue placeholder="Selecione o motivo..." />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {TIPOS_NOTA_CREDITO.map((item) => (
+                                                                        <SelectItem key={item.value} value={item.value}>
+                                                                            {item.label}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        )}
+
+                                        {/* CONDICIONAL: Tipo de Nota de DÉBITO (6) */}
+                                        {finalidade === "6" && (
+                                            <FormField
+                                                control={form.control}
+                                                name="tpNFDebito"
+                                                render={({ field }) => (
+                                                    <FormItem className="animate-in fade-in zoom-in-95 duration-200">
+                                                        <FormLabel>Tipo de Nota de Débito</FormLabel>
+                                                        <FormControl>
+                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                                <SelectTrigger className="bg-background">
+                                                                    <SelectValue placeholder="Selecione o motivo..." />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {TIPOS_NOTA_DEBITO.map((item) => (
+                                                                        <SelectItem key={item.value} value={item.value}>
+                                                                            {item.label}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Grupo de Documento */}
@@ -276,7 +343,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                                                 checked={field.value?.includes(item.id)}
                                                                                 onCheckedChange={(checked) => {
                                                                                     return checked
-                                                                                        ? field.onChange([...field.value, item.id])
+                                                                                        ? field.onChange([...(field.value || []), item.id])
                                                                                         : field.onChange(
                                                                                             field.value?.filter(
                                                                                                 (value: string) => value !== item.id
@@ -288,7 +355,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                                         <div className="space-y-1 leading-none cursor-pointer" onClick={() => {
                                                                             const checked = !field.value?.includes(item.id);
                                                                             return checked
-                                                                                ? field.onChange([...field.value, item.id])
+                                                                                ? field.onChange([...(field.value || []), item.id])
                                                                                 : field.onChange(field.value?.filter((v: string) => v !== item.id))
                                                                         }}>
                                                                             <FormLabel className="font-bold text-primary cursor-pointer">
