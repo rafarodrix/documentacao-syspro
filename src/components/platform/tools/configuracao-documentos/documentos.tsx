@@ -1,16 +1,38 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Edit, Trash2, FileCode, Inbox, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useTransition } from 'react';
+import { Plus, Edit, Trash2, FileCode, Inbox, Loader2 } from 'lucide-react';
 import { DocumentoForm } from './documento-form';
 import { DocumentoFormValues } from '@/core/application/schema/documento-schema';
 import { Button } from "@/components/ui/button";
-import { GRUPOS_DOCUMENTO } from "@/core/constants/grupos-documento"; // <--- IMPORTANTE
+import { GRUPOS_DOCUMENTO } from "@/core/constants/grupos-documento";
+
+// Import das Actions Reais
+import { getDocumentos, saveDocumento, deleteDocumento } from '@/actions/documentos/documento-actions';
 
 export default function DocumentosContainer() {
     const [viewState, setViewState] = useState<'list' | 'form'>('list');
     const [documents, setDocuments] = useState<DocumentoFormValues[]>([]);
     const [editingDoc, setEditingDoc] = useState<DocumentoFormValues | null>(null);
+
+    // Estados de carregamento
+    const [isPending, startTransition] = useTransition();
+    const [isLoading, setIsLoading] = useState(true);
+
+    // --- 1. Carregar dados do Banco Real ---
+    const loadData = async () => {
+        setIsLoading(true);
+        const result = await getDocumentos();
+        if (result.success && result.data) {
+            // Conversão forçada de tipagem para garantir compatibilidade com o Zod
+            setDocuments(result.data as unknown as DocumentoFormValues[]);
+        }
+        setIsLoading(false);
+    };
+
+    useEffect(() => {
+        loadData();
+    }, []);
 
     // --- Handlers ---
 
@@ -24,22 +46,33 @@ export default function DocumentosContainer() {
         setViewState('form');
     };
 
-    const handleDelete = (id: string | undefined) => {
+    const handleDelete = async (id: string | undefined) => {
         if (!id) return;
-        if (confirm("Tem certeza que deseja remover este modelo?")) {
-            setDocuments(prev => prev.filter(d => d.id !== id));
+
+        if (confirm("Tem certeza que deseja remover este modelo do banco de dados?")) {
+            startTransition(async () => {
+                const result = await deleteDocumento(id);
+                if (result.success) {
+                    await loadData(); // Recarrega a lista
+                } else {
+                    alert("Erro ao excluir!");
+                }
+            });
         }
     };
 
-    const handleSave = (data: DocumentoFormValues) => {
-        if (editingDoc?.id) {
-            // Atualizar existente
-            setDocuments(prev => prev.map(d => d.id === editingDoc.id ? { ...data, id: d.id } : d));
-        } else {
-            // Criar novo (Mock ID seguro)
-            setDocuments(prev => [...prev, { ...data, id: crypto.randomUUID() }]);
-        }
-        setViewState('list');
+    const handleSave = async (data: DocumentoFormValues) => {
+        // Inicia transição para mostrar loading se necessário
+        startTransition(async () => {
+            const result = await saveDocumento(data);
+
+            if (result.success) {
+                await loadData(); // Recarrega os dados atualizados do banco
+                setViewState('list');
+            } else {
+                alert(`Erro ao salvar: ${result.error}`);
+            }
+        });
     };
 
     const handleCancel = () => {
@@ -51,11 +84,13 @@ export default function DocumentosContainer() {
 
     if (viewState === 'form') {
         return (
-            <DocumentoForm
-                initialValues={editingDoc}
-                onSave={handleSave}
-                onCancel={handleCancel}
-            />
+            <div className={isPending ? "opacity-50 pointer-events-none" : ""}>
+                <DocumentoForm
+                    initialValues={editingDoc}
+                    onSave={handleSave}
+                    onCancel={handleCancel}
+                />
+            </div>
         );
     }
 
@@ -64,8 +99,11 @@ export default function DocumentosContainer() {
             {/* Header */}
             <div className="flex justify-between items-center bg-card p-6 rounded-lg border border-border shadow-sm">
                 <div>
-                    <h2 className="text-xl font-bold text-card-foreground">Modelos Configurados</h2>
-                    <p className="text-sm text-muted-foreground mt-1">Gerencie os parâmetros fiscais, regras de estoque e automações.</p>
+                    <h2 className="text-xl font-bold text-card-foreground flex items-center gap-2">
+                        Modelos Configurados
+                        {(isLoading || isPending) && <Loader2 className="animate-spin text-blue-500" size={18} />}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1">Gerencie os parâmetros fiscais salvos no banco de dados.</p>
                 </div>
                 <Button onClick={handleAddNew} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
                     <Plus size={16} />
@@ -74,14 +112,18 @@ export default function DocumentosContainer() {
             </div>
 
             {/* Tabela */}
-            <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-                {documents.length === 0 ? (
+            <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden min-h-[300px]">
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-48 text-muted-foreground gap-2">
+                        <Loader2 className="animate-spin" /> Carregando documentos...
+                    </div>
+                ) : documents.length === 0 ? (
                     <div className="p-12 text-center flex flex-col items-center text-muted-foreground">
                         <div className="bg-muted/50 p-4 rounded-full mb-4">
                             <Inbox size={48} className="opacity-50" />
                         </div>
                         <p className="text-lg font-medium text-card-foreground">Nenhum modelo configurado</p>
-                        <p className="text-sm max-w-sm mx-auto mt-2">Clique em "Novo Modelo" para criar sua primeira parametrização de documento fiscal.</p>
+                        <p className="text-sm max-w-sm mx-auto mt-2">Clique em "Novo Modelo" para criar sua primeira parametrização.</p>
                     </div>
                 ) : (
                     <table className="w-full text-left text-sm">
@@ -96,7 +138,6 @@ export default function DocumentosContainer() {
                         </thead>
                         <tbody className="divide-y divide-border">
                             {documents.map((doc) => {
-                                // Encontra o label bonito do grupo
                                 const grupoLabel = GRUPOS_DOCUMENTO.find(g => g.value === doc.grupoDocumento)?.label;
 
                                 return (

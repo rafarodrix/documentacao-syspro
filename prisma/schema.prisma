@@ -317,28 +317,29 @@ model TaxClassification {
 }
 
 model DocumentoConfig {
-  id             String @id @default(uuid())
-  empresa        String // Ex: EMPRESA
-  descricao      String // Ex: EMISSÃO DE IMPORTAÇÃO DE VENDA...
-  grupoDocumento String // Ex: EMISSAO DE NOTA FISCAL...
-  modelo         String // Ex: 99
-  serie          String // Ex: 99
+  id String @id @default(uuid())
 
-  // Classificações
-  emitente   String // Ex: PROPRIO
-  tipoPessoa String // Ex: CLIENTE
-  setor      String?
+  // Dados Gerais
+  empresa          String? @default("")
+  descricao        String
+  grupoDocumento   String
+  modelo           String  @default("55")
+  serie            String  @default("1")
+  movimentaEstoque String  @default("SAIDA")
 
-  // Regras de Negócio (Flags e Enums)
-  atualizaComercial  Boolean @default(true)
-  movimentaEstoque   String // Ex: SAIDA, ENTRADA, NAO
-  processamentoEtapa Boolean @default(false)
-  finalidadeNFe      String // Ex: NFE - NORMAL
+  // Fiscal
+  finalidadeNFe String  @default("1")
+  tpNFCredito   String? // Novo: Motivo Crédito (quando finNFe = 5)
+  tpNFDebito    String? // Novo: Motivo Débito (quando finNFe = 6)
 
-  // Fiscal / CFOPs
-  cfopEstadual      String? // Código (Ex: 5102)
-  cfopInterestadual String? // Código (Ex: 6102)
-  cfopInternacional String? // Código (Ex: 7102)
+  // CFOPs
+  cfopEstadual      String?
+  cfopInterestadual String?
+  cfopInternacional String?
+
+  // Regras e Automação
+  // Nota: Se usar PostgreSQL, use String[]. Se usar MySQL, mude para Json.
+  comportamentos String[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
