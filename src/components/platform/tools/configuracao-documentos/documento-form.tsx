@@ -32,7 +32,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
     // Hook customizado já corrigido sem Tipagem Genérica explícita no useForm
     const form = useDocumentoForm(initialValues);
 
-    // Observa o campo finalidadeNFe em tempo real para renderização condicional
+    // Verifica  o campo finalidadeNFe em tempo real para renderização condicional
     const finalidade = useWatch({ control: form.control, name: "finalidadeNFe" });
 
     return (
