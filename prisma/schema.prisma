@@ -41,6 +41,12 @@ enum TaxRegime {
   MEI
 }
 
+enum IndicadorIE {
+  CONTRIBUINTE
+  ISENTO
+  NAO_CONTRIBUINTE
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -49,15 +55,23 @@ model Company {
   id String @id @default(cuid())
 
   // DADOS PRINCIPAIS
-  cnpj         String        @unique
+  cnpj         String        @unique // Armazenar apenas números (validação no Zod)
   razaoSocial  String
   nomeFantasia String?
   status       CompanyStatus @default(ACTIVE)
+  logoUrl      String?
 
-  // DADOS FISCAIS
+  // HIERARQUIA (Matriz/Filial)
+  parentCompanyId String?
+  parentCompany   Company?  @relation("BranchHierarchy", fields: [parentCompanyId], references: [id])
+  branches        Company[] @relation("BranchHierarchy")
+
+  // DADOS FISCAIS REFINADOS
   inscricaoEstadual  String?
   inscricaoMunicipal String?
+  indicadorIE        IndicadorIE @default(NAO_CONTRIBUINTE)
   regimeTributario   TaxRegime?
+  crt                String? // Código de Regime Tributário (1, 2, 3 ou 4)
   cnae               String?
   codSuframa         String?
   dataFundacao       DateTime?
@@ -66,37 +80,56 @@ model Company {
   emailContato    String?
   emailFinanceiro String?
   telefone        String?
+  whatsapp        String?
   website         String?
 
-  // ENDEREÇO
-  cep         String?
-  logradouro  String?
-  numero      String?
-  complemento String?
-  bairro      String?
-  cidade      String?
-  estado      String?
+  // ENDEREÇO (Movido para tabela própria para suportar Matriz/Filial/Depósitos)
+  addresses Address[]
 
-  // RELAÇÃO COM CONTABILIDADE
+  // RELAÇÕES EXISTENTES (Contabilidade e Contratos)
   accountingFirmId  String?
-  accountingFirm    Company?  @relation("AccountantClient", fields: [accountingFirmId], references: [id])
-  accountingClients Company[] @relation("AccountantClient")
+  accountingFirm    Company?     @relation("AccountantClient", fields: [accountingFirmId], references: [id])
+  accountingClients Company[]    @relation("AccountantClient")
+  contracts         Contract[]
+  memberships       Membership[]
 
-  // RELAÇÃO COM CONTRATOS
-  contracts Contract[]
+  // EXTRAS E AUDITORIA
+  observacoes String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // Para Soft Delete
 
-  // EXTRAS
-  observacoes String? @db.Text
-
-  // METADADOS
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // RELAÇÃO MULTI-TENANT
-  memberships Membership[]
-
+  @@index([razaoSocial])
+  @@index([cnpj])
   @@map("company")
 }
+
+model Address {
+  id               String  @id @default(cuid())
+  description      String? // Ex: "Sede", "Depósito", "Faturamento"
+  cep              String
+  logradouro       String
+  numero           String
+  complemento      String?
+  bairro           String
+  cidade           String
+  estado           String
+  pais             String  @default("BR")
+  codigoIbgeCidade String?
+  codigoIbgeEstado String?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("address")
+}
+
+// Atualização no seu DocumentoConfig para vincular à empresa
+// model DocumentoConfig {
+//   ... campos atuais ...
+//   companyId String
+//   company   Company @relation(fields: [companyId], references: [id])
+// }
 
 model User {
   id String @id @default(cuid())

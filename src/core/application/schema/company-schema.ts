@@ -1,72 +1,62 @@
+// src\core\application\schema\company-schema.ts
 import { z } from "zod";
-import { TaxRegime } from "@prisma/client";
+import { TaxRegime, CompanyStatus, IndicadorIE } from "@prisma/client";
 
-// Helper para converter string vazia ("") em undefined para o Prisma ignorar
-const emptyToUndefined = z.string().transform((val) => val === "" ? undefined : val);
+const emptyToUndefined = z.string().transform((val) => (val === "" ? undefined : val));
+
+export const addressSchema = z.object({
+  description: z.string().optional().default("Sede"),
+  cep: z.string().min(8, "CEP incompleto").transform((v) => v.replace(/\D/g, "")),
+  logradouro: z.string().min(1, "Logradouro é obrigatório"),
+  numero: z.string().min(1, "Número é obrigatório"),
+  complemento: z.string().optional().or(emptyToUndefined),
+  bairro: z.string().min(1, "Bairro é obrigatório"),
+  cidade: z.string().min(1, "Cidade é obrigatória"),
+  estado: z.string().length(2, "UF deve ter 2 letras").toUpperCase(),
+  pais: z.string().default("BR"),
+  codigoIbgeCidade: z.string().optional().or(emptyToUndefined),
+  codigoIbgeEstado: z.string().optional().or(emptyToUndefined),
+});
 
 export const createCompanySchema = z.object({
-  // --- DADOS PRINCIPAIS ---
   cnpj: z.string()
     .min(14, "CNPJ incompleto")
     .max(18, "CNPJ inválido")
     .transform((val) => val.replace(/\D/g, "")),
-
-  razaoSocial: z.string()
-    .min(3, "Razão Social é obrigatória")
-    .trim(),
-
+  razaoSocial: z.string().min(3, "Razão Social é obrigatória").trim(),
   nomeFantasia: z.string().optional().or(emptyToUndefined),
-
-  // Data de Fundação recebe string do input date ("2023-10-25") e converte para Date do JS para o Prisma
+  status: z.nativeEnum(CompanyStatus).default(CompanyStatus.ACTIVE),
+  logoUrl: z.string().url("URL do logo inválida").optional().or(emptyToUndefined),
+  parentCompanyId: z.string().optional().or(emptyToUndefined),
+  regimeTributario: z.nativeEnum(TaxRegime).optional().nullable(),
+  crt: z.string().optional().or(emptyToUndefined),
+  indicadorIE: z.nativeEnum(IndicadorIE).default(IndicadorIE.NAO_CONTRIBUINTE),
+  inscricaoEstadual: z.string().optional().or(emptyToUndefined),
+  inscricaoMunicipal: z.string().optional().or(emptyToUndefined),
+  cnae: z.string().optional().or(emptyToUndefined),
+  codSuframa: z.string().optional().or(emptyToUndefined),
   dataFundacao: z.string()
     .optional()
     .or(z.literal(""))
     .transform((val) => (val ? new Date(val) : undefined)),
-
-  // --- DADOS DE CONTATO ---
-  emailContato: z.string()
-    .email("E-mail inválido")
-    .optional()
-    .or(z.literal("")),
-
-  // Email Financeiro
-  emailFinanceiro: z.string()
-    .email("E-mail financeiro inválido")
-    .optional()
-    .or(z.literal("")),
-
+  emailContato: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  emailFinanceiro: z.string().email("E-mail financeiro inválido").optional().or(z.literal("")),
   telefone: z.string().optional().or(emptyToUndefined),
-
+  whatsapp: z.string().optional().or(emptyToUndefined),
   website: z.string().url("URL inválida").optional().or(z.literal("")),
-
-  // --- DADOS FISCAIS ---
-  inscricaoEstadual: z.string().optional().or(emptyToUndefined),
-  inscricaoMunicipal: z.string().optional().or(emptyToUndefined),
-
-  // CNAE e Suframa
-  cnae: z.string().optional().or(emptyToUndefined),
-  codSuframa: z.string().optional().or(emptyToUndefined),
-
-  regimeTributario: z.nativeEnum(TaxRegime).optional(),
-
-  // --- ENDEREÇO ---
-  cep: z.string().optional().or(emptyToUndefined),
-  logradouro: z.string().optional().or(emptyToUndefined),
-  numero: z.string().optional().or(emptyToUndefined),
-  complemento: z.string().optional().or(emptyToUndefined),
-  bairro: z.string().optional().or(emptyToUndefined),
-  cidade: z.string().optional().or(emptyToUndefined),
-
-  estado: z.string()
-    .length(2, "UF deve ter 2 letras")
-    .toUpperCase()
-    .optional()
-    .or(z.literal("")),
-
-  // --- VÍNCULOS E EXTRAS ---
-  accountingFirmId: z.string().optional().transform(val => val || undefined),
-
-  observacoes: z.string().optional(),
+  address: addressSchema.optional(),
+  accountingFirmId: z.string().optional().or(emptyToUndefined),
+  observacoes: z.string().optional().or(emptyToUndefined),
+}).refine((data) => {
+  if (data.indicadorIE === "CONTRIBUINTE" && !data.inscricaoEstadual) return false;
+  return true;
+}, {
+  message: "Inscrição Estadual obrigatória para Contribuintes",
+  path: ["inscricaoEstadual"],
 });
 
-export type CreateCompanyInput = z.infer<typeof createCompanySchema>;
+// CreateCompanyInput: Usado pelo React Hook Form (Tipos de entrada/Strings)
+export type CreateCompanyInput = z.input<typeof createCompanySchema>;
+
+// CreateCompanyOutput: Usado pela Server Action/Prisma (Tipos transformados/Date/Numbers)
+export type CreateCompanyOutput = z.output<typeof createCompanySchema>;
