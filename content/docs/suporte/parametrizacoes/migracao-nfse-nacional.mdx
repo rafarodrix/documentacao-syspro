@@ -5,6 +5,13 @@ description: Guia técnico para migração e parametrização da Nota Fiscal de 
 
 import {
   ShoppingCart,
+  Globe,
+  Hash,
+  FileText,
+  Building,
+  Database,
+  ArrowUpRight,
+  ArrowUpRightFromSquare,
   Search,
   BarChart2,
   MessagesSquare,
@@ -55,25 +62,29 @@ Para garantir o sucesso da configuração, atente-se aos campos críticos abaixo
 Siga rigorosamente a sequência abaixo para configurar o sistema:
 
 <Steps>
+<Step>
 ### Permissões de Usuário
-[cite_start]Acesse o módulo **USUÁRIO** e libere o acesso ao **Grupo de Serviço** e ao **Grupo NBS** (dentro da categoria Produtos)[cite: 1, 2].
-
+Acesse o módulo **USUÁRIO** e libere o acesso ao **Grupo de Serviço** e ao **Grupo NBS** (dentro da categoria Produtos)[cite: 1, 2].
+</Step>
+<Step>
 ### Ajuste de Documento
-
-[cite_start]No módulo **DOCUMENTO**, localize as opções **EVD** e **EVP** e ajuste a série da NFSe para **01**[cite: 3, 4].
-
+No módulo **DOCUMENTO**, localize as opções **EVD** e **EVP** e ajuste a série da NFSe para **01**[cite: 3, 4].
+</Step>
+<Step>
 ### Saneamento de Cadastros de Participantes
 
-[cite_start]No módulo **PARTICIPANTE**, verifique a existência de CEPs genéricos (ex: 38300-000)[cite: 5, 6].
+No módulo **PARTICIPANTE**, verifique a existência de CEPs genéricos (ex: 38300-000)[cite: 5, 6].
 
-- [cite_start]Utilize o seguinte comando para identificar registros: `SELECT * FROM PARTICIPANTE_END PE WHERE PE.CEP = '38300-000';`[cite: 7].
-- [cite_start]Caso existam muitos registros, execute o script de atualização para vincular o CEP do participante ao CEP da empresa[cite: 8, 9]:
+- Utilize o seguinte comando para identificar registros: `SELECT * FROM PARTICIPANTE_END PE WHERE PE.CEP = '38300-000';`[cite: 7].
+- Caso existam muitos registros, execute o script de atualização para vincular o CEP do participante ao CEP da empresa[cite: 8, 9]:
 
 ```sql
 UPDATE PARTICIPANTE_END SET CEP = (SELECT CEP FROM EMPRESA E JOIN PARTICIPANTE_END PE ON PE.ID_PARTICIPANTE = E.ID_PARTICIPANTE_EMP) WHERE CEP = '38300-000';
 
 ```
 
+</Step>
+<Step>
 ### Configurações da Empresa
 
 No módulo **EMPRESA**, realize as três alterações fundamentais:
@@ -83,6 +94,8 @@ No módulo **EMPRESA**, realize as três alterações fundamentais:
 2. Marque **NÃO** no campo **Enviar IM**.
 
 3. Defina o **Regime Tributário** como **NENHUM**.
+      </Step>
+<Step>
 
 ### Configuração de Produtos e NBS
 
@@ -91,6 +104,8 @@ No módulo **PRODUTO**, ajuste o **GRUPO DE SERVICO** para o novo padrão de 6 d
 - Ajuste o **GRUPO DE NBS** pesquisando pelo grupo de serviço e escolhendo a opção correspondente.
 
 - Para atualizar os demais produtos do tipo serviço em lote, utilize o script de atualização.
+    </Step>
+<Step>
 
 ### Regras de Tributação (IBS/CBS)
 
@@ -99,6 +114,8 @@ No módulo **TRIBUTAÇÃO**, aplique a regra de que o NBS está para o serviço 
 - Consulte o código (ex: 0407) para verificar a tributação referenciada.
 
 - Caso não haja vínculo, será necessário rodar um script separado para inicializar o CST para IBS/CBS.
+    </Step>
+<Step>
 
 ### Preparação de Lançamentos e RPS
 
@@ -116,10 +133,13 @@ WHERE L.SERIE = '1' AND L.NUMERO_RPS IS NOT NULL;
 
 ```
 
+</Step>
+<Step>
 ### Validação em Homologação
 
 Finalize enviando uma NFSe de teste no ambiente de **homologação** para validar toda a configuração.
 
+</Step>
 </Steps>
 
 ## Perguntas Frequentes
