@@ -7,10 +7,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   Headset,
-  ArrowRight
+  ArrowUpRight,
+  ShieldCheck
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface SuporteSectionProps {
   modulo?: string;
@@ -18,152 +20,149 @@ interface SuporteSectionProps {
 
 const SuporteSection: React.FC<SuporteSectionProps> = ({ modulo = "este módulo" }) => {
   return (
-    <div className="mt-16 border-t border-border/50 pt-10 space-y-10">
-
-      {/* Cabeçalho com Visual Enterprise */}
-      <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-primary font-medium text-sm uppercase tracking-wider">
-            <Headset className="h-4 w-4" />
-            Central de Ajuda
+    <section className="mt-24 border-t border-border/40 pt-16 pb-12">
+      {/* Header com Estética de Command Center */}
+      <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-end justify-between mb-12">
+        <div className="space-y-4">
+          <Badge variant="outline" className="px-3 py-1 border-primary/20 bg-primary/5 text-primary gap-2 transition-all hover:bg-primary/10">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Enterprise Support Plan</span>
+          </Badge>
+          
+          <div className="space-y-2">
+            <h2 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
+              Suporte <span className="text-muted-foreground/50 font-light">|</span> <span className="bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">{modulo}</span>
+            </h2>
+            <p className="text-muted-foreground max-w-xl text-lg leading-relaxed">
+              Engenharia de suporte dedicada para alta disponibilidade e resolução de incidentes complexos.
+            </p>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            Suporte Especializado: <span className="text-primary">{modulo}</span>
-          </h2>
-          <p className="text-muted-foreground max-w-2xl text-lg">
-            Nossa equipe técnica está pronta para resolver dúvidas complexas e garantir a estabilidade da sua operação.
-          </p>
         </div>
 
-        {/* Status/Badge decorativo */}
-        <div className="hidden md:flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full border border-border/50">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-          </span>
-          <span className="text-xs font-medium text-muted-foreground">Sistemas Operacionais</span>
+        {/* Status Monitor Style */}
+        <div className="flex items-center gap-4 bg-secondary/30 backdrop-blur-md border border-border/50 p-4 rounded-2xl shadow-inner">
+          <div className="relative">
+            <div className="h-3 w-3 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]" />
+            <div className="absolute inset-0 h-3 w-3 rounded-full bg-emerald-500 animate-ping opacity-40" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">System Status</span>
+            <span className="text-sm font-semibold text-foreground">Operacional: Todos os Sistemas</span>
+          </div>
         </div>
       </div>
 
-      {/* Grid de Informações SLA (Service Level Agreement) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card Horário Comercial */}
-        <Card className="relative overflow-hidden border-l-4 border-l-green-500 bg-gradient-to-br from-background to-green-500/5 dark:to-green-500/10 transition-all hover:shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-              Horário Comercial
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Segunda a Sexta: 08h às 18h</span>
+      {/* SLA Cards - Refined Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        {/* Horário Comercial */}
+        <div className="group relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-b from-card to-background p-[1px]">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="relative bg-card/90 backdrop-blur-xl p-8 rounded-[23px] h-full">
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                <Clock className="h-6 w-6 text-emerald-500" />
+              </div>
+              <Badge className="bg-emerald-500/10 text-emerald-500 border-none">Tier 1 & 2</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Atendimento completo para dúvidas, configurações, treinamentos e suporte técnico nível 1 e 2.
+            <h3 className="text-xl font-bold mb-2">Horário Comercial</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+              Suporte técnico consultivo, configurações avançadas e treinamentos operacionais.
             </p>
-          </CardContent>
-        </Card>
-
-        {/* Card Plantão */}
-        <Card className="relative overflow-hidden border-l-4 border-l-amber-500 bg-gradient-to-br from-background to-amber-500/5 dark:to-amber-500/10 transition-all hover:shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              Plantão Emergencial
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Fora do horário comercial</span>
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground bg-secondary/50 w-fit px-4 py-2 rounded-full border border-border/50">
+              Segunda a Sexta <span className="text-muted-foreground">•</span> 08h às 18h
             </div>
-            <p className="text-sm text-muted-foreground">
-              Exclusivo para <strong>parada total</strong> do sistema ou falhas críticas impeditivas (Nível 1).
+          </div>
+        </div>
+
+        {/* Plantão Emergencial */}
+        <div className="group relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-b from-card to-background p-[1px]">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="relative bg-card/90 backdrop-blur-xl p-8 rounded-[23px] h-full">
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                <AlertTriangle className="h-6 w-6 text-amber-500" />
+              </div>
+              <Badge variant="outline" className="border-amber-500/30 text-amber-500 font-bold uppercase tracking-tighter">Critical Only</Badge>
+            </div>
+            <h3 className="text-xl font-bold mb-2">Plantão 24/7 Emergencial</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+              Exclusivo para incidentes de <strong>Parada Total</strong> ou falhas críticas que impedem a operação (Nível 1).
             </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Canais de Contato Estilo "Magic UI" (Bento Grid) */}
-      <div>
-        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-          Canais de Atendimento
-          <span className="h-px flex-1 bg-border ml-4"></span>
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-          {/* WhatsApp - Magic Card Effect */}
-          <a href="https://wa.me/5534997713731" target="_blank" rel="noopener noreferrer" className="group relative h-full">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
-            <Card className="relative h-full border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 group-hover:border-green-500/50 group-hover:-translate-y-1">
-              <CardContent className="p-6 flex flex-col h-full justify-between gap-4">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4 text-green-600 dark:text-green-400">
-                    <MessageCircle className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-semibold text-lg mb-1">WhatsApp</h4>
-                  <p className="text-sm text-muted-foreground">Resposta rápida para dúvidas do dia a dia.</p>
-                </div>
-                <Button variant="outline" className="w-full group-hover:bg-green-500 group-hover:text-white group-hover:border-green-600 transition-all">
-                  Iniciar Conversa <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </a>
-
-          {/* Telefone - Magic Card Effect */}
-          <a href="tel:+5534997713731" className="group relative h-full">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
-            <Card className="relative h-full border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 group-hover:border-blue-500/50 group-hover:-translate-y-1">
-              <CardContent className="p-6 flex flex-col h-full justify-between gap-4">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4 text-blue-600 dark:text-blue-400">
-                    <Phone className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-semibold text-lg mb-1">Telefone</h4>
-                  <p className="text-sm text-muted-foreground">Canal exclusivo para o plantão de emergência.</p>
-                </div>
-                <Button variant="outline" className="w-full group-hover:bg-blue-500 group-hover:text-white group-hover:border-blue-600 transition-all">
-                  Ligar Agora <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </a>
-
-          {/* Email - Magic Card Effect */}
-          <a href="mailto:equipe@trilinksoftware.com.br" className="group relative h-full">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
-            <Card className="relative h-full border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 group-hover:border-amber-500/50 group-hover:-translate-y-1">
-              <CardContent className="p-6 flex flex-col h-full justify-between gap-4">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4 text-amber-600 dark:text-amber-400">
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-semibold text-lg mb-1">E-mail</h4>
-                  <p className="text-sm text-muted-foreground">Para solicitações formais e envio de logs.</p>
-                </div>
-                <Button variant="outline" className="w-full group-hover:bg-amber-500 group-hover:text-white group-hover:border-amber-600 transition-all">
-                  Enviar E-mail <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </a>
-
+            <div className="flex items-center gap-2 text-sm font-medium text-amber-500 bg-amber-500/5 w-fit px-4 py-2 rounded-full border border-amber-500/20">
+              Fora do Horário Comercial
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Footer da seção com Disclaimer */}
-      <div className="bg-muted/30 border rounded-lg p-4 flex items-start gap-3 text-sm text-muted-foreground">
-        <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-        <p>
-          <strong>Importante:</strong> Canais de texto (WhatsApp e E-mail) não são monitorados fora do horário comercial.
-          Para emergências durante o plantão, utilize sempre o telefone.
+      {/* Canais de Atendimento - Glass Bento Grid */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <h3 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground/70">Canais de Resposta</h3>
+          <div className="h-[1px] flex-1 bg-gradient-to-r from-border/50 to-transparent" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { 
+              title: "WhatsApp", 
+              desc: "Consultas rápidas e fluxo operacional.", 
+              icon: MessageCircle, 
+              color: "text-emerald-500", 
+              bg: "bg-emerald-500/5", 
+              link: "https://wa.me/5534997713731",
+              btn: "Abrir Chat"
+            },
+            { 
+              title: "Direct Call", 
+              desc: "Canal prioritário para emergências nível 1.", 
+              icon: Phone, 
+              color: "text-blue-500", 
+              bg: "bg-blue-500/5", 
+              link: "tel:+5534997713731",
+              btn: "Ligar Agora"
+            },
+            { 
+              title: "Email Corporativo", 
+              desc: "Formalização e análise de logs estruturados.", 
+              icon: Mail, 
+              color: "text-purple-500", 
+              bg: "bg-purple-500/5", 
+              link: "mailto:equipe@trilinksoftware.com.br",
+              btn: "Enviar Chamado"
+            },
+          ].map((item, idx) => (
+            <a key={idx} href={item.link} className="group outline-none">
+              <Card className="h-full border-border/40 bg-secondary/10 backdrop-blur-md transition-all duration-500 group-hover:border-primary/30 group-hover:bg-secondary/20 group-hover:-translate-y-2 overflow-hidden relative">
+                <CardContent className="p-8">
+                  <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center mb-6 transition-transform duration-500 group-hover:scale-110`}>
+                    <item.icon className={`h-6 w-6 ${item.color}`} />
+                  </div>
+                  <h4 className="text-lg font-bold mb-2 flex items-center gap-2">
+                    {item.title}
+                    <ArrowUpRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all -translate-y-1 group-hover:translate-y-0" />
+                  </h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-8">{item.desc}</p>
+                  <Button variant="secondary" className="w-full bg-background/50 border-border/50 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                    {item.btn}
+                  </Button>
+                </CardContent>
+              </Card>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer Disclaimer - Minimalist */}
+      <div className="mt-12 p-6 rounded-2xl bg-secondary/20 border border-border/40 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+        <div className="p-2 rounded-full bg-amber-500/10">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+        </div>
+        <p className="text-xs font-medium text-muted-foreground max-w-2xl leading-relaxed italic">
+          <strong className="text-foreground not-italic">Protocolo de Emergência:</strong> Canais de texto não possuem monitoramento ativo fora do horário comercial. Para incidentes de parada total (P0), utilize obrigatoriamente o canal de voz.
         </p>
       </div>
-    </div>
+    </section>
   );
 };
 
