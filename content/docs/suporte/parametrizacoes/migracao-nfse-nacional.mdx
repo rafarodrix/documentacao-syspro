@@ -3,16 +3,22 @@ title: Configuração NFSe Padrão Nacional
 description: Guia técnico para migração e parametrização da Nota Fiscal de Serviço Eletrônica Nacional no Syspro ERP.
 ---
 
-import { ShoppingCart, Search, BarChart2, MessagesSquare, Phone, Mail, Server, Laptop, Check } from 'lucide-react';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { Card, Cards } from 'fumadocs-ui/components/card';
-import { Callout } from 'fumadocs-ui/components/callout';
-import { CustomCard } from '@/components/CustomCard';
-import SuporteSection from '@/components/docs/SuporteSection.tsx';
-
-Aqui está o arquivo MDX completo, estruturado conforme as diretrizes da versão 5.0 e devidamente fundamentado nas fontes fornecidas.
-
----
+import {
+  ShoppingCart,
+  Search,
+  BarChart2,
+  MessagesSquare,
+  Phone,
+  Mail,
+  Server,
+  Laptop,
+  Check,
+} from "lucide-react";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Callout } from "fumadocs-ui/components/callout";
+import { CustomCard } from "@/components/CustomCard";
+import SuporteSection from "@/components/docs/SuporteSection.tsx";
 
 ## Introdução
 
@@ -26,16 +32,20 @@ Para garantir o sucesso da configuração, atente-se aos campos críticos abaixo
 
 <Cards>
   <Card title="Webservice Nacional" icon="Globe">
-    [cite_start]Define que a transmissão dos dados será direcionada ao servidor unificado nacional, em vez do municipal[cite: 11].
+    [cite_start]Define que a transmissão dos dados será direcionada ao servidor
+    unificado nacional, em vez do municipal[cite: 11].
   </Card>
   <Card title="Série 01" icon="Hash">
-    [cite_start]A série obrigatória para a emissão no padrão nacional, aplicada aos modelos EVD e EVP[cite: 4].
+    [cite_start]A série obrigatória para a emissão no padrão nacional, aplicada
+    aos modelos EVD e EVP[cite: 4].
   </Card>
   <Card title="Grupo NBS" icon="FileText">
-    [cite_start]Nomenclatura Brasileira de Serviços; funciona para serviços assim como o NCM funciona para produtos físicos[cite: 22].
+    [cite_start]Nomenclatura Brasileira de Serviços; funciona para serviços
+    assim como o NCM funciona para produtos físicos[cite: 22].
   </Card>
   <Card title="Enviar IM" icon="Building">
-    [cite_start]Campo que deve ser marcado como "NÃO" para evitar conflitos com a Inscrição Municipal no novo layout[cite: 12].
+    [cite_start]Campo que deve ser marcado como "NÃO" para evitar conflitos com
+    a Inscrição Municipal no novo layout[cite: 12].
   </Card>
 </Cards>
 
@@ -48,12 +58,16 @@ Siga rigorosamente a sequência abaixo para configurar o sistema:
 [cite_start]Acesse o módulo **USUÁRIO** e libere o acesso ao **Grupo de Serviço** e ao **Grupo NBS** (dentro da categoria Produtos)[cite: 1, 2].
 
 ### Ajuste de Documento
+
 [cite_start]No módulo **DOCUMENTO**, localize as opções **EVD** e **EVP** e ajuste a série da NFSe para **01**[cite: 3, 4].
 
 ### Saneamento de Cadastros de Participantes
+
 [cite_start]No módulo **PARTICIPANTE**, verifique a existência de CEPs genéricos (ex: 38300-000)[cite: 5, 6].
-* [cite_start]Utilize o seguinte comando para identificar registros: `SELECT * FROM PARTICIPANTE_END PE WHERE PE.CEP = '38300-000';`[cite: 7].
-* [cite_start]Caso existam muitos registros, execute o script de atualização para vincular o CEP do participante ao CEP da empresa[cite: 8, 9]:
+
+- [cite_start]Utilize o seguinte comando para identificar registros: `SELECT * FROM PARTICIPANTE_END PE WHERE PE.CEP = '38300-000';`[cite: 7].
+- [cite_start]Caso existam muitos registros, execute o script de atualização para vincular o CEP do participante ao CEP da empresa[cite: 8, 9]:
+
 ```sql
 UPDATE PARTICIPANTE_END SET CEP = (SELECT CEP FROM EMPRESA E JOIN PARTICIPANTE_END PE ON PE.ID_PARTICIPANTE = E.ID_PARTICIPANTE_EMP) WHERE CEP = '38300-000';
 
@@ -65,49 +79,38 @@ No módulo **EMPRESA**, realize as três alterações fundamentais:
 
 1. Altere para **Webservice Nacional**.
 
-
 2. Marque **NÃO** no campo **Enviar IM**.
 
-
 3. Defina o **Regime Tributário** como **NENHUM**.
-
-
 
 ### Configuração de Produtos e NBS
 
 No módulo **PRODUTO**, ajuste o **GRUPO DE SERVICO** para o novo padrão de 6 dígitos (exemplo: transformando 0407 em 040701).
 
-* Ajuste o **GRUPO DE NBS** pesquisando pelo grupo de serviço e escolhendo a opção correspondente.
+- Ajuste o **GRUPO DE NBS** pesquisando pelo grupo de serviço e escolhendo a opção correspondente.
 
-
-* Para atualizar os demais produtos do tipo serviço em lote, utilize o script de atualização.
-
-
+- Para atualizar os demais produtos do tipo serviço em lote, utilize o script de atualização.
 
 ### Regras de Tributação (IBS/CBS)
 
 No módulo **TRIBUTAÇÃO**, aplique a regra de que o NBS está para o serviço assim como o NCM está para o produto.
 
-* Consulte o código (ex: 0407) para verificar a tributação referenciada.
+- Consulte o código (ex: 0407) para verificar a tributação referenciada.
 
-
-* Caso não haja vínculo, será necessário rodar um script separado para inicializar o CST para IBS/CBS.
-
-
+- Caso não haja vínculo, será necessário rodar um script separado para inicializar o CST para IBS/CBS.
 
 ### Preparação de Lançamentos e RPS
 
 Antes de iniciar a emissão, consulte no módulo **LANÇAMENTO** se já existem notas na série 1.
 
-* Se houver notas antigas, altere a série delas para iniciar um novo ciclo.
+- Se houver notas antigas, altere a série delas para iniciar um novo ciclo.
 
-
-* **Importante:** Para não "queimar" o número do RPS, execute o script abaixo antes de seguir para o teste final:
+- **Importante:** Para não "queimar" o número do RPS, execute o script abaixo antes de seguir para o teste final:
 
 ```sql
-UPDATE LANCAMENTO L SET 
-    L.OBSERVACAO_NFSE = COALESCE(L.OBSERVACAO_NFSE,'') || '#' || L.NUMERO_RPS, 
-    L.NUMERO_RPS = NULL 
+UPDATE LANCAMENTO L SET
+    L.OBSERVACAO_NFSE = COALESCE(L.OBSERVACAO_NFSE,'') || '#' || L.NUMERO_RPS,
+    L.NUMERO_RPS = NULL
 WHERE L.SERIE = '1' AND L.NUMERO_RPS IS NOT NULL;
 
 ```
@@ -115,22 +118,27 @@ WHERE L.SERIE = '1' AND L.NUMERO_RPS IS NOT NULL;
 ### Validação em Homologação
 
 Finalize enviando uma NFSe de teste no ambiente de **homologação** para validar toda a configuração.
+
 </Steps>
 
 ## Perguntas Frequentes
 
 <Accordions>
-<Accordion title="Por que devo mudar o Regime Tributário para 'NENHUM'?">
-No padrão nacional de NFSe, essa configuração é necessária para que o sistema não aplique regras legadas municipais que conflitem com o novo cálculo centralizado.
-</Accordion>
-<Accordion title="O que fazer se o script de tributação IBS/CBS não funcionar?">
-Isso geralmente ocorre se o sistema foi atualizado pulando a versão que inicializa esses campos. Entre em contato com o suporte para obter o script específico de inicialização de CST.
-</Accordion>
-<Accordion title="Posso emitir notas sem ajustar o Grupo NBS?">
-Não. O NBS é obrigatório para a NFSe Nacional, pois ele define a base de cálculo para os novos tributos (IBS/CBS).
-</Accordion>
+  <Accordion title="Por que devo mudar o Regime Tributário para 'NENHUM'?">
+    No padrão nacional de NFSe, essa configuração é necessária para que o
+    sistema não aplique regras legadas municipais que conflitem com o novo
+    cálculo centralizado.
+  </Accordion>
+  <Accordion title="O que fazer se o script de tributação IBS/CBS não funcionar?">
+    Isso geralmente ocorre se o sistema foi atualizado pulando a versão que
+    inicializa esses campos. Entre em contato com o suporte para obter o script
+    específico de inicialização de CST.
+  </Accordion>
+  <Accordion title="Posso emitir notas sem ajustar o Grupo NBS?">
+    Não. O NBS é obrigatório para a NFSe Nacional, pois ele define a base de
+    cálculo para os novos tributos (IBS/CBS).
+  </Accordion>
 </Accordions>
-
 
 ---
 
