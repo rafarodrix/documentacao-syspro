@@ -34,29 +34,6 @@ A implementação da NFSe Padrão Nacional no Syspro ERP visa unificar e simplif
 
 A correta parametrização evita rejeições em ambiente de produção, organiza o cadastro de participantes e garante que a transição de séries e numerações de RPS ocorra de forma transparente e segura para a operação fiscal.
 
-## Dicionário de Campos
-
-Para garantir o sucesso da configuração, atente-se aos campos críticos abaixo:
-
-<Cards>
-  <Card title="Webservice Nacional" icon={<Globe />}>
-    Define que a transmissão dos dados será direcionada ao servidor unificado
-    nacional, em vez do municipal.
-  </Card>
-  <Card title="Série 01" icon={<Hash />}>
-    A série obrigatória para a emissão no padrão nacional, aplicada aos modelos
-    EVD e EVP.
-  </Card>
-  <Card title="Grupo NBS" icon={<FileText />}>
-    Nomenclatura Brasileira de Serviços; funciona para serviços assim como o NCM
-    funciona para produtos físicos.
-  </Card>
-  <Card title="Enviar IM" icon={<Building />}>
-    Campo que deve ser marcado como "NÃO" para evitar conflitos com a Inscrição
-    Municipal no novo layout.
-  </Card>
-</Cards>
-
 ## Passo a Passo
 
 Siga rigorosamente a sequência abaixo para configurar o sistema:
@@ -65,24 +42,27 @@ Siga rigorosamente a sequência abaixo para configurar o sistema:
 <Step>
 ### Permissões de Usuário
 
-Acesse o módulo **USUÁRIO** e libere o acesso ao **Grupo de Serviço** e ao **Grupo NBS** (dentro da categoria Produtos).
+Acesse o módulo **PERFIL DE ACESSO** e libere o acesso ao **Grupo de Serviço** e ao **Grupo NBS** (dentro da categoria Produtos).
 
 </Step>
 
 <Step>
 ### Ajuste de Documento
 
-No módulo **DOCUMENTO**, localize as opções **EVD** e **EVP** e ajuste a série da NFSe para **01**.
+No módulo **PERSONALIZAÇÃO DE DOCUMENTO**, localize as opções **EVD**, **EVP** E **ENP** e ajuste a série da NFSe para **01**.
 
 </Step>
 
 <Step>
-### Saneamento de Cadastros de Participantes
+### Ajuste de CEP dos Cadastros de Participantes
 
 No módulo **PARTICIPANTE**, verifique a existência de CEPs genéricos (ex: 38300-000).
 
 - Utilize o seguinte comando para identificar registros:  
-  `SELECT * FROM PARTICIPANTE_END PE WHERE PE.CEP = '38300-000';`.
+
+```sql
+SELECT * FROM PARTICIPANTE_END PE WHERE PE.CEP = '38300-000';
+```
 
 - Caso existam muitos registros, execute o script de atualização para vincular o CEP do participante ao CEP da empresa:
 
@@ -114,6 +94,13 @@ No módulo **PRODUTO**, ajuste o **GRUPO DE SERVICO** para o novo padrão de 6 d
 
 - Ajuste o **GRUPO DE NBS** pesquisando pelo grupo de serviço e escolhendo a opção correspondente.
 - Para atualizar os demais produtos do tipo serviço em lote, utilize o script de atualização.
+
+```sql
+UPDATE PRODUTO SET  
+ID_GRUPO_SERVICO = ( SELECT P.ID_GRUPO_SERVICO FROM PRODUTO P WHERE P.CD_AUXILIAR = '02774'), 
+ID_GRUPO_NBS     = ( SELECT P.ID_GRUPO_NBS     FROM PRODUTO P WHERE P.CD_AUXILIAR = '02774') 
+WHERE TP_PRODUTO = '9' 
+```
 
 </Step>
 
