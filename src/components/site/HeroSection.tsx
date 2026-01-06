@@ -54,7 +54,7 @@ export function HeroSection({ currentVersion, releaseLink }: HeroSectionProps) {
 
         {/* Botões de Ação */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
-          <Link href="/login" className="w-full sm:w-auto">
+          <Link href="/app" className="w-full sm:w-auto">
             <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300 bg-primary hover:bg-primary/90">
               Acessar Portal do Cliente
               <ArrowRight className="ml-2 h-4 w-4" />
