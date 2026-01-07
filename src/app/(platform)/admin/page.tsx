@@ -16,7 +16,19 @@ async function getDashboardStats() {
     prisma.user.count(),
   ]);
 
-  return { companiesCount, usersCount };
+  // Simulação de dados da SEFAZ (já que não temos essa tabela no schema ainda)
+  const sefazData = {
+    uf: 'MG',
+    status: 'ONLINE' as const,
+    latency: 45
+  };
+
+  return {
+    companiesCount,
+    usersCount,
+    sefazNfe: sefazData,
+    sefazNfce: { ...sefazData, latency: 32 }
+  };
 }
 
 export default async function AdminDashboardPage() {
@@ -62,6 +74,8 @@ export default async function AdminDashboardPage() {
         <DashboardStats
           companiesCount={stats.companiesCount}
           usersCount={stats.usersCount}
+          sefazNfe={stats.sefazNfe}
+          sefazNfce={stats.sefazNfce}
         />
 
         {/* Seção 2: Gráficos e Listas (Grid Assimétrico) */}
