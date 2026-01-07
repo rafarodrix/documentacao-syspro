@@ -5,6 +5,8 @@ description: Guia completo para configuração e controle do fluxo de produção
 
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
 import SuporteSection from '@/components/docs/SuporteSection.tsx'
 
 import {
@@ -16,204 +18,112 @@ import {
   Info,
   Layers,
   Factory,
-  CheckCircle
+  CheckCircle,
+  Scale
 } from 'lucide-react';
 
 ## Introdução
 
-O módulo de **Produção** do Syspro ERP gerencia o processo de transformação de **matérias-primas** em **produtos intermediários** e **produtos acabados**, assegurando **controle de estoque**, **custos confiáveis** e **automação operacional**.
+O módulo de **Produção** do Syspro ERP é o núcleo estratégico para empresas que transformam insumos em produtos finais. Ele não apenas controla o que entra e sai do estoque, mas garante a integridade financeira da operação através da apuração precisa de custos.
 
-Uma configuração correta desse fluxo é essencial para:
-
-- <Package size={16} /> Controle preciso do consumo de insumos  
-- <Coins size={16} /> Apuração real do custo de produção  
-- <RefreshCcw size={16} /> Atualização automática do estoque  
-- <Settings size={16} /> Redução de falhas operacionais no PDV  
-- <BarChart3 size={16} /> Garantia de margens de lucro confiáveis  
-
-<div className="mt-4 flex gap-2 items-start rounded-lg border border-border bg-muted/40 p-4 text-sm">
-  <Info size={18} className="mt-0.5 text-muted-foreground" />
-  <p>
-    Um fluxo de produção bem configurado elimina divergências de estoque,
-    reduz retrabalho manual e garante que o custo final reflita a realidade da operação.
-  </p>
-</div>
+Esta funcionalidade é vital para assegurar que o preço de venda seja baseado em dados reais, eliminando o "achismo" na precificação e garantindo que cada item vendido no PDV gere a baixa automática de todos os seus componentes, mantendo o inventário sempre atualizado sem intervenção manual constante.
 
 ---
 
-## Fluxo de Produção no Syspro ERP
+## Classificação dos Materiais
 
-Para que o sistema processe corretamente **entradas**, **saídas** e **custos**, siga a sequência abaixo **na ordem apresentada**.
+A correta classificação dos itens no Syspro determina como o sistema processará custos e baixas de estoque. Utilize as categorias abaixo para organizar seu catálogo:
+
+<Cards>
+  <Card
+    icon={<Package className="text-blue-500" />}
+    title="Matéria-Prima"
+    description="Itens comprados de terceiros. Consumidos diretamente na produção, compõem o custo base e não são vendidos isoladamente."
+  />
+  <Card
+    icon={<Layers className="text-orange-500" />}
+    title="Produto Intermediário"
+    description="Subconjuntos fabricados internamente (ex: uma base de molho) que servem de insumo para diversos produtos finais."
+  />
+  <Card
+    icon={<Factory className="text-purple-500" />}
+    title="Produto em Processo"
+    description="Utilizado para identificar itens em estágios intermediários da linha de produção que ainda não estão prontos para venda."
+  />
+  <Card
+    icon={<CheckCircle className="text-green-500" />}
+    title="Produto Acabado"
+    description="O resultado final da produção. É o item disponível para venda no PDV e que recebe a consolidação de todos os custos."
+  />
+</Cards>
+
+---
+
+## Passo a Passo para Configuração
+
+Siga esta sequência para garantir que o fluxo de produção e custos funcione corretamente.
 
 <Steps>
 
 <Step>
-
-### 1. Cadastro de Unidades de Medida e Conversões
-
-Antes de cadastrar qualquer item produtivo, defina corretamente as **unidades de medida** utilizadas na compra, no estoque e na produção.
-
-<div className="mt-3 flex gap-2 items-start text-sm text-muted-foreground">
-  <Info size={16} />
-  <span>
-    Exemplo prático: você compra açúcar em sacos de 5 kg, mas utiliza gramas na receita.
-  </span>
-</div>
-
-- Cadastre as unidades necessárias (`KG`, `GR`)
-- No cadastro do produto, configure a **Conversão de Unidade**, informando:
-  - `1 Unidade de Compra (Saco)` = `5 Unidades de Estoque (KG)`
-
+### Configurar Unidades e Conversões
+Antes de cadastrar receitas, o sistema precisa entender as escalas de medida.
+* Acesse o cadastro de **Unidades de Medida**.
+* Defina as unidades de compra (ex: Saco 50kg) e de consumo (ex: Gramas).
+* Configure o fator de conversão no produto para que o sistema saiba que 1kg equivale a 1000g.
 </Step>
 
 <Step>
-
-### 2. Classificação dos Materiais
-
-A escolha correta do **Tipo de Produto** determina como o item se comporta no estoque, na produção e nos custos.
-
-Os tipos abaixo são os **únicos recomendados** para o fluxo produtivo:
-
----
-
-#### Matéria-Prima
-
-<div className="flex gap-2 items-start text-sm text-muted-foreground">
-  <Package size={16} />
-  <span>
-    Itens comprados de terceiros e consumidos diretamente na produção.
-  </span>
-</div>
-
-- Não são vendidos ao cliente
-- Sofrem baixa automática na produção
-- Compõem diretamente o custo do produto final
-
----
-
-#### Produto Intermediário
-
-<div className="flex gap-2 items-start text-sm text-muted-foreground">
-  <Layers size={16} />
-  <span>
-    Itens fabricados internamente e reutilizados como insumo em outras produções.
-  </span>
-</div>
-
-- Possuem composição própria
-- Acumulam custo ao serem produzidos
-- Reutilização em múltiplos produtos acabados
-
----
-
-#### Produto em Processo
-
-<div className="flex gap-2 items-start text-sm text-muted-foreground">
-  <Factory size={16} />
-  <span>
-    Representa etapas intermediárias do processo produtivo.
-  </span>
-</div>
-
-- Produto ainda não finalizado
-- Não deve ser vendido
-- Permite controle por fase produtiva
-
----
-
-#### Produto Acabado
-
-<div className="flex gap-2 items-start text-sm text-muted-foreground">
-  <CheckCircle size={16} />
-  <span>
-    Produto final, pronto para venda e faturamento.
-  </span>
-</div>
-
-- Pode ser vendido no PDV
-- Recebe custo consolidado da produção
-- Finaliza o fluxo produtivo
-
+### Vincular o Tipo de Produto
+No cadastro de cada item, defina sua função no processo produtivo.
+* Vá até a aba **Dados Gerais**.
+* Selecione o **Tipo de Produto** (Matéria-prima, Intermediário, etc).
+* Isso define se o item terá uma aba de "Composição" disponível ou se será apenas um insumo.
 </Step>
 
 <Step>
-
-### 3. Configuração de Controles – Produção Automática na Venda
-
-Indicada para produtos fabricados **sob demanda**.
-
-- Acesse a aba **Controles** no cadastro do produto
-- Ative a opção **Produção Automática**
-
-<div className="mt-3 flex gap-2 items-start rounded-lg border border-border bg-muted/40 p-4 text-sm">
-  <Info size={18} className="mt-0.5 text-muted-foreground" />
-  <p>
-    Com essa opção habilitada, o sistema realiza a baixa automática dos insumos
-    no momento da venda.
-  </p>
-</div>
-
+### Ativar a Produção Automática (Se aplicável)
+Para itens fabricados no momento da venda (como pratos de restaurante ou kits montados).
+* Na aba **Controles** do Produto Acabado, marque a opção **Produção Automática**.
+* **Resultado:** No momento que o caixa registrar a venda, o sistema "fabrica" o item e baixa os insumos instantaneamente.
 </Step>
 
 <Step>
-
-### 4. Montagem da Composição (Receita)
-
-A **Composição** define os itens consumidos para produzir **uma unidade** do produto.
-
-- Acesse a aba **Composição**
-- Clique em **Incluir**
-- Selecione os insumos
-- Informe a quantidade exata utilizada
-
-O sistema calcula automaticamente:
-- **Custo de Reposição**
-- **Custo Efetivo**
-
+### Montar a Ficha Técnica (Composição)
+Defina a "receita" do seu produto para o cálculo exato de custos.
+* Na aba **Composição**, clique em **Incluir**.
+* Adicione cada insumo e a quantidade exata utilizada para produzir **uma unidade**.
+* Observe o **Custo Efetivo** sendo calculado em tempo real pelo sistema.
 </Step>
 
 <Step>
-
-### 5. Lançamento da Produção Manual (Produção em Lote)
-
-Utilizado quando a produção ocorre antecipadamente ou em grandes quantidades.
-
-- Acesse o módulo **Produção**
-- Informe o produto fabricado
-- Defina a quantidade produzida
-
-<div className="mt-3 flex gap-2 items-start text-sm text-muted-foreground">
-  <RefreshCcw size={16} />
-  <span>
-    O sistema dará entrada no produto acabado e baixa automática dos insumos.
-  </span>
-</div>
-
+### Executar a Produção Manual
+Para itens produzidos em lotes para estoque futuro.
+* Acesse o menu **Produção > Lançamento**.
+* Informe o produto e a quantidade total produzida.
+* O sistema gerará o registro de entrada do produto pronto e a saída simultânea de todos os insumos da receita.
 </Step>
 
 </Steps>
+
+<Callout type="info" title="Dica de Ouro">
+Sempre revise o custo de reposição dos seus insumos. O Syspro atualiza o custo do produto acabado automaticamente conforme o preço da matéria-prima oscila no mercado.
+</Callout>
 
 ---
 
 ## Perguntas Frequentes
 
 <Accordions>
-
-<Accordion title="O que acontece se eu não marcar a opção Produção Automática?">
-A venda será realizada normalmente, porém os insumos **não serão baixados**.
-Será necessário lançar a produção manualmente para manter o estoque correto.
-</Accordion>
-
-<Accordion title="Posso utilizar Produto Intermediário na composição de um Produto Acabado?">
-Sim. Essa prática permite padronização, reaproveitamento de receitas
-e melhor controle de custos.
-</Accordion>
-
-<Accordion title="Como o sistema calcula os custos da composição?">
-O custo é obtido pela soma dos itens da receita, considerando os últimos
-custos de compra e as conversões de unidade configuradas.
-</Accordion>
-
+  <Accordion title="O que acontece se eu não marcar a opção 'Produção Automática'?">
+    A venda será processada, mas o estoque dos insumos (matéria-prima) permanecerá inalterado. Você precisará realizar o lançamento manual da produção posteriormente para regularizar o saldo.
+  </Accordion>
+  <Accordion title="Posso ter uma composição dentro de outra composição?">
+    Sim! Você pode adicionar um **Produto Intermediário** dentro da composição de um **Produto Acabado**. O sistema fará a "explosão" de custos em cascata perfeitamente.
+  </Accordion>
+  <Accordion title="Como corrijo um erro em uma produção já lançada?">
+    Você deve realizar o estorno do lançamento de produção no módulo correspondente. Isso devolverá os insumos ao estoque e retirará o produto acabado.
+  </Accordion>
 </Accordions>
 
 ---
