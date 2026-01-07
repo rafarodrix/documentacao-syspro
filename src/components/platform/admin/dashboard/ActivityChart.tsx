@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 
 export function ActivityChart() {
     return (
-        // MUDANÇA: col-span-4 para ocupar ~60% da largura em telas grandes
         <Card className="col-span-4 lg:col-span-4 border-border/60 shadow-md bg-background/40 backdrop-blur-xl flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div className="space-y-1">
@@ -26,11 +25,9 @@ export function ActivityChart() {
                 </div>
             </CardHeader>
 
-            {/* MUDANÇA: Altura aumentada para h-[450px] para preencher a tela */}
             <CardContent className="pl-2 flex-1">
                 <div className="h-[450px] w-full flex flex-col items-center justify-center rounded-xl border border-dashed border-border/50 bg-muted/5 relative overflow-hidden group mx-2">
 
-                    {/* Magic UI Grid Background dentro do gráfico */}
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_14px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
 
                     <div className="flex flex-col items-center gap-4 z-10 opacity-50 group-hover:opacity-100 transition-all duration-500 transform group-hover:scale-105">

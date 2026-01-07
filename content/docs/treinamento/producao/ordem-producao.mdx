@@ -1,0 +1,158 @@
+---
+title: Produção
+description: Guia completo para configuração e controle do fluxo de produção no Syspro ERP.
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+
+## Introdução
+
+O módulo de **Produção** do Syspro ERP é responsável por controlar todo o processo de transformação de **matérias-primas** em **produtos intermediários** ou **produtos acabados**, garantindo precisão no estoque, rastreabilidade de custos e automação operacional.
+
+Uma configuração correta desse fluxo é essencial para:
+
+- Controle exato do consumo de insumos  
+- Apuração real de custos de produção  
+- Atualização automática do estoque  
+- Redução de falhas operacionais no ponto de venda  
+- Garantia de margens de lucro confiáveis  
+
+Ao dominar esse processo, a empresa evita divergências de estoque, retrabalho manual e distorções no custo final dos produtos fabricados.
+
+---
+
+## Fluxo de Produção no Syspro ERP
+
+Para que o sistema processe corretamente as entradas e saídas de estoque, siga **rigorosamente** a sequência abaixo.
+
+<Steps>
+
+<Step>
+
+### 1. Cadastro de Unidades de Medida e Conversões
+
+Antes de cadastrar qualquer produto envolvido na produção, é fundamental definir corretamente as **unidades de medida**.
+
+**Exemplo prático:**  
+Você compra **Açúcar em sacos de 5 kg**, mas utiliza **gramas** nas receitas.
+
+- Cadastre as unidades necessárias (ex: `KG`, `GR`).
+- No cadastro do produto, configure a **Conversão de Unidade**, informando que:
+  - `1 Unidade de Compra (Saco)` = `5 Unidades de Estoque (KG)`
+
+📌 Isso garante que o sistema converta corretamente o consumo durante a produção e venda.
+
+</Step>
+
+<Step>
+
+### 2. Classificação dos Materiais
+
+Cada item deve ser corretamente classificado conforme sua função no processo produtivo:
+
+- **Matéria-Prima**  
+  Itens adquiridos para consumo na produção (ex: farinha, açúcar, fermento).
+
+- **Produto Intermediário**  
+  Itens fabricados internamente e utilizados em outras produções  
+  _(ex: massa base, recheios, caldas)_.
+
+- **Produto Acabado**  
+  Produto final comercializado e faturado ao cliente.
+
+📌 Essa classificação impacta diretamente o controle de estoque, custos e relatórios.
+
+</Step>
+
+<Step>
+
+### 3. Configuração de Controles – Produção Automática na Venda
+
+Para produtos fabricados **sob demanda** (ex: lanches, pizzas, bebidas preparadas):
+
+- Acesse a aba **Controles** no cadastro do produto.
+- Ative a opção **Produção Automática**.
+
+✅ Com essa opção habilitada:
+- Ao realizar a venda, o sistema baixa automaticamente os insumos da composição.
+- Não é necessário lançar a produção manualmente.
+
+❗ Se não estiver marcada, o sistema apenas registra a venda, sem consumir os insumos.
+
+</Step>
+
+<Step>
+
+### 4. Montagem da Composição (Receita)
+
+A **Composição** define quais itens são consumidos para fabricar uma unidade do produto.
+
+No cadastro do Produto Acabado ou Intermediário:
+
+- Acesse a aba **Composição**
+- Clique em **Incluir**
+- Selecione os insumos (matérias-primas ou produtos intermediários)
+- Informe a **quantidade exata** consumida por unidade produzida
+
+O sistema irá calcular automaticamente:
+- **Custo de Reposição**
+- **Custo Efetivo**, baseado nas últimas entradas do item
+
+📊 Esses valores são fundamentais para análise de custos e precificação.
+
+</Step>
+
+<Step>
+
+### 5. Lançamento da Produção Manual (Produção em Lote)
+
+Utilizado quando a produção ocorre antecipadamente ou em grandes quantidades  
+_(ex: fornadas de pães, produção diária de massas)_.
+
+Procedimento:
+
+- Acesse o módulo **Produção**
+- Informe o produto fabricado
+- Defina a quantidade produzida
+
+O sistema irá:
+- Dar **entrada no estoque** do produto acabado
+- Dar **baixa automática** de todos os insumos definidos na composição
+
+📌 Esse processo mantém o estoque e os custos sempre consistentes.
+
+</Step>
+
+</Steps>
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+
+<Accordion title="O que acontece se eu não marcar a opção 'Produção Automática'?">
+O sistema permitirá a venda do produto normalmente, porém **não realizará a baixa dos insumos**.  
+Nesse caso, será obrigatório lançar a produção manualmente para ajustar o estoque corretamente.
+</Accordion>
+
+<Accordion title="Posso utilizar um Produto Intermediário na composição de um Produto Acabado?">
+Sim. Essa prática é altamente recomendada em produções mais complexas.  
+O Syspro permite que um Produto Acabado utilize Produtos Intermediários, que possuem suas próprias composições e custos.
+</Accordion>
+
+<Accordion title="Como o sistema calcula os custos exibidos na composição?">
+O sistema soma o custo individual de cada item da receita, considerando:
+- Últimos custos de compra
+- Conversões de unidade configuradas
+
+O **Preço de Venda PMZ (Preço Margem Zero)** ajuda a identificar se o valor praticado cobre integralmente os custos de produção.
+</Accordion>
+
+</Accordions>
+
+---
+
+<SuporteSection />

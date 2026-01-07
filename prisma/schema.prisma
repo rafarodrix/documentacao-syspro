@@ -47,6 +47,17 @@ enum IndicadorIE {
   NAO_CONTRIBUINTE
 }
 
+enum SefazServiceType {
+  NFE
+  NFCE
+}
+
+enum SefazStatusType {
+  ONLINE
+  UNSTABLE
+  OFFLINE
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -394,4 +405,15 @@ model DocumentoConfig {
   updatedAt DateTime @updatedAt
 
   @@map("documento_config")
+}
+
+model SefazStatus {
+  id        String           @id @default(cuid())
+  uf        String // "MG", "SP", "RS", "SVRS", etc.
+  service   SefazServiceType
+  status    SefazStatusType
+  latency   Int
+  createdAt DateTime         @default(now())
+
+  @@index([uf, service, createdAt])
 }

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Building2, ArrowUpRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

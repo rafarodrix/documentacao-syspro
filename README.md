@@ -1,183 +1,336 @@
-# Trilink Syspro Platform
+# 📘 Trilink Syspro — Documentação Técnica & Portal do Cliente
 
-**Plataforma SaaS de Gestão Unificada — Monorepo Enterprise**
+Este repositório concentra **a documentação oficial, manuais operacionais e o portal do cliente do Syspro ERP**, desenvolvido pela **Trilink Software**.
 
-> **Desenvolvido por Trilink Software**
+O projeto foi construído com **Next.js 15 (App Router)**, **React 19** e **Fumadocs**, adotando **Clean Architecture + DDD** para garantir escalabilidade, organização e isolamento das regras de negócio em relação à interface.
 
-O **Syspro Platform** é um ecossistema completo para gestão empresarial (ERP), manufatura e operações financeiras. Projetado com foco em escalabilidade, segurança e multi-tenancy, o sistema unifica operações web e mobile em uma arquitetura limpa e desacoplada.
+Além de documentação, esta aplicação atua como **plataforma funcional**, integrando:
 
----
-
-## 🛠 Tech Stack
-
-| Categoria | Tecnologias |
-| :--- | :--- |
-| **Apps** | [Next.js 15+](https://nextjs.org/) (Web), [React Native](https://reactnative.dev/) (Mobile/Expo) |
-| **Core/API** | [NestJS](https://nestjs.com/) (Backend), Node.js |
-| **Linguagem** | TypeScript (Estrito) |
-| **Banco de Dados** | PostgreSQL (via [Supabase](https://supabase.com/)) |
-| **ORM** | [Prisma](https://www.prisma.io/) |
-| **Autenticação** | Better Auth (Sessão Centralizada) |
-| **Arquitetura** | Clean Architecture + DDD (Domain-Driven Design) |
-| **UI** | Tailwind CSS, ShadcnUI, Magic UI |
+* Autenticação e controle de acesso
+* Integrações fiscais (SEFAZ, XML, documentos)
+* Portal do cliente
+* Base para APIs e automações
 
 ---
 
-## Arquitetura do Monorepo
+## 🚀 Stack Tecnológica
 
-O projeto utiliza **Turborepo** para gerenciar múltiplos aplicativos e pacotes compartilhados.
+### Core
 
-```text
-syspro-platform/
-├── apps/
-│   ├── web/                # Portal Web (Next.js - Admin & Cliente)
-│   ├── api/                # API Gateway & Core (NestJS)
-│   └── mobile/             # App Mobile (React Native + Expo)
-│
-├── packages/
-│   ├── core/               # O Cérebro: Entidades, UseCases e Regras de Negócio (Puro TS)
-│   ├── ui/                 # Design System: Componentes React compartilhados (Web/Native)
-│   ├── database/           # Prisma Schema e Clientes de Banco
-│   ├── config/             # ESLint, TSConfig, Tailwind Presets
-│   └── api-client/         # SDK tipado para consumir a API no Front/Mobile
-│
-├── infra/
-│   ├── docker/             # Containers (Redis, Postgess para dev)
-│   └── scripts/            # Automação de CI/CD e Seeds
-│
-└── README.md               # Documentação Geral
-````
+* **Next.js 15.2** (App Router)
+* **React 19**
+* **TypeScript**
+* **Clean Architecture + Domain Driven Design (DDD)**
 
------
+### Documentação
 
-## Design da Arquitetura
+* **Fumadocs (MDX)**
+* **KaTeX / Remark Math** para fórmulas técnicas
+* **Gray Matter** (front‑matter)
 
-A plataforma segue rigorosamente a **Clean Architecture** para garantir que as regras de negócio independam de frameworks.
+### UI / UX
 
-### 1. Camada de Domínio (`packages/core`)
+* **Tailwind CSS 4**
+* **Shadcn/UI + Radix UI**
+* **Magic UI**
+* **Framer Motion**
+* **Lucide Icons**
 
-É o núcleo agnóstico da aplicação.
+### Backend & Infra
 
-  * **Entidades & Value Objects:** Modelam o negócio (ex: `Ticket`, `Contract`, `CNPJ`).
-  * **Use Cases:** Executam as regras (ex: `CreateCompanyUseCase`, `CalculateTax`).
-  * **Interfaces:** Definem contratos para Repositórios e Gateways.
-  * *Não possui dependência de NestJS, Next.js ou React.*
+* **Prisma ORM**
+* **PostgreSQL**
+* **Better‑Auth + NextAuth**
+* **Axios**
+* **Fast XML Parser / xml2js**
+* **jsPDF / jsPDF‑AutoTable**
 
-### 2. Backend API (`apps/api` - NestJS)
+---
 
-Responsável pela infraestrutura e exposição dos dados.
+## 📂 Estrutura de Pastas (Visão Geral)
 
-  * **Controllers:** Rotas REST/GraphQL.
-  * **Auth & RBAC:** Guardiões de segurança e Multi-tenant.
-  * **Workers:** Processamento de filas (BullMQ) e CronJobs.
-  * **Integrações:** Conexão com Zammad, E-mail, Pagamentos.
-
-### 3. Frontend Web (`apps/web` - Next.js)
-
-Focado exclusivamente na experiência do usuário.
-
-  * **BFF (Backend for Frontend):** Server Actions para orquestração leve.
-  * **UI:** Dashboards, Tabelas, Formulários (React Hook Form + Zod).
-  * **Consumo:** Utiliza o `@packages/api-client` para falar com o NestJS.
-
-### 4. Mobile (`apps/mobile` - React Native)
-
-Para operações em campo e acesso do cliente final.
-
-  * Visualização de Chamados.
-  * Aprovações e Notificações Push.
-  * Scanner de QR Code/NFC.
-
------
-
-## Segurança e Acesso (RBAC)
-
-O sistema implementa **Multi-tenancy** lógico.
-
-  * **User:** A conta de acesso (E-mail/Senha).
-  * **Company:** O Tenant (Cliente).
-  * **Membership:** O vínculo `User <-> Company` com um cargo específico (`Role`).
-
-**Perfis de Acesso (Roles):**
-
-1. **ADMIN:** Acesso global (God Mode).
-2. **SUPORTE/DEVELOPER:** Acesso à gestão de tickets e visualização de empresas.
-3. **CLIENTE_ADMIN:** Gestor da empresa (pode criar usuários, ver financeiro).
-4. **CLIENTE_USER:** Acesso operacional limitado.
-
------
-
-## Integrações Ativas
-
-| Integração | Função | Status |
-| :--- | :--- | :--- |
-| **Zammad** | Central de Tickets e Helpdesk | ✅ Ativo |
-| **Gmail SMTP** | Envio de e-mails transacionais | ✅ Ativo |
-| **Supabase** | Banco de Dados Gerenciado | ✅ Ativo |
-| **Better Auth** | Autenticação e Sessão | ✅ Ativo |
-
------
-
-## Como Rodar o Projeto
-
-### 1\. Instalação
-
-```bash
-npm install
+```
+.
+├── content
+├── prisma
+├── public
+├── src
+│   ├── actions
+│   ├── app
+│   ├── components
+│   ├── core
+│   ├── data
+│   ├── hooks
+│   ├── lib
+│   ├── providers
+│   ├── middleware.ts
+├── .env
+├── package.json
+├── README.md
 ```
 
-### 2\. Banco de Dados
+Abaixo está o **detalhamento completo de cada pasta e seus papéis no projeto**.
 
-Certifique-se de que o `.env` está configurado e rode as migrações:
+---
+
+## 📁 Raiz do Projeto
+
+### `content/`
+
+Fonte principal da **documentação em MDX**.
+
+* Manuais do usuário
+* Documentação fiscal
+* Guias técnicos
+* Tutoriais passo a passo
+
+Este conteúdo é consumido diretamente pelo **Fumadocs**.
+
+---
+
+### `prisma/`
+
+Responsável por **persistência de dados e versionamento do banco**.
+
+* `schema.prisma` — Definição de modelos, enums e relacionamentos
+* `migrations/` — Histórico de migrações do banco
+* `seed.ts` — Dados iniciais (ambientes de dev/test)
+
+Scripts disponíveis:
 
 ```bash
-npx prisma migrate dev
+npm run db:migrate
+npm run db:generate
 ```
 
-### 3\. Executando os Apps (Turbo)
+---
 
-Para rodar tudo simultaneamente em modo de desenvolvimento:
+### `public/`
 
-```bash
-npm run dev
-```
+Arquivos estáticos acessíveis diretamente:
 
-Ou rode individualmente:
+* Logos
+* Ícones
+* Imagens
+* Assets públicos
 
-  * **Web:** `cd apps/web && npm run dev` (Porta 3000)
-  * **API:** `cd apps/api && npm run start:dev` (Porta 3001)
-  * **Mobile:** `cd apps/mobile && npm start` (Expo)
+---
 
------
+## 📁 `src/app` — Rotas & Navegação
 
-## Roadmap de Evolução
+Implementa o **App Router do Next.js**, organizado por **Route Groups**.
 
-### Fase 1 — Consolidação (Atual)
+### Estrutura
 
-  * [x] Autenticação Robusta
-  * [x] Multi-tenant (Empresas e Usuários)
-  * [x] Integração Zammad (Tickets)
-  * [x] UI/UX Profissional (Shadcn)
+* `(autenticacao)/`
 
-### Fase 2 — Financeiro e Expansão
+  * Login
+  * Recuperação de senha
+  * Registro
 
-  * [ ] Módulo de Contratos
-  * [ ] Faturamento Recorrente
-  * [ ] App Mobile para Técnicos
-  * [ ] Filas de Processamento (Background Jobs)
+* `(platform)/`
 
-### Fase 3 — Inteligência
+  * Área autenticada do cliente
+  * Dashboards
+  * Funcionalidades internas
 
-  * [ ] Chatbot com RAG (IA) para suporte nível 1
-  * [ ] Dashboards de BI automáticos
-  * [ ] Automação Fiscal
+* `(site)/`
 
------
+  * Páginas públicas
+  * Landing page
+  * Contato / Institucional
 
-## Suporte e Contato
+* `api/`
 
-**Trilink Software**
+  * API Routes
+  * Webhooks
+  * Integrações externas
 
-  * **E-mail:** [rafael@trilinksoftware.com.br](mailto:rafael@trilinksoftware.com.br)
-  * **Site:** [trilinksoftware.com.br](https://trilinksoftware.com.br)
-  * **Telefone:** (34) 99771-3731
+* `docs/`
+
+  * Rota base da documentação
+  * Renderização dinâmica MDX via Fumadocs
+
+### Arquivos globais
+
+* `layout.tsx` — Layout raiz da aplicação
+* `globals.css` — Estilos globais (Tailwind 4)
+* `not-found.tsx` — Página 404
+
+---
+
+## 📁 `src/components` — UI por Contexto
+
+Componentes React organizados **por domínio visual**, não por tipo genérico.
+
+### Pastas
+
+* `ui/`
+
+  * Componentes base do Shadcn/UI
+  * Button, Input, Dialog, Tabs, etc
+
+* `auth/`
+
+  * Formulários de autenticação
+  * Guards visuais
+
+* `docs/`
+
+  * Componentes exclusivos para MDX
+  * Callouts, Cards, Alertas
+
+* `magicui/`
+
+  * Animações avançadas
+  * Bento Grid, Marquee, Motion blocks
+
+* `platform/`
+
+  * Componentes da área logada
+
+* `site/`
+
+  * Componentes do site público
+
+* `sefaz/`
+
+  * Visualização de XML
+  * Componentes fiscais
+
+### Arquivos de Base
+
+* `providers.tsx` — Wrapper global de contextos
+* `ThemeProvider.tsx` — Dark / Light mode
+* `ModeToggle.tsx` — Alternador de tema
+
+---
+
+## 🧠 `src/core` — Coração da Aplicação
+
+**Totalmente desacoplado do Next.js**.
+Aqui vivem as **regras de negócio puras**.
+
+### `application/`
+
+Camada de **orquestração**.
+
+* `use-cases/`
+
+  * Casos de uso (regras aplicacionais)
+  * Ex: `ConsultarDocumentoFiscal`, `AbrirTicket`
+
+* `dto/`
+
+  * Data Transfer Objects
+  * Contratos de entrada e saída
+
+* `schema/`
+
+  * Schemas Zod
+  * Validação de dados
+
+---
+
+### `domain/`
+
+O **domínio do negócio**.
+
+* `entities/`
+
+  * Entidades ricas
+  * Ex: Empresa, Documento, Usuário
+
+* `interfaces/`
+
+  * Contratos de repositórios e serviços
+
+* `errors/`
+
+  * Exceções do domínio
+
+---
+
+### `infrastructure/`
+
+Implementações técnicas.
+
+* `gateways/`
+
+  * Integrações externas (SEFAZ, APIs)
+
+* `mappers/`
+
+  * Conversão DTO ↔ Entity
+
+---
+
+### Outros diretórios do Core
+
+* `config/` — Permissões e regras globais
+* `constants/` — Constantes do domínio
+* `shared/` — Utilitários compartilhados
+* `types/` — Tipagens globais
+
+---
+
+## ⚙️ Outras Pastas em `src/`
+
+### `actions/`
+
+* **Server Actions do Next.js**
+* Mutação de dados
+* Segurança no servidor
+
+### `hooks/`
+
+* Hooks React reutilizáveis
+
+### `lib/`
+
+* Utilitários gerais
+* Prisma Client
+* Axios Instances
+
+### `providers/`
+
+* Context Providers isolados
+
+### `data/scripts/`
+
+* Scripts manuais
+* Processamentos auxiliares
+
+### `middleware.ts`
+
+* Controle de acesso
+* Proteção de rotas
+
+---
+
+## 🛠 Scripts Disponíveis
+
+| Script                | Descrição                   |
+| --------------------- | --------------------------- |
+| `npm run dev`         | Ambiente de desenvolvimento |
+| `npm run build`       | Build de produção           |
+| `npm run start`       | Start produção              |
+| `npm run postinstall` | Gera Fumadocs + Prisma      |
+| `npm run db:migrate`  | Migrações do banco          |
+| `npm run db:generate` | Geração do Prisma Client    |
+
+---
+
+## 📌 Princípios do Projeto
+
+* UI **não contém regra de negócio**
+* Use Cases são a aplicação
+* Domínio é independente de framework
+* Documentação é código
+* Escalável para Mobile e Backend dedicado
+
+---
+
+**Trilink Software — 2026**
+
+> Este projeto é a base oficial de documentação e evolução contínua do Syspro ERP.
