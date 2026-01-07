@@ -42,7 +42,7 @@ Você compra **Açúcar em sacos de 5 kg**, mas utiliza **gramas** nas receitas.
 - No cadastro do produto, configure a **Conversão de Unidade**, informando que:
   - `1 Unidade de Compra (Saco)` = `5 Unidades de Estoque (KG)`
 
-📌 Isso garante que o sistema converta corretamente o consumo durante a produção e venda.
+Isso garante que o sistema converta corretamente o consumo durante a produção e venda.
 
 </Step>
 
@@ -50,19 +50,76 @@ Você compra **Açúcar em sacos de 5 kg**, mas utiliza **gramas** nas receitas.
 
 ### 2. Classificação dos Materiais
 
-Cada item deve ser corretamente classificado conforme sua função no processo produtivo:
+No Syspro ERP, apenas alguns **Tipos de Produto** devem ser utilizados no fluxo de Produção.  
+Essa definição é essencial para garantir **baixa correta de estoque**, **apuração fiel de custos** e **funcionamento adequado da produção automática ou manual**.
 
-- **Matéria-Prima**  
-  Itens adquiridos para consumo na produção (ex: farinha, açúcar, fermento).
+#### Matéria-Prima
 
-- **Produto Intermediário**  
-  Itens fabricados internamente e utilizados em outras produções  
-  _(ex: massa base, recheios, caldas)_.
+Utilize este tipo para itens **comprados de terceiros** e **consumidos diretamente na produção**.
 
-- **Produto Acabado**  
-  Produto final comercializado e faturado ao cliente.
+**Características:**
+- Não são vendidos ao cliente final
+- São baixados automaticamente durante a produção
+- Compõem o custo do produto fabricado
 
-📌 Essa classificação impacta diretamente o controle de estoque, custos e relatórios.
+**Exemplos:**
+- Farinha  
+- Açúcar  
+- Leite  
+- Fermento  
+
+Base de todo o processo produtivo.
+
+#### Produto Intermediário
+
+Utilize para itens **fabricados internamente** que serão utilizados como insumo em outras produções.
+
+**Características:**
+- Possuem composição própria
+- Acumulam custo ao serem produzidos
+- Podem ser reutilizados em diversos produtos acabados
+
+**Exemplos:**
+- Massa base  
+- Recheios  
+- Molhos  
+- Caldas  
+
+Recomendado para produções mais complexas e padronizadas.
+
+#### Produto em Processo
+
+Utilize quando for necessário controlar **etapas intermediárias da produção**, antes do produto estar finalizado.
+
+**Características:**
+- Representa um estágio parcial de fabricação
+- Não deve ser vendido
+- Permite rastreabilidade e controle por fase produtiva
+
+**Exemplos:**
+- Massa em fermentação  
+- Produto em maturação  
+- Produção parcialmente concluída  
+
+Indicado para processos industriais ou produtivos com múltiplas fases.
+
+#### Produto Acabado
+
+Utilize para o **produto final**, pronto para venda e faturamento.
+
+**Características:**
+- Pode ser vendido no PDV
+- Recebe o custo consolidado da produção
+- Representa o último estágio do processo produtivo
+
+**Exemplos:**
+- Pães  
+- Bolos  
+- Pizzas  
+- Lanches  
+
+É o resultado final da cadeia de produção.
+
 
 </Step>
 
