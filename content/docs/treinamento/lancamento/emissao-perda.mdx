@@ -1,0 +1,118 @@
+---
+title: Emissão de Nota Fiscal de Perda
+description: Guia completo para emissão de Nota Fiscal de Perda no Syspro ERP.
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+
+import {
+  Package,
+  ClipboardCheck,
+  FileDown,
+  Settings,
+  AlertTriangle,
+  RefreshCcw,
+  Truck
+} from 'lucide-react';
+
+A **Emissão de Nota Fiscal de Perda** é um procedimento fundamental para manter a integridade do inventário e a conformidade fiscal da empresa. Quando mercadorias sofrem avarias, expiram o prazo de validade ou são extraviadas, é necessário realizar a baixa oficial do estoque.
+
+Este processo no Syspro ERP garante que a quantidade física em estoque coincida com o saldo sistêmico e gera o documento fiscal (modelo 55) exigido pela legislação para justificar a saída dessas mercadorias sem a geração de receita, utilizando os CFOPs específicos de perda ou deterioração.
+
+## Dicionário de Campos (Personalização de Documento)
+
+Antes de iniciar a emissão, o documento de perda deve estar configurado corretamente em **Movimento > Documento > Personalização de Documentos**.
+
+<Cards>
+<Card title="Modelo e Série" icon={<Settings />}>
+Deve utilizar o **Modelo 55** (NF-e) e a série correspondente à sua operação fiscal.
+</Card>
+<Card title="Movimenta Estoque" icon={<RefreshCcw />}>
+Defina obrigatoriamente como **SAÍDA**, pois este documento dará baixa nas quantidades do produto.
+</Card>
+<Card title="CFOP (5927 / 6927)" icon={<AlertTriangle />}>
+Utilize CFOPs de "Lançamento efetuado a título de baixa de estoque decorrente de perda, roubo ou deterioração".
+</Card>
+<Card title="Grupo de Estoque" icon={<Package />}>
+Indique de qual local de estoque a mercadoria deve sair (Ex: GERAL).
+</Card>
+</Cards>
+
+---
+
+## Passo a Passo
+
+Siga as etapas abaixo para registrar a perda e emitir a nota fiscal correspondente:
+
+<Steps>
+<Step>
+
+#### Registrar o Lançamento de Perda
+
+Acesse o menu **Movimento > Perda de Mercadoria**.
+
+* Clique em **Incluir**.
+* **Data:** Informe a data da ocorrência.
+* **Motivo:** Selecione a justificativa (ex: PERDA NO PROCESSO, VALIDADE).
+* **Produto:** Selecione o item que sofreu a perda.
+* **Quantidade:** Informe a quantidade a ser baixada e a unidade de medida.
+* **Salvar:** O registro ficará com a situação "ABERTO".
+
+</Step>
+
+<Step>
+
+#### Iniciar a Emissão da Nota
+
+Acesse **Movimento > Lançamento de Documentos**.
+
+* No menu superior, clique no botão **Importar** e selecione a opção **Importar Perda**.
+* Uma janela de consulta será aberta exibindo todos os lançamentos de perda que ainda estão com o status "ABERTO".
+
+</Step>
+
+<Step>
+
+#### Selecionar Documentos e Itens
+
+Na tela de **Consulta de Perda**:
+
+* Selecione o documento de personalização configurado anteriormente (ex: EPE - Emissão de Perdas).
+* Marque os itens/lançamentos que deseja incluir nesta Nota Fiscal. Você pode agrupar várias perdas em um único documento.
+* Clique em **Importar**. O sistema carregará automaticamente os produtos, quantidades e CFOPs configurados.
+
+</Step>
+
+<Step>
+
+#### Processar e Transmitir
+
+Após a importação, os dados aparecerão na tela de Lançamento de Documentos.
+
+* Confira os dados e clique em **Processar**.
+* Ao processar, o Syspro realizará duas ações simultâneas: **realizará a baixa física no estoque** e **transmitirá a NF-e para a SEFAZ**.
+
+</Step>
+</Steps>
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+<Accordion title="Posso importar perdas de diferentes locais de estoque na mesma nota?">
+Não. Como a baixa de estoque é definida na personalização do documento, se você possui perdas em locais de estoque distintos (ex: Almoxarifado e Loja), deverá emitir uma nota para cada local, selecionando o documento de personalização correspondente a cada um.
+</Accordion>
+<Accordion title="Qual CFOP devo utilizar para perda de mercadoria?">
+Geralmente utiliza-se o **5.927** para operações internas ou **6.927** para interestaduais. No entanto, sempre confirme com sua contabilidade se há particularidades tributárias para o seu tipo de produto.
+</Accordion>
+<Accordion title="O lançamento de perda retira o produto do estoque imediatamente?">
+Não. O lançamento em "Perda de Mercadoria" é apenas um registro administrativo. A baixa real do saldo de estoque só ocorre quando a nota fiscal é **processada** no Lançamento de Documentos.
+</Accordion>
+</Accordions>
+
+<SuporteSection />
