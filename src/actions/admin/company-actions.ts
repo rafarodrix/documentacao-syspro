@@ -17,16 +17,26 @@ export type ActionResponse = {
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
+/**
+ * Central de tratamento de erros
+ */
 function handleActionError(error: any): ActionResponse {
   console.error("[CompanyAction Error]:", error);
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-    return { success: false, message: "Este CNPJ já está cadastrado no sistema." };
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === 'P2002') {
+      return { success: false, message: "Este CNPJ já está cadastrado no sistema." };
+    }
   }
-  return { success: false, message: "Ocorreu um erro interno. Tente novamente." };
+
+  return {
+    success: false,
+    message: error instanceof Error ? error.message : "Ocorreu um erro interno. Tente novamente."
+  };
 }
 
 /**
- * Lista empresas incluindo o endereço principal da tabela 'address'
+ * Lista empresas vinculando o endereço mais recente da relação
  */
 export async function getCompaniesAction(filters?: { search?: string; status?: string }) {
   const session = await getProtectedSession();
@@ -38,10 +48,11 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
     const whereClause: Prisma.CompanyWhereInput = { deletedAt: null };
 
     if (filters?.search) {
+      const search = filters.search.trim();
       whereClause.OR = [
-        { razaoSocial: { contains: filters.search, mode: "insensitive" } },
-        { nomeFantasia: { contains: filters.search, mode: "insensitive" } },
-        { cnpj: { contains: filters.search } },
+        { razaoSocial: { contains: search, mode: "insensitive" } },
+        { nomeFantasia: { contains: search, mode: "insensitive" } },
+        { cnpj: { contains: search.replace(/\D/g, "") } },
       ];
     }
 
@@ -53,7 +64,10 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
       where: whereClause,
       include: {
         _count: { select: { memberships: true } },
-        addresses: { take: 1 }, // Busca o endereço na tabela relacionada
+        addresses: {
+          take: 1,
+          orderBy: { id: 'asc' }
+        },
         accountingFirm: { select: { id: true, nomeFantasia: true } }
       },
       orderBy: { createdAt: 'desc' },
@@ -61,19 +75,19 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
 
     return {
       success: true,
-      data: companies.map(c => ({
+      data: companies.map((c: any) => ({
         ...c,
-        usersCount: c._count.memberships,
-        address: c.addresses[0] || null // Mapeia para o formato esperado pelo frontend
+        usersCount: c._count?.memberships ?? 0,
+        address: c.addresses?.[0] || null
       }))
     };
   } catch (error) {
-    return { success: false, message: "Erro ao carregar empresas." };
+    return handleActionError(error);
   }
 }
 
 /**
- * Cria empresa com criação aninhada (Nested Create) do endereço
+ * Cria empresa e endereço principal
  */
 export async function createCompanyAction(data: CreateCompanyInput): Promise<ActionResponse> {
   const session = await getProtectedSession();
@@ -81,41 +95,45 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
     return { success: false, message: "Permissão negada." };
   }
 
+  // safeParse aplica transforms do Zod (como limpar CEP e CNPJ)
   const validation = createCompanySchema.safeParse(data);
   if (!validation.success) {
     return {
       success: false,
-      errors: validation.error.flatten().fieldErrors as Record<string, string[]>,
+      errors: validation.error.flatten().fieldErrors as any,
       message: "Verifique os campos destacados."
     };
   }
 
-  // Destruturação: Separamos o objeto 'address' das relações de ID
   const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
 
   try {
-    await prisma.company.create({
+    const result = await prisma.company.create({
       data: {
         ...validData,
-        // Criação na tabela 'address' vinculada a esta empresa
+        // Garante que o CNPJ esteja limpo no banco
+        cnpj: validData.cnpj.replace(/\D/g, ""),
+        // Criação aninhada na tabela Address
         addresses: address ? {
-          create: { ...address, description: address.description || "Sede" }
+          create: {
+            ...address,
+            description: address.description || "Sede"
+          }
         } : undefined,
-
         accountingFirm: accountingFirmId ? { connect: { id: accountingFirmId } } : undefined,
         parentCompany: parentCompanyId ? { connect: { id: parentCompanyId } } : undefined,
       },
     });
 
     revalidatePath("/admin/cadastros");
-    return { success: true, message: "Empresa criada com sucesso!" };
+    return { success: true, message: "Empresa criada com sucesso!", data: result };
   } catch (error: any) {
     return handleActionError(error);
   }
 }
 
 /**
- * Atualiza empresa e sincroniza o endereço principal (Estratégia: Recreate)
+ * Atualiza empresa com transação atômica para o endereço
  */
 export async function updateCompanyAction(id: string, data: CreateCompanyInput): Promise<ActionResponse> {
   const session = await getProtectedSession();
@@ -127,7 +145,7 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
   if (!validation.success) {
     return {
       success: false,
-      errors: validation.error.flatten().fieldErrors as Record<string, string[]>,
+      errors: validation.error.flatten().fieldErrors as any,
       message: "Dados inválidos."
     };
   }
@@ -135,28 +153,32 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
   const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
 
   try {
-    await prisma.company.update({
-      where: { id },
-      data: {
-        ...validData,
+    // Transação manual garante que a empresa não fique sem endereço se o create falhar
+    await prisma.$transaction(async (tx) => {
+      await tx.company.update({
+        where: { id },
+        data: {
+          ...validData,
+          cnpj: validData.cnpj.replace(/\D/g, ""),
 
-        /**
-         * Lógica de Endereço: Para garantir que o endereço principal seja atualizado 
-         * sem precisar do ID do endereço no form, removemos o antigo e criamos o novo.
-         */
-        addresses: address ? {
-          deleteMany: {}, // Remove todos os endereços vinculados (limpa sede anterior)
-          create: { ...address, description: address.description || "Sede" }
-        } : undefined,
+          // Estratégia: Remove endereços antigos e cria o novo enviado no form
+          addresses: address ? {
+            deleteMany: {},
+            create: {
+              ...address,
+              description: address.description || "Sede"
+            }
+          } : undefined,
 
-        accountingFirm: accountingFirmId
-          ? { connect: { id: accountingFirmId } }
-          : { disconnect: true },
+          accountingFirm: accountingFirmId
+            ? { connect: { id: accountingFirmId } }
+            : { disconnect: true },
 
-        parentCompany: parentCompanyId
-          ? { connect: { id: parentCompanyId } }
-          : { disconnect: true },
-      },
+          parentCompany: parentCompanyId
+            ? { connect: { id: parentCompanyId } }
+            : { disconnect: true },
+        },
+      });
     });
 
     revalidatePath("/admin/cadastros");
@@ -166,6 +188,9 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
   }
 }
 
+/**
+ * Soft Delete (Mantém integridade referencial)
+ */
 export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
