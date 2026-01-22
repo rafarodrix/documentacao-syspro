@@ -10,23 +10,23 @@ interface CepResponse {
     city: string
     neighborhood: string
     street: string
+    service: string
 }
 
 export function useAddressLookup(setValue: UseFormSetValue<any>) {
     const [isLoadingCep, setIsLoadingCep] = useState(false)
 
     const handleCepChange = async (value: string) => {
-        // 1. Formata visualmente (00000-000)
-        const formatted = value
-            .replace(/\D/g, "")
-            .replace(/^(\d{5})(\d)/, "$1-$2")
-            .substr(0, 9)
-
-        // Atualiza o campo visualmente
-        setValue("cep", formatted)
-
-        // 2. Se tiver o tamanho correto (8 números), busca na API
+        // 1. Limpeza e Formatação Visual (00000-000)
         const cleanCep = value.replace(/\D/g, "")
+        const formatted = cleanCep
+            .replace(/^(\d{5})(\d)/, "$1-$2")
+            .substring(0, 9)
+
+        // Atualiza o campo CEP usando o caminho aninhado conforme o Schema
+        setValue("address.cep", formatted, { shouldValidate: true })
+
+        // 2. Dispara a busca apenas quando atingir 8 dígitos numéricos
         if (cleanCep.length === 8) {
             setIsLoadingCep(true)
             try {
@@ -38,24 +38,28 @@ export function useAddressLookup(setValue: UseFormSetValue<any>) {
 
                 const data: CepResponse = await response.json()
 
-                // 3. Preenche os campos do formulário
-                setValue("logradouro", data.street)
-                setValue("bairro", data.neighborhood)
-                setValue("cidade", data.city)
-                setValue("estado", data.state)
+                // 3. Preenchimento Automático (Sincronizado com addressSchema)
+                // Usamos o prefixo 'address.' para mapear corretamente para a tabela separada
+                setValue("address.logradouro", data.street || "", { shouldValidate: true })
+                setValue("address.bairro", data.neighborhood || "", { shouldValidate: true })
+                setValue("address.cidade", data.city || "", { shouldValidate: true })
+                setValue("address.estado", data.state || "", { shouldValidate: true })
 
-                // Foca no número para agilizar
-                const numberInput = document.getElementById("numero-input") // Vamos adicionar esse ID no input
-                if (numberInput) numberInput.focus()
+                // Foca no campo de número para melhorar a UX
+                setTimeout(() => {
+                    const numberInput = document.getElementById("numero-input")
+                    if (numberInput) numberInput.focus()
+                }, 100)
 
-                toast.success("Endereço encontrado!")
+                toast.success("Endereço localizado!")
             } catch (error) {
-                toast.error("CEP não encontrado ou inválido.")
-                // Limpa campos se der erro, opcional
-                setValue("logradouro", "")
-                setValue("bairro", "")
-                setValue("cidade", "")
-                setValue("estado", "")
+                toast.error("CEP não encontrado ou serviço indisponível.")
+
+                // Opcional: Limpa os campos em caso de erro para evitar dados inconsistentes
+                setValue("address.logradouro", "")
+                setValue("address.bairro", "")
+                setValue("address.cidade", "")
+                setValue("address.estado", "")
             } finally {
                 setIsLoadingCep(false)
             }
