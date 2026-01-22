@@ -1,4 +1,3 @@
-// src\components\platform\cadastros\company\CreateCompanyDialog.tsx
 "use client"
 
 import { useState } from "react"
@@ -30,7 +29,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 export function CreateCompanyDialog() {
     const [open, setOpen] = useState(false)
 
-    // CORREÇÃO LINHA 35: Casting 'as any' para evitar conflito de versões entre Zod e Hook Form
     const form = useForm<CreateCompanyInput>({
         resolver: zodResolver(createCompanySchema) as any,
         defaultValues: {
@@ -57,21 +55,25 @@ export function CreateCompanyDialog() {
     const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue)
 
     const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
-        const result = await createCompanyAction(data)
+        try {
+            const result = await createCompanyAction(data)
 
-        if (result.success) {
-            toast.success(result.message || "Empresa cadastrada!")
-            setOpen(false)
-            form.reset()
-        } else {
-            if (result.errors) {
-                Object.entries(result.errors).forEach(([key, messages]) => {
-                    form.setError(key as any, { type: "manual", message: messages[0] })
-                })
-                toast.error("Verifique os campos destacados.")
+            if (result.success) {
+                toast.success(result.message || "Empresa cadastrada com sucesso!")
+                setOpen(false)
+                form.reset()
             } else {
-                toast.error(result.message || "Erro ao salvar.")
+                if (result.errors) {
+                    Object.entries(result.errors).forEach(([key, messages]) => {
+                        form.setError(key as any, { type: "manual", message: messages[0] })
+                    })
+                    toast.error("Verifique os campos destacados.")
+                } else {
+                    toast.error(result.message || "Erro ao salvar empresa.")
+                }
             }
+        } catch (error) {
+            toast.error("Erro inesperado ao salvar.")
         }
     }
 
@@ -102,8 +104,7 @@ export function CreateCompanyDialog() {
                                         <TabsTrigger value="contato" className="gap-2 py-2"><PhoneIcon className="w-3.5 h-3.5" /> Contato</TabsTrigger>
                                     </TabsList>
 
-                                    {/* --- GERAL --- */}
-                                    <TabsContent value="geral" className="space-y-4 outline-none">
+                                    <TabsContent value="geral" className="space-y-4">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField control={form.control} name="cnpj" render={({ field }) => (
                                                 <FormItem>
@@ -114,7 +115,6 @@ export function CreateCompanyDialog() {
                                                             {...field}
                                                             value={(field.value as string) ?? ""}
                                                             onChange={(e) => field.onChange(formatCNPJ(e.target.value))}
-                                                            maxLength={18}
                                                         />
                                                     </FormControl>
                                                     <FormMessage />
@@ -124,26 +124,24 @@ export function CreateCompanyDialog() {
                                                 <FormItem>
                                                     <FormLabel className="font-semibold">Razão Social *</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Ex: Nome da Empresa LTDA" {...field} value={(field.value as string) ?? ""} />
+                                                        <Input {...field} value={(field.value as string) ?? ""} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )} />
                                         </div>
-                                        {/* CORREÇÃO LINHA 134 */}
                                         <FormField control={form.control} name="nomeFantasia" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="font-semibold">Nome Fantasia</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="Nome comercial" {...field} value={(field.value as string) ?? ""} />
+                                                    <Input {...field} value={(field.value as string) ?? ""} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )} />
                                     </TabsContent>
 
-                                    {/* --- FISCAL --- */}
-                                    <TabsContent value="fiscal" className="space-y-4 outline-none">
+                                    <TabsContent value="fiscal" className="space-y-4">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField control={form.control} name="regimeTributario" render={({ field }) => (
                                                 <FormItem>
@@ -175,39 +173,31 @@ export function CreateCompanyDialog() {
                                             )} />
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {/* CORREÇÃO LINHA 176 */}
                                             <FormField control={form.control} name="inscricaoEstadual" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel className="font-semibold">Inscrição Estadual</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Número ou ISENTO" {...field} value={(field.value as string) ?? ""} />
-                                                    </FormControl>
+                                                    <FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )} />
-                                            {/* CORREÇÃO LINHA 183 */}
                                             <FormField control={form.control} name="inscricaoMunicipal" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel className="font-semibold">Inscrição Municipal</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Número da IM" {...field} value={(field.value as string) ?? ""} />
-                                                    </FormControl>
+                                                    <FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )} />
                                         </div>
                                     </TabsContent>
 
-                                    {/* --- ENDEREÇO --- */}
-                                    <TabsContent value="endereco" className="space-y-4 outline-none">
+                                    <TabsContent value="endereco" className="space-y-4">
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <FormField control={form.control} name="address.cep" render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="font-semibold">CEP</FormLabel>
+                                                    <FormLabel className="font-semibold">CEP *</FormLabel>
                                                     <div className="relative">
                                                         <FormControl>
                                                             <Input
-                                                                placeholder="00000-000"
                                                                 {...field}
                                                                 value={(field.value as string) ?? ""}
                                                                 onChange={(e) => handleCepChange(e.target.value)}
@@ -222,32 +212,57 @@ export function CreateCompanyDialog() {
                                             <div className="md:col-span-2">
                                                 <FormField control={form.control} name="address.logradouro" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="font-semibold">Logradouro</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="Av, Rua..." {...field} value={(field.value as string) ?? ""} />
-                                                        </FormControl>
+                                                        <FormLabel className="font-semibold">Logradouro *</FormLabel>
+                                                        <FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
                                             </div>
                                         </div>
-                                        {/* ... Outros campos de endereço seguem o mesmo padrão value={(field.value as string) ?? ""} */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <FormField control={form.control} name="address.numero" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold">Número *</FormLabel>
+                                                    <FormControl><Input placeholder="123" {...field} value={(field.value as string) ?? ""} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <div className="md:col-span-3">
+                                                <FormField control={form.control} name="address.complemento" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold">Complemento</FormLabel>
+                                                        <FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <FormField control={form.control} name="address.bairro" render={({ field }) => (
+                                                <FormItem><FormLabel className="font-semibold">Bairro *</FormLabel><FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="address.cidade" render={({ field }) => (
+                                                <FormItem><FormLabel className="font-semibold">Cidade *</FormLabel><FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="address.estado" render={({ field }) => (
+                                                <FormItem><FormLabel className="font-semibold">UF *</FormLabel><FormControl><Input maxLength={2} className="uppercase" {...field} value={(field.value as string) ?? ""} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                        </div>
                                     </TabsContent>
 
-                                    {/* --- CONTATO --- */}
-                                    <TabsContent value="contato" className="space-y-4 outline-none">
+                                    <TabsContent value="contato" className="space-y-4">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField control={form.control} name="emailContato" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel className="font-semibold flex items-center gap-1.5"><Mail className="w-3 h-3" /> E-mail Comercial</FormLabel>
-                                                    <FormControl><Input placeholder="comercial@empresa.com" {...field} value={(field.value as string) ?? ""} /></FormControl>
+                                                    <FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )} />
                                             <FormField control={form.control} name="telefone" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel className="font-semibold flex items-center gap-1.5"><PhoneIcon className="w-3 h-3" /> Telefone</FormLabel>
-                                                    <FormControl><Input placeholder="(00) 0000-0000" {...field} value={(field.value as string) ?? ""} /></FormControl>
+                                                    <FormControl><Input {...field} value={(field.value as string) ?? ""} onChange={(e) => field.onChange(formatPhone(e.target.value))} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )} />

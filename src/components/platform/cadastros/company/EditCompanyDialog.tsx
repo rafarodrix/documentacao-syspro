@@ -41,15 +41,10 @@ export function EditCompanyDialog({ open, onOpenChange, company }: EditCompanyDi
             razaoSocial: "",
             nomeFantasia: "",
             status: CompanyStatus.ACTIVE,
+            indicadorIE: IndicadorIE.NAO_CONTRIBUINTE,
             address: {
-                description: "Sede",
-                cep: "",
-                logradouro: "",
-                numero: "",
-                bairro: "",
-                cidade: "",
-                estado: "",
-                pais: "BR"
+                description: "Sede", cep: "", logradouro: "", numero: "",
+                complemento: "", bairro: "", cidade: "", estado: "", pais: "BR"
             }
         }
     })
@@ -125,12 +120,13 @@ export function EditCompanyDialog({ open, onOpenChange, company }: EditCompanyDi
                             <div className="p-6">
                                 <Tabs defaultValue="geral" className="w-full">
                                     <TabsList className="grid w-full grid-cols-4 mb-8 bg-muted/50 p-1 h-auto">
-                                        <TabsTrigger value="geral" className="gap-2 py-2"><Building2 className="w-3.5 h-3.5" /> Geral</TabsTrigger>
-                                        <TabsTrigger value="fiscal" className="gap-2 py-2"><FileText className="w-3.5 h-3.5" /> Fiscal</TabsTrigger>
-                                        <TabsTrigger value="endereco" className="gap-2 py-2"><MapPin className="w-3.5 h-3.5" /> Endereço</TabsTrigger>
-                                        <TabsTrigger value="contato" className="gap-2 py-2"><PhoneIcon className="w-3.5 h-3.5" /> Contato</TabsTrigger>
+                                        <TabsTrigger value="geral" className="gap-2 py-2 text-xs md:text-sm"><Building2 className="w-3.5 h-3.5" /> Geral</TabsTrigger>
+                                        <TabsTrigger value="fiscal" className="gap-2 py-2 text-xs md:text-sm"><FileText className="w-3.5 h-3.5" /> Fiscal</TabsTrigger>
+                                        <TabsTrigger value="endereco" className="gap-2 py-2 text-xs md:text-sm"><MapPin className="w-3.5 h-3.5" /> Endereço</TabsTrigger>
+                                        <TabsTrigger value="contato" className="gap-2 py-2 text-xs md:text-sm"><PhoneIcon className="w-3.5 h-3.5" /> Contato</TabsTrigger>
                                     </TabsList>
 
+                                    {/* --- GERAL --- */}
                                     <TabsContent value="geral" className="space-y-4 outline-none">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField control={form.control} name="cnpj" render={({ field }) => (
@@ -152,7 +148,6 @@ export function EditCompanyDialog({ open, onOpenChange, company }: EditCompanyDi
                                                 </FormItem>
                                             )} />
                                         </div>
-                                        {/* CORREÇÃO LINHA 148 */}
                                         <FormField control={form.control} name="nomeFantasia" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="font-semibold">Nome Fantasia</FormLabel>
@@ -164,6 +159,7 @@ export function EditCompanyDialog({ open, onOpenChange, company }: EditCompanyDi
                                         )} />
                                     </TabsContent>
 
+                                    {/* --- FISCAL --- */}
                                     <TabsContent value="fiscal" className="space-y-4 outline-none">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField control={form.control} name="regimeTributario" render={({ field }) => (
@@ -191,38 +187,127 @@ export function EditCompanyDialog({ open, onOpenChange, company }: EditCompanyDi
                                                 </FormItem>
                                             )} />
                                         </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="inscricaoEstadual" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold">Inscrição Estadual</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={(field.value as string) ?? ""} placeholder="Número ou ISENTO" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="inscricaoMunicipal" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold">Inscrição Municipal</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={(field.value as string) ?? ""} placeholder="Número da IM" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                        </div>
                                     </TabsContent>
 
+                                    {/* --- ENDEREÇO --- */}
                                     <TabsContent value="endereco" className="space-y-4 outline-none">
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <FormField control={form.control} name="address.cep" render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="font-semibold">CEP</FormLabel>
+                                                    <FormLabel className="font-semibold">CEP *</FormLabel>
                                                     <div className="relative">
-                                                        <FormControl><Input {...field} value={(field.value as string) ?? ""} onChange={(e) => handleCepChange(e.target.value)} disabled={isLoadingCep} /></FormControl>
+                                                        <FormControl>
+                                                            <Input {...field} value={(field.value as string) ?? ""} onChange={(e) => handleCepChange(e.target.value)} disabled={isLoadingCep} />
+                                                        </FormControl>
                                                         {isLoadingCep && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
-                                                    </div><FormMessage />
+                                                    </div>
+                                                    <FormMessage />
                                                 </FormItem>
                                             )} />
                                             <div className="md:col-span-2">
                                                 <FormField control={form.control} name="address.logradouro" render={({ field }) => (
-                                                    <FormItem><FormLabel className="font-semibold">Logradouro</FormLabel><FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold">Logradouro *</FormLabel>
+                                                        <FormControl>
+                                                            <Input {...field} value={(field.value as string) ?? ""} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
                                                 )} />
                                             </div>
                                         </div>
-                                        {/* Repita o padrão em todos os Inputs de endereço */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <FormField control={form.control} name="address.numero" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold">Número *</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} value={(field.value as string) ?? ""} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <div className="md:col-span-3">
+                                                <FormField control={form.control} name="address.complemento" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold">Complemento</FormLabel>
+                                                        <FormControl>
+                                                            <Input {...field} value={(field.value as string) ?? ""} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <FormField control={form.control} name="address.bairro" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold">Bairro *</FormLabel>
+                                                    <FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="address.cidade" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold">Cidade *</FormLabel>
+                                                    <FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="address.estado" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold">UF *</FormLabel>
+                                                    <FormControl><Input maxLength={2} className="uppercase" {...field} value={(field.value as string) ?? ""} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                        </div>
                                     </TabsContent>
 
+                                    {/* --- CONTATO --- */}
                                     <TabsContent value="contato" className="space-y-4 outline-none">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField control={form.control} name="emailContato" render={({ field }) => (
-                                                <FormItem><FormLabel className="font-semibold flex items-center gap-2"><Mail className="w-3.5 h-3.5" /> E-mail Comercial</FormLabel><FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold flex items-center gap-2"><Mail className="w-3.5 h-3.5" /> E-mail Comercial</FormLabel>
+                                                    <FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
                                             )} />
                                             <FormField control={form.control} name="telefone" render={({ field }) => (
-                                                <FormItem><FormLabel className="font-semibold flex items-center gap-2"><PhoneIcon className="w-3.5 h-3.5" /> Telefone</FormLabel><FormControl><Input {...field} value={(field.value as string) ?? ""} onChange={(e) => field.onChange(formatPhone(e.target.value))} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold flex items-center gap-2"><PhoneIcon className="w-3.5 h-3.5" /> Telefone</FormLabel>
+                                                    <FormControl><Input {...field} value={(field.value as string) ?? ""} onChange={(e) => field.onChange(formatPhone(e.target.value))} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
                                             )} />
                                         </div>
-                                        {/* CORREÇÃO LINHA 241 */}
+                                        <FormField control={form.control} name="website" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="font-semibold flex items-center gap-2"><Globe className="w-3.5 h-3.5" /> Website</FormLabel>
+                                                <FormControl><Input {...field} value={(field.value as string) ?? ""} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
                                         <FormField control={form.control} name="observacoes" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="font-semibold">Observações Internas</FormLabel>
