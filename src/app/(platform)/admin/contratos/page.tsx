@@ -26,7 +26,7 @@ export default async function ContratosPage() {
     const companies = companiesRes.success && companiesRes.data ? companiesRes.data : [];
 
     // Prepara opções para o select
-    const companyOptions = companies.map(c => ({ id: c.id, razaoSocial: c.razaoSocial }));
+    const companyOptions = companies.map((c: { id: any; razaoSocial: any; }) => ({ id: c.id, razaoSocial: c.razaoSocial }));
 
     return (
         <div className="flex flex-col gap-8 p-6 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500 pb-20">
