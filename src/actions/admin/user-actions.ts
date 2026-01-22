@@ -1,3 +1,4 @@
+// src/actions/admin/user-actions.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -9,13 +10,19 @@ import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";
 import { z } from "zod";
 
-// --- Tipos ---
+// --- Tipagens Padronizadas ---
+export type ActionResponse = {
+    success: boolean;
+    message?: string;
+    errors?: Record<string, string[]>;
+    data?: any;
+};
+
 interface GetUsersParams {
     search?: string;
     role?: string;
 }
 
-// Schema para validar o vínculo de usuário existente
 const linkUserSchema = z.object({
     email: z.string().email("E-mail inválido"),
     role: z.nativeEnum(Role),
@@ -24,48 +31,44 @@ const linkUserSchema = z.object({
 
 export type LinkUserInput = z.infer<typeof linkUserSchema>;
 
-// --- Constantes de Permissão ---
-const READ_ROLES = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE] as const;
-const WRITE_ROLES = [Role.ADMIN, Role.DEVELOPER] as const;
+// --- Permissões ---
+const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
-function hasRole(role: Role, allowedRoles: readonly Role[]) {
-    return allowedRoles.includes(role);
-}
-
-// --- Helper de Tratamento de Erros ---
-function handleActionError(error: any) {
+// --- Central de Erros ---
+function handleActionError(error: any): ActionResponse {
     console.error("[UserAction Error]:", error);
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-            return { success: false as const, error: "Este e-mail já está em uso." };
+            const target = (error.meta?.target as string[]) || [];
+            if (target.includes('email')) return { success: false, message: "Este e-mail já está em uso." };
+            if (target.includes('cpf')) return { success: false, message: "Este CPF já está cadastrado no sistema." };
         }
     }
 
-    if (error?.body?.message) {
-        return { success: false as const, error: error.body.message };
-    }
-
-    return { success: false as const, error: error.message || "Ocorreu um erro interno." };
+    return { success: false, message: error.message || "Ocorreu um erro interno no servidor." };
 }
 
 /**
- * Lista todos os usuários e suas empresas
+ * Lista usuários ativos (Soft Delete aplicado)
  */
 export async function getUsersAction(filters?: GetUsersParams) {
     const session = await getProtectedSession();
-
-    if (!session || !hasRole(session.role, READ_ROLES)) {
-        return { success: false, error: "Não autorizado." };
+    if (!session || !READ_ROLES.includes(session.role)) {
+        return { success: false, message: "Não autorizado." };
     }
 
     try {
-        const whereClause: Prisma.UserWhereInput = {};
+        const whereClause: Prisma.UserWhereInput = {
+            deletedAt: null // Filtro para ignorar usuários deletados
+        };
 
         if (filters?.search) {
             whereClause.OR = [
                 { name: { contains: filters.search, mode: "insensitive" } },
                 { email: { contains: filters.search, mode: "insensitive" } },
+                { cpf: { contains: filters.search.replace(/\D/g, "") } },
             ];
         }
 
@@ -78,9 +81,7 @@ export async function getUsersAction(filters?: GetUsersParams) {
             include: {
                 memberships: {
                     include: {
-                        company: {
-                            select: { id: true, nomeFantasia: true, razaoSocial: true }
-                        }
+                        company: { select: { id: true, nomeFantasia: true, razaoSocial: true } }
                     }
                 }
             },
@@ -95,34 +96,29 @@ export async function getUsersAction(filters?: GetUsersParams) {
 
         return { success: true, data: formattedUsers };
     } catch (error) {
-        console.error("Erro ao buscar usuários:", error);
-        return { success: false, error: "Erro ao carregar usuários." };
+        return { success: false, message: "Erro ao carregar usuários." };
     }
 }
 
 /**
- * Cria um novo usuário
+ * Cria usuário integrando Auth e novos campos (CPF, JobTitle)
  */
-export async function createUserAction(data: CreateUserInput) {
+export async function createUserAction(data: CreateUserInput): Promise<ActionResponse> {
     const session = await getProtectedSession();
-
-    if (!session || !hasRole(session.role, WRITE_ROLES)) {
-        return { success: false as const, error: "Permissão negada." };
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, message: "Permissão negada." };
     }
 
     const validation = createUserSchema.safeParse(data);
     if (!validation.success) {
-        return { success: false as const, error: "Dados inválidos." };
+        return { success: false, errors: validation.error.flatten().fieldErrors as any, message: "Dados inválidos." };
     }
 
-    // Como a senha é opcional no schema (para edição), precisamos garantir que ela existe na criação.
-    if (!data.password) {
-        return { success: false as const, error: "A senha é obrigatória para novos usuários." };
-    }
+    if (!data.password) return { success: false, message: "Senha obrigatória para novos usuários." };
 
     try {
-        // 1. Cria no Auth
-        const newUserResponse = await auth.api.signUpEmail({
+        // 1. Registro no Provedor de Auth (Better-Auth / Next-Auth)
+        const authResponse = await auth.api.signUpEmail({
             body: {
                 email: data.email,
                 password: data.password,
@@ -131,110 +127,117 @@ export async function createUserAction(data: CreateUserInput) {
             headers: await headers()
         });
 
-        if (!newUserResponse?.user) {
-            return { success: false as const, error: "Falha ao criar conta no provedor de autenticação." };
-        }
+        if (!authResponse?.user) return { success: false, message: "Falha na criação da conta de autenticação." };
 
-        const newUserId = newUserResponse.user.id;
-
-        // 2. Transação para configurar Role e Empresa
+        // 2. Transação para configurar Role, CPF e Vínculo inicial
         await prisma.$transaction(async (tx) => {
             await tx.user.update({
-                where: { id: newUserId },
+                where: { id: authResponse.user.id },
                 data: {
                     role: data.role as Role,
-                    emailVerified: true,
-                    isActive: true,
-                    // jobTitle e phone se você tiver adicionado ao schema
+                    cpf: data.cpf ? data.cpf.replace(/\D/g, "") : null, // Limpa máscara
                     jobTitle: data.jobTitle || null,
                     phone: data.phone || null,
+                    isActive: true,
+                    emailVerified: true
                 }
             });
 
             if (data.companyId) {
                 await tx.membership.create({
                     data: {
-                        userId: newUserId,
+                        userId: authResponse.user.id,
                         companyId: data.companyId,
-                        role: (data.role === Role.CLIENTE_ADMIN || data.role === Role.ADMIN)
-                            ? Role.ADMIN
-                            : Role.CLIENTE_USER
+                        role: (data.role === Role.ADMIN) ? Role.ADMIN : Role.CLIENTE_USER
                     }
                 });
             }
         });
 
         revalidatePath("/admin/cadastros");
-        revalidatePath("/app/cadastros");
-        return { success: true as const };
-
+        return { success: true, message: "Usuário criado com sucesso!" };
     } catch (error) {
         return handleActionError(error);
     }
 }
 
 /**
- * Atualiza um usuário existente
+ * Atualiza usuário incluindo suporte aos novos campos profissionais
  */
-export async function updateUserAction(id: string, data: Partial<CreateUserInput>) {
+export async function updateUserAction(id: string, data: Partial<CreateUserInput>): Promise<ActionResponse> {
     const session = await getProtectedSession();
-
-    if (!session || !hasRole(session.role, WRITE_ROLES)) {
-        return { success: false as const, error: "Permissão negada." };
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, message: "Acesso negado." };
     }
 
     try {
         await prisma.$transaction(async (tx) => {
-            // Atualiza dados básicos
-            if (data.email || data.name || data.role) {
-                await tx.user.update({
-                    where: { id },
-                    data: {
-                        name: data.name,
-                        email: data.email,
-                        role: data.role as Role,
-                        jobTitle: data.jobTitle || null,
-                        phone: data.phone || null,
-                    }
-                });
-            }
+            await tx.user.update({
+                where: { id },
+                data: {
+                    name: data.name,
+                    email: data.email,
+                    role: data.role as Role,
+                    jobTitle: data.jobTitle,
+                    phone: data.phone,
+                    cpf: data.cpf ? data.cpf.replace(/\D/g, "") : undefined,
+                }
+            });
 
-            // Se companyId vier preenchido, atualiza o vínculo principal
             if (data.companyId) {
+                // Atualiza vínculo: remove antigos e cria o novo principal
                 await tx.membership.deleteMany({ where: { userId: id } });
                 await tx.membership.create({
                     data: {
                         userId: id,
                         companyId: data.companyId,
-                        role: (data.role === Role.CLIENTE_ADMIN || data.role === Role.ADMIN)
-                            ? Role.ADMIN
-                            : Role.CLIENTE_USER
+                        role: (data.role === Role.ADMIN) ? Role.ADMIN : Role.CLIENTE_USER
                     }
                 });
             }
         });
 
         revalidatePath("/admin/cadastros");
-        revalidatePath("/app/cadastros");
-        return { success: true as const };
-
+        return { success: true, message: "Usuário atualizado com sucesso." };
     } catch (error) {
         return handleActionError(error);
     }
 }
 
 /**
- * Alterna o status do usuário
+ * Soft Delete do Usuário
  */
-export async function toggleUserStatusAction(id: string, currentStatus: boolean) {
+export async function deleteUserAction(id: string): Promise<ActionResponse> {
     const session = await getProtectedSession();
-
-    if (!session || !hasRole(session.role, WRITE_ROLES)) {
-        return { success: false as const, error: "Permissão negada." };
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, message: "Permissão negada." };
     }
 
-    if (id === session.userId) {
-        return { success: false as const, error: "Você não pode desativar seu próprio usuário." };
+    if (id === session.userId) return { success: false, message: "Você não pode excluir a si mesmo." };
+
+    try {
+        await prisma.user.update({
+            where: { id },
+            data: {
+                deletedAt: new Date(),
+                isActive: false
+            }
+        });
+
+        revalidatePath("/admin/cadastros");
+        return { success: true, message: "Usuário removido com sucesso." };
+    } catch (error) {
+        return handleActionError(error);
+    }
+}
+
+/**
+ * Alterna Ativo/Inativo
+ */
+export async function toggleUserStatusAction(id: string, currentStatus: boolean): Promise<ActionResponse> {
+    const session = await getProtectedSession();
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, message: "Permissão negada." };
     }
 
     try {
@@ -244,106 +247,72 @@ export async function toggleUserStatusAction(id: string, currentStatus: boolean)
         });
 
         revalidatePath("/admin/cadastros");
-        revalidatePath("/app/cadastros");
-
-        return {
-            success: true as const,
-            message: `Status alterado com sucesso.`
-        };
+        return { success: true, message: `Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso.` };
     } catch (error) {
         return handleActionError(error);
     }
 }
+
+// Adicione estas funções ao seu arquivo src/actions/admin/user-actions.ts
 
 /**
  * VINCULAR USUÁRIO EXISTENTE A UMA EMPRESA
  */
-export async function linkUserToCompanyAction(data: LinkUserInput) {
+export async function linkUserToCompanyAction(data: LinkUserInput): Promise<ActionResponse> {
     const session = await getProtectedSession();
-
-    if (!session || !["ADMIN", "CLIENTE_ADMIN"].includes(session.role)) {
-        return { success: false, error: "Permissão negada." };
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, message: "Permissão negada." };
     }
 
     const validation = linkUserSchema.safeParse(data);
-    if (!validation.success) return { success: false, error: "Dados inválidos." };
+    if (!validation.success) return { success: false, message: "Dados inválidos." };
 
     try {
-        const targetUser = await prisma.user.findUnique({
-            where: { email: data.email }
-        });
+        const targetUser = await prisma.user.findUnique({ where: { email: data.email } });
+        if (!targetUser) return { success: false, message: "Usuário não encontrado." };
 
-        if (!targetUser) {
-            return { success: false, error: "Usuário não encontrado. Use a aba 'Criar Novo'." };
-        }
-
-        const existingMembership = await prisma.membership.findUnique({
-            where: {
-                userId_companyId: {
-                    userId: targetUser.id,
-                    companyId: data.companyId
-                }
-            }
-        });
-
-        if (existingMembership) {
-            return { success: false, error: "Este usuário já está vinculado a esta empresa." };
-        }
-
-        await prisma.membership.create({
-            data: {
-                userId: targetUser.id,
-                companyId: data.companyId,
-                role: data.role
-            }
+        await prisma.membership.upsert({
+            where: { userId_companyId: { userId: targetUser.id, companyId: data.companyId } },
+            create: { userId: targetUser.id, companyId: data.companyId, role: data.role },
+            update: { role: data.role }
         });
 
         revalidatePath("/admin/cadastros");
-        revalidatePath("/app/cadastros");
-
-        return { success: true, message: "Usuário vinculado com sucesso!" };
-
+        return { success: true, message: "Vínculo realizado com sucesso!" };
     } catch (error) {
         return handleActionError(error);
     }
 }
 
 /**
- * REMOVER VÍNCULO (Remove acesso de uma empresa específica)
+ * REMOVER ACESSO DE UMA EMPRESA
  */
-export async function removeUserFromCompanyAction(userId: string, companyId: string) {
+export async function removeUserFromCompanyAction(userId: string, companyId: string): Promise<ActionResponse> {
     const session = await getProtectedSession();
-    if (!session || !hasRole(session.role, WRITE_ROLES)) {
-        return { success: false, error: "Permissão negada." };
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, message: "Permissão negada." };
     }
 
     try {
-        // Impede remover o último vínculo (usuário ficaria órfão)
         const count = await prisma.membership.count({ where: { userId } });
-        if (count <= 1) {
-            return { success: false, error: "O usuário deve ter pelo menos uma empresa vinculada." };
-        }
+        if (count <= 1) return { success: false, message: "O usuário deve ter pelo menos um vínculo ativo." };
 
-        await prisma.membership.delete({
-            where: {
-                userId_companyId: { userId, companyId }
-            }
-        });
+        await prisma.membership.delete({ where: { userId_companyId: { userId, companyId } } });
 
         revalidatePath("/admin/cadastros");
-        return { success: true, message: "Acesso removido com sucesso." };
+        return { success: true, message: "Vínculo removido." };
     } catch (error) {
         return handleActionError(error);
     }
 }
 
 /**
- * ATUALIZAR ROLE EM UMA EMPRESA ESPECÍFICA
+ * ATUALIZAR ROLE EM UMA UNIDADE
  */
-export async function updateMembershipRoleAction(userId: string, companyId: string, newRole: Role) {
+export async function updateMembershipRoleAction(userId: string, companyId: string, newRole: Role): Promise<ActionResponse> {
     const session = await getProtectedSession();
-    if (!session || !hasRole(session.role, WRITE_ROLES)) {
-        return { success: false, error: "Permissão negada." };
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, message: "Permissão negada." };
     }
 
     try {
@@ -353,7 +322,7 @@ export async function updateMembershipRoleAction(userId: string, companyId: stri
         });
 
         revalidatePath("/admin/cadastros");
-        return { success: true, message: "Permissão atualizada." };
+        return { success: true, message: "Nível de acesso atualizado." };
     } catch (error) {
         return handleActionError(error);
     }

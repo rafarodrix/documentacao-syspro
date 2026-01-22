@@ -1,3 +1,4 @@
+// src\components\platform\cadastros\company\CadastrosContainer.tsx
 "use client"
 
 import { useMemo } from "react"
@@ -9,6 +10,7 @@ import { SystemUserTab } from "../user/SystemUserTab"
 import { Role, CompanyStatus } from "@prisma/client"
 import { hasPermission } from "@/lib/rbac"
 
+// 1. Interface de Empresa Sincronizada
 interface CompanyWithAddress {
     id: string;
     razaoSocial: string;
@@ -19,11 +21,17 @@ interface CompanyWithAddress {
     [key: string]: any;
 }
 
+// 2. Interface de Usuário Sincronizada com o novo UserTab
 interface UserWithRelations {
     id: string;
     name: string | null;
-    email: string | null;
+    email: string;
+    image: string | null;     // Adicionado
     role: Role;
+    isActive: boolean;        // Adicionado
+    jobTitle: string | null;  // Adicionado
+    cpf: string | null;       // Adicionado
+    memberships: any[];       // Adicionado
     [key: string]: any;
 }
 
@@ -39,7 +47,7 @@ export function CadastrosContainer({
     currentUserRole
 }: CadastrosContainerProps) {
 
-    // 2. Lógica de Permissões com Casting para evitar erros de tipagem em arrays de Enums
+    // Lógica de Permissões
     const permissions = useMemo(() => ({
         isGlobalView: ([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE] as Role[]).includes(currentUserRole),
         canViewEmpresas: hasPermission(currentUserRole, 'companies:view'),
@@ -47,7 +55,7 @@ export function CadastrosContainer({
         canViewSistema: hasPermission(currentUserRole, 'system_team:view'),
     }), [currentUserRole]);
 
-    // 3. Filtros de Usuários
+    // Filtros de Usuários
     const { systemUsers, clientUsers } = useMemo(() => {
         return {
             systemUsers: users.filter(u =>
@@ -122,7 +130,6 @@ export function CadastrosContainer({
                             </h3>
                             <p className="text-sm text-muted-foreground">Visualize e edite as informações cadastrais.</p>
                         </section>
-                        {/* Agora as interfaces batem perfeitamente */}
                         <CompanyTab data={companies} isAdmin={permissions.isGlobalView} />
                     </TabsContent>
                 )}

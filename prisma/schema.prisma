@@ -143,39 +143,49 @@ model Address {
 // }
 
 model User {
-  id String @id @default(cuid())
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String?
+  image String?
 
-  // --- AUTH (Existentes) ---
-  email         String  @unique
-  name          String?
-  emailVerified Boolean @default(false)
-  image         String?
+  // --- SEGURANÇA E AUTH ---
+  // Se usar login por senha (além de OAuth), considere adicionar:
+  // passwordHash String? 
+  emailVerified  Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  failedAttempts Int       @default(0)
+  lockoutUntil   DateTime?
 
-  // --- DADOS PROFISSIONAIS (Novos) ---
-  jobTitle String? // Ex: "Gerente Financeiro", "Vendedor"
-  phone    String? // WhatsApp/Celular para contato rápido ou 2FA
-  cpf      String? // Opcional: Útil se o sistema tiver módulo de RH ou Logs fiscais
+  // --- DADOS PROFISSIONAIS ---
+  jobTitle String?
+  phone    String?
+  cpf      String? @unique
 
-  // --- PREFERÊNCIAS (Novos) ---
-  // JSON para configurações de UI (Tema, notificações, idioma)
-  // Evita criar muitas colunas para configs simples.
+  // --- LOCALIZAÇÃO ---
+  language String @default("pt-BR")
+
+  // --- PREFERÊNCIAS ---
   preferences Json? @default("{}")
 
-  // --- AUDITORIA (Novos) ---
-  lastLoginAt DateTime? // Para saber se o usuário está ativo
+  // --- AUDITORIA ---
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
-  // --- SISTEMA (Existentes) ---
-  role     Role    @default(CLIENTE_USER)
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // --- SISTEMA ---
+  role Role @default(CLIENTE_USER)
 
   // RELAÇÕES
   memberships Membership[]
   sessions    Session[]
   accounts    Account[]
 
+  // ÍNDICES PARA PERFORMANCE
+  @@index([name])
+  @@index([role])
+  @@index([isActive])
+  @@index([cpf])
   @@map("user")
 }
 

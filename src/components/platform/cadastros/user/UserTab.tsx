@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { toast } from "sonner"
 import { toggleUserStatusAction } from "@/actions/admin/user-actions"
+import { Role } from "@prisma/client"
 
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
@@ -12,18 +13,37 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
-    Search, MoreHorizontal, Shield, Building, UserX, Mail, UserCheck, Loader2
+    Search, MoreHorizontal, Shield, Building, UserX, Mail, UserCheck, Loader2, Briefcase, Fingerprint
 } from "lucide-react"
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 
-// Modais
+// Modais e Utilitários
 import { CreateUserDialog } from "./CreateUserDialog"
 import { EditUserDialog } from "./EditUserDialog"
 
+// Utilitário simples para máscara de CPF (pode ser movido para @/lib/utils)
+const formatCPF = (cpf: string | null) => {
+    if (!cpf) return "---"
+    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+}
+
+interface UserWithRelations {
+    id: string
+    name: string | null
+    email: string
+    image: string | null
+    role: Role
+    isActive: boolean
+    jobTitle: string | null
+    cpf: string | null
+    memberships: any[]
+    [key: string]: any
+}
+
 interface UserTabProps {
-    data: any[]
+    data: UserWithRelations[]
     companies: any[]
     isAdmin: boolean
 }
@@ -32,54 +52,66 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
     const [searchTerm, setSearchTerm] = useState("")
 
     // --- ESTADOS ---
-    const [userToEdit, setUserToEdit] = useState<any | null>(null)
+    const [userToEdit, setUserToEdit] = useState<UserWithRelations | null>(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
-    const [loadingId, setLoadingId] = useState<string | null>(null) // ID do usuário sendo alterado
+    const [loadingId, setLoadingId] = useState<string | null>(null)
 
-    // Filtro Local
-    const filteredData = data.filter(user =>
-        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    // Filtro Otimizado (Memoizado)
+    const filteredData = useMemo(() => {
+        const lowerTerm = searchTerm.toLowerCase()
+        const cleanTerm = searchTerm.replace(/\D/g, "")
+
+        return data.filter(user =>
+            user.name?.toLowerCase().includes(lowerTerm) ||
+            user.email?.toLowerCase().includes(lowerTerm) ||
+            (user.cpf && user.cpf.includes(cleanTerm))
+        )
+    }, [data, searchTerm])
 
     // --- AÇÕES ---
 
-    function handleEdit(user: any) {
+    function handleEdit(user: UserWithRelations) {
         setUserToEdit(user)
         setIsEditOpen(true)
     }
 
     async function handleToggleStatus(userId: string, currentStatus: boolean) {
         setLoadingId(userId)
-        const result = await toggleUserStatusAction(userId, currentStatus)
-
-        if (result.success) {
-            toast.success(result.message)
-        } else {
-            toast.error(result.error || "Erro ao alterar status")
+        try {
+            const result = await toggleUserStatusAction(userId, currentStatus)
+            if (result.success) {
+                toast.success(result.message)
+            } else {
+                toast.error(result.message || "Erro ao alterar status")
+            }
+        } catch (error) {
+            toast.error("Erro na comunicação com o servidor.")
+        } finally {
+            setLoadingId(null)
         }
-        setLoadingId(null)
     }
 
     return (
         <div className="space-y-4">
-
-            {/* --- MODAL DE EDIÇÃO (Inserido Aqui) --- */}
+            {/* Modal de Edição */}
             <EditUserDialog
                 open={isEditOpen}
-                onOpenChange={setIsEditOpen}
+                onOpenChange={(open) => {
+                    setIsEditOpen(open)
+                    if (!open) setUserToEdit(null)
+                }}
                 user={userToEdit}
                 companies={companies}
                 isAdmin={isAdmin}
             />
 
-            {/* --- TOPO --- */}
+            {/* Barra de Busca e Cadastro */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
-                <div className="relative w-full sm:w-72 group">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <div className="relative w-full sm:w-80 group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
-                        placeholder="Buscar membro..."
-                        className="pl-9 bg-background border-border focus-visible:ring-primary/20"
+                        placeholder="Nome, e-mail ou CPF..."
+                        className="pl-10 h-10 bg-background border-border/60 focus-visible:ring-primary/20"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -88,131 +120,92 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                 <CreateUserDialog companies={companies} isAdmin={isAdmin} context="CLIENT" />
             </div>
 
-            {/* --- TABELA --- */}
-            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            {/* Container da Tabela */}
+            <div className="rounded-lg border border-border/50 bg-card shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-muted/40 hover:bg-muted/40">
-                            <TableHead className="w-[300px]">Usuário</TableHead>
-                            <TableHead>Função</TableHead>
-                            <TableHead>Vínculos</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
+                        <TableRow className="bg-muted/30">
+                            <TableHead className="py-4 px-6 font-semibold">Identificação</TableHead>
+                            <TableHead className="font-semibold">Cargo / CPF</TableHead>
+                            <TableHead className="font-semibold">Acesso / Empresas</TableHead>
+                            <TableHead className="font-semibold">Status</TableHead>
+                            <TableHead className="text-right px-6 font-semibold">Ações</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredData.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-64 text-center">
-                                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                                        <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-2">
-                                            <UserX className="h-6 w-6 opacity-50" />
-                                        </div>
-                                        <p className="text-base font-medium text-foreground">Nenhum usuário encontrado</p>
-                                        <p className="text-sm">
-                                            {searchTerm ? "Tente buscar por outro termo." : "Convide membros para compor sua equipe."}
-                                        </p>
-                                    </div>
+                                <TableCell colSpan={5} className="h-72 text-center">
+                                    <EmptyState isSearching={!!searchTerm} />
                                 </TableCell>
                             </TableRow>
                         ) : (
                             filteredData.map((user) => (
-                                <TableRow key={user.id} className="hover:bg-muted/30 transition-colors cursor-default">
+                                <TableRow key={user.id} className="hover:bg-muted/10 transition-colors group">
 
-                                    {/* Coluna 1: Identificação */}
-                                    <TableCell className="py-3">
+                                    {/* Identificação: Avatar + Nome + Email */}
+                                    <TableCell className="py-4 px-6">
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="h-9 w-9 border border-border/50">
-                                                <AvatarImage src={user.image} />
-                                                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                                                    {user.name ? user.name.substring(0, 2).toUpperCase() : "??"}
+                                            <Avatar className="h-10 w-10 border border-border/40 shadow-sm">
+                                                <AvatarImage src={user.image || undefined} />
+                                                <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+                                                    {user.name?.substring(0, 2).toUpperCase() || "??"}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="flex flex-col">
-                                                <span className="font-medium text-sm text-foreground">{user.name}</span>
-                                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <span className="font-semibold text-foreground text-sm leading-tight">
+                                                    {user.name || "Sem Nome"}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground mt-0.5">
                                                     {user.email}
                                                 </span>
                                             </div>
                                         </div>
                                     </TableCell>
 
-                                    {/* Coluna 2: Role */}
+                                    {/* Cargo e CPF */}
                                     <TableCell>
-                                        {user.role === 'ADMIN' || user.role === 'DEVELOPER' ? (
-                                            <Badge variant="default" className="text-[10px] bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/20 gap-1 px-2 hover:bg-purple-500/25">
-                                                <Shield className="w-3 h-3" /> Global Admin
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="font-normal text-muted-foreground bg-muted/50">
-                                                {user.role === 'CLIENTE_ADMIN' ? 'Gestor' : 'Colaborador'}
-                                            </Badge>
-                                        )}
-                                    </TableCell>
-
-                                    {/* Coluna 3: Vínculos */}
-                                    <TableCell>
-                                        <div className="flex flex-wrap gap-1.5 max-w-[250px]">
-                                            {user.memberships && user.memberships.length > 0 ? (
-                                                user.memberships.map((m: any) => (
-                                                    <Badge
-                                                        key={m.company.id}
-                                                        variant="outline"
-                                                        className="text-[10px] gap-1 font-normal bg-background border-border/60 text-muted-foreground"
-                                                    >
-                                                        <Building className="w-3 h-3 opacity-70" />
-                                                        {m.company.nomeFantasia || m.company.razaoSocial}
-                                                        {m.role === 'ADMIN' && (
-                                                            <span className="text-amber-500 font-bold ml-0.5" title="Admin da Empresa">*</span>
-                                                        )}
-                                                    </Badge>
-                                                ))
-                                            ) : (
-                                                <span className="text-xs text-muted-foreground/50 italic">Sem vínculo</span>
-                                            )}
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                                                <Briefcase className="w-3 h-3 opacity-60" />
+                                                {user.jobTitle || "Não informado"}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 font-mono">
+                                                <Fingerprint className="w-3 h-3 opacity-50" />
+                                                {formatCPF(user.cpf)}
+                                            </div>
                                         </div>
                                     </TableCell>
 
-                                    {/* Coluna 4: Status */}
+                                    {/* Função (Role) e Vínculos */}
+                                    <TableCell>
+                                        <div className="flex flex-col gap-2">
+                                            <RoleBadge role={user.role} />
+                                            <div className="flex flex-wrap gap-1">
+                                                {user.memberships?.map((m) => (
+                                                    <Badge key={m.company.id} variant="outline" className="text-[10px] bg-background font-normal border-border/50 text-muted-foreground px-1.5 h-5 gap-1">
+                                                        <Building className="w-2.5 h-2.5 opacity-60" />
+                                                        {m.company.nomeFantasia || m.company.razaoSocial}
+                                                    </Badge>
+                                                )) || <span className="text-[10px] text-muted-foreground italic">Sem vínculos</span>}
+                                            </div>
+                                        </div>
+                                    </TableCell>
+
+                                    {/* Status */}
                                     <TableCell>
                                         <StatusBadge isActive={user.isActive} />
                                     </TableCell>
 
-                                    {/* Coluna 5: Ações */}
-                                    <TableCell className="text-right">
-                                        {loadingId === user.id ? (
-                                            <div className="flex justify-end pr-2"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
-                                        ) : (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted data-[state=open]:bg-muted">
-                                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-[180px]">
-                                                    <DropdownMenuLabel>Gerenciar</DropdownMenuLabel>
-
-                                                    <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => handleEdit(user)}>
-                                                        <UserCheck className="w-4 h-4" /> Editar Dados
-                                                    </DropdownMenuItem>
-
-                                                    {isAdmin && (
-                                                        <DropdownMenuItem className="cursor-pointer gap-2">
-                                                            <Mail className="w-4 h-4" /> Reenviar Convite
-                                                        </DropdownMenuItem>
-                                                    )}
-
-                                                    <DropdownMenuSeparator />
-
-                                                    <DropdownMenuItem
-                                                        className={`cursor-pointer gap-2 ${user.isActive ? "text-red-600 focus:text-red-600 focus:bg-red-50" : "text-green-600 focus:text-green-600 focus:bg-green-50"}`}
-                                                        onClick={() => handleToggleStatus(user.id, user.isActive)}
-                                                    >
-                                                        {user.isActive ? "Desativar Acesso" : "Reativar Acesso"}
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        )}
+                                    {/* Ações */}
+                                    <TableCell className="text-right px-6">
+                                        <UserActions
+                                            user={user}
+                                            loadingId={loadingId}
+                                            onEdit={() => handleEdit(user)}
+                                            onToggleStatus={() => handleToggleStatus(user.id, user.isActive)}
+                                            isAdmin={isAdmin}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -224,19 +217,90 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
     )
 }
 
-function StatusBadge({ isActive }: { isActive: boolean }) {
-    if (isActive) {
-        return (
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border w-fit bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Ativo
-            </div>
-        )
-    }
+/** * Componentes Auxiliares
+ */
+
+function RoleBadge({ role }: { role: Role }) {
+    const isAdmin = role === 'ADMIN' || role === 'DEVELOPER'
     return (
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border w-fit bg-zinc-500/15 text-zinc-700 dark:text-zinc-400 border-zinc-500/20">
-            <div className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
-            Inativo
+        <Badge
+            variant={isAdmin ? "default" : "secondary"}
+            className={`text-[10px] px-2 h-5 font-bold uppercase tracking-wider ${isAdmin ? "bg-purple-500/10 text-purple-700 border-purple-500/20 hover:bg-purple-500/15 dark:text-purple-300" : ""
+                }`}
+        >
+            {isAdmin && <Shield className="w-2.5 h-2.5 mr-1" />}
+            {role.replace("CLIENTE_", "")}
+        </Badge>
+    )
+}
+
+function StatusBadge({ isActive }: { isActive: boolean }) {
+    return (
+        <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border w-fit ${isActive
+                ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400"
+                : "bg-zinc-500/10 text-zinc-600 border-zinc-500/20"
+            }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-500 animate-pulse" : "bg-zinc-500"}`} />
+            {isActive ? "ATIVO" : "INATIVO"}
         </div>
+    )
+}
+
+function EmptyState({ isSearching }: { isSearching: boolean }) {
+    return (
+        <div className="flex flex-col items-center justify-center py-10 animate-in fade-in duration-500">
+            <div className="h-14 w-14 rounded-2xl bg-muted/30 flex items-center justify-center mb-4 ring-1 ring-border/50">
+                <UserX className="h-7 w-7 text-muted-foreground/40" />
+            </div>
+            <h4 className="text-base font-semibold text-foreground">
+                {isSearching ? "Sem correspondências" : "Nenhum membro na equipe"}
+            </h4>
+            <p className="text-sm text-muted-foreground mt-1 max-w-[200px]">
+                {isSearching ? "Tente buscar por outro nome ou documento." : "Convide novos membros para colaborar no sistema."}
+            </p>
+        </div>
+    )
+}
+
+function UserActions({ user, loadingId, onEdit, onToggleStatus, isAdmin }: any) {
+    if (loadingId === user.id) {
+        return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-auto mr-2" />
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/80 rounded-md transition-all">
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 p-1.5">
+                <DropdownMenuLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-2 py-1.5">
+                    Gerenciamento
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-2 focus:bg-primary/5 cursor-pointer" onClick={onEdit}>
+                    <UserCheck className="w-4 h-4 text-muted-foreground" />
+                    <span>Editar Perfil</span>
+                </DropdownMenuItem>
+                {isAdmin && (
+                    <DropdownMenuItem className="gap-2 focus:bg-primary/5 cursor-pointer">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span>Reenviar Convite</span>
+                    </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                    className={`gap-2 cursor-pointer focus:bg-red-500/5 ${user.isActive ? "text-red-600 focus:text-red-600" : "text-emerald-600 focus:text-emerald-600"}`}
+                    onClick={onToggleStatus}
+                >
+                    {user.isActive ? (
+                        <><UserX className="w-4 h-4" /> <span>Suspender Acesso</span></>
+                    ) : (
+                        <><UserCheck className="w-4 h-4" /> <span>Ativar Acesso</span></>
+                    )}
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }
