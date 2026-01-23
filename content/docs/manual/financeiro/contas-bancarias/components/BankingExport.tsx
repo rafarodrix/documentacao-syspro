@@ -71,17 +71,16 @@ const BankingExport = () => {
             ['Modalidade', ''],
             ['Carteira', ''],
             ['Código Transmissão', ''],
-            ['Layout (CNAB 240/400/444)', '']
         ], nextY);
 
         // --- 3. INSTRUÇÕES E FAIXAS ---
         nextY = createFormTable("3. Configurações e Instruções", [
             ['Taxa Juros ao Mês (%)', ''],
             ['Taxa Multa ao Mês (%)', ''],
-            ['Envia para protesto?', '[ ] Sim  [ ] Não'],
-            ['Dias para Protesto', ''],
+            ['Envia para protesto?', '[ ] Não [ ] Sim [          ] dias'],
             ['Nosso Número (Início)/(Fim)', ''],
-            ['Chave NF-e no arquivo?', '[ ] Sim  [ ] Não']
+            ['Layout Remessa', ' [ ] 240 [ ] 400 [ ] 444'],
+            ["Obs: O layout remessa 444 é exclusivo para inclusão da chave da NF-e no arquivo"],
         ], nextY);
 
         // --- MENSAGEM FIXA ---
