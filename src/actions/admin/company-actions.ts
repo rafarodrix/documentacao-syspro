@@ -1,4 +1,3 @@
-// src/actions/admin/company-actions.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -95,7 +94,6 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
     return { success: false, message: "Permissão negada." };
   }
 
-  // safeParse aplica transforms do Zod (como limpar CEP e CNPJ)
   const validation = createCompanySchema.safeParse(data);
   if (!validation.success) {
     return {
@@ -111,15 +109,15 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
     const result = await prisma.company.create({
       data: {
         ...validData,
-        // Garante que o CNPJ esteja limpo no banco
-        cnpj: validData.cnpj.replace(/\D/g, ""),
-        // Criação aninhada na tabela Address
-        addresses: address ? {
+        cnpj: validData.cnpj,
+
+        addresses: (address && address.cep) ? {
           create: {
             ...address,
             description: address.description || "Sede"
           }
         } : undefined,
+
         accountingFirm: accountingFirmId ? { connect: { id: accountingFirmId } } : undefined,
         parentCompany: parentCompanyId ? { connect: { id: parentCompanyId } } : undefined,
       },

@@ -65,15 +65,26 @@ export const createCompanySchema = z
     whatsapp: emptyToUndefined,
     website: emptyToUndefined,
 
-    // RELAÇÃO ANINHADA (Objeto de endereço para criação inicial)
-    address: addressSchema.optional(),
-
-    // EXTRAS
+    // RELAÇÃO ANINHADA (Objeto de endereço para criação)
+    address: addressSchema.optional().nullable().or(z.literal("")),
     observacoes: emptyToUndefined,
   })
+  // 1ª VALIDAÇÃO: Regra do Endereço
   .refine(
     (data) => {
-      // Regra de negócio: Se for contribuinte, a IE é obrigatória
+      if (data.address && typeof data.address === "object" && data.address.cep) {
+        return !!data.address.logradouro && !!data.address.numero;
+      }
+      return true;
+    },
+    {
+      message: "Endereço incompleto. Preencha Logradouro e Número.",
+      path: ["address"],
+    }
+  )
+  // 2ª VALIDAÇÃO: Regra da Inscrição Estadual
+  .refine(
+    (data) => {
       if (data.indicadorIE === IndicadorIE.CONTRIBUINTE && !data.inscricaoEstadual) {
         return false;
       }
