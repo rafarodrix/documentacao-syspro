@@ -4,38 +4,27 @@ description: Guia técnico para integração financeira entre Syspro ERP e Insti
 full: false
 ---
 
-import { Banknote, CreditCard, BarChart2, Building, FileText, Send, Copy, CheckCircle2, Info, Settings, HelpCircle, Printer } from 'lucide-react';      
+import { Banknote, CreditCard, BarChart2, Building, FileText, Send, Copy, CheckCircle2, Info, Settings, HelpCircle, Printer, Download } from 'lucide-react';       
 import { Card, Cards } from 'fumadocs-ui/components/card';   
- import { Callout } from 'fumadocs-ui/components/callout';       
+ import { Callout } from 'fumadocs-ui/components/callout';        
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
-import SuporteSection from '@/components/docs/SuporteSection.tsx';     
+import SuporteSection from '@/components/docs/SuporteSection';       
 import BankingExport from './components/BankingExport';
 
 ## <Building className="inline-block mr-2" /> Visão Geral
 
-A configuração de contas bancárias no **Syspro ERP** é o que chamamos de "ponte de confiança". Sem esses dados validados, o fluxo de caixa trava. Este guia foca na **homologação**, o processo onde garantimos que o banco "entende" o arquivo que o sistema gera.
+A configuração de contas bancárias no **Syspro ERP** é a "ponte de confiança" do seu financeiro. Este guia foca na **homologação**, garantindo que o banco aceite seus arquivos sem erros.
 
-<BankingExport />
-
-<Callout type="warn">
-**Atenção:** Nunca inicie a emissão em produção sem a confirmação de leitura (liquidação) de um arquivo de teste pelo suporte do banco.
+<Callout type="info" icon={<Download className="w-4 h-4" />}>
+  **Checklist de Homologação:** Gerar um guia em PDF para levar ao banco?
+  <BankingExport /> 
 </Callout>
 
----
-
-## <FileText className="inline-block mr-2 mb-1" /> Dicionário de Dados Técnicos
-
-Utilize estes termos técnicos para alinhar a configuração com o seu gerente de conta.
-
-| Campo | O que é? | Por que é importante? |
-| :--- | :--- | :--- |
-| **Código do Cedente** | Sua identidade no banco. | Identifica quem deve receber o dinheiro. |
-| **Carteira** | O "tipo" de cobrança. | Define se o boleto terá protesto automático ou desconto. |
-| **CNAB 400/240** | O layout do arquivo. | Formato do arquivo de remessa enviado ao banco. |
-| **CNAB 444** | Layout para Antecipação. | **Obrigatório** para enviar a Chave da NF-e para descontos. |
-| **Nosso Número** | O RG do boleto. | Garante que um boleto nunca seja igual ao outro. |
+<Callout type="warn">
+**Atenção:** Nunca inicie a emissão em produção sem a confirmação de liquidação de um arquivo de teste pelo suporte do banco.
+</Callout>
 
 ---
 
@@ -43,62 +32,44 @@ Utilize estes termos técnicos para alinhar a configuração com o seu gerente d
 
 <Steps>
 <Step>
-### Coleta de Dados
-Solicite ao banco os dados de homologação de cobrança registrada (CNAB 240/400).
+### Coleta de Dados (O que pedir ao Gerente)
+Não peça apenas "os dados da conta". Para o ERP, você precisa solicitar especificamente o **Manual de Intercâmbio Eletrônico de Dados (CNAB)**.
+
+**Checklist de requisição:**
+* **Layout:** Confirme se o banco utiliza CNAB 240 (moderno) ou 400 (tradicional).
+* **Código do Cedente/Convênio:** Número que identifica sua empresa na carteira de cobrança.
+* **Variação da Carteira:** Essencial para bancos como o Banco do Brasil.
+* **Número da Remessa:** Se você já emitia boletos em outro sistema, peça o "Próximo Número de Remessa".
 </Step>
+
 <Step>
 ### Cadastro no ERP
-Insira os códigos no módulo `Financeiro > Configurações > Contas Bancárias`. Atenção redobrada aos dígitos verificadores.
+Acesse `Financeiro > Configurações > Contas Bancárias`. 
+* **Dica Pro:** Ao digitar a Agência e Conta, certifique-se de separar o dígito verificador (DV) conforme o campo indicado. Erros de dígito são a causa de 90% das rejeições.
 </Step>
+
 <Step>
-### Teste de Remessa
-Gere um arquivo `.REM` com títulos de teste e envie ao portal do banco para validação de layout.
+### Geração do Arquivo de Teste
+Gere uma remessa com pelo menos **3 títulos de valores baixos** (ex: R$ 1,00). 
+* Isso serve para validar se o cabeçalho do arquivo está correto antes de enviar cobranças reais aos clientes.
 </Step>
+
 <Step>
-### Verificação de Leitura
-Imprima um boleto e valide se o código de barras aponta para o beneficiário correto (sua empresa).
+### Validação do Boleto
+Imprima um PDF do boleto e use um aplicativo bancário para ler o código de barras. 
+* **O que checar:** O nome do "Beneficiário" deve ser exatamente a sua Razão Social cadastrada no banco.
 </Step>
 </Steps>
 
 ---
 
-## <CheckCircle2 className="inline-block mr-2 mb-1" /> Dados para WhatsApp
+## <FileText className="inline-block mr-2 mb-1" /> Dicionário de Termos
 
-Copie o texto abaixo e envie para o seu contato técnico no banco ou cliente.
-
-<Tabs items={['Mensagem Base', 'Lista Técnica']}>
-  <Tab value="Mensagem Base">
-    > "Prezado, estamos configurando a emissão de boletos via Syspro ERP. Para concluir a integração, precisamos dos dados técnicos de homologação listados na sequência."
-  </Tab>
-  <Tab value="Lista Técnica">
-    ```text
-    DADOS DA CONTA
-    - Banco/Agência/Conta:
-    - Código do Cedente/Convênio:
-    - Carteira/Modalidade:
-    - Layout: (CNAB 240, 400 ou 444)
-
-    REGRAS FINANCEIRAS
-    - Juros/Multa:
-    - Dias para Baixa:
-    - Próximo 'Nosso Número':
-    - Chave da NF-e na remessa? (Sim/Não)
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## <HelpCircle className="inline-block mr-2 mb-1" /> Perguntas Frequentes
-
-<Accordions>
-<Accordion title="Por que usar o CNAB 444?">
-Necessário para empresas que fazem antecipação de títulos, pois permite trafegar a chave da NF-e exigida pela legislação.
-</Accordion>
-<Accordion title="Como evitar duplicidade de boletos?">
-Configure o campo "Próxima Faixa" no Syspro com o número subsequente ao último boleto gerado no seu sistema antigo.
-</Accordion>
-</Accordions>
+| Campo | Importância |
+| :--- | :--- |
+| **CNAB 444** | **Obrigatório** para Antecipação. Permite enviar a Chave da NF-e para o banco. |
+| **Nosso Número** | O identificador exclusivo do boleto. Nunca deve se repetir. |
+| **Carteira com Registro** | Atualmente, todas as cobranças no Brasil devem ser registradas no sistema da CIP. |
 
 ---
 
