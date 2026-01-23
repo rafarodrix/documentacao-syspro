@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-export const generateBankingConfigPDF = (data: any) => {
+export default function BankingExport() {
     const doc = new jsPDF({
         orientation: 'p',
         unit: 'mm',
