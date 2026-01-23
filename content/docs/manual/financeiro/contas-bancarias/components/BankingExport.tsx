@@ -24,8 +24,7 @@ const BankingExport = () => {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(40, 40, 40);
-        doc.text("Solicitação de Dados para Homologação", margin, 25);
-        doc.text("Boleto / Desconto de Títulos", margin, 32);
+        doc.text("Check-list de Dados para Homologação de Boleto ", margin, 25);
 
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
@@ -61,25 +60,29 @@ const BankingExport = () => {
             ['Dígito da Agência', ''],
             ['Conta', ''],
             ['Dígito da Conta', ''],
-            ['CNPJ / Razão Social', '']
+            ['CNPJ', ''],
+            ['Razão Social', '']
         ], 50);
 
         // --- 2. DADOS DO BOLETO ---
         nextY = createFormTable("2. Dados Técnicos do Boleto", [
             ['Código do Cedente', ''],
             ['Código do Convênio', ''],
-            ['Modalidade / Carteira', ''],
+            ['Modalidade', ''],
+            ['Carteira', ''],
             ['Código Transmissão', ''],
             ['Layout (CNAB 240/400/444)', '']
         ], nextY);
 
         // --- 3. INSTRUÇÕES E FAIXAS ---
         nextY = createFormTable("3. Configurações e Instruções", [
-            ['Taxa Juros / Multa (%)', ''],
+            ['Taxa Juros ao Mês (%)', ''],
+            ['Taxa Multa ao Mês (%)', ''],
+            ['Envia para protesto?', '[ ] Sim  [ ] Não'],
             ['Dias para Protesto', ''],
             ['Nosso Número (Início)', ''],
             ['Nosso Número (Fim)', ''],
-            ['Chave NF-e no arquivo?', '[ ] Sim  [ ] Não (Requer CNAB 444)']
+            ['Chave NF-e no arquivo?', '[ ] Sim  [ ] Não']
         ], nextY);
 
         // --- MENSAGEM FIXA ---
