@@ -29,7 +29,7 @@ const BankingExport = () => {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(80, 80, 80);
-        const introText = "Para realizarmos a homologação junto ao banco e configurar a emissão de boletos, preencha os dados abaixo (solicite ao gerente da conta):";
+        const introText = "Para realizarmos a homologação junto ao banco e configurar a emissão de boletos, preencha os dados abaixo:";
         doc.text(doc.splitTextToSize(introText, pageWidth - (margin * 2)), margin, 40);
 
         // --- FUNÇÃO AUXILIAR PARA CRIAR SEÇÕES ---
@@ -80,8 +80,7 @@ const BankingExport = () => {
             ['Taxa Multa ao Mês (%)', ''],
             ['Envia para protesto?', '[ ] Sim  [ ] Não'],
             ['Dias para Protesto', ''],
-            ['Nosso Número (Início)', ''],
-            ['Nosso Número (Fim)', ''],
+            ['Nosso Número (Início)/(Fim)', ''],
             ['Chave NF-e no arquivo?', '[ ] Sim  [ ] Não']
         ], nextY);
 
