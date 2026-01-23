@@ -231,3 +231,63 @@ export async function linkUserToCompanyAction(data: LinkUserInput): Promise<Acti
         return handleActionError(error);
     }
 }
+
+/**
+ * ALTERAR STATUS (Ativo/Inativo)
+ */
+export async function toggleUserStatusAction(id: string, active: boolean): Promise<ActionResponse> {
+    const session = await getProtectedSession();
+    if (!session || !WRITE_ROLES.includes(session.role)) return { success: false, message: "Acesso negado." };
+
+    try {
+        await prisma.user.update({
+            where: { id },
+            data: { isActive: active }
+        });
+        revalidatePath("/admin/cadastros");
+        return { success: true, message: `Usuário ${active ? 'ativado' : 'desativado'} com sucesso.` };
+    } catch (error) {
+        return handleActionError(error);
+    }
+}
+
+/**
+ * REMOVER USUÁRIO DE UMA EMPRESA (Remover Membership)
+ */
+export async function removeUserFromCompanyAction(userId: string, companyId: string): Promise<ActionResponse> {
+    const session = await getProtectedSession();
+    if (!session || !WRITE_ROLES.includes(session.role)) return { success: false, message: "Acesso negado." };
+
+    try {
+        await prisma.membership.delete({
+            where: {
+                userId_companyId: { userId, companyId }
+            }
+        });
+        revalidatePath("/admin/cadastros");
+        return { success: true, message: "Vínculo removido com sucesso." };
+    } catch (error) {
+        return handleActionError(error);
+    }
+}
+
+/**
+ * ATUALIZAR CARGO NA EMPRESA
+ */
+export async function updateMembershipRoleAction(userId: string, companyId: string, role: Role): Promise<ActionResponse> {
+    const session = await getProtectedSession();
+    if (!session || !WRITE_ROLES.includes(session.role)) return { success: false, message: "Acesso negado." };
+
+    try {
+        await prisma.membership.update({
+            where: {
+                userId_companyId: { userId, companyId }
+            },
+            data: { role }
+        });
+        revalidatePath("/admin/cadastros");
+        return { success: true, message: "Cargo atualizado com sucesso." };
+    } catch (error) {
+        return handleActionError(error);
+    }
+}
