@@ -1,0 +1,112 @@
+---
+title: Ordem de Serviço
+description: Guia simples para entender, configurar e aplicar corretamente o Ordem de Serviço no Syspro ERP.
+full: false
+---
+
+import { Banknote, CreditCard, BarChart2, Building, FileText, MessagesSquare, Phone, Mail } from 'lucide-react';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { CustomCard } from '@/components/CustomCard';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';  
+
+
+A **Ordem de Serviço (OS)** é o coração da operação em um centro automotivo ou auto peças com oficina. Ela funciona como um documento centralizador que registra desde a entrada do veículo e o diagnóstico do problema até a requisição de peças no estoque e a finalização dos serviços prestados.
+
+O propósito estratégico desta tela é garantir o **controle total sobre o fluxo de trabalho**, assegurando que nenhum serviço seja esquecido, que todas as peças utilizadas sejam faturadas e que a rentabilidade de cada atendimento seja monitorada em tempo real.
+
+---
+
+### Análise de Lucratividade
+
+Ao clicar no botão **Análise**, o sistema abre uma janela detalhando a margem de lucro de cada item inserido.
+
+* **Vlr Venda:** Preço praticado para o cliente.
+* **Vlr Custo:** Custo médio ou de reposição do produto/serviço.
+* **Margem %:** Cálculo da rentabilidade individual, onde:
+
+
+
+### Antecipação de Recebimento
+
+Utilize o botão **Antecipar Recebimento** caso o cliente realize pagamentos (sinal ou adiantamento) antes da conclusão total do serviço. Isso garante que o fluxo de caixa reflita a entrada real do dinheiro.
+
+### Processar OS
+
+Este é o passo final. O botão **Processar OS** valida todas as informações, retira as peças do estoque definitivamente e gera os movimentos financeiros de acordo com a forma de pagamento selecionada.
+
+---
+
+## Abas de Detalhamento
+
+Abaixo do cabeçalho, a OS é dividida em abas para organizar as informações técnicas:
+
+<Tabs items={['Produto/Serviço', 'Laudo Técnico', 'Garantia/Entrega', 'Custos']}>
+<Tab value="Produto/Serviço">
+**Onde a mágica acontece:** Aqui você insere as peças (PC) e os serviços (SP). É possível visualizar o total bruto, descontos e o valor líquido por item.
+</Tab>
+<Tab value="Laudo Técnico">
+**Registro histórico:** Espaço dedicado para o mecânico descrever detalhadamente o diagnóstico e a solução aplicada. Vital para consultas futuras e garantias.
+</Tab>
+<Tab value="Garantia/Entrega">
+**Políticas:** Definição dos prazos de garantia para peças e mão de obra, além das observações sobre a política de entrega do veículo.
+</Tab>
+<Tab value="Custos">
+**Visão Interna:** Registra custos adicionais essa informações não são exibidas ao cliente e são meramente informativas e uma analise que pode ser verificada dos custos adicionais e posteriormente ser inseridas nos valores dos serviços e peças.
+</Tab>
+</Tabs>
+
+---
+
+## Passo a Passo: Criando uma Ordem de Serviço
+
+Siga estas etapas para realizar um atendimento completo:
+
+<Steps>
+
+### Abertura e Identificação
+
+Vá em `Movimento &gt; Ordem de Serviço`. Clique em **Incluir**. Selecione o cliente e os dados do veículo (Placa, KM, Prisma).
+
+### Lançamento de Itens
+
+Na aba **Produto/Serviço**, inclua todas as peças que serão trocadas e os serviços que serão executados. Certifique-se de vincular o técnico correto a cada serviço.
+
+### Verificação de Margem
+
+Antes de passar o orçamento final, clique em **Análise** para garantir que os descontos aplicados não comprometeram a lucratividade da empresa.
+
+### Execução e Laudo
+
+Após a aprovação do cliente, preencha o **Laudo Técnico** com o que foi efetivamente realizado e as condições em que o veículo foi entregue.
+
+### Fechamento
+
+Com o serviço concluído, clique em **Processar OS** para finalizar a movimentação de estoque e enviar os dados para o módulo financeiro.
+</Steps>
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+<Accordion title="Posso alterar uma OS após clicar em Processar?">
+Não. Após o processamento, a OS é considerada fechada para garantir a integridade do estoque e financeiro. Caso precise de ajustes, será necessário realizar um estorno ou cancelamento, dependendo das permissões do usuário.
+</Accordion>
+<Accordion title="O que fazer se o cliente pagar metade no início?">
+Utilize o botão **Antecipar Recebimento**. Isso permite registrar o valor recebido como um adiantamento vinculado àquele cliente.
+</Accordion>
+<Accordion title="Como visualizar o histórico de um veículo?">
+Ao selecionar o veículo no cabeçalho, você pode consultar as OSs anteriores para verificar quais peças já foram trocadas e qual era a quilometragem na época.
+</Accordion>
+</Accordions>
+
+---
+
+<SuporteSection modulo="Ordem de Serviço" />  
+
+---
+
+
+
+
