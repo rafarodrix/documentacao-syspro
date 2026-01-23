@@ -54,7 +54,7 @@ const BankingExport = () => {
         };
 
         // --- 1. DADOS DA CONTA ---
-        let nextY = createFormTable("1. Dados da Conta", [
+        let nextY = createFormTable("Dados da Conta", [
             ['Banco', ''],
             ['Agência', ''],
             ['Dígito da Agência', ''],
@@ -65,7 +65,7 @@ const BankingExport = () => {
         ], 50);
 
         // --- 2. DADOS DO BOLETO ---
-        nextY = createFormTable("2. Dados Técnicos do Boleto", [
+        nextY = createFormTable("Dados Técnicos do Boleto", [
             ['Código do Cedente', ''],
             ['Código do Convênio', ''],
             ['Modalidade', ''],
@@ -74,13 +74,12 @@ const BankingExport = () => {
         ], nextY);
 
         // --- 3. INSTRUÇÕES E FAIXAS ---
-        nextY = createFormTable("3. Configurações e Instruções", [
+        nextY = createFormTable("Configurações e Instruções", [
             ['Taxa Juros ao Mês (%)', ''],
-            ['Taxa Multa ao Mês (%)', ''],
-            ['Envia para protesto?', '[ ] Não [ ] Sim [          ] dias'],
+            ['Taxa Multa (%)', ''],
+            ['Envia para protesto?', '[   ] Não [   ] Sim [          ] dias (Obs: Caso seja informado "Sim" é obrigatório informar o prazo em dias)'],
             ['Nosso Número (Início)/(Fim)', ''],
-            ['Layout Remessa', ' [ ] 240 [ ] 400 [ ] 444'],
-            ["Obs: O layout remessa 444 é exclusivo para inclusão da chave da NF-e no arquivo"],
+            ['Layout Remessa', ' [   ] 240 [   ] 400 [   ] 444 (Obs: O layout remessa 444 é exclusivo para inclusão da chave da NF-e no arquivo)'],
         ], nextY);
 
         // --- MENSAGEM FIXA ---
