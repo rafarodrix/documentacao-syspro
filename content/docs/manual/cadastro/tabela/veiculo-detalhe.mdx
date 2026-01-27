@@ -1,0 +1,82 @@
+---
+title: Detalhamento: Tipos de Veículo
+description: Lista completa e definições dos tipos de veículos disponíveis no Syspro ERP para classificação BIN/RENAVAM.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+## Introdução
+
+A seleção do **Tipo de Veículo** é fundamental para a integridade dos dados fiscais. Estes códigos são baseados na tabela oficial do DENATRAN e influenciam diretamente a validação do **MDF-e** e do **CT-e**. Alguns tipos possuem a observação "Não cadastrado na BIN", indicando que são veículos sem registro na Base Índice Nacional.
+
+<Callout type="info">
+**Dica Operacional:** A escolha correta do tipo evita rejeições por "Divergência entre Placa e Tipo de Veículo" na SEFAZ.
+</Callout>
+
+---
+
+## Classificação por Categoria
+
+Para facilitar a localização, agrupamos os tipos conforme sua aplicação no sistema:
+
+### Veículos de Carga e Tração
+São os principais tipos utilizados em operações logísticas:
+* **13-CAMIONETA:** Veículo misto destinado ao transporte de passageiros e carga no mesmo compartimento.
+* **14-CAMINHAO:** Veículo destinado ao transporte de carga (Tração).
+* **17-CAMINHAO TRATOR:** Veículo destinado a tracionar ou arrastar outro veículo (Cavalo Mecânico).
+* **23-CAMINHONETE:** Veículo destinado ao transporte de carga com PBT até 3.500kg.
+* **25-UTILITARIO:** Veículo misto destinado ao transporte de carga e passageiros.
+
+### Reboques e Semirreboques
+Utilizados para compor conjuntos transportadores:
+* **10-REBOQUE:** Veículo destinado a ser engatado atrás de um veículo de tração.
+* **11-SEMI-REBOQUE:** Veículo que se apoia na unidade de tração (engate na quinta roda).
+
+### Tratores e Máquinas
+* **18-TRATOR DE RODAS:** Destinado a obras ou tarefas agrícolas.
+* **19-TRATOR DE ESTEIRAS:** Destinado a terrenos irregulares e obras pesadas.
+* **20-TRATOR MISTO:** Combinação de rodas e esteiras.
+
+### Veículos Não Cadastrados na BIN
+Estes itens são para controle interno ou situações específicas onde não há registro nacional:
+* **01-BICICLETA**
+* **09-BONDE**
+* **12-CHARRETE**
+* **15-CARROCA**
+* **16-CARRO DE MAO**
+
+---
+
+## Tabela Completa de Códigos
+
+| Código | Descrição | Cadastro BIN |
+| :--- | :--- | :--- |
+| 02 | CICLOMOTOR | Sim |
+| 03 | MOTONETA | Sim |
+| 04 | MOTOCICLETA | Sim |
+| 05 | TRICICLO | Sim |
+| 06 | AUTOMOVEL | Sim |
+| 07 | MICROONIBUS | Sim |
+| 08 | ONIBUS | Sim |
+| 21 | QUADRICICLO | Sim |
+| 22 | CHASSI/PLATAFORMA | Sim |
+| 26 | MOTOR-CASA | Sim |
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+<Accordion title="Qual a diferença entre Caminhão (14) e Caminhão Trator (17)?">
+O **Caminhão (14)** possui carroceria fixa (baú, grade baixa) e transporta a carga em si mesmo. O **Caminhão Trator (17)** é o cavalo mecânico, projetado especificamente para tracionar semirreboques.
+</Accordion>
+
+<Accordion title="Por que alguns itens estão marcados como INATIVO?">
+Itens como o **24-SIDE-CAR** podem ser marcados como inativos quando a legislação vigente ou a versão do ERP não permite mais novos lançamentos para esse tipo específico de estrutura.
+</Accordion>
+</Accordions>
+
+---
+
+<SuporteSection modulo="Tabelas Auxiliares" />
