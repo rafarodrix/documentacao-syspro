@@ -31,7 +31,7 @@ Selecione a aba correspondente à tela do sistema para visualizar a finalidade d
 ### Identificação e Documentação Principal
 Campos essenciais para a existência legal do veículo no sistema e emissão de documentos fiscais.
 
-```
+
 | Campo | Descrição Detalhada e Impacto |
 | :--- | :--- |
 | **Placa** | Identificação única. Chave principal para vincular o veículo ao MDF-e e abertura de OS. |
@@ -45,7 +45,7 @@ Campos essenciais para a existência legal do veículo no sistema e emissão de 
 | **Tipo Restrição** | Informativo sobre alienações ou bloqueios judiciais que impedem a venda do ativo. |
 | **Proprietário** | Vincula o veículo a um Participante. Se for a própria empresa, habilita os controles de frota. |
 
-```
+
 
 </Tab>
 
@@ -53,7 +53,6 @@ Campos essenciais para a existência legal do veículo no sistema e emissão de 
 ### Especificações Técnicas de Propulsão
 Dados utilizados para gestão de performance e histórico de manutenção pesada.
 
-```
 | Campo | Descrição Detalhada e Impacto |
 | :--- | :--- |
 | **Número Motor** | Registro serial do bloco. Importante para controle de garantia e vistorias de transferência. |
@@ -61,7 +60,6 @@ Dados utilizados para gestão de performance e histórico de manutenção pesada
 | **Cilindrada** | Volume interno do motor (CC). Dado técnico para catalogação de peças e performance. |
 | **Tipo Combustível** | Define a matriz energética. **Vital:** Este campo indexa os lançamentos da aba inferior de Abastecimento para calcular o consumo médio ($km/l$). |
 
-```
 
 </Tab>
 
@@ -69,7 +67,6 @@ Dados utilizados para gestão de performance e histórico de manutenção pesada
 ### Pesos e Medidas (Crítico para MDF-e)
 O preenchimento incorreto aqui pode causar retenção do veículo em balanças rodoviárias.
 
-```
 | Campo | Descrição Detalhada e Impacto |
 | :--- | :--- |
 | **Peso Bruto (PBT)** | Peso máximo total permitido (Tara + Carga). É o limite legal que o veículo pode ter sobre o asfalto. |
@@ -77,7 +74,6 @@ O preenchimento incorreto aqui pode causar retenção do veículo em balanças r
 | **Peso Suportado** | Capacidade real de carga. O sistema usa este campo para validar se o peso das Notas Fiscais cabe no veículo. |
 | **Lotação** | Capacidade em volume ($m^3$) ou passageiros. Define o limite físico de ocupação do espaço. |
 
-```
 
 </Tab>
 
@@ -85,7 +81,7 @@ O preenchimento incorreto aqui pode causar retenção do veículo em balanças r
 ### Identificação Visual
 Dados para fins estéticos, de seguro e orçamentos de funilaria.
 
-```
+
 | Campo | Descrição Detalhada e Impacto |
 | :--- | :--- |
 | **Cor Veículo** | Cor predominante registrada no documento (CRV). |
@@ -93,15 +89,12 @@ Dados para fins estéticos, de seguro e orçamentos de funilaria.
 | **Descrição da Cor** | Nome comercial (Ex: "Azul Boreal"). Facilita a compra da tinta correta para reparos. |
 | **Código da Cor** | Código técnico da montadora. Garante a fidelidade da cor em repinturas. |
 
-```
-
 </Tab>
 
 <Tab value="Outros">
 ### Informações Complementares e Operacionais
 Campos de controle interno e especificações para logística avançada.
 
-```
 | Campo | Descrição Detalhada e Impacto |
 | :--- | :--- |
 | **Espécie Veículo** | Finalidade do veículo (Carga, Passageiro, Misto). |
@@ -111,8 +104,6 @@ Campos de controle interno e especificações para logística avançada.
 | **Identificação VIN** | Número de identificação internacional de 17 caracteres (Chassi moderno). |
 | **Frota** | Prefixo ou número de ordem interno da empresa (Ex: "Carro 50"). |
 | **Entre Eixos** | Distância técnica entre eixos. **Obrigatório para MDF-e**, pois define a classe de pedágio e pesagem. |
-
-```
 
 </Tab>
 </Tabs>
