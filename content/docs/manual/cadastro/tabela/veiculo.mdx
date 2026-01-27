@@ -37,7 +37,7 @@ Abaixo, detalhamos todos os campos divididos por suas respectivas abas superiore
       type: 'string',
     },
     Descricao: {
-      description: 'Nome amigável para identificação interna (ex: 'Caminhão de Entrega 01 - Baú').',
+      description: 'Nome amigável para identificação interna (ex: Caminhão de Entrega 01 - Bau).',
       type: 'string',
     },
     AnoFabricacao: {
@@ -79,15 +79,28 @@ Abaixo, detalhamos todos os campos divididos por suas respectivas abas superiore
   }}
 />
 
-
 ### 2. Aba Motor
 
-<Cards>
-<Card title="Nro Motor" description="Número de série gravado no bloco do motor. Importante para controle de garantia e substituição de peças." />
-<Card title="Potência" description="Potência do motor em Cavalos (CV) ou HP." />
-<Card title="Cilindrada" description="Capacidade volumétrica do motor (ex: 2000cc). Útil para cálculos de desempenho." />
-<Card title="Tipo Combustível" description="Define se o veículo utiliza Diesel, Gasolina, Flex ou Elétrico. Este campo orienta os lançamentos na aba inferior de Abastecimento." />
-</Cards>
+<TypeTable
+  type={{
+    NroMotor: {
+      description: 'Número de série gravado no bloco do motor. Importante para controle de garantia e substituição de peças.',
+      type: 'string',
+    },
+    Potencia: {
+      description: 'Potência do motor em Cavalos (CV) ou HP.',
+      type: 'number',
+    },
+    Cilindrada: {
+      description: 'Capacidade volumétrica do motor (ex: 2000cc). Útil para cálculos de desempenho.',
+      type: 'number',
+    },
+    TipoCombustivel: {
+      description: 'Define se o veículo utiliza Diesel, Gasolina, Flex ou Elétrico. Este campo orienta os lançamentos na aba inferior de Abastecimento.',
+      type: 'string',
+    },
+  }}
+/>
 
 ### 3. Aba Capacidade (Crítico para MDF-e)
 
