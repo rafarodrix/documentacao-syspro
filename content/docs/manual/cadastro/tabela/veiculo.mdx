@@ -7,6 +7,8 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Callout } from 'fumadocs-ui/components/callout';
 import SuporteSection from '@/components/docs/SuporteSection.tsx';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
 
 co (por exemplo, "Vendedores") e atribuí-lo a todos os colaboradores dessa função, garantindo padronização e agilidade.
 
@@ -24,19 +26,59 @@ Abaixo, detalhamos todos os campos divididos por suas respectivas abas superiore
 
 ### 1. Aba Dados (Identificação Legal)
 
-<Cards>
-<Card title="Placa (Obrigatório)" description="Identificação oficial do veículo. No Syspro, é a chave principal para localizar o veículo em qualquer operação (MDF-e ou OS)." />
-<Card title="Tipo Veículo" description="Classificação do veículo (ex: Caminhão, Trator, Reboque). Essencial para determinar o comportamento do veículo no Manifesto de Carga." />
-<Card title="Descrição" description="Nome amigável para identificação interna (ex: 'Caminhão de Entrega 01 - Baú')." />
-<Card title="Ano Fabricação / Ano Modelo" description="Informações cronológicas do veículo. O Ano do Modelo é frequentemente usado para precificação e seguros." />
-<Card title="Marca / Modelo" description="Referencia a fabricante (ex: Mercedes-Benz) e o modelo específico (ex: Accelo 1016). Utilize o botão [...] para buscar no cadastro de marcas." />
-<Card title="Tipo Carroceria" description="Define o tipo de baú ou carroceria (Sider, Aberta, Graneleira). Informação obrigatória para a validação do MDF-e." />
-<Card title="Categoria" description="Define se o veículo é Particular, Aluguel, Oficial, etc." />
-<Card title="Renavan" description="Registro Nacional de Veículos Automotores. Código único de 11 dígitos exigido para controle documental." />
-<Card title="Chassi" description="Número de série do quadro do veículo. Item de conferência obrigatória em vistorias e notas fiscais de transporte." />
-<Card title="Tipo Restrição" description="Indica se há alienação fiduciária, reserva de domínio ou outras restrições judiciais/administrativas." />
-<Card title="Proprietário" description="Vincula o veículo a um Participante (Pessoa Física ou Jurídica). Se o veículo for da empresa, selecione o próprio cadastro da empresa." />
-</Cards>
+<TypeTable
+  type={{
+    Placa: {
+      description: 'Identificação oficial do veículo. No Syspro, é a chave principal para localizar o veículo em qualquer operação (MDF-e ou OS).',
+      type: 'string',
+    },
+    TipoVeiculo: {
+      description: 'Classificação do veículo (ex: Caminhão, Trator, Reboque). Essencial para determinar o comportamento do veículo no Manifesto de Carga.',
+      type: 'string',
+    },
+    Descricao: {
+      description: 'Nome amigável para identificação interna (ex: 'Caminhão de Entrega 01 - Baú').',
+      type: 'string',
+    },
+    AnoFabricacao: {
+      description: 'Informações cronológicas do veículo. O Ano do Modelo é frequentemente usado para precificação e seguros.',
+      type: 'number',
+    },
+    AnoModelo: {
+      description: 'Informações cronológicas do veículo. O Ano do Modelo é frequentemente usado para precificação e seguros.',
+      type: 'number',
+    },
+    MarcaModelo: {
+      description: 'Referencia a fabricante (ex: Mercedes-Benz) e o modelo específico (ex: Accelo 1016). Utilize o botão [...] para buscar no cadastro de marcas.',
+      type: 'string',
+    },
+    TipoCarroceria: {
+      description: 'Define o tipo de baú ou carroceria (Sider, Aberta, Graneleira). Informação obrigatória para a validação do MDF-e.',
+      type: 'string',
+    },
+    Categoria: {
+      description: 'Define se o veículo é Particular, Aluguel, Oficial, etc.',
+      type: 'string',
+    },
+    Renavan: {
+      description: 'Registro Nacional de Veículos Automotores. Código único de 11 dígitos exigido para controle documental.',
+      type: 'string',
+    },
+    Chassi: {
+      description: 'Número de série do quadro do veículo. Item de conferência obrigatória em vistorias e notas fiscais de transporte.',
+      type: 'string',
+    },
+    TipoRestricao: {
+      description: 'Indica se há alienação fiduciária, reserva de domínio ou outras restrições judiciais/administrativas.',
+      type: 'string',
+    },
+    Proprietario: {
+      description: 'Vincula o veículo a um Participante (Pessoa Física ou Jurídica). Se o veículo for da empresa, selecione o próprio cadastro da empresa.',
+      type: 'string',
+    },
+  }}
+/>
+
 
 ### 2. Aba Motor
 
