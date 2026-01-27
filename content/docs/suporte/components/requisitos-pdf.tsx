@@ -23,12 +23,12 @@ export default function GeradorPdfRequisitos() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
     doc.setTextColor(...corPrimaria);
-    doc.text('Syspro ERP', 14, 20);
+    doc.text('Trilink Software', 14, 20);
     
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(...corSecundaria);
-    doc.text('Guia Oficial de Requisitos Mínimos e Infraestrutura', 14, 26);
+    doc.text('Guia Oficial de Requisitos Mínimos e Infraestrutura do Syspro ERP', 14, 26);
     doc.line(14, 30, pageWidth - 14, 30);
 
     // --- SEÇÃO 1: SERVIDORES ---
