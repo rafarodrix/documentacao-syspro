@@ -1,0 +1,132 @@
+---
+title: Cadastro de Veículo
+description: Entenda como cadastrar veículos no Syspro ERP.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+co (por exemplo, "Vendedores") e atribuí-lo a todos os colaboradores dessa função, garantindo padronização e agilidade.
+
+---
+
+## Introdução
+
+O **Cadastro de Veículos** no Syspro ERP é o repositório central de dados técnicos e legais de todos os veículos operados pela empresa, sejam eles próprios ou de terceiros. O preenchimento minucioso destes campos é crucial: dados como Placa, RNTRC e Pesos são validados pela SEFAZ na emissão do **MDF-e**, enquanto dados de motor e série são vitais para o histórico de manutenção em **Ordens de Serviço**.
+
+---
+
+## Dicionário de Campos (Detalhamento Completo)
+
+Abaixo, detalhamos todos os campos divididos por suas respectivas abas superiores.
+
+### 1. Aba Dados (Identificação Legal)
+
+<Cards>
+<Card title="Placa (Obrigatório)" description="Identificação oficial do veículo. No Syspro, é a chave principal para localizar o veículo em qualquer operação (MDF-e ou OS)." />
+<Card title="Tipo Veículo" description="Classificação do veículo (ex: Caminhão, Trator, Reboque). Essencial para determinar o comportamento do veículo no Manifesto de Carga." />
+<Card title="Descrição" description="Nome amigável para identificação interna (ex: 'Caminhão de Entrega 01 - Baú')." />
+<Card title="Ano Fabricação / Ano Modelo" description="Informações cronológicas do veículo. O Ano do Modelo é frequentemente usado para precificação e seguros." />
+<Card title="Marca / Modelo" description="Referencia a fabricante (ex: Mercedes-Benz) e o modelo específico (ex: Accelo 1016). Utilize o botão [...] para buscar no cadastro de marcas." />
+<Card title="Tipo Carroceria" description="Define o tipo de baú ou carroceria (Sider, Aberta, Graneleira). Informação obrigatória para a validação do MDF-e." />
+<Card title="Categoria" description="Define se o veículo é Particular, Aluguel, Oficial, etc." />
+<Card title="Renavan" description="Registro Nacional de Veículos Automotores. Código único de 11 dígitos exigido para controle documental." />
+<Card title="Chassi" description="Número de série do quadro do veículo. Item de conferência obrigatória em vistorias e notas fiscais de transporte." />
+<Card title="Tipo Restrição" description="Indica se há alienação fiduciária, reserva de domínio ou outras restrições judiciais/administrativas." />
+<Card title="Proprietário" description="Vincula o veículo a um Participante (Pessoa Física ou Jurídica). Se o veículo for da empresa, selecione o próprio cadastro da empresa." />
+</Cards>
+
+### 2. Aba Motor
+
+<Cards>
+<Card title="Nro Motor" description="Número de série gravado no bloco do motor. Importante para controle de garantia e substituição de peças." />
+<Card title="Potência" description="Potência do motor em Cavalos (CV) ou HP." />
+<Card title="Cilindrada" description="Capacidade volumétrica do motor (ex: 2000cc). Útil para cálculos de desempenho." />
+<Card title="Tipo Combustível" description="Define se o veículo utiliza Diesel, Gasolina, Flex ou Elétrico. Este campo orienta os lançamentos na aba inferior de Abastecimento." />
+</Cards>
+
+### 3. Aba Capacidade (Crítico para MDF-e)
+
+<Cards>
+<Card title="Peso Bruto (Obrigatório)" description="O Peso Bruto Total (PBT). É a soma do peso do veículo mais a sua capacidade de carga." />
+<Card title="Peso Líquido (Obrigatório)" description="Peso do veículo vazio (Tara)." />
+<Card title="Peso Suportado (Obrigatório)" description="A capacidade real de carga que o veículo pode transportar (PBT - Tara)." />
+<Card title="Lotação (Obrigatório)" description="Capacidade de carga em volume (m³) ou número máximo de passageiros, dependendo do tipo de veículo." />
+</Cards>
+
+### 4. Aba Cor
+
+<Cards>
+<Card title="Cor Veículo" description="Seleção da cor predominante conforme o documento (CRV)." />
+<Card title="Tipo de Pintura" description="Classificação técnica: Sólida, Metálica ou Perolizada." />
+<Card title="Descrição Cor" description="Nome comercial da cor dado pela montadora (ex: 'Branco Ártico')." />
+<Card title="Código Cor" description="Código técnico da tinta, essencial para reparos de funilaria na Ordem de Serviço." />
+</Cards>
+
+### 5. Aba Outros
+
+<Cards>
+<Card title="Espécie Veículo" description="Classificação do veículo quanto à sua finalidade (Carga, Passageiro, Misto)." />
+<Card title="Grupo CheckList" description="Vincula um roteiro de inspeção automática ao veículo para ser usado antes de viagens ou na entrada da oficina." />
+<Card title="Número Série" description="Identificação serial complementar de fábrica." />
+<Card title="Condição Veículo" description="Estado atual (Novo, Usado)." />
+<Card title="Identificação VIN" description="O número de identificação internacional (chassi moderno) de 17 caracteres." />
+<Card title="Frota" description="Número interno de identificação do veículo na empresa (ex: 'Veículo 50')." />
+<Card title="Entre Eixos (Obrigatório)" description="Medida técnica entre o centro das rodas dianteiras e traseiras. Campo obrigatório para conformidade de pesagem e legislação de trânsito." />
+</Cards>
+
+---
+
+## Lançamentos de Frota Própria (Abas Inferiores)
+
+Quando o veículo é de **frota própria**, as abas inferiores tornam-se o "diário de bordo":
+
+* **Abastecimento:** Registro de litros, preço e KM para cálculo de consumo médio ().
+* **Manutenção:** Histórico de peças trocadas e serviços realizados (vinculado às OS).
+* **Pneu:** Controle de movimentação de pneus, sulco e recapagens.
+* **Imposto/Seguro/Sinistro:** Gestão financeira de vencimentos de IPVA, apólices e registros de acidentes.
+
+---
+
+## Passo a Passo
+
+<Steps>
+
+### Acesso ao Cadastro
+
+Siga o menu: **Cadastro > Tabela > Veículo**.
+
+### Preenchimento Obrigatório
+
+Ao clicar em **Incluir**, foque primeiro nos campos com **asterisco vermelho (*)** nas abas Dados, Capacidade e Outros. Sem eles, o MDF-e será rejeitado.
+
+### Vínculo de Proprietário
+
+Se o veículo for agregado, busque o transportador no campo **Proprietário**. Se for próprio, selecione sua própria empresa para habilitar os controles de frota.
+
+### Finalização
+
+Clique em **Salvar**. Após salvar, as abas inferiores de lançamentos (Abastecimento, Óleo, etc.) serão habilitadas para edição.
+</Steps>
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+<Accordion title="Por que o sistema exige 'Entre Eixos' como obrigatório?">
+Esta é uma exigência técnica para veículos de carga que transitam em rodovias com balanças automáticas e para a correta classificação no Manifesto de Carga.
+</Accordion>
+<Accordion title="Posso cadastrar um veículo sem o número do motor?">
+Sim, o campo não é obrigatório para o sistema salvar, mas é altamente recomendável para veículos que passam por manutenções periódicas na oficina interna.
+</Accordion>
+<Accordion title="O que acontece se eu errar o Peso Bruto?">
+No momento da emissão do MDF-e, o sistema somará o peso das notas fiscais. Se o peso da carga for maior que a capacidade cadastrada, a SEFAZ ou o próprio ERP emitirá um alerta de excesso de carga.
+</Accordion>
+</Accordions>
+
+---
+
+<SuporteSection modulo="Veículo" />
