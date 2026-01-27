@@ -104,16 +104,20 @@ export default function GeradorPdfRequisitos() {
         </p>
       </div>
 
-      <button
+<button
         onClick={gerarPDF}
-        className="group flex items-center gap-2 rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-blue-600 active:scale-95"
+        className="group flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium transition-all active:scale-95
+          /* Estilo Light */
+          bg-slate-900 text-white hover:bg-slate-800
+          /* Estilo Dark */
+          dark:bg-blue-600 dark:text-white dark:hover:bg-blue-500 shadow-lg dark:shadow-blue-900/20"
       >
         <Download size={18} className="transition-transform group-hover:-translate-y-0.5" />
         Baixar PDF de Requisitos
       </button>
       
-      <span className="mt-3 text-[10px] uppercase tracking-wider text-slate-400 font-medium">
-        Formato PDF (A4) • Otimizado para Impressão
+      <span className="mt-4 text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500 font-bold">
+        PDF Otimizado para Impressão
       </span>
     </div>
   );
