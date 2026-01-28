@@ -1,9 +1,5 @@
   {
     "title": "Relatório",
     "description": "O módulo de Relatório gera análises detalhadas e relatórios personalizados, oferecendo insights valiosos para a tomada de decisão.",
-    "root": false,
-    "pages": [
-      "---Produto---",
-      "relatorios/produto/etiqueta-produto"
-    ]
+    "root": false
   }
