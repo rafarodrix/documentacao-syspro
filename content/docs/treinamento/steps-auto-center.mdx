@@ -1,5 +1,5 @@
 ---
-title: Passos Auto Center
+title: Guia de Gestão Auto Center
 description: Guia completo para Gestão de uma auto center no Syspro ERP.
 ---
 
@@ -7,37 +7,75 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Callout } from 'fumadocs-ui/components/callout';
 import SuporteSection from '@/components/docs/SuporteSection.tsx'
 import { YouTubeModal } from '@/components/docs/YouTubeModal';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Users, Car, Package, FileInput, ClipboardList, Receipt, Wallet, Calculator, PieChart } from 'lucide-react';
 
+## Ciclo de Gestão Auto Center
 
-## Guia de Operação: Ciclo de Gestão Auto Center
-
-Este guia foi estruturado para acompanhar o fluxo real do seu dia a dia, desde a chegada de uma peça no estoque até a análise dos lucros no final do mês.
-
-Para que sua gestão seja eficiente, dividimos o sistema em três pilares fundamentais:
+Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. Para uma navegação intuitiva, dividimos a jornada em três pilares estratégicos:
 
 ### 1. Alicerce (Cadastros Base)
+*A base sólida para que todos os processos subsequentes funcionem com precisão.*
 
-Antes de operar, precisamos das informações estruturadas. Aqui você prepara o terreno:
+<Cards>
+  <Card
+    icon={<Users className="text-blue-500" />}
+    title="Participantes"
+    description="Gestão centralizada de Clientes, Fornecedores e Colaboradores."
+  />
+  <Card
+    icon={<Car className="text-blue-500" />}
+    title="Veículos"
+    description="Histórico técnico completo e prontuário de cada automóvel."
+  />
+  <Card
+    icon={<Package className="text-blue-500" />}
+    title="Produtos e Serviços"
+    description="Catálogo de peças, precificação e serviços de mão de obra."
+  />
+</Cards>
 
-* **Participantes:** Cadastre quem faz o negócio girar (clientes, fornecedores e sua equipe).
-* **Veículos:** O histórico detalhado de cada carro que confia na sua oficina.
-* **Produtos e Serviços:** Sua tabela de preços e estoque organizada.
+### 2. Operação (Fluxo Diário)
+*Onde a execução acontece, gerando valor para o cliente e receita para a oficina.*
 
-### 2. Operação (O Dia a Dia)
-
-Onde o serviço acontece e o valor é gerado:
-
-* **Entrada de Notas:** Garanta que seu estoque esteja abastecido e seu custo controlado.
-* **Ordem de Serviço (OS):** O coração da oficina. Do diagnóstico do mecânico à aprovação do cliente.
-* **Emissão Fiscal (NF-e/NFS-e):** Formalize suas vendas com segurança e agilidade tributária.
+<Cards>
+  <Card
+    icon={<FileInput className="text-green-500" />}
+    title="Entrada de Notas"
+    description="Atualização automatizada de estoque e custos via XML."
+  />
+  <Card
+    icon={<ClipboardList className="text-green-500" />}
+    title="Ordem de Serviço"
+    description="Gestão do workflow: do diagnóstico à entrega das chaves."
+  />
+  <Card
+    icon={<Receipt className="text-green-500" />}
+    title="Emissão Fiscal"
+    description="Geração ágil de NF-e, NFC-e e NFS-e com total segurança."
+  />
+</Cards>
 
 ### 3. Gestão e Controle (Resultados)
+*Transformação de dados operacionais em decisões estratégicas e lucros.*
 
-Onde você olha para os números e planeja o crescimento:
-
-* **Gestão Financeira:** Controle total de contas a pagar, receber e fluxo de caixa.
-* **Fechamento de Caixa:** A segurança de que cada centavo do dia foi conferido.
-* **Relatórios:** Inteligência de dados para saber exatamente onde sua oficina é mais lucrativa.
+<Cards>
+  <Card
+    icon={<Wallet className="text-purple-500" />}
+    title="Gestão Financeira"
+    description="Controle rigoroso de fluxo de caixa e obrigações."
+  />
+  <Card
+    icon={<Calculator className="text-purple-500" />}
+    title="Fechamento de Caixa"
+    description="Auditoria diária de entradas, saídas e meios de pagamento."
+  />
+  <Card
+    icon={<PieChart className="text-purple-500" />}
+    title="Relatórios e BI"
+    description="Indicadores de performance e análise de rentabilidade real."
+  />
+</Cards>
 
 ---
 
@@ -54,7 +92,7 @@ Onde você olha para os números e planeja o crescimento:
   * **Colaboradores:** Vendedores, técnicos e atendentes.
   * **Parceiros:** Prestadores de serviço externos e transportadoras.
 
-  <Callout title="Dica de Ouro">
+  <Callout title="Dica">
     Ao cadastrar um cliente, certifique-se de preencher corretamente o CPF/CNPJ e o endereço. Esses dados são indispensáveis para a emissão da NF-e ou NFS-e após a conclusão da Ordem de Serviço.
   </Callout>
 
@@ -74,7 +112,7 @@ Onde você olha para os números e planeja o crescimento:
   * **Serviços:** Alinhamento, balanceamento, limpeza de bicos e a própria hora técnica do mecânico.
   * **Kits de Revisão:** Agrupamentos de produtos e serviços comuns (ex: Kit Troca de Óleo).
 
-  <Callout title="Dica de Ouro">
+  <Callout title="Dica">
   Ao cadastrar produtos, preencha sempre o NCM e a unidade de medida (UN, PAR, LT). Para serviços, verifique o código NBS correspondente. Essas informações garantem que sua Ordem de Serviço seja convertida em Nota Fiscal sem erros tributários.
   </Callout>
 
@@ -96,7 +134,7 @@ Onde você olha para os números e planeja o crescimento:
   * **Alimentação Financeira:** O lançamento gera automaticamente as parcelas no contas a pagar para o fornecedor.
   * **Importação de XML:** Agilidade para cadastrar produtos e quantidades diretamente do arquivo da nota fiscal.
 
-  <Callout title="Dica de Ouro">
+  <Callout title="Dica">
   Sempre utilize a importação via arquivo XML. Isso evita erros de digitação, garante que o NCM do produto venha correto do fornecedor e economiza um tempo precioso que seria gasto cadastrando item por item manualmente.
   </Callout>
 
@@ -117,7 +155,7 @@ Onde você olha para os números e planeja o crescimento:
   * **Informações Técnicas:** Número do Chassi, Renavam e tipo de motorização.
   * **Vínculo com Cliente:** A qual participante (proprietário ou frota) o veículo pertence.
 
-  <Callout title="Dica de Ouro">
+  <Callout title="Dica">
   Sempre preencha a placa e o modelo corretamente. O sistema utiliza a placa como chave principal para buscar o histórico de passagens do veículo, permitindo que o técnico saiba exatamente quando foi feita a última troca de óleo ou revisão, facilitando a rastreabilidade dos serviços prestados.
   </Callout>
 
@@ -139,7 +177,7 @@ Onde você olha para os números e planeja o crescimento:
   * **Acompanhamento:** Controle de prazos, técnicos responsáveis e o status de execução (pendente, em execução, finalizado).
   * **Fechamento Financeiro:** Aplicação de descontos, definição de formas de pagamento e emissão de comprovantes.
 
-  <Callout title="Dica de Ouro">
+  <Callout title="Dica">
   Utilize os campos **Problema Encontrado** e **Serviço Executado** com detalhes. Isso gera transparência para o cliente e serve como uma garantia técnica para a oficina.
   </Callout>
 
@@ -160,7 +198,7 @@ Onde você olha para os números e planeja o crescimento:
   * **NFC-e (Nota Fiscal do Consumidor):** Ideal para vendas rápidas de balcão e peças diretamente ao consumidor final.
   * **NFS-e (Nota Fiscal de Serviço):** Destinada exclusivamente para o registro da mão de obra prestada pelos seus técnicos.
 
-  <Callout title="Dica de Ouro">
+  <Callout title="Dica">
   Antes de emitir, verifique se o cadastro do cliente está completo e se o produto possui o NCM correto. O uso correto dessas notas evita bitributação e facilita a gestão do seu contador.
   </Callout>
 
@@ -171,7 +209,7 @@ Onde você olha para os números e planeja o crescimento:
 
   <Step>
 
-  ### 💰 Gestão Financeira
+  ### Gestão Financeira
 
   Este módulo é o painel de controle da saúde do seu negócio. Ele permite que você visualize com clareza todo o movimento financeiro, desde os pagamentos recebidos dos clientes até as obrigações com fornecedores e colaboradores.
 
@@ -181,7 +219,7 @@ Onde você olha para os números e planeja o crescimento:
   * **Contas a Pagar:** Registro de compras de peças, aluguel, energia e salários.
   * **Conciliação:** Confirmação de recebimentos de boletos e pagamentos para manter o saldo do sistema idêntico ao do banco.
 
-  <Callout title="Dica de Ouro">
+  <Callout title="Dica">
   Sempre realize a baixa das contas a receber vinculadas às Ordens de Serviço assim que o pagamento for confirmado. Isso mantém seu fluxo de caixa atualizado e evita cobranças indevidas de clientes que já pagaram, garantindo uma gestão profissional e transparente.
   </Callout>
 
@@ -203,7 +241,7 @@ Onde você olha para os números e planeja o crescimento:
   * **Suprimentos e Sangrias:** Registro de entradas extras (troco) ou retiradas de valores durante o expediente.
   * **Geração de Relatório:** Emissão do comprovante de fechamento para conferência administrativa.
 
-  <Callout title="Dica de Ouro">
+  <Callout title="Dica">
   Crie o hábito de realizar o fechamento diariamente. Isso facilita a identificação imediata de divergências e evita que erros de lançamento se acumulem, tornando a conciliação bancária muito mais rápida e segura no fim do mês.
   </Callout>
 
@@ -225,7 +263,7 @@ Onde você olha para os números e planeja o crescimento:
   * **Curva ABC de Estoque:** Identificação de quais peças não podem faltar e quais estão paradas no estoque.
   * **DRE e Resultados:** Demonstrativo financeiro para entender se a oficina teve lucro ou prejuízo no período.
 
-  <Callout title="Dica de Ouro">
+  <Callout title="Dica">
   Os relatórios são ferramentas poderosas para a gestão do seu negócio. Utilize-os para tomar decisões mais assertivas e melhorar a eficiência da sua oficina.
   </Callout>
 
