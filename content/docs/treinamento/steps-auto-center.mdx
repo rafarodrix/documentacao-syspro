@@ -10,72 +10,91 @@ import { YouTubeModal } from '@/components/docs/YouTubeModal';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Users, Car, Package, FileInput, ClipboardList, Receipt, Wallet, Calculator, PieChart } from 'lucide-react';
 
-## Ciclo de Gestão Auto Center
+Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. Abaixo, detalhamos os pilares estratégicos que compõem o ecossistema Syspro ERP.
 
-Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. Para uma navegação intuitiva, dividimos a jornada em três pilares estratégicos:
+---
 
-### Alicerce [Cadastros Base]
+### <Layers className="inline-block mr-2 mb-1 text-blue-500" /> Alicerce: Cadastros Base
 *A base sólida para que todos os processos subsequentes funcionem com precisão.*
 
-<Cards>
-  <Card
-    icon={<Users className="text-blue-500" />}
-    title="Participantes"
-    description="Gestão centralizada de Clientes, Fornecedores e Colaboradores."
-  />
-  <Card
-    icon={<Car className="text-blue-500" />}
-    title="Veículos"
-    description="Histórico técnico completo e prontuário de cada automóvel."
-  />
-  <Card
-    icon={<Package className="text-blue-500" />}
-    title="Produtos e Serviços"
-    description="Catálogo de peças, precificação e serviços de mão de obra."
-  />
-</Cards>
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-blue-600">
+      <Users size={20} /> Participantes
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Gestão centralizada de Clientes, Fornecedores e Colaboradores.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-blue-600">
+      <Car size={20} /> Veículos
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Histórico técnico completo e prontuário detalhado de cada automóvel.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-blue-600">
+      <Package size={20} /> Produtos e Serviços
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Catálogo de peças, precificação inteligente e serviços de mão de obra.</p>
+  </div>
+</div>
 
-### Operação [Fluxo Diário]
+---
+
+### <PlayCircle className="inline-block mr-2 mb-1 text-green-500" /> Operação: Fluxo Diário
 *Onde a execução acontece, gerando valor para o cliente e receita para a oficina.*
 
-<Cards>
-  <Card
-    icon={<FileInput className="text-green-500" />}
-    title="Entrada de Notas"
-    description="Atualização automatizada de estoque e custos via XML."
-  />
-  <Card
-    icon={<ClipboardList className="text-green-500" />}
-    title="Ordem de Serviço"
-    description="Gestão do workflow: do diagnóstico à entrega das chaves."
-  />
-  <Card
-    icon={<Receipt className="text-green-500" />}
-    title="Emissão Fiscal"
-    description="Geração ágil de NF-e, NFC-e e NFS-e com total segurança."
-  />
-</Cards>
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-green-600">
+      <FileInput size={20} /> Entrada de Notas
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Atualização automatizada de estoque e custos através da importação de XML.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-green-600">
+      <ClipboardList size={20} /> Ordem de Serviço
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Gestão completa do workflow: do diagnóstico à entrega final das chaves.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-green-600">
+      <Receipt size={20} /> Emissão Fiscal
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Geração ágil e segura de NF-e, NFC-e e NFS-e com conformidade legal.</p>
+  </div>
+</div>
 
-### Gestão e Controle [Resultados]
-*Transformação de dados operacionais em decisões estratégicas e lucros.*
+---
 
-<Cards>
-  <Card
-    icon={<Wallet className="text-purple-500" />}
-    title="Gestão Financeira"
-    description="Controle rigoroso de fluxo de caixa e obrigações."
-  />
-  <Card
-    icon={<Calculator className="text-purple-500" />}
-    title="Fechamento de Caixa"
-    description="Auditoria diária de entradas, saídas e meios de pagamento."
-  />
-  <Card
-    icon={<PieChart className="text-purple-500" />}
-    title="Relatórios e BI"
-    description="Indicadores de performance e análise de rentabilidade real."
-  />
-</Cards>
+### <BarChart className="inline-block mr-2 mb-1 text-purple-500" /> Gestão: Resultados
+*Transformação de dados operacionais em decisões estratégicas e lucratividade.*
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-purple-600">
+      <Wallet size={20} /> Gestão Financeira
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Controle rigoroso de fluxo de caixa, contas a pagar e recebíveis.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-purple-600">
+      <Calculator size={20} /> Fechamento de Caixa
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Auditoria diária de entradas, saídas e conferência de meios de pagamento.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-purple-600">
+      <PieChart size={20} /> Relatórios e BI
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Indicadores de performance e análise de rentabilidade real do negócio.</p>
+  </div>
+</div>
 
 ---
 
