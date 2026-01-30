@@ -227,31 +227,56 @@ Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. A
 
   <Step>
 
-    ### Gestão de Pedido de Venda
+  ### <ShoppingCart className="inline-block mr-2 mb-1 text-blue-500" /> Gestão de Pedido de Venda (Venda Direta)
 
-  Este é o coração da sua operação diária. É aqui que você centraliza as informações do cliente, do veículo e do técnico para gerenciar todo o ciclo de manutenção, desde a entrada na oficina até a entrega das chaves.
+  O módulo de Pedido de Venda é focado na agilidade do balcão. Diferente da OS, ele é ideal para vendas diretas de peças e produtos, onde o cliente não necessita de imobilização do veículo na oficina.
+  
+  ---
 
-  **O que você gerencia nesta etapa:**
+  #### O que você gerencia nesta etapa:
 
-  * **Abertura e Diagnóstico:** Registro do "problema apresentado" pelo cliente e o diagnóstico técnico do mecânico.
-  * **Orçamento:** Inclusão de peças e mão de obra com aprovação do cliente.
-  * **Acompanhamento:** Controle de prazos, técnicos responsáveis e o status de execução (pendente, em execução, finalizado).
-  * **Fechamento Financeiro:** Aplicação de descontos, definição de formas de pagamento e emissão de comprovantes.
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+    <div className="flex gap-3 p-4 border rounded-lg bg-slate-50/50">
+      <Package className="text-blue-600 shrink-0" size={24} />
+      <div>
+        <p className="font-semibold text-sm">Venda de Produtos</p>
+        <p className="text-xs text-muted-foreground">Registro rápido de itens, aplicação de tabelas de preço e reserva imediata de estoque.</p>
+      </div>
+    </div>
+    
+    <div className="flex gap-3 p-4 border rounded-lg bg-slate-50/50">
+      <Wallet className="text-green-600 shrink-0" size={24} />
+      <div>
+        <p className="font-semibold text-sm">Fechamento e Liquidação</p>
+        <p className="text-xs text-muted-foreground">Negociação de descontos, definição de parcelamentos e integração com o fluxo de caixa.</p>
+      </div>
+    </div>
+  </div>
 
-  <Callout title="Dica">
-  Utilize os campos **Problema Encontrado** e **Serviço Executado** com detalhes. Isso gera transparência para o cliente e serve como uma garantia técnica para a oficina.
+
+
+  #### Fluxo de Operação:
+
+  1. **Seleção de Itens:** Inclusão de produtos via código interno, SKU ou leitura de código de barras.
+  2. **Conferência de Disponibilidade:** O sistema alerta em tempo real se o saldo em estoque é suficiente para atender o pedido.
+  3. **Condição Comercial:** Definição de prazos, convênios ou descontos autorizados para o perfil do cliente.
+  4. **Finalização:** Geração do documento de conferência para o cliente e encaminhamento para faturamento (NFC-e ou NF-e).
+
+  <Callout type="info" title="Dica de Performance">
+    Mantenha o campo **Vendedor** sempre preenchido. Isso permite que você extraia relatórios de produtividade e comissões precisos ao final de cada período no módulo de Resultados.
   </Callout>
 
-  <YouTubeModal videoId="" thumbnailTitle="Gestão de Pedido de Venda" />
+  <YouTubeModal videoId="DZIcNeahpEY" thumbnailTitle="Gestão de Pedido de Venda: Rapidez no Balcão" />
 
   ---
-  </Step>
 
-  <Step>
+</Step>
 
-  ### Emissão de NF-e, NFC-e e NFS-e
+<Step>
 
-  Este módulo é responsável por transformar suas Ordens de Serviço finalizadas em documentos fiscais válidos. O sistema está preparado para lidar com a complexidade tributária de forma automatizada, garantindo que você esteja em dia com o fisco.
+### Emissão de NF-e, NFC-e e NFS-e
+
+Este módulo é responsável por transformar suas Ordens de Serviço finalizadas em documentos fiscais válidos. O sistema está preparado para lidar com a complexidade tributária de forma automatizada, garantindo que você esteja em dia com o fisco.
 
   **Os tipos de documentos que você emite aqui:**
 
