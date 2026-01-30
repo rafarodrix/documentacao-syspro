@@ -1,5 +1,3 @@
-// Componente para listar soluções dinâmicas baseado em um caminho de pasta
-
 import { Card } from 'fumadocs-ui/components/card';
 import { source } from '@/lib/source';
 
