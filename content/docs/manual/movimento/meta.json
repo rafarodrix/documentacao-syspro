@@ -1,9 +1,0 @@
-{
-  "title": "Movimento",
-  "description": "O módulo Movimento é responsável por registrar todas as transações e movimentações físicas de produtos dentro e fora da empresa.",
-  "root": false,
-  "pages": [
-    "---Ordem de Serviço---",
-    "ordem-servico/ordem-servico"
-  ]
-}
