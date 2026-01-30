@@ -42,26 +42,26 @@ Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. A
     <div className="flex items-center gap-2 font-semibold text-blue-600">
       <Car size={20} /> Veículos
     </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Histórico técnico completo e prontuário detalhado de cada automóvel.</p>
+    <p className="text-sm text-muted-foreground leading-relaxed">Gestão completa do cadastro de cada Veículo.</p>
   </div>
   
   <div className="flex flex-col gap-2">
     <div className="flex items-center gap-2 font-semibold text-blue-600">
       <Package size={20} /> Produtos e Serviços
     </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Catálogo de peças, precificação inteligente e serviços de mão de obra.</p>
+    <p className="text-sm text-muted-foreground leading-relaxed">Catálogo de peças e serviços.</p>
   </div>
 </div>
 
 ---
 
 ### <PlayCircle className="inline-block mr-2 mb-1 text-green-500" /> Operação: Fluxo Diário
-*Onde a execução acontece, gerando valor para o cliente e receita para a oficina.*
+*Onde a execução acontece, gerando valor para o cliente e receita para a empresa.*
 
 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
   <div className="flex flex-col gap-2">
     <div className="flex items-center gap-2 font-semibold text-green-600">
-      <FileInput size={20} /> Entrada de Notas
+      <FileInput size={20} /> Entrada de Nota Fiscal
     </div>
     <p className="text-sm text-muted-foreground leading-relaxed">Atualização automatizada de estoque e custos através da importação de XML.</p>
   </div>
@@ -70,14 +70,21 @@ Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. A
     <div className="flex items-center gap-2 font-semibold text-green-600">
       <ClipboardList size={20} /> Ordem de Serviço
     </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Gestão completa do workflow: do diagnóstico à entrega final das chaves.</p>
+    <p className="text-sm text-muted-foreground leading-relaxed">Gestão completa do diagnóstico à entrega do veículo.</p>
+  </div>
+
+    <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-green-600">
+      <ClipboardList size={20} /> Pedido de Venda
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Geração de pedido de venda para o cliente.</p>
   </div>
   
   <div className="flex flex-col gap-2">
     <div className="flex items-center gap-2 font-semibold text-green-600">
-      <Receipt size={20} /> Emissão Fiscal
+      <Receipt size={20} /> Emissão de Nota Fiscal
     </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Geração ágil e segura de NF-e, NFC-e e NFS-e com conformidade legal.</p>
+    <p className="text-sm text-muted-foreground leading-relaxed">Geração de NF-e, NFC-e e NFS-e com conformidade legal.</p>
   </div>
 </div>
 
@@ -103,7 +110,7 @@ Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. A
   
   <div className="flex flex-col gap-2">
     <div className="flex items-center gap-2 font-semibold text-purple-600">
-      <PieChart size={20} /> Relatórios e BI
+      <PieChart size={20} /> Relatórios
     </div>
     <p className="text-sm text-muted-foreground leading-relaxed">Indicadores de performance e análise de rentabilidade real do negócio.</p>
   </div>
@@ -205,7 +212,7 @@ Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. A
   **O que você gerencia nesta etapa:**
 
   * **Abertura e Diagnóstico:** Registro do "problema apresentado" pelo cliente e o diagnóstico técnico do mecânico.
-  * **Orçamentação:** Inclusão de peças e mão de obra com aprovação do cliente.
+  * **Orçamento:** Inclusão de peças e mão de obra com aprovação do cliente.
   * **Acompanhamento:** Controle de prazos, técnicos responsáveis e o status de execução (pendente, em execução, finalizado).
   * **Fechamento Financeiro:** Aplicação de descontos, definição de formas de pagamento e emissão de comprovantes.
 
@@ -214,6 +221,28 @@ Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. A
   </Callout>
 
   <YouTubeModal videoId="DZIcNeahpEY" thumbnailTitle="Gestão de Ordem de Serviço: Do Orçamento ao Fechamento" />
+
+  ---
+  </Step>
+
+  <Step>
+
+    ### Gestão de Pedido de Venda
+
+  Este é o coração da sua operação diária. É aqui que você centraliza as informações do cliente, do veículo e do técnico para gerenciar todo o ciclo de manutenção, desde a entrada na oficina até a entrega das chaves.
+
+  **O que você gerencia nesta etapa:**
+
+  * **Abertura e Diagnóstico:** Registro do "problema apresentado" pelo cliente e o diagnóstico técnico do mecânico.
+  * **Orçamento:** Inclusão de peças e mão de obra com aprovação do cliente.
+  * **Acompanhamento:** Controle de prazos, técnicos responsáveis e o status de execução (pendente, em execução, finalizado).
+  * **Fechamento Financeiro:** Aplicação de descontos, definição de formas de pagamento e emissão de comprovantes.
+
+  <Callout title="Dica">
+  Utilize os campos **Problema Encontrado** e **Serviço Executado** com detalhes. Isso gera transparência para o cliente e serve como uma garantia técnica para a oficina.
+  </Callout>
+
+  <YouTubeModal videoId="" thumbnailTitle="Gestão de Pedido de Venda" />
 
   ---
   </Step>
