@@ -1,5 +1,5 @@
 ---
-title: Passos Comercial
+title: Passo a Passo Comercial
 description: Guia completo para Gestão de uma empresa comercial no Syspro ERP.
 ---
 
@@ -126,10 +126,10 @@ Este guia foi projetado para espelhar o fluxo operacional real da sua empresa. A
     Ao cadastrar um cliente, certifique-se de preencher corretamente o CPF/CNPJ e o endereço. Esses dados são indispensáveis para a emissão da NF-e ou NFS-e após a conclusão da Ordem de Serviço.
   </Callout>
 
-  #### Cadastro de Cliente [Pessoa Física]
+  #### Cadastro [Pessoa Física]
   <YouTubeModal videoId="Dg7VzTPY0uE" thumbnailTitle="Cadastro de Cliente pessoa física" />
 
-  #### Cadastro de Cliente [Pessoa Jurídica]
+  #### Cadastro [Pessoa Jurídica]
   <YouTubeModal videoId="E54396oUlTo" thumbnailTitle="Cadastro de Cliente pessoa jurídica" />
   ---
   </Step>
@@ -179,37 +179,15 @@ Este guia foi projetado para espelhar o fluxo operacional real da sua empresa. A
 
   <Step>
 
-  ### <ShoppingCart className="inline-block mr-2 mb-1 text-blue-500" /> Gestão de Pedido de Venda (Venda Direta)
+  ### <ShoppingCart className="inline-block mr-2 mb-1 text-blue-500" /> Gestão de Pedido de Venda
 
   O módulo de Pedido de Venda é focado na agilidade do balcão. Diferente da OS, ele é ideal para vendas diretas de peças e produtos, onde o cliente não necessita de imobilização do veículo na oficina.
 
   ---
 
-  #### O que você gerencia nesta etapa:
-
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-    <div className="flex gap-3 p-4 border rounded-lg bg-slate-50/50">
-      <Package className="text-blue-600 shrink-0" size={24} />
-      <div>
-        <p className="font-semibold text-sm">Venda de Produtos</p>
-        <p className="text-xs text-muted-foreground">Registro rápido de itens, aplicação de tabelas de preço e reserva imediata de estoque.</p>
-      </div>
-    </div>
-    
-    <div className="flex gap-3 p-4 border rounded-lg bg-slate-50/50">
-      <Wallet className="text-green-600 shrink-0" size={24} />
-      <div>
-        <p className="font-semibold text-sm">Fechamento e Liquidação</p>
-        <p className="text-xs text-muted-foreground">Negociação de descontos, definição de parcelamentos e integração com o fluxo de caixa.</p>
-      </div>
-    </div>
-  </div>
-
-
-
   #### Fluxo de Operação:
 
-  1. **Seleção de Itens:** Inclusão de produtos via código interno, SKU ou leitura de código de barras.
+  1. **Seleção de Itens:** Inclusão de produtos via código interno, Descrição ou leitura de código de barras.
   2. **Conferência de Disponibilidade:** O sistema alerta em tempo real se o saldo em estoque é suficiente para atender o pedido.
   3. **Condição Comercial:** Definição de prazos, convênios ou descontos autorizados para o perfil do cliente.
   4. **Finalização:** Geração do documento de conferência para o cliente e encaminhamento para faturamento (NFC-e ou NF-e).
