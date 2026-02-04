@@ -1,9 +1,9 @@
 {
   "root": true,
   "title": "Treinamentos",
-  "description": "Guias e treinamento passo a passo para o Syspro ERP.",
+  "description": "Guias e treinamento para o Syspro ERP.",
   "pages": [
-    "---Passo a Passo---",
+    "---Primeiros Passos---",
     "steps-auto-center",
     "steps-comercial",
 
