@@ -1,0 +1,314 @@
+---
+title: Passos Comercial
+description: Guia completo para Gestão de uma empresa comercial no Syspro ERP.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import {
+  Users,
+  Car,
+  Package,
+  FileInput,
+  ClipboardList,
+  Wallet,
+  Calculator,
+  PieChart,
+  Layers,
+  PlayCircle,
+  BarChart3,
+  ShoppingCart,
+  Receipt,
+  FileText,
+  CreditCard,
+  User,
+  Input,
+} from 'lucide-react';
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+import { YouTubeModal } from '@/components/docs/YouTubeModal';
+
+
+Este guia foi projetado para espelhar o fluxo operacional real da sua empresa. Abaixo, detalhamos os pilares estratégicos que compõem o ecossistema Syspro ERP.
+
+---
+
+### <Layers className="inline-block mr-2 mb-1 text-blue-500" /> Alicerce: Cadastros Base
+*A base sólida para que todos os processos subsequentes funcionem com precisão.*
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-blue-600">
+      <Users size={20} /> Participantes
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Gestão centralizada de Clientes, Fornecedores e Colaboradores.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-blue-600">
+      <Package size={20} /> Produtos e Serviços
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Catálogo de peças e serviços.</p>
+  </div>
+</div>
+
+---
+
+### <PlayCircle className="inline-block mr-2 mb-1 text-green-500" /> Operação: Fluxo Diário
+*Onde a execução acontece, gerando valor para o cliente e receita para a empresa.*
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-green-600">
+      <FileInput size={20} /> Entrada de Nota Fiscal
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Atualização automatizada de estoque e custos através da importação de XML.</p>
+  </div>
+  
+    <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-green-600">
+      <ClipboardList size={20} /> Pedido de Venda
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Geração de pedido de venda para o cliente.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-green-600">
+      <Receipt size={20} /> Emissão de Nota Fiscal
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Geração de NF-e, NFC-e e NFS-e com conformidade legal.</p>
+  </div>
+</div>
+
+---
+
+### <BarChart3 className="inline-block mr-2 mb-1 text-purple-500" /> Gestão: Resultados
+*Transformação de dados operacionais em decisões estratégicas e lucratividade.*
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-purple-600">
+      <Wallet size={20} /> Gestão Financeira
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Controle rigoroso de fluxo de caixa, contas a pagar e recebíveis.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-purple-600">
+      <Calculator size={20} /> Fechamento de Caixa
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Auditoria diária de entradas, saídas e conferência de meios de pagamento.</p>
+  </div>
+  
+  <div className="flex flex-col gap-2">
+    <div className="flex items-center gap-2 font-semibold text-purple-600">
+      <PieChart size={20} /> Relatórios
+    </div>
+    <p className="text-sm text-muted-foreground leading-relaxed">Indicadores de performance e análise de rentabilidade real do negócio.</p>
+  </div>
+</div>
+
+---
+
+<Steps>
+
+  <Step>
+  ### <Users className="inline-block mr-2 mb-1 text-blue-500" /> Cadastro de Participantes
+  Este módulo é o coração do sistema, utilizado para registrar toda e qualquer pessoa **física ou jurídica** que interaja com o seu negócio.
+
+  **O que você pode cadastrar aqui:**
+
+  * **Clientes:** Proprietários de veículos e frotistas.
+  * **Fornecedores:** Empresas de autopeças e insumos.
+  * **Colaboradores:** Vendedores, técnicos e atendentes.
+  * **Parceiros:** Prestadores de serviço externos e transportadoras.
+
+  <Callout title="Dica">
+    Ao cadastrar um cliente, certifique-se de preencher corretamente o CPF/CNPJ e o endereço. Esses dados são indispensáveis para a emissão da NF-e ou NFS-e após a conclusão da Ordem de Serviço.
+  </Callout>
+
+  #### Cadastro de Cliente [Pessoa Física]
+  <YouTubeModal videoId="Dg7VzTPY0uE" thumbnailTitle="Cadastro de Cliente pessoa física" />
+
+  #### Cadastro de Cliente [Pessoa Jurídica]
+  <YouTubeModal videoId="E54396oUlTo" thumbnailTitle="Cadastro de Cliente pessoa jurídica" />
+  ---
+  </Step>
+
+  <Step>
+
+  ### <Package className="inline-block mr-2 mb-1 text-blue-500" /> Cadastro de Produtos e Serviços
+
+  Este módulo é onde você organiza o seu estoque e a sua tabela de preços. Ele permite separar claramente o que é **peça (produto)** do que é **mão de obra (serviço)**, facilitando a composição do orçamento na Ordem de Serviço.
+
+  **O que você pode cadastrar aqui:**
+
+  * **Produtos (Peças):** Amortecedores, pastilhas de freio, óleos, filtros e pneus.
+  * **Serviços:** Alinhamento, balanceamento, limpeza de bicos e a própria hora técnica do mecânico.
+  * **Kits de Revisão:** Agrupamentos de produtos e serviços comuns (ex: Kit Troca de Óleo).
+
+  <Callout title="Dica">
+  Ao cadastrar produtos, preencha sempre o NCM e a unidade de medida (UN, PAR, LT). Para serviços, verifique o código NBS correspondente. Essas informações garantem que sua Ordem de Serviço seja convertida em Nota Fiscal sem erros tributários.
+  </Callout>
+
+  <YouTubeModal videoId="aJAqC5tTm0A" thumbnailTitle="Gestão de Produtos e Serviços" />
+
+  ---
+  </Step>
+
+  <Step>
+
+  ### <FileInput className="inline-block mr-2 mb-1 text-blue-500" /> Entrada de Notas Fiscais
+
+  Este processo é fundamental para manter o sua empresa em dia. Ao dar entrada em uma nota de compra, o sistema automatiza duas tarefas críticas: atualiza instantaneamente o seu **estoque** e alimenta o seu **contas a pagar**.
+
+  **O que acontece nesta etapa:**
+
+  * **Atualização de Estoque:** As peças compradas (como óleos, filtros e pneus) entram no saldo disponível para venda.
+  * **Custo:** O sistema recalcula o custo das peças, ajudando você a manter sua margem de lucro atualizada.
+  * **Alimentação Financeira:** O lançamento gera automaticamente as parcelas no contas a pagar para o fornecedor.
+  * **Importação de XML:** Agilidade para cadastrar produtos e quantidades diretamente do arquivo da nota fiscal.
+
+  <Callout title="Dica">
+  Sempre utilize a importação via arquivo XML. Isso evita erros de digitação, garante que o NCM do produto venha correto do fornecedor e economiza um tempo precioso que seria gasto cadastrando item por item manualmente.
+  </Callout>
+
+  <YouTubeModal videoId="emtestes" thumbnailTitle="Entrada de Compras: Automatizando Estoque e Financeiro" />
+
+  ---
+  </Step>
+
+  <Step>
+
+  ### <ShoppingCart className="inline-block mr-2 mb-1 text-blue-500" /> Gestão de Pedido de Venda (Venda Direta)
+
+  O módulo de Pedido de Venda é focado na agilidade do balcão. Diferente da OS, ele é ideal para vendas diretas de peças e produtos, onde o cliente não necessita de imobilização do veículo na oficina.
+
+  ---
+
+  #### O que você gerencia nesta etapa:
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+    <div className="flex gap-3 p-4 border rounded-lg bg-slate-50/50">
+      <Package className="text-blue-600 shrink-0" size={24} />
+      <div>
+        <p className="font-semibold text-sm">Venda de Produtos</p>
+        <p className="text-xs text-muted-foreground">Registro rápido de itens, aplicação de tabelas de preço e reserva imediata de estoque.</p>
+      </div>
+    </div>
+    
+    <div className="flex gap-3 p-4 border rounded-lg bg-slate-50/50">
+      <Wallet className="text-green-600 shrink-0" size={24} />
+      <div>
+        <p className="font-semibold text-sm">Fechamento e Liquidação</p>
+        <p className="text-xs text-muted-foreground">Negociação de descontos, definição de parcelamentos e integração com o fluxo de caixa.</p>
+      </div>
+    </div>
+  </div>
+
+
+
+  #### Fluxo de Operação:
+
+  1. **Seleção de Itens:** Inclusão de produtos via código interno, SKU ou leitura de código de barras.
+  2. **Conferência de Disponibilidade:** O sistema alerta em tempo real se o saldo em estoque é suficiente para atender o pedido.
+  3. **Condição Comercial:** Definição de prazos, convênios ou descontos autorizados para o perfil do cliente.
+  4. **Finalização:** Geração do documento de conferência para o cliente e encaminhamento para faturamento (NFC-e ou NF-e).
+
+  <Callout type="info" title="Dica de Performance">
+    Mantenha o campo **Vendedor** sempre preenchido. Isso permite que você extraia relatórios de produtividade e comissões precisos ao final de cada período no módulo de Resultados.
+  </Callout>
+
+  <YouTubeModal videoId="DZIcNeahpEY" thumbnailTitle="Gestão de Pedido de Venda: Rapidez no Balcão" />
+
+  ---
+
+</Step>
+
+<Step>
+
+### <Receipt className="inline-block mr-2 mb-1 text-blue-500" /> Emissão de NF-e, NFC-e e NFS-e
+
+Este módulo é responsável por transformar suas Ordens de Serviço finalizadas em documentos fiscais válidos. O sistema está preparado para lidar com a complexidade tributária de forma automatizada, garantindo que você esteja em dia com o fisco.
+
+  **Os tipos de documentos que você emite aqui:**
+
+  * **NF-e (Nota Fiscal Eletrônica):** Utilizada para a venda de peças e produtos, geralmente para faturamento a prazo ou empresas.
+  * **NFC-e (Nota Fiscal do Consumidor):** Ideal para vendas rápidas de balcão e peças diretamente ao consumidor final.
+  * **NFS-e (Nota Fiscal de Serviço):** Destinada exclusivamente para o registro da mão de obra prestada pelos seus técnicos.
+
+  <Callout title="Dica">
+  Antes de emitir, verifique se o cadastro do cliente está completo e se o produto possui o NCM correto. O uso correto dessas notas evita bitributação e facilita a gestão do seu contador.
+  </Callout>
+
+  <YouTubeModal videoId="emtestes" thumbnailTitle="Emissão Fiscal: Como emitir notas de peças e serviços" />
+
+  ---
+  </Step>
+
+  <Step>
+
+  ### <Wallet className="inline-block mr-2 mb-1 text-blue-500" /> Gestão Financeira
+
+  Este módulo é o painel de controle da saúde do seu negócio. Ele permite que você visualize com clareza todo o movimento financeiro, desde os pagamentos recebidos dos clientes até as obrigações com fornecedores e colaboradores.
+
+  **O que você controla nesta etapa:**
+
+  * **Contas a Receber:** Gestão de faturamentos de Ordens de Serviço, boletos, cartões e parcelamentos.
+  * **Contas a Pagar:** Registro de compras de peças, aluguel, energia e salários.
+  * **Conciliação:** Confirmação de recebimentos de boletos e pagamentos para manter o saldo do sistema idêntico ao do banco.
+
+  <Callout title="Dica">
+  Sempre realize a baixa das contas a receber vinculadas às Ordens de Serviço assim que o pagamento for confirmado. Isso mantém seu fluxo de caixa atualizado e evita cobranças indevidas de clientes que já pagaram, garantindo uma gestão profissional e transparente.
+  </Callout>
+
+  <YouTubeModal videoId="emtestes" thumbnailTitle="Gestão Financeira: Controlando Contas a Pagar e Receber" />
+
+  ---
+  </Step>
+
+  <Step>
+
+  ### <CreditCard className="inline-block mr-2 mb-1 text-blue-500" /> Fechamento de Caixa
+
+  Este processo é a conferência final da sua operação diária ou por operador. O objetivo é validar se todos os valores recebidos em dinheiro, cartões e Pix conferem com os lançamentos realizados no sistema, garantindo que não haja furos ou erros de registro.
+
+  **O que você realiza nesta etapa:**
+
+  * **Conferência de Valores:** Comparação do saldo físico (dinheiro em caixa) com o saldo informado pelo sistema.
+  * **Resumo de Vendas:** Visualização do total faturado no dia, separado por forma de pagamento.
+  * **Suprimentos e Sangrias:** Registro de entradas extras (troco) ou retiradas de valores durante o expediente.
+  * **Geração de Relatório:** Emissão do comprovante de fechamento para conferência administrativa.
+
+  <Callout title="Dica">
+  Crie o hábito de realizar o fechamento diariamente. Isso facilita a identificação imediata de divergências e evita que erros de lançamento se acumulem, tornando a conciliação bancária muito mais rápida e segura no fim do mês.
+  </Callout>
+
+  <YouTubeModal videoId="emtestes" thumbnailTitle="Fechamento de Caixa" />
+
+  ---
+  </Step>
+
+  <Step>
+
+  ### <BarChart3 className="inline-block mr-2 mb-1 text-blue-500" /> Relatórios e Indicadores
+
+  Este módulo é onde os dados se transformam em decisões. Através dos relatórios, você consegue analisar o desempenho histórico da sua empresa, identificar gargalos e descobrir quais áreas estão gerando mais lucro para seu negócio.
+
+  **O que você pode extrair aqui:**
+
+  * **Relatórios de Vendas:** Visão detalhada de produtos mais vendidos e serviços mais realizados.
+  * **Desempenho por Técnico:** Análise de produtividade e comissões de cada mecânico.
+  * **Curva ABC de Estoque:** Identificação de quais peças não podem faltar e quais estão paradas no estoque.
+  * **DRE e Resultados:** Demonstrativo financeiro para entender se a oficina teve lucro ou prejuízo no período.
+
+  <Callout title="Dica">
+  Os relatórios são ferramentas poderosas para a gestão do seu negócio. Utilize-os para tomar decisões mais assertivas e melhorar a eficiência da sua oficina.
+  </Callout>
+
+  <YouTubeModal videoId="emtestes" thumbnailTitle="Relatórios Gerenciais: Como analisar os números do seu negócio" />
+
+  ---
+  </Step>
+</Steps>
+
+<SuporteSection />
