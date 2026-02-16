@@ -1,0 +1,30 @@
+{
+  "name": "@cadens/core",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./rbac": "./src/rbac.ts",
+    "./permissions": "./src/config/permissions.ts",
+    "./schemas/*": "./src/application/schemas/*.ts",
+    "./dto/*": "./src/application/dto/*.ts",
+    "./entities/*": "./src/domain/entities/*.ts",
+    "./interfaces/*": "./src/domain/interfaces/*.ts",
+    "./constants/*": "./src/constants/*.ts",
+    "./types/*": "./src/types/global/*.ts",
+    "./config/*": "./src/config/*.ts",
+    "./use-cases/*": "./src/application/use-cases/*.ts",
+    "./infrastructure/*": "./src/infrastructure/gateways/*.ts",
+    "./mappers/*": "./src/infrastructure/mappers/*.ts",
+    "./utils/*": "./src/shared/utils/*.ts"
+  },
+  "dependencies": {
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@cadens/config": "workspace:*",
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@cadens/config",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    "./typescript/base": "./typescript/base.json",
+    "./typescript/nextjs": "./typescript/nextjs.json",
+    "./typescript/library": "./typescript/library.json"
+  }
+}
