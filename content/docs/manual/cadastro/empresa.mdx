@@ -1,0 +1,196 @@
+---
+title: Empresa
+description: Este manual oferece uma visão abrangente dos campos e funcionalidades da tela de cadastro de empresa, facilitando a navegação e o uso do sistema.
+
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { CustomCard } from '@/components/CustomCard';
+import { Building, Package, Search, FileText, BarChart2, ShoppingCart, CreditCard, Truck, Folder, User, Wrench, AlertTriangle, Banknote, Percent, LayoutDashboard, Edit, Smartphone, List, Tag, Scale, Calendar, MessagesSquare, Phone, Mail } from 'lucide-react';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+O cadastro de empresas é essencial para o funcionamento do sistema, pois todas as operações dependem das informações registradas. Este manual visa apresentar as configurações básicas e necessárias para o funcionamento do sistema.
+
+> **Recomendação:**
+> Preencha todas as informações, incluindo aquelas que não são obrigatórias, pois algumas funcionalidades do sistema dependem de dados adicionais para operar corretamente.
+
+A seguir, apresentamos um guia detalhado para o cadastro de empresas, garantindo que todas as informações relevantes sejam incluídas, proporcionando um desempenho otimizado do sistema.
+
+### **Caminho**
+
+Acesse o caminho abaixo para adicionar um novo cadastro de empresa:
+
+`Cadastros > Empresa`
+
+### **Cadastro da Empresa**
+
+Nesta seção, é possível configurar os dados cadastrais da empresa no **Syspro ERP**.
+
+* **Código**: Código único da empresa.
+* **Empresa Participante**: Cadastro da empresa. `Deve estar previamente cadastrado no módulo de participantes.`
+* **Fantasia**, **CNPJ**, **Inscrição Estadual**, **Cód. Suframa**, **Inscrição Municipal**: carregados automaticamente do participante.
+* **Regime (CRT)**: Selecione entre **Simples Nacional**, **Simples c/ Excesso Sublimite**, **Regime Normal**.
+* **Empresa Matriz**: Informe se é matriz (mesmo cadastro) ou filial (informe a matriz).
+* **Participante Responsável** e **Contador**: Devem estar cadastrados no módulo de participantes.
+* **Logotipo**: Imagem da empresa para exibição em documentos.
+
+---
+
+### **Aba Emissão NFe**
+
+#### Inicialização de Números por Série
+
+Exemplo de configuração: `{55=[1=1213]}{65=[1=3633]}`
+
+#### Guia Certificado
+
+* Tipos: **Arquivo PFX** ou **Repositório Windows**
+* Campos: Número de Série, Senha
+
+#### Guia Email
+
+* **SMTP**, **Porta**, **Usuário**, **Senha**, **TLS**, **Confirmação de envio**
+
+#### Guia WebService
+
+* **Ambiente**, **Transmissão**, **CSC**, **Timeout**, **Proxy**, **Nota de Serviço**
+
+#### Guia DANFE
+
+* **Orientação**, **Código Impresso**, **Informações adicionais**, **Casas Decimais**
+
+#### Guia WinCrypt
+
+* **Caminho diretório RSA**: `C:\Users\NomeDoUsuario\AppData\Roaming\Microsoft\Crypto\RSA`
+
+---
+
+### **Aba Sped Fiscal**
+
+* **Perfil**, **Apuração**, **Leiaute**, **Atividade**, **Classificação IPI**
+
+---
+
+### **Aba PIS/COFINS**
+
+#### Guia Geral
+
+* **Forma Tributação**, **Natureza Jurídica**, **Cód. Incidência**, **Tipo Contribuição**, **Leiaute**, **DCTF PIS/COFINS**, **Atividade Preponderante**, **Método de Crédito**, **Critério Escrituração**, **Código Contribuição**
+
+#### Guia Controles
+
+* **Registro 0500/0600**, **Bloco P**, **Incidência Previdenciária**, **CNAE Principal**
+
+---
+
+### **Aba Títulos**
+
+* **% Desc. Juros**, **Multa**, **Desconto Máximo**, **Modelos Impressão (Extrato, Recibo, Duplicata)**, **Carência para Juros/Vencimento**
+
+---
+
+### **Aba Vendas**
+
+#### Guia Vendas
+
+* **Cliente Padrão**, **Conferência Automática**, **Duplicata**, **Crédito**, **Promoção**, **Bloqueio Produto Negativo**, **Autorização Reabertura**, **Caixa Cego**, **Sangria**, **Status Entregue**, **Taxa Entrega**, **Dias Status**, **Orçamento**, **Ajuste Entrega**, **Bloqueio Cliente**, **Dias Comissão**
+
+#### Guia Shipay
+
+* **Ambiente**, **Access Key**, **Secret Key**, **Client ID**
+
+#### Guia Stone - Connect
+
+* **ID Conta**, **Chave Secreta**, **Webhook**
+
+#### Guia Mensagens DAV
+
+* **Mensagem Devolução**, **Mensagem Garantia**
+
+---
+
+### **Aba Parâmetros da OS**
+
+* **Modelos (OS, Receita A4, Receita Timbrado)**, **Mensagens**, **Desconto Máximo**
+* **Controles**: **Quadro Comercial**, **Veículo**, **Placa/KM**, **Vendedor**, **Atendente**
+* **Política de Entrega**, **Garantia**
+
+---
+
+### **Aba Autorização XML**
+
+* Selecione o participante autorizado. O sistema gerará automaticamente a tag `autXML` ao emitir a nota.
+
+---
+
+### **Aba Outros**
+
+#### Guia Precificação
+
+Esta guia permite configurar como será feita a precificação de produtos no sistema. A escolha correta desses parâmetros afeta diretamente os preços de venda e as análises de margem de lucro.
+
+- **Tipo Precificação**: Escolha a metodologia utilizada para formação de preço:
+  - **Margem Líquida**
+  - **Margem Bruta**
+
+- **Custo Precificação**: Define qual custo será utilizado como base para a precificação:
+  - **Reposição**
+  - **Aquisição**
+
+- **Data Precificação**: Selecione se a data será atualizada automaticamente ao calcular preços:
+  - **Sim**
+  - **Não**
+
+- **Código Custo**: Informe um código de custo específico, se necessário.
+
+- **Venda Sugestão**: Define se o sistema deve sugerir preços de venda:
+  - **Sim**
+  - **Não**
+
+##### Sugestão Cadastro Produto
+
+- **Lucro Bruto Projetado (%)**: Percentual de margem bruta estimada sobre o custo.
+- **Lucro Líquido (%)**: Percentual líquido final projetado após impostos e despesas.
+
+##### Verificação de Lote
+
+- **Verifica Lote XML**: Se ativado, o sistema analisará os XMLs de entrada em busca de informações de lote. Caso detectado, marcará automaticamente o produto como controlado por lote.
+  - **Sim**
+  - **Não**
+
+---
+
+#### Guia Contabilização
+
+* **Tipo de contabilização**
+
+#### Guia Despesas Fixas
+
+* **INSS, CSLL, IR, ICMS**, **Alíquota**, **Crédito ICMS**
+
+#### Guia Curva ABCD
+
+* **Curva Produto e Cliente**: Percentuais A, B, C, D
+
+#### Guia Dígitos Código
+
+* **Número de Referência**, **EAN Consulta**
+
+#### Guia Outros
+
+* **Salário Mínimo**, **Alterar Títulos**, **Data Base**, **CPF/CNPJ obrigatório**
+
+#### Guia Nuvem Fiscal
+
+* **Client ID**, **Client Secret**
+
+#### Guia Romaneio
+
+* **Modelo Impressão Entrada**
+
+
+---
+
+<SuporteSection modulo="Syspro ERP" />
+
+---

@@ -1,0 +1,107 @@
+---
+title: Perfil de Acesso
+description: Entenda como configurar perfis de acesso para facilitar o controle de permissões no Syspro ERP.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+## Introdução
+
+O **Perfil de Acesso** é uma ferramenta essencial para agrupar permissões e restrições, simplificando a gestão de acessos para múltiplos usuários com funções semelhantes no Syspro ERP.
+
+Em vez de configurar cada usuário individualmente, você pode criar um perfil único (por exemplo, "Vendedores") e atribuí-lo a todos os colaboradores dessa função, garantindo padronização e agilidade.
+
+---
+
+## Passo a Passo: Criando um Perfil de Acesso
+
+<Steps>
+  <Step>
+    ### 1. Acesse a Tela de Perfis
+    No menu principal do Syspro, navegue até:
+    `Cadastro > Usuário > Perfil de Acesso`.
+  </Step>
+  <Step>
+    ### 2. Crie um Novo Perfil
+    Na tela de gerenciamento, clique no botão **Incluir** para abrir o formulário de um novo perfil.
+  </Step>
+  <Step>
+    ### 3. Descreva o Perfil
+    No campo **Descrição**, defina um nome que identifique claramente a função do perfil, como `Vendedores` ou `Financeiro`.
+  </Step>
+  <Step>
+    ### 4. Defina as Permissões
+    A tela de permissões é dividida em duas áreas principais: **Módulos** (à esquerda), onde você concede acesso a partes do sistema, e **Ações** (à direita), onde você define o que o usuário pode fazer nesses módulos.
+
+    <div className="my-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Coluna da Esquerda: Módulos */}
+      <div className="p-4 border rounded-lg">
+        <h4 className="font-semibold mb-2 text-green-600">Módulos</h4>
+        <p className="text-sm text-muted-foreground mb-4">Selecione os módulos que o perfil pode acessar.</p>
+        
+        **Compra**
+        - [x] Cotação
+        - [x] Digitação de Preço
+        - [ ] Pedido de Compra
+
+        **Comum**
+        - [x] Cadastro.Empresa
+        - [x] Cadastro.Participante.Participante
+        - [ ] Cadastro.Postal.Cidade
+      </div>
+      
+      {/* Coluna da Direita: Ações */}
+      <div className="p-4 border rounded-lg">
+        <h4 className="font-semibold mb-2 text-green-600">Ações</h4>
+        <p className="text-sm text-muted-foreground mb-4">Selecione as ações permitidas.</p>
+
+        - [x] Alterar Cadastro AO CONSUMIDOR
+        - [x] Alterar Limite de Crédito
+        - [x] Alterar Preço Especial
+        - [ ] Excluir
+        - [x] Incluir
+      </div>
+    </div>
+
+    <Callout type="warning" title="Atenção ao Conceder Permissões">
+    Seja criterioso ao liberar a ação de **Excluir**. Uma vez que um registro é removido, a recuperação pode ser complexa ou impossível.
+    </Callout>
+  </Step>
+  <Step>
+    ### 5. Salve o Perfil
+    Após revisar todas as configurações, clique em **Salvar**. O perfil estará pronto para ser vinculado aos usuários.
+  </Step>
+</Steps>
+
+---
+
+## Atribuindo o Perfil a um Usuário
+
+Com o perfil criado, o próximo passo é vinculá-lo a um usuário.
+
+1.  Acesse o menu: `Cadastro > Usuário > Usuário`.
+2.  Ao **incluir um novo usuário** ou **editar um existente**, localize o campo **"Perfil de Acesso"**.
+3.  Selecione na lista o perfil que você criou.
+4.  Clique em **Salvar**.
+
+O usuário herdará automaticamente todas as permissões do perfil.
+
+---
+
+## Dúvidas Frequentes
+
+<Accordions>
+  <Accordion title="O que fazer se um módulo não aparecer para mim?">
+    Entre em contato com o **administrador do sistema** ou com seu gestor. Eles poderão verificar as permissões do seu perfil de acesso.
+  </Accordion>
+  <Accordion title="Como posso solicitar acesso a uma nova funcionalidade?">
+    Converse com seu gestor para que ele possa avaliar a necessidade e encaminhar a solicitação ao administrador do sistema.
+  </Accordion>
+</Accordions>
+
+---
+
+<SuporteSection modulo="Perfil de Acesso" />

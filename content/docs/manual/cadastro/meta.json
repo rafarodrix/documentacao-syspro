@@ -1,0 +1,16 @@
+{
+  "title": "Cadastro",
+  "description": "The official content source",
+  "root": false,
+  "pages": [
+    "empresa",
+    "---Participante---",
+    "participante",
+    "---Tabela---",
+    "tabela/veiculo",
+    "---Usuário---",
+    "usuario",
+    "perfil-acesso"
+
+  ]
+}

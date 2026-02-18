@@ -1,0 +1,47 @@
+---
+id: "SCR-003"
+title: "Associar Produtos de uma Empresa para Outra em Lote"
+description: "Copia a associação de todos os produtos comerciais de uma empresa de origem para uma empresa de destino. Útil para replicar catálogos de produtos entre filiais ou empresas do mesmo grupo."
+category: "Produtos"
+author: "Analista do Sistema"
+createdAt: "2025-10-15"
+firebirdVersion: "5.0"
+tags:
+  - "produtos"
+  - "empresa"
+---
+
+```sql
+-- Script: Replicar associação de produtos entre empresas
+-- Objetivo: Copiar todos os vínculos da tabela 'produto_comercial_empresa' de uma
+--           empresa de origem para uma empresa de destino.
+-- Recomendação: Execute um backup completo ANTES de rodar este script.
+--
+-- Parâmetros:
+-- :ID_EMPRESA_ORIGEM   -> UUID da empresa cujas associações de produtos serão copiadas.
+--                         Ex: '{DA91E2A4-4828-4A1E-B94E-6A95B253198A}'
+-- :ID_EMPRESA_DESTINO  -> UUID da empresa que receberá as novas associações de produtos.
+--                         Ex: '{690EB5DE-A217-4FCE-9D87-3A118D841553}'
+
+INSERT INTO produto_comercial_empresa (
+    id_produto_comercial_empresa,
+    id_produto_comercial,
+    id_empresa,
+    ativo,
+    dt_alteracao,
+    hr_alteracao
+)
+SELECT
+    '{' || UUID_TO_CHAR(GEN_UUID()) || '}',
+    pce.id_produto_comercial,
+    :ID_EMPRESA_DESTINO,
+    pce.ativo,
+    CURRENT_DATE,
+    CURRENT_TIME
+FROM
+    produto_comercial_empresa pce
+WHERE
+    pce.id_empresa = :ID_EMPRESA_ORIGEM; -- <<< INFORME AQUI O ID DA EMPRESA DE ORIGEM
+
+COMMIT;
+```

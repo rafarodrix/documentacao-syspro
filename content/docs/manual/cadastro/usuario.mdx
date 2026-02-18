@@ -1,0 +1,82 @@
+---
+title: Cadastro de Usuário
+description: Um guia completo sobre os campos e funcionalidades da tela de cadastro de Usuário no Syspro ERP.
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+## Introdução
+
+A tela de **Cadastro de Usuário** é o centro de controle para a gestão de acessos ao Syspro ERP. É aqui que você define quem pode entrar no sistema, quais informações pode visualizar e que ações pode executar.
+
+Uma configuração cuidadosa nesta tela é fundamental para garantir a segurança dos dados da sua empresa e a eficiência operacional da sua equipe, atribuindo as permissões corretas para cada função.
+
+---
+
+## Passo a Passo: Cadastrando um Novo Usuário
+
+<Steps>
+  <Step>
+    ### 1. Acesse a Tela
+    No menu principal, navegue até: `Cadastro > Usuário > Usuário`.
+  </Step>
+  <Step>
+    ### 2. Defina as Credenciais
+    Clique no botão **Incluir** e preencha os campos de acesso principais:
+
+    - **Participante:** Vincule o login a um cadastro de pessoa (colaborador) no sistema. Esse vínculo é essencial para registros de auditoria.
+    - **Nome:** Define o 'login' de acesso do usuário. Recomenda-se usar um padrão, como 'nome.sobrenome', para facilitar a identificação.
+    - **Senha:** A credencial de acesso. O sistema pode exigir critérios de segurança para a senha, definidos pelo administrador.
+
+  </Step>
+  <Step>
+    ### 3. Configure os Acessos
+    Utilize as abas verticais para granular as permissões do usuário:
+
+    <Tabs items={['Perfil', 'Empresa', 'Contas Bancárias', 'Grupo Conta Caixa']}>
+      <Tab value="Perfil">
+        Selecione o **Perfil de Acesso** que define as permissões de tela para este usuário. Este é o vínculo mais importante para a segurança. Ex: `VENDEDORES`.
+      </Tab>
+      <Tab value="Empresa">
+        Vincule o usuário à empresa ou às filiais que ele poderá acessar. Se nenhuma for selecionada, ele não terá acesso a nenhuma.
+      </Tab>
+      <Tab value="Contas Bancárias">
+        Defina as contas bancárias que o usuário poderá movimentar. Se nenhuma for selecionada, ele terá acesso a **todas** as contas.
+      </Tab>
+      <Tab value="Grupo Conta Caixa">
+        Restrinja o acesso do usuário a um grupo específico de contas caixa, ideal para operadores de caixa de diferentes setores.
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step>
+    ### 4. Salve o Cadastro
+    Após preencher todas as informações, clique em **Salvar**. O usuário estará pronto para acessar o sistema.
+  </Step>
+</Steps>
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="O que fazer se um usuário esquecer a senha?">
+    O administrador do sistema pode acessar o cadastro do usuário, ir até o campo "Senha" e definir uma nova senha para que o usuário possa acessar o sistema.
+  </Accordion>
+  <Accordion title="Por que um usuário não consegue ver um menu ou relatório?">
+    Isso quase sempre está relacionado às permissões. Verifique o **Perfil de Acesso** vinculado ao usuário e garanta que ele tenha a permissão necessária para acessar a funcionalidade desejada.
+  </Accordion>
+  <Accordion title="Um usuário pode ter acesso a mais de uma empresa?">
+    Sim. Na aba **Empresa**, você pode selecionar todas as empresas e filiais às quais o usuário deve ter acesso.
+  </Accordion>
+  <Accordion title="Como bloquear o acesso de um usuário que foi desligado?">
+    A melhor prática é acessar o cadastro do usuário e fazer a **inativação**.
+  </Accordion>
+</Accordions>
+
+---
+
+<SuporteSection modulo="Cadastro de Usuário" />

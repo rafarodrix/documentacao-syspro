@@ -1,0 +1,160 @@
+---
+title: Cadastro de Veículo
+description: Gestão estratégica de frota própria e agregada para conformidade fiscal e operacional no Syspro ERP.
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+## Introdução
+
+O **Cadastro de Veículos** é o pilar para as operações de logística e manutenção do Syspro ERP. Ele não apenas armazena dados técnicos, mas serve como base para a autorização de documentos fiscais eletrônicos (**MDF-e**) e para a gestão de custos de **Frota Própria**.
+
+Um cadastro bem detalhado garante que a empresa evite multas por informações incorretas na SEFAZ e permite um controle preciso sobre a vida útil e rentabilidade de cada unidade móvel através de **Ordens de Serviço (OS)** e lançamentos de despesas.
+
+<Callout type="warn">
+**Atenção:** Dados de peso e eixos incorretos são as causas nº 1 de rejeição de MDF-e e multas em balanças rodoviárias.
+</Callout>
+
+---
+
+## Detalhamento dos Campos por Aba
+
+Selecione a aba correspondente à tela do sistema para visualizar a finalidade de cada campo:
+
+
+<Tabs items={['Dados', 'Motor', 'Capacidade', 'Cor', 'Outros']}>
+<Tab value="Dados">
+### Identificação e Documentação Principal
+Campos essenciais para a existência legal do veículo no sistema e emissão de documentos fiscais.
+
+
+| Campo | Descrição Detalhada e Impacto |
+| :--- | :--- |
+| **Placa** | Identificação única. Chave principal para vincular o veículo ao MDF-e e abertura de OS. |
+| **Tipo Veículo** | Define se é Tração (motorizado) ou Reboque (carreta). [Saiba os detalhes de tipo de veículo](/docs/manual/cadastro/tabela/veiculo-detalhe). | 
+| **Descrição** | Nome interno para identificação (Ex: "Caminhão 01 - Baú"). Facilita a busca em listas rápidas. |
+| **Ano Fab. / Modelo** | Dados cronológicos. O Ano Modelo é usado por seguradoras e para cálculos de depreciação. |
+| **Marca / Modelo** | Referência técnica do fabricante. Essencial para a compra correta de peças via Ordem de Serviço. |
+| **Tipo Carroceria** | Classificação obrigatória para o MDF-e (Sider, Grade Baixa, etc.). Define o tipo de carga permitido. |
+| **Categoria** | Define se o veículo é de Aluguel (comercial), Particular ou Oficial. |
+| **Renavam / Chassi** | Registros nacionais únicos. O Chassi é o "DNA" do veículo, validado em vistorias e fiscalizações. |
+| **Tipo Restrição** | Informativo sobre alienações ou bloqueios judiciais que impedem a venda do ativo. |
+| **Proprietário** | Vincula o veículo a um Participante. Se for a própria empresa, habilita os controles de frota. |
+
+
+
+</Tab>
+
+<Tab value="Motor">
+### Especificações Técnicas de Propulsão
+Dados utilizados para gestão de performance e histórico de manutenção pesada.
+
+| Campo | Descrição Detalhada e Impacto |
+| :--- | :--- |
+| **Número Motor** | Registro serial do bloco. Importante para controle de garantia e vistorias de transferência. |
+| **Potência** | Força do motor (CV/HP). Auxilia na classificação de capacidade de tração em subidas ou excesso de carga. |
+| **Cilindrada** | Volume interno do motor (CC). Dado técnico para catalogação de peças e performance. |
+| **Tipo Combustível** | Define a matriz energética. **Vital:** Este campo indexa os lançamentos da aba inferior de Abastecimento para calcular o consumo médio ($km/l$). |
+
+
+</Tab>
+
+<Tab value="Capacidade">
+### Pesos e Medidas (Crítico para MDF-e)
+O preenchimento incorreto aqui pode causar retenção do veículo em balanças rodoviárias.
+
+| Campo | Descrição Detalhada e Impacto |
+| :--- | :--- |
+| **Peso Bruto (PBT)** | Peso máximo total permitido (Tara + Carga). É o limite legal que o veículo pode ter sobre o asfalto. |
+| **Peso Líquido (Tara)** | Peso do veículo vazio. É o valor que será subtraído do PBT para encontrar a carga útil. |
+| **Peso Suportado** | Capacidade real de carga. O sistema usa este campo para validar se o peso das Notas Fiscais cabe no veículo. |
+| **Lotação** | Capacidade em volume ($m^3$) ou passageiros. Define o limite físico de ocupação do espaço. |
+
+
+</Tab>
+
+<Tab value="Cor">
+### Identificação Visual
+Dados para fins estéticos, de seguro e orçamentos de funilaria.
+
+
+| Campo | Descrição Detalhada e Impacto |
+| :--- | :--- |
+| **Cor Veículo** | Cor predominante registrada no documento (CRV). |
+| **Tipo de Pintura** | Classifica como Sólida, Metálica ou Perolizada. Altera o custo de orçamentos em OS de sinistros. |
+| **Descrição da Cor** | Nome comercial (Ex: "Azul Boreal"). Facilita a compra da tinta correta para reparos. |
+| **Código da Cor** | Código técnico da montadora. Garante a fidelidade da cor em repinturas. |
+
+</Tab>
+
+<Tab value="Outros">
+### Informações Complementares e Operacionais
+Campos de controle interno e especificações para logística avançada.
+
+| Campo | Descrição Detalhada e Impacto |
+| :--- | :--- |
+| **Espécie Veículo** | Finalidade do veículo (Carga, Passageiro, Misto). |
+| **Grupo CheckList** | Vincula um roteiro de inspeção. Ao sair com o veículo, o motorista deverá seguir este checklist. |
+| **Número Série** | Identificação complementar de fábrica do implemento ou chassi. |
+| **Condição Veículo** | Estado de conservação (Novo ou Usado). |
+| **Identificação VIN** | Número de identificação internacional de 17 caracteres (Chassi moderno). |
+| **Frota** | Prefixo ou número de ordem interno da empresa (Ex: "Carro 50"). |
+| **Entre Eixos** | Distância técnica entre eixos. **Obrigatório para MDF-e**, pois define a classe de pedágio e pesagem. |
+
+</Tab>
+</Tabs>
+
+---
+
+## Fluxo Operacional
+
+```text
+[Cadastro] -> [Definição de Propriedade] -> [Operação (MDF-e/OS)] -> [Gestão de Custos (Abas Inferiores)]
+
+```
+
+### Passo a Passo para Cadastro
+
+<Steps>
+<Step title="Acesso ao Módulo">
+Navegue até `Menu &gt; Cadastro &gt; Tabela &gt; Veículo` e clique em **Incluir**.
+</Step>
+
+<Step title="Dados Fiscais Obrigatórios">
+Preencha a aba **Dados** (Placa, Renavam, Chassi) e a aba **Capacidade** (Pesos). Sem estes, o veículo não poderá ser utilizado em MDF-e.
+</Step>
+
+<Step title="Configuração de Frota Própria">
+Se o veículo pertencer à empresa, selecione-a no campo **Proprietário**. Isso habilita a inteligência de dados para as abas inferiores (Abastecimento, Manutenção, Óleo, etc).
+</Step>
+
+<Step title="Validação de Eixos">
+Na aba **Outros**, certifique-se de preencher o campo **Entre Eixos**. Esta informação é validada no momento da emissão do manifesto de carga.
+</Step>
+</Steps>
+
+---
+
+## Perguntas Frequentes (FAQ)
+
+<Accordions>
+<Accordion title="Onde lanço as trocas de óleo e pneus?">
+Nas **Abas Inferiores** da tela de cadastro. Estes lançamentos são habilitados assim que o veículo é salvo. Eles servem exclusivamente para o controle de custos e preventivas da frota própria da empresa.
+</Accordion>
+
+<Accordion title="Como o sistema sabe se o veículo é Tração ou Reboque?">
+Através do campo **Tipo Veículo** na aba Dados. Isso é crucial para o MDF-e, pois o sistema agrupa as placas de acordo com essa função no transporte.
+</Accordion>
+
+<Accordion title="Posso usar o mesmo veículo em uma OS e em um MDF-e simultaneamente?">
+Sim. O cadastro é único. Enquanto o setor de logística usa a placa para o transporte, o setor de oficina pode usar a mesma placa para registrar manutenções preventivas ou corretivas.
+</Accordion>
+</Accordions>
+
+---
+
+<SuporteSection modulo="Cadastro de Veículos" />

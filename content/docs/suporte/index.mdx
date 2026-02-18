@@ -1,0 +1,104 @@
+---
+title: Central de Suporte Syspro
+description: Ferramentas, calculadoras e guias para auxiliar no dia a dia da sua operação e resolver problemas complexos.
+full: true
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Callout } from "fumadocs-ui/components/callout";
+import { CustomCard } from "@/components/CustomCard";
+import {
+  FileCode,
+  Printer,
+  ShieldQuestion,
+  Calculator,
+  Target,
+  DollarSign,
+  BookOpen,
+  Rocket,
+  Server,
+  Network,
+} from "lucide-react";
+import SuporteSection from "@/components/docs/SuporteSection.tsx";
+
+Esta seção foi criada para oferecer soluções rápidas para os desafios do dia a dia. Use nossas ferramentas para diagnosticar problemas, planejar com precisão e consulte nossos guias para dominar o sistema.
+
+---
+
+### Ferramentas de Diagnóstico
+
+Use estas ferramentas para validar dados, analisar arquivos e resolver problemas rapidamente.
+
+<Cards>
+  <CustomCard
+    title="Decodificador de Rejeições (NF-e)"
+    href="/docs/suporte/decodificador-rejeicoes"
+    icon={<ShieldQuestion />}
+  >
+    Traduza códigos de rejeição da SEFAZ em explicações claras e checklists
+    práticos para resolver o problema na hora.
+  </CustomCard>
+  <CustomCard
+    title="Analisador de XML de NF-e"
+    href="/docs/suporte/analisador-xml"
+    icon={<FileCode />}
+  >
+    Faça o upload de um arquivo XML de Nota Fiscal para extrair e visualizar
+    todas as informações de forma organizada e legível.
+  </CustomCard>
+  <CustomCard
+    title="Visualizador Rápido de DANFE"
+    href="/docs/suporte/visualizador-danfe"
+    icon={<Printer />}
+  >
+    Cole a chave de acesso de 44 dígitos de uma NF-e para gerar e visualizar uma
+    representação simplificada da DANFE.
+  </CustomCard>
+</Cards>
+
+### Documentação e Guias
+
+Consulte nossos manuais e documentos de referência para obter respostas detalhadas sobre processos, requisitos e novidades do sistema.
+
+<Cards>
+  <CustomCard
+    title="Guia do Suporte"
+    href="/docs/suporte/sobre-suporte"
+    icon={<BookOpen />}
+  >
+    Entenda nossos canais de atendimento, horários e como abrir um chamado de
+    forma eficaz para uma resolução ágil.
+  </CustomCard>
+  <CustomCard
+    title="Parametrizações"
+    href="/docs/suporte/parametrizacoes"
+    icon={<parametrizacoes />}
+  >
+    Acesse a seção de parametrizações para configurar o sistema de acordo com as
+    necessidades da sua empresa.
+  </CustomCard>
+  <CustomCard
+    title="Requisitos Mínimos"
+    href="/docs/suporte/requisitos"
+    icon={<Server />}
+  >
+    Verifique os requisitos de sistema e ambiente necessários para garantir a
+    melhor performance do ERP.
+  </CustomCard>
+  <CustomCard
+    title="Ambientes (Homologação e Produção)"
+    href="/docs/suporte/homologcao-producao"
+    icon={<Network />}
+  >
+    Entenda a diferença entre os ambientes de teste e de produção e como
+    utilizá-los corretamente.
+  </CustomCard>
+</Cards>
+
+<Callout title="Precisa de uma ferramenta específica?">
+  Se você tem uma necessidade que ainda não atendemos ou uma sugestão para uma
+  nova calculadora, não hesite em entrar em contato com nossa equipe de suporte.
+  Estamos sempre buscando novas formas de facilitar o seu trabalho!
+</Callout>
+
+<SuporteSection modulo="Ferramentas" />

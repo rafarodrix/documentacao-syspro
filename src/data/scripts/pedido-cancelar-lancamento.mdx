@@ -1,0 +1,34 @@
+---
+id: "SCR-006"
+title: "Cancelar Pedidos Antigos com Status 'Lançando'"
+description: "Atualiza o status para 'CANCELADO' e inativa pedidos antigos que ficaram travados no status 'LANCANDO', com número 0 e data de venda anterior à data atual. ATENÇÃO: É obrigatório realizar um backup completo da base de dados antes da execução e validar o impacto em um ambiente de homologação."
+category: "Vendas"
+author: "Analista do Sistema"
+createdAt: "2025-10-16"
+firebirdVersion: "5.0"
+tags:
+  - "pedidos"
+  - "cancelamento"
+  - "limpeza"
+---
+
+```sql
+-- Script: Cancelamento de Pedidos Antigos em Lançamento
+-- Objetivo: Inativar e cancelar pedidos que não foram finalizados (número 0, status 'LANCANDO') 
+--           e que são anteriores a 16/10/2025, visando a limpeza da base de dados.
+-- Parâmetros: Não há parâmetros. O script utiliza uma data de corte fixa ('2025-10-16'). 
+--             Se necessário, ajuste a data no final da cláusula WHERE.
+-- Recomendação: Execute backup completo antes de rodar este script. Teste previamente 
+--               em um ambiente de homologação para garantir o resultado esperado.
+
+UPDATE pedido AS ped
+SET ped.status = 'CANCELADO',
+    ped.ativo = '0'
+WHERE ped.numero = 0
+  AND ped.ativo = 1
+  AND ped.status = 'LANCANDO'
+  AND ped.dt_venda < '2025-10-16'; -- <<< INFORME AQUI A DATA DO DIA
+>>
+
+COMMIT;
+```

@@ -1,0 +1,103 @@
+---
+title: "Detalhamento: Atributos Técnicos do Veículo"
+description: "Guia completo de opções e classificações para campos de seleção (dropdown) no cadastro de veículos do Syspro ERP."
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+## Introdução
+
+Para garantir a conformidade com a Base Índice Nacional (BIN) e a correta emissão de documentos fiscais, o Syspro ERP utiliza tabelas padronizadas em seus campos de seleção. Este guia detalha as opções disponíveis em cada menu suspenso, auxiliando o usuário na classificação precisa do ativo.
+
+<Callout type="info">
+**Dica Operacional:** A classificação correta da Categoria e do Tipo de Carroceria é cruzada pela SEFAZ com os dados do RNTRC do transportador.
+</Callout>
+
+---
+
+## Dicionário de Opções por Campo
+
+Selecione a característica que deseja detalhar:
+
+<Tabs items={['Classificação Legal', 'Carroceria e Restrição', 'Motorização', 'Especificações']}>
+  <Tab value="Classificação Legal">
+    ### Categoria e Espécie
+    Define o propósito de uso e a natureza do veículo.
+
+    | Campo | Opções Disponíveis | Finalidade |
+    | :--- | :--- | :--- |
+    | **Categoria** | 01-Particular<br />02-Aluguel<br />05-Aprendizagem | Define se o veículo é para uso privado, transporte remunerado ou autoescola. |
+    | **Espécie** | 01-Passageiro<br />02-Carga<br />03-Misto<br />04-Corrida<br />05-Tração<br />06-Especial<br />07-Coleção | Classifica o veículo de acordo com sua função estrutural primária. |
+  </Tab>
+
+  <Tab value="Carroceria e Restrição">
+    ### Estrutura e Situação Jurídica
+    Dados fundamentais para a logística e controle de ativos.
+
+    | Campo | Opções Frequentes | Impacto Operacional |
+    | :--- | :--- | :--- |
+    | **Tipo Carroceria** | 101-Ambulância<br />102-Basculante<br />108-C. Fechada (Baú)<br />112-Furgão<br />122-Trailer | Define a compatibilidade com o Manifesto de Carga (MDF-e). |
+    | **Tipo Restrição** | 0-Não há<br />1-Alienação Fiduciária<br />2-Arrendamento Mercantil<br />3-Reserva de Domínio<br />4-Penhor de Veículos | Indica se o veículo possui gravames ou impedimentos legais para venda. |
+  </Tab>
+
+  <Tab value="Motorização">
+    ### Tipo de Combustível
+    A escolha correta aqui é vital para o cálculo de consumo nas abas de abastecimento.
+
+    | Código | Tipo de Combustível | Observação |
+    | :--- | :--- | :--- |
+    | 01 / 02 | Álcool / Gasolina | Motores de ignição por centelha. |
+    | 03 | Diesel | Principal combustível para veículos de carga (Tração). |
+    | 06 / 07 | Elétrico (Fonte Interna/Externa) | Veículos com propulsão elétrica pura. |
+    | 16 / 19 | Flex (Álcool/Gasolina) | Permite o registro de abastecimentos mistos. |
+    | 20 | Gás Natural / Liquefeito | Veículos convertidos ou originais a gás. |
+  </Tab>
+
+  <Tab value="Especificações">
+    ### Condição e Identificação VIN
+    Campos de controle técnico e estado do bem.
+
+    | Campo | Opções | Descrição |
+    | :--- | :--- | :--- |
+    | **Condição** | Acabado<br />Inacabado<br />Semi-Acabado | Define se o veículo está pronto para uso ou em fase de montagem/implementação. |
+    | **Identificação VIN** | Normal<br />Remarcado | Indica se o número do chassi é original de fábrica ou se passou por remarcação legal. |
+  </Tab>
+</Tabs>
+
+---
+
+## Tabela de Tipos de Veículo (BIN/RENAVAM)
+
+Conforme a padronização DENATRAN, utilize os códigos abaixo para o campo **Tipo Veículo**:
+
+| Grupo | Códigos e Descrições | Registro BIN |
+| :--- | :--- | :--- |
+| **Carga/Tração** | 14-Caminhão, 17-Caminhão Trator, 23-Caminhonete | Sim |
+| **Passageiros** | 06-Automóvel, 07-Microônibus, 08-Ônibus | Sim |
+| **Reboques** | 10-Reboque, 11-Semi-Reboque | Sim |
+| **Não Motorizados** | 01-Bicicleta, 12-Charrete, 15-Carroça | Não |
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+<Accordion title="O que significa 'Não cadastrado na BIN' no Tipo de Veículo?">
+Significa que o veículo (como bicicletas ou carroças) não possui registro na Base Índice Nacional de veículos automotores, sendo usado apenas para controle interno ou logístico simples.
+</Accordion>
+
+<Accordion title="Quando devo marcar o VIN como 'Remarcado'?">
+Apenas quando o veículo tiver passado por processo de regravação de chassi autorizado pelo DETRAN, geralmente após roubo/furto com dano ao chassi original ou corrosão severa.
+</Accordion>
+
+<Accordion title="O campo 'Tipo de Restrição' bloqueia o uso do veículo no sistema?">
+Não. Ele tem caráter informativo para que o gestor de frota saiba que o veículo está vinculado a um contrato de financiamento ou penhor.
+</Accordion>
+</Accordions>
+
+---
+
+<SuporteSection modulo="Tabelas de Apoio - Veículos" />

@@ -1,0 +1,129 @@
+---
+title: Precificação de Produtos
+description: Aprenda a configurar e utilizar o módulo de precificação do Syspro ERP para garantir preços competitivos e lucrativos.
+---
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { File, Files } from 'fumadocs-ui/components/files';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+import { Settings, Percent, PackageSearch, Calendar, Lock, TrendingUp, Info } from "lucide-react";
+
+
+## Introdução
+
+A precificação é um dos pilares mais críticos para a saúde financeira de qualquer empresa. Definir o preço de venda de um produto vai muito além de simplesmente adicionar uma porcentagem sobre o custo; é um processo estratégico que garante a cobertura de todos os custos (fixos e variáveis), o pagamento de impostos e, fundamentalmente, a geração de lucro.
+
+O módulo de Precificação do Syspro ERP foi desenhado para automatizar e padronizar esse processo. Ele permite que a empresa defina regras claras de cálculo, garantindo que cada venda contribua positivamente para os resultados. Configurar essa funcionalidade corretamente é o primeiro passo para assegurar a rentabilidade e a competitividade do seu negócio.
+
+## Como Precificar no Syspro
+
+Existem duas maneiras principais de aplicar as regras de precificação no dia a dia.
+
+<Steps>
+  <Step>
+
+  ## <Settings className="inline w-5 h-5 text-primary mb-1" /> Configure as Regras Globais de Precificação
+
+  Nesta seção, você define a base de como os preços são calculados em todo o sistema. Estas regras garantem consistência e automatizam a **formação do preço de venda**, a **sugestão de preços** e a **atualização de custos**.
+  - Acesse `Cadastro > Empresa` edite a empresa que deseja fazer as configurações e acesse a guia `Outtos` e depois a aba `Precificação`.
+
+  ---
+ 
+
+  ### <Percent className="inline w-5 h-5 text-primary mb-1" /> Tipo de Precificação
+  Define o método principal para o cálculo do preço de venda.
+
+  - **Margem Bruta:** Calcula o lucro sobre o custo direto do produto, sem descontar outras despesas.
+  - **Margem Líquida:** Considera todas as despesas e impostos configurados, proporcionando uma visão precisa do **lucro real** de cada venda.
+
+  <Callout variant="tip">
+    **Recomendado:** Utilize **Margem Líquida** para uma gestão financeira mais estratégica e precisa.
+  </Callout>
+ 
+  ---
+  
+  ### <PackageSearch className="inline w-5 h-5 text-primary mb-1" /> Custo Base para Precificação
+  Determina qual valor de custo será a referência para os cálculos.
+
+  - **Reposição:** Usa o valor da compra mais recente do produto (última nota fiscal de entrada). Ideal para se adaptar rapidamente às mudanças de preço do fornecedor.
+  - **Aquisição:** Usa o custo total de aquisição, incluindo frete, impostos e outras despesas da compra.
+
+  <Callout variant="info">
+    A escolha impacta diretamente a margem de lucro aplicada no cadastro de produtos e no módulo de compras.
+  </Callout>
+  </Step>
+  ---
+  
+  ### <Calendar className="inline w-5 h-5 text-primary mb-1" /> Atualizar Data de Precificação
+  Controla quando a "Data da Última Precificação" do produto é atualizada.
+
+  - **Sim:** A data é atualizada sempre que uma nota de entrada é lançada, mesmo que o preço não mude.
+  - **Não:** A data só muda quando o preço de venda é efetivamente alterado.
+
+  <Callout variant="info">
+    Ative esta opção para manter um rastreamento preciso da última vez que o custo de um produto foi analisado.
+  </Callout>
+
+  ---
+
+  ### <Lock className="inline w-5 h-5 text-primary mb-1" /> Código de Custo (Ocultar Custo)
+  Um recurso de segurança para **ocultar o valor de custo** na tela de vendas. Ao invés do valor monetário, o sistema exibe um código (letra), protegendo informações sensíveis.
+
+  <Callout variant="info">
+    Essencial para ambientes com múltiplos operadores ou para vendas com o cliente presente.
+  </Callout>
+
+  ---
+  <Step>
+  ### <TrendingUp className="inline w-5 h-5 text-primary mb-1" /> Atualização Automática de Preço
+  Define se o sistema deve **recalcular o preço de venda automaticamente** durante a entrada de notas fiscais.
+
+  - **Sim:** O preço de venda é atualizado com base no novo custo e nas margens definidas.
+  - **Não:** O preço de venda só pode ser alterado manualmente no cadastro do produto.
+
+  <Callout variant="info">
+    Ative para garantir que seus preços estejam sempre alinhados aos custos mais recentes, protegendo suas margens de lucro.
+  </Callout>
+
+  </Step>
+  <Step>
+
+  ## <Settings className="inline w-5 h-5 text-primary mb-1" /> Passo 2: Precificação Manual (Via Cadastro de Produto)
+
+  Use este método para ajustes finos, promoções ou quando precisar definir um preço específico para um item.
+
+  - Acesse `Estoque > Produto` e edite o item desejado.
+  - Na seção de preços, o sistema exibirá o `Custo de Aquisição` e o `Valor de Venda` sugerido pelas regras globais.
+  - Altere o `Valor de Venda` manualmente. A tela de **Formação de Preço** funcionará como um **simulador em tempo real**, recalculando instantaneamente a `Margem de Lucro` para que você possa tomar a melhor decisão.
+  - Salve para aplicar o novo preço imediatamente.
+
+  </Step>
+  <Step>
+  
+  ## <Settings className="inline w-5 h-5 text-primary mb-1" /> Passo 3: Precificação Automática (Via Entrada de Nota Fiscal)
+
+  Este é o método mais eficiente para manter os preços do seu catálogo sempre atualizados de acordo com as flutuações de custo dos fornecedores.
+
+  - Acesse `Movimento > Lançamento de Documento` para importar uma nota fiscal de compra.
+  - Ao processar os itens, o sistema identifica o novo `Custo de Aquisição`.
+  - Se a **Atualização Automática de Preço** (configurada no Passo 1) estiver ativa, o sistema recalcula e salva o novo `Valor de Venda` no cadastro do produto.
+  - O processo garante que sua margem de lucro seja preservada sem esforço manual.
+
+  </Step>
+</Steps>
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="O que acontece se o custo do meu produto mudar?">
+    Se você utiliza o método de precificação na "Entrada da Nota Fiscal", o preço de venda será recalculado e atualizado automaticamente a cada nova compra. Se você precifica manualmente pelo cadastro, precisará ajustar o preço de venda para manter sua margem desejada.
+  </Accordion>
+  <Accordion title="Posso ter regras de precificação diferentes para produtos diferentes?">
+    As configurações no Cadastro da Empresa são globais. No entanto, você pode ajustar manualmente o preço final de cada produto em seu respectivo cadastro para atender a estratégias específicas (promoções, produtos de alta/baixa margem, etc.). O sistema sempre mostrará o resultado (lucro e margem) desse novo preço.
+  </Accordion>
+</Accordions>
+
+<SuporteSection />

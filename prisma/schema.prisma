@@ -1,0 +1,429 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------
+
+enum Role {
+  DEVELOPER
+  ADMIN
+  SUPORTE
+  CLIENTE_ADMIN
+  CLIENTE_USER
+}
+
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_DOCS
+}
+
+enum ContractStatus {
+  ACTIVE
+  CANCELLED
+  SUSPENDED
+}
+
+enum TaxRegime {
+  SIMPLES_NACIONAL
+  SIMPLES_NACIONAL_EXCESSO
+  LUCRO_PRESUMIDO
+  LUCRO_REAL
+  MEI
+}
+
+enum IndicadorIE {
+  CONTRIBUINTE
+  ISENTO
+  NAO_CONTRIBUINTE
+}
+
+enum SefazServiceType {
+  NFE
+  NFCE
+}
+
+enum SefazStatusType {
+  ONLINE
+  UNSTABLE
+  OFFLINE
+}
+
+// ---------------------------------------------------------
+// MODELOS PRINCIPAIS 
+// ---------------------------------------------------------
+
+model Company {
+  id String @id @default(cuid())
+
+  // DADOS PRINCIPAIS
+  cnpj         String        @unique
+  razaoSocial  String
+  nomeFantasia String?
+  status       CompanyStatus @default(ACTIVE)
+  logoUrl      String?
+
+  // HIERARQUIA
+  parentCompanyId String?
+  parentCompany   Company?  @relation("BranchHierarchy", fields: [parentCompanyId], references: [id])
+  branches        Company[] @relation("BranchHierarchy")
+
+  // DADOS FISCAIS
+  inscricaoEstadual  String?
+  inscricaoMunicipal String?
+  indicadorIE        IndicadorIE @default(NAO_CONTRIBUINTE)
+  regimeTributario   TaxRegime?
+  crt                String? // 1, 2, 3 ou 4
+  cnae               String?
+  codSuframa         String?
+  dataFundacao       DateTime?
+
+  // CONTATO
+  emailContato    String?
+  emailFinanceiro String?
+  telefone        String?
+  whatsapp        String?
+  website         String?
+
+  // ENDEREÇO
+  addresses Address[]
+
+  // RELAÇÕES
+  accountingFirmId  String?
+  accountingFirm    Company?     @relation("AccountantClient", fields: [accountingFirmId], references: [id])
+  accountingClients Company[]    @relation("AccountantClient")
+  contracts         Contract[]
+  memberships       Membership[]
+
+  // AUDITORIA
+  observacoes String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([razaoSocial])
+  @@index([cnpj])
+  @@map("company")
+}
+
+model Address {
+  id               String  @id @default(cuid())
+  description      String? // Ex: "Sede", "Depósito", "Faturamento"
+  cep              String
+  logradouro       String
+  numero           String
+  complemento      String?
+  bairro           String
+  cidade           String
+  estado           String
+  pais             String  @default("BR")
+  codigoIbgeCidade String?
+  codigoIbgeEstado String?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("address")
+}
+
+// Atualização no seu DocumentoConfig para vincular à empresa
+// model DocumentoConfig {
+//   ... campos atuais ...
+//   companyId String
+//   company   Company @relation(fields: [companyId], references: [id])
+// }
+
+model User {
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String?
+  image String?
+
+  // --- SEGURANÇA E AUTH ---
+  // Se usar login por senha (além de OAuth), considere adicionar:
+  // passwordHash String? 
+  emailVerified  Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  failedAttempts Int       @default(0)
+  lockoutUntil   DateTime?
+
+  // --- DADOS PROFISSIONAIS ---
+  jobTitle String?
+  phone    String?
+  cpf      String? @unique
+
+  // --- LOCALIZAÇÃO ---
+  language String @default("pt-BR")
+
+  // --- PREFERÊNCIAS ---
+  preferences Json? @default("{}")
+
+  // --- AUDITORIA ---
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // --- SISTEMA ---
+  role Role @default(CLIENTE_USER)
+
+  // RELAÇÕES
+  memberships Membership[]
+  sessions    Session[]
+  accounts    Account[]
+
+  // ÍNDICES PARA PERFORMANCE
+  @@index([name])
+  @@index([role])
+  @@index([isActive])
+  @@index([cpf])
+  @@map("user")
+}
+
+// Relação entre Usuário e Empresa (Tabela Pivô)
+model Membership {
+  id String @id @default(cuid())
+
+  // O Cargo ESPECÍFICO nesta empresa
+  role Role @default(CLIENTE_USER)
+
+  // Chaves Estrangeiras
+  userId    String
+  companyId String
+
+  // Relacionamentos
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Metadados
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Regra: Um usuário não pode ter 2 cargos na MESMA empresa
+  @@unique([userId, companyId])
+  // Índices para performance
+  @@index([userId])
+  @@index([companyId])
+  @@map("membership")
+}
+
+// ---------------------------------------------------------
+// MODELOS DE AUTENTICAÇÃO E OUTROS
+// ---------------------------------------------------------
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model Contract {
+  id String @id @default(cuid())
+
+  // --- DADOS FINANCEIROS (Use Decimal para dinheiro/porcentagem precisa) ---
+  percentage     Decimal @db.Decimal(5, 2) // Ex: 10.50
+  minimumWage    Decimal @db.Decimal(10, 2) // Ex: 1412.00
+  taxRate        Decimal @default(0) @db.Decimal(5, 2)
+  programmerRate Decimal @default(0) @db.Decimal(10, 2)
+
+  // Opcional: Valor total calculado do contrato (cache)
+  totalValue Decimal? @db.Decimal(12, 2)
+
+  // --- VIGÊNCIA ---
+  startDate DateTime  @default(now())
+  endDate   DateTime? // Se nulo, é indeterminado
+
+  // --- ESTADO ---
+  status ContractStatus @default(ACTIVE)
+
+  // --- RELACIONAMENTOS ---
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contract")
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+// cst
+model TaxCST {
+  id          String @id @default(cuid())
+  cst         String @unique // Ex: "01", "50"
+  description String @db.Text // Descrições fiscais podem ser longas
+
+  // Indicadores (Flags do nível CST)
+  indIBSCBS         Boolean @default(false)
+  indRedBC          Boolean @default(false)
+  indRedAliq        Boolean @default(false)
+  indTransfCred     Boolean @default(false)
+  indDif            Boolean @default(false)
+  indAjusteCompet   Boolean @default(false)
+  indIBSCBSMono     Boolean @default(false)
+  indCredPresIBSZFM Boolean @default(false)
+
+  // Vigência do CST
+  publishDate DateTime
+  startDate   DateTime
+  endDate     DateTime?
+
+  // Relacionamento
+  classifications TaxClassification[]
+
+  lastUpdated DateTime @default(now())
+
+  @@map("tax_cst")
+}
+
+// cClassTrib
+model TaxClassification {
+  id String @id @default(cuid())
+
+  // Chave Estrangeira para o CST
+  cstId String
+  cst   TaxCST @relation(fields: [cstId], references: [id], onDelete: Cascade)
+
+  code        String @unique // "cClassTrib": "000001"
+  description String @db.Text
+
+  // Valores Específicos: USE DECIMAL PARA CÁLCULOS
+  // @db.Decimal(precisão, casas_decimais)
+  pRedIBS Decimal? @db.Decimal(5, 2) // Permite valores como 100.00 ou 50.55
+  pRedCBS Decimal? @db.Decimal(5, 2)
+
+  tipoAliquota String? // Pode ser nulo dependendo da API
+  link         String?
+
+  // Indicadores Específicos
+  indTribRegular  Boolean @default(false)
+  indCredPresOper Boolean @default(false)
+  indEstornoCred  Boolean @default(false)
+
+  // Flags de Documentos
+  indNFe  Boolean @default(false)
+  indNFCe Boolean @default(false)
+  indCTe  Boolean @default(false)
+  indNFSe Boolean @default(false)
+
+  // Vigência
+  publishDate DateTime
+  startDate   DateTime
+  endDate     DateTime?
+
+  @@index([cstId]) // Index para performance no Join
+  @@index([code]) // Index para buscar rapidament pelo código na emissão de NFe
+  @@map("tax_classification")
+}
+
+model DocumentoConfig {
+  id String @id @default(uuid())
+
+  // Dados Gerais
+  empresa        String? @default("")
+  descricao      String
+  grupoDocumento String
+  modelo         String  @default("55")
+  serie          String  @default("1")
+
+  emitente           String?  @default("PROPRIO")
+  maximoItens        Int?     @default(999)
+  atualizaComercial  Boolean? @default(true)
+  processamentoEtapa Boolean? @default(false)
+
+  movimentaEstoque String @default("SAIDA")
+
+  // Fiscal
+  finalidadeNFe String  @default("1")
+  tpNFCredito   String?
+  tpNFDebito    String?
+
+  // === CFOPs ===
+  // 1. Regra Geral (Tributado Integral)
+  cfopEstadual      String? // Ex: 5102
+  cfopInterestadual String? // Ex: 6102
+
+  // 2. Substituição Tributária (ST)
+  cfopEstadualST      String? // Novo (Ex: 5405)
+  cfopInterestadualST String? // Novo (Ex: 6403)
+
+  // 3. Consumidor Final (Uso e Consumo)
+  cfopEstadualConsumidor      String? // Novo (Ex: 5102)
+  cfopInterestadualConsumidor String? // Novo (Ex: 6108)
+
+  // 4. Exterior
+  cfopInternacional String? // Ex: 7101
+
+  // Regras
+  comportamentos String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("documento_config")
+}
+
+model SefazStatus {
+  id        String           @id @default(cuid())
+  uf        String // "MG", "SP", "RS", "SVRS", etc.
+  service   SefazServiceType
+  status    SefazStatusType
+  latency   Int
+  createdAt DateTime         @default(now())
+
+  @@index([uf, service, createdAt])
+}

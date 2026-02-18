@@ -1,0 +1,54 @@
+---
+title: Central de Ajuda Syspro ERP
+description: Bem-vindo! Encontre guias, tutoriais e respostas para tirar o máximo proveito do seu sistema.
+full: true
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { CustomCard } from '@/components/CustomCard';
+import { FileText, BarChart2, ShoppingCart, CreditCard, Truck, User, Wrench, Banknote, Package, Scale, Rocket, Settings, Navigation } from 'lucide-react';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+---
+
+Esta é a sua base de conhecimento central para o Syspro ERP. Explore todo o potencial de cada funcionalidade. Clique no módulo desejado para acessar o manual completo, com guias detalhados de cada operação.
+
+---
+
+<Cards>
+  <CustomCard title="Cadastro" href="/docs/manual/cadastro" icon={<User className="h-5 w-5" />}>
+    Gerencie clientes, fornecedores, produtos e tabelas essenciais para o funcionamento do sistema.
+  </CustomCard>
+  <CustomCard title="Estoque" href="/docs/manual/estoque" icon={<Package className="h-5 w-5" />}>
+    Controle entradas, saídas, transferências e consulte o inventário em tempo real para otimizar suas operações.
+  </CustomCard>
+  <CustomCard title="Compras" href="/docs/manual/compra" icon={<CreditCard className="h-5 w-5" />}>
+    Automatize cotações, gere ordens de compra e receba mercadorias com precisão e agilidade.
+  </CustomCard>
+  <CustomCard title="Financeiro" href="/docs/manual/financeiro" icon={<Banknote className="h-5 w-5" />}>
+    Administre contas a pagar e receber, controle o fluxo de caixa e gerencie a conciliação bancária.
+  </CustomCard>
+  <CustomCard title="Movimento" href="/docs/manual/movimento" icon={<Truck className="h-5 w-5" />}>
+    Rastreie todas as transações de entrada e saída que impactam seu estoque e financeiro.
+  </CustomCard>
+  <CustomCard title="Fiscal" href="/docs/manual/fiscal" icon={<Scale className="h-5 w-5" />}>
+    Emita notas fiscais (NF-e, NFC-e), gere arquivos SPED e garanta a conformidade tributária da sua empresa.
+  </CustomCard>
+  <CustomCard title="Contábil" href="/docs/manual/contabil" icon={<FileText className="h-5 w-5" />}>
+    Realize lançamentos, gere balancetes e prepare relatórios contábeis confiáveis para a tomada de decisão.
+  </CustomCard>
+  <CustomCard title="Produção" href="/docs/manual/producao" icon={<Wrench className="h-5 w-5" />}>
+    Planeje e controle sua linha de produção, desde a ordem de fabricação até a entrega do produto final.
+  </CustomCard>
+  <CustomCard title="Vendas" href="/docs/manual/vendas" icon={<ShoppingCart className="h-5 w-5" />}>
+    Crie orçamentos, gerencie pedidos de venda, controle comissões e fature seus produtos e serviços.
+  </CustomCard>
+  <CustomCard title="Relatórios" href="/docs/manual/relatorios" icon={<BarChart2 className="h-5 w-5" />}>
+    Extraia dados brutos e transforme-os em insights estratégicos com relatórios gerenciais e personalizáveis.
+  </CustomCard>
+  
+</Cards>
+
+
+<SuporteSection modulo="Syspro ERP" />

@@ -1,0 +1,103 @@
+---
+title: 'Erro de Schema MDFe'
+description: 'Guia passo a passo para corrigir o erro "Nenhum arquivo de Schema encontrado" ao transmitir MDFe no Syspro ERP.'
+causa_do_erro: 'A máquina cliente não possui os arquivos de validação (schemas) do MDFe atualizados. A solução é copiar a pasta de schemas mais recente do servidor para o cliente.'
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+
+---
+
+## Identificação do Problema
+
+Ao tentar transmitir um MDFe, o sistema apresenta a seguinte mensagem de erro:
+
+<Callout type="error" title="Erro Apresentado">
+  Nenhum arquivo de Schema encontrado na pasta:  
+  C:\Syspro\Client\Docs\Schemas\MDFe\
+</Callout>
+
+<Callout type="info" title="Causa do Erro">
+  A máquina **cliente** não possui os arquivos de validação (schemas) do MDFe atualizados.  
+  Esses arquivos são essenciais para validar o documento antes do envio à SEFAZ.  
+  A solução é copiar a pasta de schemas mais recente do **servidor** para o **cliente**.
+</Callout>
+
+## Pré-requisitos
+
+Antes de iniciar, certifique-se de que você possui:
+
+- Acesso ao diretório de instalação do Syspro no servidor (via rede ou diretamente).
+- Permissão para copiar e substituir arquivos na pasta `C:\Syspro` da máquina local.
+
+## Passo a Passo da Solução
+
+<Steps>
+  <Step title="Copiar a Pasta de Schemas no Servidor">
+    <p>No servidor, localize os arquivos mais atualizados do MDFe.</p>
+    1. Abra o **Explorador de Arquivos** (`Windows + E`).  
+    2. Acesse o diretório de instalação do Syspro no **servidor**.  
+    3. Navegue até a seguinte estrutura e localize a pasta **`MDFe`**:
+
+    <Files>
+      <Folder name="Syspro" defaultOpen>
+        <Folder name="Server" defaultOpen>
+          <Folder name="Docs" defaultOpen>
+            <Folder name="Schemas" defaultOpen>
+              <Folder name="CTe" />
+              <Folder name="MDFe" /> {/* Pasta a ser copiada */}
+              <Folder name="NFe" />
+            </Folder>
+          </Folder>
+        </Folder>
+      </Folder>
+    </Files>
+
+    4. Clique com o botão direito na pasta **`MDFe`** e selecione **Copiar**.
+  </Step>
+
+  <Step title="Colar a Pasta na Máquina Local">
+    <p>No computador que apresenta o erro, cole a pasta no caminho indicado.</p>
+    1. Abra o **Explorador de Arquivos**.  
+    2. Vá até: `C:\Syspro\Client\Docs\Schemas\`  
+
+    <Files>
+      <Folder name="C:" defaultOpen>
+        <Folder name="Syspro" defaultOpen>
+          <Folder name="Client" defaultOpen>
+            <Folder name="Docs" defaultOpen>
+              <Folder name="Schemas" defaultOpen>
+                {/* Aqui a pasta MDFe deve ser colada */}
+              </Folder>
+            </Folder>
+          </Folder>
+        </Folder>
+      </Folder>
+    </Files>
+
+    3. Clique com o botão direito em uma área vazia e selecione **Colar**.  
+
+    <Callout type="warn" title="Substituição de Arquivos">
+      Caso o sistema pergunte se deseja substituir a pasta ou arquivos existentes, confirme.  
+      Isso garante que a versão mais recente dos schemas será utilizada.
+    </Callout>
+  </Step>
+
+  <Step title="Verificar se o Problema Foi Resolvido">
+    <p>Após a cópia, teste novamente a transmissão.</p>
+    1. Feche completamente o **Syspro ERP**.  
+    2. Abra o sistema novamente.  
+    3. Acesse o módulo de **Manifesto de Cargas** e transmita o MDFe.  
+
+    <Callout type="success" title="Problema Resolvido">
+      Se os passos foram seguidos corretamente, o MDFe será transmitido sem erros!
+    </Callout>
+  </Step>
+</Steps>
+
+---
+
+<SuporteSection modulo="MDFe" />

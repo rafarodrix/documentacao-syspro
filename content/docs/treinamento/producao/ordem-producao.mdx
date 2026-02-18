@@ -1,0 +1,165 @@
+---
+title: Produção
+description: Guia completo para configuração e controle do fluxo de produção no Syspro ERP.
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+
+import {
+  Package,
+  Coins,
+  RefreshCcw,
+  Settings,
+  BarChart3,
+  Info,
+  Layers,
+  Factory,
+  CheckCircle,
+  Scale
+} from 'lucide-react';
+
+## Introdução
+
+O módulo de **Produção** do Syspro ERP é o núcleo estratégico para empresas que transformam insumos em produtos finais. Ele não apenas controla o que entra e sai do estoque, mas garante a integridade financeira da operação através da apuração precisa de custos.
+
+Esta funcionalidade é vital para assegurar que o preço de venda seja baseado em dados reais, eliminando o "achismo" na precificação e garantindo que cada item vendido no PDV gere a baixa automática de todos os seus componentes, mantendo o inventário sempre atualizado sem intervenção manual constante.
+
+---
+
+## Configuração dos produtos de matéria-prima
+
+Antes de cadastrar receitas, é necessario configurar corretamente os produtos quem compõem a receita (matéria-prima, produto acabado, etc).
+
+<Steps>
+
+<Step>
+### Configuração de Departamentos
+
+A correta classificação por departamentos é essencial para a organização do fluxo produtivo. Adotar uma estrutura clara de departamentos é uma boa prática de gestão que permite:
+
+- Visibilidade de Estoque: Saber exatamente quanto valor está imobilizado em cada estágio da produção.
+- Controle de Perdas: Identificar em qual etapa (departamento) ocorrem mais desperdícios.
+- Agilidade na Produção: Facilitar a separação de materiais para as ordens de produção.
+
+<Callout type="idea" title="Sugestão de Estrutura"> 
+
+Para uma indústria padrão, recomendamos a criação dos seguintes departamentos:
+
+- Matéria-Prima (MP): Insumos básicos que ainda não sofreram transformação.
+- Produto em Processo (PP): Itens que já saíram do almoxarifado, mas ainda não estão finalizados.
+- Produto Acabado (PA): Mercadorias prontas para a venda.
+- Embalagens/Consumo: Materiais auxiliares que não entram na composição direta do produto.
+
+</Callout>  
+
+**Como configurar**
+- Acesse o Cadastro de Produtos.
+- Localize o campo **Departamento**.
+- Selecione o departamento correspondente à natureza atual do item.
+
+</Step>
+
+<Step>
+### Definir o Tipo de Produto
+
+Após organizar os departamentos, é necessário definir a natureza operacional de cada item. Diferente do departamento (que é uma organização lógica), o Tipo de Produto dita o comportamento técnico do item:
+
+- Habilitação da Ficha Técnica: Somente produtos definidos como "Acabado" ou "Intermediário" permitem a criação de uma estrutura de produção.
+- Compliance Fiscal: Esta classificação é utilizada para gerar obrigações fiscais (como o Bloco K), garantindo que o estoque declarado esteja correto perante o fisco.
+
+<Callout type="idea" title="Principais Tipos e suas Funções">
+
+- **00 – Mercadoria para Revenda:** Itens comprados e vendidos sem alteração.
+- **01 – Matéria-Prima:** Itens comprados de terceiros. Consumidos diretamente na produção, compõem o custo base e não são vendidos isoladamente..
+- **02 – Produto em Intermediário:** Subconjuntos fabricados internamente (ex: uma base de molho) que servem de insumo para diversos produtos finais.
+- **03 – Produto em Processo:** Utilizado para identificar itens em estágios intermediários da linha de produção que ainda não estão prontos para venda.
+- **04 – Produto Acabado:** O resultado final da produção. É o item disponível para venda no PDV e que recebe a consolidação de todos os custos.
+</Callout>
+
+
+**Como configurar**
+- Acesse o Cadastro de Produtos.
+- Localize o campo **Tipo de Produto**.
+- Selecione a opção que condiz com a finalidade do item.
+</Step>
+
+<Step>
+
+### Configurar Unidades e Conversões matéria-prima
+Antes de cadastrar receitas, é necessario configurar as unidades de medida e as conversões do produto.
+* Acesse o cadastro do produto e vá até a aba **Unidades**.
+* Defina as unidades de compra e venda.
+
+<Callout type="info" title="Exemplo de Cálculo do Fator">
+    Imagine que comprei 1 unidade de um produto pesa 5kg e a unidade utilizada na receita é em quilogramas (KG).
+  -   Peso da Unidade / quantidade = Fator de Conversão
+  -   5.000g / 1.000g = **5**
+  -   Neste caso, o fator de conversão da unidade de entrada seria **5** e a unidade de saida seria **KG**.
+</Callout>
+
+* neste caso configuramos o fator de conversão no produto para que o sistema saiba que uma unidade de entrada de uma unidade equivale a 1 unidade de 5kg.
+
+<Callout type="idea" title="Unidades de Medida">
+  Para entender melhor como gerenciar as unidades de medida, acesse o manual de [Unidade de Medida](/docs/manual/estoque/tabela/unidade).
+</Callout>
+
+</Step>
+
+<Step>
+### Ativar a Produção Automática (Se aplicável)
+Para itens fabricados no momento da venda (como pratos de restaurante ou kits montados).
+* Na aba **Controles** do Produto Acabado, marque a opção **Produção Automática**.
+* **Resultado:** No momento que o caixa registrar a venda, o sistema "fabrica" o item e baixa os insumos instantaneamente.
+</Step>
+
+<Step>
+### Montar a Ficha Técnica (Composição)
+Defina a "receita" do seu produto para o cálculo exato de custos.
+* Na aba **Composição**, clique em **Incluir**.
+* Adicione cada insumo e a quantidade exata utilizada para produzir **uma unidade**.
+* Observe o **Custo Efetivo** sendo calculado em tempo real pelo sistema.
+</Step>
+
+</Steps>
+
+## Lançamento de Produção
+
+<Steps>
+
+<Step>
+### Executar a Produção Manual
+Para itens produzidos em lotes para estoque futuro.
+* Acesse o menu **Produção > Lançamento**.
+* Informe o produto e a quantidade total produzida.
+* O sistema gerará o registro de entrada do produto pronto e a saída simultânea de todos os insumos da receita.
+</Step>
+
+</Steps>
+
+<Callout type="info" title="Dica de Ouro">
+Sempre revise o custo de reposição dos seus insumos. O Syspro atualiza o custo do produto acabado automaticamente conforme o preço da matéria-prima oscila no mercado.
+</Callout>
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="O que acontece se eu não marcar a opção 'Produção Automática'?">
+    A venda será processada, mas o estoque dos insumos (matéria-prima) permanecerá inalterado. Você precisará realizar o lançamento manual da produção posteriormente para regularizar o saldo.
+  </Accordion>
+  <Accordion title="Posso ter uma composição dentro de outra composição?">
+    Sim! Você pode adicionar um **Produto Intermediário** dentro da composição de um **Produto Acabado**. O sistema fará a "explosão" de custos em cascata perfeitamente.
+  </Accordion>
+  <Accordion title="Como corrijo um erro em uma produção já lançada?">
+    Você deve realizar o estorno do lançamento de produção no módulo correspondente. Isso devolverá os insumos ao estoque e retirará o produto acabado.
+  </Accordion>
+</Accordions>
+
+---
+
+<SuporteSection />

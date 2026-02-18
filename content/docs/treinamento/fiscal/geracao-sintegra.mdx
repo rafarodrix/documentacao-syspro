@@ -1,0 +1,108 @@
+---
+title: Sintegra
+description: Guia completo para a geração do arquivo Sintegra no Syspro ERP.
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+
+## Introdução
+
+A geração do arquivo **SINTEGRA (Sistema Integrado de Informações sobre Operações Interestaduais com Mercadorias e Serviços)** é um procedimento fiscal mandatório que centraliza as informações de compras, vendas e serviços de uma empresa. Este processo é crucial para manter a conformidade com a legislação tributária estadual, permitindo que o Fisco cruze os dados e verifique a apuração de impostos como o ICMS.
+
+Realizar a geração correta e pontual deste arquivo evita multas e inconsistências fiscais, garantindo a regularidade da empresa perante as autoridades tributárias. Este manual orienta o usuário em todas as etapas do processo, desde a verificação de pendências até o envio final dos arquivos para a contabilidade.
+
+---
+
+## Passo a Passo
+
+Siga estas etapas para gerar, validar e enviar o Sintegra e outros arquivos fiscais necessários para a contabilidade.
+
+<Steps>
+  <Step>
+    ### 1. Verificar Cupons em Contingência
+    Antes de gerar o arquivo, é fundamental garantir que não há documentos fiscais pendentes de autorização.
+
+    1.  Acesse o menu: `Movimento > Lançamento de Documentos`.
+    2.  Clique no botão **Filtrar** e selecione a opção `Contingência Off-line`.
+    3.  Informe o período completo do mês de apuração.
+    4.  Se houver documentos pendentes, resolva todas as pendências antes de continuar. Se a lista estiver vazia, prossiga para o próximo passo.
+
+   <Card title="Correção de NFC-e em Contingência">
+    Caso encontre documentos pendentes na primeira etapa do processo, consulte nosso guia de soluções para as rejeições mais comuns. [Acesse o manual de correção aqui](/docs/duvidas/rejeicoes/nfe-nfce).
+  </Card>
+  
+  </Step>
+  <Step>
+    ### 2. Gerar o Arquivo Sintegra
+    Com as pendências resolvidas, você pode gerar o arquivo principal.
+
+    1.  Acesse o menu: `Fiscal > Sintegra`.
+    2.  Clique no botão **Incluir**.
+    3.  Preencha os campos conforme detalhado na seção **Dicionário de Campos** acima.
+    4.  Informe a **Data Inicial** e a **Data Final** do mês de apuração.
+    5.  Clique no botão **Gerar Arquivos**.
+  </Step>
+  <Step>
+    ### 3. Validar o Arquivo Gerado
+    A validação garante que o arquivo está estruturalmente correto e pronto para ser entregue ao Fisco.
+
+    1.  Abra o aplicativo **Validador do Sintegra**.
+    2.  Importe o arquivo gerado na etapa anterior.
+    3.  Execute a validação. Se não houver erros, o arquivo está aprovado.
+    4.  Caso o validador aponte erros, corrija as causas no sistema Syspro, gere um novo arquivo (Etapa 2) e valide-o novamente até que não haja mais pendências.
+  </Step>
+  <Step>
+    ### 4. Gerar Livros Fiscais
+    Os livros de entrada e saída complementam a entrega e devem ser gerados para o mesmo período do Sintegra.
+
+    - **Livro de Entrada:** Acesse `Relatório > Fiscal > Livros Fiscais > Livro de Entrada`, configure o período e gere o relatório.
+    - **Livro de Saída:** Acesse `Relatório > Fiscal > Livros Fiscais > Livro de Saída`, configure o período e gere o relatório.
+
+    Salve os arquivos em formato PDF na mesma pasta onde salvou o arquivo Sintegra.
+  </Step>
+  <Step>
+    ### 5. Exportar Arquivos XML
+    Os arquivos XML de notas fiscais (próprias e de terceiros) são essenciais para a contabilidade.
+
+    1.  **XML de NF-e / NFC-e:**
+        - Acesse o menu: `Movimento > Lançamento de Documentos`.
+        - Clique em **Importar > XML > Exportar XML**.
+        - Selecione o destino (a mesma pasta do Sintegra), informe o período e clique em **Exportar**.
+        - O sistema criará duas pastas: `Próprias` (XMLs de saída) e `Terceiros` (XMLs de entrada).
+    
+    2.  **XML de CT-e (se aplicável):**
+        - Caso sua empresa também emita Conhecimento de Transporte Eletrônico (CT-e), é necessário exportar estes XMLs separadamente.
+        - Acesse o menu: `Movimento > Transporte > Conhecimento de Transporte (CTe)`.
+        - Utilize os filtros de data para selecionar o período desejado e exporte os arquivos XML para a mesma pasta de destino.
+  </Step>
+  <Step>
+    ### 6. Organizar e Enviar para a Contabilidade
+    A etapa final é organizar todos os arquivos gerados e enviá-los de forma segura.
+
+    1.  Na pasta de destino, selecione todos os arquivos: o arquivo Sintegra (.txt), os livros fiscais (.pdf) e todas as pastas de XML (`Próprias`, `Terceiros` e de CT-e, se houver).
+    2.  Comprima todos os itens selecionados em um único arquivo **ZIP**.
+    3.  Abra seu e-mail, anexe o arquivo ZIP gerado e envie para o endereço da sua contabilidade com um assunto claro (ex: "Arquivos Fiscais - Sintegra - [Mês/Ano]").
+  </Step>
+</Steps>
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="O que fazer se o validador do Sintegra apresentar erros?">
+    Cada erro apontado pelo validador geralmente indica a origem do problema (ex: cadastro de produto sem NCM, alíquota de ICMS incorreta em uma nota). Você deve retornar ao Syspro, corrigir a informação no documento ou cadastro indicado, e então gerar e validar o arquivo novamente.
+  </Accordion>
+  <Accordion title="Onde encontro ajuda para corrigir as NFC-e em contingência?">
+    No início do passo a passo, incluímos um "Ponto de Atenção" com um link direto para o manual que detalha como solucionar as principais rejeições de NFC-e. Você pode acessá-lo [aqui](/docs/duvidas/rejeicoes/nfe-nfce).
+  </Accordion>
+  <Accordion title="Por que preciso exportar os XMLs de CT-e separadamente?">
+    O CT-e é um documento fiscal distinto da NF-e, com uma finalidade específica para o transporte de cargas. Por isso, ele possui uma tela de gerenciamento e exportação própria no sistema, garantindo que as informações de frete sejam tratadas corretamente.
+  </Accordion>
+  <Accordion title="Esqueci de informar o inventário em fevereiro. Como corrigir?">
+    Você precisará gerar um arquivo Sintegra retificador. Neste caso, ao gerar o arquivo, no campo "Finalidade", selecione a opção `Retificação`. Consulte sua contabilidade para obter orientação detalhada sobre o procedimento de retificação para o seu estado.
+  </Accordion>
+</Accordions>
+
+<SuporteSection modulo="Geração de Sintegra" />

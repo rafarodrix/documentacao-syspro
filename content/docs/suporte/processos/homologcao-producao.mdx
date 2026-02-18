@@ -1,0 +1,118 @@
+---
+title: DRE
+description: Demonstrativo de Resultados do Exercício (DRE)
+draft: true
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## Introdução
+
+Este manual descreve o procedimento técnico para a correção de cupons fiscais (NFC-e/SAT) emitidos erroneamente no ambiente de **Homologação** (ambiente de testes, sem validade fiscal) quando deveriam ter sido emitidos no ambiente de **Produção** (ambiente com validade fiscal).
+
+O objetivo deste processo é alterar os registros diretamente no banco de dados para que os documentos fiscais sejam retransmitidos à SEFAZ (Secretaria da Fazenda) no ambiente correto, garantindo a conformidade fiscal da operação.
+
+<Callout type="warning">
+**Atenção:** Este é um procedimento de nível avançado que envolve a execução de comandos diretamente no banco de dados. A execução incorreta pode causar inconsistência de dados e problemas fiscais. Prossiga apenas se você for um profissional qualificado com acesso e permissão para alterar o banco de dados.
+</Callout>
+
+## Passo a Passo
+
+O processo é dividido em quatro etapas críticas que devem ser seguidas na ordem correta.
+
+<Steps>
+
+### 1\. Isolar os Cupons (Status OFF-LINE)
+
+O primeiro passo, realizado na interface do sistema, é alterar o status dos cupons emitidos incorretamente para 'OFF-LINE'. Isso os retira da fila de transmissão automática e permite a manipulação segura no banco de dados.
+
+1.  Acesse a tela de consulta de lançamentos ou o PDV (Ponto de Venda).
+2.  Localize os cupons que foram emitidos no ambiente de homologação.
+3.  Utilize a função do sistema para alterar o status desses cupons para **OFF-LINE**.
+
+### 2\. Alterar o Ambiente na Tabela
+
+Com os cupons em modo 'OFF-LINE', o próximo passo é atualizar a tabela `lancamento_xml` para que o sistema entenda que eles pertencem ao ambiente de Produção.
+
+Execute o seguinte comando SQL:
+
+```sql
+update lancamento_xml set ambiente = 1
+where id_lancamento_xml in (
+    select lx.id_lancamento_xml
+    from lancamento l
+    left join lancamento_xml lx on lx.id_lancamento = l.id_lancamento
+    where l.status = 'OFF-LINE'
+);
+```
+
+**O que este comando faz?**
+Ele define o campo `ambiente` como `1` (Produção) para todos os lançamentos que estão com o status `OFF-LINE`.
+
+### 3\. Corrigir o Ambiente no Conteúdo do XML
+
+Agora, é crucial corrigir a tag `<tpAmb>` dentro do próprio arquivo XML armazenado no banco de dados. Se este passo for ignorado, o XML será enviado ao ambiente correto, mas seu conteúdo ainda indicará ser de homologação, causando rejeição pela SEFAZ.
+
+Execute o seguinte comando SQL:
+
+```sql
+UPDATE LANCAMENTO_XML
+SET XML = CAST(
+    REPLACE(
+        CAST(XML AS VARCHAR(32765)),
+        '<tpAmb>2</tpAmb>',
+        '<tpAmb>1</tpAmb>'
+    ) AS BLOB)
+WHERE AMBIENTE = 2
+AND CSTAT = 100
+AND CAST(XML AS VARCHAR(32765)) CONTAINING '<tpAmb>2</tpAmb>'
+AND ID IN (
+    SELECT FIRST 1000 ID
+    FROM LANCAMENTO_XML
+    WHERE AMBIENTE = 2 AND CSTAT = 100
+);
+```
+
+\<Callout type="info"\>
+**Processamento em Lotes:** Note que o comando acima está limitado a `FIRST 1000` registros. Caso existam mais de 1000 cupons para corrigir, pode ser necessário executar este script múltiplas vezes até que todos os registros sejam atualizados.
+\</Callout\>
+
+### 4\. Forçar o Reenvio para a SEFAZ
+
+Por fim, para que o sistema Syspro entenda que precisa reenviar esses cupons que estavam em modo offline, é necessário limpar os registros de data e hora do último envio.
+
+Execute o comando SQL final:
+
+```sql
+update empresa_nfe set
+    dfe_hr_ultimo_envio_offline = null,
+    dfe_dt_ultimo_envio_offline = null;
+```
+
+Após este comando, o serviço de transmissão de documentos fiscais do Syspro irá identificar os cupons pendentes e iniciará o processo de envio para o ambiente de Produção.
+
+</Steps>
+
+## Perguntas Frequentes
+
+<Accordions>
+<Accordion title="Posso executar este procedimento com o sistema em uso?">
+Não é recomendado. O ideal é realizar o procedimento em um horário de baixa movimentação ou com os terminais de venda (PDVs) pausados para evitar conflitos de sincronização e novos registros sendo gravados enquanto a manutenção é realizada.
+</Accordion>
+<Accordion title="O que acontece se eu pular o passo de alterar o conteúdo do XML (Passo 3)?">
+Se o passo 3 for pulado, o sistema enviará o cupom para o webservice de Produção da SEFAZ, mas o conteúdo do XML ainda terá a tag `&lt;tpAmb&gt;2&lt;/tpAmb&gt;` (Homologação). A SEFAZ irá validar o conteúdo, identificar a inconsistência de ambiente e **rejeitará** o documento fiscal.
+</Accordion>
+<Accordion title="Como posso verificar se o processo funcionou corretamente?">
+Após forçar o reenvio (Passo 4), acompanhe o status dos cupons na tela de gerenciamento de documentos fiscais do Syspro. Eles devem sair do status 'OFF-LINE' e, após a comunicação com a SEFAZ, obter o status 'AUTORIZADO'. Você também pode consultar o XML de um dos cupons corrigidos para confirmar que a tag `&lt;tpAmb&gt;` está com o valor `1`.
+</Accordion>
+<Accordion title="Este procedimento corrige a numeração do cupom que foi usada em homologação?">
+Não. O procedimento apenas corrige o ambiente de emissão para que o documento seja fiscalmente válido. A numeração do cupom fiscal (NFC-e) que foi utilizada (ou "queimada") no ambiente de homologação será perdida na sequência de produção, resultando em um pulo na numeração. Isso é esperado e deve ser justificado em caso de fiscalização.
+</Accordion>
+</Accordions>
+
+<SuporteSection modulo="Homologação para Produção" />
+

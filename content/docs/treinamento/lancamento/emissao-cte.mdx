@@ -1,0 +1,118 @@
+---
+title: Emissão de CTE
+description: Guia completo para emissão de CTE no Syspro ERP.
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+
+import {
+  Package,
+  Coins,
+  RefreshCcw,
+  Settings,
+  BarChart3,
+  Info,
+  Layers,
+  Factory,
+  CheckCircle,
+  Scale
+} from 'lucide-react';
+
+
+O **Conhecimento de Transporte Eletrônico (CT-e)**, modelo 57, é o documento fiscal digital indispensável para a prestação de serviços de transporte de cargas. Sua emissão correta no Syspro ERP garante a conformidade com a legislação tributária (SEFAZ), assegura o direito ao crédito de ICMS quando aplicável e permite o rastreamento legal da mercadoria durante o trânsito.
+
+Esta tela é o núcleo da operação logística, onde se consolidam os dados do prestador, tomador, carga e os documentos originários (NF-e), garantindo que a cobrança do frete e o recolhimento de impostos estejam perfeitamente alinhados.
+
+## Passo a Passo
+
+Siga as etapas abaixo para configurar e emitir um novo CT-e com sucesso:
+
+<Steps>
+<Step>
+
+#### Configuração do Documento
+
+Antes de emitir, acesse **Movimento > Documento > Personalização de Documentos**.
+
+* No cabeçalho do documento, selecione a **Empresa** emitente e o **Grupo de Documento**. 
+* Localize ou crie um registro com o **Modelo 57**.
+* Vincule os **CFOPs** (Estadual, Interestadual e Internacional) conforme orientação contábil (ex: 5932, 6932).
+* Garanta que o campo **Emitente** esteja como "PRÓPRIO".
+
+#### Detalhamento da Carga
+
+Na aba **Carga**, preencha o campo **Produto Predominante** (ex: Caixa de Papelão). No grid abaixo, clique em **Incluir** para informar a unidade (ex: TN - Tonelada), o peso/quantidade e o valor total da mercadoria transportada.
+
+#### Vínculo de Documentos Fiscais
+
+Acesse a aba **Documentos**. Clique em **Incluir** e insira a **Chave de Acesso** da Nota Fiscal Eletrônica (NF-e) que acoberta a carga. Sem este vínculo, o CT-e não possui validade jurídica.
+
+#### Validação e Gravação
+
+Confira os valores de **Base de Cálculo** e **ICMS** no rodapé. Se os dados estiverem corretos, clique em **Salvar**. O Syspro fará a comunicação com a SEFAZ para autorizar o documento e gerar o DACTE.
+</Step>
+
+<Step>
+### Participantes
+
+#### Identificação dos Participantes
+
+Na tela de emissão, acesse a aba **Participantes**:
+
+#### Identificação do Emitente
+Certifique-se de que o campo Emitente está carregando corretamente os dados da sua unidade. Este campo é o primeiro e obrigatório para a identificação da sua empresa como prestadora do serviço.
+
+#### Seleção de Remetente
+Utilize o botão de busca (...) para selecionar o cadastro do Remetente. O Remetente é o responsável pelo envio da carga.
+
+#### Seleção de Destinatário
+Utilize o botão de busca (...) para selecionar o cadastro do Destinatário. O Destinatário é o responsável pelo recebimento da carga.
+
+#### Definição do Tomador
+No campo Tomador, selecione quem pagará o frete. Lembre-se: se o frete for pago por quem envia, o Tomador é o Remetente; se for pago por quem recebe, o Tomador é o Destinatário.
+
+#### Inclusão de Intermediários
+Se houver um Expedidor ou Recebedor envolvido no fluxo logístico (como um porto ou um armazém de terceiros), preencha estes campos opcionais para que constem no XML do CT-e.
+
+</Step>
+
+<Step>
+### Detalhamento da Carga
+
+Na aba **Carga**, descreva o **Produto Predominante**. No grid de "Quantidades da Carga", clique em **Incluir** para adicionar a unidade de medida (Ex: TN - Tonelada), a quantidade, o valor unitário e o valor total da carga.
+</Step>
+
+<Step>
+### Vínculo de Documentos
+
+Vá até a aba **Documentos**. Aqui você deve clicar em **Incluir** para importar ou digitar a chave de acesso da **NF-e** (Nota Fiscal Eletrônica) que está sendo transportada. Isso é obrigatório para a validade jurídica do transporte.
+</Step>
+
+<Step>
+### Verificação de Impostos e Gravação
+
+Confira no rodapé os valores de **Base de Cálculo**, **Alíquota** e **Valor do ICMS**. Se tudo estiver correto, clique em **Salvar**. O sistema processará a assinatura digital e enviará para autorização da SEFAZ.
+</Step>
+</Steps>
+
+## Perguntas Frequentes
+
+<Accordions>
+<Accordion title="Quem deve ser o Tomador do frete no CT-e?">
+O tomador é quem paga a fatura do transporte. Se o frete for CIF, geralmente é o Remetente; se for FOB, é o Destinatário. O Syspro permite selecionar o participante específico no campo "Tomador".
+</Accordion>
+<Accordion title="O que fazer se a Chave de Acesso da NF-e não for validada?">
+Verifique se a nota fiscal vinculada não está cancelada ou se há erro de digitação nos 44 dígitos. Sem uma NF-e válida, o CT-e será rejeitado pela SEFAZ.
+</Accordion>
+<Accordion title="Posso alterar um CT-e após a emissão?">
+Se o documento já estiver autorizado e o transporte não tiver iniciado, você pode cancelá-lo em até 24 horas (regra geral). Para erros menores, pode-se utilizar a Carta de Correção Eletrônica (CC-e), desde que não altere valores ou participantes.
+</Accordion>
+</Accordions>
+
+
+
+<SuporteSection />

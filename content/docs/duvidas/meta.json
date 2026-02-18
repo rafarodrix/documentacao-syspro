@@ -1,0 +1,18 @@
+{
+  "root": true,
+  "title": "Dúvidas Frequentes",
+  "description": "Seção estão soluções para dúvidas frequentes.",
+  "pages": [
+    "index",
+    "---Erros---",
+    "rejeicoes/nfe-nfce",
+    "rejeicoes/cte",
+    "rejeicoes/mdfe",
+    "---Dúvidas---",
+    "syspro",
+    "tributario",
+    "---Terceiros---",
+    "integracoes",
+    "hardware"
+  ]
+}

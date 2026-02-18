@@ -1,0 +1,54 @@
+---
+title: Certificado
+description: Erro 2148073481 ao usar o certificado A3 no Windows 11
+icon: Code
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+
+---
+
+<div className='fd-steps [&_h3]:fd-step'>
+  <h3>Acesse o Painel de Controle</h3>
+   1. Pressione `Win + S` e procure por **Painel de Controle**.
+   2. Escolha a opção **Opções da Internet**.
+   3. Na janela de **Opções da Internet**, vá até a aba **Avançadas**.
+   4. No bloco de **Configurações**, role até o final da lista.
+   5. Configure as opções conforme mostrado na imagem abaixo:
+
+   Imagem Configurações Avançadas do Internet Explorer
+
+  <h3>Remoção de Certificados Corrompidos</h3>
+   1. Pressione `Win + R` e digite `certlm.msc` para abrir a interface de gerenciamento de certificados.
+      - Caso o comando não funcione, utilize `certmgr.msc`.
+   2. Remova os certificados mostrados na imagem abaixo:
+
+   Imagem Certificados a serem removidos
+
+  <h3>Instalação das Cadeias de Certificados</h3>
+    Classificamos a demanda com base em complexidade, relevância para os clientes e alinhamento com nossos objetivos.
+
+  <h3>Definição de Custos</h3>
+   1. Execute como **Administrador** o arquivo [InstaladorCadeias_1.0.2.0.exe](https://trilinksoftware.com.br/download/erro-certificado-a3/InstaladorCadeias_1.0.2.0.exe).
+   2. Clique em **Instalar** e aguarde o término do processo.
+
+  <h3>Correção do TLS</h3>
+    1. Execute o arquivo [FixCrypto_TLS1_2_Windows.reg](https://trilinksoftware.com.br/download/erro-certificado-a3/FixCrypto_TLS1_2_Windows.reg) para ajustar as configurações do protocolo TLS.
+
+  <h3>Instalação de Certificados</h3>
+   1. Descompacte o arquivo [CA.zip](https://trilinksoftware.com.br/download/erro-certificado-a3/CA.zip).
+   2. Execute os seguintes arquivos:
+      - `ac soluti ssl ev.cer`
+      - `Raiz-icp-brasil v10.cer`
+  <h3>Reinicie o Computador</h3>
+   1. Após seguir todos os passos, reinicie a máquina. Teste a comunicação com a SEFAZ para garantir que o problema foi resolvido.
+
+</div>
+
+---
+
+<SuporteSection modulo="Erro Certificado" />
+

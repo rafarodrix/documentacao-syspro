@@ -1,0 +1,18 @@
+{
+  "root": true,
+  "title": "Documentação",
+  "description": "Nesta seção estão soluções para dúvidas frequentes.",
+  "pages": [
+    "index", 
+    "cadastro",
+    "estoque",
+    "compra",
+    "financeiro",
+    "movimento",
+    "fiscal",
+    "contabil",
+    "producao",
+    "vendas",
+    "relatorios"
+  ]
+}

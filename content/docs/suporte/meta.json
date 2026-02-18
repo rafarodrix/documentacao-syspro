@@ -1,0 +1,15 @@
+{
+  "root": true,
+  "title": "Suporte",
+  "description": "Nesta Seção estão guias sobre nosso suporte técnico.",
+  "pages": [
+    "index",
+    "---Parametrizações---",
+    "parametrizacoes/migracao-nfse-nacional",
+    "---Documentação e Guias---",
+    "sobre-suporte",
+    "releasenotes",
+    "requisitos",
+    "homologcao-producao"
+  ]
+}

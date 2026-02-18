@@ -1,0 +1,163 @@
+---
+title: Homologação de Boletos 
+description: Guia técnico para integração financeira entre Syspro ERP e Instituições Bancárias.
+full: false
+---
+
+import { Banknote, CreditCard, BarChart2, Building, FileText, Send, Copy, CheckCircle2, Info, Settings, HelpCircle, Printer, Download } from 'lucide-react';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import SuporteSection from '@/components/docs/SuporteSection';                            
+import BankingExport from './components/BankingExport';
+import { Callout } from 'fumadocs-ui/components/callout';   
+
+## <Building className="inline-block mr-2" /> Visão Geral
+
+A configuração de contas bancárias no **Syspro ERP** é a "ponte de confiança" do seu financeiro. Este guia foca na **homologação**, garantindo que o banco aceite seus arquivos sem erros.
+
+<Callout type="info" icon={<Download className="w-4 h-4" />}>
+  **Checklist de Homologação:** Gerar um guia em PDF para levar ao banco?
+  <BankingExport /> 
+</Callout>
+
+<Callout type="warn">
+**Atenção:** Nunca inicie a emissão em produção sem a confirmação de liquidação de um arquivo de teste pelo suporte do banco.
+</Callout>
+
+---
+
+## <Send className="inline-block mr-2 mb-1" /> Fluxo de Homologação
+
+<Steps>
+<Step>
+### Coleta de Dados
+
+Para configurar o **Syspro ERP**, não basta ter os dados básicos de transferência. Você deve solicitar ao gerente da conta o **Manual de Intercâmbio Eletrônico de Dados (CNAB)** e os parâmetros de cobrança.
+
+**Utilize o checklist abaixo para garantir que não falte nada:**
+
+<Accordions>
+<Accordion title="Dados da Conta">
+  * **Banco, Agência e Conta:** Incluindo obrigatoriamente os Dígitos Verificadores (DV).
+  * **CNPJ e Razão Social:** Devem ser exatamente os cadastrados na conta bancária.
+</Accordion>
+
+<Accordion title="Parâmetros Técnicos do Boleto">
+  * **Código do Cedente / Convênio:** Identificação da sua empresa no sistema do banco.
+  * **Modalidade e Carteira:** Define se a cobrança é com ou sem registro.
+  * **Código de Transmissão:** Necessário para a comunicação de arquivos em alguns bancos.
+  * **Layout de Remessa:** Confirme se o padrão é **CNAB 240**, **CNAB 400** ou o **CNAB 444** (específico para inclusão da chave da NF-e).
+</Accordion>
+
+<Accordion title="Regras de Negócio e Instruções">
+  * **Taxas:** Percentual de Juros e Multa ao mês.
+  * **Protesto:** Prazo em dias para envio automático a protesto após o vencimento.
+  * **Nosso Número (NN):** A faixa inicial e final (sequencial) autorizada para sua empresa.
+  * **Chave da NF-e:** Confirme se o banco exige ou aceita a chave do XML no arquivo de remessa.
+</Accordion>
+</Accordions>
+
+<Callout type="info">
+**Dica:** Para facilitar, utilize o botão **"Gerar Check-list para o Banco"** no topo desta página. Ele gera um PDF com todos esses campos prontos para serem preenchidos pelo seu gerente.
+</Callout>
+</Step>
+
+<Step>
+
+### Cadastro no ERP
+
+Com os dados em mãos, acesse o menu **Financeiro > Contas > Contas Bancárias**. Clique em **Incluir** (ou **Editar** em uma conta existente) para abrir a tela de configuração.
+
+Abaixo, detalhamos o preenchimento das abas principais conforme a interface do sistema:
+
+<Tabs items={['Identificação', 'Cedente', 'Instruções', 'Taxas e Dias', 'Arquivo']}>
+<Tab value="Identificação">
+Preencha os dados básicos da conta no cabeçalho:
+* **Banco:** Selecione a instituição financeira correspondente.
+* **Agência e Conta:** Insira os números e seus respectivos **Dígitos Verificadores (DV)** nos campos separados.
+* **Tipo Conta:** Certifique-se de que está definido como **BANCARIA**.
+</Tab>
+
+<Tab value="Cedente">
+Aqui ficam as informações de contrato com o banco:
+* **Código Cedente / Convênio:** Informe os códigos fornecidos pelo gerente.
+* **Modalidade / Carteira:** Defina conforme o manual do banco (ex: Carteira 17, 101, etc.).
+* **Incluir Chave XML:** Se estiver usando o layout para **CNAB 444**, altere para "Sim" para destacar a chave da NF-e no arquivo.
+</Tab>
+
+<Tab value="Instruções">
+Configure o que será impresso no corpo do boleto:
+* **Local de Pagamento:** Geralmente "Pagável em qualquer banco até o vencimento".
+* **Mensagem:** Campo livre para instruções gerais ao caixa e ao cliente.
+* **Orientações do Banco:** Mensagens específicas exigidas pela instituição.
+</Tab>
+
+<Tab value="Taxas e Dias">
+Defina as regras financeiras de cobrança:
+* **Taxa Juros / Multa:** Valores percentuais aplicados após o vencimento.
+* **Aceite (Protesto):** Marque esta opção se desejar que o título seja enviado a protesto automaticamente pelo banco.
+* **Dias p/ Multa / Baixa:** Defina os prazos de carência para cada ação.
+</Tab>
+
+<Tab value="Arquivo">
+Configurações para a geração da Remessa:
+* **Layout Remessa:** Selecione entre **CNAB 240** ou **CNAB 400**.
+* **Último NSA:** Número Sequencial de Arquivo. Se for a primeira vez, comece com "0" ou confirme com o banco se já existe uma sequência.
+* **Caminho .RET:** Defina a pasta onde o sistema deve buscar os arquivos de **Retorno** para baixa automática.
+</Tab>
+</Tabs>
+
+</Step>
+
+<Step>
+
+### Geração de Boletos e Remessa de Teste
+
+Para validar o cabeçalho do arquivo, gere pelo menos **3 títulos de valores baixos** (ex: R$ 1,00).
+
+1. Acesse **Financeiro > Títulos**.
+2. No módulo **Receber Pendente**, selecione os títulos de teste.
+3. Clique em **Boleto > Arquivo > Gerar Boleto...**.
+4. Na tela que abrir, selecione a **Conta Bancária** configurada e confirme para gerar o PDF.
+5. Com os títulos ainda selecionados, clique em **Boleto > Arquivo > Gerar Remessa...** para criar o arquivo `.REM`.
+</Step>
+
+<Step>
+
+### Envio ao Banco e Aprovação
+
+Faça o upload do arquivo de remessa no portal do seu banco (ou área de intercâmbio de arquivos).
+
+* **Validação do Beneficiário:** No PDF gerado, confirme se a Razão Social e o CNPJ estão idênticos ao cadastro bancário.
+* **Teste de Leitura:** Use um aplicativo bancário no celular para ler o código de barras do boleto de R$ 1,00.
+* **Aguarde o Retorno:** O banco processará a remessa e enviará um protocolo de "Arquivo Aceito" ou indicará erros de layout.
+</Step>
+
+<Step>
+
+### Pagamento de Teste e Compensação
+
+Assim que o banco aprovar a remessa de teste:
+
+1. **Efetue o pagamento** de um dos boletos de R$ 1,00.
+2. Aguarde o prazo de compensação bancária (geralmente **24h úteis**).
+3. O banco disponibilizará um **Arquivo de Retorno (.RET)** contendo a confirmação da liquidação desse título.
+</Step>
+
+<Step>
+
+### Importação do Retorno e Baixa Automática
+
+Para finalizar o teste, o Syspro deve ler o arquivo do banco e baixar o título automaticamente:
+
+1. Baixe o arquivo `.RET` do banco e salve-o na pasta configurada no cadastro da conta.
+2. No ERP, acesse o módulo de processamento de retorno.
+3. O sistema identificará o pagamento e mudará o status do título de **Pendente** para **Baixado**, encerrando o processo de homologação.
+</Step>
+</Steps>
+
+---
+
+<SuporteSection modulo="Homologação de Boleto" />

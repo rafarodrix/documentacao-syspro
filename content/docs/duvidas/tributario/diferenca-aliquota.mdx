@@ -1,0 +1,164 @@
+---
+title: Diferencial de Alíquota
+description: Este manual descreve os procedimentos para calcular o diferencial de alíquota para mercadorias destinadas a uso, consumo e ativo imobilizado.
+---
+
+import 'katex/dist/katex.min.css';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+
+
+## Diferencial de Alíquota - MG
+
+O `diferencial de alíquota`, que é a diferença entre a alíquota interna do estado destinatário e a alíquota interestadual aplicada na compra de mercadorias destinadas a `uso e consumo` ou `ativo imobilizado`, deve ser recolhido para operações interestaduais. 
+
+Este recolhimento é aplicável às empresas optantes pelo `Regime Normal` e pelo `Simples Nacional`, conforme disposto no [artigo 55, § 6º, incisos I e II](https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/ricms_2002_seco/partegeral2002_3.html) da Parte Geral do RICMS/MG.
+
+### Verificação dos Requisitos
+
+Para calcular o diferencial de alíquota, siga os passos abaixo:
+
+Determine se a transação necessita deste procedimento, verificando os detalhes da operação e os itens envolvidos.
+
+- A origem da mercadoria deve ser interestadual.
+- A mercadoria deve ser destinada a uso, consumo ou ativo imobilizado.
+- A mercadoria deve ser tributada.
+
+### Exemplo de cálculo
+
+Segue exemplo de cálculo do valor do imposto devido a título de diferencial de alíquotas, sem a existência de benefício fiscal no Estado de MG, considerando:
+
+|                                                                                        |                         |
+|----------------------------------------------------------------------------------------|-------------------------|
+|Valor da operação :br `(valor das mercadorias + frete + IPI + seguro + despesas acessórias)`  | R$ 1.000,00             |
+|Alíquota interestadual                                                                  | 12%                     |
+|Alíquota interna MG                                                                     | 18% de ICMS + 2% de FEM |
+
+### Fórmula
+
+1. **Exclusão do ICMS da operação interestadual da base de cálculo:**
+
+$$
+\text{Base de Cálculo} = \text{Valor da Operação} - \text{ICMS Interestadual}
+$$
+
+2. **Base de cálculo do diferencial de alíquota:**
+
+$$
+\text{Base de Cálculo DIFAL} = \frac{\text{Base de Cálculo}}{1 - (\text{ALQ interna})}
+$$
+
+3. **Cálculo do ICMS diferencial de alíquota:**
+
+$$
+\text{ICMS DIFAL} = (\text{Base de Cálculo DIFAL} \times \text{ALQ interna}) - (\text{Base de Cálculo} \times \text{ALQ interestadual})
+$$
+
+### Cálculo
+
+1. **Base de Cálculo Excluindo ICMS Interestadual:**
+
+$$
+\text{Base de Cálculo} = R\$ 1.000,00 - (R\$ 1.000,00 \times 0,12) = R\$ 1.000,00 - R\$ 120,00 = R\$ 880,00
+$$
+
+2. **Base de Cálculo do ICMS Diferencial de Alíquota:**
+
+$$
+\text{Base de Cálculo DIFAL} = \frac{R\$ 880,00}{1 - 0,20} = \frac{R\$ 880,00}{0,80} = R\$ 1.100,00
+$$
+
+3. **Cálculo do ICMS Diferencial de Alíquota:**
+
+$$
+\text{ICMS DIFAL} = (R\$ 1.100,00 \times 0,20) - (R\$ 1.000,00 \times 0,12) = R\$ 220,00 - R\$ 120,00 = R\$ 100,00
+$$
+
+Neste exemplo, o cálculo do diferencial de alíquota para a operação de compra de mercadorias, considerando o ICMS interestadual de 12% e a alíquota interna de 18% mais 2% de FEM, resulta em um valor total de R\$ 100,00 a ser recolhido.
+
+### Exemplo de cálculo com redução na base de cálculo
+
+Abaixo, exemplo de cálculo do valor do imposto devido a título de diferencial de alíquotas, com a existência de benefício fiscal no Estado de MG, considerando:
+
+|                                                                                        |                         |
+|----------------------------------------------------------------------------------------|-------------------------|
+|Valor da operação :br `(valor das mercadorias + frete + IPI + seguro + despesas acessórias)`  | R$ 1.000,00             |
+|Alíquota interestadual                                                                  | 12%                     |
+|Alíquota interna MG                                                                     | 18% de ICMS + 2% de FEM |
+|Benefício de redução de base de cálculo                                                 | 20%                     |
+
+### Fórmula
+
+1. **Exclusão do ICMS da operação interestadual da base de cálculo:**
+
+$$
+\text{Base de Cálculo} = \text{Valor da Operação} - \text{ICMS Interestadual}
+$$
+
+2. **Base de cálculo do diferencial de alíquota:**
+
+$$
+\text{Base de Cálculo DIFAL} = \frac{\text{Base de Cálculo}}{1 - \text{ALQ interna}}
+$$
+
+3. **Base de cálculo reduzida em 20% no destino:**
+
+$$
+\text{Base de Cálculo Reduzida} = \text{Base de Cálculo DIFAL} \times (1 - 0,20)
+$$
+
+4. **Cálculo do ICMS diferencial de alíquota com base de cálculo reduzida:**
+
+$$
+\text{ICMS DIFAL} = (\text{Base de Cálculo Reduzida} \times \text{ALQ interna}) - (\text{Base de Cálculo} \times \text{ALQ interestadual})
+$$
+
+5. **Valor devido a título de FEM:**
+
+$$
+\text{FEM} = \text{Base de Cálculo DIFAL} \times \text{ALQ FEM}
+$$
+
+### Cálculos
+
+1. **Base de Cálculo Excluindo ICMS Interestadual:**
+
+$$
+\text{Base de Cálculo} = R\$ 1.000,00 - (R\$ 1.000,00 \times 0,12) = R\$ 1.000,00 - R\$ 120,00 = R\$ 880,00
+$$
+
+2. **Base de Cálculo do ICMS Diferencial de Alíquota:**
+
+$$
+\text{Base de Cálculo DIFAL} = \frac{R\$ 880,00}{1 - 0,20} = \frac{R\$ 880,00}{0,80} = R\$ 1.100,00
+$$
+
+3. **Base de Cálculo Reduzida em 20% no Destino:**
+
+$$
+\text{Base de Cálculo Reduzida} = R\$ 1.100,00 \times (1 - 0,20) = R\$ 1.100,00 \times 0,80 = R\$ 880,00
+$$
+
+4. **Aplicação da Alíquota Interna sobre a Base de Cálculo Reduzida:**
+
+$$
+\text{ICMS DIFAL} = (R\$ 880,00 \times 0,20) - (R\$ 1.000,00 \times 0,12) = R\$ 176,00 - R\$ 120,00 = R\$ 56,00
+$$
+
+Neste exemplo, o cálculo do diferencial de alíquota para a operação de compra de mercadorias, considerando o ICMS interestadual de 12%, a alíquota interna de 18% mais 2% de FEM, e um benefício de redução de base de cálculo de 20%, resulta em um valor total de R\$ 56,00 a ser recolhido.
+
+Para mais informações, consulte seu contador e a legislação fiscal da sua região.
+
+
+$$
+\text{ICMS-ST} = \left( \text{Valor Total do Produto} \times (1 + \text{MVA}) \right) \times \text{Alíquota Interna} - \text{Valor do ICMS}
+$$
+
+**Onde:**
+
+- **$\text{ICMS-ST}$**: O valor do ICMS da Substituição Tributária que você vai pagar no final.
+- **$\text{Valor Total do Produto}$**: A soma de todos os custos da operação (Valor da Mercadoria + Seguro + Frete + IPI + Outras Despesas).
+- **$\text{MVA}$**: Margem de Valor Agregado, o percentual que aumenta o valor para estimar o preço final.
+- **$\text{Alíquota Interna}$**: Percentual de ICMS do estado de destino. 
+- **$\text{Valor do ICMS}$**: O ICMS normal da sua venda.

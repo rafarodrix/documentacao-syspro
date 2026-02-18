@@ -1,0 +1,72 @@
+---
+title: TEF Fiserv
+description: Orientações e soluções para uso e suporte do TEF SiTef pela Fiserv.
+icon: Code
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+import { CustomCard } from '@/components/CustomCard';  
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+
+A solução **TEF SiTef** oferece integração direta ao caixa, ideal para estabelecimentos que não necessitam de mobilidade para processar pagamentos com cartões. Essa integração garante que as vendas com cartões sejam completamente conectadas ao seu **ERP**, automatizando processos e minimizando erros na conciliação de vendas.
+
+<Cards>
+  <CustomCard title="Integração Completa" >
+    - Facilita o processamento de vendas com cartões, sem necessidade de registros manuais.
+  </CustomCard>
+  <CustomCard title="Minimização de Erros">
+    - Automatiza os processos de conciliação de vendas, garantindo maior precisão.
+  </CustomCard>
+  <CustomCard title="Configuração Automática" >
+    - O sistema seleciona automaticamente a adquirente mais vantajosa com base na bandeira do cartão e no tipo de transação.
+  </CustomCard>
+  <CustomCard title="Segurança nas Transações">
+    - Aumenta a segurança das transações financeiras com criptografia e medidas de proteção avançadas.
+  </CustomCard>
+</Cards>
+
+### Portal do Cliente
+
+O **Portal do Cliente da Fiserv** proporciona um gerenciamento eficiente de vendas e recebimentos, com uma visão clara do movimento de caixa.
+
+[Portal do Cliente](https://portaldocliente.softwareexpress.com.br/Login)
+
+---
+
+### Integração Pix
+
+<div className='fd-steps [&_h4]:fd-step'>
+
+#### Solicitação de Credenciais
+
+- **Contato com o Gerente da Conta:**
+  - Solicite ao gerente da conta as credenciais necessárias para a integração.
+  - **Criação de Aplicação:** Vincule a aplicação à plataforma **Fiserv** ou **Software Express**.
+    - Obtenha as seguintes credenciais: **Client ID** e  **Client Secret**
+
+#### Cadastro da Chave PIX
+
+- **Cadastramento na Plataforma Fiserv:**
+  - Acesse a plataforma Fiserv e registre a chave PIX correspondente.
+
+#### Habilitação em Produção
+
+- **Contato com Suporte Fiserv:**
+  - Ligue para o suporte da Fiserv no número **(11) 2175-9501** para solicitar a habilitação da integração em ambiente de produção.
+
+</div>
+
+### Contato Suporte Fiserv
+
+Se você enfrentar problemas ao usar o **TEF Fiserv**, entre em contato com a equipe de suporte disponível de segunda a sexta, das 08:00 às 18:00.
+
+- **Telefone:** (11) 2175-9501 | (11) 3170-5407 | (11) 3170-5300 - Ramal: 5407
+- **E-mail:** [suporte.tef@fiserv.com](mailto:suporte.tef@fiserv.com)
+- **Portal de Suporte:** [Acesse o Portal de Suporte Fiserv](URL_CORRETO_AQUI) > Atendimento > Suporte TEF.
+- **Portal de Acesso Remoto:** Para suporte técnico mais direto, utilize nosso **Portal de Acesso Remoto da Fiserv**, onde o técnicos podem acessar seu sistema remotamente para resolver problemas com mais eficiência: [Link para acesso Fiserv](https://start.remoteservices.fiserv.com/)
+
+---
+
+<SuporteSection modulo="Configurações IIS" />

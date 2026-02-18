@@ -1,0 +1,77 @@
+---
+title: Dúvidas Frequentes
+description: Encontre soluções para problemas comuns, guias de integração, erros fiscais e questões tributárias.
+full: true
+---
+
+import { Cards } from 'fumadocs-ui/components/card';
+import { CustomCard } from '@/components/CustomCard';
+import { HardDrive, Share2, AlertTriangle, Landmark, BookText, CreditCard, ShieldCheck, Server, FileText, FileWarning, LandmarkIcon } from 'lucide-react';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+## Central de Soluções
+
+Bem-vindo à nossa central de ajuda. Aqui você encontra respostas rápidas, guias passo a passo e soluções para os problemas mais comuns do Syspro ERP. Navegue pelas categorias abaixo para encontrar o que procura.
+
+---
+
+## <HardDrive className="inline-block size-5" /> Hardware
+Guias para instalação, configuração e solução de problemas de equipamentos físicos conectados ao sistema.
+
+<Cards>
+  <CustomCard title="Erro de Certificado" href="/docs/duvidas/hardware/certificado-erro" icon={<ShieldCheck />}>
+    Solucione problemas relacionados ao certificado digital da sua empresa.
+  </CustomCard>
+  <CustomCard title="Configuração do IIS" href="/docs/duvidas/hardware/configuracao-iis" icon={<Server />}>
+    Aprenda a configurar o Servidor de Informações da Internet para o Syspro.
+  </CustomCard>
+</Cards>
+
+---
+
+## <Share2 className="inline-block size-5" /> Integrações
+Conecte o Syspro ERP com outras ferramentas, APIs, TEF e plataformas de e-commerce.
+
+<Cards>
+  <CustomCard title="Consulta via API" href="/docs/duvidas/integracoes/consulta-api" icon={<BookText />}>
+    Documentação técnica para conectar-se e consultar os dados do sistema.
+  </CustomCard>
+  <CustomCard title="Integração TEF Fiveserv" href="/docs/duvidas/integracoes/tef-fiveserv" icon={<CreditCard />}>
+    Configure a transferência eletrônica de fundos de forma integrada.
+  </CustomCard>
+</Cards>
+
+---
+
+## <AlertTriangle className="inline-block size-5" /> Rejeições Fiscais
+Resolva rapidamente as rejeições de documentos fiscais (NF-e, CT-e, MDF-e) retornadas pela SEFAZ.
+
+<Cards>
+  <CustomCard title="Soluções para NF-e e NFC-e" href="/docs/duvidas/rejeicoes/nfe-nfce" icon={<FileText />}>
+    Catálogo de erros e soluções para notas fiscais.
+  </CustomCard>
+  <CustomCard title="Soluções para CT-e" href="/docs/duvidas/rejeicoes/cte" icon={<FileWarning />}>
+    Catálogo de erros para conhecimentos de transporte.
+  </CustomCard>
+  <CustomCard title="Soluções para MDF-e" href="/docs/duvidas/rejeicoes/mdfe" icon={<FileWarning />}>
+    Catálogo de erros para o manifesto eletrônico.
+  </CustomCard>
+</Cards>
+
+---
+
+## <Landmark className="inline-block size-5" /> Tributário
+Respostas claras para as principais dúvidas sobre regras fiscais e tributárias.
+
+<Cards>
+  <CustomCard title="Antecipação de Alíquota" href="/docs/duvidas/tributario/antecipacao-aliquota" icon={<LandmarkIcon />}>
+    Entenda como funciona o cálculo e a aplicação da antecipação.
+  </CustomCard>
+  <CustomCard title="Dúvidas sobre CST" href="/docs/duvidas/tributario/cst" icon={<FileText />}>
+    Consulte o significado e a aplicação dos códigos CST.
+  </CustomCard>
+</Cards>
+
+---
+
+<SuporteSection modulo="Dúvidas Frequentes" />

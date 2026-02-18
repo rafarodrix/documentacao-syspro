@@ -1,0 +1,89 @@
+---
+title: Estrutura do Projeto
+description: Visão geral da estrutura do projeto e organização dos arquivos.
+draft: true
+---
+
+
+📦 app/
+ ├─ layout.tsx                   # Layout global (tema, fontes, providers)
+ ├─ globals.css                  # Tailwind e estilos globais
+ │
+ ├─ (public)/                    # Rotas públicas
+ │   ├─ page.tsx                 # Página inicial
+ │   ├─ login/
+ │   │   └─ page.tsx
+ │   ├─ portal/
+ │   │   └─ page.tsx
+ │   └─ docs/                    # Fumadocs
+ │       ├─ layout.tsx
+ │       └─ [...slug]/page.tsx
+ │
+ ├─ (internal)/                  # Rotas internas (autenticadas)
+ │   └─ admin/
+ │       ├─ layout.tsx           # Layout com sidebar
+ │       ├─ page.tsx             # Dashboard principal
+ │       ├─ scripts/
+ │       │   └─ page.tsx         # Listagem de scripts SQL
+ │       ├─ analisador/
+ │       │   └─ page.tsx         # Página futura de análise
+ │       └─ settings/
+ │           └─ page.tsx         # Configurações futuras
+ │
+ ├─ api/
+ │   ├─ scripts/
+ │   │   └─ route.ts             # Manipulação dos scripts (GET, POST)
+ │   └─ auth/
+ │       └─ route.ts
+ │
+ ├─ favicon.ico
+ ├─ layout.config.tsx
+ └─ providers.tsx
+
+📂 components/
+ ├─ ui/                          # Componentes visuais reutilizáveis
+ │   ├─ Button.tsx
+ │   ├─ Card.tsx
+ │   └─ Input.tsx
+ ├─ admin/
+ │   ├─ AdminSidebar.tsx
+ │   ├─ DashboardCard.tsx
+ │   └─ ScriptClientPage.tsx
+ └─ portal/
+     └─ PortalCard.tsx
+
+📂 lib/
+ ├─ auth.ts                      # Autenticação
+ ├─ api.ts                       # Axios/fetch
+ ├─ utils.ts                     # Funções auxiliares
+ ├─ scripts.ts                   # Funções para leitura dos scripts
+ └─ validations/
+     └─ scriptSchema.ts          # Schema Zod
+
+📂 config/
+ ├─ site.ts                      # Nome, URL, SEO
+ ├─ docs.config.ts               # Configuração Fumadocs
+ └─ theme.ts                     # Cores, dark mode, etc.
+
+📂 server/
+ ├─ db.ts                        # Conexão com banco
+ ├─ actions/
+ │   └─ scripts.ts               # Server actions (Next.js 14+)
+ └─ services/
+     └─ scriptService.ts
+
+📂 data/
+ └─ scripts/
+     ├─ exemplo-01.mdx
+     ├─ exemplo-02.mdx
+     └─ exemplo-03.mdx
+
+📂 types/
+ ├─ next-auth.d.ts
+ ├─ script.d.ts
+ └─ index.d.ts
+
+📂 public/
+ └─ logo/
+     ├─ trilink.svg
+     └─ favicon.svg

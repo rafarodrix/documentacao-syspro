@@ -1,0 +1,89 @@
+---
+title: Guia do Relatório de Etiquetas de Produto
+description: Tudo o que você precisa saber sobre o relatório de etiquetas de produto.
+---
+
+import { FileText, Search, BarChart2, MessagesSquare, Phone, Mail } from 'lucide-react';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { CustomCard } from '@/components/CustomCard';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+import { Step, Steps } from 'fumadocs-ui/components/steps'; 
+
+## Introdução
+
+A tela de **Etiquetas de Produto** é uma ferramenta estratégica para a padronização e organização da identificação física de mercadorias no estoque ou na área de vendas. Ela permite que a empresa mantenha a agilidade no processo de precificação e rotulagem, garantindo que as informações presentes nas gôndolas ou produtos estejam sempre em sincronia com os dados registrados no sistema.
+
+Sua importância reside na flexibilidade de geração: seja através da importação de notas fiscais de entrada, monitoramento de alterações de preços ou adição manual via código de barras, o sistema assegura que a comunicação visual do produto seja precisa e profissional.
+
+## Passo a Passo
+
+<Steps>
+
+<Step>
+
+Existem três formas principais de carregar os produtos:
+
+* **Por Nota Fiscal:** Digite o número da nota e clique em `Importar > Nota Fiscal`. Marque **Acumular** se desejar adicionar mais de uma nota.
+* **Por Alteração de Preço:** Informe o período em **Data Alteração** e clique em `Importar > Preços Alterados`.
+* **Manual/Bipagem:** Utilize o campo **Código de Barras** para adicionar itens individualmente.
+
+
+<Cards>
+<Card title="Número da Nota" description="Permite buscar uma Nota Fiscal de entrada específica. Ao importar, o sistema carrega automaticamente todos os itens contidos no documento." />
+<Card title="Acumular" description="Quando marcado, permite que o usuário selecione e importe múltiplas notas fiscais em sequência, acumulando os itens na lista de impressão sem limpar os anteriores." />
+<Card title="Data Alteração (Inicial/Final)" description="Filtro utilizado para identificar produtos que sofreram alteração de preço em um determinado período para posterior importação." />
+<Card title="Código de Barras" description="Campo de entrada rápida (Bipagem). Ao ler um código, o produto é adicionado instantaneamente à lista de emissão." />
+</Cards>
+
+</Step>
+
+<Step>
+
+### Ajustes Adicionais
+
+Se necessário, preencha o campo **Informações** e **Data** para adicionar observações personalizadas na etiqueta e configure o **Salto de Etiquetas** caso esteja utilizando uma folha de etiquetas parcialmente usada.
+
+<Callout type="info" title="Dica">
+  Esse passo é opcional, mas ajuda a personalizar a etiqueta para o seu negócio dependendo do layout escolhido.
+</Callout>
+
+</Step>
+
+<Step>
+
+### Conferência e Impressão
+
+Verifique os itens na grade inferior (Código, Descrição, Qtde e Preço). Após a conferência, selecione o layout de etiqueta desejado (ex: Gôndola, 3 Colunas, QR Code, etc.) e utilize o ícone da **Impressora** no topo da tela para gerar o arquivo de impressão.
+
+<Cards>
+<Card title="Data Etiqueta" description="Define uma data específica que será impressa na etiqueta, útil para controle de validade ou lote." />
+<Card title="Salto Etiquetas (Qtde)" description="Essencial para folhas A4. Define quantas posições de etiquetas já usadas o sistema deve 'pular' antes de iniciar a impressão, evitando desperdício de papel." />
+<Card title="Informações" description="Campo opcional para adicionar observações personalizadas na etiqueta." />
+</Cards>
+
+
+</Step>
+
+</Steps>
+
+## Perguntas Frequentes
+
+<Accordions>
+<Accordion title="Como faço para remover um item que adicionei por engano?">
+Selecione o produto na grade inferior e clique no botão **Remover**. Caso deseje limpar toda a lista para começar do zero, clique em **Remover Todos**.
+</Accordion>
+<Accordion title="Posso alterar a quantidade de etiquetas de um produto específico antes de imprimir?">
+Sim, após carregar os itens na grade, você pode editar a coluna **Qtde** diretamente na linha do produto desejado antes de comandar a impressão.
+</Accordion>
+<Accordion title="O campo 'Informações' aparece em todos os modelos de etiqueta?">
+Não. Esse campo é opcional e depende do layout selecionado (etiquetas customizadas). Verifique se o modelo escolhido suporta a exibição de observações adicionais.
+</Accordion>
+</Accordions>
+
+<SuporteSection />
+
+---
+
+<SuporteSection modulo="Relatório de Etiquetas de Produto" />

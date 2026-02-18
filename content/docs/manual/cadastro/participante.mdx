@@ -1,0 +1,139 @@
+---
+title: Cadastro de Participante
+description: Guia para preencher corretamente cada campo do cadastro de participantes.
+
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { AlertTriangle } from 'lucide-react'
+import SuporteSection from '@/components/docs/SuporteSection.tsx'
+
+# Cadastro de Participantes
+
+O cadastro de participantes é fundamental no Syspro ERP.  
+Todo cliente, fornecedor, colaborador ou outro tipo de pessoa ou empresa que se relaciona com a sua empresa **deve ser cadastrado aqui**.
+
+Este guia foi feito para **explicar passo a passo cada campo** da tela de cadastro, com uma linguagem simples, voltada para todos os públicos — inclusive quem nunca trabalhou com sistema.
+
+---
+
+## 🧭 Acessando o cadastro
+
+No menu superior, clique em: Cadastro > Participante > Participante
+
+
+Você verá a lista de todos os participantes já cadastrados.
+
+Para cadastrar um novo, clique em **Incluir**.
+
+---
+
+## 🧾 Guia Principal
+
+Esta é a primeira aba do cadastro. Aqui você informa os dados mais importantes do participante.
+
+### Campos principais:
+
+| Campo                 | O que preencher                                                                              |
+|-----------------------|----------------------------------------------------------------------------------------------|
+| **Pessoa**            | Selecione `Física` para pessoas ou `Jurídica` para empresas.                                 |
+| **Nome / Razão Social** | Digite o nome da pessoa ou a razão social da empresa.                                        |
+| **Fantasia**          | Nome comercial da empresa (pode deixar em branco se for pessoa física).                      |
+| **CPF / CNPJ**        | Documento de identificação. O campo muda conforme o tipo de pessoa.                          |
+| **RG**                | Apenas para pessoas físicas.                                                                 |
+| **Órgão Expedidor / UF** | Quem emitiu o RG e o estado (ex.: SSP / MG).                                               |
+| **Identificação Estrangeiro** | Preencha se for uma pessoa de outro país.                                           |
+| **Classificação**     | Escolha uma categoria para o participante, se sua empresa usa essa separação.                |
+| **Preço Especial**    | Caso o participante tenha uma tabela de preço diferenciada.                                  |
+| **Modelo Fiscal**     | Informe o modelo padrão de nota fiscal (geralmente 55 para NF-e ou 65 para NFC-e).           |
+| **Email**             | Email principal para contato.                                                                |
+| **Email NFe**         | Email para envio automático das notas fiscais.                                               |
+| **Data de Cadastro**  | A data será preenchida automaticamente.                                                      |
+| **Situação**          | Se estiver como `Ativo`, o participante pode ser usado em vendas/compras.                    |
+| **Foto**              | Caso queira adicionar uma imagem ou logotipo. Opcional.                                      |
+
+<Callout type="warn" title="Atenção">
+    Preencha todos os campos com atenção. Alguns dados, como o modelo fiscal e o tipo de pessoa, são usados em documentos fiscais e financeiros.
+</Callout>
+
+---
+
+## 👤 Guia Informações Pessoais
+
+Campos usados principalmente para pessoas físicas. Preencha sempre que possível.
+
+| Campo             | O que preencher                                           |
+|-------------------|-----------------------------------------------------------|
+| Sexo              | Masculino, Feminino, Outro.                               |
+| Estado Civil      | Solteiro, Casado, Viúvo etc.                              |
+| Religião          | Opcional.                                                 |
+| Cor               | Opcional.                                                 |
+| Nome da Mãe / Pai | Usado em cadastros completos ou convênios.                |
+| Cônjuge           | Se for necessário.                                        |
+| Tipo Sanguíneo    | Opcional.                                                 |
+| Qtde Filhos       | Número de filhos.                                         |
+| Time de Futebol   | Curiosidade. Pode ser usado em ações de marketing.        |
+| Valor Salário     | Informativo.                                              |
+| Valor Renda       | Informativo.                                              |
+| Desconto Máximo % | Limite que o vendedor pode aplicar de desconto automático.|
+| Naturalidade / Nacionalidade | Cidade e país de origem.                        |
+| Profissão         | Importante para análises e convênios.                     |
+| Local de Trabalho | Local onde a pessoa trabalha atualmente.                  |
+
+---
+
+## 🗂️ Guia Outros
+
+Esses campos são mais usados no controle financeiro e contábil.
+
+| Campo                 | O que preencher                                                                |
+|------------------------|--------------------------------------------------------------------------------|
+| Origem                | Como esse cliente foi captado (ex.: Indicação, Redes sociais, etc.).          |
+| Conta Contábil        | Se usa integração contábil, informe a conta aqui.                             |
+| Ordem Rota            | Se usa rota de entrega, insira a ordem dele no trajeto.                       |
+| Cobrador Padrão       | Qual colaborador faz a cobrança (caso aplicável).                             |
+| Parcelas Quitadas     | Quantidade de parcelas quitadas (informativo).                                |
+| Data Óbito            | Apenas em caso de falecimento.                                                |
+| Observação / Fiscal   | Campos livres para inserir observações gerais ou fiscais sobre o participante.|
+| Mensagem Fixa         | Texto que será impresso em boletos e carnês.                                  |
+| Alerta para Vendedores| Texto visível durante a venda para dar destaque a algo importante.            |
+
+---
+
+## 🚫 Guia Bloqueios
+
+Controle automático de bloqueios de venda por motivos como atraso ou inadimplência.
+
+| Regras de Bloqueio                      | Descrição                                                                 |
+|-----------------------------------------|---------------------------------------------------------------------------|
+| Com X títulos vencidos                  | Bloqueia venda se o cliente tiver X ou mais títulos vencidos.            |
+| Com X recebidos com atraso              | Mesmo princípio, mas considerando recebimentos com atraso.               |
+| Com títulos vencidos há X dias          | Bloqueia conforme o tempo de atraso.                                     |
+| Que não compram há X dias               | Bloqueia caso o cliente esteja sem comprar há muito tempo.               |
+| Registro SPC                            | Marcar se o cliente tiver histórico no SPC.                              |
+| Bloquear venda por atraso               | Ativa ou desativa o controle de atraso acima.                            |
+
+<Callout type="warn" title="Atenção">
+    Esses bloqueios podem impedir que vendas sejam finalizadas. Use com atenção e comunique a equipe de vendas.
+</Callout>
+
+---
+
+## 🧱 Guias Laterais (à esquerda)
+
+Essas abas aparecem na lateral esquerda da tela de cadastro. Elas servem para registrar informações complementares, e mudam conforme o tipo de participante:
+
+- **Endereço**: múltiplos endereços (ex: entrega, cobrança, matriz).
+- **Telefone**: pode cadastrar mais de um número, com tipo.
+- **Venda Particular / Convênio**: regras de venda personalizadas.
+- **Fornecedor / Colaborador**: dados exigidos por esses tipos.
+- **Dependente / Referência / Contrato / Haver / Cashback**: usados em contratos, crediário e convênios.
+- **Contato**: pessoas dentro da empresa do cliente com quem se fala diretamente.
+- **Vendedor**: associar o responsável por este cliente.
+
+---
+
+<SuporteSection modulo="Cadastro de Participante" />
+
+
+

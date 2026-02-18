@@ -1,0 +1,67 @@
+---
+id: "SCR-002"
+title: "Clonar Estoque para Novo Grupo de Estoque"
+description: "Cria novos registros de estoque na tabela 'produto_qtde' para um grupo de destino, baseando-se nos registros de um grupo de origem."
+category: "Estoque"
+author: "Analista do Sistema"
+createdAt: "2025-10-15"
+firebirdVersion: "5.0"
+tags:
+  - "estoque"
+  - "grupo-de-estoque"
+---
+
+```sql
+-- Script: Duplicação de registros de estoque para um novo grupo
+-- Objetivo: Copiar todos os registros de estoque de um grupo de origem
+--           para um novo grupo de destino, criando novos IDs para cada registro.
+-- Recomendação: Execute um backup completo ANTES de rodar este script. Teste em ambiente de homologação.
+--
+-- Parâmetros:
+-- :ID_GRUPO_ESTOQUE_ORIGEM   -> UUID do grupo de estoque que servirá como base (origem).
+--                              Ex: '{0C3F6E3B-5A3A-4E2D-8B8A-7C1E7E6A9A3B}'
+-- :ID_GRUPO_ESTOQUE_DESTINO  -> UUID do novo grupo de estoque que receberá os registros (destino).
+--                              Ex: '{10418CFB-BC66-4C1C-88AC-39F133971488}'
+
+INSERT INTO produto_qtde (
+    id_produto_qtde,
+    id_produto,
+    id_empresa,
+    id_grupo_estoque,
+    id_lote_ativo,
+    ativo,
+    qtde,
+    qtde_min,
+    qtde_max,
+    dtc_saida_ultima,
+    dtc_entrada_ultima,
+    informativo,
+    localizacao,
+    dt_alteracao,
+    hr_alteracao,
+    id_usuario
+)
+SELECT
+    '{' || UUID_TO_CHAR(GEN_UUID()) || '}',
+    pq.id_produto,
+    pq.id_empresa,
+    :ID_GRUPO_ESTOQUE_DESTINO,
+    pq.id_lote_ativo,
+    pq.ativo,
+    pq.qtde,
+    pq.qtde_min,
+    pq.qtde_max,
+    pq.dtc_saida_ultima,
+    pq.dtc_entrada_ultima,
+    pq.informativo,
+    pq.localizacao,
+    pq.dt_alteracao,
+    pq.hr_alteracao,
+    pq.id_usuario
+FROM
+    produto_qtde pq
+WHERE
+    pq.id_grupo_estoque = :ID_GRUPO_ESTOQUE_ORIGEM; -- <<< INFORME AQUI O ID DO GRUPO DE ESTOQUE DE ORIGEM
+
+COMMIT;
+```

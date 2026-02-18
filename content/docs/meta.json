@@ -1,0 +1,12 @@
+{
+    "root": false,
+    "title": "Syspro ERP",
+    "description": "Documentação oficial do Syspro ERP, incluindo manuais, guias de suporte e treinamentos.",
+    "pages": [
+      "index",
+      "manual",
+      "duvidas",
+      "treinamento",
+      "suporte"
+    ]
+  }

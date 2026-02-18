@@ -1,0 +1,179 @@
+---
+title: Cálculo do ICMS-ST
+description: Guia para calcular o ICMS por Substituição Tributária (ICMS-ST.
+---
+
+import 'katex/dist/katex.min.css';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## O que é o ICMS-ST?
+
+O ICMS-ST é uma forma de arrecadar o imposto sobre produtos antes que eles cheguem ao consumidor final. Ele simplifica a cobrança do ICMS, transferindo a responsabilidade do pagamento a um único contribuinte, como o fabricante ou importador, e ajuda a evitar sonegação.
+
+### Fórmula
+
+$$
+\text{ICMS-ST} = \left( \text{Valor Total do Produto} \times (1 + \text{MVA}) \right) \times \text{Alíquota Interna} - \text{Valor do ICMS}
+$$
+
+**Onde:**
+
+- **$\text{ICMS-ST}$**: O valor do ICMS da Substituição Tributária que você vai pagar no final.
+- **$\text{Valor Total do Produto}$**: A soma de todos os custos da operação (Valor da Mercadoria + Seguro + Frete + IPI + Outras Despesas).
+- **$\text{MVA}$**: Margem de Valor Agregado, o percentual que aumenta o valor para estimar o preço final.
+- **$\text{Alíquota Interna}$**: Percentual de ICMS do estado de destino. 
+- **$\text{Valor do ICMS}$**: O ICMS normal da sua venda.
+
+---
+
+## Passo a Passo para o Cálculo do ICMS-ST
+
+Vamos calcular o ICMS-ST com um exemplo prático, considerando os valores da tabela abaixo.
+
+
+| **Descrição**                                      | **Valor (R$)** |
+|----------------------------------------------------|----------------|
+| Valor da mercadoria (preço bruto, sem descontos)   | 1.000,00       |
+| Desconto                                              | 16,00          |
+| Frete                                              | 50,00          |
+| Seguro                                             | 10,00          |
+| IPI                                                | 100,00         |
+| Outras despesas                                    | 0,00           |
+
+
+<Callout type="warn" title="Aviso Importante">
+Este manual é um guia educativo. Para cálculos oficiais, consulte um contador ou a legislação aplicável.
+</Callout>
+
+
+<div className='fd-steps [&_h3]:fd-step'>
+
+### Calcule o ICMS Normal
+
+Primeiro, vamos calcular o ICMS normal que você pagaria na sua venda. Aqui, o desconto entra porque ele reduz o valor final que você está comprando.
+
+**Fórmula**:
+$$
+\text{Base do ICMS} = \text{Mercadoria} + \text{Seguro} + \text{Frete} + \text{IPI} + \text{Outras} - \text{Desconto}
+$$
+
+$$
+\text{Valor do ICMS} = \text{Base do ICMS} \times 0,12
+$$
+
+**Exemplo**:
+$$
+\text{Base do ICMS} = 1.000,00 + 10,00 + 50,00 + 100,00 + 0,00 - 16,00 = 1.144,00
+$$
+  
+$$
+\text{Valor do ICMS} = 1.144,00 \times 0,12 = 137,28
+$$
+
+Esse R$ 137,28 é o ICMS normal que você já paga na sua compra. Vamos guardá-lo para usar depois!
+
+---
+
+### Monte a Base Inicial do ICMS-ST
+
+Agora, para o ICMS-ST, a base é um pouco diferente: **o desconto não entra aqui**. A ideia é calcular o imposto sobre o valor "cheio" da operação, antes de qualquer desconto.
+
+**Fórmula**:
+  $$
+  \text{Base Inicial} = \text{Mercadoria} + \text{Seguro} + \text{Frete} + \text{IPI} + \text{Outras}
+  $$
+
+**Exemplo**:
+  $$
+  \text{Base Inicial} = 1.000,00 + 10,00 + 50,00 + 100,00 + 0,00 = 1.160,00
+  $$
+
+Essa é a base "crua" que usaremos para o ICMS-ST.
+
+---
+
+### Aumente a Base com a Margem de Lucro (MVA)
+
+O ICMS-ST tenta adivinhar quanto o produto vai custar no final, quando chegar ao consumidor. Para isso, usamos a **Margem de Valor Agregado (MVA)**, que é um percentual definido pelo governo. No nosso exemplo, a MVA é 40%.
+
+**Fórmula**:
+$$
+\text{Base do ICMS-ST} = \text{Base Inicial} \times (1 + \text{MVA})
+$$
+
+**Exemplo** (MVA de 40% = 0,4):
+$$
+\text{Base do ICMS-ST} = 1.160,00 \times (1 + 0,4) = 1.160,00 \times 1,4 = 1.624,00
+$$
+
+Agora temos R$ 1.624,00, que é o valor estimado da venda final.
+
+---
+
+### Calcule o ICMS Total com a Alíquota Interna
+
+Aqui, usamos a **alíquota interna** (o imposto do estado de destino, neste caso, 18%) para saber o ICMS total sobre essa venda final estimada.
+
+**Fórmula**:
+$$
+\text{Valor Total do ICMS-ST} = \text{Base do ICMS-ST} \times \text{Alíquota Interna}
+$$
+
+**Exemplo** (alíquota interna de 18% = 0,18):
+$$
+\text{Valor Total do ICMS-ST} = 1.624,00 \times 0,18 = 292,32
+$$
+
+Esse R$ 292,32 é o ICMS total que seria cobrado até o consumidor final.
+
+---
+
+### Descubra o ICMS-ST a Pagar
+
+Por fim, subtraímos o ICMS normal (que você já pagou) do ICMS total. O que sobra é o ICMS-ST que você precisa recolher "adiantado".
+
+**Fórmula**:
+$$
+\text{ICMS-ST a Pagar} = \text{Valor Total do ICMS-ST} - \text{Valor do ICMS}
+$$
+
+**Exemplo**:
+$$
+\text{ICMS-ST a Pagar} = 292,32 - 137,28 = 155,04
+$$
+
+**Resultado**: Você deve pagar **R$ 155,04** de ICMS-ST.
+
+---
+ 
+</div>
+
+
+<Callout type="info" title="Aviso">
+Quando falamos de descontos no ICMS-ST, é importante entender uma regra básica: **descontos comerciais, sejam condicionais (dependem de algo, como pagamento antecipado) ou incondicionais (dado sem condições), normalmente não são tirados da base de cálculo do ICMS-ST**. 
+
+Isso significa que o valor usado para calcular esse imposto é o **valor bruto da mercadoria**, antes de qualquer desconto, a menos que a lei do seu estado diga o contrário e permita descontos incondicionais destacados na nota fiscal.
+</Callout>
+
+---
+
+# Conclusão
+
+Calcular o ICMS-ST fica mais fácil quando você entende o que entra no cálculo e por quê. Com este guia, você tem o passo a passo para fazer tudo direitinho e com confiança. Mas, como as regras podem mudar de estado para estado, vale a pena dar uma checada com um contador ou na legislação local se tiver dúvidas!
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="Onde encontro a MVA?">
+    Consulte o regulamento do ICMS do seu estado, geralmente no **Anexo II, Seção III**, ou no site da Secretaria da Fazenda.
+  </Accordion>
+
+  <Accordion title="Descontos mudam o cálculo?">
+    Normalmente não, mas alguns estados aceitam descontos incondicionais. Verifique a legislação local.
+  </Accordion>
+
+  <Accordion title="O que é Débito Próprio?">
+    É o ICMS normal da operação, calculado antes do ICMS-ST, usando a alíquota interestadual (entre estados) ou interna (mesmo estado).
+  </Accordion>
+</Accordions>

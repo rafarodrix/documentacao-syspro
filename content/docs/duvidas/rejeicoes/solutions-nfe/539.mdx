@@ -1,0 +1,76 @@
+---
+title: 'Rejeicao 539: Duplicidade de NF-e, com diferenca na Chave de Acesso'
+description: 'Como corrigir a rejeição "Duplicidade de NF-e, com diferença na Chave de Acesso" no Syspro, sincronizando a nota com o XML oficial da Sefaz.'
+causa_do_erro: 'Já existe uma NF-e com a mesma chave de acesso, mas com diferenças nos dados. A solução é atualizar o cadastro da nota no Syspro com os dados oficiais da Sefaz.'
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+---
+
+## Identificação do Problema
+
+Ao tentar transmitir uma Nota Fiscal Eletrônica (NFe), o sistema pode retornar uma rejeição da Sefaz informando que o documento já existe, mas com conteúdo diferente.
+
+<Callout type="error" title="Erro Apresentado">
+  Rejeicao: 539 Duplicidade de NF-e, com diferenca na Chave de Acesso [chNFe:0000000000000000000000000000000000000000000]
+</Callout>
+
+
+<Callout type="info" title="Causa do Erro">
+  Este erro ocorre porque uma NFe com o **mesmo número** e **série** já foi autorizada pela Sefaz, mas os dados da nota que estão no seu sistema são **diferentes** dos dados da nota que foi autorizada.
+
+  Isso geralmente acontece quando uma NFe já autorizada é editada e salva no sistema por engano. A solução é sincronizar a nota no sistema com a versão oficial e autorizada que está na Sefaz.
+</Callout>
+
+## Passo a Passo da Solução
+
+<Steps>
+  <Step title="Consultar a Chave de Acesso na Sefaz">
+    <p>O primeiro passo é verificar qual é a versão oficial da NFe que já foi autorizada.</p>
+    1. Copie a **Chave de Acesso** de 44 dígitos que aparece na mensagem de erro.
+    2. Acesse o Portal da Nota Fiscal Eletrônica clicando no link: <a href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx" target="_blank" rel="noopener noreferrer">https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx</a>
+    3. Cole a Chave de Acesso, marque a caixa "Sou humano" e clique em "Continuar".
+
+  </Step>
+
+  <Step title="Comparar a NFe do Sistema com a da Sefaz">
+    <p>Agora, confirme se a nota autorizada na Sefaz é a que você realmente queria emitir. Compare os dados do portal com os dados da nota no seu sistema.</p>
+    
+    **Principais critérios para verificação:**
+    - **Destinatário (Cliente)**
+    - **Itens e Quantidades**
+    - **Valor Total da Nota**
+
+    <Callout type="warn" title="Atenção">
+      Se os dados na Sefaz estiverem **corretos**, significa que a nota no seu sistema foi alterada após a autorização. Prossiga para o próximo passo. Se os dados estiverem **incorretos**, pode haver um problema de numeração; neste caso, contate o suporte.
+    </Callout>
+  </Step>
+
+  <Step title="Baixar o XML Autorizado da Sefaz">
+    <p>Para corrigir a nota no seu sistema, você precisará do arquivo XML oficial, que é a versão legalmente válida do documento.</p>
+    1. Na tela de consulta da NFe no portal da Sefaz, clique no botão **"Download do documento"**.
+    2. Pode ser necessário confirmar o uso do seu **Certificado Digital** para realizar o download.
+    3. Salve o arquivo XML em um local de fácil acesso no seu computador.
+  </Step>
+
+  <Step title="Importar o XML para Sincronizar a Nota">
+    <p>O passo final é importar o XML oficial para dentro do Syspro, substituindo os dados incorretos.</p>
+    1. Abra a NFe que apresentou o erro dentro do Syspro, na tela de "Lançamento de Documentos".
+    2. Clique no botão **`Importar XML`**, localizado no menu superior.
+    
+
+    3. Selecione o arquivo XML que você baixou da Sefaz no passo anterior.
+    4. O sistema irá carregar os dados do XML e sobrescrever as informações incorretas.
+
+    <Callout type="success" title="Problema Resolvido">
+      Após a importação, a nota no seu sistema estará sincronizada com a versão autorizada na Sefaz. O status do documento deve ser atualizado para "Processado NFe", e o problema de duplicidade estará corrigido sem a necessidade de uma nova transmissão.
+    </Callout>
+  </Step>
+</Steps>
+
+---
+
+<SuporteSection modulo="NFe" />

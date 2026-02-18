@@ -1,0 +1,46 @@
+---
+title: Guia do Módulo de Venda
+description: Tudo o que você precisa saber sobre o módulo de venda do Syspro ERP.
+---
+
+import { ShoppingCart, Search, BarChart2, MessagesSquare, Phone, Mail } from 'lucide-react';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { CustomCard } from '@/components/CustomCard';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+O módulo de venda da Trilink Software é essencial para gerenciar todas as atividades relacionadas a vendas, desde a criação de pedidos até o faturamento e análise de desempenho. Com uma interface intuitiva, ele permite que você controle vendas no balcão, campanhas promocionais, metas, conformidade fiscal e muito mais. Explore as funcionalidades e otimize suas operações de vendas.
+
+<Callout type="info" title="Dica">
+  Certifique-se de ter permissões adequadas para acessar todas as funcionalidades. Contate o administrador, se necessário.
+</Callout>
+
+---
+
+O módulo de venda oferece diversas funcionalidades para atender às suas necessidades:
+
+<Cards>
+  <CustomCard title="Balção" href="#balcao" icon={<ShoppingCart className="h-5 w-5" />}>
+    - Gerencie vendas no balcão ou ponto de venda com facilidade.
+  </CustomCard>
+  <CustomCard title="Campanha" href="#campanha" icon={<BarChart2 className="h-5 w-5" />}>
+    - Crie e acompanhe campanhas promocionais para impulsionar vendas.
+  </CustomCard>
+  <CustomCard title="Estação" href="#estacao" icon={<Search className="h-5 w-5" />}>
+    - Controle estações de venda ou terminais para operações eficientes.
+  </CustomCard>
+  <CustomCard title="Meta" href="#meta" icon={<BarChart2 className="h-5 w-5" />}>
+    - Defina e monitore metas de vendas para sua equipe.
+  </CustomCard>
+  <CustomCard title="PAF" href="#paf" icon={<Search className="h-5 w-5" />}>
+    - Garanta conformidade fiscal com o Programa Aplicativo Fiscal.
+  </CustomCard>
+  <CustomCard title="Shipay" href="#shipay" icon={<ShoppingCart className="h-5 w-5" />}>
+    - Integre serviços de pagamento ou envio para transações rápidas.
+  </CustomCard>
+</Cards>
+
+---
+
+<SuporteSection modulo="Vendas" />
