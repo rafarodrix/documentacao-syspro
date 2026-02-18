@@ -24,7 +24,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
   return (
     <section className="mt-20 relative">
 
-      {/* Linha divisória com label enterprise */}
+      {/* Linha divisória com label */}
       <div className="flex items-center gap-4 mb-12">
         <div className="h-px flex-1 bg-border" />
         <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-muted/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -34,7 +34,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      {/* Hero da seção — sem indicador de status */}
+      {/* Hero da seção */}
       <div className="mb-12 space-y-3 max-w-2xl">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
           Central de Atendimento — Trilink Software
@@ -53,7 +53,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
         </p>
       </div>
 
-      {/* SLA Cards — dois painéis lado a lado */}
+      {/* SLA Cards — dois painéis lado a lado, sem ícones inline nos títulos */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border rounded-xl overflow-hidden mb-8 border border-border">
 
         {/* Horário Comercial */}
@@ -77,18 +77,16 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="font-semibold text-foreground">
-              Segunda a Sexta, 08h às 18h
-            </span>
-          </div>
-
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Atendimento completo para dúvidas operacionais, ajustes de
-            configuração, treinamentos e suporte técnico de primeiro e
-            segundo nível via WhatsApp, telefone e e-mail.
-          </p>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <span><strong className="text-foreground">Segunda a sexta:</strong> 8h às 18h</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="w-4 shrink-0" />
+              <span>Atendimento completo para dúvidas operacionais, ajustes de configuração e treinamentos.</span>
+            </li>
+          </ul>
 
           <div className="mt-auto pt-4 border-t border-border/60">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -98,7 +96,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
           </div>
         </div>
 
-        {/* Plantão Emergencial */}
+        {/* Plantão Emergencial — corrigido: não é 24h */}
         <div className="bg-card p-8 flex flex-col gap-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -110,7 +108,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
                   Atendimento Crítico
                 </p>
                 <h3 className="text-lg font-semibold text-foreground mt-0.5">
-                  Plantão Emergencial
+                  Horário de Plantão
                 </h3>
               </div>
             </div>
@@ -119,19 +117,20 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="font-semibold text-foreground">
-              Fora do horário comercial
-            </span>
-          </div>
-
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Acionamento exclusivo para{' '}
-            <strong className="text-foreground">parada total do sistema</strong> ou
-            falhas críticas que impeçam completamente a operação. Disponível
-            apenas via telefone — chamadas com prioridade imediata.
-          </p>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <span><strong className="text-foreground">Segunda a sexta:</strong> 18h às 21h</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <span><strong className="text-foreground">Sábados, domingos e feriados:</strong> 8h às 20h</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="w-4 shrink-0" />
+              <span>Suporte exclusivo para emergências que impactam diretamente sua operação.</span>
+            </li>
+          </ul>
 
           <div className="mt-auto pt-4 border-t border-border/60">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -196,7 +195,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
             <div>
               <p className="font-semibold text-foreground text-sm mb-1">Telefone</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Canal exclusivo para o plantão de emergência fora do horário comercial.
+                Canal para emergências fora do horário comercial, durante o plantão.
               </p>
             </div>
             <div className="pt-3 border-t border-border/60">
@@ -204,7 +203,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
                 +55 (34) 99771-3731
               </p>
               <span className="inline-flex mt-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
-                Plantão 24h
+                Plantão
               </span>
             </div>
           </a>
@@ -239,17 +238,15 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
         </div>
       </div>
 
-      {/* Disclaimer enterprise — faixa sóbria */}
+      {/* Disclaimer */}
       <div className="flex items-start gap-3 px-5 py-4 rounded-lg bg-muted/40 border border-border text-sm text-muted-foreground">
         <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
         <p className="leading-relaxed">
           <strong className="text-foreground font-medium">Atenção:</strong>{' '}
           WhatsApp e E-mail não são monitorados fora do horário comercial.
-          Para situações de emergência após às 18h ou nos finais de semana,
-          utilize{' '}
-          <strong className="text-foreground font-medium">
-            exclusivamente o telefone
-          </strong>.
+          Para situações de emergência, utilize o{' '}
+          <strong className="text-foreground font-medium">telefone</strong>{' '}
+          dentro dos horários de plantão disponíveis.
         </p>
       </div>
 
