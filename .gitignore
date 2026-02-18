@@ -1,5 +1,5 @@
 # deps
-/node_modules
+node_modules
 
 # generated content
 .contentlayer
@@ -8,10 +8,14 @@
 
 # test & build
 /coverage
-/.next/
+.next/
 /out/
 /build
+dist/
 *.tsbuildinfo
+
+# turbo
+.turbo
 
 # misc
 .DS_Store
@@ -21,9 +25,17 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# others
+# env
+.env
 .env*.local
+
+# vercel
 .vercel
+
+# next
 next-env.d.ts
+
+# prisma
 /generated/prisma
