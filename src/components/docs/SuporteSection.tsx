@@ -34,43 +34,23 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      {/* Hero da seção */}
-      <div className="mb-12">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-              Central de Atendimento — Trilink Software
-            </p>
-            <h2 className="text-4xl font-bold tracking-tight leading-tight text-foreground">
-              Suporte especializado
-              <br />
-              <span className="text-muted-foreground font-normal">
-                para {modulo}
-              </span>
-            </h2>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Contamos com uma equipe técnica dedicada para garantir a
-              continuidade e a estabilidade da sua operação. Cada chamado
-              é tratado com prioridade definida por nível de impacto.
-            </p>
-          </div>
-
-          {/* Indicador de status operacional */}
-          <div className="shrink-0 flex flex-col items-start md:items-end gap-2">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                Sistemas Operacionais
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Última verificação: hoje
-            </p>
-          </div>
-        </div>
+      {/* Hero da seção — sem indicador de status */}
+      <div className="mb-12 space-y-3 max-w-2xl">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+          Central de Atendimento — Trilink Software
+        </p>
+        <h2 className="text-4xl font-bold tracking-tight leading-tight text-foreground">
+          Suporte especializado
+          <br />
+          <span className="text-muted-foreground font-normal">
+            para {modulo}
+          </span>
+        </h2>
+        <p className="text-muted-foreground text-base leading-relaxed">
+          Contamos com uma equipe técnica dedicada para garantir a
+          continuidade e a estabilidade da sua operação. Cada chamado
+          é tratado com prioridade definida por nível de impacto.
+        </p>
       </div>
 
       {/* SLA Cards — dois painéis lado a lado */}
@@ -147,7 +127,8 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
           </div>
 
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Acionamento exclusivo para <strong className="text-foreground">parada total do sistema</strong> ou
+            Acionamento exclusivo para{' '}
+            <strong className="text-foreground">parada total do sistema</strong> ou
             falhas críticas que impeçam completamente a operação. Disponível
             apenas via telefone — chamadas com prioridade imediata.
           </p>
@@ -161,89 +142,101 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
         </div>
       </div>
 
-      {/* Canais de Contato — tabela-style horizontal enterprise */}
-      <div className="rounded-xl border border-border overflow-hidden mb-8">
-
-        {/* Header da tabela */}
-        <div className="bg-muted/50 px-6 py-4 border-b border-border">
+      {/* Canais de Contato — três cards compactos lado a lado */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-5">
           <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
             Canais de Atendimento
           </h3>
+          <div className="h-px flex-1 bg-border" />
         </div>
 
-        {/* Canal: WhatsApp */}
-        <a
-          href="https://wa.me/5534997713731"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center justify-between px-6 py-5 bg-card hover:bg-muted/30 border-b border-border transition-colors duration-200"
-        >
-          <div className="flex items-center gap-5">
-            <div className="p-2.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 shrink-0">
-              <MessageCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground text-sm">WhatsApp</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                +55 (34) 99771-3731 · Dúvidas do dia a dia e chamados rotineiros
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="hidden md:inline text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full border border-border">
-              Horário comercial
-            </span>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
-          </div>
-        </a>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-        {/* Canal: Telefone */}
-        <a
-          href="tel:+5534997713731"
-          className="group flex items-center justify-between px-6 py-5 bg-card hover:bg-muted/30 border-b border-border transition-colors duration-200"
-        >
-          <div className="flex items-center gap-5">
-            <div className="p-2.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 shrink-0">
-              <Phone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          {/* Card WhatsApp */}
+          <a
+            href="https://wa.me/5534997713731"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-200"
+          >
+            <div className="flex items-start justify-between">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <MessageCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-emerald-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
             </div>
             <div>
-              <p className="font-semibold text-foreground text-sm">Telefone</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                +55 (34) 99771-3731 · Canal exclusivo para o plantão de emergência
+              <p className="font-semibold text-foreground text-sm mb-1">WhatsApp</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Dúvidas do dia a dia e chamados rotineiros durante o horário comercial.
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="hidden md:inline text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-800">
-              Plantão 24h
-            </span>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
-          </div>
-        </a>
+            <div className="pt-3 border-t border-border/60">
+              <p className="text-xs font-medium text-muted-foreground">
+                +55 (34) 99771-3731
+              </p>
+              <span className="inline-flex mt-1.5 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
+                Horário comercial
+              </span>
+            </div>
+          </a>
 
-        {/* Canal: E-mail */}
-        <a
-          href="mailto:equipe@trilinksoftware.com.br"
-          className="group flex items-center justify-between px-6 py-5 bg-card hover:bg-muted/30 transition-colors duration-200"
-        >
-          <div className="flex items-center gap-5">
-            <div className="p-2.5 rounded-lg bg-violet-100 dark:bg-violet-900/30 shrink-0">
-              <Mail className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+          {/* Card Telefone */}
+          <a
+            href="tel:+5534997713731"
+            className="group flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all duration-200"
+          >
+            <div className="flex items-start justify-between">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Phone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-amber-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
             </div>
             <div>
-              <p className="font-semibold text-foreground text-sm">E-mail</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                equipe@trilinksoftware.com.br · Solicitações formais e envio de logs
+              <p className="font-semibold text-foreground text-sm mb-1">Telefone</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Canal exclusivo para o plantão de emergência fora do horário comercial.
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="hidden md:inline text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full border border-border">
-              Horário comercial
-            </span>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
-          </div>
-        </a>
+            <div className="pt-3 border-t border-border/60">
+              <p className="text-xs font-medium text-muted-foreground">
+                +55 (34) 99771-3731
+              </p>
+              <span className="inline-flex mt-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                Plantão 24h
+              </span>
+            </div>
+          </a>
+
+          {/* Card E-mail */}
+          <a
+            href="mailto:equipe@trilinksoftware.com.br"
+            className="group flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-violet-500/50 hover:bg-violet-500/5 transition-all duration-200"
+          >
+            <div className="flex items-start justify-between">
+              <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                <Mail className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+              </div>
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-violet-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-sm mb-1">E-mail</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Solicitações formais, envio de logs e registros de chamados por escrito.
+              </p>
+            </div>
+            <div className="pt-3 border-t border-border/60">
+              <p className="text-xs font-medium text-muted-foreground">
+                equipe@trilinksoftware.com.br
+              </p>
+              <span className="inline-flex mt-1.5 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
+                Horário comercial
+              </span>
+            </div>
+          </a>
+
+        </div>
       </div>
 
       {/* Disclaimer enterprise — faixa sóbria */}
@@ -253,7 +246,10 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
           <strong className="text-foreground font-medium">Atenção:</strong>{' '}
           WhatsApp e E-mail não são monitorados fora do horário comercial.
           Para situações de emergência após às 18h ou nos finais de semana,
-          utilize <strong className="text-foreground font-medium">exclusivamente o telefone</strong>.
+          utilize{' '}
+          <strong className="text-foreground font-medium">
+            exclusivamente o telefone
+          </strong>.
         </p>
       </div>
 
