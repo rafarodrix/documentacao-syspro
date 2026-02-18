@@ -20,7 +20,7 @@ export default async function ConfiguracoesPage() {
 
     // Guard: Apenas quem tem permissao de ver configuracoes
     if (!hasPermission(role, "settings:view")) {
-        redirect("/");
+        redirect("/dashboard");
     }
 
     return (

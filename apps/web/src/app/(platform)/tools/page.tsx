@@ -11,7 +11,7 @@ export default async function ToolsPage() {
     const role = session.role as Role;
 
     if (!hasPermission(role, "tools:view")) {
-        redirect("/");
+        redirect("/dashboard");
     }
 
     return (

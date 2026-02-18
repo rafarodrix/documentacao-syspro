@@ -21,7 +21,7 @@ export default async function ReformaTributariaPage() {
 
     // Guard: Precisa de permissao para ver reforma tributaria
     if (!hasPermission(role, "tax_reform:view")) {
-        redirect("/");
+        redirect("/dashboard");
     }
 
     return (

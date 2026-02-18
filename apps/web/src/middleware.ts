@@ -48,12 +48,11 @@ export async function middleware(request: NextRequest) {
   // 4. REDIRECIONAMENTO INTELIGENTE (Usuário já logado)
   // ---------------------------------------------------------
 
-  // Se já está logado e tenta acessar páginas de auth, manda para a raiz.
-  // Lá na raiz (page.tsx), faremos a verificação de Role para mandar 
-  // Admin -> /admin e Cliente -> /app
-  if (isAuthenticated && (pathname === "/login" || pathname === "/register")) {
+  // Se já está logado e tenta acessar páginas de auth ou a raiz pública,
+  // redireciona para o dashboard autenticado.
+  if (isAuthenticated && ["/login", "/register", "/"].includes(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

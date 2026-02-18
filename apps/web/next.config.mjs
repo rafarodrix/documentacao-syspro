@@ -5,7 +5,7 @@ const withMDX = createMDX({
   frontmatterSchema: z.object({
     title: z.string(),
     description: z.string().optional(),
-    causa_do_erro: z.string(),
+    causa_do_erro: z.string().optional(),
   }),
 });
 

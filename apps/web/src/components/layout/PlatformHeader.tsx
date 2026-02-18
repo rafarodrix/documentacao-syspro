@@ -47,7 +47,7 @@ export function PlatformHeader({ user }: PlatformHeaderProps) {
         <div className="flex items-center gap-4 w-full">
             {/* --- ESQUERDA: Breadcrumbs (Desktop) --- */}
             <div className="hidden md:flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Link href="/" className="flex items-center hover:text-foreground transition-colors cursor-pointer">
+                <Link href="/dashboard" className="flex items-center hover:text-foreground transition-colors cursor-pointer">
                     <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center mr-2 border border-primary/10">
                         {isInternalUser ? (
                             <ShieldCheck className="h-3.5 w-3.5 text-primary" />

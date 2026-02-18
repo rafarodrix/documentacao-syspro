@@ -71,7 +71,7 @@ export function PlatformSidebar({ mobile = false, onClose, user, navigation }: P
         >
             {/* --- HEADER --- */}
             <div className="flex h-16 items-center px-6 border-b border-border/40 bg-muted/5 shrink-0">
-                <Link href="/" className="flex items-center gap-2.5 font-semibold group w-full" onClick={onClose}>
+                <Link href="/dashboard" className="flex items-center gap-2.5 font-semibold group w-full" onClick={onClose}>
                     <div
                         className={cn(
                             "h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-300",

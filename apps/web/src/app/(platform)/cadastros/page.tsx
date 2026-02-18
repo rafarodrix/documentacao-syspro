@@ -13,7 +13,7 @@ export default async function CadastrosPage() {
 
     // Guard: Precisa de permissao para ver empresas ou usuarios
     if (!hasAnyPermission(role, ["companies:view", "users:view"])) {
-        redirect("/");
+        redirect("/dashboard");
     }
 
     const { companies, users, error } = await getCadastrosData();

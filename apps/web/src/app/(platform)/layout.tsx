@@ -61,7 +61,7 @@ export default async function PlatformLayout({
                             </Sheet>
 
                             {/* Logo Mobile */}
-                            <Link href="/" className="ml-2 font-bold text-lg truncate flex items-center gap-2">
+                            <Link href="/dashboard" className="ml-2 font-bold text-lg truncate flex items-center gap-2">
                                 {isInternalUser ? (
                                     <>
                                         <ShieldCheck className="h-5 w-5 text-purple-600" />

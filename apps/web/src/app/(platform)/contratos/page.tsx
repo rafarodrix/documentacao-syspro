@@ -18,7 +18,7 @@ export default async function ContratosPage() {
 
     // Guard: Apenas quem tem permissao de ver contratos
     if (!hasPermission(role, "contracts:view")) {
-        redirect("/");
+        redirect("/dashboard");
     }
 
     const [contractsRes, companiesRes] = await Promise.all([
