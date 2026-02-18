@@ -7,65 +7,59 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Callout } from 'fumadocs-ui/components/callout';
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import SuporteSection from '@/components/docs/SuporteSection.tsx';
-import { Settings, Users, Package, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Settings, Users, Package, FileText, CheckCircle, MessageSquare } from 'lucide-react';
 
-O **Conhecimento de Transporte Eletrônico (CT-e)**, modelo 57, é o documento fiscal digital obrigatório para a prestação de serviços de transporte de cargas. Sua emissão correta no Syspro ERP garante a conformidade com a legislação da SEFAZ, assegura o direito ao crédito de ICMS quando aplicável e permite o rastreamento legal da mercadoria durante o trânsito.
+O **Conhecimento de Transporte Eletrônico (CT-e)**, modelo 57, é o documento fiscal digital obrigatório para a prestação de serviços de transporte de cargas. Sua emissão correta no Syspro ERP garante conformidade com a legislação da SEFAZ, assegura o direito ao crédito de ICMS quando aplicável e permite o rastreamento legal da mercadoria durante o trânsito.
 
-<Callout type="info" title="Antes de começar">
-  Este guia está dividido em dois blocos. O **Bloco 1** cobre a configuração inicial — feita apenas uma vez pelo responsável pelo sistema. O **Bloco 2** é o guia de uso diário para quem emite o CT-e. Se você já configurou o documento, pode ir direto ao Bloco 2.
+<Callout type="info" title="Como usar este guia">
+  O guia está dividido em dois blocos. O **Bloco 1** cobre a configuração inicial — realizada uma única vez pelo administrador. O **Bloco 2** é o passo a passo de uso diário, organizado por abas exatamente como aparecem na tela do sistema: **Participantes → Carga → Documentos → Observações**. Se o sistema já estiver configurado, vá direto ao Bloco 2.
 </Callout>
 
 ---
 
 ## <Settings className="inline-block mr-2 mb-1" /> Bloco 1 — Configuração Inicial do Documento
 
-> Esta etapa é realizada **uma única vez** pelo administrador do sistema. Ela define as regras fiscais e operacionais que o CT-e seguirá automaticamente em todas as emissões futuras.
+> Realizada **uma única vez** pelo administrador do sistema. Define as regras fiscais que o CT-e seguirá automaticamente em todas as emissões futuras.
 
 <Steps>
   <Step>
     ### Acessar a Personalização de Documentos
 
-    No menu principal, navegue até: **Movimento > Documento > Personalização de Documentos**.
-
-    Clique em **Incluir** para criar um novo documento ou localize um registro existente com o **Modelo 57** para editar.
+    No menu principal, navegue até **Movimento > Documento > Personalização de Documentos**. Clique em **Incluir** para criar um novo documento, ou localize um registro existente com o **Modelo 57** para editar.
   </Step>
 
   <Step>
     ### Preencher o Cabeçalho do Documento
 
-    No cabeçalho, configure os campos principais que identificam o documento:
-
     | Campo | O que preencher |
     |---|---|
     | **Empresa** | Selecione a empresa emitente do CT-e |
-    | **Modelo** | Informe `57` (modelo oficial do CT-e) |
+    | **Modelo** | Informe `57` — modelo oficial do CT-e |
     | **Emitente** | Defina como `PRÓPRIO` |
     | **Grupo de Documento** | Selecione o grupo correspondente ao transporte |
-
   </Step>
 
   <Step>
     ### Configurar os CFOPs
 
-    O CFOP define a natureza fiscal da operação de transporte. Você precisará configurar três situações:
+    O CFOP define a natureza fiscal da operação. Configure os três cenários possíveis:
 
     | Situação | CFOP Sugerido | Descrição |
     |---|---|---|
-    | **Estadual** | 5932 | Prestação de serviço de transporte dentro do estado |
-    | **Interestadual** | 6932 | Prestação de serviço de transporte entre estados |
-    | **Internacional** | 7932 | Prestação de serviço de transporte para o exterior |
+    | **Estadual** | 5932 | Transporte dentro do mesmo estado |
+    | **Interestadual** | 6932 | Transporte entre estados diferentes |
+    | **Internacional** | 7932 | Transporte com destino ao exterior |
 
     <Callout type="warn" title="Atenção">
-      Os CFOPs acima são sugestões. Confirme sempre com sua contabilidade os códigos exatos que se aplicam à sua operação.
+      Os CFOPs acima são sugestões. Confirme com sua contabilidade os códigos exatos que se aplicam à sua operação.
     </Callout>
   </Step>
 
   <Step>
     ### Salvar a Configuração
 
-    Revise todos os campos e clique em **Salvar**. O documento estará disponível para uso nas emissões de CT-e.
+    Revise todos os campos e clique em **Salvar**. O documento estará disponível para uso em todas as emissões de CT-e.
   </Step>
 </Steps>
 
@@ -73,117 +67,139 @@ O **Conhecimento de Transporte Eletrônico (CT-e)**, modelo 57, é o documento f
 
 ## <FileText className="inline-block mr-2 mb-1" /> Bloco 2 — Emissão do CT-e (Uso Diário)
 
-> Este bloco é o guia para o **dia a dia**. Siga as etapas na ordem indicada para emitir um CT-e corretamente.
+> Siga as abas na ordem indicada. O sistema exibe as abas sempre na sequência: **Participantes → Carga → Documentos → Observações**.
 
 ### Abrindo um novo CT-e
 
-Acesse **Movimento > Transporte > Conhecimento de Transporte (CT-e)** e clique em **Incluir**. O sistema abrirá a tela de edição com as abas: **Participantes**, **Carga**, **Documentos** e **Observações**.
+Acesse **Movimento > Transporte > Conhecimento de Transporte (CT-e)** e clique em **Incluir**. O cabeçalho é preenchido automaticamente pelo sistema com **Modelo 57**, **Série 1** e a **Data/Hora de Emissão** atual. O campo **Número** e a **Chave de Acesso** serão gerados pela SEFAZ somente após a autorização — não preencha manualmente.
 
 ---
 
-### <Users className="inline-block mr-2 mb-1" /> Aba Participantes
+### <Users className="inline-block mr-2 mb-1" /> Aba Participantes — Quem está envolvido no transporte
 
-Esta é a primeira aba e define **quem está envolvido** na operação de transporte. Ela possui 6 campos numerados, cada um com uma função específica.
+Esta aba possui **6 campos numerados**. Os campos 1 a 4 são **obrigatórios** (marcados com asterisco vermelho na tela). Os campos 5 e 6 são opcionais e utilizados apenas em operações logísticas mais complexas.
 
 <Cards>
-  <Card title="1 — Emitente">
-    É a **sua empresa**, responsável pela prestação do serviço de transporte. O sistema preenche este campo automaticamente com os dados da empresa logada. Verifique se os dados estão corretos antes de continuar.
+  <Card title="1 — Emitente ✱">
+    É a **sua empresa**, responsável pela prestação do serviço de transporte. Utilize o botão `(...)` para buscar e selecionar o cadastro da empresa no sistema.
   </Card>
-  <Card title="2 — Remetente">
-    É quem **envia a carga** (o fornecedor ou a origem da mercadoria). Utilize o botão de busca `(...)` para selecionar o participante cadastrado no sistema.
+  <Card title="2 — Remetente ✱">
+    É quem **envia a carga** — o fornecedor ou a origem da mercadoria. Utilize o botão `(...)` para selecionar o participante cadastrado.
   </Card>
-  <Card title="3 — Destinatário">
-    É quem **recebe a carga** (o cliente ou o destino final da mercadoria). Utilize o botão de busca `(...)` para selecionar o participante.
+  <Card title="3 — Destinatário ✱">
+    É quem **recebe a carga** — o cliente ou o destino final da mercadoria. Utilize o botão `(...)` para selecionar o participante.
   </Card>
-  <Card title="4 — Tomador">
-    É quem **paga pelo frete**. Pode ser o Remetente, o Destinatário ou um terceiro. Veja a dica abaixo para identificar o tomador correto.
+  <Card title="4 — Tomador ✱">
+    É quem **paga pelo frete**. Pode ser o Remetente, o Destinatário ou um terceiro. Veja o Callout abaixo para identificar o tomador correto na sua operação.
   </Card>
   <Card title="5 — Expedidor">
-    Campo **opcional**. Utilizado quando há um intermediário responsável pelo envio, como um armazém ou operador logístico diferente do remetente original.
+    Campo **opcional**. Utilizado quando há um intermediário responsável pelo envio, como um armazém ou operador logístico diferente do remetente.
   </Card>
   <Card title="6 — Recebedor">
-    Campo **opcional**. Utilizado quando a entrega física ocorre em um local diferente do destinatário, como um centro de distribuição ou depósito terceirizado.
+    Campo **opcional**. Utilizado quando a entrega física ocorre em um endereço diferente do destinatário, como um centro de distribuição terceirizado.
   </Card>
 </Cards>
 
 <Callout type="info" title="Como identificar o Tomador corretamente?">
-  A regra é simples: o tomador é quem arca com o custo do frete.
-  Se o frete for **CIF** (custo incluído), o Remetente é o tomador — ele está pagando para enviar.
-  Se o frete for **FOB** (sem custo incluído), o Destinatário é o tomador — ele está pagando para receber.
+  O tomador é quem arca financeiramente com o custo do frete. Se o frete for **CIF** (o remetente inclui o frete no preço), o Tomador é o **Remetente**. Se o frete for **FOB** (o destinatário paga o frete separadamente), o Tomador é o **Destinatário**.
 </Callout>
 
 ---
 
-### <Package className="inline-block mr-2 mb-1" /> Aba Carga
+### <Package className="inline-block mr-2 mb-1" /> Aba Carga — O que está sendo transportado
 
-Nesta aba você descreve **o que está sendo transportado** e qual o volume e valor da carga.
+Nesta aba você descreve a mercadoria, informa o número habilitador da transportadora e registra as quantidades da carga.
 
 <Steps>
   <Step>
     ### Produto Predominante
 
-    Informe o produto principal que compõe a carga (ex: `Caixas de Papelão`, `Grãos de Soja`, `Peças Automotivas`). Este campo é descritivo e aparece no DACTE impresso.
+    Informe o produto principal que compõe a carga — por exemplo, `Grãos de Soja`, `Caixas de Papelão` ou `Peças Automotivas`. Este campo é descritivo e aparece impresso no DACTE.
+  </Step>
+
+  <Step>
+    ### RNTRC
+
+    Informe o **Registro Nacional de Transportadores Rodoviários de Cargas (RNTRC)** no campo localizado no canto superior direito da aba. Este é o número de habilitação da transportadora junto à ANTT (Agência Nacional de Transportes Terrestres) e seu preenchimento é **obrigatório**.
+
+    <Callout type="warn" title="RNTRC inválido ou vencido">
+      Um RNTRC incorreto ou com validade expirada causará a rejeição do CT-e pela SEFAZ. Confirme o número com o setor responsável antes de emitir. Consultas podem ser feitas diretamente no portal da ANTT.
+    </Callout>
   </Step>
 
   <Step>
     ### Quantidades da Carga
 
-    Clique em **Incluir** no grid de quantidades e preencha os campos:
+    Na seção **Quantidades da Carga**, clique em **Incluir** para adicionar uma linha ao grid e preencha os campos:
 
     | Campo | Descrição |
     |---|---|
-    | **Unidade** | Unidade de medida da carga (ex: `TN` para tonelada, `UN` para unidade, `M3` para metro cúbico) |
-    | **Quantidade** | Quantidade total transportada nesta unidade |
-    | **Valor Unitário** | Valor por unidade da carga |
-    | **Valor Total** | Calculado automaticamente pelo sistema |
+    | **Unidade** | Unidade de medida (ex: `KG` para quilograma, `TN` para tonelada, `UN` para unidade) |
+    | **Descrição** | Preenchida automaticamente ao selecionar a unidade (ex: `KILO`) |
+    | **Quantidade** | Quantidade total transportada nessa unidade (ex: `100,00`) |
+    | **Valor Unitário** | Valor declarado por unidade da carga (ex: `0,10`) |
+    | **Total** | Calculado automaticamente: Quantidade × Valor Unitário (ex: `10,00`) |
 
+    Repita o processo clicando em **Incluir** para cada tipo de unidade diferente presente na carga, se necessário.
   </Step>
 </Steps>
 
 ---
 
-### <FileText className="inline-block mr-2 mb-1" /> Aba Documentos
+### <FileText className="inline-block mr-2 mb-1" /> Aba Documentos — Notas Fiscais que acobertam a carga
 
-Aqui você vincula as **Notas Fiscais** que acobertam a carga transportada. Este vínculo é **obrigatório** — sem ele, o CT-e não possui validade jurídica perante a SEFAZ.
+Nesta aba você vincula as **Notas Fiscais Eletrônicas** que comprovam a origem das mercadorias transportadas. Este vínculo é **obrigatório** — sem ele, o CT-e não possui validade jurídica perante a SEFAZ.
 
-<Steps>
-  <Step>
-    ### Incluir a NF-e
+Clique em **Incluir** para abrir o modal **Documento XML — Inserindo** e preencha os campos conforme a tabela:
 
-    Clique em **Incluir** e insira a **Chave de Acesso** de 44 dígitos da Nota Fiscal Eletrônica. O sistema validará a chave automaticamente.
-  </Step>
+| Campo | Obrigatório | O que preencher |
+|---|:---:|---|
+| **Nome** | Não | Identificação livre para o documento (ex: nome do fornecedor ou referência interna) |
+| **Chave XML** | Não | Chave de acesso de 44 dígitos da NF-e — recomendado sempre que disponível |
+| **Número Documento** | **Sim** | Número da Nota Fiscal Eletrônica |
+| **Valor Documento** | **Sim** | Valor total da Nota Fiscal |
+| **Data Emissão** | **Sim** | Data de emissão da Nota Fiscal |
 
-  <Step>
-    ### Múltiplas Notas
+Após preencher, clique em **Salvar** dentro do modal para confirmar o vínculo. O documento aparecerá listado no grid com as colunas Nome, Chave, Emissão, Número e Valor Total.
 
-    Se o transporte acobertar mais de uma NF-e (ex: uma carga consolidada), repita o processo clicando em **Incluir** para cada nota fiscal vinculada.
-  </Step>
-</Steps>
-
-<Callout type="warn" title="Chave de acesso inválida?">
-  Verifique se a nota fiscal não está cancelada e se todos os 44 dígitos foram digitados corretamente. Uma NF-e inválida resultará na rejeição do CT-e pela SEFAZ.
+<Callout type="info" title="Transportando mais de uma nota?">
+  Em cargas consolidadas com múltiplas NF-e, repita o processo clicando em **Incluir** para cada nota. Todas ficarão listadas no grid da aba Documentos e o sistema somará os valores automaticamente.
 </Callout>
+
+<Callout type="warn" title="Chave XML inválida">
+  Verifique se a nota fiscal não está cancelada e se os 44 dígitos foram digitados sem espaços ou caracteres extras. Uma NF-e inválida resultará na rejeição do CT-e pela SEFAZ.
+</Callout>
+
+---
+
+### <MessageSquare className="inline-block mr-2 mb-1" /> Aba Observações — Informações complementares
+
+A aba Observações possui dois campos de texto com finalidades distintas. É importante entender a diferença para não confundi-los:
+
+**Observação Texto Livre** é um campo aberto onde o operador digita manualmente qualquer informação complementar que precise constar no DACTE impresso — por exemplo, instruções especiais de entrega, número de pedido do cliente ou referências internas da operação.
+
+**Observação Texto Automático** é preenchido automaticamente pelo sistema com base nas configurações do documento e da empresa, trazendo textos padrão como instruções fiscais ou mensagens obrigatórias definidas pelo administrador. Este campo não deve ser editado manualmente.
 
 ---
 
 ### <CheckCircle className="inline-block mr-2 mb-1" /> Verificação Final e Gravação
 
-Antes de salvar, confira os **6 campos do rodapé** da tela. Eles resumem os valores fiscais calculados automaticamente pelo sistema:
+O **rodapé da tela**, visível em todas as abas, exibe 6 campos calculados automaticamente pelo sistema conforme você preenche as informações. Antes de salvar, confirme que todos estão corretos:
 
-| Campo | O que representa |
+| Campo do Rodapé | O que representa |
 |---|---|
-| **Redução Base** | Percentual de redução aplicado sobre a base de cálculo do ICMS |
-| **Base Cálculo** | Valor que serve de referência para o cálculo do ICMS (normalmente igual ao valor do frete) |
-| **Alíquota** | Percentual do ICMS aplicado sobre a base de cálculo (ex: `18,00%`) |
-| **Valor ICMS** | Resultado do cálculo: Base de Cálculo × Alíquota |
-| **Valor do Frete** | Valor total cobrado pelo serviço de transporte |
-| **Valor Carga** | Valor total declarado das mercadorias transportadas |
+| **Redução Base** | Percentual de redução aplicado sobre a base de cálculo do ICMS, quando houver benefício fiscal |
+| **Base Cálculo** | Valor de referência para o cálculo do ICMS — atualizado a partir dos dados da aba Carga |
+| **Alíquota** | Percentual de ICMS aplicado sobre a base de cálculo |
+| **Valor ICMS** | Resultado automático: Base de Cálculo × Alíquota |
+| **Valor do Frete** | Valor total do serviço de transporte — calculado a partir das quantidades da aba Carga |
+| **Valor Carga** | Valor total das mercadorias — extraído das NF-e vinculadas na aba Documentos |
 
-<Callout type="info" title="Exemplo prático">
-  Com uma Base de Cálculo de R$ 3.500,00 e Alíquota de 18%, o Valor do ICMS será R$ 630,00. Se o Valor da Carga for R$ 52.278,22, esse é o valor declarado das mercadorias — diferente do valor do frete.
+<Callout type="info" title="Exemplo prático com os valores da tela">
+  No exemplo da tela, a carga tem 100 KG a R$ 0,10/kg, resultando em **Valor do Frete de R$ 10,00** e **Base de Cálculo de R$ 10,00**. O **Valor Carga** permanece R$ 0,00 enquanto nenhuma NF-e for vinculada — após vincular as notas na aba Documentos, ele será atualizado automaticamente.
 </Callout>
 
-Se todos os valores estiverem corretos, clique em **Salvar**. O Syspro processará a assinatura digital e enviará o CT-e para autorização da SEFAZ, gerando o DACTE após a confirmação.
+Com todos os valores conferidos, clique em **Salvar**. O Syspro processará a assinatura digital e enviará o CT-e para autorização da SEFAZ. Após a confirmação, o DACTE estará disponível para impressão.
 
 ---
 
@@ -191,15 +207,19 @@ Se todos os valores estiverem corretos, clique em **Salvar**. O Syspro processar
 
 <Accordions>
   <Accordion title="Qual a diferença entre Valor do Frete e Valor Carga?">
-    O **Valor do Frete** é o preço cobrado pelo serviço de transporte — o que o tomador paga à transportadora. O **Valor Carga** é o valor declarado das mercadorias que estão sendo transportadas, extraído das NF-e vinculadas. São grandezas distintas e ambas precisam estar corretas no CT-e.
+    O **Valor do Frete** é o preço cobrado pelo serviço de transporte — o que o tomador paga à transportadora, calculado com base nas quantidades informadas na aba Carga. O **Valor Carga** é o valor total declarado das mercadorias transportadas, extraído automaticamente das NF-e vinculadas na aba Documentos. São grandezas independentes e ambas precisam estar corretas para a autorização do CT-e.
+  </Accordion>
+
+  <Accordion title="O que é o RNTRC e onde encontro esse número?">
+    O RNTRC é o Registro Nacional de Transportadores Rodoviários de Cargas, emitido pela ANTT. É o documento que habilita legalmente uma empresa ou profissional autônomo a realizar transporte de cargas no Brasil. O número pode ser consultado no portal da ANTT (antt.gov.br) ou junto ao setor de logística da sua empresa.
+  </Accordion>
+
+  <Accordion title="Preciso preencher a Chave XML na aba Documentos?">
+    A Chave XML não é tecnicamente obrigatória no modal — os campos obrigatórios são Número Documento, Valor Documento e Data Emissão. No entanto, informar a Chave XML sempre que disponível é uma boa prática, pois ela garante rastreabilidade completa e permite à SEFAZ cruzar as informações com a NF-e de origem automaticamente.
   </Accordion>
 
   <Accordion title="Quem deve ser o Tomador do frete no CT-e?">
-    O tomador é quem paga a fatura do transporte. Se o frete for CIF (o remetente arca com o custo), o Tomador é o **Remetente**. Se for FOB (o destinatário arca com o custo), o Tomador é o **Destinatário**. O Syspro permite selecionar qualquer participante da operação neste campo.
-  </Accordion>
-
-  <Accordion title="O que fazer se a Chave de Acesso da NF-e não for aceita?">
-    Primeiro, confirme se a NF-e já foi autorizada pela SEFAZ e não está cancelada. Depois, verifique se os 44 dígitos foram digitados sem espaços ou caracteres adicionais. Se o problema persistir, acesse o portal da NF-e e consulte a chave diretamente.
+    O tomador é quem paga a fatura do transporte. Se o frete for CIF (o remetente arca com o custo), o Tomador é o **Remetente**. Se for FOB (o destinatário paga o frete separadamente), o Tomador é o **Destinatário**. Em operações com terceiros pagadores, selecione o participante correspondente no campo 4.
   </Accordion>
 
   <Accordion title="Posso alterar um CT-e após a emissão?">
