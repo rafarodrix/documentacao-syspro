@@ -41,7 +41,6 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
         </p>
         <h2 className="text-4xl font-bold tracking-tight leading-tight text-foreground">
           Suporte especializado
-          <br />
           <span className="text-muted-foreground font-normal">
             para {modulo}
           </span>
@@ -157,7 +156,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
             href="https://wa.me/5534997713731"
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-200"
+            className="group flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-200 no-underline"
           >
             <div className="flex items-start justify-between">
               <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
@@ -184,7 +183,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
           {/* Card Telefone */}
           <a
             href="tel:+5534997713731"
-            className="group flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all duration-200"
+            className="group flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all duration-200 no-underline"
           >
             <div className="flex items-start justify-between">
               <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
@@ -202,6 +201,9 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
               <p className="text-xs font-medium text-muted-foreground">
                 +55 (34) 99771-3731
               </p>
+              <span className="inline-flex mt-1.5 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
+                Horário comercial
+              </span>
               <span className="inline-flex mt-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
                 Plantão
               </span>
@@ -211,7 +213,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
           {/* Card E-mail */}
           <a
             href="mailto:equipe@trilinksoftware.com.br"
-            className="group flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-violet-500/50 hover:bg-violet-500/5 transition-all duration-200"
+            className="group flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-violet-500/50 hover:bg-violet-500/5 transition-all duration-200 no-underline"
           >
             <div className="flex items-start justify-between">
               <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/30">
