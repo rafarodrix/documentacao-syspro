@@ -1,292 +1,176 @@
 ---
 title: Segmento Comercial
-description: Guia completo para Gestão de uma empresa comercial no Syspro ERP.
+description: Guia operacional completo para empresas do segmento comercial no Syspro ERP.
 ---
 
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
 import {
   Users,
-  Car,
   Package,
   FileInput,
   ClipboardList,
   Wallet,
   Calculator,
   PieChart,
-  Layers,
-  PlayCircle,
   BarChart3,
-  ShoppingCart,
   Receipt,
-  FileText,
   CreditCard,
-  User,
-  Input,
 } from 'lucide-react';
-import SuporteSection from '@/components/docs/SuporteSection.tsx'
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
 import { YouTubeModal } from '@/components/docs/YouTubeModal';
 
+Este guia cobre o ciclo operacional completo de uma empresa comercial no Syspro ERP — do cadastro base ao fechamento financeiro. Siga os módulos na sequência apresentada: cada etapa alimenta a próxima, e pular alguma delas compromete a integridade dos dados nas fases seguintes.
 
-Este guia foi projetado para espelhar o fluxo operacional real da sua empresa. Abaixo, detalhamos os pilares estratégicos que compõem o ecossistema Syspro ERP.
-
----
-
-### <Layers className="inline-block mr-2 mb-1 text-blue-500" /> Alicerce: Cadastros Base
-*A base sólida para que todos os processos subsequentes funcionem com precisão.*
-
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-blue-600">
-      <Users size={20} /> Participantes
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Gestão centralizada de Clientes, Fornecedores e Colaboradores.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-blue-600">
-      <Package size={20} /> Produtos e Serviços
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Catálogo de peças e serviços.</p>
-  </div>
-</div>
+<Callout type="info" title="Como usar este guia">
+  O fluxo está organizado em três camadas: **Alicerce** (cadastros que tudo sustenta), **Operação** (execução do dia a dia) e **Gestão** (análise de resultados). Se você está implantando o sistema pela primeira vez, respeite essa ordem. Se já está em produção, use o índice lateral para navegar diretamente ao módulo que precisa.
+</Callout>
 
 ---
 
-### <PlayCircle className="inline-block mr-2 mb-1 text-green-500" /> Operação: Fluxo Diário
-*Onde a execução acontece, gerando valor para o cliente e receita para a empresa.*
+## Visão Geral do Fluxo Operacional
 
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-green-600">
-      <FileInput size={20} /> Entrada de Nota Fiscal
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Atualização automatizada de estoque e custos através da importação de XML.</p>
-  </div>
-  
-    <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-green-600">
-      <ClipboardList size={20} /> Pedido de Venda
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Geração de pedido de venda para o cliente.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-green-600">
-      <Receipt size={20} /> Emissão de Nota Fiscal
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Geração de NF-e, NFC-e e NFS-e com conformidade legal.</p>
-  </div>
-</div>
+Antes de entrar no passo a passo, é importante entender como os módulos se conectam. O Syspro ERP foi projetado para que os dados fluam automaticamente entre as áreas — uma compra de mercadoria, por exemplo, atualiza estoque, custo de produto e contas a pagar em uma única operação. Quanto mais completo o preenchimento nas etapas iniciais, menor o retrabalho nas etapas seguintes.
+
+<Cards>
+  <Card icon={<Users />} title="Alicerce — Cadastros Base">
+    Participantes, produtos e serviços. A qualidade dos dados aqui determina a precisão de todo o restante do sistema.
+  </Card>
+  <Card icon={<ClipboardList />} title="Operação — Fluxo Diário">
+    Entrada de compras, pedido de venda e emissão fiscal. A execução que gera receita e movimenta o estoque.
+  </Card>
+  <Card icon={<BarChart3 />} title="Gestão — Resultados">
+    Financeiro, fechamento de caixa e relatórios. A visão que transforma dados em decisões.
+  </Card>
+</Cards>
 
 ---
 
-### <BarChart3 className="inline-block mr-2 mb-1 text-purple-500" /> Gestão: Resultados
-*Transformação de dados operacionais em decisões estratégicas e lucratividade.*
-
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-purple-600">
-      <Wallet size={20} /> Gestão Financeira
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Controle rigoroso de fluxo de caixa, contas a pagar e recebíveis.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-purple-600">
-      <Calculator size={20} /> Fechamento de Caixa
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Auditoria diária de entradas, saídas e conferência de meios de pagamento.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-purple-600">
-      <PieChart size={20} /> Relatórios
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Indicadores de performance e análise de rentabilidade real do negócio.</p>
-  </div>
-</div>
-
----
+## Passo a Passo Operacional
 
 <Steps>
 
   <Step>
-  ### <Users className="inline-block mr-2 mb-1 text-blue-500" /> Cadastro de Participantes
-  Este módulo é o coração do sistema, utilizado para registrar toda e qualquer pessoa **física ou jurídica** que interaja com o seu negócio.
+    ### Cadastro de Participantes
 
-  **O que você pode cadastrar aqui:**
+    O cadastro de participantes é a fundação do sistema. Todo documento fiscal, pedido de venda e lançamento financeiro precisa estar vinculado a um participante — por isso, é o primeiro módulo a ser configurado e o que exige mais atenção na qualidade dos dados.
 
-  * **Clientes:** Proprietários de veículos e frotistas.
-  * **Fornecedores:** Empresas de autopeças e insumos.
-  * **Colaboradores:** Vendedores, técnicos e atendentes.
-  * **Parceiros:** Prestadores de serviço externos e transportadoras.
+    Neste módulo você registra qualquer pessoa física ou jurídica que se relaciona com a empresa: clientes, fornecedores, colaboradores e parceiros comerciais. Um mesmo participante pode exercer múltiplos papéis — um fornecedor que também é cliente, por exemplo, é cadastrado uma única vez com ambos os perfis ativos.
 
-  <Callout title="Dica">
-    Ao cadastrar um cliente, certifique-se de preencher corretamente o CPF/CNPJ e o endereço. Esses dados são indispensáveis para a emissão da NF-e ou NFS-e após a conclusão da Ordem de Serviço.
-  </Callout>
+    <Callout type="warn" title="Dado crítico">
+      CPF/CNPJ e endereço completo são obrigatórios para a emissão de NF-e e NFS-e. Um cadastro incompleto bloqueia o faturamento. Valide esses campos no momento do cadastro, não na hora da emissão.
+    </Callout>
 
-  #### Cadastro [Pessoa Física]
-  <YouTubeModal videoId="Dg7VzTPY0uE" thumbnailTitle="Cadastro de Cliente pessoa física" />
+    **Cadastro de Pessoa Física**
 
-  #### Cadastro [Pessoa Jurídica]
-  <YouTubeModal videoId="E54396oUlTo" thumbnailTitle="Cadastro de Cliente pessoa jurídica" />
-  ---
+    <YouTubeModal videoId="Dg7VzTPY0uE" thumbnailTitle="Cadastro de participante — Pessoa Física" />
+
+    **Cadastro de Pessoa Jurídica**
+
+    <YouTubeModal videoId="E54396oUlTo" thumbnailTitle="Cadastro de participante — Pessoa Jurídica" />
   </Step>
 
   <Step>
+    ### Cadastro de Produtos e Serviços
 
-  ### <Package className="inline-block mr-2 mb-1 text-blue-500" /> Cadastro de Produtos e Serviços
+    Com os participantes registrados, o próximo passo é estruturar o catálogo comercial — os itens que a empresa compra, vende e presta. O Syspro ERP distingue claramente dois tipos de itens: **produtos** (bens físicos com controle de estoque) e **serviços** (mão de obra e prestações sem movimentação de estoque).
 
-  Este módulo é onde você organiza o seu estoque e a sua tabela de preços. Ele permite separar claramente o que é **peça (produto)** do que é **mão de obra (serviço)**, facilitando a composição do orçamento na Ordem de Serviço.
+    Essa separação não é apenas organizacional — ela tem implicação fiscal direta. Produtos são tributados por ICMS e exigem NCM; serviços são tributados por ISS e exigem código NBS. Misturar ou deixar em branco esses campos causará erros na emissão das notas fiscais.
 
-  **O que você pode cadastrar aqui:**
+    <Callout type="info" title="Boa prática">
+      Preencha sempre a unidade de medida correta (UN, PAR, LT, KG). Ela aparece no documento fiscal e define como o estoque é contado. Uma unidade errada pode distorcer o inventário e o cálculo de custos.
+    </Callout>
 
-  * **Produtos (Peças):** Amortecedores, pastilhas de freio, óleos, filtros e pneus.
-  * **Serviços:** Alinhamento, balanceamento, limpeza de bicos e a própria hora técnica do mecânico.
-  * **Kits de Revisão:** Agrupamentos de produtos e serviços comuns (ex: Kit Troca de Óleo).
-
-  <Callout title="Dica">
-  Ao cadastrar produtos, preencha sempre o NCM e a unidade de medida (UN, PAR, LT). Para serviços, verifique o código NBS correspondente. Essas informações garantem que sua Ordem de Serviço seja convertida em Nota Fiscal sem erros tributários.
-  </Callout>
-
-  <YouTubeModal videoId="aJAqC5tTm0A" thumbnailTitle="Gestão de Produtos e Serviços" />
-
-  ---
+    <YouTubeModal videoId="aJAqC5tTm0A" thumbnailTitle="Cadastro de Produtos e Serviços" />
   </Step>
 
   <Step>
+    ### Entrada de Notas Fiscais de Compra
 
-  ### <FileInput className="inline-block mr-2 mb-1 text-blue-500" /> Entrada de Notas Fiscais
+    A entrada de notas fiscais é o processo pelo qual o estoque e o financeiro da empresa são alimentados automaticamente. Ao registrar uma nota de compra, o sistema executa três ações simultâneas: incrementa o saldo disponível em estoque, recalcula o custo médio dos produtos recebidos e cria os lançamentos de contas a pagar para o fornecedor — tudo em uma única operação.
 
-  Este processo é fundamental para manter o sua empresa em dia. Ao dar entrada em uma nota de compra, o sistema automatiza duas tarefas críticas: atualiza instantaneamente o seu **estoque** e alimenta o seu **contas a pagar**.
+    A forma mais eficiente de realizar esse processo é pela **importação do arquivo XML** da nota fiscal. Além de eliminar digitação manual, o XML garante que NCM, descrição e quantidades venham diretamente da nota do fornecedor, reduzindo erros de cadastro e divergências de inventário.
 
-  **O que acontece nesta etapa:**
+    <Callout type="warn" title="Nunca ignore o XML">
+      Digitar manualmente os itens da nota é uma prática que abre espaço para erros de NCM, quantidades erradas e custos desatualizados. Sempre solicite o XML ao fornecedor e utilize a importação automática.
+    </Callout>
 
-  * **Atualização de Estoque:** As peças compradas (como óleos, filtros e pneus) entram no saldo disponível para venda.
-  * **Custo:** O sistema recalcula o custo das peças, ajudando você a manter sua margem de lucro atualizada.
-  * **Alimentação Financeira:** O lançamento gera automaticamente as parcelas no contas a pagar para o fornecedor.
-  * **Importação de XML:** Agilidade para cadastrar produtos e quantidades diretamente do arquivo da nota fiscal.
-
-  <Callout title="Dica">
-  Sempre utilize a importação via arquivo XML. Isso evita erros de digitação, garante que o NCM do produto venha correto do fornecedor e economiza um tempo precioso que seria gasto cadastrando item por item manualmente.
-  </Callout>
-
-  <YouTubeModal videoId="emtestes" thumbnailTitle="Entrada de Compras: Automatizando Estoque e Financeiro" />
-
-  ---
+    <YouTubeModal videoId="emtestes" thumbnailTitle="Entrada de Compras — Estoque e Financeiro Automatizados" />
   </Step>
 
   <Step>
+    ### Pedido de Venda
 
-  ### <ShoppingCart className="inline-block mr-2 mb-1 text-blue-500" /> Gestão de Pedido de Venda
+    O módulo de Pedido de Venda é o ponto de atendimento comercial direto. Ele foi projetado para o ritmo do balcão — seleção rápida de itens por código, descrição ou código de barras, verificação de disponibilidade em tempo real e definição das condições comerciais antes de encaminhar para o faturamento.
 
-  O módulo de Pedido de Venda é focado na agilidade do balcão. Diferente da OS, ele é ideal para vendas diretas de peças e produtos, onde o cliente não necessita de imobilização do veículo na oficina.
+    O pedido de venda não emite nota fiscal por si só — ele é o documento de origem que será convertido em NF-e ou NFC-e na etapa de faturamento. Esse fluxo em duas etapas permite que a equipe comercial gere o pedido sem acesso ao módulo fiscal, o que é uma boa prática de segregação de funções em empresas com equipes maiores.
 
-  ---
+    <Callout type="info" title="Comissões e produtividade">
+      Mantenha o campo **Vendedor** sempre preenchido. Sem esse vínculo, os relatórios de produtividade e o cálculo de comissões ficam incompletos — e não é possível recuperar essa informação retroativamente após a finalização do pedido.
+    </Callout>
 
-  #### Fluxo de Operação:
-
-  1. **Seleção de Itens:** Inclusão de produtos via código interno, Descrição ou leitura de código de barras.
-  2. **Conferência de Disponibilidade:** O sistema alerta em tempo real se o saldo em estoque é suficiente para atender o pedido.
-  3. **Condição Comercial:** Definição de prazos, convênios ou descontos autorizados para o perfil do cliente.
-  4. **Finalização:** Geração do documento de conferência para o cliente e encaminhamento para faturamento (NFC-e ou NF-e).
-
-  <Callout type="info" title="Dica de Performance">
-    Mantenha o campo **Vendedor** sempre preenchido. Isso permite que você extraia relatórios de produtividade e comissões precisos ao final de cada período no módulo de Resultados.
-  </Callout>
-
-  <YouTubeModal videoId="DZIcNeahpEY" thumbnailTitle="Gestão de Pedido de Venda: Rapidez no Balcão" />
-
-  ---
-
-</Step>
-
-<Step>
-
-### <Receipt className="inline-block mr-2 mb-1 text-blue-500" /> Emissão de NF-e, NFC-e e NFS-e
-
-Este módulo é responsável por transformar suas Ordens de Serviço finalizadas em documentos fiscais válidos. O sistema está preparado para lidar com a complexidade tributária de forma automatizada, garantindo que você esteja em dia com o fisco.
-
-  **Os tipos de documentos que você emite aqui:**
-
-  * **NF-e (Nota Fiscal Eletrônica):** Utilizada para a venda de peças e produtos, geralmente para faturamento a prazo ou empresas.
-  * **NFC-e (Nota Fiscal do Consumidor):** Ideal para vendas rápidas de balcão e peças diretamente ao consumidor final.
-  * **NFS-e (Nota Fiscal de Serviço):** Destinada exclusivamente para o registro da mão de obra prestada pelos seus técnicos.
-
-  <Callout title="Dica">
-  Antes de emitir, verifique se o cadastro do cliente está completo e se o produto possui o NCM correto. O uso correto dessas notas evita bitributação e facilita a gestão do seu contador.
-  </Callout>
-
-  <YouTubeModal videoId="emtestes" thumbnailTitle="Emissão Fiscal: Como emitir notas de peças e serviços" />
-
-  ---
+    <YouTubeModal videoId="DZIcNeahpEY" thumbnailTitle="Pedido de Venda — Atendimento Ágil no Balcão" />
   </Step>
 
   <Step>
+    ### Emissão de NF-e, NFC-e e NFS-e
 
-  ### <Wallet className="inline-block mr-2 mb-1 text-blue-500" /> Gestão Financeira
+    A emissão fiscal é a etapa que converte a operação comercial em documento legal. O Syspro ERP suporta os três tipos de nota mais comuns no segmento comercial, e a escolha correta entre eles evita bitributação e facilita a vida do contador.
 
-  Este módulo é o painel de controle da saúde do seu negócio. Ele permite que você visualize com clareza todo o movimento financeiro, desde os pagamentos recebidos dos clientes até as obrigações com fornecedores e colaboradores.
+    A **NF-e** é usada para vendas de mercadorias, especialmente para pessoas jurídicas e operações a prazo. A **NFC-e** é a versão simplificada para o consumidor final no varejo, ideal para balcão com pagamento imediato. A **NFS-e** é emitida exclusivamente para prestação de serviços e é gerenciada pela prefeitura do município do emitente — cada cidade tem suas próprias regras de layout e autorização.
 
-  **O que você controla nesta etapa:**
+    <Callout type="warn" title="Verifique antes de transmitir">
+      Uma nota rejeitada pela SEFAZ não pode ser simplesmente re-emitida com a mesma numeração. Confira o cadastro do cliente, o NCM dos produtos e o CFOP da operação antes de transmitir. Corrigir após a rejeição exige cancelamento e nova emissão com número diferente.
+    </Callout>
 
-  * **Contas a Receber:** Gestão de faturamentos de Ordens de Serviço, boletos, cartões e parcelamentos.
-  * **Contas a Pagar:** Registro de compras de peças, aluguel, energia e salários.
-  * **Conciliação:** Confirmação de recebimentos de boletos e pagamentos para manter o saldo do sistema idêntico ao do banco.
-
-  <Callout title="Dica">
-  Sempre realize a baixa das contas a receber vinculadas às Ordens de Serviço assim que o pagamento for confirmado. Isso mantém seu fluxo de caixa atualizado e evita cobranças indevidas de clientes que já pagaram, garantindo uma gestão profissional e transparente.
-  </Callout>
-
-  <YouTubeModal videoId="emtestes" thumbnailTitle="Gestão Financeira: Controlando Contas a Pagar e Receber" />
-
-  ---
+    <YouTubeModal videoId="emtestes" thumbnailTitle="Emissão Fiscal — NF-e, NFC-e e NFS-e" />
   </Step>
 
   <Step>
+    ### Gestão Financeira
 
-  ### <CreditCard className="inline-block mr-2 mb-1 text-blue-500" /> Fechamento de Caixa
+    Com as vendas realizadas e as compras registradas, o módulo financeiro consolida toda a movimentação monetária da empresa. Aqui você acompanha contas a receber, contas a pagar, realiza conciliação bancária e mantém o fluxo de caixa atualizado em tempo real.
 
-  Este processo é a conferência final da sua operação diária ou por operador. O objetivo é validar se todos os valores recebidos em dinheiro, cartões e Pix conferem com os lançamentos realizados no sistema, garantindo que não haja furos ou erros de registro.
+    A disciplina neste módulo é o que diferencia uma gestão amadora de uma profissional. Baixar um recebimento no momento em que o pagamento é confirmado — e não no final do mês — é o que garante que o saldo do sistema reflita a realidade do banco, evitando cobranças indevidas a clientes e surpresas no fluxo de caixa.
 
-  **O que você realiza nesta etapa:**
+    <Callout type="info" title="Conciliação bancária">
+      Configure a integração com seu banco para que os extratos entrem automaticamente no sistema. A conciliação manual item a item é demorada e propensa a erros — a automação reduz esse trabalho para uma revisão rápida de exceções.
+    </Callout>
 
-  * **Conferência de Valores:** Comparação do saldo físico (dinheiro em caixa) com o saldo informado pelo sistema.
-  * **Resumo de Vendas:** Visualização do total faturado no dia, separado por forma de pagamento.
-  * **Suprimentos e Sangrias:** Registro de entradas extras (troco) ou retiradas de valores durante o expediente.
-  * **Geração de Relatório:** Emissão do comprovante de fechamento para conferência administrativa.
-
-  <Callout title="Dica">
-  Crie o hábito de realizar o fechamento diariamente. Isso facilita a identificação imediata de divergências e evita que erros de lançamento se acumulem, tornando a conciliação bancária muito mais rápida e segura no fim do mês.
-  </Callout>
-
-  <YouTubeModal videoId="emtestes" thumbnailTitle="Fechamento de Caixa" />
-
-  ---
+    <YouTubeModal videoId="emtestes" thumbnailTitle="Gestão Financeira — Contas a Pagar e Receber" />
   </Step>
 
   <Step>
+    ### Fechamento de Caixa
 
-  ### <BarChart3 className="inline-block mr-2 mb-1 text-blue-500" /> Relatórios e Indicadores
+    O fechamento de caixa é a conferência diária que garante a integridade dos dados financeiros. Seu objetivo é comparar o que o sistema registrou como recebido com o que fisicamente entrou no caixa — dinheiro, cartões, Pix e outros meios — e identificar qualquer divergência antes que ela se acumule.
 
-  Este módulo é onde os dados se transformam em decisões. Através dos relatórios, você consegue analisar o desempenho histórico da sua empresa, identificar gargalos e descobrir quais áreas estão gerando mais lucro para seu negócio.
+    Empresas que negligenciam o fechamento diário descobrem as divergências apenas no fechamento mensal, quando rastrear a origem do problema já é muito mais difícil e demorado. O hábito de fechar o caixa ao final de cada expediente transforma a conciliação bancária mensal em uma revisão simples de exceções.
 
-  **O que você pode extrair aqui:**
+    <Callout type="info" title="Suprimentos e sangrias">
+      Registre toda entrada de troco (suprimento) e toda retirada de valores durante o expediente (sangria) no momento em que ocorrem. Lançamentos retroativos distorcem o histórico e dificultam auditorias internas.
+    </Callout>
 
-  * **Relatórios de Vendas:** Visão detalhada de produtos mais vendidos e serviços mais realizados.
-  * **Desempenho por Técnico:** Análise de produtividade e comissões de cada mecânico.
-  * **Curva ABC de Estoque:** Identificação de quais peças não podem faltar e quais estão paradas no estoque.
-  * **DRE e Resultados:** Demonstrativo financeiro para entender se a oficina teve lucro ou prejuízo no período.
-
-  <Callout title="Dica">
-  Os relatórios são ferramentas poderosas para a gestão do seu negócio. Utilize-os para tomar decisões mais assertivas e melhorar a eficiência da sua oficina.
-  </Callout>
-
-  <YouTubeModal videoId="emtestes" thumbnailTitle="Relatórios Gerenciais: Como analisar os números do seu negócio" />
-
-  ---
+    <YouTubeModal videoId="emtestes" thumbnailTitle="Fechamento de Caixa" />
   </Step>
+
+  <Step>
+    ### Relatórios e Indicadores
+
+    Os relatórios são a camada de inteligência do sistema. É aqui que os dados gerados nas etapas anteriores se transformam em respostas para perguntas de gestão: quais produtos mais vendem, quais clientes mais compram, qual a margem real de cada categoria, quais técnicos ou vendedores são mais produtivos.
+
+    O valor dos relatórios é diretamente proporcional à qualidade dos dados inseridos nas etapas anteriores. Um cadastro de produto sem NCM correto, um pedido sem vendedor vinculado ou uma nota fiscal lançada com CFOP errado — cada um desses descuidos reduz a precisão dos indicadores. A gestão começa no cadastro, não no relatório.
+
+    <Callout type="info" title="DRE e análise de rentabilidade">
+      O Demonstrativo de Resultado do Exercício (DRE) disponível nos relatórios exige que todas as entradas de custo e saídas de receita estejam corretamente classificadas por natureza financeira. Revise as configurações de plano de contas com seu contador na implantação para garantir um DRE confiável.
+    </Callout>
+
+    <YouTubeModal videoId="emtestes" thumbnailTitle="Relatórios Gerenciais — Análise de Desempenho" />
+  </Step>
+
 </Steps>
 
-<SuporteSection />
+---
+
+<SuporteSection modulo="Segmento Comercial" />

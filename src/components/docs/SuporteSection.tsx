@@ -192,7 +192,7 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
             <div>
               <p className="font-semibold text-foreground text-sm mb-1">Telefone</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Canal para emergências fora do horário comercial, durante o plantão.
+                Canal para dúvidas do dia a dia e chamados rotineiros durante o horário comercial e emergências fora do horário comercial, durante o plantão.
               </p>
             </div>
             <div className="pt-3 border-t border-border/60">
