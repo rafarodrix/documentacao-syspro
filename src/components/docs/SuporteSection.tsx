@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import {
   MessageCircle,
@@ -6,164 +8,256 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
-  Headset,
-  ArrowRight
+  Headphones,
+  ArrowUpRight,
+  Shield,
+  Zap,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 interface SuporteSectionProps {
   modulo?: string;
 }
 
-const SuporteSection: React.FC<SuporteSectionProps> = ({ modulo = "este módulo" }) => {
+const SuporteSection: React.FC<SuporteSectionProps> = ({
+  modulo = 'este módulo',
+}) => {
   return (
-    <div className="mt-16 border-t border-border/50 pt-10 space-y-10">
+    <section className="mt-20 relative">
 
-      {/* Cabeçalho com Visual Enterprise */}
-      <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-primary font-medium text-sm uppercase tracking-wider">
-            <Headset className="h-4 w-4" />
-            Central de Ajuda
+      {/* Linha divisória com label enterprise */}
+      <div className="flex items-center gap-4 mb-12">
+        <div className="h-px flex-1 bg-border" />
+        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-muted/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          <Headphones className="h-3.5 w-3.5" />
+          Suporte Técnico
+        </div>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      {/* Hero da seção */}
+      <div className="mb-12">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+              Central de Atendimento — Trilink Software
+            </p>
+            <h2 className="text-4xl font-bold tracking-tight leading-tight text-foreground">
+              Suporte especializado
+              <br />
+              <span className="text-muted-foreground font-normal">
+                para {modulo}
+              </span>
+            </h2>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Contamos com uma equipe técnica dedicada para garantir a
+              continuidade e a estabilidade da sua operação. Cada chamado
+              é tratado com prioridade definida por nível de impacto.
+            </p>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            Suporte Especializado: <span className="text-primary">{modulo}</span>
-          </h2>
-          <p className="text-muted-foreground max-w-2xl text-lg">
-            Nossa equipe técnica está pronta para resolver dúvidas complexas e garantir a estabilidade da sua operação.
+
+          {/* Indicador de status operacional */}
+          <div className="shrink-0 flex flex-col items-start md:items-end gap-2">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                Sistemas Operacionais
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Última verificação: hoje
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* SLA Cards — dois painéis lado a lado */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border rounded-xl overflow-hidden mb-8 border border-border">
+
+        {/* Horário Comercial */}
+        <div className="bg-card p-8 flex flex-col gap-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Atendimento Padrão
+                </p>
+                <h3 className="text-lg font-semibold text-foreground mt-0.5">
+                  Horário Comercial
+                </h3>
+              </div>
+            </div>
+            <span className="hidden md:inline-flex items-center text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full">
+              Nível 1 e 2
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="font-semibold text-foreground">
+              Segunda a Sexta, 08h às 18h
+            </span>
+          </div>
+
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Atendimento completo para dúvidas operacionais, ajustes de
+            configuração, treinamentos e suporte técnico de primeiro e
+            segundo nível via WhatsApp, telefone e e-mail.
           </p>
-        </div>
 
-        {/* Status/Badge decorativo */}
-        <div className="hidden md:flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full border border-border/50">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-          </span>
-          <span className="text-xs font-medium text-muted-foreground">Sistemas Operacionais</span>
-        </div>
-      </div>
-
-      {/* Grid de Informações SLA (Service Level Agreement) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card Horário Comercial */}
-        <Card className="relative overflow-hidden border-l-4 border-l-green-500 bg-gradient-to-br from-background to-green-500/5 dark:to-green-500/10 transition-all hover:shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-              Horário Comercial
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Segunda a Sexta: 08h às 18h</span>
+          <div className="mt-auto pt-4 border-t border-border/60">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Shield className="h-3.5 w-3.5" />
+              SLA de resposta: até 4h úteis
             </div>
-            <p className="text-sm text-muted-foreground">
-              Atendimento completo para dúvidas, configurações, treinamentos e suporte técnico nível 1 e 2.
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Card Plantão */}
-        <Card className="relative overflow-hidden border-l-4 border-l-amber-500 bg-gradient-to-br from-background to-amber-500/5 dark:to-amber-500/10 transition-all hover:shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              Plantão Emergencial
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Fora do horário comercial</span>
+        {/* Plantão Emergencial */}
+        <div className="bg-card p-8 flex flex-col gap-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                <Zap className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Atendimento Crítico
+                </p>
+                <h3 className="text-lg font-semibold text-foreground mt-0.5">
+                  Plantão Emergencial
+                </h3>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Exclusivo para <strong>parada total</strong> do sistema ou falhas críticas impeditivas (Nível 1).
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            <span className="hidden md:inline-flex items-center text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-full">
+              Nível Crítico
+            </span>
+          </div>
 
-      {/* Canais de Contato Estilo "Magic UI" (Bento Grid) */}
-      <div>
-        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-          Canais de Atendimento
-          <span className="h-px flex-1 bg-border ml-4"></span>
-        </h3>
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="font-semibold text-foreground">
+              Fora do horário comercial
+            </span>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Acionamento exclusivo para <strong className="text-foreground">parada total do sistema</strong> ou
+            falhas críticas que impeçam completamente a operação. Disponível
+            apenas via telefone — chamadas com prioridade imediata.
+          </p>
 
-          {/* WhatsApp - Magic Card Effect */}
-          <a href="https://wa.me/5534997713731" target="_blank" rel="noopener noreferrer" className="group relative h-full">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
-            <Card className="relative h-full border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 group-hover:border-green-500/50 group-hover:-translate-y-1">
-              <CardContent className="p-6 flex flex-col h-full justify-between gap-4">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4 text-green-600 dark:text-green-400">
-                    <MessageCircle className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-semibold text-lg mb-1">WhatsApp</h4>
-                  <p className="text-sm text-muted-foreground">Resposta rápida para dúvidas do dia a dia.</p>
-                </div>
-                <Button variant="outline" className="w-full group-hover:bg-green-500 group-hover:text-white group-hover:border-green-600 transition-all">
-                  Iniciar Conversa <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </a>
-
-          {/* Telefone - Magic Card Effect */}
-          <a href="tel:+5534997713731" className="group relative h-full">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
-            <Card className="relative h-full border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 group-hover:border-blue-500/50 group-hover:-translate-y-1">
-              <CardContent className="p-6 flex flex-col h-full justify-between gap-4">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4 text-blue-600 dark:text-blue-400">
-                    <Phone className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-semibold text-lg mb-1">Telefone</h4>
-                  <p className="text-sm text-muted-foreground">Canal exclusivo para o plantão de emergência.</p>
-                </div>
-                <Button variant="outline" className="w-full group-hover:bg-blue-500 group-hover:text-white group-hover:border-blue-600 transition-all">
-                  Ligar Agora <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </a>
-
-          {/* Email - Magic Card Effect */}
-          <a href="mailto:equipe@trilinksoftware.com.br" className="group relative h-full">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
-            <Card className="relative h-full border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 group-hover:border-amber-500/50 group-hover:-translate-y-1">
-              <CardContent className="p-6 flex flex-col h-full justify-between gap-4">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4 text-amber-600 dark:text-amber-400">
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-semibold text-lg mb-1">E-mail</h4>
-                  <p className="text-sm text-muted-foreground">Para solicitações formais e envio de logs.</p>
-                </div>
-                <Button variant="outline" className="w-full group-hover:bg-amber-500 group-hover:text-white group-hover:border-amber-600 transition-all">
-                  Enviar E-mail <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </a>
-
+          <div className="mt-auto pt-4 border-t border-border/60">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Shield className="h-3.5 w-3.5" />
+              SLA de resposta: até 30 minutos
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Footer da seção com Disclaimer */}
-      <div className="bg-muted/30 border rounded-lg p-4 flex items-start gap-3 text-sm text-muted-foreground">
-        <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-        <p>
-          <strong>Importante:</strong> Canais de texto (WhatsApp e E-mail) não são monitorados fora do horário comercial.
-          Para emergências durante o plantão, utilize sempre o telefone.
+      {/* Canais de Contato — tabela-style horizontal enterprise */}
+      <div className="rounded-xl border border-border overflow-hidden mb-8">
+
+        {/* Header da tabela */}
+        <div className="bg-muted/50 px-6 py-4 border-b border-border">
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Canais de Atendimento
+          </h3>
+        </div>
+
+        {/* Canal: WhatsApp */}
+        <a
+          href="https://wa.me/5534997713731"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center justify-between px-6 py-5 bg-card hover:bg-muted/30 border-b border-border transition-colors duration-200"
+        >
+          <div className="flex items-center gap-5">
+            <div className="p-2.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 shrink-0">
+              <MessageCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-sm">WhatsApp</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                +55 (34) 99771-3731 · Dúvidas do dia a dia e chamados rotineiros
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="hidden md:inline text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full border border-border">
+              Horário comercial
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
+          </div>
+        </a>
+
+        {/* Canal: Telefone */}
+        <a
+          href="tel:+5534997713731"
+          className="group flex items-center justify-between px-6 py-5 bg-card hover:bg-muted/30 border-b border-border transition-colors duration-200"
+        >
+          <div className="flex items-center gap-5">
+            <div className="p-2.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 shrink-0">
+              <Phone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-sm">Telefone</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                +55 (34) 99771-3731 · Canal exclusivo para o plantão de emergência
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="hidden md:inline text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-800">
+              Plantão 24h
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
+          </div>
+        </a>
+
+        {/* Canal: E-mail */}
+        <a
+          href="mailto:equipe@trilinksoftware.com.br"
+          className="group flex items-center justify-between px-6 py-5 bg-card hover:bg-muted/30 transition-colors duration-200"
+        >
+          <div className="flex items-center gap-5">
+            <div className="p-2.5 rounded-lg bg-violet-100 dark:bg-violet-900/30 shrink-0">
+              <Mail className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-sm">E-mail</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                equipe@trilinksoftware.com.br · Solicitações formais e envio de logs
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="hidden md:inline text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full border border-border">
+              Horário comercial
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
+          </div>
+        </a>
+      </div>
+
+      {/* Disclaimer enterprise — faixa sóbria */}
+      <div className="flex items-start gap-3 px-5 py-4 rounded-lg bg-muted/40 border border-border text-sm text-muted-foreground">
+        <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+        <p className="leading-relaxed">
+          <strong className="text-foreground font-medium">Atenção:</strong>{' '}
+          WhatsApp e E-mail não são monitorados fora do horário comercial.
+          Para situações de emergência após às 18h ou nos finais de semana,
+          utilize <strong className="text-foreground font-medium">exclusivamente o telefone</strong>.
         </p>
       </div>
-    </div>
+
+    </section>
   );
 };
 
