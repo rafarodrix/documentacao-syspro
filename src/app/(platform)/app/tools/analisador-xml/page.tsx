@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Ferramenta para validação de sequências numéricas e extração de documentos XML fiscais.",
 };
 
-export default function AnalisadorXMLApp() {
+export default function AnalisadorXMLAdmin() {
   return (
     <div className="flex-1 w-full">
       {/* O componente AnalisadorXMLTool já possui a tag <main> e 

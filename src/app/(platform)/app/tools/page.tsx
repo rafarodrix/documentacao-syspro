@@ -1,6 +1,6 @@
 import { ToolsHub } from "@/components/platform/tools/ToolsHub";
 
-export default function ClientToolsPage() {
+export default function AdminToolsPage() {
     return (
         <div className="space-y-6">
             <div>
@@ -8,7 +8,7 @@ export default function ClientToolsPage() {
                 <p className="text-muted-foreground">Utilitários para facilitar sua gestão.</p>
             </div>
             {/* Passa o caminho base do cliente */}
-            <ToolsHub basePath="/app/tools" />
+            <ToolsHub basePath="/admin/tools" />
         </div>
     );
 }

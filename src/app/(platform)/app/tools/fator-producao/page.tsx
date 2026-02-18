@@ -1,6 +1,6 @@
 import { ProductionFactorCalculator } from "@/components/platform/tools/fator-producao/ProductionFactorCalculator";
 
-export default function AppFatorProducaoToolPage() {
+export default function AdminFatorProducaoToolPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">

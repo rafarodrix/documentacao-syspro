@@ -1,6 +1,6 @@
 import { FixedCostSimulator } from "@/components/platform/tools/custos-departamento";
 
-export default function AppFixedCostSimulatorPage() {
+export default function AdminFixedCostSimulatorPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
@@ -9,4 +9,4 @@ export default function AppFixedCostSimulatorPage() {
       <FixedCostSimulator />
     </div>
   );
-} 
+}

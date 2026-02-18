@@ -1,90 +1,92 @@
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
-import { getProtectedSession } from '@/lib/auth-helpers';
-import { ClientSidebar } from '@/components/platform/app/app-layout/ClientSidebar';
-import { ClientHeader } from '@/components/platform/app/header/ClientHeader';
+import { getProtectedSession, type UserRole } from '@/lib/auth-helpers';
+import { AdminSidebar } from '@/components/platform/admin/admin-layout/AdminSidebar';
+import { AdminHeader } from '@/components/platform/admin/admin-layout/AdminHeader';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
 import Link from 'next/link';
 
-export default async function ClientLayout({
-    children,
+export default async function AdminLayout({
+  children,
 }: {
-    children: ReactNode;
+  children: ReactNode;
 }) {
-    const session = await getProtectedSession();
+  const session = await getProtectedSession();
 
-    // 1. Redireciona se não houver sessão
-    if (!session) redirect('/login');
+  // 1. Verificação de Sessão
+  if (!session) redirect('/login');
 
-    // 2. Prepara o objeto de usuário
-    const userForSidebar = {
-        name: (session as any).name || session.email.split('@')[0] || "Usuário",
-        email: session.email,
-        image: (session as any).image || null,
-        role: session.role
-    };
+  // 2. Verificação de Permissão (RBAC)
+  const allowedRoles = ['ADMIN', 'DEVELOPER', 'SUPORTE'];
+  if (!allowedRoles.includes(session.role)) {
+    redirect('/app');
+  }
 
-    return (
-        <div className="flex h-screen w-full bg-muted/5 overflow-hidden">
+  const currentRole = session.role as UserRole;
 
-            {/* --- SIDEBAR DESKTOP (Fixa à Esquerda) --- */}
-            <aside className="hidden md:flex w-72 flex-col fixed inset-y-0 z-50 border-r bg-background">
-                <ClientSidebar user={userForSidebar} />
-            </aside>
+  // 3. Dados do Usuário
+  const userForSidebar = {
+    name: (session as any).name || session.email.split('@')[0] || "Administrador",
+    email: session.email,
+    image: (session as any).image || null,
+    role: session.role
+  };
 
-            {/* --- ÁREA PRINCIPAL --- */}
-            <div className="flex-1 flex flex-col md:pl-72 transition-all duration-300 ease-in-out h-full">
+  return (
+    <div className="flex h-screen w-full bg-muted/5 overflow-hidden">
 
-                {/* HEADER (Sticky no topo) */}
-                <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md border-b border-border/40 h-16 flex items-center px-4 sm:px-6 justify-between">
+      {/* --- SIDEBAR DESKTOP (Fixa) --- */}
+      <aside className="hidden md:flex w-72 flex-col fixed inset-y-0 z-50 border-r bg-background">
+        <AdminSidebar user={userForSidebar} />
+      </aside>
 
-                    {/* Lado Esquerdo (Mobile: Menu / Desktop: Título ou Vazio) */}
-                    <div className="flex items-center gap-2">
-                        {/* Botão Menu (Apenas Mobile) */}
-                        <div className="md:hidden">
-                            <Sheet>
-                                <SheetTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="-ml-2">
-                                        <Menu className="h-6 w-6" />
-                                        <span className="sr-only">Abrir menu</span>
-                                    </Button>
-                                </SheetTrigger>
-                                <SheetContent side="left" className="p-0 w-72">
-                                    {/* Sidebar em modo Mobile */}
-                                    <ClientSidebar user={userForSidebar} mobile />
-                                </SheetContent>
-                            </Sheet>
-                        </div>
+      {/* --- ÁREA PRINCIPAL --- */}
+      <div className="flex-1 flex flex-col md:pl-72 transition-all duration-300 ease-in-out h-full">
 
-                        {/* Logo/Nome Mobile */}
-                        <Link href="/app" className="md:hidden flex items-center gap-2 font-semibold">
-                            <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                <Sparkles className="h-4 w-4" />
-                            </div>
-                            <span>Portal</span>
-                        </Link>
-                    </div>
+        {/* HEADER (Mobile + Desktop) */}
+        <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md border-b border-border/40 h-16 flex items-center px-4 sm:px-6 justify-between">
 
-                    {/* Lado Direito (Header do Cliente - Perfil, Notificações, etc) */}
-                    <div className="flex flex-1 justify-end md:justify-between items-center pl-2">
-                        {/* Espaço para Breadcrumbs no futuro (Desktop) */}
-                        <div className="hidden md:block"></div>
+          {/* Mobile: Botão Menu */}
+          <div className="md:hidden flex items-center">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="-ml-2">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Abrir menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                {/* Passamos mobile=true para adaptar o estilo */}
+                {/* O componente Sidebar precisa suportar a prop onClose para fechar ao clicar, se implementado */}
+                <AdminSidebar user={userForSidebar} mobile />
+              </SheetContent>
+            </Sheet>
 
-                        <ClientHeader user={userForSidebar} />
-                    </div>
-                </header>
+            {/* Logo Mobile (Opcional) */}
+            <Link href="/admin" className="ml-2 font-bold text-lg truncate">
+              Trilink<span className="text-purple-600">Admin</span>
+            </Link>
+          </div>
 
-                {/* Main Content (Scroll independente) */}
-                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
-                    {/* Container centralizado para telas ultrawide */}
-                    <div className="max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        {children}
-                    </div>
-                </main>
+          {/* Desktop/Mobile: Header Actions (Perfil, Notificações) */}
+          <div className="flex flex-1 justify-end md:justify-between items-center">
+            {/* Espaço vazio no desktop (pode ter breadcrumbs aqui) */}
+            <div className="hidden md:block"></div>
 
-            </div>
-        </div>
-    );
+            <AdminHeader userEmail={session.email} userRole={currentRole} />
+          </div>
+        </header>
+
+        {/* CONTEÚDO SCROLLÁVEL */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
+          <div className="max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+            {children}
+          </div>
+        </main>
+
+      </div>
+    </div>
+  );
 }
