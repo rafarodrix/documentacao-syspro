@@ -29,18 +29,16 @@ const SuporteSection: React.FC<SuporteSectionProps> = ({
         <div className="h-px flex-1 bg-border" />
         <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-muted/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           <Headphones className="h-3.5 w-3.5" />
-          Suporte Técnico
+          Central de Atendimento — Trilink Software
         </div>
         <div className="h-px flex-1 bg-border" />
       </div>
 
       {/* Hero da seção */}
       <div className="mb-12 space-y-3 max-w-2xl">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-          Central de Atendimento — Trilink Software
-        </p>
         <h2 className="text-4xl font-bold tracking-tight leading-tight text-foreground">
           Suporte especializado
+          <br />
           <span className="text-muted-foreground font-normal">
             para {modulo}
           </span>
