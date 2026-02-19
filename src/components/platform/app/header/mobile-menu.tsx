@@ -3,7 +3,7 @@
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { ClientSidebar } from "../app-layout/ClientSidebar";
+import { ClientSidebar } from "../layout/ClientSidebar";
 
 interface MobileMenuProps {
     user: any; // Tipagem simplificada para facilitar a importação

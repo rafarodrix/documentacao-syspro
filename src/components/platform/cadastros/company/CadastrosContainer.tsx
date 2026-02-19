@@ -32,6 +32,7 @@ interface UserWithRelations {
   isActive: boolean
   jobTitle: string | null
   cpf: string | null
+  phone: string | null
   memberships: any[]
   [key: string]: any
 }

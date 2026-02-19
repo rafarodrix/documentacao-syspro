@@ -12,6 +12,8 @@ import { Role } from "@prisma/client";
 export type UserRole = Role;
 
 export interface ProtectedSession {
+    image: null;
+    name: string;
     userId: string;
     email: string;
     role: UserRole;
