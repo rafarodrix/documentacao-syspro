@@ -16,7 +16,7 @@ import { TaxClassificationList } from "@/components/platform/tax/TaxClassificati
 export default async function SettingsPage() {
     const session = await getProtectedSession();
     if (!session || !["ADMIN"].includes(session.role)) {
-        redirect("/admin/dashboard");
+        redirect("/app/dashboard");
     }
 
     return (

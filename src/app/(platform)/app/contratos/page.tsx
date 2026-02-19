@@ -13,7 +13,7 @@ export default async function ContratosPage() {
     // 1. Camada de Segurança
     const session = await getProtectedSession();
     if (!session || session.role !== "ADMIN") {
-        redirect("/admin/dashboard");
+        redirect("/app/dashboard");
     }
 
     // 2. Carregamento Paralelo de Dados (Performance)
