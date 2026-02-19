@@ -64,8 +64,8 @@ const NAV_MAIN: NavItemType[] = [
 ]
 
 const NAV_SYSTEM: NavItemType[] = [
-  { title: "Central de Chamados",   href: "/admin/chamados",         icon: Headset,  roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
-  { title: "Ferramentas",           href: "/app/tools",              icon: Wrench,   roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Central de Chamados",   href: "/app/chamados",         icon: Headset,  roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Ferramentas",           href: "/app/tools",              icon: Wrench,   roles: ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN", "CLIENTE_USER"] },
   { title: "Reforma Tributária",    href: "/app/reforma-tributaria", icon: Scale },
 ]
 
