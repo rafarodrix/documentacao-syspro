@@ -42,15 +42,15 @@ type NavItem = {
 
 // --- MENU CONFIG ---
 const manageNav: NavItem[] = [
-    { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
-    { title: "Gestão de Equipe", href: "/admin/cadastros", icon: Users },
-    { title: "Contratos", href: "/admin/contratos", icon: FileText },
+    { title: "Dashboard", href: "/app", icon: LayoutDashboard },
+    { title: "Gestão de Equipe", href: "/app/cadastros", icon: Users },
+    { title: "Contratos", href: "/app/contratos", icon: FileText },
 ];
 
 const systemNav: NavItem[] = [
     { title: "Central de Chamados", href: "/admin/chamados", icon: Headset },
-    { title: "Ferramentas", href: "/admin/tools", icon: Wrench },
-    { title: "Reforma Tributária", href: "/admin/reforma-tributaria", icon: Scale },
+    { title: "Ferramentas", href: "/app/tools", icon: Wrench },
+    { title: "Reforma Tributária", href: "/app/reforma-tributaria", icon: Scale },
 ];
 
 const helpNav: NavItem[] = [

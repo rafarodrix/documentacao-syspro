@@ -8,7 +8,7 @@ export default function AdminToolsPage() {
                 <p className="text-muted-foreground">Acesso administrativo a todos os utilitários.</p>
             </div>
             {/* Passa o caminho base do admin */}
-            <ToolsHub basePath="/admin/tools" />
+            <ToolsHub basePath="/app/tools" />
         </div>
     );
 }
