@@ -1,59 +1,59 @@
-import { auth } from "./auth";
-import { headers } from 'next/headers';
-import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { auth } from "./auth"
+import { headers } from "next/headers"
+import { prisma } from "@/lib/prisma"
+import { Role } from "@prisma/client"
 
-// -----------------------------------------------------
-// DEFINIÇÃO DE TIPOS E INTERFACE
-// -----------------------------------------------------
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 
-// Usamos o Role do Prisma diretamente. 
-// Se precisar de fallback, o TypeScript vai avisar se algo não bater.
-export type UserRole = Role;
+export type UserRole = Role
 
-export interface ProtectedSession {
-    image: null;
-    name: string;
-    userId: string;
-    email: string;
-    role: UserRole;
+export type ProtectedSession = {
+  userId: string
+  email: string
+  role: Role
+  name: string | null   // User.name  → String?
+  image: string | null  // User.image → String?
 }
 
-// -----------------------------------------------------
-// FUNÇÃO PRINCIPAL DE CHECAGEM DE SESSÃO
-// -----------------------------------------------------
+// ─── Helper Principal ─────────────────────────────────────────────────────────
 
+/**
+ * Valida a sessão e retorna os dados do usuário direto do banco.
+ * Retorna null se não autenticado ou usuário não encontrado.
+ */
 export async function getProtectedSession(): Promise<ProtectedSession | null> {
-    const headersList = await headers();
+  try {
+    // 1. Sessão via better-auth
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
 
-    // 1. Valida a sessão com o Better Auth
-    const sessionData = await auth.api.getSession({
-        headers: headersList
-    });
+    if (!session?.user?.email) return null
 
-    if (!sessionData || !sessionData.user) {
-        return null;
-    }
-
-    // 2. Busca a Role REAL no banco de dados (Segurança RBAC)
+    // 2. Busca o usuário no banco — fonte de verdade para role, name e image
     const dbUser = await prisma.user.findUnique({
-        where: { id: sessionData.user.id },
-        select: {
-            id: true,
-            email: true,
-            role: true
-        }
-    });
+      where: { email: session.user.email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        role: true,
+        isActive: true,
+      },
+    })
 
-    if (!dbUser) {
-        return null;
-    }
+    if (!dbUser || !dbUser.isActive) return null
 
-    // 3. Retorna sessão segura
+    // 3. Retorna sessão segura com todos os campos necessários
     return {
-        userId: dbUser.id,
-        email: dbUser.email,
-        // O Prisma garante que dbUser.role é do tipo Role, então o cast é seguro
-        role: dbUser.role
-    };
+      userId: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name,    // string | null — direto do Prisma
+      image: dbUser.image,  // string | null — direto do Prisma
+      role: dbUser.role,
+    }
+  } catch {
+    return null
+  }
 }
