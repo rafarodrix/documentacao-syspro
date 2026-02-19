@@ -8,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, ShieldCheck, Sliders, Landmark } from "lucide-react";
 
 // Feature Components
-import GeneralSettingsForm from "@/components/platform/admin/settings/GeneralSettingsForm";
-import { AccessControlTab } from "@/components/platform/admin/settings/AccessControlTab";
+import GeneralSettingsForm from "@/components/platform/app/settings/GeneralSettingsForm";
+import { AccessControlTab } from "@/components/platform/app/settings/AccessControlTab";
 import { SyncTaxButton } from "@/components/platform/tax/SyncTaxButton";
 import { TaxClassificationList } from "@/components/platform/tax/TaxClassificationList";
 

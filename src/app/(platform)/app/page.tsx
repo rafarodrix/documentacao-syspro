@@ -6,9 +6,9 @@ import { CalendarDateRangePicker } from "@/components/DateRangePicker";
 import { Download } from "lucide-react";
 
 // Componentes
-import { DashboardStats } from "@/components/platform/admin/dashboard/DashboardStats";
-import { ActivityChart } from "@/components/platform/admin/dashboard/ActivityChart";
-import { RecentCompanies } from "@/components/platform/admin/dashboard/RecentCompanies";
+import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
+import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
+import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 
 async function getDashboardStats() {
   const [companiesCount, usersCount] = await Promise.all([

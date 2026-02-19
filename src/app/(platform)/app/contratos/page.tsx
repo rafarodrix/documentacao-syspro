@@ -4,10 +4,10 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 
 // Componentes
-import { ContractSheet } from "@/components/platform/admin/contratos/ContractSheet";
-import { BulkReadjustDialog } from "@/components/platform/admin/contratos/BulkReadjustDialog";
-import { ContractStats } from "@/components/platform/admin/contratos/ContractStats";
-import { ContractsTable } from "@/components/platform/admin/contratos/ContractsTable";
+import { ContractSheet } from "@/components/platform/app/contratos/ContractSheet";
+import { BulkReadjustDialog } from "@/components/platform/app/contratos/BulkReadjustDialog";
+import { ContractStats } from "@/components/platform/app/contratos/ContractStats";
+import { ContractsTable } from "@/components/platform/app/contratos/ContractsTable";
 
 export default async function ContratosPage() {
     // 1. Camada de Segurança
