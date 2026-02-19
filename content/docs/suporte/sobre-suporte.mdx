@@ -1,138 +1,145 @@
 ---
 title: Sobre o Suporte
-description: Conheça nossos canais de atendimento, horários, processos e perguntas frequentes sobre o suporte técnico.
+description: Canais de atendimento, horários, acesso remoto, solicitações de desenvolvimento e perguntas frequentes.
 full: true
 ---
 
-import { MessagesSquare, Phone, Mail, Clock, AlarmClock } from 'lucide-react';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { MessagesSquare, Phone, Mail, Clock, AlarmClock, Code2 } from 'lucide-react';
 import { CustomCard } from '@/components/CustomCard';
+import { Cards } from 'fumadocs-ui/components/card';
 
+A Trilink Software oferece suporte técnico especializado ao Syspro ERP por múltiplos canais, com horários estruturados e processos definidos. Esta página reúne tudo que você precisa saber para acionar o suporte corretamente, entender como funciona o atendimento remoto e solicitar melhorias no sistema.
+
+---
 
 ## Canais de Atendimento
 
-Estamos aqui para garantir a melhor experiência com nossos produtos! Nosso compromisso é oferecer atendimento de excelência, resolvendo dúvidas, orientando sobre funcionalidades e solucionando problemas técnicos com agilidade e dedicação.
-
-Escolha o canal ideal para sua necessidade:
+Utilize o canal mais adequado ao tipo de demanda. Para dúvidas rápidas e chamados do dia a dia, o WhatsApp é suficiente. Para situações que exigem explicações detalhadas ou precisam de registro formal, prefira o e-mail. O telefone é reservado para o plantão emergencial fora do horário comercial.
 
 <Cards>
   <CustomCard title="WhatsApp: (34) 99771-3731" href="https://wa.me/5534997713731" icon={<MessagesSquare className="h-5 w-5" />}>
-    - Resposta rápida para suas dúvidas ou solicitações.
+    Dúvidas operacionais e chamados rotineiros durante o horário comercial.
   </CustomCard>
   <CustomCard title="Telefone: (34) 99771-3731" href="tel:+5534997713731" icon={<Phone className="h-5 w-5" />}>
-    - Suporte imediato direto com nossa equipe.
+    Canal exclusivo para emergências durante o plantão. Atendimento imediato com a equipe técnica.
   </CustomCard>
-  <CustomCard title="E-mail: equipe@trilinksoftware.com.br" href="mailto:equipe@trilinksoftware.com.br" icon={<Mail className="h-5 w-5" />}>
-    - Ideal para solicitações detalhadas ou documentadas.
+  <CustomCard title="equipe@trilinksoftware.com.br" href="mailto:equipe@trilinksoftware.com.br" icon={<Mail className="h-5 w-5" />}>
+    Solicitações formais, envio de arquivos, logs e registros documentados.
   </CustomCard>
 </Cards>
 
+<Callout type="warn" title="WhatsApp não monitorado no plantão">
+  Fora do horário comercial, o WhatsApp e o e-mail **não são monitorados**. Para emergências durante o plantão, utilize exclusivamente o **telefone**. Veja o que caracteriza uma emergência na seção de [Perguntas Frequentes](#perguntas-frequentes).
+</Callout>
+
 ---
 
-## Suporte Técnico
+## Horários de Atendimento
 
-Nossa missão é simplificar seu dia, corrigindo bugs ou esclarecendo funcionalidades.
-
-### Horários de Atendimento
-
-
-
-Confira nossos horários de atendimento:
+O suporte opera em dois regimes distintos com escopo de atendimento diferente entre eles. É importante entender essa diferença antes de acionar o plantão.
 
 <Cards>
-  <Card title="Horário Comercial" icon={<Clock className="w-5 h-5 text-muted-foreground" />}>
-    - **Segunda a sexta**: 8h às 18h  
-    - Atendimento completo para todas as suas solicitações.
-  </Card>
-  <Card title="Horário de Plantão" icon={<AlarmClock className="w-5 h-5 text-muted-foreground" />}>
-    - **Segunda a sexta**: 18h às 21h  
-    - **Sábados, domingos e feriados**: 8h às 20h  
-    - Suporte exclusivo para emergências que impactam sua operação.
-  </Card>
+  <CustomCard title="Horário Comercial" icon={<Clock className="h-5 w-5" />}>
+    **Segunda a sexta, das 8h às 18h.** Atendimento completo para dúvidas operacionais, configurações, treinamentos e suporte técnico de qualquer nível de complexidade via WhatsApp, telefone ou e-mail.
+  </CustomCard>
+  <CustomCard title="Plantão Emergencial" icon={<AlarmClock className="h-5 w-5" />}>
+    **Segunda a sexta, das 18h às 21h.** **Sábados, domingos e feriados, das 8h às 20h.** Exclusivo para falhas críticas que impedem a operação da empresa. Atendimento apenas por telefone.
+  </CustomCard>
 </Cards>
-
-<Callout type="info" title="Atenção">
-  O **WhatsApp** não é monitorado durante o plantão. Para emergências, use o **telefone** e garanta atendimento rápido. Veja o que é uma emergência em [Perguntas Frequentes](#perguntas-frequentes).
-</Callout>
-
-Para oferecer o melhor suporte, pode ser necessário acessar seu computador remotamente. Confira os passos:
-
-<div className='fd-steps [&_h3]:fd-step'>
-  <h3>Abra o programa de Suporte Trilink Software</h3>
-    Localize o ícone verde na bandeja do sistema ou o atalho na área de trabalho chamado `Suporte Trilink Software`.
-
-  <h3>Compartilhe ID e Senha</h3>
-    Forneça o **ID** e a **senha** gerados ao técnico para conexão segura.
-
-  <h3>Aguarde o Atendimento</h3>
-    O acesso é temporário e protegido, garantindo sua privacidade.
-</div>
-
-<Callout type="warn" title="Não tem o programa?">
-  Baixe o [Suporte Trilink](https://www.trilink.com.br/public/downloads) na seção Acesso Remoto.
-</Callout>
-
---- 
-
-### Pesquisa de Satisfação
-
-Ao final de cada atendimento, avalie-nos via **WhatsApp** com uma nota de **0 a 5**. É rápido e nos ajuda a melhorar!
-
-- **Destaca nossos acertos** para continuarmos aprimorando.
-- **Revela o que precisa de ajustes** para atendê-lo melhor.
-- **Guia nossa evolução** no atendimento.
-
-Agradecemos seu feedback — ele faz toda a diferença! ??
 
 ---
 
-## Desenvolvimento
+## Suporte Remoto
 
-Quer uma nova funcionalidade ou ajuste? Conheça o processo completo para solicitar:
+Muitas situações exigem que a equipe técnica acesse seu computador para identificar e resolver o problema com precisão. Esse acesso é realizado por meio do programa **Suporte Trilink Software**, instalado nas máquinas dos clientes, e segue um processo seguro e temporário — a conexão só se estabelece com o ID e senha que você fornece ativamente, e se encerra ao final do atendimento.
 
-<div className='fd-steps [&_h3]:fd-step'>
-  <h3>Envio da Solicitação</h3>
-    Entre em contato pelos nossos [canais de atendimento](#canais-de-atendimento) para pedir uma nova funcionalidade ou melhoria.
+<Steps>
+  <Step>
+    ### Abra o programa de Suporte Trilink Software
 
-  <h3>Análise Inicial</h3>
-    Nossa equipe avalia a viabilidade técnica e o impacto da solicitação no sistema.
+    Localize o ícone na bandeja do sistema (canto inferior direito da tela) ou o atalho na área de trabalho com o nome `Suporte Trilink Software`. O programa exibirá um **ID numérico** e uma **senha temporária** assim que for aberto.
+  </Step>
+  <Step>
+    ### Compartilhe o ID e a senha com o técnico
 
-  <h3>Priorização</h3>
-    Classificamos a demanda com base em complexidade, relevância para os clientes e alinhamento com nossos objetivos.
+    Informe o ID e a senha ao atendente pelo canal em que o chamado está sendo tratado. Esses dados são gerados a cada sessão e expiram automaticamente — não é necessário guardá-los.
+  </Step>
+  <Step>
+    ### Aguarde a conexão e acompanhe o atendimento
 
-  <h3>Definição de Custos</h3>
-    - **Personalizações**: Solicitações fora do escopo padrão podem ter custo extra, conforme a complexidade.  
-    - **Urgência**: Priorização acelerada pode incluir uma taxa adicional.  
+    O técnico solicitará permissão de acesso que você precisa confirmar na tela. Você pode acompanhar tudo o que está sendo feito em tempo real e encerrar a conexão a qualquer momento.
+  </Step>
+</Steps>
 
-  <h3>Desenvolvimento</h3>
-    Se aprovada, a solicitação é desenvolvida e implementada pela nossa equipe de programação.
-</div>
-
-<Callout type="warn" title="Aviso">
-  O envio de uma solicitação não garante sua execução. Viabilidade, custos e prazos dependem da análise da equipe.
+<Callout type="info" title="Programa não instalado?">
+  Baixe o cliente de acesso remoto em **[trilink.com.br/public/downloads](https://www.trilink.com.br/public/downloads)**, na seção **Acesso Remoto**. A instalação é simples e não requer configuração adicional.
 </Callout>
+
+---
+
+## Pesquisa de Satisfação
+
+Ao final de cada atendimento, você receberá uma mensagem pelo WhatsApp solicitando uma avaliação de **0 a 5**. A pesquisa leva menos de 30 segundos e é o principal instrumento que a Trilink usa para monitorar a qualidade do suporte, identificar atendentes e processos que precisam de melhoria, e reconhecer boas práticas da equipe. Sua avaliação é tratada com seriedade — ela afeta diretamente como o time é gerenciado e capacitado.
+
+---
+
+## Solicitações de Desenvolvimento
+
+O Syspro ERP é um produto em evolução contínua. Funcionalidades novas, ajustes de comportamento e integrações com outros sistemas podem ser solicitados formalmente pelos clientes e passam por um processo estruturado de avaliação antes de qualquer compromisso de execução.
+
+<Steps>
+  <Step>
+    ### Envio da Solicitação
+
+    Entre em contato por qualquer um dos [canais de atendimento](#canais-de-atendimento) descrevendo a funcionalidade desejada, o problema que ela resolve e o impacto esperado na operação. Quanto mais contexto você fornecer, mais precisa será a análise.
+  </Step>
+  <Step>
+    ### Análise de Viabilidade
+
+    A equipe técnica avalia se a solicitação é viável no contexto da arquitetura atual do sistema, se impacta outros módulos ou clientes, e qual o esforço estimado de desenvolvimento. Esta etapa pode incluir uma reunião de alinhamento para esclarecer requisitos.
+  </Step>
+  <Step>
+    ### Priorização e Classificação
+
+    A demanda é classificada conforme complexidade técnica, relevância para a base de clientes e alinhamento com o roadmap do produto. Solicitações que beneficiam múltiplos clientes têm prioridade no desenvolvimento padrão.
+  </Step>
+  <Step>
+    ### Definição de Custos e Prazo
+
+    Personalizações exclusivas — funcionalidades solicitadas por um único cliente e fora do escopo padrão do produto — podem ter custo adicional proporcional à complexidade. Solicitações com urgência justificada podem ser priorizadas mediante taxa de aceleração. Esses valores são apresentados para aprovação antes de qualquer desenvolvimento.
+  </Step>
+  <Step>
+    ### Desenvolvimento e Entrega
+
+    Com a aprovação confirmada, a solicitação entra na fila de desenvolvimento. Você será notificado sobre o prazo estimado e receberá comunicação quando a funcionalidade estiver disponível para uso.
+  </Step>
+</Steps>
+
+<Callout type="warn" title="Importante">
+  O registro de uma solicitação não constitui compromisso de execução. Viabilidade técnica, custo e prazo dependem da análise descrita acima. A Trilink não se responsabiliza por expectativas criadas antes da confirmação formal.
+</Callout>
+
 ---
 
 ## Perguntas Frequentes
 
 <Accordions>
-  <Accordion title="Quando o suporte emergencial está disponível?">
-    O suporte fora do horário comercial é exclusivo para **emergências** que afetam sua operação, como:  
-    - Impossibilidade de emitir notas fiscais (NFe, NFCe).  
-    - Falhas críticas no faturamento ou emissão de boletos.  
-    - Erros que bloqueiam o acesso ao ERP por todos os usuários.  
-    Use o telefone para atendimento rápido em emergências.
+  <Accordion title="O que caracteriza uma emergência no plantão?">
+    O plantão emergencial existe para situações que **param completamente** a operação da empresa. São exemplos: impossibilidade de emitir NF-e ou NFC-e para clientes, falha que bloqueia o acesso ao sistema para todos os usuários, erros críticos no faturamento ou geração de boletos. Dúvidas operacionais, solicitações de configuração e treinamentos não são atendidos no plantão — nesses casos, o chamado será respondido no próximo horário comercial.
   </Accordion>
-
-  <Accordion title="Qual o prazo de atendimento dos chamados?">
-    Depende da prioridade e complexidade. Atendemos com agilidade, respeitando a ordem e urgência.
+  <Accordion title="Qual o prazo de resposta para chamados?">
+    Durante o horário comercial, o SLA de primeira resposta é de até 4 horas úteis. O tempo de resolução varia conforme a complexidade — problemas de configuração costumam ser resolvidos no mesmo atendimento, enquanto bugs que exigem correção no sistema seguem para a fila de desenvolvimento com priorização por impacto operacional.
   </Accordion>
-
-  <Accordion title="O que o suporte não cobre?">
-    Nosso foco é suporte técnico ao produto. Não inclui:  
-    - **Consultoria de negócios**: Consulte especialistas em processos.  
-    - **Softwares de terceiros**: Veja com os respectivos fornecedores.  
-    Use nossos materiais de capacitação para mais ajuda.
+  <Accordion title="O suporte cobre treinamento e consultoria de processos?">
+    O suporte técnico cobre dúvidas sobre o funcionamento do Syspro ERP, erros e comportamentos inesperados do sistema. Não inclui consultoria de processos de negócio, configurações de sistemas de terceiros ou capacitação extensa de novos colaboradores. Para treinamentos estruturados, consulte a equipe comercial sobre os programas de capacitação disponíveis.
+  </Accordion>
+  <Accordion title="Posso recusar o acesso remoto?">
+    Sim. O acesso remoto é uma ferramenta que agiliza o diagnóstico, mas nunca é obrigatório. Se preferir, o atendimento pode ser conduzido por descrição e capturas de tela. Em casos complexos, porém, o acesso remoto reduz significativamente o tempo de resolução — a equipe não consegue replicar o ambiente exato do cliente sem ele.
+  </Accordion>
+  <Accordion title="Como acompanho o status de uma solicitação de desenvolvimento?">
+    Após o registro formal, você receberá uma confirmação com o número do chamado. Para consultar o andamento, entre em contato pelo WhatsApp ou e-mail informando esse número. A Trilink não possui portal de chamados público no momento — o acompanhamento é feito diretamente com a equipe.
   </Accordion>
 </Accordions>
