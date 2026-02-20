@@ -1,20 +1,54 @@
-// src/app/(app)/app/page.tsx
-// Server Component — busca TODOS os dados reais aqui, passa via props para os componentes
-
 import { requireSession } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats"
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies"
-import { TicketsSummary } from "@/components/platform/app/dashboard/TicketsSummary"
+import { TicketsSummary, TicketSummaryItem } from "@/components/platform/app/dashboard/TicketsSummary"
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart"
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway"
+import { Ticket } from "@/core/domain/entities/ticket.entity"
+import { ZammadTicketAPI } from "@/core/application/schema/zammad-api.schema"
+
+// ─── Normalização de tickets para tipo unificado ──────────────────────────────
+
+/**
+ * Converte Ticket (getUserTickets) → TicketSummaryItem
+ * Ticket já tem status/priority mapeados pelo ZammadGateway
+ */
+function normalizeClientTicket(t: Ticket): TicketSummaryItem {
+  return {
+    id:         t.id,
+    number:     t.number,
+    subject:    t.subject,
+    status:     t.status,
+    priority:   t.priority,
+    lastUpdate: t.lastUpdate,
+  }
+}
+
+/**
+ * Converte ZammadTicketAPI (searchTickets) → TicketSummaryItem
+ * searchTickets retorna dados brutos da API — mapeamos manualmente
+ */
+function normalizeAdminTicket(t: ZammadTicketAPI): TicketSummaryItem {
+  return {
+    id:         String(t.id),
+    number:     t.number,
+    subject:    t.title,
+    // state_id 1=Novo→Aberto, 2/3=Em Análise, 4/5=Pendente
+    status:     t.state_id === 1 ? "Aberto"
+              : t.state_id <= 3  ? "Em Análise"
+              : "Pendente",
+    priority:   t.priority_id === 3 ? "Alta" : t.priority_id === 1 ? "Baixa" : "Média",
+    lastUpdate: t.updated_at,
+  }
+}
 
 // ─── Busca de dados ───────────────────────────────────────────────────────────
 
-async function getDashboardData(userId: string, email: string, role: string) {
+async function getDashboardData(email: string, role: string) {
   const isSystemUser = ["ADMIN", "DEVELOPER", "SUPORTE"].includes(role)
 
-  // Busca paralela para não bloquear uma na outra
+  // Queries do banco em paralelo (sem tickets — tipo divergente)
   const [
     companiesCount,
     companiesThisMonth,
@@ -23,15 +57,12 @@ async function getDashboardData(userId: string, email: string, role: string) {
     activeUsersCount,
     recentCompanies,
     sefazRecords,
-    tickets,
   ] = await Promise.all([
 
-    // Total de empresas ativas
     prisma.company.count({
       where: { status: "ACTIVE", deletedAt: null },
     }),
 
-    // Novas empresas este mês (para calcular growth)
     prisma.company.count({
       where: {
         deletedAt: null,
@@ -39,7 +70,6 @@ async function getDashboardData(userId: string, email: string, role: string) {
       },
     }),
 
-    // Novas empresas mês passado
     prisma.company.count({
       where: {
         deletedAt: null,
@@ -50,13 +80,10 @@ async function getDashboardData(userId: string, email: string, role: string) {
       },
     }),
 
-    // Total de usuários
     prisma.user.count({ where: { deletedAt: null } }),
 
-    // Usuários ativos
     prisma.user.count({ where: { isActive: true, deletedAt: null } }),
 
-    // 5 empresas mais recentes com localização
     prisma.company.findMany({
       where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
@@ -76,33 +103,38 @@ async function getDashboardData(userId: string, email: string, role: string) {
       },
     }),
 
-    // Status SEFAZ mais recente para MG (NF-e e NFC-e)
     prisma.sefazStatus.findMany({
       where: { uf: "MG" },
       orderBy: { createdAt: "desc" },
       distinct: ["service"],
       take: 2,
     }),
-
-    // Chamados: admin vê todos, cliente vê os seus
-    isSystemUser
-      ? ZammadGateway.searchTickets("state:\"1. Novo\" OR state:\"2. Em Analise\"", 5)
-          .then((raw) => raw.slice(0, 5))
-      : ZammadGateway.getUserTickets(email).then((t) => t.slice(0, 5)),
   ])
 
-  // ─── Normalizar dados ─────────────────────────────────────────────────────
+  // ─── Tickets — buscados separadamente para tipo garantido ─────────────────
 
-  const growth = companiesThisMonth - companiesLastMonth
+  const tickets: TicketSummaryItem[] = isSystemUser
+    ? (await ZammadGateway.searchTickets("state:\"1. Novo\" OR state:\"2. Em Analise\"", 5))
+        .slice(0, 5)
+        .map(normalizeAdminTicket)
+    : (await ZammadGateway.getUserTickets(email))
+        .slice(0, 5)
+        .map(normalizeClientTicket)
 
-  // Normaliza companies para incluir cidade/estado do primeiro endereço
+  // ─── Totalização de abertos ───────────────────────────────────────────────
+
+  const totalOpen = isSystemUser
+    ? await ZammadGateway.getTicketCount("state:\"1. Novo\" OR state:\"2. Em Analise\"")
+    : tickets.filter((t) => t.status !== "Resolvido").length
+
+  // ─── Normalizar demais dados ──────────────────────────────────────────────
+
   const companies = recentCompanies.map((c) => ({
     ...c,
     cidade: c.addresses[0]?.cidade ?? null,
     estado: c.addresses[0]?.estado ?? null,
   }))
 
-  // Fallback de status SEFAZ se não houver registros ainda
   const sefazNfe = sefazRecords.find((s) => s.service === "NFE") ?? {
     uf: "MG", service: "NFE" as const, status: "OFFLINE" as const, latency: 0,
   }
@@ -110,18 +142,13 @@ async function getDashboardData(userId: string, email: string, role: string) {
     uf: "MG", service: "NFCE" as const, status: "OFFLINE" as const, latency: 0,
   }
 
-  // Conta chamados abertos (para o summary)
-  const totalOpen = isSystemUser
-    ? await ZammadGateway.getTicketCount("state:\"1. Novo\" OR state:\"2. Em Analise\"")
-    : tickets.filter((t) => t.status !== "Resolvido").length
-
   return {
     companiesCount,
-    companiesGrowth: growth,
+    companiesGrowth: companiesThisMonth - companiesLastMonth,
     usersCount,
     activeUsersCount,
     companies,
-    sefazNfe: { uf: sefazNfe.uf, service: sefazNfe.service, status: sefazNfe.status, latency: sefazNfe.latency },
+    sefazNfe:  { uf: sefazNfe.uf,  service: sefazNfe.service,  status: sefazNfe.status,  latency: sefazNfe.latency },
     sefazNfce: { uf: sefazNfce.uf, service: sefazNfce.service, status: sefazNfce.status, latency: sefazNfce.latency },
     tickets,
     totalOpen,
@@ -134,7 +161,7 @@ export default async function DashboardPage() {
   // requireSession já redireciona para /login se não autenticado
   const session = await requireSession()
 
-  const data = await getDashboardData(session.userId, session.email, session.role)
+  const data = await getDashboardData(session.email, session.role)
 
   return (
     <div className="flex-1 space-y-5 p-6">
@@ -162,7 +189,7 @@ export default async function DashboardPage() {
       {/* Segunda linha: Chamados (full width) */}
       <div className="grid gap-4 grid-cols-4">
         <TicketsSummary
-          tickets={data.tickets as any}
+          tickets={data.tickets}
           totalOpen={data.totalOpen}
         />
       </div>
