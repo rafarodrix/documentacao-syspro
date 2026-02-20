@@ -1,90 +1,178 @@
-import { prisma } from "@/lib/prisma";
-import { getProtectedSession } from "@/lib/auth-helpers";
-import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { CalendarDateRangePicker } from "@/components/DateRangePicker";
-import { Download } from "lucide-react";
+// src/app/(app)/app/page.tsx
+// Server Component — busca TODOS os dados reais aqui, passa via props para os componentes
 
-// Componentes
-import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
-import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
-import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
+import { requireSession } from "@/lib/auth-helpers"
+import { prisma } from "@/lib/prisma"
+import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats"
+import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies"
+import { TicketsSummary } from "@/components/platform/app/dashboard/TicketsSummary"
+import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart"
+import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway"
 
-async function getDashboardStats() {
-  const [companiesCount, usersCount] = await Promise.all([
-    prisma.company.count(),
-    prisma.user.count(),
-  ]);
+// ─── Busca de dados ───────────────────────────────────────────────────────────
 
-  // Simulação de dados da SEFAZ (já que não temos essa tabela no schema ainda)
-  const sefazData = {
-    uf: 'MG',
-    status: 'ONLINE' as const,
-    latency: 45
-  };
+async function getDashboardData(userId: string, email: string, role: string) {
+  const isSystemUser = ["ADMIN", "DEVELOPER", "SUPORTE"].includes(role)
+
+  // Busca paralela para não bloquear uma na outra
+  const [
+    companiesCount,
+    companiesThisMonth,
+    companiesLastMonth,
+    usersCount,
+    activeUsersCount,
+    recentCompanies,
+    sefazRecords,
+    tickets,
+  ] = await Promise.all([
+
+    // Total de empresas ativas
+    prisma.company.count({
+      where: { status: "ACTIVE", deletedAt: null },
+    }),
+
+    // Novas empresas este mês (para calcular growth)
+    prisma.company.count({
+      where: {
+        deletedAt: null,
+        createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
+      },
+    }),
+
+    // Novas empresas mês passado
+    prisma.company.count({
+      where: {
+        deletedAt: null,
+        createdAt: {
+          gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+          lt:  new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        },
+      },
+    }),
+
+    // Total de usuários
+    prisma.user.count({ where: { deletedAt: null } }),
+
+    // Usuários ativos
+    prisma.user.count({ where: { isActive: true, deletedAt: null } }),
+
+    // 5 empresas mais recentes com localização
+    prisma.company.findMany({
+      where: { deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        razaoSocial: true,
+        nomeFantasia: true,
+        cnpj: true,
+        status: true,
+        createdAt: true,
+        _count: { select: { memberships: true } },
+        addresses: {
+          take: 1,
+          select: { cidade: true, estado: true },
+        },
+      },
+    }),
+
+    // Status SEFAZ mais recente para MG (NF-e e NFC-e)
+    prisma.sefazStatus.findMany({
+      where: { uf: "MG" },
+      orderBy: { createdAt: "desc" },
+      distinct: ["service"],
+      take: 2,
+    }),
+
+    // Chamados: admin vê todos, cliente vê os seus
+    isSystemUser
+      ? ZammadGateway.searchTickets("state:\"1. Novo\" OR state:\"2. Em Analise\"", 5)
+          .then((raw) => raw.slice(0, 5))
+      : ZammadGateway.getUserTickets(email).then((t) => t.slice(0, 5)),
+  ])
+
+  // ─── Normalizar dados ─────────────────────────────────────────────────────
+
+  const growth = companiesThisMonth - companiesLastMonth
+
+  // Normaliza companies para incluir cidade/estado do primeiro endereço
+  const companies = recentCompanies.map((c) => ({
+    ...c,
+    cidade: c.addresses[0]?.cidade ?? null,
+    estado: c.addresses[0]?.estado ?? null,
+  }))
+
+  // Fallback de status SEFAZ se não houver registros ainda
+  const sefazNfe = sefazRecords.find((s) => s.service === "NFE") ?? {
+    uf: "MG", service: "NFE" as const, status: "OFFLINE" as const, latency: 0,
+  }
+  const sefazNfce = sefazRecords.find((s) => s.service === "NFCE") ?? {
+    uf: "MG", service: "NFCE" as const, status: "OFFLINE" as const, latency: 0,
+  }
+
+  // Conta chamados abertos (para o summary)
+  const totalOpen = isSystemUser
+    ? await ZammadGateway.getTicketCount("state:\"1. Novo\" OR state:\"2. Em Analise\"")
+    : tickets.filter((t) => t.status !== "Resolvido").length
 
   return {
     companiesCount,
+    companiesGrowth: growth,
     usersCount,
-    sefazNfe: sefazData,
-    sefazNfce: { ...sefazData, latency: 32 }
-  };
+    activeUsersCount,
+    companies,
+    sefazNfe: { uf: sefazNfe.uf, service: sefazNfe.service, status: sefazNfe.status, latency: sefazNfe.latency },
+    sefazNfce: { uf: sefazNfce.uf, service: sefazNfce.service, status: sefazNfce.status, latency: sefazNfce.latency },
+    tickets,
+    totalOpen,
+  }
 }
 
-export default async function AdminDashboardPage() {
-  const session = await getProtectedSession();
-  if (!session) redirect("/login");
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
-  const stats = await getDashboardStats();
+export default async function DashboardPage() {
+  // requireSession já redireciona para /login se não autenticado
+  const session = await requireSession()
+
+  const data = await getDashboardData(session.userId, session.email, session.role)
 
   return (
-    // Layout Fluido (Enterprise Standard): Ocupa toda a largura e altura disponível
-    <div className="flex-1 space-y-8 p-8 pt-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex-1 space-y-5 p-6">
 
-      {/* Fundo Decorativo (Grid Pattern) - Magic UI Touch */}
-      <div className="fixed inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-
-      {/* Cabeçalho Enterprise */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
-        <div>
-          <h2 className="text-4xl font-bold tracking-tight text-foreground">Dashboard</h2>
-          <p className="text-muted-foreground text-lg mt-1">
-            Visão geral de performance e saúde do sistema.
-          </p>
-        </div>
-
-        {/* Área de Ações do Dashboard */}
-        <div className="flex items-center space-x-3">
-          {/* Seletor de Data Funcional */}
-          <div className="hidden md:block">
-            <CalendarDateRangePicker />
-          </div>
-
-          {/* Botão de Exportação */}
-          <Button className="h-9 bg-primary shadow-sm gap-2 hover:bg-primary/90 transition-all">
-            <Download className="h-4 w-4" /> Exportar Relatório
-          </Button>
-        </div>
+      {/* Título da página */}
+      <div>
+        <h1 className="text-lg font-semibold tracking-tight">
+          Bom dia, {session.name?.split(" ")[0] ?? "usuário"} 👋
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Aqui está o resumo do sistema.
+        </p>
       </div>
 
-      {/* Conteúdo Principal */}
-      <div className="space-y-4">
+      {/* KPIs */}
+      <DashboardStats
+        companiesCount={data.companiesCount}
+        companiesGrowth={data.companiesGrowth}
+        usersCount={data.usersCount}
+        activeUsersCount={data.activeUsersCount}
+        sefazNfe={data.sefazNfe}
+        sefazNfce={data.sefazNfce}
+      />
 
-        {/* Seção 1: KPIs */}
-        <DashboardStats
-          companiesCount={stats.companiesCount}
-          usersCount={stats.usersCount}
-          sefazNfe={stats.sefazNfe}
-          sefazNfce={stats.sefazNfce}
+      {/* Segunda linha: Chamados (full width) */}
+      <div className="grid gap-4 grid-cols-4">
+        <TicketsSummary
+          tickets={data.tickets as any}
+          totalOpen={data.totalOpen}
         />
-
-        {/* Seção 2: Gráficos e Listas (Grid Assimétrico) */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 h-full">
-          <ActivityChart />
-          <RecentCompanies />
-        </div>
-
       </div>
+
+      {/* Terceira linha: Gráfico + Empresas Recentes */}
+      <div className="grid gap-4 grid-cols-7">
+        <ActivityChart />
+        <RecentCompanies companies={data.companies} />
+      </div>
+
     </div>
-  );
+  )
 }
