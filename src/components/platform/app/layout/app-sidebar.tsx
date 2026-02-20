@@ -60,13 +60,14 @@ const NAV_MAIN: NavItemType[] = [
   { title: "Dashboard",       href: "/app",           icon: LayoutDashboard },
   { title: "Meus Chamados",   href: "/app/chamados",  icon: Ticket,    roles: ["CLIENTE_ADMIN", "CLIENTE_USER"] },
   { title: "Gestão de Equipe",href: "/app/cadastros", icon: Users,     roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
-  { title: "Contratos",       href: "/app/contratos", icon: FileText,  roles: ["ADMIN"] },
+    { title: "Central de Chamados",   href: "/app/chamados",         icon: Headset,  roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Ferramentas",           href: "/app/tools",              icon: Wrench,   roles: ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN", "CLIENTE_USER"] },
+  { title: "Reforma Tributária",    href: "/app/reforma-tributaria", icon: Scale, roles: ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN", "CLIENTE_USER"] },
+
 ]
 
 const NAV_SYSTEM: NavItemType[] = [
-  { title: "Central de Chamados",   href: "/app/chamados",         icon: Headset,  roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
-  { title: "Ferramentas",           href: "/app/tools",              icon: Wrench,   roles: ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN", "CLIENTE_USER"] },
-  { title: "Reforma Tributária",    href: "/app/reforma-tributaria", icon: Scale, roles: ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN", "CLIENTE_USER"] },
+  { title: "Contratos",       href: "/app/contratos", icon: FileText,  roles: ["ADMIN"] },
 ]
 
 const NAV_HELP: NavItemType[] = [
