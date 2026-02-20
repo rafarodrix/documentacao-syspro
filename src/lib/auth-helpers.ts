@@ -2,6 +2,7 @@ import { auth } from "./auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
+import { redirect } from "next/navigation"
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -11,26 +12,27 @@ export type ProtectedSession = {
   userId: string
   email: string
   role: Role
-  name: string | null   // User.name  → String?
-  image: string | null  // User.image → String?
+  name: string | null
+  image: string | null
 }
 
-// ─── Helper Principal ─────────────────────────────────────────────────────────
+// ─── Session Principal ────────────────────────────────────────────────────────
 
 /**
  * Valida a sessão e retorna os dados do usuário direto do banco.
- * Retorna null se não autenticado ou usuário não encontrado.
+ * Retorna null se: não autenticado, usuário não encontrado ou conta inativa.
+ *
+ * Verificação de `lockoutUntil` — bloqueia usuários em lockout
+ * mesmo que o token de sessão seja válido (ex: sessão aberta antes do lockout).
  */
 export async function getProtectedSession(): Promise<ProtectedSession | null> {
   try {
-    // 1. Sessão via better-auth
     const session = await auth.api.getSession({
       headers: await headers(),
     })
 
     if (!session?.user?.email) return null
 
-    // 2. Busca o usuário no banco — fonte de verdade para role, name e image
     const dbUser = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
@@ -40,20 +42,62 @@ export async function getProtectedSession(): Promise<ProtectedSession | null> {
         image: true,
         role: true,
         isActive: true,
+        deletedAt: true,      // Rejeita usuários soft-deleted
+        lockoutUntil: true,   // Rejeita usuários em lockout
       },
     })
 
-    if (!dbUser || !dbUser.isActive) return null
+    // Conta não existe, foi deletada, está inativa ou em lockout
+    if (!dbUser) return null
+    if (dbUser.deletedAt) return null
+    if (!dbUser.isActive) return null
+    if (dbUser.lockoutUntil && dbUser.lockoutUntil > new Date()) return null
 
-    // 3. Retorna sessão segura com todos os campos necessários
     return {
       userId: dbUser.id,
       email: dbUser.email,
-      name: dbUser.name,    // string | null — direto do Prisma
-      image: dbUser.image,  // string | null — direto do Prisma
+      name: dbUser.name,
+      image: dbUser.image,
       role: dbUser.role,
     }
   } catch {
     return null
   }
+}
+
+// ─── Helpers com Redirect ────────────────────────────────────────────────────
+
+/**
+ * Variante que redireciona automaticamente para /login.
+ * Use em layouts e pages que SEMPRE exigem autenticação.
+ * Elimina o padrão repetitivo `if (!session) redirect("/login")` em todo page.tsx.
+ *
+ * @example
+ * // Em um layout de área protegida:
+ * const session = await requireSession()
+ * // Se chegou aqui, session está garantida e tipada sem null
+ */
+export async function requireSession(): Promise<ProtectedSession> {
+  const session = await getProtectedSession()
+  if (!session) redirect("/login")
+  return session
+}
+
+/**
+ * Variante que exige role específica.
+ * Redireciona para /login se não autenticado, ou para /app se sem permissão.
+ *
+ * @example
+ * // Em um page.tsx do painel admin:
+ * const session = await requireRole(["ADMIN", "DEVELOPER"])
+ */
+export async function requireRole(
+  allowedRoles: Role[],
+  unauthorizedRedirect = "/app"
+): Promise<ProtectedSession> {
+  const session = await requireSession()
+  if (!allowedRoles.includes(session.role)) {
+    redirect(unauthorizedRedirect)
+  }
+  return session
 }
