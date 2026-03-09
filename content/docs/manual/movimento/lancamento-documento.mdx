@@ -1,6 +1,6 @@
 ---
 title:  Lançamento de Documento
-description: uia completo sobre como gerenciar e importar documentos fiscais no Syspro ERP.
+description: Guia completo sobre como gerenciar e importar documentos fiscais no Syspro ERP.
 ---
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
@@ -9,91 +9,139 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Callout } from 'fumadocs-ui/components/callout';
 import SuporteSection from '@/components/docs/SuporteSection.tsx';
 
+
 ## Introdução
 
 O módulo de **Lançamento de Documentos** é a principal porta de entrada de dados mercadológicos no Syspro ERP. Sua importância estratégica reside na capacidade de transformar arquivos digitais (XML) em registros de estoque e obrigações financeiras de forma automática.
 
 Ao dominar esta tela, a empresa garante o cumprimento de prazos fiscais, evita erros de digitação manual e mantém o controle rigoroso do custo médio dos produtos e do fluxo de caixa.
 
-## Dicionário de Campos
-
-Entenda as informações exibidas na grade principal de documentos:
-
-<Cards>
-<Card title="Participante" description="Nome do Cliente ou Fornecedor vinculado ao documento fiscal." />
-<Card title="Modelo" description="Código fiscal da operação (ex: 55 para NF-e, 57 para CT-e)." />
-<Card title="Data Emissão" description="Data em que o fornecedor gerou o documento." />
-<Card title="Data Processamento" description="Data em que o documento foi integrado ao banco de dados do sistema." />
-<Card title="Status" description="Exibe a fase atual: Aberto (editável), Ativo ou Processado (estoque/financeiro atualizados)." />
-</Cards>
-
----
-
 ## Passo a Passo: Importação de XML
 
 A importação é o método mais ágil para alimentar o sistema. Siga o fluxo abaixo:
 
 <Steps>
+<Step>
 
 ### Acesso ao Módulo
 
 No menu superior do Syspro ERP, clique em **Movimento** > **Lançamento de Documentos**.
+</Step>
+<Step>
 
 ### Acionar Importação
 
 Na barra de ferramentas, clique no botão **Importar**. No menu que surgir, selecione **XML** e depois **Importar XML (Ctrl+X)**.
+</Step>
+<Step>
 
 ### Seleção de Arquivo
 
 Selecione o arquivo `.xml` salvo em seu computador. O sistema carregará a tela de pré-visualização denominada "Arquivos XML Disponíveis para Download".
+</Step>
+<Step>
 
 ### Validar Seleção
 
 Selecione a linha correspondente à nota desejada e clique em **Confirmar**. O sistema abrirá a tela de **Resolução de Pendências**.
+</Step>
 </Steps>
 
 ---
 
 ## Resolução de Pendências e Vínculo de Itens
 
-Nesta etapa, o sistema compara os dados do XML com o seu cadastro. O objetivo é transformar a bolinha vazia (pendente) em bolinha preenchida (vinculada).
+Nesta etapa, o sistema compara os dados do XML com o seu cadastro. O objetivo é transformar o indicador de pendência em vínculo confirmado.
 
-### Indicadores de Status
+### Indicadores de Status e Ações
 
 <Cards>
 <Card title="Item Identificado" icon={<div className="h-4 w-4 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />}>
-**Status Vinculado:** O fornecedor ou produto já existe no sistema. Pronto para o lançamento.
+**Status Vinculado:** O fornecedor ou produto já existe e os dados fiscais coincidem. Pronto para o lançamento.
+</Card>
+<Card title="Conflito de NCM" icon={<div className="h-4 w-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />}>
+**Alerta Fiscal:** O NCM no XML é diferente do cadastrado no sistema. Clique com o **botão direito** e selecione **Atualizar NCM** para corrigir.
 </Card>
 <Card title="Item Desconhecido" icon={<div className="h-4 w-4 rounded-full border-2 border-slate-400 bg-transparent" />}>
-**Status Pendente:** O item ou fornecedor nunca foi relacionado. Requer ação manual.
+**Status Pendente:** O item ou fornecedor nunca foi relacionado. Requer ação manual (Referenciar ou Cadastrar).
 </Card>
 </Cards>
 
-### Como Vincular Itens Pendentes
-
-Para cada item com **indicador vazio**, realize o procedimento abaixo:
+### Como Vincular e Validar Itens
 
 <Steps>
+<Step>
 
 ### Abrir Opções de Vínculo
 
 Clique com o **botão direito** sobre a célula na coluna **Código Auxiliar** do item pendente.
+</Step>
+<Step>
 
-### Referenciar Produto (Vínculo)
+### Referenciar ou Cadastrar
 
-Se o produto já existe em seu estoque, selecione **Referenciar Produto**. Uma tela de busca será aberta; pesquise o item, selecione-o e clique em **Confirmar**. O sistema criará um vínculo para que, na próxima compra deste fornecedor, o item seja reconhecido automaticamente.
-
-### Cadastrar Produto (Novo)
-
-Caso seja um item novo, selecione **Cadastrar Produto**. O Syspro abrirá a ficha de cadastro com os dados do XML (Descrição, NCM, Unidade) já preenchidos. Complete os campos obrigatórios como **Departamento** e **Grupo** e clique em **Salvar**.
+* **Referenciar Produto:** Se o item já existe no estoque, vincule-o para automações futuras.
+* **Cadastrar Produto:** Para itens novos, complete os campos obrigatórios como **Departamento** e **Grupo**.
+</Step>
+<Step>
 
 ### Gerar Lançamentos
 
-Após todos os indicadores (Participante e Itens) ficarem **verdes**, clique no botão **Gerar Lançamentos** no topo da tela.
+Após todos os indicadores (Participante, Itens e NCM) estarem devidamente validados e **verdes**, clique no botão **Gerar Lançamentos** no topo da tela.
+</Step>
+<Step>
+
+### Seleção do Tipo de Documento
+
+Escolha a operação correta para a entrada. Esta escolha define a tributação e o destino contábil:
+
+* Compra para Revenda
+* Uso e Consumo
+* Ativo Imobilizado
+* Brinde / Doação
+</Step>
 </Steps>
 
-<Callout type="warning" emoji="⚠️">
-**Importante:** Verifique sempre se o NCM sugerido pelo fornecedor no XML condiz com a tributação correta para o seu estado e tipo de empresa.
+---
+
+## Edição, Precificação e Fechamento
+
+Após gerar o lançamento, a nota fiscal será criada no módulo para os ajustes finais de negócio.
+
+### Ajustes de Unidade e Preço
+
+Ao editar a nota gerada, realize as seguintes conferências:
+
+* **Conversão de Unidade:** Se você compra em "Caixa" e vende em "Unidade", ajuste a unidade de medida de entrada para garantir a precisão do estoque.
+* **Precificação:** Insira ou atualize o **Valor de Venda** dos produtos para manter sua margem de lucro atualizada com base no custo da nova nota.
+
+### Processamento Financeiro
+
+Após salvar as alterações na nota, siga para a finalização:
+
+<Steps>
+<Step>
+
+### Processar Documento
+
+Clique no botão **Processar**. O sistema validará os dados e abrirá a tela de fechamento financeiro.
+</Step>
+<Step>
+
+### Configurar Pagamento
+
+Na tela de financeiro, selecione a forma de pagamento (Ex: **Boleto**).
+</Step>
+<Step>
+
+### Definir Prazos
+
+Insira o prazo de vencimento e o parcelamento exatamente como consta no boleto físico/digital enviado pelo fornecedor.
+</Step>
+</Steps>
+
+<Callout type="success" emoji="✅">
+**Processo Concluído:** Ao finalizar o financeiro, o estoque é alimentado, o custo médio é recalculado e as contas a pagar são provisionadas automaticamente.
 </Callout>
 
 ---
@@ -107,11 +155,14 @@ Sim. O processo de importação é o mesmo, bastando apenas conferir se o Modelo
 <Accordion title="O que fazer se a bolinha do fornecedor estiver vazia?">
 Clique com o botão direito sobre o nome do fornecedor no topo da tela de pendências e selecione **Cadastrar Participante**. O sistema usará os dados do CNPJ contidos no XML.
 </Accordion>
-<Accordion title="Como saber se o financeiro foi gerado corretamente?">
-Após clicar em "Gerar Lançamentos", o sistema abrirá a tela principal do documento. Verifique a aba **Financeiro** para conferir as parcelas e datas de vencimento antes de **Processar**.
+<Accordion title="Por que o NCM aparece em vermelho mesmo se o produto já existe?">
+Isso ocorre quando o fornecedor altera a classificação fiscal no XML ou se houve erro no cadastro inicial. Use a função "Atualizar NCM" para sincronizar com a legislação vigente.
 </Accordion>
 </Accordions>
 
 <SuporteSection modulo="Syspro ERP" />
 
 ---
+
+### Próximo Passo
+
