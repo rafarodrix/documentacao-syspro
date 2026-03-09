@@ -1,0 +1,117 @@
+---
+title:  Lançamento de Documento
+description: uia completo sobre como gerenciar e importar documentos fiscais no Syspro ERP.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Steps } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
+
+## Introdução
+
+O módulo de **Lançamento de Documentos** é a principal porta de entrada de dados mercadológicos no Syspro ERP. Sua importância estratégica reside na capacidade de transformar arquivos digitais (XML) em registros de estoque e obrigações financeiras de forma automática.
+
+Ao dominar esta tela, a empresa garante o cumprimento de prazos fiscais, evita erros de digitação manual e mantém o controle rigoroso do custo médio dos produtos e do fluxo de caixa.
+
+## Dicionário de Campos
+
+Entenda as informações exibidas na grade principal de documentos:
+
+<Cards>
+<Card title="Participante" description="Nome do Cliente ou Fornecedor vinculado ao documento fiscal." />
+<Card title="Modelo" description="Código fiscal da operação (ex: 55 para NF-e, 57 para CT-e)." />
+<Card title="Data Emissão" description="Data em que o fornecedor gerou o documento." />
+<Card title="Data Processamento" description="Data em que o documento foi integrado ao banco de dados do sistema." />
+<Card title="Status" description="Exibe a fase atual: Aberto (editável), Ativo ou Processado (estoque/financeiro atualizados)." />
+</Cards>
+
+---
+
+## Passo a Passo: Importação de XML
+
+A importação é o método mais ágil para alimentar o sistema. Siga o fluxo abaixo:
+
+<Steps>
+
+### Acesso ao Módulo
+
+No menu superior do Syspro ERP, clique em **Movimento** > **Lançamento de Documentos**.
+
+### Acionar Importação
+
+Na barra de ferramentas, clique no botão **Importar**. No menu que surgir, selecione **XML** e depois **Importar XML (Ctrl+X)**.
+
+### Seleção de Arquivo
+
+Selecione o arquivo `.xml` salvo em seu computador. O sistema carregará a tela de pré-visualização denominada "Arquivos XML Disponíveis para Download".
+
+### Validar Seleção
+
+Selecione a linha correspondente à nota desejada e clique em **Confirmar**. O sistema abrirá a tela de **Resolução de Pendências**.
+</Steps>
+
+---
+
+## Resolução de Pendências e Vínculo de Itens
+
+Nesta etapa, o sistema compara os dados do XML com o seu cadastro. O objetivo é transformar a bolinha vazia (pendente) em bolinha preenchida (vinculada).
+
+### Indicadores de Status
+
+<Cards>
+<Card title="Item Identificado" icon={<div className="h-4 w-4 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />}>
+**Status Vinculado:** O fornecedor ou produto já existe no sistema. Pronto para o lançamento.
+</Card>
+<Card title="Item Desconhecido" icon={<div className="h-4 w-4 rounded-full border-2 border-slate-400 bg-transparent" />}>
+**Status Pendente:** O item ou fornecedor nunca foi relacionado. Requer ação manual.
+</Card>
+</Cards>
+
+### Como Vincular Itens Pendentes
+
+Para cada item com **indicador vazio**, realize o procedimento abaixo:
+
+<Steps>
+
+### Abrir Opções de Vínculo
+
+Clique com o **botão direito** sobre a célula na coluna **Código Auxiliar** do item pendente.
+
+### Referenciar Produto (Vínculo)
+
+Se o produto já existe em seu estoque, selecione **Referenciar Produto**. Uma tela de busca será aberta; pesquise o item, selecione-o e clique em **Confirmar**. O sistema criará um vínculo para que, na próxima compra deste fornecedor, o item seja reconhecido automaticamente.
+
+### Cadastrar Produto (Novo)
+
+Caso seja um item novo, selecione **Cadastrar Produto**. O Syspro abrirá a ficha de cadastro com os dados do XML (Descrição, NCM, Unidade) já preenchidos. Complete os campos obrigatórios como **Departamento** e **Grupo** e clique em **Salvar**.
+
+### Gerar Lançamentos
+
+Após todos os indicadores (Participante e Itens) ficarem **verdes**, clique no botão **Gerar Lançamentos** no topo da tela.
+</Steps>
+
+<Callout type="warning" emoji="⚠️">
+**Importante:** Verifique sempre se o NCM sugerido pelo fornecedor no XML condiz com a tributação correta para o seu estado e tipo de empresa.
+</Callout>
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+<Accordion title="O sistema permite importar XML de devolução?">
+Sim. O processo de importação é o mesmo, bastando apenas conferir se o Modelo do documento condiz com a operação de entrada ou saída correspondente.
+</Accordion>
+<Accordion title="O que fazer se a bolinha do fornecedor estiver vazia?">
+Clique com o botão direito sobre o nome do fornecedor no topo da tela de pendências e selecione **Cadastrar Participante**. O sistema usará os dados do CNPJ contidos no XML.
+</Accordion>
+<Accordion title="Como saber se o financeiro foi gerado corretamente?">
+Após clicar em "Gerar Lançamentos", o sistema abrirá a tela principal do documento. Verifique a aba **Financeiro** para conferir as parcelas e datas de vencimento antes de **Processar**.
+</Accordion>
+</Accordions>
+
+<SuporteSection modulo="Syspro ERP" />
+
+---
