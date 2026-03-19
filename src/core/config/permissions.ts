@@ -41,11 +41,12 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
     ADMIN: Object.keys(SYSTEM_PERMISSIONS) as PermissionKey[],
     DEVELOPER: Object.keys(SYSTEM_PERMISSIONS) as PermissionKey[],
 
-    // SUPORTE: Vê tudo, mas só edita usuários básicos e reseta senhas
+    // SUPORTE: atua como analista operacional (empresas e usuarios), sem gerir equipe interna
     SUPORTE: [
         "dashboard:view",
-        "companies:view",
-        "users:view", "users:reset_password"
+        "companies:view", "companies:create", "companies:edit", "companies:status",
+        "users:view", "users:create", "users:edit", "users:status", "users:reset_password",
+        "system_team:view",
     ],
 
     // GESTOR DO CLIENTE: Gerencia a própria empresa e equipe

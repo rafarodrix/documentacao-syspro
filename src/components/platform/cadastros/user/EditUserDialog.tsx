@@ -49,7 +49,6 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
-  X,
   ChevronRight,
   AlertCircle,
   PenLine,
@@ -597,13 +596,6 @@ export function EditUserDialog({
                   {totalDirtySections === 1 ? "seção alterada" : "seções alteradas"}
                 </Badge>
               )}
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </DialogHeader>

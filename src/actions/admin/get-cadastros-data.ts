@@ -8,7 +8,7 @@ export async function getCadastrosData() {
     const session = await getProtectedSession()
     if (!session) return { error: "Não autorizado" }
 
-    const isSuperAdmin = session.role === Role.ADMIN || session.role === Role.DEVELOPER
+    const isSuperAdmin = session.role === Role.ADMIN || session.role === Role.DEVELOPER || session.role === Role.SUPORTE
 
     try {
         let companies = []

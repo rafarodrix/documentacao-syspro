@@ -47,8 +47,11 @@ interface CompanyWithRelations {
 
 interface CompanyTabProps {
   data: CompanyWithRelations[]
-  canManage: boolean
+  canCreate: boolean
+  canEdit: boolean
+  canToggleStatus: boolean
   canDelete: boolean
+  canEditCnpj: boolean
 }
 
 const formatCNPJ = (cnpj: string) => cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
@@ -88,7 +91,8 @@ function StatusBadge({ status }: { status: CompanyStatus }) {
 
 function CompanyActionsMenu({
   company,
-  canManage,
+  canEdit,
+  canToggleStatus,
   canDelete,
   isLoading,
   onEdit,
@@ -96,14 +100,15 @@ function CompanyActionsMenu({
   onDelete,
 }: {
   company: CompanyWithRelations
-  canManage: boolean
+  canEdit: boolean
+  canToggleStatus: boolean
   canDelete: boolean
   isLoading: boolean
   onEdit: () => void
   onToggleStatus: () => void
   onDelete: () => void
 }) {
-  if (!canManage) return null
+  if (!canEdit && !canToggleStatus && !canDelete) return null
 
   return (
     <DropdownMenu>
@@ -130,15 +135,19 @@ function CompanyActionsMenu({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onEdit}>
-          <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm">Editar cadastro</span>
-        </DropdownMenuItem>
+        {canEdit && (
+          <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onEdit}>
+            <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm">Editar cadastro</span>
+          </DropdownMenuItem>
+        )}
 
-        <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onToggleStatus}>
-          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm">{company.status === "INACTIVE" ? "Reativar empresa" : "Inativar empresa"}</span>
-        </DropdownMenuItem>
+        {canToggleStatus && (
+          <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onToggleStatus}>
+            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm">{company.status === "INACTIVE" ? "Reativar empresa" : "Inativar empresa"}</span>
+          </DropdownMenuItem>
+        )}
 
         {canDelete && (
           <>
@@ -158,7 +167,7 @@ function CompanyActionsMenu({
   )
 }
 
-export function CompanyTab({ data, canManage, canDelete }: CompanyTabProps) {
+export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelete, canEditCnpj }: CompanyTabProps) {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">("ALL")
@@ -241,7 +250,7 @@ export function CompanyTab({ data, canManage, canDelete }: CompanyTabProps) {
   return (
     <>
       {companyToEdit && (
-        <EditCompanyDialog open={isEditOpen} onOpenChange={handleCloseEdit} company={companyToEdit} />
+        <EditCompanyDialog open={isEditOpen} onOpenChange={handleCloseEdit} company={companyToEdit} canEditCnpj={canEditCnpj} />
       )}
 
       <div className="space-y-4">
@@ -291,7 +300,7 @@ export function CompanyTab({ data, canManage, canDelete }: CompanyTabProps) {
               })}
             </div>
 
-            {canManage && <CreateCompanyDialog />}
+            {canCreate && <CreateCompanyDialog />}
           </div>
         </div>
 
@@ -352,7 +361,8 @@ export function CompanyTab({ data, canManage, canDelete }: CompanyTabProps) {
                       <TableCell className="text-right px-6">
                         <CompanyActionsMenu
                           company={company}
-                          canManage={canManage}
+                          canEdit={canEdit}
+                          canToggleStatus={canToggleStatus}
                           canDelete={canDelete}
                           isLoading={loadingId === company.id}
                           onEdit={() => handleEdit(company)}

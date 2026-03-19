@@ -71,8 +71,12 @@ export function CadastrosContainer({
       canViewEmpresas: hasPermission(currentUserRole, "companies:view"),
       canViewUsuarios: hasPermission(currentUserRole, "users:view"),
       canViewSistema: hasPermission(currentUserRole, "system_team:view"),
-      canManageCompanies: currentUserRole === Role.ADMIN || currentUserRole === Role.DEVELOPER,
-      canManageUsers: currentUserRole === Role.ADMIN,
+      canCreateCompanies: hasPermission(currentUserRole, "companies:create"),
+      canEditCompanies: hasPermission(currentUserRole, "companies:edit"),
+      canStatusCompanies: hasPermission(currentUserRole, "companies:status"),
+      canDeleteCompanies: currentUserRole === Role.ADMIN,
+      canManageUsers: hasPermission(currentUserRole, "users:create") || hasPermission(currentUserRole, "users:edit") || hasPermission(currentUserRole, "users:status"),
+      canManageSystemUsers: currentUserRole === Role.ADMIN,
     }),
     [currentUserRole],
   )
@@ -119,7 +123,14 @@ export function CadastrosContainer({
       <Tabs value={defaultTab} className="w-full">
         {permissions.canViewEmpresas && (
           <TabsContent value="empresa" className="outline-none mt-0">
-            <CompanyTab data={companies} canManage={permissions.canManageCompanies} canDelete={currentUserRole === Role.ADMIN} />
+            <CompanyTab
+              data={companies}
+              canCreate={permissions.canCreateCompanies}
+              canEdit={permissions.canEditCompanies}
+              canToggleStatus={permissions.canStatusCompanies}
+              canDelete={permissions.canDeleteCompanies}
+              canEditCnpj={SYSTEM_ROLES.includes(currentUserRole)}
+            />
           </TabsContent>
         )}
 
@@ -131,7 +142,7 @@ export function CadastrosContainer({
 
         {permissions.canViewSistema && (
           <TabsContent value="sistema" className="outline-none mt-0">
-            <SystemUserTab data={systemUsers} companies={companies} canManage={permissions.canManageUsers} />
+            <SystemUserTab data={systemUsers} companies={companies} canManage={permissions.canManageSystemUsers} />
           </TabsContent>
         )}
       </Tabs>

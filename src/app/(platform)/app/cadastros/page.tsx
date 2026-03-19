@@ -9,7 +9,7 @@ export default async function CadastrosRootPage() {
   }
 
   if (session.role === "CLIENTE_USER") {
-    redirect("/app/cadastros/usuarios")
+    redirect("/app")
   }
 
   redirect("/app/cadastros/empresa")

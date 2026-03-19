@@ -13,9 +13,25 @@ export type ActionResponse = {
   data?: any;
 };
 
-const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
+const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
+const CREATE_ROLES: Role[] = SYSTEM_ROLES;
 const DELETE_ROLES: Role[] = [Role.ADMIN];
+
+async function getSessionCompanyIds(userId: string): Promise<string[]> {
+  const memberships = await prisma.membership.findMany({
+    where: { userId },
+    select: { companyId: true },
+  });
+  return memberships.map((m) => m.companyId);
+}
+
+function revalidateCadastrosPaths() {
+  revalidatePath("/app/cadastros");
+  revalidatePath("/app/cadastros/empresa");
+  revalidatePath("/app/cadastros/usuarios");
+  revalidatePath("/app/cadastros/sistema");
+}
 
 function handleActionError(error: any): ActionResponse {
   console.error("[CompanyAction Error]:", error);
@@ -54,6 +70,11 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
       whereClause.status = filters.status as CompanyStatus;
     }
 
+    const companyIds = session.role === Role.CLIENTE_ADMIN ? await getSessionCompanyIds(session.userId) : [];
+    if (session.role === Role.CLIENTE_ADMIN) {
+      whereClause.id = { in: companyIds.length ? companyIds : ["__none__"] };
+    }
+
     const companies = await prisma.company.findMany({
       where: whereClause,
       include: {
@@ -89,7 +110,7 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
 
 export async function createCompanyAction(data: CreateCompanyInput): Promise<ActionResponse> {
   const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!session || !CREATE_ROLES.includes(session.role)) {
     return { success: false, message: "Permissao negada." };
   }
 
@@ -123,7 +144,7 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
       },
     });
 
-    revalidatePath("/app/cadastros");
+    revalidateCadastrosPaths();
     return { success: true, message: "Empresa criada com sucesso!", data: result };
   } catch (error: any) {
     return handleActionError(error);
@@ -132,7 +153,13 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
 
 export async function updateCompanyAction(id: string, data: CreateCompanyInput): Promise<ActionResponse> {
   const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!session) {
+    return { success: false, message: "Acesso negado." };
+  }
+
+  const isSystemRole = SYSTEM_ROLES.includes(session.role);
+  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  if (!isSystemRole && !isClientManager) {
     return { success: false, message: "Acesso negado." };
   }
 
@@ -148,6 +175,27 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
   const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
 
   try {
+    if (isClientManager) {
+      const allowedCompanyIds = await getSessionCompanyIds(session.userId);
+      if (!allowedCompanyIds.includes(id)) {
+        return { success: false, message: "Voce nao pode editar esta empresa." };
+      }
+
+      const currentCompany = await prisma.company.findUnique({
+        where: { id },
+        select: { cnpj: true },
+      });
+
+      if (!currentCompany) {
+        return { success: false, message: "Empresa nao encontrada." };
+      }
+
+      const incomingCnpj = validData.cnpj.replace(/\D/g, "");
+      if (incomingCnpj !== currentCompany.cnpj) {
+        return { success: false, message: "Gestor da unidade nao pode alterar o CNPJ." };
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.company.update({
         where: { id },
@@ -169,7 +217,7 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
       });
     });
 
-    revalidatePath("/app/cadastros");
+    revalidateCadastrosPaths();
     return { success: true, message: "Empresa atualizada com sucesso!" };
   } catch (error: any) {
     return handleActionError(error);
@@ -178,7 +226,7 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
 
 export async function updateCompanyStatusAction(id: string, status: CompanyStatus): Promise<ActionResponse> {
   const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!session || !SYSTEM_ROLES.includes(session.role)) {
     return { success: false, message: "Sem permissao." };
   }
 
@@ -191,7 +239,7 @@ export async function updateCompanyStatusAction(id: string, status: CompanyStatu
       },
     });
 
-    revalidatePath("/app/cadastros");
+    revalidateCadastrosPaths();
     return {
       success: true,
       message: status === CompanyStatus.INACTIVE ? "Empresa inativada com sucesso." : "Empresa reativada com sucesso.",
@@ -242,7 +290,7 @@ export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
 
     await prisma.company.delete({ where: { id } });
 
-    revalidatePath("/app/cadastros");
+    revalidateCadastrosPaths();
     return { success: true, message: "Empresa excluida com sucesso." };
   } catch (error) {
     return handleActionError(error);

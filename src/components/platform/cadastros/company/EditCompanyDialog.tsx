@@ -52,7 +52,6 @@ import {
   Loader2,
   Save,
   ChevronRight,
-  X,
   Image as ImageIcon,
   Search,
   PenLine,
@@ -77,6 +76,7 @@ interface EditCompanyDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   company: CompanyData
+  canEditCnpj?: boolean
 }
 
 // ─── Configuração das Seções ──────────────────────────────────────────────────
@@ -218,9 +218,10 @@ interface SectionProps {
   form: ReturnType<typeof useForm<CreateCompanyInput>>
   isLoadingCep?: boolean
   handleCepChange?: (value: string) => void
+  canEditCnpj?: boolean
 }
 
-function GeralSection({ form }: SectionProps) {
+function GeralSection({ form, canEditCnpj = true }: SectionProps) {
   return (
     <div className="space-y-5">
       <SectionHeader
@@ -242,8 +243,10 @@ function GeralSection({ form }: SectionProps) {
                   value={(field.value as string) ?? ""}
                   onChange={(e) => field.onChange(formatCNPJ(e.target.value))}
                   maxLength={18}
+                  disabled={!canEditCnpj}
                 />
               </FormControl>
+              {!canEditCnpj && <FormDescription>CNPJ bloqueado para gestor da unidade.</FormDescription>}
               <FormMessage />
             </FormItem>
           )}
@@ -864,7 +867,7 @@ function ContatoSection({ form }: SectionProps) {
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
-export function EditCompanyDialog({ open, onOpenChange, company }: EditCompanyDialogProps) {
+export function EditCompanyDialog({ open, onOpenChange, company, canEditCnpj = true }: EditCompanyDialogProps) {
   const [currentSection, setCurrentSection] = useState<SectionId>("geral")
 
   const form = useForm<CreateCompanyInput>({
@@ -995,7 +998,7 @@ export function EditCompanyDialog({ open, onOpenChange, company }: EditCompanyDi
     }
   }
 
-  const sectionProps: SectionProps = { form, isLoadingCep, handleCepChange }
+  const sectionProps: SectionProps = { form, isLoadingCep, handleCepChange, canEditCnpj }
 
   const sections: Record<SectionId, React.ReactNode> = {
     geral: <GeralSection {...sectionProps} />,
@@ -1046,13 +1049,6 @@ export function EditCompanyDialog({ open, onOpenChange, company }: EditCompanyDi
                   {totalDirtySections} {totalDirtySections === 1 ? "seção alterada" : "seções alteradas"}
                 </Badge>
               )}
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </DialogHeader>
