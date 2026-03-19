@@ -22,11 +22,15 @@ export type SqlScript = z.infer<typeof ScriptFrontmatterSchema> & {
 
 // Função para ler os arquivos MDX e extrair os scripts SQL
 export function getSqlScripts(): SqlScript[] {
-  const scriptsDir = path.join(process.cwd(), 'data/scripts');
+  const candidateDirs = [
+    path.join(process.cwd(), 'src/data/scripts'),
+    path.join(process.cwd(), 'data/scripts'),
+  ];
+  const scriptsDir = candidateDirs.find((dir) => fs.existsSync(dir));
 
   try {
-    if (!fs.existsSync(scriptsDir)) {
-      console.warn('Diretório de scripts não encontrado em:', scriptsDir);
+    if (!scriptsDir) {
+      console.warn('Diretório de scripts não encontrado em:', candidateDirs.join(' | '));
       return [];
     }
     

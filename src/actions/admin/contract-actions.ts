@@ -98,7 +98,7 @@ export async function createContractAction(data: CreateContractInput) {
             }
         });
 
-        revalidatePath("/admin/contratos");
+        revalidatePath("/app/contratos");
         return { success: true, message: "Contrato criado com sucesso!" };
     } catch (error) {
         console.error("Erro ao criar contrato:", error);
@@ -139,8 +139,8 @@ export async function batchReadjustContractsAction(newMinimumWage: number) {
         });
 
         // Revalida as rotas afetadas para atualizar a UI
-        revalidatePath("/admin/contratos");
-        revalidatePath("/admin/configuracoes");
+        revalidatePath("/app/contratos");
+        revalidatePath("/app/configuracoes");
 
         return {
             success: true,

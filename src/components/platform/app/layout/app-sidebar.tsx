@@ -191,7 +191,7 @@ function SidebarFooter({
 
           <DropdownMenuItem
             className="cursor-pointer gap-2 text-sm"
-            onClick={() => { router.push(isSystemUser ? "/admin/configuracoes" : "/app/perfil"); onClose?.() }}
+            onClick={() => { router.push(isSystemUser ? "/app/configuracoes" : "/app/perfil"); onClose?.() }}
           >
             <Settings className="h-4 w-4 text-muted-foreground" />
             {isSystemUser ? "Configurações" : "Meus Dados"}

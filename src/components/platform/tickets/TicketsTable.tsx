@@ -68,7 +68,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10 hover:text-primary h-8 px-3 rounded-full">
-                                        <Link href={isAdmin ? `/admin/chamados/${ticket.id}` : `/app/chamados/${ticket.id}`}>
+                                        <Link href={`/app/chamados/${ticket.id}`}>
                                             <span className="hidden sm:inline mr-1 text-xs font-medium">Abrir</span>
                                             <ArrowUpRight className="h-3 w-3" />
                                         </Link>

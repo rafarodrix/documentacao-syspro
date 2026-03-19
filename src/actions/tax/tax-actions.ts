@@ -202,7 +202,7 @@ export async function saveTaxDataBatch(data: any[]) {
             timeout: 60000 // 60s timeout, pois pode haver muitos registros
         });
 
-        revalidatePath("/admin/settings");
+        revalidatePath("/app/configuracoes");
 
         return {
             success: true,

@@ -97,7 +97,6 @@ export async function createTicketAction(prevState: any, formData: FormData) {
         });
 
         revalidatePath('/app/chamados');
-        revalidatePath('/admin/chamados');
         return { success: true, message: 'Chamado aberto com sucesso!', data: newTicket };
 
     } catch (error) {

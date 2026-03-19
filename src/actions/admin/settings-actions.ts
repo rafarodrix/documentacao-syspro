@@ -79,7 +79,7 @@ export async function updateSettingsAction(data: SettingsInput) {
             }),
         ]);
 
-        revalidatePath("/admin/configuracoes");
+        revalidatePath("/app/configuracoes");
         return { success: true, message: "Configurações salvas!" };
     } catch (error) {
         console.error(error);

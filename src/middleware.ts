@@ -17,11 +17,18 @@ export async function middleware(request: NextRequest) {
     "/termos",
   ];
 
+  const isDocsRoute = pathname === "/docs" || pathname.startsWith("/docs/");
+  const isReleasesRoute = pathname === "/releases" || pathname.startsWith("/releases/");
+
   // Verifica se a rota exata está na lista ou se é uma rota pública de API/Webhook
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
+    isDocsRoute ||
+    isReleasesRoute ||
     pathname.startsWith("/api/webhooks") ||
-    pathname.startsWith("/api/auth"); // Garante que o Auth nunca seja bloqueado
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/search") ||
+    pathname.startsWith("/api/revalidate"); // Garante que endpoints públicos não sejam bloqueados
 
   // ---------------------------------------------------------
   // 2. VERIFICAÇÃO DE SESSÃO

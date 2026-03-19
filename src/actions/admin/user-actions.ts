@@ -130,7 +130,7 @@ export async function createUserAction(data: CreateUserInput): Promise<ActionRes
             }
         });
 
-        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
         return { success: true, message: "Usuário criado com sucesso!" };
 
     } catch (error) {
@@ -185,7 +185,7 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
             }
         });
 
-        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
         return { success: true, message: "Usuário atualizado com sucesso." };
     } catch (error) {
         return handleActionError(error);
@@ -204,7 +204,7 @@ export async function deleteUserAction(id: string): Promise<ActionResponse> {
             where: { id },
             data: { deletedAt: new Date(), isActive: false }
         });
-        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
         return { success: true, message: "Removido com sucesso." };
     } catch (error) {
         return handleActionError(error);
@@ -225,7 +225,7 @@ export async function linkUserToCompanyAction(data: LinkUserInput): Promise<Acti
             update: { role: data.role }
         });
 
-        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
         return { success: true, message: "Vínculo atualizado." };
     } catch (error) {
         return handleActionError(error);
@@ -244,7 +244,7 @@ export async function toggleUserStatusAction(id: string, active: boolean): Promi
             where: { id },
             data: { isActive: active }
         });
-        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
         return { success: true, message: `Usuário ${active ? 'ativado' : 'desativado'} com sucesso.` };
     } catch (error) {
         return handleActionError(error);
@@ -264,7 +264,7 @@ export async function removeUserFromCompanyAction(userId: string, companyId: str
                 userId_companyId: { userId, companyId }
             }
         });
-        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
         return { success: true, message: "Vínculo removido com sucesso." };
     } catch (error) {
         return handleActionError(error);
@@ -285,7 +285,7 @@ export async function updateMembershipRoleAction(userId: string, companyId: stri
             },
             data: { role }
         });
-        revalidatePath("/admin/cadastros");
+        revalidatePath("/app/cadastros");
         return { success: true, message: "Cargo atualizado com sucesso." };
     } catch (error) {
         return handleActionError(error);

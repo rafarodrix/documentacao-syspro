@@ -15,7 +15,7 @@ interface TicketDetailsProps {
 
 export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetailsProps) {
 
-    const backUrl = isAdmin ? "/admin/chamados" : "/app/chamados";
+    const backUrl = isAdmin ? "/app/chamados" : "/app/chamados";
 
     if (error || !ticket) {
         return (

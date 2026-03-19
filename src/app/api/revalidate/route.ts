@@ -29,9 +29,8 @@ export async function POST(request: Request) {
 
     // 3. Revalide os caminhos das PÁGINAS
     revalidatePath('/releases');
-    revalidatePath('/api/releases');
 
-    const revalidatedPaths = ['/releases', '/api/releases'];
+    const revalidatedPaths = ['/releases'];
     console.log('Cache de dados (tag: releases) e caminhos revalidados com sucesso:', revalidatedPaths);
 
     return NextResponse.json({ revalidated: true, paths: revalidatedPaths, now: Date.now() });

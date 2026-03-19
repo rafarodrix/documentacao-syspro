@@ -123,7 +123,7 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
       },
     });
 
-    revalidatePath("/admin/cadastros");
+    revalidatePath("/app/cadastros");
     return { success: true, message: "Empresa criada com sucesso!", data: result };
   } catch (error: any) {
     return handleActionError(error);
@@ -179,7 +179,7 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
       });
     });
 
-    revalidatePath("/admin/cadastros");
+    revalidatePath("/app/cadastros");
     return { success: true, message: "Empresa atualizada com sucesso!" };
   } catch (error: any) {
     return handleActionError(error);
@@ -204,7 +204,7 @@ export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
       }
     });
 
-    revalidatePath("/admin/cadastros");
+    revalidatePath("/app/cadastros");
     return { success: true, message: "Empresa removida com sucesso." };
   } catch (error) {
     return handleActionError(error);
