@@ -2,10 +2,11 @@
 
 import { ModeToggle } from "@/components/ModeToggle"
 import { Button } from "@/components/ui/button"
-import { Bell, PanelLeftClose, PanelLeftOpen, Plus, Ticket } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen, Plus, Ticket } from "lucide-react"
 import { Breadcrumbs } from "./breadcrumbs"
 import { CommandPaletteTrigger } from "./command-palette-trigger"
 import { UserProfile } from "./user-profile"
+import { NotificationsMenu } from "./NotificationsMenu"
 import Link from "next/link"
 
 interface ClientHeaderProps {
@@ -55,15 +56,7 @@ export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar }: Client
           </Link>
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
-          aria-label="Notificacoes"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500 border border-background" />
-        </Button>
+        <NotificationsMenu />
 
         <ModeToggle />
 
