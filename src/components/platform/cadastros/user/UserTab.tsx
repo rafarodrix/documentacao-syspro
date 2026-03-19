@@ -17,7 +17,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import {
   Search,
   MoreHorizontal,
@@ -64,6 +63,7 @@ interface UserTabProps {
   data: UserWithRelations[]
   companies: any[]
   isAdmin: boolean
+  canManage: boolean
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -163,6 +163,7 @@ function EmptyState({
 interface UserActionsProps {
   user: UserWithRelations
   isLoading: boolean
+  canManage: boolean
   isAdmin: boolean
   onEdit: () => void
   onToggleStatus: () => void
@@ -171,10 +172,13 @@ interface UserActionsProps {
 function UserActions({
   user,
   isLoading,
+  canManage,
   isAdmin,
   onEdit,
   onToggleStatus,
 }: UserActionsProps) {
+  if (!canManage) return null
+
   if (isLoading) {
     return (
       <div className="flex justify-end pr-1">
@@ -252,7 +256,7 @@ function UserActions({
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
-export function UserTab({ data, companies, isAdmin }: UserTabProps) {
+export function UserTab({ data, companies, isAdmin, canManage }: UserTabProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [userToEdit, setUserToEdit] = useState<UserWithRelations | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -331,7 +335,7 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
             )}
           </div>
 
-          <CreateUserDialog companies={companies} isAdmin={isAdmin} context="CLIENT" />
+          {canManage && <CreateUserDialog companies={companies} isAdmin={isAdmin} context="CLIENT" />}
         </div>
 
         {/* ── Tabela ───────────────────────────────────────────────── */}
@@ -452,6 +456,7 @@ export function UserTab({ data, companies, isAdmin }: UserTabProps) {
                       <UserActions
                         user={user}
                         isLoading={loadingId === user.id}
+                        canManage={canManage}
                         isAdmin={isAdmin}
                         onEdit={() => handleEditClick(user)}
                         onToggleStatus={() =>

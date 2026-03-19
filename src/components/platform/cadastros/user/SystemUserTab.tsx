@@ -63,6 +63,7 @@ interface SystemUserWithRelations {
 interface SystemUserTabProps {
   data: SystemUserWithRelations[]
   companies: any[]
+  canManage: boolean
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -188,6 +189,7 @@ function EmptyState({
 interface SystemActionsProps {
   user: SystemUserWithRelations
   isLoading: boolean
+  canManage: boolean
   onEdit: () => void
   onToggleStatus: () => void
 }
@@ -195,9 +197,12 @@ interface SystemActionsProps {
 function SystemActions({
   user,
   isLoading,
+  canManage,
   onEdit,
   onToggleStatus,
 }: SystemActionsProps) {
+  if (!canManage) return null
+
   if (isLoading) {
     return (
       <div className="flex justify-end pr-1">
@@ -273,7 +278,7 @@ function SystemActions({
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
-export function SystemUserTab({ data, companies }: SystemUserTabProps) {
+export function SystemUserTab({ data, companies, canManage }: SystemUserTabProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [userToEdit, setUserToEdit] = useState<SystemUserWithRelations | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -353,7 +358,7 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
             )}
           </div>
 
-          <CreateUserDialog companies={companies} isAdmin={true} context="SYSTEM" />
+          {canManage && <CreateUserDialog companies={companies} isAdmin={true} context="SYSTEM" />}
         </div>
 
         {/* ── Tabela ───────────────────────────────────────────────── */}
@@ -453,6 +458,7 @@ export function SystemUserTab({ data, companies }: SystemUserTabProps) {
                       <SystemActions
                         user={user}
                         isLoading={loadingId === user.id}
+                        canManage={canManage}
                         onEdit={() => handleEditClick(user)}
                         onToggleStatus={() =>
                           handleToggleStatus(user.id, user.isActive)

@@ -93,6 +93,8 @@ export function CadastrosContainer({
     canViewEmpresas: hasPermission(currentUserRole, "companies:view"),
     canViewUsuarios: hasPermission(currentUserRole, "users:view"),
     canViewSistema: hasPermission(currentUserRole, "system_team:view"),
+    canManageCompanies: [Role.ADMIN, Role.DEVELOPER].includes(currentUserRole),
+    canManageUsers: currentUserRole === Role.ADMIN,
   }), [currentUserRole])
 
   const { systemUsers, clientUsers } = useMemo(() => ({
@@ -158,7 +160,7 @@ export function CadastrosContainer({
             {permissions.canViewEmpresas && (
               <TabsTrigger
                 value="empresa"
-                className="gap-2 px-4 text-sm data-[state=active]:shadow-sm"
+                className="gap-2 px-4 min-w-[140px] justify-center text-sm data-[state=active]:shadow-sm"
               >
                 <Building2 className="h-3.5 w-3.5" />
                 {permissions.isGlobalView ? "Empresas" : "Minha Empresa"}
@@ -168,7 +170,7 @@ export function CadastrosContainer({
             {permissions.canViewUsuarios && (
               <TabsTrigger
                 value="usuarios"
-                className="gap-2 px-4 text-sm data-[state=active]:shadow-sm"
+                className="gap-2 px-4 min-w-[140px] justify-center text-sm data-[state=active]:shadow-sm"
               >
                 <Users className="h-3.5 w-3.5" />
                 {permissions.isGlobalView ? "Clientes" : "Minha Equipe"}
@@ -180,6 +182,7 @@ export function CadastrosContainer({
                 value="sistema"
                 className={cn(
                   "gap-2 px-4 text-sm data-[state=active]:shadow-sm",
+                  "min-w-[140px] justify-center",
                   "data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700",
                   "dark:data-[state=active]:bg-purple-900/20 dark:data-[state=active]:text-purple-300",
                 )}
@@ -198,7 +201,11 @@ export function CadastrosContainer({
               title={permissions.isGlobalView ? "Empresas Cadastradas" : "Dados da Organização"}
               description="Visualize e edite as informações cadastrais e fiscais."
             />
-            <CompanyTab data={companies} isAdmin={permissions.isGlobalView} />
+            <CompanyTab
+              data={companies}
+              canManage={permissions.canManageCompanies}
+              canDelete={currentUserRole === Role.ADMIN}
+            />
           </TabsContent>
         )}
 
@@ -217,6 +224,7 @@ export function CadastrosContainer({
               data={clientUsers}
               companies={companies}
               isAdmin={permissions.isGlobalView}
+              canManage={permissions.canManageUsers}
             />
           </TabsContent>
         )}
@@ -228,7 +236,7 @@ export function CadastrosContainer({
               title="Equipe do Sistema"
               description="Administradores, desenvolvedores e suporte com acesso à plataforma."
             />
-            <SystemUserTab data={systemUsers} companies={companies} />
+            <SystemUserTab data={systemUsers} companies={companies} canManage={permissions.canManageUsers} />
           </TabsContent>
         )}
       </Tabs>

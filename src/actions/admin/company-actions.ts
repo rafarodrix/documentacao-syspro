@@ -15,32 +15,27 @@ export type ActionResponse = {
 
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
+const DELETE_ROLES: Role[] = [Role.ADMIN];
 
-/**
- * Central de tratamento de erros
- */
 function handleActionError(error: any): ActionResponse {
   console.error("[CompanyAction Error]:", error);
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    if (error.code === 'P2002') {
-      return { success: false, message: "Este CNPJ já está cadastrado no sistema." };
+    if (error.code === "P2002") {
+      return { success: false, message: "Este CNPJ ja esta cadastrado no sistema." };
     }
   }
 
   return {
     success: false,
-    message: error instanceof Error ? error.message : "Ocorreu um erro interno. Tente novamente."
+    message: error instanceof Error ? error.message : "Ocorreu um erro interno. Tente novamente.",
   };
 }
 
-/**
- * Lista empresas vinculando o endereço mais recente da relação
- */
 export async function getCompaniesAction(filters?: { search?: string; status?: string }) {
   const session = await getProtectedSession();
   if (!session || !READ_ROLES.includes(session.role)) {
-    return { success: false, message: "Não autorizado." };
+    return { success: false, message: "Nao autorizado." };
   }
 
   try {
@@ -62,14 +57,21 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
     const companies = await prisma.company.findMany({
       where: whereClause,
       include: {
-        _count: { select: { memberships: true } },
+        _count: {
+          select: {
+            memberships: true,
+            contracts: true,
+            branches: true,
+            accountingClients: true,
+          },
+        },
         addresses: {
           take: 1,
-          orderBy: { id: 'asc' }
+          orderBy: { id: "asc" },
         },
-        accountingFirm: { select: { id: true, nomeFantasia: true } }
+        accountingFirm: { select: { id: true, nomeFantasia: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return {
@@ -77,21 +79,18 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
       data: companies.map((c: any) => ({
         ...c,
         usersCount: c._count?.memberships ?? 0,
-        address: c.addresses?.[0] || null
-      }))
+        address: c.addresses?.[0] || null,
+      })),
     };
   } catch (error) {
     return handleActionError(error);
   }
 }
 
-/**
- * Cria empresa e endereço principal
- */
 export async function createCompanyAction(data: CreateCompanyInput): Promise<ActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
-    return { success: false, message: "Permissão negada." };
+    return { success: false, message: "Permissao negada." };
   }
 
   const validation = createCompanySchema.safeParse(data);
@@ -99,7 +98,7 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
     return {
       success: false,
       errors: validation.error.flatten().fieldErrors as any,
-      message: "Verifique os campos destacados."
+      message: "Verifique os campos destacados.",
     };
   }
 
@@ -110,14 +109,15 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
       data: {
         ...validData,
         cnpj: validData.cnpj,
-
-        addresses: (address && address.cep) ? {
-          create: {
-            ...address,
-            description: address.description || "Sede"
-          }
-        } : undefined,
-
+        addresses:
+          address && address.cep
+            ? {
+                create: {
+                  ...address,
+                  description: address.description || "Sede",
+                },
+              }
+            : undefined,
         accountingFirm: accountingFirmId ? { connect: { id: accountingFirmId } } : undefined,
         parentCompany: parentCompanyId ? { connect: { id: parentCompanyId } } : undefined,
       },
@@ -130,9 +130,6 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
   }
 }
 
-/**
- * Atualiza empresa com transação atômica para o endereço
- */
 export async function updateCompanyAction(id: string, data: CreateCompanyInput): Promise<ActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
@@ -144,37 +141,30 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
     return {
       success: false,
       errors: validation.error.flatten().fieldErrors as any,
-      message: "Dados inválidos."
+      message: "Dados invalidos.",
     };
   }
 
   const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
 
   try {
-    // Transação manual garante que a empresa não fique sem endereço se o create falhar
     await prisma.$transaction(async (tx) => {
       await tx.company.update({
         where: { id },
         data: {
           ...validData,
           cnpj: validData.cnpj.replace(/\D/g, ""),
-
-          // Estratégia: Remove endereços antigos e cria o novo enviado no form
-          addresses: address ? {
-            deleteMany: {},
-            create: {
-              ...address,
-              description: address.description || "Sede"
-            }
-          } : undefined,
-
-          accountingFirm: accountingFirmId
-            ? { connect: { id: accountingFirmId } }
-            : { disconnect: true },
-
-          parentCompany: parentCompanyId
-            ? { connect: { id: parentCompanyId } }
-            : { disconnect: true },
+          addresses: address
+            ? {
+                deleteMany: {},
+                create: {
+                  ...address,
+                  description: address.description || "Sede",
+                },
+              }
+            : undefined,
+          accountingFirm: accountingFirmId ? { connect: { id: accountingFirmId } } : { disconnect: true },
+          parentCompany: parentCompanyId ? { connect: { id: parentCompanyId } } : { disconnect: true },
         },
       });
     });
@@ -186,26 +176,74 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
   }
 }
 
-/**
- * Soft Delete (Mantém integridade referencial)
- */
-export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
+export async function updateCompanyStatusAction(id: string, status: CompanyStatus): Promise<ActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
-    return { success: false, message: "Sem permissão." };
+    return { success: false, message: "Sem permissao." };
   }
 
   try {
     await prisma.company.update({
       where: { id },
       data: {
-        deletedAt: new Date(),
-        status: CompanyStatus.INACTIVE
-      }
+        status,
+        deletedAt: status === CompanyStatus.INACTIVE ? new Date() : null,
+      },
     });
 
     revalidatePath("/app/cadastros");
-    return { success: true, message: "Empresa removida com sucesso." };
+    return {
+      success: true,
+      message: status === CompanyStatus.INACTIVE ? "Empresa inativada com sucesso." : "Empresa reativada com sucesso.",
+    };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
+  const session = await getProtectedSession();
+  if (!session || !DELETE_ROLES.includes(session.role)) {
+    return { success: false, message: "Sem permissao." };
+  }
+
+  try {
+    const company = await prisma.company.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            memberships: true,
+            contracts: true,
+            branches: true,
+            accountingClients: true,
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      return { success: false, message: "Empresa nao encontrada." };
+    }
+
+    const linkedRecords =
+      company._count.memberships +
+      company._count.contracts +
+      company._count.branches +
+      company._count.accountingClients;
+
+    if (linkedRecords > 0) {
+      return {
+        success: false,
+        message: "Empresa possui registros vinculados. Inative em vez de excluir.",
+      };
+    }
+
+    await prisma.company.delete({ where: { id } });
+
+    revalidatePath("/app/cadastros");
+    return { success: true, message: "Empresa excluida com sucesso." };
   } catch (error) {
     return handleActionError(error);
   }
