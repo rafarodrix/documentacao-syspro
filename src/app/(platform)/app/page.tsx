@@ -7,6 +7,7 @@ import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway"
 import { Ticket } from "@/core/domain/entities/ticket.entity"
 import { ZammadTicketAPI } from "@/core/application/schema/zammad-api.schema"
+import { mapTicketPriority, mapTicketStatusFromStateId } from "@/core/infrastructure/mappers/zammad-ticket.mapper"
 
 // ─── Normalização de tickets para tipo unificado ──────────────────────────────
 
@@ -34,11 +35,8 @@ function normalizeAdminTicket(t: ZammadTicketAPI): TicketSummaryItem {
     id:         String(t.id),
     number:     t.number,
     subject:    t.title,
-    // state_id 1=Novo→Aberto, 2/3=Em Análise, 4/5=Pendente
-    status:     t.state_id === 1 ? "Aberto"
-              : t.state_id <= 3  ? "Em Análise"
-              : "Pendente",
-    priority:   t.priority_id === 3 ? "Alta" : t.priority_id === 1 ? "Baixa" : "Média",
+    status:     mapTicketStatusFromStateId(t.state_id),
+    priority:   mapTicketPriority(t.priority_id),
     lastUpdate: t.updated_at,
   }
 }

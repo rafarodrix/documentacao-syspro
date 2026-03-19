@@ -1,22 +1,23 @@
 "use server";
 
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { ZammadClient } from "@/lib/zammad-client";
+import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { revalidatePath } from "next/cache";
+import { ZammadOperationalTicket, ZammadTicketArticle } from "@/core/application/schema/zammad-api.schema";
+import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 
-// --- Helpers de Mapeamento ---
-function mapZammadStatus(state: string): string {
-    const map: Record<string, string> = {
-        'new': 'Novo',
-        'open': 'Aberto',
-        'pending_reminder': 'Pendente',
-        'pending_close': 'Pendente',
-        'closed': 'Resolvido',
-        'merged': 'Mesclado',
-        'removed': 'Removido'
-    };
-    return map[state] || state;
-}
+type TicketListItem = {
+    id: number;
+    number: string;
+    title: string;
+    group: string;
+    status: string;
+    statusLabel: string;
+    priority: number;
+    customer: string;
+    createdAt: string;
+    updatedAt: string;
+};
 
 // --- AÇÕES ---
 
@@ -27,19 +28,19 @@ export async function getTicketsAction() {
     const isAdmin = ['ADMIN', 'DEVELOPER', 'SUPORTE'].includes(session.role);
 
     try {
-        let ticketsRaw: any[] = [];
+        let ticketsRaw: ZammadOperationalTicket[] = [];
 
         if (isAdmin) {
             // Admin vê os 50 últimos tickets globais
-            ticketsRaw = await ZammadClient.getAllTickets(50);
+            ticketsRaw = await ZammadGateway.getAllTickets(50);
 
             // Filtro de Developer (opcional)
             if (session.role === 'DEVELOPER') {
-                ticketsRaw = ticketsRaw.filter((t: any) => t.group === 'Development');
+                ticketsRaw = ticketsRaw.filter((t) => t.group === 'Development');
             }
         } else {
             // Cliente vê os seus (busca por email)
-            ticketsRaw = await ZammadClient.getTicketsForUser(session.email);
+            ticketsRaw = await ZammadGateway.getTicketsForUser(session.email);
         }
 
         // Se ticketsRaw vier vazio ou undefined, retorna array vazio
@@ -47,15 +48,15 @@ export async function getTicketsAction() {
             return { success: true, data: [] };
         }
 
-        const formattedTickets = ticketsRaw.map((t: any) => ({
+        const formattedTickets: TicketListItem[] = ticketsRaw.map((t) => ({
             id: t.id,
             number: t.number,
             title: t.title,
-            group: t.group,
-            status: t.state,
-            statusLabel: mapZammadStatus(t.state),
-            priority: t.priority_id,
-            customer: t.customer || "Cliente", // O Zammad retorna o ID ou email
+            group: t.group || "Sem grupo",
+            status: t.state || "",
+            statusLabel: mapTicketStateLabel(t.state || ""),
+            priority: t.priority_id ?? 2,
+            customer: String(t.customer || "Cliente"), // O Zammad retorna o ID ou email
             createdAt: t.created_at,
             updatedAt: t.updated_at,
         }));
@@ -71,7 +72,7 @@ export async function getTicketsAction() {
     }
 }
 
-export async function createTicketAction(prevState: any, formData: FormData) {
+export async function createTicketAction(_prevState: unknown, formData: FormData) {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: 'Sessão expirada.' };
 
@@ -83,7 +84,7 @@ export async function createTicketAction(prevState: any, formData: FormData) {
     const priorityId = parseInt(priorityStr.charAt(0)) || 2;
 
     try {
-        const newTicket = await ZammadClient.createTicket({
+        const newTicket = await ZammadGateway.createTicket({
             title: subject,
             group: 'Users', // Verifique se este grupo existe no seu Zammad
             customer: session.email, // O Zammad usa o email para vincular
@@ -112,15 +113,15 @@ export async function getTicketDetailsAction(ticketId: string) {
     const isAdmin = ['ADMIN', 'DEVELOPER', 'SUPORTE'].includes(session.role);
 
     try {
-        const ticket = await ZammadClient.getTicketById(ticketId);
+        const ticket = await ZammadGateway.getTicketById(ticketId);
 
         // Validação de Segurança: Cliente não pode ver ticket de outro
         // (Isso depende de como o Zammad retorna o customer, pode ser ID ou Email)
         // if (!isAdmin && ticket.created_by_id !== ... ) { ... } 
 
-        const articles = await ZammadClient.getTicketArticles(ticketId);
+        const articles = await ZammadGateway.getTicketArticles(ticketId);
 
-        const visibleArticles = articles.filter((a: any) => {
+        const visibleArticles = articles.filter((a: ZammadTicketArticle) => {
             if (isAdmin) return true;
             return a.internal === false;
         });
@@ -130,17 +131,17 @@ export async function getTicketDetailsAction(ticketId: string) {
             ticket: {
                 id: ticket.id,
                 title: ticket.title,
-                status: mapZammadStatus(ticket.state),
+                status: mapTicketStateLabel(ticket.state || ""),
                 number: ticket.number,
                 createdAt: new Date(ticket.created_at).toLocaleDateString('pt-BR'),
             },
-            articles: visibleArticles.map((a: any) => ({
+            articles: visibleArticles.map((a: ZammadTicketArticle) => ({
                 id: a.id,
-                from: a.from, // Ex: "Rafael <rafael@email.com>"
+                from: a.from || "Sistema", // Ex: "Rafael <rafael@email.com>"
                 body: a.body,
                 createdAt: new Date(a.created_at).toLocaleString('pt-BR'),
-                sender: a.sender || (a.from.includes(session.email) ? 'Customer' : 'Agent'),
-                isInternal: a.internal
+                sender: a.sender || ((a.from || "").includes(session.email) ? 'Customer' : 'Agent'),
+                isInternal: a.internal ?? false
             }))
         };
     } catch (error) {
@@ -150,7 +151,7 @@ export async function getTicketDetailsAction(ticketId: string) {
 
 export async function replyTicketAction(ticketId: string, message: string) {
     try {
-        await ZammadClient.addTicketReply(ticketId, message);
+        await ZammadGateway.addTicketReply(ticketId, message);
         revalidatePath(`/app/chamados/${ticketId}`);
         return { success: true };
     } catch (error) {
