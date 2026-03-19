@@ -1,9 +1,12 @@
+"use client"
+
 import { ModeToggle } from "@/components/ModeToggle"
 import { Button } from "@/components/ui/button"
-import { Bell } from "lucide-react"
+import { Bell, PanelLeftClose, PanelLeftOpen, Plus, Ticket } from "lucide-react"
 import { Breadcrumbs } from "./breadcrumbs"
 import { CommandPaletteTrigger } from "./command-palette-trigger"
 import { UserProfile } from "./user-profile"
+import Link from "next/link"
 
 interface ClientHeaderProps {
   user: {
@@ -12,37 +15,53 @@ interface ClientHeaderProps {
     image?: string | null
     role: string
   }
+  sidebarCollapsed: boolean
+  onToggleSidebar: () => void
 }
 
-/**
- * Header da área autenticada — desktop only.
- * Mobile usa MobileHeader (sticky, com Sheet de navegação).
- * 
- * NOTA: mobile-menu.tsx foi DELETADO. 
- * MobileHeader já tem o Sheet integrado e não precisa mais deste componente.
- */
-export function ClientHeader({ user }: ClientHeaderProps) {
-  return (
-    <header className="hidden md:flex sticky top-0 z-40 h-14 items-center gap-4 border-b border-border/40 bg-background/90 px-6 backdrop-blur-md">
+const SYSTEM_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"]
 
-      {/* Esquerda: Breadcrumbs */}
+export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar }: ClientHeaderProps) {
+  const isSystemUser = SYSTEM_ROLES.includes(user.role)
+
+  return (
+    <header className="hidden md:flex sticky top-0 z-40 h-14 items-center gap-4 border-b border-border/40 bg-background/90 px-4 lg:px-6 backdrop-blur-md">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+        onClick={onToggleSidebar}
+        aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Minimizar menu lateral"}
+      >
+        {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+      </Button>
+
       <Breadcrumbs />
 
-      {/* Centro: Command Palette */}
       <div className="flex-1 flex justify-center max-w-sm mx-auto">
         <CommandPaletteTrigger />
       </div>
 
-      {/* Direita: Ações */}
       <div className="flex items-center gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          asChild
+        >
+          <Link href={isSystemUser ? "/app/chamados" : "/app/chamados?novo=1"}>
+            {isSystemUser ? <Ticket className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            {isSystemUser ? "Central" : "Novo chamado"}
+          </Link>
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"
           className="relative h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
-          aria-label="Notificações"
+          aria-label="Notificacoes"
         >
           <Bell className="h-4 w-4" />
-          {/* Badge de notificação não lida */}
           <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500 border border-background" />
         </Button>
 
