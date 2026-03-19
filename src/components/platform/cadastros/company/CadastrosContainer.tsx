@@ -41,6 +41,7 @@ interface CadastrosContainerProps {
   companies: CompanyWithAddress[]
   users: UserWithRelations[]
   currentUserRole: Role
+  initialTab?: string
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -84,6 +85,7 @@ export function CadastrosContainer({
   companies,
   users,
   currentUserRole,
+  initialTab,
 }: CadastrosContainerProps) {
 
   const permissions = useMemo(() => ({
@@ -105,11 +107,18 @@ export function CadastrosContainer({
 
   if (!hasAnyPermission) return <AccessDenied />
 
-  const defaultTab = permissions.canViewEmpresas
+  const fallbackTab = permissions.canViewEmpresas
     ? "empresa"
     : permissions.canViewUsuarios
       ? "usuarios"
       : "sistema"
+
+  const allowedTabs = new Set<string>()
+  if (permissions.canViewEmpresas) allowedTabs.add("empresa")
+  if (permissions.canViewUsuarios) allowedTabs.add("usuarios")
+  if (permissions.canViewSistema) allowedTabs.add("sistema")
+
+  const defaultTab = initialTab && allowedTabs.has(initialTab) ? initialTab : fallbackTab
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

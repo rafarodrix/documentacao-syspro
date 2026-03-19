@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { Separator } from "@/components/ui/separator"
@@ -55,19 +55,25 @@ const SYSTEM_ROLES: UserRole[] = ["ADMIN", "DEVELOPER", "SUPORTE"]
 const NAV_MAIN: NavItemType[] = [
   { title: "Dashboard", href: "/app", icon: LayoutDashboard },
   { title: "Meus Chamados", href: "/app/chamados", icon: Ticket, roles: ["CLIENTE_ADMIN", "CLIENTE_USER"] },
-  { title: "Gestao de Equipe", href: "/app/cadastros", icon: Users, roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
-  { title: "Ferramentas", href: "/app/tools", icon: Wrench },
+]
+
+const NAV_CADASTROS: NavItemType[] = [
+  { title: "Empresa", href: "/app/cadastros?tab=empresa", icon: FileText, roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Clientes", href: "/app/cadastros?tab=usuarios", icon: Users, roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Equipe Interna", href: "/app/cadastros?tab=sistema", icon: ShieldCheck, roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
 ]
 
 const NAV_SYSTEM: NavItemType[] = [
+  { title: "Ferramentas", href: "/app/tools", icon: Wrench },
   { title: "Central de Chamados", href: "/app/chamados", icon: Headset },
   { title: "Contratos", href: "/app/contratos", icon: FileText, roles: ["ADMIN"] },
 ]
 
-const NAV_HELP: NavItemType[] = [
+const NAV_DOCS: NavItemType[] = [
   { title: "Documentacao", href: "/docs/manual", icon: BookOpen },
   { title: "Duvidas", href: "/docs/duvidas", icon: GraduationCap },
-  { title: "Suporte Tecnico", href: "/docs/suporte", icon: Headset, roles: ["CLIENTE_ADMIN", "CLIENTE_USER"] },
+  { title: "Treinamento", href: "/docs/treinamento", icon: GraduationCap },
+  { title: "Suporte", href: "/docs/suporte", icon: Headset },
   { title: "Releases", href: "/releases", icon: Rocket },
 ]
 
@@ -263,10 +269,24 @@ function SidebarFooter({
 
 export function AppSidebar({ user, mobile = false, onClose, collapsed = false }: AppSidebarProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
   const isSidebarCollapsed = !mobile && collapsed
 
-  const isActive = (href: string) => (href === "/app" ? pathname === "/app" : pathname.startsWith(href))
+  const isActive = (href: string) => {
+    const [targetPath, queryString] = href.split("?")
+    const pathMatches = targetPath === "/app" ? pathname === "/app" : pathname.startsWith(targetPath)
+    if (!pathMatches) return false
+    if (!queryString) return true
+
+    if (pathname !== targetPath) return false
+
+    const targetParams = new URLSearchParams(queryString)
+    for (const [key, value] of targetParams.entries()) {
+      if (searchParams.get(key) !== value) return false
+    }
+    return true
+  }
 
   return (
     <div
@@ -286,27 +306,32 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
           ))}
         </NavGroup>
 
-        {isSystemUser && (
-          <>
-            <Separator className="bg-border/30 mx-1" />
-            <NavGroup title="Sistema" collapsed={isSidebarCollapsed}>
-              {filterByRole(NAV_SYSTEM, user.role).map((item) => (
-                <NavItem
-                  key={item.href}
-                  item={item}
-                  isActive={isActive(item.href)}
-                  onClick={onClose}
-                  collapsed={isSidebarCollapsed}
-                />
-              ))}
-            </NavGroup>
-          </>
-        )}
+        <Separator className="bg-border/30 mx-1" />
+
+        <NavGroup title="Cadastros" collapsed={isSidebarCollapsed}>
+          {filterByRole(NAV_CADASTROS, user.role).map((item) => (
+            <NavItem
+              key={item.href}
+              item={item}
+              isActive={isActive(item.href)}
+              onClick={onClose}
+              collapsed={isSidebarCollapsed}
+            />
+          ))}
+        </NavGroup>
 
         <Separator className="bg-border/30 mx-1" />
 
-        <NavGroup title="Recursos" collapsed={isSidebarCollapsed}>
-          {filterByRole(NAV_HELP, user.role).map((item) => (
+        <NavGroup title="Sistemas" collapsed={isSidebarCollapsed}>
+          {filterByRole(NAV_SYSTEM, user.role).map((item) => (
+            <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
+          ))}
+        </NavGroup>
+
+        <Separator className="bg-border/30 mx-1" />
+
+        <NavGroup title="Documentacao" collapsed={isSidebarCollapsed}>
+          {filterByRole(NAV_DOCS, user.role).map((item) => (
             <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
           ))}
         </NavGroup>
