@@ -56,7 +56,11 @@ function GrowthIndicator({ value }: { value: number }) {
   )
 }
 
-function LatencyBadge({ latency }: { latency: number }) {
+function LatencyBadge({ latency, status }: { latency: number; status: SefazKPI["status"] }) {
+  if (status === "OFFLINE" || latency <= 0) {
+    return <span className="font-mono text-xs text-muted-foreground">Sem medicao</span>
+  }
+
   const quality = latency < 500 ? "Rápido" : latency < 1500 ? "Lento" : "Crítico"
   const color = latency < 500 ? "text-emerald-500" : latency < 1500 ? "text-amber-500" : "text-red-500"
   return (
@@ -155,7 +159,7 @@ export function DashboardStats({
             </span>
           </div>
           <div className="mt-1 flex items-center justify-between">
-            <LatencyBadge latency={sefazNfe.latency} />
+            <LatencyBadge latency={sefazNfe.latency} status={sefazNfe.status} />
             <Badge variant="outline" className={cn("text-[10px] h-4 px-1.5 border", nfe.border, nfe.color)}>
               Produção
             </Badge>
@@ -186,7 +190,7 @@ export function DashboardStats({
             </span>
           </div>
           <div className="mt-1 flex items-center justify-between">
-            <LatencyBadge latency={sefazNfce.latency} />
+            <LatencyBadge latency={sefazNfce.latency} status={sefazNfce.status} />
             {sefazNfce.status === "UNSTABLE" && (
               <AlertTriangle className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
             )}

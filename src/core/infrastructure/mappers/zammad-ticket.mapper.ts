@@ -10,6 +10,13 @@ const STATE_NAMES = {
     MERGED: "merged",
 } as const;
 
+const ACTIVE_WORKFLOW_STATE_IDS = new Set([2, 3]);
+
+const ACTIVE_WORKFLOW_STATE_NAMES = new Set([
+    STATE_NAMES.EM_ANALISE.toLowerCase(),
+    STATE_NAMES.EM_DESENVOLVIMENTO.toLowerCase(),
+]);
+
 export function mapTicketStatusFromStateName(stateName: string): TicketStatus {
     switch (stateName?.trim()) {
         case STATE_NAMES.NOVO:
@@ -56,4 +63,13 @@ export function mapTicketStateLabel(rawState: string): string {
     };
 
     return map[rawState] || rawState;
+}
+
+export function isAnalysisOrDevelopmentStateId(stateId?: number | null): boolean {
+    return typeof stateId === "number" && ACTIVE_WORKFLOW_STATE_IDS.has(stateId);
+}
+
+export function isAnalysisOrDevelopmentStateName(stateName?: string | null): boolean {
+    if (!stateName) return false;
+    return ACTIVE_WORKFLOW_STATE_NAMES.has(stateName.trim().toLowerCase());
 }

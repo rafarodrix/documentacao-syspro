@@ -5,23 +5,19 @@ import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompa
 import { ActivityChart, ActivityPoint } from "@/components/platform/app/dashboard/ActivityChart";
 import { TicketsSummary, TicketSummaryItem } from "@/components/platform/app/dashboard/TicketsSummary";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
-import { Ticket } from "@/core/domain/entities/ticket.entity";
-import { ZammadTicketAPI } from "@/core/application/schema/zammad-api.schema";
-import { mapTicketPriority, mapTicketStatusFromStateId } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { ZammadOperationalTicket, ZammadTicketAPI } from "@/core/application/schema/zammad-api.schema";
+import {
+  isAnalysisOrDevelopmentStateId,
+  isAnalysisOrDevelopmentStateName,
+  mapTicketPriority,
+  mapTicketStatusFromStateId,
+  mapTicketStatusFromStateName,
+} from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const SYSTEM_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
-
-function normalizeClientTicket(t: Ticket): TicketSummaryItem {
-  return {
-    id: t.id,
-    number: t.number,
-    subject: t.subject,
-    status: t.status,
-    priority: t.priority,
-    lastUpdate: t.lastUpdate,
-  };
-}
+const DASHBOARD_ACTIVE_STATE_IDS = [2, 3] as const;
+const DASHBOARD_ACTIVE_STATES_QUERY = DASHBOARD_ACTIVE_STATE_IDS.map((id) => `state_id:${id}`).join(" OR ");
 
 function normalizeAdminTicket(t: ZammadTicketAPI): TicketSummaryItem {
   return {
@@ -30,6 +26,21 @@ function normalizeAdminTicket(t: ZammadTicketAPI): TicketSummaryItem {
     subject: t.title,
     status: mapTicketStatusFromStateId(t.state_id),
     priority: mapTicketPriority(t.priority_id),
+    lastUpdate: t.updated_at,
+  };
+}
+
+function normalizeOperationalTicket(t: ZammadOperationalTicket): TicketSummaryItem {
+  const mappedStatus = isAnalysisOrDevelopmentStateId(t.state_id)
+    ? mapTicketStatusFromStateId(t.state_id as number)
+    : mapTicketStatusFromStateName(t.state || "");
+
+  return {
+    id: String(t.id),
+    number: t.number,
+    subject: t.title,
+    status: mappedStatus,
+    priority: mapTicketPriority(t.priority_id ?? 2),
     lastUpdate: t.updated_at,
   };
 }
@@ -169,8 +180,8 @@ async function getDashboardData(email: string, role: string): Promise<AdminDashb
         take: 2,
       }),
       prisma.company.findMany({ where: { deletedAt: null, createdAt: { gte: start } }, select: { createdAt: true } }),
-      ZammadGateway.searchTickets('state:"1. Novo" OR state:"2. Em Analise"', 5),
-      ZammadGateway.getTicketCount('state:"1. Novo" OR state:"2. Em Analise"'),
+      ZammadGateway.searchTickets(DASHBOARD_ACTIVE_STATES_QUERY, 10),
+      ZammadGateway.getTicketCount(DASHBOARD_ACTIVE_STATES_QUERY),
     ]);
 
     const tickets = ticketsRaw.slice(0, 5).map(normalizeAdminTicket);
@@ -217,10 +228,13 @@ async function getDashboardData(email: string, role: string): Promise<AdminDashb
         },
       },
     }),
-    ZammadGateway.getUserTickets(email),
+    ZammadGateway.getTicketsForUser(email, { stateIds: [...DASHBOARD_ACTIVE_STATE_IDS], limit: 10 }),
   ]);
 
-  const tickets = userTickets.slice(0, 10).map(normalizeClientTicket);
+  const tickets = userTickets
+    .filter((ticket) => isAnalysisOrDevelopmentStateId(ticket.state_id) || isAnalysisOrDevelopmentStateName(ticket.state))
+    .slice(0, 10)
+    .map(normalizeOperationalTicket);
   const kpis = ticketKpis(tickets);
 
   return {
@@ -240,9 +254,9 @@ export default async function DashboardPage() {
   const isSystemUser = data.mode === "admin";
 
   return (
-    <div className="flex-1 space-y-5 p-6">
+    <div className="flex-1 space-y-4 sm:space-y-5 p-4 sm:p-6">
       <div>
-        <h1 className="text-lg font-semibold tracking-tight">Bom dia, {session.name?.split(" ")[0] ?? "usuario"}</h1>
+        <h1 className="text-lg sm:text-xl font-semibold tracking-tight">Bom dia, {session.name?.split(" ")[0] ?? "usuario"}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           {isSystemUser ? "Visao operacional do sistema em tempo real." : "Resumo da sua conta e chamados recentes."}
         </p>
@@ -259,11 +273,11 @@ export default async function DashboardPage() {
             sefazNfce={data.sefazNfce}
           />
 
-          <div className="grid gap-4 grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 xl:grid-cols-4">
             <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
           </div>
 
-          <div className="grid gap-4 grid-cols-7">
+          <div className="grid gap-4 grid-cols-1 xl:grid-cols-7">
             <ActivityChart
               title="Novos cadastros por dia"
               description="Empresas criadas nos ultimos 7 dias"
@@ -275,18 +289,22 @@ export default async function DashboardPage() {
         </>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            <Card className="border-border/50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Minha empresa</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-xl font-semibold">{data.companyName}</p>
-                <p className="text-xs text-muted-foreground mt-1">{data.companyUsers} usuario(s) vinculado(s)</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {data.companyName === "Sem empresa vinculada"
+                    ? "Solicite vínculo de empresa ao administrador."
+                    : `${data.companyUsers} usuario(s) vinculado(s)`}
+                </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Chamados em aberto</CardTitle>
               </CardHeader>
@@ -296,7 +314,7 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Resolvidos</CardTitle>
               </CardHeader>
@@ -307,11 +325,11 @@ export default async function DashboardPage() {
             </Card>
           </div>
 
-          <div className="grid gap-4 grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 xl:grid-cols-4">
             <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
           </div>
 
-          <div className="grid gap-4 grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 xl:grid-cols-4">
             <ActivityChart
               title="Atualizacoes de chamados"
               description="Movimento dos seus chamados nos ultimos 7 dias"

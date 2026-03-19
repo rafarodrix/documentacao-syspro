@@ -57,7 +57,7 @@ function getInitials(name: string): string {
 
 export function RecentCompanies({ companies }: RecentCompaniesProps) {
   return (
-    <Card className="col-span-3 flex flex-col border-border/50">
+    <Card className="w-full xl:col-span-3 flex flex-col border-border/50">
       <CardHeader className="pb-3 px-5 pt-5">
         <div className="flex items-center justify-between">
           <div>

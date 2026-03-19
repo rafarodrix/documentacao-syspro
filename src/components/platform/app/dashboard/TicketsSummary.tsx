@@ -53,7 +53,7 @@ function formatDate(iso: string): string {
 
 export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
   return (
-    <Card className="col-span-4 border-border/50">
+    <Card className="w-full xl:col-span-4 border-border/50">
       <CardHeader className="pb-3 px-5 pt-5">
         <div className="flex items-center justify-between">
           <div>

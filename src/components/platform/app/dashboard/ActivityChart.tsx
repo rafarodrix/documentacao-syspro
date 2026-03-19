@@ -30,7 +30,7 @@ export function ActivityChart({
   const hasData = max > 0;
 
   return (
-    <Card className="col-span-4 lg:col-span-4 border-border/60 shadow-md bg-background/40 backdrop-blur-xl flex flex-col">
+    <Card className="w-full xl:col-span-4 border-border/60 shadow-md bg-background/40 backdrop-blur-xl flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="space-y-1">
           <CardTitle className="text-base font-semibold">{title}</CardTitle>

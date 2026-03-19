@@ -27,6 +27,7 @@ export const zammadOperationalTicketSchema = z.object({
     title: z.string(),
     group: z.string().nullable().optional(),
     state: z.string().nullable().optional(),
+    state_id: z.number().nullable().optional(),
     priority_id: z.number().nullable().optional(),
     customer: z.union([z.string(), z.number()]).nullable().optional(),
     created_at: z.string(),

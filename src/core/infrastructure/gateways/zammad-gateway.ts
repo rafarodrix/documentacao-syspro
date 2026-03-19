@@ -191,7 +191,10 @@ export const ZammadGateway = {
         }
     },
 
-    async getTicketsForUser(email: string): Promise<ZammadOperationalTicket[]> {
+    async getTicketsForUser(
+        email: string,
+        options?: { stateIds?: number[]; limit?: number }
+    ): Promise<ZammadOperationalTicket[]> {
         try {
             const usersResponse = await fetchZammad(`users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`, {
                 cache: "no-store",
@@ -203,11 +206,16 @@ export const ZammadGateway = {
             if (!userParsed.success) return [];
 
             const user: ZammadUserSearch = userParsed.data;
-            const query = user.organization_id
+            const scopeQuery = user.organization_id
                 ? `organization_id:${user.organization_id}`
                 : `customer.email:${email}`;
 
-            const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc`;
+            const stateQuery = options?.stateIds?.length
+                ? `(${options.stateIds.map((id) => `state_id:${id}`).join(" OR ")})`
+                : "";
+            const query = stateQuery ? `(${scopeQuery}) AND ${stateQuery}` : scopeQuery;
+            const limit = options?.limit ?? 50;
+            const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}`;
             const data = await fetchZammad(endpoint, { cache: "no-store" });
             return normalizeSearchResponse(data)
                 .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
