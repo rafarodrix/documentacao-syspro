@@ -1,24 +1,16 @@
-import { getCadastrosData } from "@/actions/admin/get-cadastros-data"
-import { CadastrosContainer } from "@/components/platform/cadastros/company/CadastrosContainer"
+import { redirect } from "next/navigation"
 import { getProtectedSession } from "@/lib/auth-helpers"
 
-type CadastrosPageProps = {
-    searchParams?: Promise<{ tab?: string }>
-}
+export default async function CadastrosRootPage() {
+  const session = await getProtectedSession()
 
-export default async function AdminCadastrosPage({ searchParams }: CadastrosPageProps) {
-    const session = await getProtectedSession();
-    const { companies, users, error } = await getCadastrosData()
-    const resolvedSearchParams = searchParams ? await searchParams : undefined
+  if (!session) {
+    redirect("/login")
+  }
 
-    if (error) return <div>Erro: {error}</div>
+  if (session.role === "CLIENTE_USER") {
+    redirect("/app/cadastros/usuarios")
+  }
 
-    return (
-        <CadastrosContainer
-            companies={companies || []}
-            users={users || []}
-            currentUserRole={session?.role!}
-            initialTab={resolvedSearchParams?.tab}
-        />
-    )
+  redirect("/app/cadastros/empresa")
 }

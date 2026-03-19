@@ -103,7 +103,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
               return (
                 <Link
                   key={company.id}
-                  href={`/app/cadastros?empresa=${company.id}`}
+                  href={`/app/cadastros/empresa?empresa=${company.id}`}
                   className="flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
                 >
                   {/* Avatar com iniciais */}

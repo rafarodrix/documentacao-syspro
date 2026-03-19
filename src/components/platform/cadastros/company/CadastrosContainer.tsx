@@ -38,6 +38,8 @@ interface CadastrosContainerProps {
   users: UserWithRelations[]
   currentUserRole: Role
   initialTab?: string
+  pageTitle?: string
+  pageDescription?: string
 }
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]
@@ -55,25 +57,13 @@ function AccessDenied() {
   )
 }
 
-interface SectionDescriptionProps {
-  title: string
-  description: string
-}
-
-function SectionDescription({ title, description }: SectionDescriptionProps) {
-  return (
-    <div className="px-1 pb-2">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-    </div>
-  )
-}
-
 export function CadastrosContainer({
   companies,
   users,
   currentUserRole,
   initialTab,
+  pageTitle,
+  pageDescription,
 }: CadastrosContainerProps) {
   const permissions = useMemo(
     () => ({
@@ -109,11 +99,12 @@ export function CadastrosContainer({
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground leading-tight">Cadastros</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground leading-tight">{pageTitle || "Cadastros"}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {permissions.isGlobalView
-              ? "Gestao centralizada de organizacoes, clientes e equipe interna."
-              : "Gerencie os dados da sua organizacao e controle o acesso da equipe."}
+            {pageDescription ||
+              (permissions.isGlobalView
+                ? "Gestao centralizada de organizacoes, clientes e equipe interna."
+                : "Gerencie os dados da sua organizacao e controle o acesso da equipe.")}
           </p>
         </div>
 
@@ -125,37 +116,21 @@ export function CadastrosContainer({
         )}
       </header>
 
-      <Tabs value={defaultTab} className="w-full space-y-5">
+      <Tabs value={defaultTab} className="w-full">
         {permissions.canViewEmpresas && (
-          <TabsContent value="empresa" className="space-y-4 outline-none mt-0">
-            <SectionDescription
-              title={permissions.isGlobalView ? "Empresas cadastradas" : "Dados da organizacao"}
-              description="Visualize e edite as informacoes cadastrais e fiscais."
-            />
+          <TabsContent value="empresa" className="outline-none mt-0">
             <CompanyTab data={companies} canManage={permissions.canManageCompanies} canDelete={currentUserRole === Role.ADMIN} />
           </TabsContent>
         )}
 
         {permissions.canViewUsuarios && (
-          <TabsContent value="usuarios" className="space-y-4 outline-none mt-0">
-            <SectionDescription
-              title={permissions.isGlobalView ? "Usuarios dos clientes" : "Gestao de equipe"}
-              description={
-                permissions.isGlobalView
-                  ? "Listagem de usuarios vinculados as empresas clientes."
-                  : "Controle quem tem acesso ao sistema e seus niveis de permissao."
-              }
-            />
+          <TabsContent value="usuarios" className="outline-none mt-0">
             <UserTab data={clientUsers} companies={companies} isAdmin={permissions.isGlobalView} canManage={permissions.canManageUsers} />
           </TabsContent>
         )}
 
         {permissions.canViewSistema && (
-          <TabsContent value="sistema" className="space-y-4 outline-none mt-0">
-            <SectionDescription
-              title="Equipe do sistema"
-              description="Administradores, desenvolvedores e suporte com acesso a plataforma."
-            />
+          <TabsContent value="sistema" className="outline-none mt-0">
             <SystemUserTab data={systemUsers} companies={companies} canManage={permissions.canManageUsers} />
           </TabsContent>
         )}

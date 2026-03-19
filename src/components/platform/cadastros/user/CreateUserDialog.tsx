@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, Sele
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { UserPlus, Loader2, Link as LinkIcon, User, Mail, Lock, Briefcase, Phone, Building2, ShieldCheck, X, Info } from "lucide-react"
+import { UserPlus, Loader2, Link as LinkIcon, User, Mail, Lock, Briefcase, Phone, Building2, ShieldCheck, Info } from "lucide-react"
 
 type UserContext = "SYSTEM" | "CLIENT"
 type TabMode = "create" | "link"
@@ -228,9 +228,6 @@ export function CreateUserDialog({ companies, isAdmin, context = "CLIENT" }: Cre
                 </p>
               </div>
             </div>
-            <button type="button" onClick={closeDialog} className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-              <X className="w-4 h-4" />
-            </button>
           </div>
         </DialogHeader>
 

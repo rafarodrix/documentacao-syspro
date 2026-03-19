@@ -55,7 +55,6 @@ import {
   Plus,
   ChevronRight,
   ChevronLeft,
-  X,
   Image as ImageIcon,
   Search,
 } from "lucide-react"
@@ -1108,13 +1107,6 @@ export function CreateCompanyDialog() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
           <div className="pt-3">
             <ProgressBar current={currentStep} total={STEPS.length} />

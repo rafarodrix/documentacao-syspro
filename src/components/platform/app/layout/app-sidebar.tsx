@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { Separator } from "@/components/ui/separator"
@@ -55,17 +55,17 @@ const SYSTEM_ROLES: UserRole[] = ["ADMIN", "DEVELOPER", "SUPORTE"]
 const NAV_MAIN: NavItemType[] = [
   { title: "Dashboard", href: "/app", icon: LayoutDashboard },
   { title: "Meus Chamados", href: "/app/chamados", icon: Ticket, roles: ["CLIENTE_ADMIN", "CLIENTE_USER"] },
+  { title: "Tickets", href: "/app/chamados", icon: Ticket, roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
 ]
 
 const NAV_CADASTROS: NavItemType[] = [
-  { title: "Empresa", href: "/app/cadastros?tab=empresa", icon: FileText, roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
-  { title: "Clientes", href: "/app/cadastros?tab=usuarios", icon: Users, roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
-  { title: "Equipe Interna", href: "/app/cadastros?tab=sistema", icon: ShieldCheck, roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Cadastro Empresa", href: "/app/cadastros/empresa", icon: FileText, roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Cadastro Usuario", href: "/app/cadastros/usuarios", icon: Users, roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Analise de Sistemas", href: "/app/cadastros/sistema", icon: ShieldCheck, roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
 ]
 
 const NAV_SYSTEM: NavItemType[] = [
   { title: "Ferramentas", href: "/app/tools", icon: Wrench },
-  { title: "Central de Chamados", href: "/app/chamados", icon: Headset },
   { title: "Contratos", href: "/app/contratos", icon: FileText, roles: ["ADMIN"] },
 ]
 
@@ -269,24 +269,10 @@ function SidebarFooter({
 
 export function AppSidebar({ user, mobile = false, onClose, collapsed = false }: AppSidebarProps) {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
   const isSidebarCollapsed = !mobile && collapsed
 
-  const isActive = (href: string) => {
-    const [targetPath, queryString] = href.split("?")
-    const pathMatches = targetPath === "/app" ? pathname === "/app" : pathname.startsWith(targetPath)
-    if (!pathMatches) return false
-    if (!queryString) return true
-
-    if (pathname !== targetPath) return false
-
-    const targetParams = new URLSearchParams(queryString)
-    for (const [key, value] of targetParams.entries()) {
-      if (searchParams.get(key) !== value) return false
-    }
-    return true
-  }
+  const isActive = (href: string) => (href === "/app" ? pathname === "/app" : pathname.startsWith(href))
 
   return (
     <div
