@@ -8,9 +8,6 @@ import { toast } from "sonner"
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-// ✅ MELHORIA: Roles com redirecionamento para área administrativa
-const ADMIN_ROLES = ["ADMIN", "DEVELOPER"] as const
-
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useLogin() {
@@ -46,10 +43,8 @@ export function useLogin() {
 
     // ✅ MELHORIA: Redirect baseado na role com tratamento de erro isolado
     try {
-      const sessionData = await authClient.getSession()
-      const role = (sessionData.data?.user as any)?.role
-
-      router.push(ADMIN_ROLES.includes(role) ? "/admin" : "/app")
+      await authClient.getSession()
+      router.push("/app")
     } catch {
       // Fallback seguro — se falhar ao ler sessão, manda para /app
       router.push("/app")

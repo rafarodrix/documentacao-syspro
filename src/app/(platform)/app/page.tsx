@@ -1,203 +1,327 @@
-import { requireSession } from "@/lib/auth-helpers"
-import { prisma } from "@/lib/prisma"
-import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats"
-import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies"
-import { TicketsSummary, TicketSummaryItem } from "@/components/platform/app/dashboard/TicketsSummary"
-import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart"
-import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway"
-import { Ticket } from "@/core/domain/entities/ticket.entity"
-import { ZammadTicketAPI } from "@/core/application/schema/zammad-api.schema"
-import { mapTicketPriority, mapTicketStatusFromStateId } from "@/core/infrastructure/mappers/zammad-ticket.mapper"
+﻿import { requireSession } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma";
+import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
+import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
+import { ActivityChart, ActivityPoint } from "@/components/platform/app/dashboard/ActivityChart";
+import { TicketsSummary, TicketSummaryItem } from "@/components/platform/app/dashboard/TicketsSummary";
+import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
+import { Ticket } from "@/core/domain/entities/ticket.entity";
+import { ZammadTicketAPI } from "@/core/application/schema/zammad-api.schema";
+import { mapTicketPriority, mapTicketStatusFromStateId } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// ─── Normalização de tickets para tipo unificado ──────────────────────────────
+const SYSTEM_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
 
-/**
- * Converte Ticket (getUserTickets) → TicketSummaryItem
- * Ticket já tem status/priority mapeados pelo ZammadGateway
- */
 function normalizeClientTicket(t: Ticket): TicketSummaryItem {
   return {
-    id:         t.id,
-    number:     t.number,
-    subject:    t.subject,
-    status:     t.status,
-    priority:   t.priority,
+    id: t.id,
+    number: t.number,
+    subject: t.subject,
+    status: t.status,
+    priority: t.priority,
     lastUpdate: t.lastUpdate,
-  }
+  };
 }
 
-/**
- * Converte ZammadTicketAPI (searchTickets) → TicketSummaryItem
- * searchTickets retorna dados brutos da API — mapeamos manualmente
- */
 function normalizeAdminTicket(t: ZammadTicketAPI): TicketSummaryItem {
   return {
-    id:         String(t.id),
-    number:     t.number,
-    subject:    t.title,
-    status:     mapTicketStatusFromStateId(t.state_id),
-    priority:   mapTicketPriority(t.priority_id),
+    id: String(t.id),
+    number: t.number,
+    subject: t.title,
+    status: mapTicketStatusFromStateId(t.state_id),
+    priority: mapTicketPriority(t.priority_id),
     lastUpdate: t.updated_at,
-  }
+  };
 }
 
-// ─── Busca de dados ───────────────────────────────────────────────────────────
+function getLast7DaysRange() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - 6);
 
-async function getDashboardData(email: string, role: string) {
-  const isSystemUser = ["ADMIN", "DEVELOPER", "SUPORTE"].includes(role)
+  const days: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(start);
+    day.setDate(start.getDate() + i);
+    days.push(day);
+  }
 
-  // Queries do banco em paralelo (sem tickets — tipo divergente)
-  const [
-    companiesCount,
-    companiesThisMonth,
-    companiesLastMonth,
-    usersCount,
-    activeUsersCount,
-    recentCompanies,
-    sefazRecords,
-  ] = await Promise.all([
+  return { start, days };
+}
 
-    prisma.company.count({
-      where: { status: "ACTIVE", deletedAt: null },
-    }),
+function toSeries(events: Date[]): ActivityPoint[] {
+  const { days } = getLast7DaysRange();
+  const map = new Map<string, number>();
 
-    prisma.company.count({
-      where: {
-        deletedAt: null,
-        createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
-      },
-    }),
+  for (const d of days) {
+    const key = d.toISOString().slice(0, 10);
+    map.set(key, 0);
+  }
 
-    prisma.company.count({
-      where: {
-        deletedAt: null,
-        createdAt: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
-          lt:  new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  for (const event of events) {
+    const key = new Date(event).toISOString().slice(0, 10);
+    if (map.has(key)) map.set(key, (map.get(key) || 0) + 1);
+  }
+
+  return days.map((d) => {
+    const key = d.toISOString().slice(0, 10);
+    return {
+      label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+      value: map.get(key) || 0,
+    };
+  });
+}
+
+function ticketKpis(tickets: TicketSummaryItem[]) {
+  return {
+    open: tickets.filter((t) => t.status === "Aberto").length,
+    pending: tickets.filter((t) => t.status === "Pendente" || t.status === "Em Análise").length,
+    resolved: tickets.filter((t) => t.status === "Resolvido").length,
+  };
+}
+
+type AdminDashboardData = {
+  mode: "admin";
+  companiesCount: number;
+  companiesGrowth: number;
+  usersCount: number;
+  activeUsersCount: number;
+  companies: Array<{
+    id: string;
+    razaoSocial: string;
+    nomeFantasia: string | null;
+    cnpj: string;
+    status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_DOCS";
+    createdAt: Date;
+    _count: { memberships: number };
+    cidade: string | null;
+    estado: string | null;
+  }>;
+  sefazNfe: { uf: string; service: "NFE"; status: "ONLINE" | "UNSTABLE" | "OFFLINE"; latency: number };
+  sefazNfce: { uf: string; service: "NFCE"; status: "ONLINE" | "UNSTABLE" | "OFFLINE"; latency: number };
+  tickets: TicketSummaryItem[];
+  totalOpen: number;
+  activity: ActivityPoint[];
+};
+
+type ClientDashboardData = {
+  mode: "client";
+  companyName: string;
+  companyUsers: number;
+  tickets: TicketSummaryItem[];
+  totalOpen: number;
+  kpis: { open: number; pending: number; resolved: number };
+  activity: ActivityPoint[];
+};
+
+async function getDashboardData(email: string, role: string): Promise<AdminDashboardData | ClientDashboardData> {
+  const isSystemUser = SYSTEM_ROLES.includes(role);
+
+  if (isSystemUser) {
+    const { start } = getLast7DaysRange();
+
+    const [
+      companiesCount,
+      companiesThisMonth,
+      companiesLastMonth,
+      usersCount,
+      activeUsersCount,
+      recentCompanies,
+      sefazRecords,
+      companyActivity,
+      ticketsRaw,
+      totalOpen,
+    ] = await Promise.all([
+      prisma.company.count({ where: { status: "ACTIVE", deletedAt: null } }),
+      prisma.company.count({
+        where: { deletedAt: null, createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } },
+      }),
+      prisma.company.count({
+        where: {
+          deletedAt: null,
+          createdAt: {
+            gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+            lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          },
+        },
+      }),
+      prisma.user.count({ where: { deletedAt: null } }),
+      prisma.user.count({ where: { isActive: true, deletedAt: null } }),
+      prisma.company.findMany({
+        where: { deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          razaoSocial: true,
+          nomeFantasia: true,
+          cnpj: true,
+          status: true,
+          createdAt: true,
+          _count: { select: { memberships: true } },
+          addresses: { take: 1, select: { cidade: true, estado: true } },
+        },
+      }),
+      prisma.sefazStatus.findMany({
+        where: { uf: "MG" },
+        orderBy: { createdAt: "desc" },
+        distinct: ["service"],
+        take: 2,
+      }),
+      prisma.company.findMany({ where: { deletedAt: null, createdAt: { gte: start } }, select: { createdAt: true } }),
+      ZammadGateway.searchTickets('state:"1. Novo" OR state:"2. Em Analise"', 5),
+      ZammadGateway.getTicketCount('state:"1. Novo" OR state:"2. Em Analise"'),
+    ]);
+
+    const tickets = ticketsRaw.slice(0, 5).map(normalizeAdminTicket);
+
+    const companies = recentCompanies.map((c) => ({
+      ...c,
+      cidade: c.addresses[0]?.cidade ?? null,
+      estado: c.addresses[0]?.estado ?? null,
+    }));
+
+    const sefazNfe =
+      (sefazRecords.find((s) => s.service === "NFE") as AdminDashboardData["sefazNfe"]) ||
+      ({ uf: "MG", service: "NFE", status: "OFFLINE", latency: 0 } as const);
+
+    const sefazNfce =
+      (sefazRecords.find((s) => s.service === "NFCE") as AdminDashboardData["sefazNfce"]) ||
+      ({ uf: "MG", service: "NFCE", status: "OFFLINE", latency: 0 } as const);
+
+    return {
+      mode: "admin",
+      companiesCount,
+      companiesGrowth: companiesThisMonth - companiesLastMonth,
+      usersCount,
+      activeUsersCount,
+      companies,
+      sefazNfe,
+      sefazNfce,
+      tickets,
+      totalOpen,
+      activity: toSeries(companyActivity.map((c) => c.createdAt)),
+    };
+  }
+
+  const [membership, userTickets] = await Promise.all([
+    prisma.membership.findFirst({
+      where: { user: { email }, company: { deletedAt: null } },
+      include: {
+        company: {
+          select: {
+            nomeFantasia: true,
+            razaoSocial: true,
+            _count: { select: { memberships: true } },
+          },
         },
       },
     }),
+    ZammadGateway.getUserTickets(email),
+  ]);
 
-    prisma.user.count({ where: { deletedAt: null } }),
-
-    prisma.user.count({ where: { isActive: true, deletedAt: null } }),
-
-    prisma.company.findMany({
-      where: { deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        razaoSocial: true,
-        nomeFantasia: true,
-        cnpj: true,
-        status: true,
-        createdAt: true,
-        _count: { select: { memberships: true } },
-        addresses: {
-          take: 1,
-          select: { cidade: true, estado: true },
-        },
-      },
-    }),
-
-    prisma.sefazStatus.findMany({
-      where: { uf: "MG" },
-      orderBy: { createdAt: "desc" },
-      distinct: ["service"],
-      take: 2,
-    }),
-  ])
-
-  // ─── Tickets — buscados separadamente para tipo garantido ─────────────────
-
-  const tickets: TicketSummaryItem[] = isSystemUser
-    ? (await ZammadGateway.searchTickets("state:\"1. Novo\" OR state:\"2. Em Analise\"", 5))
-        .slice(0, 5)
-        .map(normalizeAdminTicket)
-    : (await ZammadGateway.getUserTickets(email))
-        .slice(0, 5)
-        .map(normalizeClientTicket)
-
-  // ─── Totalização de abertos ───────────────────────────────────────────────
-
-  const totalOpen = isSystemUser
-    ? await ZammadGateway.getTicketCount("state:\"1. Novo\" OR state:\"2. Em Analise\"")
-    : tickets.filter((t) => t.status !== "Resolvido").length
-
-  // ─── Normalizar demais dados ──────────────────────────────────────────────
-
-  const companies = recentCompanies.map((c) => ({
-    ...c,
-    cidade: c.addresses[0]?.cidade ?? null,
-    estado: c.addresses[0]?.estado ?? null,
-  }))
-
-  const sefazNfe = sefazRecords.find((s) => s.service === "NFE") ?? {
-    uf: "MG", service: "NFE" as const, status: "OFFLINE" as const, latency: 0,
-  }
-  const sefazNfce = sefazRecords.find((s) => s.service === "NFCE") ?? {
-    uf: "MG", service: "NFCE" as const, status: "OFFLINE" as const, latency: 0,
-  }
+  const tickets = userTickets.slice(0, 10).map(normalizeClientTicket);
+  const kpis = ticketKpis(tickets);
 
   return {
-    companiesCount,
-    companiesGrowth: companiesThisMonth - companiesLastMonth,
-    usersCount,
-    activeUsersCount,
-    companies,
-    sefazNfe:  { uf: sefazNfe.uf,  service: sefazNfe.service,  status: sefazNfe.status,  latency: sefazNfe.latency },
-    sefazNfce: { uf: sefazNfce.uf, service: sefazNfce.service, status: sefazNfce.status, latency: sefazNfce.latency },
+    mode: "client",
+    companyName: membership?.company?.nomeFantasia || membership?.company?.razaoSocial || "Sem empresa vinculada",
+    companyUsers: membership?.company?._count?.memberships || 0,
     tickets,
-    totalOpen,
-  }
+    totalOpen: tickets.filter((t) => t.status !== "Resolvido").length,
+    kpis,
+    activity: toSeries(tickets.map((t) => new Date(t.lastUpdate))),
+  };
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default async function DashboardPage() {
-  // requireSession já redireciona para /login se não autenticado
-  const session = await requireSession()
-
-  const data = await getDashboardData(session.email, session.role)
+  const session = await requireSession();
+  const data = await getDashboardData(session.email, session.role);
+  const isSystemUser = data.mode === "admin";
 
   return (
     <div className="flex-1 space-y-5 p-6">
-
-      {/* Título da página */}
       <div>
-        <h1 className="text-lg font-semibold tracking-tight">
-          Bom dia, {session.name?.split(" ")[0] ?? "usuário"} 👋
-        </h1>
+        <h1 className="text-lg font-semibold tracking-tight">Bom dia, {session.name?.split(" ")[0] ?? "usuario"}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Aqui está o resumo do sistema.
+          {isSystemUser ? "Visao operacional do sistema em tempo real." : "Resumo da sua conta e chamados recentes."}
         </p>
       </div>
 
-      {/* KPIs */}
-      <DashboardStats
-        companiesCount={data.companiesCount}
-        companiesGrowth={data.companiesGrowth}
-        usersCount={data.usersCount}
-        activeUsersCount={data.activeUsersCount}
-        sefazNfe={data.sefazNfe}
-        sefazNfce={data.sefazNfce}
-      />
+      {data.mode === "admin" ? (
+        <>
+          <DashboardStats
+            companiesCount={data.companiesCount}
+            companiesGrowth={data.companiesGrowth}
+            usersCount={data.usersCount}
+            activeUsersCount={data.activeUsersCount}
+            sefazNfe={data.sefazNfe}
+            sefazNfce={data.sefazNfce}
+          />
 
-      {/* Segunda linha: Chamados (full width) */}
-      <div className="grid gap-4 grid-cols-4">
-        <TicketsSummary
-          tickets={data.tickets}
-          totalOpen={data.totalOpen}
-        />
-      </div>
+          <div className="grid gap-4 grid-cols-4">
+            <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
+          </div>
 
-      {/* Terceira linha: Gráfico + Empresas Recentes */}
-      <div className="grid gap-4 grid-cols-7">
-        <ActivityChart />
-        <RecentCompanies companies={data.companies} />
-      </div>
+          <div className="grid gap-4 grid-cols-7">
+            <ActivityChart
+              title="Novos cadastros por dia"
+              description="Empresas criadas nos ultimos 7 dias"
+              points={data.activity}
+              badgeLabel="Atualizado agora"
+            />
+            <RecentCompanies companies={data.companies} />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Minha empresa</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xl font-semibold">{data.companyName}</p>
+                <p className="text-xs text-muted-foreground mt-1">{data.companyUsers} usuario(s) vinculado(s)</p>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Chamados em aberto</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{data.totalOpen}</p>
+                <p className="text-xs text-muted-foreground mt-1">{data.kpis.pending} em analise/pendentes</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Resolvidos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{data.kpis.resolved}</p>
+                <p className="text-xs text-muted-foreground mt-1">Historico dos tickets recentes</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 grid-cols-4">
+            <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
+          </div>
+
+          <div className="grid gap-4 grid-cols-4">
+            <ActivityChart
+              title="Atualizacoes de chamados"
+              description="Movimento dos seus chamados nos ultimos 7 dias"
+              points={data.activity}
+              badgeLabel="Meu historico"
+              emptyLabel="Nenhuma atualizacao recente"
+            />
+          </div>
+        </>
+      )}
     </div>
-  )
+  );
 }
