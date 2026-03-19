@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowUpRight, Building2, CheckCircle2, SearchX } from "lucide-react"
 import Link from "next/link"
+import { TicketListItem, TicketPriorityLevel } from "./types"
 
 interface TicketsTableProps {
-    tickets: any[]
+    tickets: TicketListItem[]
     isAdmin: boolean
 }
 
@@ -141,7 +142,7 @@ function StatusBadge({ status, rawStatus }: { status: string, rawStatus: string 
 // Estilo Padrão (Fallback)
 const DEFAULT_STYLE = 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400';
 
-function PriorityBadge({ priority }: { priority: number }) {
+function PriorityBadge({ priority }: { priority: TicketPriorityLevel }) {
     if (priority === 3) return <Badge variant="destructive" className="text-[10px] px-2 rounded-full">Alta</Badge>;
     if (priority === 1) return <Badge variant="secondary" className="text-[10px] px-2 rounded-full bg-muted text-muted-foreground">Baixa</Badge>;
     return <Badge variant="outline" className="text-[10px] px-2 text-muted-foreground rounded-full">Normal</Badge>;

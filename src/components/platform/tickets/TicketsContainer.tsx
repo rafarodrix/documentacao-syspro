@@ -7,9 +7,10 @@ import { TicketsFilters } from "./TicketsFilters";
 import { TicketsTable } from "./TicketsTable";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft as IconLeft, ChevronRight as IconRight } from "lucide-react"
+import { TicketListItem } from "./types";
 
 interface TicketsContainerProps {
-    tickets: any[];
+    tickets: TicketListItem[];
     isAdmin: boolean;
 }
 

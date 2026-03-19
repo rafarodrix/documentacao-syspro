@@ -2,12 +2,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Inbox, Clock, AlertCircle, CheckCircle2 } from "lucide-react"
+import { LucideIcon } from "lucide-react"
+import { TicketListItem } from "./types"
 
 // Tipos para facilitar a lógica de contagem
 export type TicketStatusGroup = "open" | "pending" | "closed";
 
 interface TicketsStatsProps {
-    tickets: any[]
+    tickets: TicketListItem[]
     getCategory: (status: string) => TicketStatusGroup
 }
 
@@ -46,14 +48,24 @@ export function TicketsStats({ tickets, getCategory }: TicketsStatsProps) {
 }
 
 // Subcomponente Card (Reutilizável)
-function KpiCard({ title, value, icon: Icon, color, label }: any) {
-    const colors: any = {
+type KpiColor = "blue" | "amber" | "green" | "red";
+
+interface KpiCardProps {
+    title: string;
+    value: number;
+    icon: LucideIcon;
+    color: KpiColor;
+    label: string;
+}
+
+function KpiCard({ title, value, icon: Icon, color, label }: KpiCardProps) {
+    const colors: Record<KpiColor, string> = {
         blue: "bg-blue-500/10 text-blue-600 border-blue-500/20",
         amber: "bg-amber-500/10 text-amber-600 border-amber-500/20",
         green: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
         red: "bg-red-500/10 text-red-600 border-red-500/20"
     };
-    const iconColors: any = {
+    const iconColors: Record<KpiColor, string> = {
         blue: "text-blue-500",
         amber: "text-amber-500",
         green: "text-emerald-500",
