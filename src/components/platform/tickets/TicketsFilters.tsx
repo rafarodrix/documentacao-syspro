@@ -1,23 +1,30 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, ListFilter } from "lucide-react"
+import { Search } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { isTicketStatusGroup, type TicketStatusGroup } from "@/core/config/tickets-workflow"
 
 interface TicketsFiltersProps {
     searchTerm: string
     setSearchTerm: (val: string) => void
-    statusFilter: string
-    setStatusFilter: (val: string) => void
+    statusFilter: TicketStatusGroup
+    setStatusFilter: (val: TicketStatusGroup) => void
     isAdmin: boolean
 }
 
 export function TicketsFilters({ searchTerm, setSearchTerm, statusFilter, setStatusFilter, isAdmin }: TicketsFiltersProps) {
+    const handleStatusChange = (value: string) => {
+        if (isTicketStatusGroup(value)) {
+            setStatusFilter(value);
+        }
+    };
+
     return (
         <div className="flex flex-col lg:flex-row justify-between items-center gap-4 p-1">
 
             {/* Abas Estilizadas (Magic UI Style) */}
-            <Tabs defaultValue="open" value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
+            <Tabs defaultValue="open" value={statusFilter} onValueChange={handleStatusChange} className="w-full lg:w-auto">
                 <TabsList className="grid w-full lg:w-auto grid-cols-3 h-11 p-1 bg-muted/40 border border-border/40 rounded-lg">
                     <TabsTrigger value="open" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                         Abertos

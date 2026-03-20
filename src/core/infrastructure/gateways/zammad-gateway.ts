@@ -12,6 +12,7 @@ import {
     ZammadUserSearch,
 } from "@/core/application/schema/zammad-api.schema";
 import { mapTicketPriority, mapTicketStatusFromStateName } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { OPERATIONAL_STATE_IDS } from "@/core/config/tickets-workflow";
 import {
     markZammadRouteFresh,
     markZammadRouteStale,
@@ -264,6 +265,36 @@ function buildCustomerEmailsQuery(emails: string[]): string {
 }
 
 export const ZammadGateway = {
+    async searchOperationalTickets(
+        query: string,
+        options?: {
+            limit?: number;
+            page?: number;
+            cacheTtlSeconds?: number;
+            tags?: string[];
+            routeKey?: string;
+        }
+    ): Promise<ZammadOperationalTicket[]> {
+        try {
+            const limit = options?.limit ?? 50;
+            const page = Math.max(1, options?.page ?? 1);
+            const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
+            const data = await fetchZammad(endpoint, {}, {
+                cacheTtlSeconds: options?.cacheTtlSeconds,
+                tags: options?.tags,
+                routeKey: options?.routeKey,
+            });
+
+            return normalizeSearchResponse(data)
+                .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
+                .filter((parsed) => parsed.success)
+                .map((parsed) => parsed.data);
+        } catch (err) {
+            console.error("ZammadGateway.searchOperationalTickets:", err);
+            return [];
+        }
+    },
+
     async getUserTickets(userEmail: string): Promise<Ticket[]> {
         try {
             const query = `query=customer.email:${userEmail}&limit=10&sort_by=updated_at&order_by=desc&expand=true`;
@@ -373,15 +404,14 @@ export const ZammadGateway = {
         cacheOptions?: ZammadCacheOptions & { page?: number; stateIds?: number[] }
     ): Promise<ZammadOperationalTicket[]> {
         try {
-            const query = buildStateQuery(cacheOptions?.stateIds ?? [1, 2, 3, 4, 5, 6, 7, 8, 9]) || "state_id:1";
-            const page = Math.max(1, cacheOptions?.page ?? 1);
-            const endpoint = `tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&page=${page}&expand=true&sort_by=updated_at&order_by=desc`;
-            const data = await fetchZammad(endpoint, {}, cacheOptions);
-
-            return normalizeSearchResponse(data)
-                .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
-                .filter((parsed) => parsed.success)
-                .map((parsed) => parsed.data);
+            const query = buildStateQuery(cacheOptions?.stateIds ?? [...OPERATIONAL_STATE_IDS]) || "state_id:1";
+            return this.searchOperationalTickets(query, {
+                limit,
+                page: Math.max(1, cacheOptions?.page ?? 1),
+                cacheTtlSeconds: cacheOptions?.cacheTtlSeconds,
+                tags: cacheOptions?.tags,
+                routeKey: cacheOptions?.routeKey,
+            });
         } catch (err) {
             console.error("ZammadGateway.getAllTickets:", err);
             return [];

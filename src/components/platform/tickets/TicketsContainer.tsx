@@ -4,14 +4,13 @@ import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft as IconLeft, ChevronRight as IconRight } from "lucide-react";
 import { TicketSheet } from "@/components/platform/tickets/TicketSheet";
-import { TicketsStats, TicketStatusGroup } from "./TicketsStats";
+import { TicketsStats } from "./TicketsStats";
 import { TicketsFilters } from "./TicketsFilters";
 import { TicketsTable } from "./TicketsTable";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TicketListItem } from "./types";
-
-type QueueKey = "all" | "my_queue" | "unassigned" | "critical" | "no_response";
+import { getTicketStatusGroup, type QueueKey, type TicketStatusGroup } from "@/core/config/tickets-workflow";
 
 interface TicketsContainerProps {
     tickets: TicketListItem[];
@@ -37,25 +36,10 @@ export function TicketsContainer({
     queueCounts,
 }: TicketsContainerProps) {
     const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("open");
+    const [statusFilter, setStatusFilter] = useState<TicketStatusGroup>("open");
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-
-    const getCategory = (status: string): TicketStatusGroup => {
-        const s = status.toLowerCase();
-        if (s.includes("1. novo") || s.includes("1.novo")) return "open";
-        if (
-            s.includes("7. finalizado") ||
-            s.includes("8. nao foi possivel reproduzir") ||
-            s.includes("9. recusado") ||
-            s.includes("fechado") ||
-            s.includes("merged")
-        ) {
-            return "closed";
-        }
-        return "pending";
-    };
 
     const filteredTickets = initialTickets.filter((ticket) => {
         const matchesSearch =
@@ -63,7 +47,7 @@ export function TicketsContainer({
             ticket.number.toString().includes(searchTerm) ||
             (isAdmin && String(ticket.customer).toLowerCase().includes(searchTerm.toLowerCase()));
 
-        const category = getCategory(ticket.status);
+        const category = getTicketStatusGroup(ticket.status);
         const matchesStatus = statusFilter === category;
         return matchesSearch && matchesStatus;
     });
@@ -102,7 +86,7 @@ export function TicketsContainer({
                 {!isAdmin && <TicketSheet />}
             </div>
 
-            <TicketsStats tickets={initialTickets} getCategory={getCategory} />
+            <TicketsStats tickets={initialTickets} getCategory={getTicketStatusGroup} />
 
             {isAdmin && (
                 <div className="flex flex-wrap gap-2">
@@ -133,6 +117,11 @@ export function TicketsContainer({
             />
 
             <TicketsTable tickets={filteredTickets} isAdmin={isAdmin} />
+
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Total da fila: {pagination.total ?? queueCounts[queue]}</span>
+                <span>Itens nesta pagina: {initialTickets.length}</span>
+            </div>
 
             {(pagination.hasPreviousPage || pagination.hasNextPage) && (
                 <div className="flex items-center justify-end gap-2 pt-2">

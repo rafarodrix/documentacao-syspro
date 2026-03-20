@@ -2,6 +2,7 @@ import { Prisma, Role, ZammadTicketCache } from "@prisma/client";
 import { ZammadOperationalTicket } from "@/core/application/schema/zammad-api.schema";
 import { prisma } from "@/lib/prisma";
 import { computeTicketSla } from "@/core/application/services/zammad-sla";
+import { OPERATIONAL_STATE_IDS, type QueueKey } from "@/core/config/tickets-workflow";
 
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
 
@@ -65,15 +66,21 @@ export async function upsertOperationalTicketsToCache(
 export async function listCachedTickets(input: {
   role: Role;
   email: string;
+  scopedEmails?: string[];
   page: number;
   pageSize: number;
-  queue?: "all" | "my_queue" | "unassigned" | "critical" | "no_response";
+  queue?: QueueKey;
   zammadUserId?: number | null;
 }): Promise<{ rows: ZammadTicketCache[]; total: number }> {
-  const where: Prisma.ZammadTicketCacheWhereInput = {};
+  const where: Prisma.ZammadTicketCacheWhereInput = {
+    stateId: { in: [...OPERATIONAL_STATE_IDS] },
+  };
 
   if (!SYSTEM_ROLES.has(input.role)) {
-    where.customer = { contains: input.email, mode: "insensitive" };
+    const emails = input.scopedEmails?.length ? input.scopedEmails : [input.email];
+    where.OR = emails.map((value) => ({
+      customer: { contains: value, mode: "insensitive" },
+    }));
   }
 
   if (input.queue === "my_queue" && input.zammadUserId) {
@@ -104,4 +111,3 @@ export async function listCachedTickets(input: {
 
   return { rows, total };
 }
-

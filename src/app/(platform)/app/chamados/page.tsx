@@ -2,6 +2,7 @@ import { getTicketsAction } from "@/actions/tickets/ticket-actions";
 import { requireSession } from "@/lib/auth-helpers";
 import { TicketsContainer } from "@/components/platform/tickets/TicketsContainer";
 import { Role } from "@prisma/client";
+import { type QueueKey, TICKET_QUEUE_KEYS } from "@/core/config/tickets-workflow";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
@@ -16,8 +17,8 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const queueParam = typeof params?.queue === "string" ? params.queue : "all";
 
-  const queue = ["all", "my_queue", "unassigned", "critical", "no_response"].includes(queueParam)
-    ? (queueParam as "all" | "my_queue" | "unassigned" | "critical" | "no_response")
+  const queue = TICKET_QUEUE_KEYS.includes(queueParam as QueueKey)
+    ? (queueParam as QueueKey)
     : "all";
 
   const { data, success, pagination, staleWarning, queueCounts } = await getTicketsAction({ page, pageSize: 20, queue });

@@ -10,6 +10,7 @@ import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
 import { listCachedTickets, upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
 import { computeTicketSla } from "@/core/application/services/zammad-sla";
+import { OPERATIONAL_STATE_IDS, type QueueKey } from "@/core/config/tickets-workflow";
 
 type TicketListItem = {
     id: number;
@@ -33,9 +34,8 @@ type TicketListItem = {
 type GetTicketsActionParams = {
     page?: number;
     pageSize?: number;
-    queue?: "all" | "my_queue" | "unassigned" | "critical" | "no_response";
+    queue?: QueueKey;
 };
-type QueueKey = "all" | "my_queue" | "unassigned" | "critical" | "no_response";
 
 type TicketsPagination = {
     page: number;
@@ -55,7 +55,6 @@ type TicketsDataResponse = {
 };
 
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
-
 function isSystemRole(role: Role): boolean {
     return SYSTEM_ROLES.has(role);
 }
@@ -169,14 +168,56 @@ function buildEmailQueryForCount(emails: string[]): string {
     return `(${normalized.map((email) => `customer.email:${email}`).join(" OR ")})`;
 }
 
+function buildStateQuery(): string {
+    return `(${OPERATIONAL_STATE_IDS.map((id) => `state_id:${id}`).join(" OR ")})`;
+}
+
+function buildQueueQuery(queue: QueueKey, zammadUserId?: number | null): string {
+    if (queue === "critical") return "priority_id:3";
+    if (queue === "unassigned") return "owner_id:null";
+    if (queue === "no_response") return "first_response_at:null";
+    if (queue === "my_queue") return zammadUserId ? `owner_id:${zammadUserId}` : "id:-1";
+    return "";
+}
+
+function combineQueryParts(...parts: Array<string | null | undefined>): string {
+    return parts.filter(Boolean).map((part) => `(${part})`).join(" AND ");
+}
+
+async function getQueueCountsFromZammad(baseQuery: string, routeKey: string, zammadUserId?: number | null): Promise<Record<QueueKey, number>> {
+    const [all, myQueue, unassigned, critical, noResponse] = await Promise.all([
+        ZammadGateway.getTicketCount(baseQuery, routeKey),
+        zammadUserId
+            ? ZammadGateway.getTicketCount(combineQueryParts(baseQuery, buildQueueQuery("my_queue", zammadUserId)), routeKey)
+            : Promise.resolve(0),
+        ZammadGateway.getTicketCount(combineQueryParts(baseQuery, buildQueueQuery("unassigned")), routeKey),
+        ZammadGateway.getTicketCount(combineQueryParts(baseQuery, buildQueueQuery("critical")), routeKey),
+        ZammadGateway.getTicketCount(combineQueryParts(baseQuery, buildQueueQuery("no_response")), routeKey),
+    ]);
+
+    return {
+        all,
+        my_queue: myQueue,
+        unassigned,
+        critical,
+        no_response: noResponse,
+    };
+}
+
 async function getQueueCountsFromCache(
     role: Role,
     email: string,
-    zammadUserId?: number | null
+    zammadUserId?: number | null,
+    scopedEmails?: string[]
 ): Promise<Record<QueueKey, number>> {
     const baseWhere = isSystemRole(role)
-        ? {}
-        : { customer: { contains: email, mode: "insensitive" as const } };
+        ? { stateId: { in: [...OPERATIONAL_STATE_IDS] } }
+        : {
+            stateId: { in: [...OPERATIONAL_STATE_IDS] },
+            OR: (scopedEmails?.length ? scopedEmails : [email]).map((value) => ({
+                customer: { contains: value, mode: "insensitive" as const },
+            })),
+        };
 
     const [all, myQueue, unassigned, critical, noResponse] = await Promise.all([
         prisma.zammadTicketCache.count({ where: baseWhere }),
@@ -214,67 +255,54 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
     }
 
     try {
-        let ticketsRaw: ZammadOperationalTicket[] = [];
-        let total: number | null = null;
         const routeKey = "app-chamados";
+        const stateQuery = buildStateQuery();
         const zammadUserId = isSystemRole(session.role)
             ? await ZammadGateway.getUserIdByEmail(session.email, routeKey)
             : null;
+        const scopedEmails = isSystemRole(session.role) ? [] : await getScopedCompanyUserEmails(session.userId);
 
-        if (isSystemRole(session.role)) {
-            const query = "(state_id:1 OR state_id:2 OR state_id:3 OR state_id:4 OR state_id:5 OR state_id:6 OR state_id:7 OR state_id:8 OR state_id:9)";
+        if (!isSystemRole(session.role) && !scopedEmails.length) {
+            return {
+                success: true,
+                data: [],
+                pagination: buildPagination(page, pageSize, 0, 0),
+                queueCounts: { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 },
+            };
+        }
 
-            ticketsRaw = await ZammadGateway.getAllTickets(pageSize, {
-                page,
-                cacheTtlSeconds: 45,
-                tags: ["tickets-list", "tickets-dashboard"],
-                routeKey,
-            });
-            total = await ZammadGateway.getTicketCount(query, routeKey);
-        } else {
-            const scopedEmails = await getScopedCompanyUserEmails(session.userId);
-            if (!scopedEmails.length) {
-                return {
-                    success: true,
-                    data: [],
-                    pagination: buildPagination(page, pageSize, 0, 0),
-                    queueCounts: { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 },
-                };
-            }
+        const baseQuery = isSystemRole(session.role)
+            ? stateQuery
+            : combineQueryParts(buildEmailQueryForCount(scopedEmails), stateQuery);
+        const currentQueueQuery = buildQueueQuery(queue, zammadUserId);
+        const finalQuery = combineQueryParts(baseQuery, currentQueueQuery);
 
-            ticketsRaw = await ZammadGateway.getTicketsForCustomerEmailsPaged(scopedEmails, {
+        const [ticketsRaw, total, queueCountsFromZammad] = await Promise.all([
+            ZammadGateway.searchOperationalTickets(finalQuery, {
                 limit: pageSize,
                 page,
                 cacheTtlSeconds: 45,
                 tags: ["tickets-list", "tickets-dashboard"],
                 routeKey,
-            });
+            }),
+            ZammadGateway.getTicketCount(finalQuery, routeKey),
+            getQueueCountsFromZammad(baseQuery, routeKey, zammadUserId),
+        ]);
 
-            const query = buildEmailQueryForCount(scopedEmails);
-            total = query ? await ZammadGateway.getTicketCount(query, routeKey) : 0;
-        }
-
-        const queueFiltered = ticketsRaw.filter((ticket) => {
-            if (queue === "critical") return (ticket.priority_id ?? 0) === 3;
-            if (queue === "unassigned") return !ticket.owner_id;
-            if (queue === "my_queue") return !!zammadUserId && ticket.owner_id === zammadUserId;
-            if (queue === "no_response") return !ticket.first_response_at;
-            return true;
-        });
-
-        await upsertOperationalTicketsToCache(queueFiltered);
-        const paginationTotal = queue === "all" ? total : null;
+        await upsertOperationalTicketsToCache(ticketsRaw);
+        const queueCounts = queueCountsFromZammad.all === 0 && ticketsRaw.length > 0
+            ? await getQueueCountsFromCache(session.role, session.email, zammadUserId, scopedEmails)
+            : queueCountsFromZammad;
 
         const routeHealth = getZammadRouteHealth(routeKey);
         const staleWarning = routeHealth.stale
             ? `Dados do Zammad desatualizados ha ${routeHealth.staleMinutes} min.`
             : undefined;
-        const queueCounts = await getQueueCountsFromCache(session.role, session.email, zammadUserId);
 
         return {
             success: true,
-            data: formatTickets(queueFiltered),
-            pagination: buildPagination(page, pageSize, paginationTotal, queueFiltered.length),
+            data: formatTickets(ticketsRaw),
+            pagination: buildPagination(page, pageSize, total, ticketsRaw.length),
             staleWarning,
             queueCounts,
         };
@@ -284,10 +312,12 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
         const zammadUserId = isSystemRole(session.role)
             ? await ZammadGateway.getUserIdByEmail(session.email, "app-chamados-cache-fallback")
             : null;
+        const scopedEmails = isSystemRole(session.role) ? [] : await getScopedCompanyUserEmails(session.userId);
 
         const cached = await listCachedTickets({
             role: session.role,
             email: session.email,
+            scopedEmails,
             page,
             pageSize,
             queue,
@@ -300,7 +330,7 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
             data: formatCachedTickets(cached.rows),
             pagination: buildPagination(page, pageSize, cached.total, cached.rows.length),
             staleWarning: "Dados carregados do cache local (sync incremental).",
-            queueCounts: await getQueueCountsFromCache(session.role, session.email, zammadUserId),
+            queueCounts: await getQueueCountsFromCache(session.role, session.email, zammadUserId, scopedEmails),
         };
     }
 }

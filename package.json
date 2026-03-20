@@ -7,6 +7,7 @@
     "dev": "next dev",
     "start": "next start",
     "test:authz": "vitest run tests/authz --reporter=verbose",
+    "test:tickets": "vitest run tests/tickets --reporter=verbose",
     "postinstall": "fumadocs-mdx && prisma generate",
     "db:generate": "dotenv -e .env npx prisma generate",
     "db:migrate": "dotenv -e .env npx prisma migrate dev"

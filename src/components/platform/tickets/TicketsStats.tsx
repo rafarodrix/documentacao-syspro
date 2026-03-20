@@ -1,12 +1,10 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Inbox, Clock, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Inbox, Clock, CheckCircle2 } from "lucide-react"
 import { LucideIcon } from "lucide-react"
 import { TicketListItem } from "./types"
-
-// Tipos para facilitar a lógica de contagem
-export type TicketStatusGroup = "open" | "pending" | "closed";
+import { type TicketStatusGroup } from "@/core/config/tickets-workflow"
 
 interface TicketsStatsProps {
     tickets: TicketListItem[]
@@ -14,8 +12,6 @@ interface TicketsStatsProps {
 }
 
 export function TicketsStats({ tickets, getCategory }: TicketsStatsProps) {
-
-    // Lógica de contagem
     const kpiOpen = tickets.filter((t) => getCategory(t.status) === "open").length;
     const kpiPending = tickets.filter((t) => getCategory(t.status) === "pending").length;
     const kpiClosed = tickets.filter((t) => getCategory(t.status) === "closed").length;
@@ -30,7 +26,7 @@ export function TicketsStats({ tickets, getCategory }: TicketsStatsProps) {
                 label="Fila de atendimento"
             />
             <KpiCard
-                title="Em Análise"
+                title="Em Analise"
                 value={kpiPending}
                 icon={Clock}
                 color="amber"
@@ -41,13 +37,12 @@ export function TicketsStats({ tickets, getCategory }: TicketsStatsProps) {
                 value={kpiClosed}
                 icon={CheckCircle2}
                 color="green"
-                label="Histórico recente"
+                label="Historico recente"
             />
         </div>
     )
 }
 
-// Subcomponente Card (Reutilizável)
 type KpiColor = "blue" | "amber" | "green" | "red";
 
 interface KpiCardProps {
