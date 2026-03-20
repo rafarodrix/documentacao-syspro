@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import { useForm, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
 import { createCompanySchema, CreateCompanyInput } from "@/core/application/schema/company-schema"
 import { createCompanyAction } from "@/actions/admin/company-actions"
 import { TaxRegime, IndicadorIE, CompanyStatus } from "@prisma/client"
@@ -983,6 +984,7 @@ function SectionHeader({
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export function CreateCompanyDialog() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
 
@@ -1041,6 +1043,7 @@ export function CreateCompanyDialog() {
       const result = await createCompanyAction(data)
       if (result.success) {
         toast.success(result.message ?? "Empresa cadastrada com sucesso!")
+        router.refresh()
         handleClose()
       } else if (result.errors) {
         Object.entries(result.errors).forEach(([key, messages]) => {

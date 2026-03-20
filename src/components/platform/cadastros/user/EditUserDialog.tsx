@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useForm, SubmitHandler, UseFormReturn } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
 import { createUserSchema, CreateUserInput } from "@/core/application/schema/user-schema"
 import { updateUserAction } from "@/actions/admin/user-actions"
 import { Role } from "@prisma/client"
@@ -453,6 +454,7 @@ export function EditUserDialog({
   companies,
   isAdmin,
 }: EditUserDialogProps) {
+  const router = useRouter()
   const [currentSection, setCurrentSection] = useState<SectionId>("dados")
 
   const isSystemUser = SYSTEM_ROLES.includes(user?.role)
@@ -534,6 +536,7 @@ export function EditUserDialog({
 
       if (result.success) {
         toast.success(result.message ?? "Usuário atualizado com sucesso!")
+        router.refresh()
         handleClose()
       } else {
         if (result.errors) {

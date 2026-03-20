@@ -1,7 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
 import { CompanyStatus } from "@prisma/client"
 import { toast } from "sonner"
 import {
@@ -24,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
 
 import { CreateCompanyDialog } from "./CreateCompanyDialog"
 import { EditCompanyDialog } from "./EditCompanyDialog"
@@ -168,18 +168,27 @@ function CompanyActionsMenu({
 }
 
 export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelete, canEditCnpj }: CompanyTabProps) {
-  const router = useRouter()
+  const [items, setItems] = useState(data)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">("ALL")
   const [companyToEdit, setCompanyToEdit] = useState<CompanyWithRelations | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<
+    | { type: "delete" | "status"; company: CompanyWithRelations }
+    | null
+  >(null)
+
+  useEffect(() => {
+    setItems(data)
+  }, [data])
 
   const filteredData = useMemo(() => {
     const term = searchTerm.toLowerCase()
     const cnpjRaw = searchTerm.replace(/\D/g, "")
 
-    return data.filter((company) => {
+    return items.filter((company) => {
       const matchesSearch =
         !term ||
         company.razaoSocial.toLowerCase().includes(term) ||
@@ -189,19 +198,20 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
       const matchesStatus = filterStatus === "ALL" || company.status === filterStatus
       return matchesSearch && matchesStatus
     })
-  }, [data, searchTerm, filterStatus])
+  }, [items, searchTerm, filterStatus])
 
   const statusCounts = useMemo(
-    () =>
-      data.reduce(
+    () => {
+      return items.reduce(
         (acc, c) => {
           acc[c.status] = (acc[c.status] ?? 0) + 1
           return acc
         },
         {} as Record<string, number>,
-      ),
-    [data],
-  )
+      )
+    },
+    [items],
+  );
 
   const handleEdit = (company: CompanyWithRelations) => {
     setCompanyToEdit(company)
@@ -220,9 +230,17 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
       const result = await updateCompanyStatusAction(company.id, nextStatus)
       if (result.success) {
         toast.success(result.message ?? "Status atualizado")
-        router.refresh()
+        setFeedback({ type: "success", message: result.message ?? "Status atualizado com sucesso." })
+        setItems((prev) =>
+          prev.map((c) =>
+            c.id === company.id
+              ? { ...c, status: nextStatus }
+              : c,
+          ),
+        )
       } else {
         toast.error(result.message ?? "Falha ao atualizar status")
+        setFeedback({ type: "error", message: result.message ?? "Falha ao atualizar status." })
       }
     } finally {
       setLoadingId(null)
@@ -230,17 +248,16 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
   }
 
   const handleDelete = async (company: CompanyWithRelations) => {
-    const confirmed = window.confirm(`Excluir a empresa ${company.nomeFantasia || company.razaoSocial}?`)
-    if (!confirmed) return
-
     setLoadingId(company.id)
     try {
       const result = await deleteCompanyAction(company.id)
       if (result.success) {
         toast.success(result.message ?? "Empresa excluida")
-        router.refresh()
+        setFeedback({ type: "success", message: result.message ?? "Empresa excluida com sucesso." })
+        setItems((prev) => prev.filter((c) => c.id !== company.id))
       } else {
         toast.error(result.message ?? "Falha ao excluir")
+        setFeedback({ type: "error", message: result.message ?? "Falha ao excluir empresa." })
       }
     } finally {
       setLoadingId(null)
@@ -253,7 +270,50 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
         <EditCompanyDialog open={isEditOpen} onOpenChange={handleCloseEdit} company={companyToEdit} canEditCnpj={canEditCnpj} />
       )}
 
+      <ConfirmActionDialog
+        open={!!confirmDialog}
+        onOpenChange={(open) => (!open ? setConfirmDialog(null) : undefined)}
+        title={
+          confirmDialog?.type === "delete"
+            ? "Confirmar exclusao da empresa"
+            : "Confirmar alteracao de status"
+        }
+        description={
+          confirmDialog
+            ? confirmDialog.type === "delete"
+              ? `Deseja excluir a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}? Essa acao e irreversivel.`
+              : confirmDialog.company.status === "INACTIVE"
+                ? `Deseja reativar a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}?`
+                : `Deseja inativar a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}?`
+            : ""
+        }
+        confirmLabel={confirmDialog?.type === "delete" ? "Excluir empresa" : "Confirmar"}
+        isLoading={!!confirmDialog?.company && loadingId === confirmDialog.company.id}
+        variant={confirmDialog?.type === "delete" ? "danger" : "default"}
+        onConfirm={async () => {
+          if (!confirmDialog) return
+          if (confirmDialog.type === "delete") {
+            await handleDelete(confirmDialog.company)
+          } else {
+            await handleToggleStatus(confirmDialog.company)
+          }
+          setConfirmDialog(null)
+        }}
+      />
+
       <div className="space-y-4">
+        {feedback && (
+          <div
+            className={cn(
+              "rounded-lg border px-3 py-2 text-sm",
+              feedback.type === "success"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400",
+            )}
+          >
+            {feedback.message}
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
           <div className="relative w-full sm:w-80 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -279,7 +339,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
                   filterStatus === "ALL" ? "bg-background shadow-sm text-foreground border border-border/50" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                Todas <span className="ml-1.5 text-[10px] text-muted-foreground">{data.length}</span>
+                Todas <span className="ml-1.5 text-[10px] text-muted-foreground">{items.length}</span>
               </button>
               {(Object.keys(STATUS_CONFIG) as CompanyStatus[]).map((status) => {
                 const cfg = STATUS_CONFIG[status]
@@ -366,8 +426,8 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
                           canDelete={canDelete}
                           isLoading={loadingId === company.id}
                           onEdit={() => handleEdit(company)}
-                          onToggleStatus={() => handleToggleStatus(company)}
-                          onDelete={() => handleDelete(company)}
+                          onToggleStatus={() => setConfirmDialog({ type: "status", company })}
+                          onDelete={() => setConfirmDialog({ type: "delete", company })}
                         />
                       </TableCell>
                     </TableRow>

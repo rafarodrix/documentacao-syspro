@@ -1,23 +1,39 @@
-import { getCadastrosData } from "@/actions/admin/get-cadastros-data"
-import { CadastrosContainer } from "@/components/platform/cadastros/company/CadastrosContainer"
-import { requireRole } from "@/lib/auth-helpers"
-import { Role } from "@prisma/client"
-import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access"
+import { Role } from "@prisma/client";
+import { hasPermission } from "@/lib/rbac";
+import { requireRole } from "@/lib/auth-helpers";
+import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
+import { getCadastrosClientUsersData } from "@/actions/admin/get-cadastros-data";
+import { UserTab } from "@/components/platform/cadastros/user/UserTab";
+import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
+import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
 export default async function CadastrosUsuariosPage() {
-  const session = await requireRole([...CADASTROS_ROUTE_RULES.usuarios.allowed] as Role[], CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked)
-  const { companies, users, error } = await getCadastrosData()
+  const session = await requireRole(
+    [...CADASTROS_ROUTE_RULES.usuarios.allowed] as Role[],
+    CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked,
+  );
+  const result = await getCadastrosClientUsersData();
 
-  if (error) return <div>Erro: {error}</div>
+  if ("error" in result) return <div>Erro: {result.error}</div>;
+  if (!hasPermission(session.role, "users:view")) return <CadastrosAccessDenied />;
 
   return (
-    <CadastrosContainer
-      companies={companies || []}
-      users={users || []}
-      currentUserRole={session?.role!}
-      initialTab="usuarios"
-      pageTitle="Cadastro de Usuario"
-      pageDescription="Cadastre e gerencie usuarios vinculados as empresas."
-    />
-  )
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <CadastrosPageHeader
+        title="Cadastro de Usuario"
+        description="Cadastre e gerencie usuarios vinculados as empresas."
+        isGlobalView={result.isGlobalView}
+      />
+      <UserTab
+        data={result.users}
+        companies={result.companies}
+        isAdmin={result.isGlobalView}
+        canManage={
+          hasPermission(session.role, "users:create") ||
+          hasPermission(session.role, "users:edit") ||
+          hasPermission(session.role, "users:status")
+        }
+      />
+    </div>
+  );
 }

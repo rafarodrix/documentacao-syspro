@@ -1,70 +1,137 @@
-"use server"
+﻿"use server";
 
-import { prisma } from "@/lib/prisma"
-import { getProtectedSession } from "@/lib/auth-helpers"
-import { Role } from "@prisma/client"
+import { Role } from "@prisma/client";
+import { getProtectedSession } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma";
 
-export async function getCadastrosData() {
-    const session = await getProtectedSession()
-    if (!session) return { error: "Não autorizado" }
+const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 
-    const isSuperAdmin = session.role === Role.ADMIN || session.role === Role.DEVELOPER || session.role === Role.SUPORTE
+type ActionError = { error: string };
+type SessionContext = { session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>; isSystemRole: boolean };
 
-    try {
-        let companies = []
-        let users = []
-
-        if (isSuperAdmin) {
-            // --- LÓGICA DE SUPER ADMIN: TUDO ---
-            companies = await prisma.company.findMany({
-                orderBy: { razaoSocial: 'asc' },
-                include: { _count: { select: { memberships: true } } }
-            })
-
-            users = await prisma.user.findMany({
-                orderBy: { name: 'asc' },
-                include: {
-                    memberships: { include: { company: true } }
-                }
-            })
-
-        } else {
-            // --- LÓGICA DE CLIENTE: FILTRADO ---
-            // Busca apenas as empresas onde o usuário tem vínculo
-            const myMemberships = await prisma.membership.findMany({
-                where: { userId: session.userId },
-                select: { companyId: true, role: true }
-            })
-
-            const myCompanyIds = myMemberships.map(m => m.companyId)
-
-            // Se não tem empresa, não vê nada
-            if (myCompanyIds.length === 0) return { companies: [], users: [] }
-
-            companies = await prisma.company.findMany({
-                where: { id: { in: myCompanyIds } }
-            })
-
-            // Busca usuários APENAS dessas empresas
-            users = await prisma.user.findMany({
-                where: {
-                    memberships: {
-                        some: { companyId: { in: myCompanyIds } }
-                    }
-                },
-                include: {
-                    memberships: {
-                        where: { companyId: { in: myCompanyIds } }, // Filtra os vínculos para mostrar só os dessa empresa
-                        include: { company: true }
-                    }
-                }
-            })
-        }
-
-        return { companies, users }
-
-    } catch (error) {
-        console.error(error)
-        return { error: "Erro ao buscar dados." }
-    }
+async function getSessionContext(): Promise<SessionContext | ActionError> {
+  const session = await getProtectedSession();
+  if (!session) return { error: "Nao autorizado" };
+  return { session, isSystemRole: SYSTEM_ROLES.includes(session.role) };
 }
+
+async function getScopedCompanyIds(userId: string): Promise<string[]> {
+  const memberships = await prisma.membership.findMany({
+    where: { userId },
+    select: { companyId: true },
+  });
+  return memberships.map((m) => m.companyId);
+}
+
+function hasError(value: unknown): value is ActionError {
+  return Boolean(value && typeof value === "object" && "error" in (value as Record<string, unknown>));
+}
+
+export async function getCadastrosCompaniesData() {
+  const ctx = await getSessionContext();
+  if (hasError(ctx)) return ctx;
+
+  try {
+    if (ctx.isSystemRole) {
+      const companies = await prisma.company.findMany({
+        where: { deletedAt: null },
+        orderBy: { razaoSocial: "asc" },
+        include: { _count: { select: { memberships: true } } },
+      });
+
+      return { companies, isGlobalView: true };
+    }
+
+    const companyIds = await getScopedCompanyIds(ctx.session.userId);
+    if (!companyIds.length) return { companies: [], isGlobalView: false };
+
+    const companies = await prisma.company.findMany({
+      where: { id: { in: companyIds }, deletedAt: null },
+      orderBy: { razaoSocial: "asc" },
+      include: { _count: { select: { memberships: true } } },
+    });
+
+    return { companies, isGlobalView: false };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao buscar empresas." };
+  }
+}
+
+export async function getCadastrosClientUsersData() {
+  const ctx = await getSessionContext();
+  if (hasError(ctx)) return ctx;
+
+  try {
+    if (ctx.isSystemRole) {
+      const [companies, users] = await Promise.all([
+        prisma.company.findMany({
+          where: { deletedAt: null },
+          orderBy: { razaoSocial: "asc" },
+          include: { _count: { select: { memberships: true } } },
+        }),
+        prisma.user.findMany({
+          where: { deletedAt: null, role: { in: CLIENT_ROLES } },
+          orderBy: { name: "asc" },
+          include: { memberships: { include: { company: true } } },
+        }),
+      ]);
+
+      return { companies, users, isGlobalView: true };
+    }
+
+    const companyIds = await getScopedCompanyIds(ctx.session.userId);
+    if (!companyIds.length) return { companies: [], users: [], isGlobalView: false };
+
+    const [companies, users] = await Promise.all([
+      prisma.company.findMany({
+        where: { id: { in: companyIds }, deletedAt: null },
+        orderBy: { razaoSocial: "asc" },
+        include: { _count: { select: { memberships: true } } },
+      }),
+      prisma.user.findMany({
+        where: {
+          deletedAt: null,
+          role: { in: CLIENT_ROLES },
+          memberships: { some: { companyId: { in: companyIds } } },
+        },
+        include: {
+          memberships: {
+            where: { companyId: { in: companyIds } },
+            include: { company: true },
+          },
+        },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+
+    return { companies, users, isGlobalView: false };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao buscar usuarios." };
+  }
+}
+
+export async function getCadastrosSystemUsersData() {
+  const ctx = await getSessionContext();
+  if (hasError(ctx)) return ctx;
+
+  try {
+    if (!ctx.isSystemRole) {
+      return { users: [], isGlobalView: false };
+    }
+
+    const users = await prisma.user.findMany({
+      where: { deletedAt: null, role: { in: SYSTEM_ROLES } },
+      orderBy: { name: "asc" },
+      include: { memberships: { include: { company: true } } },
+    });
+
+    return { users, isGlobalView: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao buscar equipe interna." };
+  }
+}
+

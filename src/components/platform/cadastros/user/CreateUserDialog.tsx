@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useForm, type SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
 import { createUserSchema, type CreateUserInput } from "@/core/application/schema/user-schema"
 import { createUserAction, linkUserToCompanyAction } from "@/actions/admin/user-actions"
 import { Role } from "@prisma/client"
@@ -128,6 +129,7 @@ function TabSelector({ active, onChange }: { active: TabMode; onChange: (tab: Ta
 }
 
 export function CreateUserDialog({ companies, isAdmin, context = "CLIENT" }: CreateUserDialogProps) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<TabMode>("create")
 
@@ -179,6 +181,7 @@ export function CreateUserDialog({ companies, isAdmin, context = "CLIENT" }: Cre
     const result = await createUserAction(data)
     if (result.success) {
       toast.success(result.message ?? "Usuario criado com sucesso")
+      router.refresh()
       closeDialog()
     } else {
       toast.error(result.message ?? "Erro ao criar usuario")
@@ -194,6 +197,7 @@ export function CreateUserDialog({ companies, isAdmin, context = "CLIENT" }: Cre
     const result = await linkUserToCompanyAction(data)
     if (result.success) {
       toast.success(result.message ?? "Usuario vinculado com sucesso")
+      router.refresh()
       closeDialog()
     } else {
       toast.error(result.message ?? "Erro ao vincular usuario")
