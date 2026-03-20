@@ -4,13 +4,14 @@ import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { type SefazRoutesInput } from "@/core/application/schema/sefaz-routes-schema";
 import { runSefazCheckAction, updateSefazRoutesAction } from "@/actions/admin/settings-actions";
+import { buildDefaultSefazRoutes } from "@/core/constants/sefaz-endpoints";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Save, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Save, RefreshCw, CheckCircle2, ListChecks } from "lucide-react";
 
 interface SefazRoutesTabProps {
   initialRoutes: SefazRoutesInput;
@@ -27,15 +28,26 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
   const [routes, setRoutes] = useState<SefazRoutesInput>(initialRoutes);
   const [isSaving, startSaving] = useTransition();
   const [isChecking, startChecking] = useTransition();
+  const presetRoutes = useMemo(() => buildDefaultSefazRoutes(), []);
+  const allowedUfs = useMemo(() => Array.from(new Set(presetRoutes.map((item) => item.uf))), [presetRoutes]);
+  const duplicateKeys = useMemo(() => {
+    const counts = new Map<string, number>();
+    routes.forEach((route) => {
+      const key = `${route.uf.trim().toUpperCase()}-${route.service}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+  }, [routes]);
 
   const hasInvalidRows = useMemo(
     () =>
       routes.some(
         (route) =>
-          !/^[A-Za-z]{2}$/.test(route.uf.trim()) ||
-          !/^https?:\/\//i.test(route.url.trim())
-      ),
-    [routes],
+          !/^[A-Za-z]{2,6}$/.test(route.uf.trim()) ||
+          !/^https:\/\//i.test(route.url.trim()) ||
+          duplicateKeys.has(`${route.uf.trim().toUpperCase()}-${route.service}`)
+      ) || routes.length === 0,
+    [duplicateKeys, routes],
   );
 
   const updateRow = (index: number, key: keyof SefazRoutesInput[number], value: string | boolean) => {
@@ -56,6 +68,28 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
 
   const addRow = () => setRoutes((prev) => [...prev, { ...EMPTY_ROUTE }]);
   const removeRow = (index: number) => setRoutes((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+  const replaceWithDefaults = () => {
+    setRoutes(presetRoutes);
+    toast.success("Catalogo padrao carregado.");
+  };
+
+  const mergeWithDefaults = () => {
+    const mergedMap = new Map<string, SefazRoutesInput[number]>();
+    routes.forEach((route) => {
+      const key = `${route.uf.trim().toUpperCase()}-${route.service}`;
+      mergedMap.set(key, {
+        ...route,
+        uf: route.uf.trim().toUpperCase(),
+        url: route.url.trim(),
+      });
+    });
+    presetRoutes.forEach((route) => {
+      const key = `${route.uf}-${route.service}`;
+      if (!mergedMap.has(key)) mergedMap.set(key, route);
+    });
+    setRoutes(Array.from(mergedMap.values()));
+    toast.success("Rotas faltantes adicionadas a partir do catalogo.");
+  };
 
   const handleSave = () => {
     startSaving(async () => {
@@ -95,10 +129,20 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <Button type="button" variant="outline" className="gap-2" onClick={addRow}>
-            <Plus className="h-4 w-4" />
-            Adicionar rota
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" className="gap-2" onClick={addRow}>
+              <Plus className="h-4 w-4" />
+              Adicionar rota
+            </Button>
+            <Button type="button" variant="outline" className="gap-2" onClick={mergeWithDefaults}>
+              <ListChecks className="h-4 w-4" />
+              Mesclar catalogo
+            </Button>
+            <Button type="button" variant="outline" className="gap-2" onClick={replaceWithDefaults}>
+              <RefreshCw className="h-4 w-4" />
+              Carregar padrao
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" className="gap-2" onClick={handleCheckNow} disabled={isChecking}>
               {isChecking ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -122,18 +166,19 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
 
           <div className="divide-y divide-border/50">
             {routes.map((route, index) => {
-              const ufInvalid = !/^[A-Za-z]{2}$/.test(route.uf.trim());
-              const urlInvalid = !/^https?:\/\//i.test(route.url.trim());
+              const ufInvalid = !/^[A-Za-z]{2,6}$/.test(route.uf.trim());
+              const urlInvalid = !/^https:\/\//i.test(route.url.trim());
               return (
                 <div key={`${route.uf}-${route.service}-${index}`} className="grid grid-cols-[90px_130px_1fr_90px_70px] gap-2 px-3 py-3 items-center">
                   <div className="space-y-1">
                     <Input
                       value={route.uf}
-                      maxLength={2}
+                      maxLength={6}
                       onChange={(event) => updateRow(index, "uf", event.target.value)}
                       className="h-9 uppercase"
+                      list="sefaz-ufs"
                     />
-                    {ufInvalid && <p className="text-[10px] text-red-500">UF invalida</p>}
+                    {ufInvalid && <p className="text-[10px] text-red-500">UF/Autorizador invalido</p>}
                   </div>
 
                   <select
@@ -153,6 +198,9 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
                       placeholder="https://..."
                     />
                     {urlInvalid && <p className="text-[10px] text-red-500">URL invalida</p>}
+                    {duplicateKeys.has(`${route.uf.trim().toUpperCase()}-${route.service}`) && (
+                      <p className="text-[10px] text-red-500">Duplicada para este servico</p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -181,6 +229,11 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
         <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
           <Label className="font-medium">Dica operacional:</Label> configure apenas rotas oficiais e mantenha ativas somente as UFs necessarias para reduzir ruido no monitoramento.
         </div>
+        <datalist id="sefaz-ufs">
+          {allowedUfs.map((uf) => (
+            <option key={uf} value={uf} />
+          ))}
+        </datalist>
       </CardContent>
     </Card>
   );

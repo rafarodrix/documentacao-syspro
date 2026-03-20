@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { settingsSchema, SettingsInput, SETTING_KEYS } from "@/core/application/schema/settings-schema";
 import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@/core/application/schema/sefaz-routes-schema";
-import { SEFAZ_ENDPOINTS } from "@/core/constants/sefaz-endpoints";
+import { buildDefaultSefazRoutes } from "@/core/constants/sefaz-endpoints";
 import { SefazService } from "@/app/api/sefaz/sefaz.service";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
@@ -123,12 +123,7 @@ export async function getSefazRoutesAction() {
         });
 
         if (!setting?.value) {
-            const defaults = SEFAZ_ENDPOINTS.map((item) => ({
-                uf: item.uf,
-                service: item.service,
-                url: item.url,
-                active: true,
-            })) satisfies SefazRoutesInput;
+            const defaults = buildDefaultSefazRoutes() satisfies SefazRoutesInput;
 
             return { success: true, data: defaults };
         }
@@ -154,7 +149,8 @@ export async function updateSefazRoutesAction(routes: SefazRoutesInput) {
 
     const validation = sefazRoutesSchema.safeParse(routes);
     if (!validation.success) {
-        return { success: false, error: "Dados invalidos para rotas SEFAZ." };
+        const firstIssue = validation.error.issues[0]?.message ?? "Dados invalidos para rotas SEFAZ.";
+        return { success: false, error: firstIssue };
     }
 
     try {

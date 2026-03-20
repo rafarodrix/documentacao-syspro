@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SEFAZ_ENDPOINTS, analyzeSefazResponse } from "@/core/constants/sefaz-endpoints";
+import { analyzeSefazResponse, buildDefaultSefazRoutes } from "@/core/constants/sefaz-endpoints";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 import { sefazRoutesSchema } from "@/core/application/schema/sefaz-routes-schema";
 
@@ -11,12 +11,7 @@ export class SefazService {
         });
 
         if (!setting?.value) {
-            return SEFAZ_ENDPOINTS.map((endpoint) => ({
-                uf: endpoint.uf,
-                service: endpoint.service,
-                url: endpoint.url,
-                active: true,
-            }));
+            return buildDefaultSefazRoutes();
         }
 
         try {
@@ -26,12 +21,7 @@ export class SefazService {
             return validation.data.filter((route) => route.active);
         } catch (error) {
             console.error("Erro ao ler rotas SEFAZ configuradas, usando padrao:", error);
-            return SEFAZ_ENDPOINTS.map((endpoint) => ({
-                uf: endpoint.uf,
-                service: endpoint.service,
-                url: endpoint.url,
-                active: true,
-            }));
+            return buildDefaultSefazRoutes();
         }
     }
 
