@@ -70,13 +70,16 @@ const NAV_SYSTEM: NavItemType[] = [
   { title: "Ferramentas", href: "/app/tools", icon: Wrench },
 ]
 
-const NAV_DOCS: NavItemType[] = [
+const NAV_DOCS_USER: NavItemType[] = [
   { title: "Documentacao", href: "/docs/manual", icon: BookOpen },
-  { title: "Manuais Tecnicos", href: "/docs/manuais-tecnicos", icon: BookLock, roles: [...SIDEBAR_ROLE_RULES.docsTechnical] },
   { title: "Duvidas", href: "/docs/duvidas", icon: GraduationCap },
   { title: "Treinamento", href: "/docs/treinamento", icon: GraduationCap },
   { title: "Suporte", href: "/docs/suporte", icon: Headset },
   { title: "Releases", href: "/releases", icon: Rocket },
+]
+
+const NAV_DOCS_TECHNICAL: NavItemType[] = [
+  { title: "Manuais Tecnicos", href: "/docs/manuais-tecnicos", icon: BookLock, roles: [...SIDEBAR_ROLE_RULES.docsTechnical] },
 ]
 
 function filterByRole(items: NavItemType[], role: UserRole): NavItemType[] {
@@ -311,11 +314,22 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
 
         <Separator className="bg-border/30 mx-1" />
 
-        <NavGroup title="Documentacao" collapsed={isSidebarCollapsed}>
-          {filterByRole(NAV_DOCS, user.role).map((item) => (
+        <NavGroup title="Documentacao de Usuario" collapsed={isSidebarCollapsed}>
+          {filterByRole(NAV_DOCS_USER, user.role).map((item) => (
             <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
           ))}
         </NavGroup>
+
+        {filterByRole(NAV_DOCS_TECHNICAL, user.role).length > 0 && (
+          <>
+            <Separator className="bg-border/30 mx-1" />
+            <NavGroup title="Documentacao Tecnica" collapsed={isSidebarCollapsed}>
+              {filterByRole(NAV_DOCS_TECHNICAL, user.role).map((item) => (
+                <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
+              ))}
+            </NavGroup>
+          </>
+        )}
       </div>
 
       <SidebarFooter user={user} isSystemUser={isSystemUser} onClose={onClose} collapsed={isSidebarCollapsed} />

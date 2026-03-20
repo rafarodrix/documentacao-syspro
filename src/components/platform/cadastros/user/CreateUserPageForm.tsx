@@ -30,6 +30,7 @@ interface CreateUserPageFormProps {
 export function CreateUserPageForm({ companies, context, isAdmin, backHref }: CreateUserPageFormProps) {
   const router = useRouter();
   const defaultRole = context === "SYSTEM" ? Role.SUPORTE : Role.CLIENTE_USER;
+  const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
 
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
@@ -75,10 +76,10 @@ export function CreateUserPageForm({ companies, context, isAdmin, backHref }: Cr
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="p-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
           <Card className="border-border/60">
             <CardHeader>
-              <CardTitle className="text-base">Dados de Acesso</CardTitle>
+              <CardTitle className="text-base">Escopo e Permissoes</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {context === "CLIENT" && (
@@ -108,6 +109,46 @@ export function CreateUserPageForm({ companies, context, isAdmin, backHref }: Cr
                 />
               )}
 
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nivel de acesso</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {context === "CLIENT" && (
+                          <>
+                            <SelectItem value={Role.CLIENTE_USER}>Usuario</SelectItem>
+                            <SelectItem value={Role.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
+                          </>
+                        )}
+                        {context === "SYSTEM" && (
+                          <>
+                            <SelectItem value={Role.SUPORTE}>Suporte</SelectItem>
+                            <SelectItem value={Role.DEVELOPER}>Desenvolvedor</SelectItem>
+                            {isAdmin && <SelectItem value={Role.ADMIN}>Admin</SelectItem>}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="text-base">Dados do Usuario</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -115,7 +156,7 @@ export function CreateUserPageForm({ companies, context, isAdmin, backHref }: Cr
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nome</FormLabel>
-                      <FormControl><Input placeholder="Nome completo" {...field} /></FormControl>
+                      <FormControl><Input placeholder="Nome completo" {...field} value={toInputValue(field.value)} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -126,58 +167,24 @@ export function CreateUserPageForm({ companies, context, isAdmin, backHref }: Cr
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>E-mail</FormLabel>
-                      <FormControl><Input type="email" placeholder="usuario@empresa.com" {...field} /></FormControl>
+                      <FormControl><Input type="email" placeholder="usuario@empresa.com" {...field} value={toInputValue(field.value)} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Senha</FormLabel>
-                      <FormControl><Input type="password" placeholder="Minimo 8 caracteres" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nivel de acesso</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {context === "CLIENT" && (
-                            <>
-                              <SelectItem value={Role.CLIENTE_USER}>Usuario</SelectItem>
-                              <SelectItem value={Role.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
-                            </>
-                          )}
-                          {context === "SYSTEM" && (
-                            <>
-                              <SelectItem value={Role.SUPORTE}>Suporte</SelectItem>
-                              <SelectItem value={Role.DEVELOPER}>Desenvolvedor</SelectItem>
-                              {isAdmin && <SelectItem value={Role.ADMIN}>Admin</SelectItem>}
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha de acesso</FormLabel>
+                    <FormControl><Input type="password" placeholder="Minimo 8 caracteres" {...field} value={toInputValue(field.value)} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
@@ -186,7 +193,7 @@ export function CreateUserPageForm({ companies, context, isAdmin, backHref }: Cr
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Cargo</FormLabel>
-                      <FormControl><Input placeholder="Cargo" {...field} /></FormControl>
+                      <FormControl><Input placeholder="Cargo" {...field} value={toInputValue(field.value)} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -197,7 +204,7 @@ export function CreateUserPageForm({ companies, context, isAdmin, backHref }: Cr
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Telefone</FormLabel>
-                      <FormControl><Input placeholder="(00) 00000-0000" {...field} /></FormControl>
+                      <FormControl><Input placeholder="(00) 00000-0000" {...field} value={toInputValue(field.value)} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -208,7 +215,7 @@ export function CreateUserPageForm({ companies, context, isAdmin, backHref }: Cr
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>CPF</FormLabel>
-                      <FormControl><Input placeholder="000.000.000-00" {...field} /></FormControl>
+                      <FormControl><Input placeholder="000.000.000-00" {...field} value={toInputValue(field.value)} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -217,7 +224,7 @@ export function CreateUserPageForm({ companies, context, isAdmin, backHref }: Cr
             </CardContent>
           </Card>
 
-          <div className="pt-6 flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => router.push(backHref)}>Cancelar</Button>
             <Button type="submit" className="gap-2" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
