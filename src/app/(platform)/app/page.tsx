@@ -1,4 +1,4 @@
-ï»¿import { requireSession } from "@/lib/auth-helpers";
+import { requireSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
@@ -77,7 +77,7 @@ function toSeries(events: Date[]): ActivityPoint[] {
 function ticketKpis(tickets: TicketSummaryItem[]) {
   return {
     open: tickets.filter((t) => t.status === "Aberto").length,
-    pending: tickets.filter((t) => t.status === "Pendente" || t.status === "Em AnÃ¡lise").length,
+    pending: tickets.filter((t) => t.status === "Pendente" || t.status === "Em Análise").length,
     resolved: tickets.filter((t) => t.status === "Resolvido").length,
   };
 }
@@ -344,9 +344,9 @@ export default async function DashboardPage() {
 
       {zammadHealth.stale && (
         <Alert className="border-amber-500/40 bg-amber-500/10">
-          <AlertTitle>Dados em modo contingÃªncia</AlertTitle>
+          <AlertTitle>Dados em modo contingência</AlertTitle>
           <AlertDescription>
-            IntegraÃ§Ã£o Zammad instÃ¡vel. Exibindo Ãºltimo cache vÃ¡lido de {zammadHealth.staleMinutes} min atrÃ¡s.
+            Integração Zammad instável. Exibindo último cache válido de {zammadHealth.staleMinutes} min atrás.
           </AlertDescription>
         </Alert>
       )}
@@ -387,7 +387,7 @@ export default async function DashboardPage() {
                 <p className="text-xl font-semibold">{data.companyName}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {data.companyName === "Sem empresa vinculada"
-                    ? "Solicite vÃ­nculo de empresa ao administrador."
+                    ? "Solicite vínculo de empresa ao administrador."
                     : `${data.companyUsers} usuario(s) vinculado(s)`}
                 </p>
               </CardContent>

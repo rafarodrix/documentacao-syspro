@@ -163,4 +163,3 @@ export function TicketsContainer({
         </div>
     );
 }
-

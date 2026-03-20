@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 
 export function LoginForm() {

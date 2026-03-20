@@ -5,7 +5,7 @@ import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Mail, AlertCircle, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 

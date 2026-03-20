@@ -8,7 +8,7 @@ import {
     Info,
     CalendarDays
 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
 export const metadata = {
