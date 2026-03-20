@@ -1,7 +1,14 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { CADASTROS_ROUTE_RULES, SYSTEM_ROLES, hasAllowedRole, type AppRole } from "@/core/config/route-access";
+﻿import { NextResponse, type NextRequest } from "next/server";
+import { getCookieCache } from "better-auth/cookies";
+import { APP_ROLES, CADASTROS_ROUTE_RULES, SYSTEM_ROLES, hasAllowedRole, type AppRole } from "@/core/config/route-access";
 
 type CachedRole = { role: AppRole; expiresAt: number };
+type SessionCachePayload = {
+  user?: {
+    role?: AppRole;
+  };
+};
+
 const ROLE_CACHE_TTL_MS = 30 * 1000;
 const ROLE_CACHE_MAX_ITEMS = 1000;
 
@@ -56,20 +63,21 @@ function saveRoleToCache(sessionToken: string, role: AppRole) {
   });
 }
 
-async function getRoleFromSession(request: NextRequest): Promise<AppRole | null> {
+function isAppRole(value: string): value is AppRole {
+  return APP_ROLES.includes(value as AppRole);
+}
+
+async function getRoleFromCookieCache(request: NextRequest): Promise<AppRole | null> {
   try {
-    const response = await fetch(new URL("/api/platform/session-role", request.url), {
-      method: "GET",
-      headers: {
-        cookie: request.headers.get("cookie") ?? "",
-      },
-      cache: "no-store",
-    });
+    const payload = (await getCookieCache(request.headers, {
+      secret: process.env.BETTER_AUTH_SECRET,
+      strategy: "jwt",
+      cookiePrefix: "better-auth",
+    })) as SessionCachePayload | null;
 
-    if (!response.ok) return null;
-
-    const payload = (await response.json()) as { role?: AppRole };
-    return payload.role ?? null;
+    const role = payload?.user?.role;
+    if (!role) return null;
+    return isAppRole(role) ? role : null;
   } catch {
     return null;
   }
@@ -81,8 +89,19 @@ function redirectTo(request: NextRequest, to: string) {
   return NextResponse.redirect(url);
 }
 
+function mapAdminPathToAppPath(pathname: string): string {
+  return pathname === "/admin" ? "/app" : pathname.replace(/^\/admin/, "/app");
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = mapAdminPathToAppPath(pathname);
+    return NextResponse.redirect(url);
+  }
+
   const sessionToken = getSessionToken(request);
   const isAuthenticated = !!sessionToken;
   const isPublicRoute = isPublicPath(pathname);
@@ -98,11 +117,14 @@ export async function middleware(request: NextRequest) {
     return redirectTo(request, "/");
   }
 
-  // Central role guard for /app/cadastros/*
   if (isAuthenticated && pathname.startsWith("/app/cadastros")) {
     const roleFromCache = sessionToken ? getRoleFromCache(sessionToken) : null;
-    const role = roleFromCache ?? (await getRoleFromSession(request));
-    if (!role) return redirectTo(request, "/app");
+    const role = roleFromCache ?? (await getRoleFromCookieCache(request));
+
+    if (!role) {
+      return NextResponse.next();
+    }
+
     if (!roleFromCache && sessionToken) saveRoleToCache(sessionToken, role);
 
     if (pathname === "/app/cadastros" && !hasAllowedRole(role, CADASTROS_ROUTE_RULES.empresa.allowed)) {

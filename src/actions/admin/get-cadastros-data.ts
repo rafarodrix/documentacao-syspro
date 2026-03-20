@@ -10,6 +10,82 @@ const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 type ActionError = { error: string };
 type SessionContext = { session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>; isSystemRole: boolean };
 
+const companyListSelect = {
+  id: true,
+  cnpj: true,
+  razaoSocial: true,
+  nomeFantasia: true,
+  status: true,
+  logoUrl: true,
+  parentCompanyId: true,
+  accountingFirmId: true,
+  inscricaoEstadual: true,
+  inscricaoMunicipal: true,
+  indicadorIE: true,
+  regimeTributario: true,
+  crt: true,
+  cnae: true,
+  codSuframa: true,
+  dataFundacao: true,
+  emailContato: true,
+  emailFinanceiro: true,
+  telefone: true,
+  whatsapp: true,
+  website: true,
+  observacoes: true,
+  addresses: {
+    select: {
+      id: true,
+      description: true,
+      cep: true,
+      logradouro: true,
+      numero: true,
+      complemento: true,
+      bairro: true,
+      cidade: true,
+      estado: true,
+      pais: true,
+      codigoIbgeCidade: true,
+      codigoIbgeEstado: true,
+    },
+  },
+  _count: { select: { memberships: true } },
+} as const;
+
+const companyOptionSelect = {
+  id: true,
+  razaoSocial: true,
+  nomeFantasia: true,
+  cnpj: true,
+  status: true,
+  _count: { select: { memberships: true } },
+} as const;
+
+const userListSelect = {
+  id: true,
+  name: true,
+  email: true,
+  image: true,
+  role: true,
+  isActive: true,
+  jobTitle: true,
+  cpf: true,
+  phone: true,
+  memberships: {
+    select: {
+      companyId: true,
+      role: true,
+      company: {
+        select: {
+          id: true,
+          razaoSocial: true,
+          nomeFantasia: true,
+        },
+      },
+    },
+  },
+} as const;
+
 async function getSessionContext(): Promise<SessionContext | ActionError> {
   const session = await getProtectedSession();
   if (!session) return { error: "Nao autorizado" };
@@ -37,7 +113,7 @@ export async function getCadastrosCompaniesData() {
       const companies = await prisma.company.findMany({
         where: { deletedAt: null },
         orderBy: { razaoSocial: "asc" },
-        include: { _count: { select: { memberships: true } } },
+        select: companyListSelect,
       });
 
       return { companies, isGlobalView: true };
@@ -49,7 +125,7 @@ export async function getCadastrosCompaniesData() {
     const companies = await prisma.company.findMany({
       where: { id: { in: companyIds }, deletedAt: null },
       orderBy: { razaoSocial: "asc" },
-      include: { _count: { select: { memberships: true } } },
+      select: companyListSelect,
     });
 
     return { companies, isGlobalView: false };
@@ -69,12 +145,12 @@ export async function getCadastrosClientUsersData() {
         prisma.company.findMany({
           where: { deletedAt: null },
           orderBy: { razaoSocial: "asc" },
-          include: { _count: { select: { memberships: true } } },
+          select: companyOptionSelect,
         }),
         prisma.user.findMany({
           where: { deletedAt: null, role: { in: CLIENT_ROLES } },
           orderBy: { name: "asc" },
-          include: { memberships: { include: { company: true } } },
+          select: userListSelect,
         }),
       ]);
 
@@ -88,7 +164,7 @@ export async function getCadastrosClientUsersData() {
       prisma.company.findMany({
         where: { id: { in: companyIds }, deletedAt: null },
         orderBy: { razaoSocial: "asc" },
-        include: { _count: { select: { memberships: true } } },
+        select: companyOptionSelect,
       }),
       prisma.user.findMany({
         where: {
@@ -96,10 +172,11 @@ export async function getCadastrosClientUsersData() {
           role: { in: CLIENT_ROLES },
           memberships: { some: { companyId: { in: companyIds } } },
         },
-        include: {
+        select: {
+          ...userListSelect,
           memberships: {
             where: { companyId: { in: companyIds } },
-            include: { company: true },
+            select: userListSelect.memberships.select,
           },
         },
         orderBy: { name: "asc" },
@@ -125,7 +202,7 @@ export async function getCadastrosSystemUsersData() {
     const users = await prisma.user.findMany({
       where: { deletedAt: null, role: { in: SYSTEM_ROLES } },
       orderBy: { name: "asc" },
-      include: { memberships: { include: { company: true } } },
+      select: userListSelect,
     });
 
     return { users, isGlobalView: true };

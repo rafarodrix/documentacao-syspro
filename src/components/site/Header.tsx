@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Role } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Button } from "@/components/ui/button";
@@ -25,10 +24,7 @@ export async function SiteHeader() {
 
   const user = session?.user as any;
 
-  const dashboardUrl =
-    user?.role === Role.ADMIN || user?.role === Role.DEVELOPER || user?.role === Role.SUPORTE
-      ? '/admin'
-      : '/app';
+  const dashboardUrl = "/app";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">

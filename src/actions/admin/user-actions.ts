@@ -35,6 +35,27 @@ const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 
+const userListSelect = {
+    id: true,
+    name: true,
+    email: true,
+    image: true,
+    role: true,
+    isActive: true,
+    jobTitle: true,
+    cpf: true,
+    phone: true,
+    deletedAt: true,
+    createdAt: true,
+    memberships: {
+        select: {
+            companyId: true,
+            role: true,
+            company: { select: { nomeFantasia: true, razaoSocial: true } }
+        }
+    }
+} as const;
+
 async function getSessionCompanyIds(userId: string): Promise<string[]> {
     const memberships = await prisma.membership.findMany({
         where: { userId },
@@ -112,7 +133,7 @@ export async function getUsersAction(filters?: GetUsersParams): Promise<ActionRe
 
         const users = await prisma.user.findMany({
             where,
-            include: { memberships: { include: { company: { select: { nomeFantasia: true } } } } },
+            select: userListSelect,
             orderBy: { createdAt: 'desc' }
         });
 
