@@ -1,7 +1,7 @@
 import { auth } from "./auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
-import { Role } from "@prisma/client"
+import { CompanyStatus, ContractStatus, Role } from "@prisma/client"
 import { redirect } from "next/navigation"
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -52,6 +52,28 @@ export async function getProtectedSession(): Promise<ProtectedSession | null> {
     if (dbUser.deletedAt) return null
     if (!dbUser.isActive) return null
     if (dbUser.lockoutUntil && dbUser.lockoutUntil > new Date()) return null
+
+    // Bloqueio de acesso para perfis de cliente sem empresa/contrato ativo.
+    if (dbUser.role === Role.CLIENTE_ADMIN || dbUser.role === Role.CLIENTE_USER) {
+      const activeMembership = await prisma.membership.findFirst({
+        where: {
+          userId: dbUser.id,
+          company: {
+            deletedAt: null,
+            status: CompanyStatus.ACTIVE,
+            contracts: {
+              some: {
+                status: ContractStatus.ACTIVE,
+                OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+              },
+            },
+          },
+        },
+        select: { id: true },
+      })
+
+      if (!activeMembership) return null
+    }
 
     return {
       userId: dbUser.id,

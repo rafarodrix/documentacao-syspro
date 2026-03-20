@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { ContractStatus } from "@prisma/client";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -21,6 +23,7 @@ import {
     Wallet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { updateContractStatusAction } from "@/actions/admin/contract-actions";
 
 // --- HELPERS ---
 const formatCurrency = (val: number) =>
@@ -34,6 +37,25 @@ interface ContractsTableProps {
 }
 
 export function ContractsTable({ contracts }: ContractsTableProps) {
+    const [items, setItems] = useState(contracts);
+    const [isPending, startTransition] = useTransition();
+
+    useEffect(() => {
+        setItems(contracts);
+    }, [contracts]);
+
+    const handleSuspend = (contractId: string) => {
+        startTransition(async () => {
+            const result = await updateContractStatusAction(contractId, ContractStatus.SUSPENDED);
+            if (result.success) {
+                toast.success(result.message ?? "Contrato inativado com sucesso.");
+                setItems((prev) => prev.filter((contract) => contract.id !== contractId));
+            } else {
+                toast.error(typeof result.error === "string" ? result.error : "Erro ao inativar contrato.");
+            }
+        });
+    };
+
     return (
         <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
             {/* Efeito de Borda Superior Animada (Magic UI Style) */}
@@ -53,7 +75,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {contracts.length === 0 ? (
+                        {items.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-64 text-center">
                                     <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground animate-in fade-in zoom-in-95 duration-500">
@@ -68,7 +90,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            contracts.map((contract, index) => {
+                            items.map((contract, index) => {
                                 // Cálculos
                                 const gross = contract.minimumWage * (contract.percentage / 100);
                                 const taxDed = gross * (contract.taxRate / 100);
@@ -174,7 +196,11 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
 
                                                     <DropdownMenuSeparator />
 
-                                                    <DropdownMenuItem className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer gap-2">
+                                                    <DropdownMenuItem
+                                                        disabled={isPending}
+                                                        onClick={() => handleSuspend(contract.id)}
+                                                        className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer gap-2"
+                                                    >
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                         Suspender
                                                     </DropdownMenuItem>
