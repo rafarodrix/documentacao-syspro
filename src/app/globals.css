@@ -6,6 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
+@source './**/*.{ts,tsx,md,mdx}';
+@source '../content/**/*.{md,mdx}';
 
 @theme inline {
 
@@ -232,5 +234,19 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .container {
+    margin-inline: auto;
+    padding-inline: 2rem;
+    width: 100%;
+  }
+
+  @media (min-width: 1400px) {
+    .container {
+      max-width: 1400px;
+    }
   }
 }

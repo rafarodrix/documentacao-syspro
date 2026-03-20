@@ -29,7 +29,7 @@ export const createContractSchema = z
     path: ["endDate"],
   });
 
-export const updateContractSchema = createContractSchema.extend({
+export const updateContractSchema = createContractSchema.safeExtend({
   id: z.string().min(1, "ID do contrato obrigatorio."),
 });
 

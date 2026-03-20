@@ -16,6 +16,9 @@ import { mapTicketPriority, mapTicketStatusFromStateName } from "@/core/infrastr
 const ZAMMAD_URL = process.env.ZAMMAD_URL;
 const ZAMMAD_TOKEN = process.env.ZAMMAD_TOKEN;
 const ZAMMAD_AUTH_SCHEME = process.env.ZAMMAD_AUTH_SCHEME?.toLowerCase();
+const ZAMMAD_TIMEOUT_MS = Number(process.env.ZAMMAD_TIMEOUT_MS ?? 10000);
+const ZAMMAD_RETRY_MAX_ATTEMPTS = Number(process.env.ZAMMAD_RETRY_MAX_ATTEMPTS ?? 3);
+const ZAMMAD_RETRY_BASE_DELAY_MS = Number(process.env.ZAMMAD_RETRY_BASE_DELAY_MS ?? 400);
 
 function buildAuthorizationHeader(token: string): string {
     const normalized = token.trim();
@@ -37,7 +40,7 @@ async function fetchZammad(endpoint: string, options: RequestInit = {}) {
         throw new Error("Zammad URL ou Token nao configurados.");
     }
 
-    const res = await fetch(`${ZAMMAD_URL}/api/v1/${endpoint}`, {
+    const res = await fetchWithRetry(`${ZAMMAD_URL}/api/v1/${endpoint}`, {
         ...options,
         headers: {
             Authorization: buildAuthorizationHeader(ZAMMAD_TOKEN),
@@ -50,6 +53,50 @@ async function fetchZammad(endpoint: string, options: RequestInit = {}) {
     }
 
     return res.json();
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableStatus(status: number): boolean {
+    return status === 429 || status >= 500;
+}
+
+async function fetchWithRetry(input: string, options: RequestInit): Promise<Response> {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= ZAMMAD_RETRY_MAX_ATTEMPTS; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), ZAMMAD_TIMEOUT_MS);
+
+        try {
+            const response = await fetch(input, {
+                ...options,
+                cache: options.cache ?? "no-store",
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) return response;
+            if (!isRetryableStatus(response.status) || attempt === ZAMMAD_RETRY_MAX_ATTEMPTS) return response;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            lastError = error;
+
+            if (attempt === ZAMMAD_RETRY_MAX_ATTEMPTS) {
+                break;
+            }
+        }
+
+        const delayMs = ZAMMAD_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+        await sleep(delayMs);
+    }
+
+    throw lastError instanceof Error
+        ? lastError
+        : new Error("Falha ao consultar Zammad apos tentativas e timeout.");
 }
 
 function normalizeSearchResponse(data: unknown): unknown[] {
@@ -130,7 +177,7 @@ export const ZammadGateway = {
     async getTicketCount(query: string): Promise<number> {
         try {
             if (!ZAMMAD_URL || !ZAMMAD_TOKEN) return 0;
-            const res = await fetch(
+            const res = await fetchWithRetry(
                 `${ZAMMAD_URL}/api/v1/tickets/search?query=${encodeURIComponent(query)}&limit=1`,
                 { headers: { Authorization: buildAuthorizationHeader(ZAMMAD_TOKEN) } }
             );
