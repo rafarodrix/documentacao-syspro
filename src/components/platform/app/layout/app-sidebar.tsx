@@ -67,7 +67,6 @@ const NAV_CADASTROS: NavItemType[] = [
 
 const NAV_SYSTEM: NavItemType[] = [
   { title: "Ferramentas", href: "/app/tools", icon: Wrench },
-  { title: "Contratos", href: "/app/configuracoes?tab=contracts", icon: FileText, roles: [...SIDEBAR_ROLE_RULES.contratos] },
 ]
 
 const NAV_DOCS: NavItemType[] = [

@@ -275,6 +275,8 @@ model Contract {
 
   // Opcional: Valor total calculado do contrato (cache)
   totalValue Decimal? @db.Decimal(12, 2)
+  contractNumber String?
+  notes          String?  @db.Text
 
   // --- VIGÊNCIA ---
   startDate DateTime  @default(now())

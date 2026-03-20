@@ -1,7 +1,13 @@
 ﻿"use server";
 
 import { prisma } from "@/lib/prisma";
-import { createContractSchema, CreateContractInput } from "@/core/application/schema/contract-schema";
+import {
+    createContractSchema,
+    updateContractSchema,
+    CreateContractInput,
+    UpdateContractInput,
+    DEFAULT_CONTRACT_TAX_RATE,
+} from "@/core/application/schema/contract-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
@@ -45,6 +51,8 @@ export async function getContractsAction() {
                 minimumWage: true,
                 taxRate: true,
                 programmerRate: true,
+                contractNumber: true,
+                notes: true,
                 status: true,
                 startDate: true,
                 endDate: true,
@@ -99,10 +107,13 @@ export async function createContractAction(data: CreateContractInput) {
                 companyId: data.companyId,
                 percentage: data.percentage,
                 minimumWage: finalMinimumWage,
-                taxRate: data.taxRate,
+                taxRate: data.allowTaxOverride ? data.taxRate : DEFAULT_CONTRACT_TAX_RATE,
                 programmerRate: data.programmerRate,
                 status: data.status,
                 startDate: data.startDate ? new Date(data.startDate) : new Date(),
+                endDate: data.endDate ? new Date(data.endDate) : null,
+                contractNumber: data.contractNumber?.trim() || null,
+                notes: data.notes?.trim() || null,
             }
         });
 
@@ -129,6 +140,47 @@ export async function createContractAction(data: CreateContractInput) {
     } catch (error) {
         console.error("Erro ao criar contrato:", error);
         return { success: false, error: "Erro interno ao salvar contrato." };
+    }
+}
+
+export async function updateContractAction(data: UpdateContractInput) {
+    const session = await getProtectedSession();
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, error: "Permissao negada." };
+    }
+
+    const validation = updateContractSchema.safeParse(data);
+    if (!validation.success) {
+        return { success: false, error: "Dados invalidos." };
+    }
+
+    try {
+        const parsed = validation.data;
+
+        await prisma.contract.update({
+            where: { id: parsed.id },
+            data: {
+                percentage: parsed.percentage,
+                minimumWage: parsed.minimumWage,
+                taxRate: parsed.allowTaxOverride ? parsed.taxRate : DEFAULT_CONTRACT_TAX_RATE,
+                programmerRate: parsed.programmerRate,
+                status: parsed.status,
+                startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
+                endDate: parsed.endDate ? new Date(parsed.endDate) : null,
+                contractNumber: parsed.contractNumber?.trim() || null,
+                notes: parsed.notes?.trim() || null,
+            },
+        });
+
+        revalidatePath("/app/contratos");
+        revalidatePath("/app/configuracoes");
+        revalidatePath("/app/cadastros/empresa");
+        revalidatePath("/app/cadastros/usuarios");
+
+        return { success: true, message: "Contrato atualizado com sucesso." };
+    } catch (error) {
+        console.error("Erro ao atualizar contrato:", error);
+        return { success: false, error: "Erro ao atualizar contrato." };
     }
 }
 

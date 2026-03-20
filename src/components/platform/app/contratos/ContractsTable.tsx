@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -32,12 +34,13 @@ import {
     Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getContractSuspendImpactAction, updateContractStatusAction } from "@/actions/admin/contract-actions";
+import { getContractSuspendImpactAction, updateContractAction, updateContractStatusAction } from "@/actions/admin/contract-actions";
 import {
     ContractBlockReason,
     CONTRACT_BLOCK_REASONS,
     CONTRACT_BLOCK_REASON_LABEL,
 } from "@/core/config/contract-blocking";
+import { DEFAULT_CONTRACT_TAX_RATE } from "@/core/application/schema/contract-schema";
 
 type ContractRow = {
     id: string;
@@ -48,6 +51,9 @@ type ContractRow = {
     programmerRate: number | Prisma.Decimal;
     status: ContractStatus;
     startDate: string | Date;
+    endDate?: string | Date | null;
+    contractNumber?: string | null;
+    notes?: string | null;
     company: {
         id: string;
         razaoSocial: string;
@@ -84,6 +90,18 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
     const [blockReasonDetails, setBlockReasonDetails] = useState("");
     const [suspendImpact, setSuspendImpact] = useState<SuspendImpact | null>(null);
     const [isImpactLoading, setIsImpactLoading] = useState(false);
+    const [editTarget, setEditTarget] = useState<ContractRow | null>(null);
+    const [allowTaxOverride, setAllowTaxOverride] = useState(false);
+    const [editForm, setEditForm] = useState({
+        contractNumber: "",
+        minimumWage: "",
+        percentage: "",
+        taxRate: String(DEFAULT_CONTRACT_TAX_RATE),
+        programmerRate: "",
+        startDate: "",
+        endDate: "",
+        notes: "",
+    });
 
     useEffect(() => {
         setItems(contracts);
@@ -164,6 +182,67 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
         });
     };
 
+    const openEditDialog = (contract: ContractRow) => {
+        const currentTax = toNumber(contract.taxRate);
+        setAllowTaxOverride(currentTax !== DEFAULT_CONTRACT_TAX_RATE);
+        setEditTarget(contract);
+        setEditForm({
+            contractNumber: contract.contractNumber ?? "",
+            minimumWage: String(toNumber(contract.minimumWage)),
+            percentage: String(toNumber(contract.percentage)),
+            taxRate: String(currentTax),
+            programmerRate: String(toNumber(contract.programmerRate)),
+            startDate: new Date(contract.startDate).toISOString().slice(0, 10),
+            endDate: contract.endDate ? new Date(contract.endDate).toISOString().slice(0, 10) : "",
+            notes: contract.notes ?? "",
+        });
+    };
+
+    const handleEditSave = () => {
+        if (!editTarget) return;
+
+        startTransition(async () => {
+            const payload = {
+                id: editTarget.id,
+                companyId: editTarget.companyId,
+                status: editTarget.status,
+                contractNumber: editForm.contractNumber || undefined,
+                notes: editForm.notes || undefined,
+                minimumWage: Number(editForm.minimumWage),
+                percentage: Number(editForm.percentage),
+                taxRate: Number(editForm.taxRate),
+                programmerRate: Number(editForm.programmerRate),
+                startDate: editForm.startDate,
+                endDate: editForm.endDate || undefined,
+                allowTaxOverride,
+            };
+
+            const result = await updateContractAction(payload);
+            if (result.success) {
+                toast.success(result.message ?? "Contrato atualizado com sucesso.");
+                setItems((prev) => prev.map((contract) => (
+                    contract.id === editTarget.id
+                        ? {
+                            ...contract,
+                            contractNumber: editForm.contractNumber || null,
+                            notes: editForm.notes || null,
+                            minimumWage: Number(editForm.minimumWage),
+                            percentage: Number(editForm.percentage),
+                            taxRate: allowTaxOverride ? Number(editForm.taxRate) : DEFAULT_CONTRACT_TAX_RATE,
+                            programmerRate: Number(editForm.programmerRate),
+                            startDate: editForm.startDate,
+                            endDate: editForm.endDate || null,
+                        }
+                        : contract
+                )));
+                setEditTarget(null);
+                return;
+            }
+
+            toast.error(typeof result.error === "string" ? result.error : "Erro ao atualizar contrato.");
+        });
+    };
+
     return (
         <>
             <Dialog
@@ -223,6 +302,113 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                         </Button>
                         <Button variant="destructive" onClick={handleSuspend} disabled={isPending || isImpactLoading}>
                             Confirmar suspensao
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={Boolean(editTarget)} onOpenChange={(open) => !open && setEditTarget(null)}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Editar contrato</DialogTitle>
+                        <DialogDescription>
+                            Atualize os termos financeiros e dados de controle interno do contrato.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label>Numero do contrato</Label>
+                            <Input
+                                value={editForm.contractNumber}
+                                onChange={(event) => setEditForm((prev) => ({ ...prev, contractNumber: event.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Inicio</Label>
+                            <Input
+                                type="date"
+                                value={editForm.startDate}
+                                onChange={(event) => setEditForm((prev) => ({ ...prev, startDate: event.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Fim (opcional)</Label>
+                            <Input
+                                type="date"
+                                value={editForm.endDate}
+                                onChange={(event) => setEditForm((prev) => ({ ...prev, endDate: event.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Base de calculo</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                value={editForm.minimumWage}
+                                onChange={(event) => setEditForm((prev) => ({ ...prev, minimumWage: event.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>% cobrado do cliente</Label>
+                            <Input
+                                type="number"
+                                step="0.1"
+                                value={editForm.percentage}
+                                onChange={(event) => setEditForm((prev) => ({ ...prev, percentage: event.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label>Impostos (%)</Label>
+                                <div className="flex items-center gap-2">
+                                    <Label htmlFor="editAllowTaxOverride" className="text-xs text-muted-foreground">Override admin</Label>
+                                    <Switch
+                                        id="editAllowTaxOverride"
+                                        checked={allowTaxOverride}
+                                        onCheckedChange={(checked) => {
+                                            setAllowTaxOverride(checked);
+                                            if (!checked) {
+                                                setEditForm((prev) => ({ ...prev, taxRate: String(DEFAULT_CONTRACT_TAX_RATE) }));
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            <Input
+                                type="number"
+                                step="0.1"
+                                disabled={!allowTaxOverride}
+                                value={editForm.taxRate}
+                                onChange={(event) => setEditForm((prev) => ({ ...prev, taxRate: event.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Repasse parceiro (%)</Label>
+                            <Input
+                                type="number"
+                                step="0.1"
+                                value={editForm.programmerRate}
+                                onChange={(event) => setEditForm((prev) => ({ ...prev, programmerRate: event.target.value }))}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Observacoes</Label>
+                        <Textarea
+                            rows={3}
+                            value={editForm.notes}
+                            onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))}
+                        />
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditTarget(null)} disabled={isPending}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleEditSave} disabled={isPending}>
+                            Salvar alteracoes
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -351,7 +537,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                                                         <DropdownMenuLabel className="text-xs text-muted-foreground">Gerenciar Contrato</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
 
-                                                        <DropdownMenuItem onClick={() => toast.info("Em breve: Edicao")} className="cursor-pointer gap-2">
+                                                        <DropdownMenuItem onClick={() => openEditDialog(contract)} className="cursor-pointer gap-2">
                                                             <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                                                             Editar Termos
                                                         </DropdownMenuItem>
