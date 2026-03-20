@@ -38,7 +38,7 @@ export interface MembershipCompany {
 
 // ─── Variações por contexto ───────────────────────────────────────────────────
 
-/** Usuário com vínculos — usado em UserTab e EditUserDialog */
+/** Usuário com vínculos — usado em UserTab, SystemUserTab e formulário unificado */
 export interface UserWithRelations extends UserBase {
   memberships: UserMembership[]
 }

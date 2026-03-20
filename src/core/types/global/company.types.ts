@@ -62,7 +62,7 @@ export interface CompanyWithDetails extends CompanyWithAddress {
 
 /**
  * Opção simplificada para Selects e Comboboxes.
- * Usada em CreateUserDialog, EditUserDialog, UserMembershipsList.
+ * Usada em UserTab e CreateUserPageForm.
  */
 export interface CompanyOption {
   id: string

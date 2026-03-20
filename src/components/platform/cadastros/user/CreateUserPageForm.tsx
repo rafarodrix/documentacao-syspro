@@ -276,11 +276,15 @@ export function CreateUserPageForm({
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Empresa</FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                                  <Select
+                                    onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
+                                    value={field.value && companies.some((company) => company.id === field.value) ? field.value : "__none__"}
+                                  >
                                     <FormControl>
                                       <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
+                                      <SelectItem value="__none__">Selecione...</SelectItem>
                                       {companies.map((company) => (
                                         <SelectItem key={company.id} value={company.id}>
                                           {company.nomeFantasia || company.razaoSocial}
