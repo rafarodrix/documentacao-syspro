@@ -140,8 +140,32 @@ type ClientDashboardData = {
   activity: ActivityPoint[];
 };
 
-async function getDashboardData(email: string, role: Role): Promise<AdminDashboardData | ClientDashboardData> {
+async function getUserDashboardUF(userId: string): Promise<string> {
+  const membership = await prisma.membership.findFirst({
+    where: {
+      userId,
+      company: { deletedAt: null },
+    },
+    select: {
+      company: {
+        select: {
+          addresses: {
+            take: 1,
+            orderBy: { id: "asc" },
+            select: { estado: true },
+          },
+        },
+      },
+    },
+  });
+
+  const state = membership?.company?.addresses?.[0]?.estado?.trim().toUpperCase();
+  return state && state.length === 2 ? state : "MG";
+}
+
+async function getDashboardData(userId: string, email: string, role: Role): Promise<AdminDashboardData | ClientDashboardData> {
   const isSystemUser = SYSTEM_ROLES.includes(role);
+  const dashboardUF = await getUserDashboardUF(userId);
 
   if (isSystemUser) {
     const { start } = getLast7DaysRange();
@@ -188,7 +212,7 @@ async function getDashboardData(email: string, role: Role): Promise<AdminDashboa
         },
       }),
       prisma.sefazStatus.findMany({
-        where: { uf: "MG" },
+        where: { uf: dashboardUF },
         orderBy: { createdAt: "desc" },
         distinct: ["service"],
         take: 2,
@@ -211,13 +235,22 @@ async function getDashboardData(email: string, role: Role): Promise<AdminDashboa
       estado: c.addresses[0]?.estado ?? null,
     }));
 
-    const sefazNfe =
-      (sefazRecords.find((s) => s.service === "NFE") as AdminDashboardData["sefazNfe"]) ||
-      ({ uf: "MG", service: "NFE", status: "OFFLINE", latency: 0 } as const);
+    const latestNfe = sefazRecords.find((s) => s.service === "NFE");
+    const latestNfce = sefazRecords.find((s) => s.service === "NFCE");
 
-    const sefazNfce =
-      (sefazRecords.find((s) => s.service === "NFCE") as AdminDashboardData["sefazNfce"]) ||
-      ({ uf: "MG", service: "NFCE", status: "OFFLINE", latency: 0 } as const);
+    const sefazNfe: AdminDashboardData["sefazNfe"] = {
+      uf: dashboardUF,
+      service: "NFE",
+      status: latestNfe?.status ?? "OFFLINE",
+      latency: latestNfe?.latency ?? 0,
+    };
+
+    const sefazNfce: AdminDashboardData["sefazNfce"] = {
+      uf: dashboardUF,
+      service: "NFCE",
+      status: latestNfce?.status ?? "OFFLINE",
+      latency: latestNfce?.latency ?? 0,
+    };
 
     return {
       mode: "admin",
@@ -276,7 +309,7 @@ async function getDashboardData(email: string, role: Role): Promise<AdminDashboa
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const data = await getDashboardData(session.email, session.role);
+  const data = await getDashboardData(session.userId, session.email, session.role);
   const isSystemUser = data.mode === "admin";
 
   return (
