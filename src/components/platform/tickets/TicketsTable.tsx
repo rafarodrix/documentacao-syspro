@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, Building2, SearchX } from "lucide-react";
+import { ArrowUpRight, Building2, Loader2, SearchX } from "lucide-react";
+import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,15 +18,40 @@ interface TicketsTableProps {
 export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
+    const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
     const runQuickAction = (ticketId: number, action: "assume" | "priority_high" | "macro_followup") => {
+        const actionKey = `${ticketId}:${action}`;
+        setLoadingAction(actionKey);
+
         startTransition(async () => {
-            await fetch(`/api/platform/tickets/${ticketId}/quick-actions`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action }),
-            });
-            router.refresh();
+            try {
+                const response = await fetch(`/api/platform/tickets/${ticketId}/quick-actions`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action }),
+                });
+                const json = (await response.json()) as { success?: boolean; error?: string };
+
+                if (!response.ok || !json.success) {
+                    toast.error(json.error || "Falha ao executar acao rapida.");
+                    return;
+                }
+
+                const label =
+                    action === "assume"
+                        ? "Ticket assumido com sucesso."
+                        : action === "priority_high"
+                          ? "Prioridade alterada para alta."
+                          : "Macro aplicada com sucesso.";
+
+                toast.success(label);
+                router.refresh();
+            } catch {
+                toast.error("Erro de conexao ao executar acao rapida.");
+            } finally {
+                setLoadingAction(null);
+            }
         });
     };
 
@@ -83,15 +109,21 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                                     <div className="flex justify-end gap-2">
                                         {isAdmin && (
                                             <>
-                                                <Button variant="outline" size="sm" onClick={() => runQuickAction(ticket.id, "assume")} disabled={isPending}>
-                                                    Assumir
-                                                </Button>
-                                                <Button variant="outline" size="sm" onClick={() => runQuickAction(ticket.id, "priority_high")} disabled={isPending}>
-                                                    Alta
-                                                </Button>
-                                                <Button variant="outline" size="sm" onClick={() => runQuickAction(ticket.id, "macro_followup")} disabled={isPending}>
-                                                    Macro
-                                                </Button>
+                                                <QuickButton
+                                                    label="Assumir"
+                                                    pending={isPending && loadingAction === `${ticket.id}:assume`}
+                                                    onClick={() => runQuickAction(ticket.id, "assume")}
+                                                />
+                                                <QuickButton
+                                                    label="Alta"
+                                                    pending={isPending && loadingAction === `${ticket.id}:priority_high`}
+                                                    onClick={() => runQuickAction(ticket.id, "priority_high")}
+                                                />
+                                                <QuickButton
+                                                    label="Macro"
+                                                    pending={isPending && loadingAction === `${ticket.id}:macro_followup`}
+                                                    onClick={() => runQuickAction(ticket.id, "macro_followup")}
+                                                />
                                             </>
                                         )}
                                         <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10 hover:text-primary h-8 px-3 rounded-full">
@@ -111,6 +143,14 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
     );
 }
 
+function QuickButton({ label, pending, onClick }: { label: string; pending: boolean; onClick: () => void }) {
+    return (
+        <Button variant="outline" size="sm" onClick={onClick} disabled={pending}>
+            {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : label}
+        </Button>
+    );
+}
+
 const STATUS_CONFIG = [
     { keywords: ["1. novo", "new"], color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400" },
     { keywords: ["2. em analise", "3. em desenvolvimento", "pending", "pendente"], color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400" },
@@ -126,7 +166,6 @@ function StatusBadge({ status, rawStatus }: { status: string; rawStatus: string 
     const matchedConfig = STATUS_CONFIG.find((config) => config.keywords.some((keyword) => term.includes(keyword)));
     const style = matchedConfig ? matchedConfig.color : DEFAULT_STYLE;
     const label = status.replace(/^\d+\.\s*/, "");
-
     return (
         <Badge variant="outline" className={`border ${style} font-medium px-2.5 py-0.5 rounded-full text-[10px] whitespace-nowrap`}>
             {label}
@@ -141,15 +180,12 @@ function PriorityBadge({ priority }: { priority: TicketPriorityLevel }) {
 }
 
 function SlaBadge({ ticket }: { ticket: TicketListItem }) {
-    if (ticket.slaBreached) {
-        return <Badge variant="destructive" className="text-[10px] px-2 rounded-full">SLA estourado</Badge>;
-    }
+    if (ticket.slaBreached) return <Badge variant="destructive" className="text-[10px] px-2 rounded-full">SLA estourado</Badge>;
     if (ticket.slaWarning) {
-        return <Badge variant="outline" className="text-[10px] px-2 rounded-full border-amber-500/50 text-amber-400">SLA alerta</Badge>;
+        const suffix = typeof ticket.minutesToBreach === "number" && ticket.minutesToBreach > 0 ? ` (${ticket.minutesToBreach} min)` : "";
+        return <Badge variant="outline" className="text-[10px] px-2 rounded-full border-amber-500/50 text-amber-400">SLA alerta{suffix}</Badge>;
     }
-    if (ticket.firstResponseAt) {
-        return <Badge variant="secondary" className="text-[10px] px-2 rounded-full">Respondido</Badge>;
-    }
+    if (ticket.firstResponseAt) return <Badge variant="secondary" className="text-[10px] px-2 rounded-full">Respondido</Badge>;
     return <Badge variant="outline" className="text-[10px] px-2 rounded-full">No prazo</Badge>;
 }
 

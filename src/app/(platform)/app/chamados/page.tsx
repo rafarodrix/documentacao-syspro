@@ -20,7 +20,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     ? (queueParam as "all" | "my_queue" | "unassigned" | "critical" | "no_response")
     : "all";
 
-  const { data, success, pagination, staleWarning } = await getTicketsAction({ page, pageSize: 20, queue });
+  const { data, success, pagination, staleWarning, queueCounts } = await getTicketsAction({ page, pageSize: 20, queue });
 
   if (!success || !data) {
     return (
@@ -38,6 +38,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       pagination={pagination}
       staleWarning={staleWarning}
       queue={queue}
+      queueCounts={queueCounts}
     />
   );
 }

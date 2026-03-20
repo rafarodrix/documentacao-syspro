@@ -1,42 +1,77 @@
-// Rota API para revalidação de cache baseada em webhooks. 
-// Recebe um payload com ticket_id e revalida páginas e tags específicas
-// quando um ticket relevante é atualizado no Zammad.
-// Protegido por um token secreto passado como query param para evitar acessos não autorizados.
+import crypto from "crypto";
+import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 
-import { NextResponse } from 'next/server';
-import { revalidatePath, revalidateTag } from 'next/cache';
+type RevalidateScope = "releases" | "tickets" | "all";
+
+function safeEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+function extractToken(request: Request): string {
+  const url = new URL(request.url);
+  const queryToken = url.searchParams.get("secret") ?? "";
+  const headerToken = request.headers.get("x-revalidate-token") ?? "";
+  const authHeader = request.headers.get("authorization") ?? "";
+  const bearerToken = authHeader.toLowerCase().startsWith("bearer ")
+    ? authHeader.slice(7).trim()
+    : "";
+  return headerToken || bearerToken || queryToken;
+}
+
+function normalizeScope(raw: unknown): RevalidateScope {
+  if (raw === "tickets" || raw === "all") return raw;
+  return "releases";
+}
 
 export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url);
+  const expectedToken = process.env.REVALIDATE_TOKEN ?? "";
+  const receivedToken = extractToken(request);
 
-  const secret = searchParams.get('secret');
-  if (secret !== process.env.REVALIDATE_TOKEN) {
-    return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+  if (!expectedToken || !receivedToken || !safeEqual(receivedToken, expectedToken)) {
+    return NextResponse.json({ message: "Invalid token" }, { status: 401 });
   }
 
   try {
-    const body = await request.json();
-    const ticketId = body.ticket_id;
+    const body = await request.json().catch(() => ({}));
+    const ticketId = body?.ticket_id ? String(body.ticket_id) : null;
+    const scope = normalizeScope(body?.scope);
+    const revalidatedPaths: string[] = [];
+    const revalidatedTags: string[] = [];
 
-    if (!ticketId) {
-      return NextResponse.json({ message: 'Ticket ID not found in payload' }, { status: 400 });
+    if (scope === "releases" || scope === "all") {
+      revalidateTag("releases");
+      revalidatePath("/releases");
+      revalidatedTags.push("releases");
+      revalidatedPaths.push("/releases");
     }
 
-    console.log(`Gatilho de revalidação recebido para o Ticket ID: ${ticketId}`);
+    if (scope === "tickets" || scope === "all") {
+      revalidateTag("tickets-list");
+      revalidateTag("tickets-dashboard");
+      revalidatePath("/app");
+      revalidatePath("/app/chamados");
+      revalidatedTags.push("tickets-list", "tickets-dashboard");
+      revalidatedPaths.push("/app", "/app/chamados");
+      if (ticketId) {
+        revalidatePath(`/app/chamados/${ticketId}`);
+        revalidatedPaths.push(`/app/chamados/${ticketId}`);
+      }
+    }
 
-
-    revalidateTag('releases');
-
-    // 3. Revalide os caminhos das PÁGINAS
-    revalidatePath('/releases');
-
-    const revalidatedPaths = ['/releases'];
-    console.log('Cache de dados (tag: releases) e caminhos revalidados com sucesso:', revalidatedPaths);
-
-    return NextResponse.json({ revalidated: true, paths: revalidatedPaths, now: Date.now() });
-
+    return NextResponse.json({
+      revalidated: true,
+      scope,
+      tags: revalidatedTags,
+      paths: revalidatedPaths,
+      now: Date.now(),
+    });
   } catch (err) {
-    console.error('Erro ao revalidar cache:', err);
-    return NextResponse.json({ message: 'Error revalidating' }, { status: 500 });
+    console.error("Erro ao revalidar cache:", err);
+    return NextResponse.json({ message: "Error revalidating" }, { status: 500 });
   }
 }
+

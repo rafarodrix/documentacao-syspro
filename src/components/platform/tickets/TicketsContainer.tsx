@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TicketListItem } from "./types";
 
+type QueueKey = "all" | "my_queue" | "unassigned" | "critical" | "no_response";
+
 interface TicketsContainerProps {
     tickets: TicketListItem[];
     isAdmin: boolean;
@@ -22,10 +24,18 @@ interface TicketsContainerProps {
         total: number | null;
     };
     staleWarning?: string;
-    queue: "all" | "my_queue" | "unassigned" | "critical" | "no_response";
+    queue: QueueKey;
+    queueCounts: Record<QueueKey, number>;
 }
 
-export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination, staleWarning, queue }: TicketsContainerProps) {
+export function TicketsContainer({
+    tickets: initialTickets,
+    isAdmin,
+    pagination,
+    staleWarning,
+    queue,
+    queueCounts,
+}: TicketsContainerProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("open");
     const router = useRouter();
@@ -37,7 +47,7 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
         if (s.includes("1. novo") || s.includes("1.novo")) return "open";
         if (
             s.includes("7. finalizado") ||
-            s.includes("8. não foi possível reproduzir") ||
+            s.includes("8. nao foi possivel reproduzir") ||
             s.includes("9. recusado") ||
             s.includes("fechado") ||
             s.includes("merged")
@@ -64,7 +74,7 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
         router.push(`${pathname}?${params.toString()}`);
     };
 
-    const setQueueFilter = (nextQueue: TicketsContainerProps["queue"]) => {
+    const setQueueFilter = (nextQueue: QueueKey) => {
         const params = new URLSearchParams(searchParams?.toString() || "");
         params.set("queue", nextQueue);
         params.set("page", "1");
@@ -75,7 +85,7 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
             {staleWarning && (
                 <Alert className="border-amber-500/40 bg-amber-500/10">
-                    <AlertTitle>Dados em modo contingência</AlertTitle>
+                    <AlertTitle>Dados em modo contingencia</AlertTitle>
                     <AlertDescription>{staleWarning}</AlertDescription>
                 </Alert>
             )}
@@ -86,9 +96,7 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
                         {isAdmin ? "Central de Atendimento" : "Meus Chamados"}
                     </h1>
                     <p className="text-muted-foreground text-lg mt-1">
-                        {isAdmin
-                            ? "Gerencie a fila de suporte e solicitações."
-                            : "Acompanhe o status das suas solicitações."}
+                        {isAdmin ? "Gerencie a fila de suporte e solicitacoes." : "Acompanhe o status das suas solicitacoes."}
                     </p>
                 </div>
                 {!isAdmin && <TicketSheet />}
@@ -99,19 +107,19 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
             {isAdmin && (
                 <div className="flex flex-wrap gap-2">
                     <Button variant={queue === "all" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("all")}>
-                        Todos
+                        Todos ({queueCounts.all})
                     </Button>
                     <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("my_queue")}>
-                        Minha fila
+                        Minha fila ({queueCounts.my_queue})
                     </Button>
                     <Button variant={queue === "unassigned" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("unassigned")}>
-                        Sem dono
+                        Sem dono ({queueCounts.unassigned})
                     </Button>
                     <Button variant={queue === "critical" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("critical")}>
-                        Críticos
+                        Criticos ({queueCounts.critical})
                     </Button>
                     <Button variant={queue === "no_response" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("no_response")}>
-                        Sem resposta
+                        Sem resposta ({queueCounts.no_response})
                     </Button>
                 </div>
             )}
@@ -129,7 +137,7 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
             {(pagination.hasPreviousPage || pagination.hasNextPage) && (
                 <div className="flex items-center justify-end gap-2 pt-2">
                     <span className="text-sm text-muted-foreground mr-2">
-                        Página {pagination.page}
+                        Pagina {pagination.page}
                         {pagination.total !== null ? ` de ${Math.max(1, Math.ceil(pagination.total / pagination.pageSize))}` : ""}
                     </span>
                     <Button
@@ -155,3 +163,4 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
         </div>
     );
 }
+
