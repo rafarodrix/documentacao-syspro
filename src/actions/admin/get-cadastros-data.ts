@@ -16,6 +16,7 @@ const companyListSelect = {
   cnpj: true,
   razaoSocial: true,
   nomeFantasia: true,
+  segment: true,
   status: true,
   logoUrl: true,
   parentCompanyId: true,
@@ -58,6 +59,7 @@ const companyOptionSelect = {
   razaoSocial: true,
   nomeFantasia: true,
   cnpj: true,
+  segment: true,
   status: true,
   _count: { select: { memberships: true } },
 } as const;

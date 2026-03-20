@@ -5,13 +5,32 @@ import {
   DocsDescription,
   DocsTitle,
 } from 'fumadocs-ui/page';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
+import { Role } from '@prisma/client';
+import { requireSession, canAccessByCompanySegment } from '@/lib/auth-helpers';
+import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/core/config/docs-access';
+import { SYSTEM_ROLES } from '@/core/config/route-access';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
   const params = await props.params;
+  const session = await requireSession();
+  const slug = params.slug ?? [];
+
+  if (isTechnicalManualSlug(slug) && !SYSTEM_ROLES.includes(session.role)) {
+    redirect("/docs");
+  }
+
+  if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
+    const requiredSegments = getRequiredSegmentsForDocSlug(slug);
+    const hasAccess = await canAccessByCompanySegment(session.userId, requiredSegments);
+    if (!hasAccess) {
+      redirect("/docs");
+    }
+  }
+
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
@@ -49,4 +68,3 @@ export async function generateMetadata(props: {
     description: page.data.description,
   };
 }
-

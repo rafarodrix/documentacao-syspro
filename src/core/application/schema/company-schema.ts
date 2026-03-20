@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TaxRegime, CompanyStatus, IndicadorIE } from "@prisma/client";
+import { TaxRegime, CompanyStatus, IndicadorIE, CompanySegment } from "@prisma/client";
 
 const emptyToUndefined = z.preprocess(
   (val) => (val === "" || val === null ? undefined : val),
@@ -38,6 +38,7 @@ export const createCompanySchema = z
       .transform((val) => val.replace(/\D/g, "")),
     razaoSocial: z.string().min(3, "Razão Social é obrigatória").trim(),
     nomeFantasia: emptyToUndefined,
+    segment: z.nativeEnum(CompanySegment).nullable().optional(),
     status: z.nativeEnum(CompanyStatus).default(CompanyStatus.ACTIVE),
     logoUrl: emptyToUndefined.pipe(z.string().url("URL inválida").optional()),
 

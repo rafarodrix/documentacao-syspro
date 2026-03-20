@@ -33,6 +33,18 @@ enum ContractStatus {
   SUSPENDED
 }
 
+enum CompanySegment {
+  AUTO_PECAS
+  COMERCIAL
+  FARMACIA
+  PANIFICACAO
+  AGRICOLA
+  PETSHOP
+  ESQUADRIAS
+  MARMORARIA
+  ASSISTENCIA
+}
+
 enum TaxRegime {
   SIMPLES_NACIONAL
   SIMPLES_NACIONAL_EXCESSO
@@ -69,6 +81,7 @@ model Company {
   cnpj         String        @unique
   razaoSocial  String
   nomeFantasia String?
+  segment      CompanySegment?
   status       CompanyStatus @default(ACTIVE)
   logoUrl      String?
 

@@ -1,6 +1,6 @@
 ﻿import { NextResponse, type NextRequest } from "next/server";
 import { getCookieCache } from "better-auth/cookies";
-import { APP_ROLES, CADASTROS_ROUTE_RULES, SYSTEM_ROLES, hasAllowedRole, type AppRole } from "@/core/config/route-access";
+import { APP_ROLES, CADASTROS_ROUTE_RULES, DOCS_ROUTE_RULES, SYSTEM_ROLES, hasAllowedRole, type AppRole } from "@/core/config/route-access";
 
 type CachedRole = { role: AppRole; expiresAt: number };
 type SessionCachePayload = {
@@ -81,6 +81,15 @@ async function getRoleFromCookieCache(request: NextRequest): Promise<AppRole | n
   }
 }
 
+async function resolveRequestRole(request: NextRequest, sessionToken?: string): Promise<AppRole | null> {
+  const roleFromCache = sessionToken ? getRoleFromCache(sessionToken) : null;
+  if (roleFromCache) return roleFromCache;
+
+  const roleFromCookie = await getRoleFromCookieCache(request);
+  if (roleFromCookie && sessionToken) saveRoleToCache(sessionToken, roleFromCookie);
+  return roleFromCookie;
+}
+
 function redirectTo(request: NextRequest, to: string) {
   const url = request.nextUrl.clone();
   url.pathname = to;
@@ -115,15 +124,15 @@ export async function middleware(request: NextRequest) {
     return redirectTo(request, "/");
   }
 
-  if (isAuthenticated && pathname.startsWith("/app/cadastros")) {
-    const roleFromCache = sessionToken ? getRoleFromCache(sessionToken) : null;
-    const role = roleFromCache ?? (await getRoleFromCookieCache(request));
+  if (
+    isAuthenticated &&
+    (pathname.startsWith("/app/cadastros") || pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix))
+  ) {
+    const role = await resolveRequestRole(request, sessionToken);
 
     if (!role) {
       return NextResponse.next();
     }
-
-    if (!roleFromCache && sessionToken) saveRoleToCache(sessionToken, role);
 
     if (pathname === "/app/cadastros" && !hasAllowedRole(role, CADASTROS_ROUTE_RULES.empresa.allowed)) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.root.redirectIfBlocked);
@@ -139,6 +148,13 @@ export async function middleware(request: NextRequest) {
 
     if (pathname.startsWith(CADASTROS_ROUTE_RULES.usuarios.pathPrefix) && !hasAllowedRole(role, CADASTROS_ROUTE_RULES.usuarios.allowed)) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked);
+    }
+
+    if (
+      pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix) &&
+      !hasAllowedRole(role, DOCS_ROUTE_RULES.technical.allowed)
+    ) {
+      return redirectTo(request, DOCS_ROUTE_RULES.technical.redirectIfBlocked);
     }
   }
 

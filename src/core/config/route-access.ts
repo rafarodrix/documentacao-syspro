@@ -29,6 +29,14 @@ export const CADASTROS_ROUTE_RULES = {
   },
 } as const;
 
+export const DOCS_ROUTE_RULES = {
+  technical: {
+    pathPrefix: "/docs/manuais-tecnicos",
+    allowed: SYSTEM_ROLES,
+    redirectIfBlocked: "/docs",
+  },
+} as const;
+
 export const SIDEBAR_ROLE_RULES = {
   chamadosCliente: ["CLIENTE_ADMIN", "CLIENTE_USER"],
   chamadosSistema: SYSTEM_ROLES,

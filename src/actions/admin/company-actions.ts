@@ -5,6 +5,7 @@ import { createCompanySchema, CreateCompanyInput } from "@/core/application/sche
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma, CompanyStatus, Role } from "@prisma/client";
+import { resolveCompanySegmentTriggers } from "@/core/config/company-segments";
 
 export type ActionResponse = {
   success: boolean;
@@ -144,8 +145,10 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
       },
     });
 
+    const segmentTriggers = resolveCompanySegmentTriggers(result.segment);
+
     revalidateCadastrosPaths();
-    return { success: true, message: "Empresa criada com sucesso!", data: result };
+    return { success: true, message: "Empresa criada com sucesso!", data: { ...result, segmentTriggers } };
   } catch (error: any) {
     return handleActionError(error);
   }
@@ -217,8 +220,10 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
       });
     });
 
+    const segmentTriggers = resolveCompanySegmentTriggers(validData.segment);
+
     revalidateCadastrosPaths();
-    return { success: true, message: "Empresa atualizada com sucesso!" };
+    return { success: true, message: "Empresa atualizada com sucesso!", data: { segmentTriggers } };
   } catch (error: any) {
     return handleActionError(error);
   }

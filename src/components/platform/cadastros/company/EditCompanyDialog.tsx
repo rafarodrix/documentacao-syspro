@@ -6,11 +6,12 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { createCompanySchema, CreateCompanyInput } from "@/core/application/schema/company-schema"
 import { updateCompanyAction } from "@/actions/admin/company-actions"
-import { TaxRegime, IndicadorIE, CompanyStatus } from "@prisma/client"
+import { TaxRegime, IndicadorIE, CompanyStatus, CompanySegment } from "@prisma/client"
 import { toast } from "sonner"
 import { formatCNPJ, formatPhone } from "@/lib/formatters"
 import { useAddressLookup } from "@/hooks/use-address-lookup"
 import { cn } from "@/lib/utils"
+import { COMPANY_SEGMENT_LABELS } from "@/core/config/company-segments"
 
 import {
   Dialog,
@@ -88,7 +89,7 @@ const SECTIONS: Section[] = [
     label: "Identificação",
     description: "Dados cadastrais",
     icon: Building2,
-    fields: ["cnpj", "razaoSocial", "nomeFantasia", "logoUrl", "dataFundacao", "status"],
+    fields: ["cnpj", "razaoSocial", "nomeFantasia", "segment", "logoUrl", "dataFundacao", "status"],
   },
   {
     id: "fiscal",
@@ -309,7 +310,37 @@ function GeralSection({ form, canEditCnpj = true }: SectionProps) {
         )}
       />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
+        <FormField
+          control={form.control}
+          name="segment"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Segmento</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value === "__none__" ? undefined : value)}
+                value={(field.value as string) ?? "__none__"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o segmento" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="__none__">Nao definido</SelectItem>
+                  {Object.values(CompanySegment).map((segment) => (
+                    <SelectItem key={segment} value={segment}>
+                      {COMPANY_SEGMENT_LABELS[segment]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>Segmento usado para gatilhos de regra.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="status"
@@ -878,6 +909,7 @@ export function EditCompanyDialog({ open, onOpenChange, company, canEditCnpj = t
       cnpj: "",
       razaoSocial: "",
       nomeFantasia: "",
+      segment: undefined,
       address: {
         description: "Sede",
         cep: "",
@@ -907,6 +939,7 @@ export function EditCompanyDialog({ open, onOpenChange, company, canEditCnpj = t
         cnpj: formatCNPJ(company.cnpj ?? ""),
         razaoSocial: company.razaoSocial ?? "",
         nomeFantasia: company.nomeFantasia ?? "",
+        segment: company.segment ?? undefined,
         logoUrl: company.logoUrl ?? "",
         status: company.status ?? CompanyStatus.ACTIVE,
         indicadorIE: company.indicadorIE ?? IndicadorIE.NAO_CONTRIBUINTE,

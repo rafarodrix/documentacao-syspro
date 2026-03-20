@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { CompanyStatus } from "@prisma/client"
+import { CompanySegment, CompanyStatus } from "@prisma/client"
 import { toast } from "sonner"
 import {
   Table,
@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { getCompanySegmentLabel } from "@/core/config/company-segments"
 
 import { CreateCompanyDialog } from "./CreateCompanyDialog"
 import { EditCompanyDialog } from "./EditCompanyDialog"
@@ -35,6 +36,7 @@ interface CompanyWithRelations {
   cnpj: string
   razaoSocial: string
   nomeFantasia: string | null
+  segment?: CompanySegment | null
   status: CompanyStatus
   contractBlockReasonLabel?: string | null
   isBlockedByContract?: boolean
@@ -401,6 +403,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
               <TableRow className="bg-muted/30 hover:bg-muted/30 border-b border-border/40">
                 <TableHead className="py-3.5 px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Organizacao</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">CNPJ</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Segmento</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Membros</TableHead>
                 <TableHead className="text-right px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acoes</TableHead>
@@ -410,7 +413,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-12 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</TableCell>
+                  <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((company) => {
@@ -436,6 +439,12 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
                         <code className="text-[11px] font-mono bg-muted/50 px-2 py-1 rounded-md text-muted-foreground border border-border/30 whitespace-nowrap">
                           {formatCNPJ(company.cnpj)}
                         </code>
+                      </TableCell>
+
+                      <TableCell>
+                        <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          {getCompanySegmentLabel(company.segment)}
+                        </span>
                       </TableCell>
 
                       <TableCell>
