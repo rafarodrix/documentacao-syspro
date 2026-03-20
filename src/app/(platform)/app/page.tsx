@@ -17,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
+import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
@@ -233,6 +234,8 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
       return status !== "Resolvido";
     });
 
+    await upsertOperationalTicketsToCache(activeTickets);
+
     const tickets = activeTickets.slice(0, 5).map(normalizeOperationalTicket);
     const totalOpen = activeTickets.length;
 
@@ -291,7 +294,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
   ]);
 
   const userTickets = scopedEmails.length
-      ? await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
+    ? await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
         limit: 50,
         perEmailLimit: 10,
         cacheTtlSeconds: 60,
@@ -299,6 +302,8 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
         routeKey: "app-dashboard",
       })
     : [];
+
+  await upsertOperationalTicketsToCache(userTickets);
 
   const tickets = userTickets
     .filter((ticket) => {

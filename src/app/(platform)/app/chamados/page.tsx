@@ -14,8 +14,13 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const pageParam = typeof params?.page === "string" ? Number(params.page) : 1;
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+  const queueParam = typeof params?.queue === "string" ? params.queue : "all";
 
-  const { data, success, pagination, staleWarning } = await getTicketsAction({ page, pageSize: 20 });
+  const queue = ["all", "my_queue", "unassigned", "critical", "no_response"].includes(queueParam)
+    ? (queueParam as "all" | "my_queue" | "unassigned" | "critical" | "no_response")
+    : "all";
+
+  const { data, success, pagination, staleWarning } = await getTicketsAction({ page, pageSize: 20, queue });
 
   if (!success || !data) {
     return (
@@ -32,6 +37,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       isAdmin={SYSTEM_ROLES.includes(session.role)}
       pagination={pagination}
       staleWarning={staleWarning}
+      queue={queue}
     />
   );
 }

@@ -441,3 +441,39 @@ model SefazStatus {
 
   @@index([uf, service, createdAt])
 }
+
+model ZammadTicketCache {
+  id             String   @id @default(cuid())
+  zammadTicketId Int      @unique
+  number         String
+  title          String
+  state          String?
+  stateId        Int?
+  priorityId     Int?
+  groupName      String?
+  customer       String?
+  ownerId        Int?
+  firstResponseAt DateTime?
+  resolvedAt     DateTime?
+  escalationAt   DateTime?
+  breached       Boolean  @default(false)
+  createdAtZammad DateTime
+  updatedAtZammad DateTime
+  lastEventType  String?
+  lastSyncedAt   DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([updatedAtZammad])
+  @@index([stateId, priorityId])
+  @@index([ownerId])
+  @@index([breached])
+}
+
+model ZammadSyncState {
+  key               String   @id
+  lastWebhookAt     DateTime?
+  lastWorkerSyncAt  DateTime?
+  lastProcessedAt   DateTime?
+  updatedAt         DateTime @updatedAt
+}

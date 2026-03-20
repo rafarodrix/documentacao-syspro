@@ -26,7 +26,8 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/search") ||
-    pathname.startsWith("/api/revalidate")
+    pathname.startsWith("/api/revalidate") ||
+    pathname.startsWith("/api/platform/zammad")
   );
 }
 

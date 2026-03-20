@@ -4,6 +4,8 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { isAnalysisOrDevelopmentStateId, isAnalysisOrDevelopmentStateName } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { Role } from "@prisma/client";
+import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
+import { computeTicketSla } from "@/core/application/services/zammad-sla";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +33,17 @@ function minutesBetween(now: Date, dateLike: string | Date): number {
 }
 
 function buildTicketNotifications(
-  tickets: Array<{ id: number; title: string; updated_at: string; priority_id?: number | null; state?: string | null; state_id?: number | null }>
+  tickets: Array<{
+    id: number;
+    title: string;
+    updated_at: string;
+    created_at: string;
+    first_response_at?: string | null;
+    close_at?: string | null;
+    priority_id?: number | null;
+    state?: string | null;
+    state_id?: number | null;
+  }>
 ): NotificationItem[] {
   const now = new Date();
   const items: NotificationItem[] = [];
@@ -46,6 +58,37 @@ function buildTicketNotifications(
     const mins = minutesBetween(now, ticket.updated_at);
     const hours = Math.max(1, Math.floor(mins / 60));
     const href = `/app/chamados/${ticket.id}`;
+    const sla = computeTicketSla({
+      createdAt: new Date(ticket.created_at),
+      firstResponseAt: ticket.first_response_at ? new Date(ticket.first_response_at) : null,
+      resolvedAt: ticket.close_at ? new Date(ticket.close_at) : null,
+      priorityId: ticket.priority_id ?? null,
+      now,
+    });
+
+    if (sla.warning) {
+      items.push({
+        id: `ticket-sla-warning-${ticket.id}`,
+        level: "warning",
+        title: "SLA perto do limite",
+        description: `#${ticket.id} ${ticket.title} estoura em ${Math.max(1, sla.minutesToBreach)} min.`,
+        href,
+        createdAt: ticket.updated_at,
+      });
+      continue;
+    }
+
+    if (sla.breached) {
+      items.push({
+        id: `ticket-sla-breached-${ticket.id}`,
+        level: "critical",
+        title: "SLA estourado",
+        description: `#${ticket.id} ${ticket.title} ultrapassou SLA de primeira resposta.`,
+        href,
+        createdAt: ticket.updated_at,
+      });
+      continue;
+    }
 
     if (ticket.priority_id === 3 && mins >= 240) {
       items.push({
@@ -203,6 +246,8 @@ export async function GET() {
         tags: ["tickets-dashboard"],
         routeKey: "notifications",
       });
+
+  await upsertOperationalTicketsToCache(tickets);
 
   const ticketNotifications = buildTicketNotifications(tickets);
   const operational = systemUser ? await buildSystemOperationalNotifications(session.role === Role.ADMIN) : [];

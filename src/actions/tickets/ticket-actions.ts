@@ -8,6 +8,8 @@ import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { ZammadOperationalTicket, ZammadTicketArticle } from "@/core/application/schema/zammad-api.schema";
 import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
+import { listCachedTickets, upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
+import { computeTicketSla } from "@/core/application/services/zammad-sla";
 
 type TicketListItem = {
     id: number;
@@ -25,6 +27,7 @@ type TicketListItem = {
 type GetTicketsActionParams = {
     page?: number;
     pageSize?: number;
+    queue?: "all" | "my_queue" | "unassigned" | "critical" | "no_response";
 };
 
 type TicketsPagination = {
@@ -74,6 +77,19 @@ async function getScopedCompanyUserEmails(userId: string): Promise<string[]> {
 
 function formatTickets(ticketsRaw: ZammadOperationalTicket[]): TicketListItem[] {
     const formattedTickets: TicketListItem[] = ticketsRaw.map((ticket) => ({
+        ...(() => {
+            const sla = computeTicketSla({
+                createdAt: new Date(ticket.created_at),
+                firstResponseAt: ticket.first_response_at ? new Date(ticket.first_response_at) : null,
+                resolvedAt: ticket.close_at ? new Date(ticket.close_at) : null,
+                priorityId: ticket.priority_id ?? null,
+            });
+            return {
+                slaBreached: sla.breached,
+                slaWarning: sla.warning,
+                minutesToBreach: sla.minutesToBreach,
+            };
+        })(),
         id: ticket.id,
         number: ticket.number,
         title: ticket.title,
@@ -82,12 +98,48 @@ function formatTickets(ticketsRaw: ZammadOperationalTicket[]): TicketListItem[] 
         statusLabel: mapTicketStateLabel(ticket.state || ""),
         priority: ticket.priority_id ?? 2,
         customer: String(ticket.customer || "Cliente"),
+        ownerId: ticket.owner_id ?? null,
+        firstResponseAt: ticket.first_response_at ?? null,
+        resolvedAt: ticket.close_at ?? null,
         createdAt: ticket.created_at,
         updatedAt: ticket.updated_at,
     }));
 
     formattedTickets.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     return formattedTickets;
+}
+
+function formatCachedTickets(
+    rows: Awaited<ReturnType<typeof listCachedTickets>>["rows"]
+): TicketListItem[] {
+    return rows.map((row) => ({
+        ...(() => {
+            const sla = computeTicketSla({
+                createdAt: row.createdAtZammad,
+                firstResponseAt: row.firstResponseAt,
+                resolvedAt: row.resolvedAt,
+                priorityId: row.priorityId,
+            });
+            return {
+                slaBreached: sla.breached,
+                slaWarning: sla.warning,
+                minutesToBreach: sla.minutesToBreach,
+            };
+        })(),
+        id: row.zammadTicketId,
+        number: row.number,
+        title: row.title,
+        group: row.groupName || "Sem grupo",
+        status: row.state || "",
+        statusLabel: mapTicketStateLabel(row.state || ""),
+        priority: row.priorityId ?? 2,
+        customer: row.customer || "Cliente",
+        ownerId: row.ownerId ?? null,
+        firstResponseAt: row.firstResponseAt?.toISOString() ?? null,
+        resolvedAt: row.resolvedAt?.toISOString() ?? null,
+        createdAt: row.createdAtZammad.toISOString(),
+        updatedAt: row.updatedAtZammad.toISOString(),
+    }));
 }
 
 function buildPagination(page: number, pageSize: number, total: number | null, currentCount: number): TicketsPagination {
@@ -113,6 +165,7 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
     const session = await getProtectedSession();
     const page = Math.max(1, params.page ?? 1);
     const pageSize = Math.min(50, Math.max(10, params.pageSize ?? 20));
+    const queue = params.queue ?? "all";
 
     if (!session) {
         return {
@@ -127,6 +180,9 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
         let ticketsRaw: ZammadOperationalTicket[] = [];
         let total: number | null = null;
         const routeKey = "app-chamados";
+        const zammadUserId = isSystemRole(session.role) && queue === "my_queue"
+            ? await ZammadGateway.getUserIdByEmail(session.email, routeKey)
+            : null;
 
         if (isSystemRole(session.role)) {
             const query = "(state_id:1 OR state_id:2 OR state_id:3 OR state_id:4 OR state_id:5 OR state_id:6 OR state_id:7 OR state_id:8 OR state_id:9)";
@@ -160,6 +216,17 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
             total = query ? await ZammadGateway.getTicketCount(query, routeKey) : 0;
         }
 
+        const queueFiltered = ticketsRaw.filter((ticket) => {
+            if (queue === "critical") return (ticket.priority_id ?? 0) === 3;
+            if (queue === "unassigned") return !ticket.owner_id;
+            if (queue === "my_queue") return !!zammadUserId && ticket.owner_id === zammadUserId;
+            if (queue === "no_response") return !ticket.first_response_at;
+            return true;
+        });
+
+        await upsertOperationalTicketsToCache(queueFiltered);
+        const paginationTotal = queue === "all" ? total : null;
+
         const routeHealth = getZammadRouteHealth(routeKey);
         const staleWarning = routeHealth.stale
             ? `Dados do Zammad desatualizados ha ${routeHealth.staleMinutes} min.`
@@ -167,17 +234,32 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
 
         return {
             success: true,
-            data: formatTickets(ticketsRaw),
-            pagination: buildPagination(page, pageSize, total, ticketsRaw.length),
+            data: formatTickets(queueFiltered),
+            pagination: buildPagination(page, pageSize, paginationTotal, queueFiltered.length),
             staleWarning,
         };
     } catch (error) {
         console.error("Erro ao buscar tickets:", error);
+
+        const zammadUserId = isSystemRole(session.role) && queue === "my_queue"
+            ? await ZammadGateway.getUserIdByEmail(session.email, "app-chamados-cache-fallback")
+            : null;
+
+        const cached = await listCachedTickets({
+            role: session.role,
+            email: session.email,
+            page,
+            pageSize,
+            queue,
+            zammadUserId,
+        });
+
         return {
-            success: false,
-            error: "Erro de conexao com o Zammad.",
-            data: [],
-            pagination: buildPagination(page, pageSize, 0, 0),
+            success: true,
+            error: "Exibindo cache local por indisponibilidade do Zammad.",
+            data: formatCachedTickets(cached.rows),
+            pagination: buildPagination(page, pageSize, cached.total, cached.rows.length),
+            staleWarning: "Dados carregados do cache local (sync incremental).",
         };
     }
 }
@@ -304,6 +386,44 @@ export async function replyTicketAction(ticketId: string, message: string) {
     } catch (error) {
         console.error("Erro ao responder chamado:", error);
         return { success: false, error: "Erro ao enviar." };
+    }
+}
+
+export async function ticketQuickAction(input: {
+    ticketId: string | number;
+    action: "assume" | "priority_high" | "macro_followup";
+}) {
+    const session = await getProtectedSession();
+    if (!session || !isSystemRole(session.role)) {
+        return { success: false, error: "Nao autorizado." };
+    }
+
+    try {
+        const zammadUserId = await ZammadGateway.getUserIdByEmail(session.email, "app-chamados");
+
+        if (input.action === "assume") {
+            if (!zammadUserId) return { success: false, error: "Usuario Zammad nao encontrado para assumir ticket." };
+            await ZammadGateway.updateTicket(input.ticketId, { owner_id: zammadUserId });
+        }
+
+        if (input.action === "priority_high") {
+            await ZammadGateway.updateTicket(input.ticketId, { priority_id: 3 });
+        }
+
+        if (input.action === "macro_followup") {
+            await ZammadGateway.addTicketReply(
+                input.ticketId,
+                "Atualizacao automatica: estamos analisando este chamado e retornaremos em breve."
+            );
+        }
+
+        revalidateTag("tickets-list");
+        revalidateTag("tickets-dashboard");
+        revalidatePath("/app/chamados");
+        return { success: true };
+    } catch (error) {
+        console.error("Erro em ticketQuickAction:", error);
+        return { success: false, error: "Falha ao executar acao rapida." };
     }
 }
 

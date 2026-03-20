@@ -26,6 +26,10 @@ type HealthRow = {
 type ApiResponse = {
   metrics: MetricRow[];
   health: HealthRow[];
+  sla: {
+    breachedCount: number;
+    noResponseCount: number;
+  };
   generatedAt: string;
 };
 
@@ -107,10 +111,28 @@ export function ZammadObservabilityTab() {
         })}
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="border-border/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">SLA estourado</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold">{data?.sla.breachedCount ?? 0}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Sem primeira resposta</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold">{data?.sla.noResponseCount ?? 0}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <p className="text-xs text-muted-foreground">
         Última atualização: {data?.generatedAt ? new Date(data.generatedAt).toLocaleString("pt-BR") : "-"}
       </p>
     </div>
   );
 }
-

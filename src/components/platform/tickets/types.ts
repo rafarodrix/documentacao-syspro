@@ -9,6 +9,12 @@ export interface TicketListItem {
     statusLabel: string;
     priority: TicketPriorityLevel;
     customer: string;
+    ownerId?: number | null;
+    firstResponseAt?: string | null;
+    resolvedAt?: string | null;
+    slaBreached?: boolean;
+    slaWarning?: boolean;
+    minutesToBreach?: number;
     createdAt: string;
     updatedAt: string;
 }

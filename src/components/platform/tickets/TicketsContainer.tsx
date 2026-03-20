@@ -22,9 +22,10 @@ interface TicketsContainerProps {
         total: number | null;
     };
     staleWarning?: string;
+    queue: "all" | "my_queue" | "unassigned" | "critical" | "no_response";
 }
 
-export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination, staleWarning }: TicketsContainerProps) {
+export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination, staleWarning, queue }: TicketsContainerProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("open");
     const router = useRouter();
@@ -63,6 +64,13 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
         router.push(`${pathname}?${params.toString()}`);
     };
 
+    const setQueueFilter = (nextQueue: TicketsContainerProps["queue"]) => {
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        params.set("queue", nextQueue);
+        params.set("page", "1");
+        router.push(`${pathname}?${params.toString()}`);
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
             {staleWarning && (
@@ -87,6 +95,26 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
             </div>
 
             <TicketsStats tickets={initialTickets} getCategory={getCategory} />
+
+            {isAdmin && (
+                <div className="flex flex-wrap gap-2">
+                    <Button variant={queue === "all" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("all")}>
+                        Todos
+                    </Button>
+                    <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("my_queue")}>
+                        Minha fila
+                    </Button>
+                    <Button variant={queue === "unassigned" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("unassigned")}>
+                        Sem dono
+                    </Button>
+                    <Button variant={queue === "critical" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("critical")}>
+                        Críticos
+                    </Button>
+                    <Button variant={queue === "no_response" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("no_response")}>
+                        Sem resposta
+                    </Button>
+                </div>
+            )}
 
             <TicketsFilters
                 searchTerm={searchTerm}
@@ -127,4 +155,3 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination,
         </div>
     );
 }
-

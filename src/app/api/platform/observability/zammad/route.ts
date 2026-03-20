@@ -5,6 +5,7 @@ import {
   getZammadMetricsSnapshot,
   getZammadRouteHealth,
 } from "@/core/infrastructure/observability/zammad-observability";
+import { prisma } from "@/lib/prisma";
 
 const ROUTES = ["app-dashboard", "app-chamados", "notifications"] as const;
 
@@ -18,11 +19,18 @@ export async function GET() {
 
   const metrics = getZammadMetricsSnapshot([...ROUTES], 60);
   const health = ROUTES.map((routeKey) => getZammadRouteHealth(routeKey));
+  const [breachedCount, noResponseCount] = await Promise.all([
+    prisma.zammadTicketCache.count({ where: { breached: true } }),
+    prisma.zammadTicketCache.count({ where: { firstResponseAt: null } }),
+  ]);
 
   return NextResponse.json({
     metrics,
     health,
+    sla: {
+      breachedCount,
+      noResponseCount,
+    },
     generatedAt: new Date().toISOString(),
   });
 }
-

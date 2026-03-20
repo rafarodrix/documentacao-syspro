@@ -326,6 +326,23 @@ export const ZammadGateway = {
         }
     },
 
+    async getUserIdByEmail(email: string, routeKey = DEFAULT_ROUTE_KEY): Promise<number | null> {
+        try {
+            const data = await fetchZammad(
+                `users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`,
+                { cache: "no-store" },
+                { routeKey }
+            );
+
+            if (!Array.isArray(data) || !data.length) return null;
+            const user = data[0] as { id?: number };
+            return typeof user.id === "number" ? user.id : null;
+        } catch (err) {
+            console.error("ZammadGateway.getUserIdByEmail:", err);
+            return null;
+        }
+    },
+
     async searchTickets(query: string, limit = 100, routeKey = DEFAULT_ROUTE_KEY): Promise<ZammadTicketAPI[]> {
         try {
             const endpoint = `tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&sort_by=updated_at&order_by=desc&expand=true`;
@@ -592,6 +609,24 @@ export const ZammadGateway = {
                 content_type: "text/html",
                 internal: false,
             }),
+            cache: "no-store",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+    },
+
+    async updateTicket(
+        ticketId: string | number,
+        payload: {
+            owner_id?: number | null;
+            priority_id?: number;
+            state_id?: number;
+        }
+    ): Promise<unknown> {
+        return fetchZammad(`tickets/${ticketId}`, {
+            method: "PUT",
+            body: JSON.stringify(payload),
             cache: "no-store",
             headers: {
                 "Content-Type": "application/json",
