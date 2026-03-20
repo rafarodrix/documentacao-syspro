@@ -11,7 +11,7 @@ export default async function CadastrosSistemaNovoPage() {
     CADASTROS_ROUTE_RULES.sistema.redirectIfBlocked,
   );
 
-  if (!hasPermission(session.role, "system_team:create")) return <CadastrosAccessDenied />;
+  if (!hasPermission(session.role, "system_team:manage")) return <CadastrosAccessDenied />;
   if (session.role !== Role.ADMIN) return <CadastrosAccessDenied />;
 
   return (
