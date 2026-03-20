@@ -14,9 +14,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MagicCard } from "@/components/magicui/magic-card";
-import { ShineBorder } from "@/components/magicui/shine-border";
-import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -185,8 +182,6 @@ export function CreateUserPageForm({
 
   return (
     <div className="relative w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card/95 overflow-hidden shadow-xl">
-      <ShineBorder borderWidth={1} duration={16} shineColor={["#2dd4bf", "#60a5fa", "#a78bfa"]} />
-
       <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4 bg-gradient-to-r from-muted/30 via-background to-muted/20">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
@@ -263,19 +258,11 @@ export function CreateUserPageForm({
 
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-y-auto p-6">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={currentSection}
-                  initial={{ opacity: 0, x: 18 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -18 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                >
+              <div key={currentSection} className="animate-in fade-in slide-in-from-right-2 duration-200">
                   {currentSection === "acesso" && (
-                    <MagicCard className="rounded-xl">
-                      <Card className="border-border/60 bg-card/95">
-                        <CardHeader><CardTitle className="text-base">Escopo e Permissoes</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
+                    <Card className="border-border/60 bg-card/95">
+                      <CardHeader><CardTitle className="text-base">Escopo e Permissoes</CardTitle></CardHeader>
+                      <CardContent className="space-y-4">
                           {context === "CLIENT" && (
                             <FormField
                               control={form.control}
@@ -307,7 +294,9 @@ export function CreateUserPageForm({
 
                           {context === "CLIENT" && companies.length > 0 && (
                             <div className="space-y-2">
-                              <FormLabel>Empresas adicionais</FormLabel>
+                              <label className="text-sm font-medium leading-none">
+                                Empresas adicionais
+                              </label>
                               <div className="max-h-44 overflow-auto rounded-md border border-border/60 bg-muted/20 p-2 space-y-1">
                                 {companies
                                   .filter((company) => company.id !== form.watch("companyId"))
@@ -367,16 +356,14 @@ export function CreateUserPageForm({
                               </FormItem>
                             )}
                           />
-                        </CardContent>
-                      </Card>
-                    </MagicCard>
+                      </CardContent>
+                    </Card>
                   )}
 
                   {currentSection === "identidade" && (
-                    <MagicCard className="rounded-xl">
-                      <Card className="border-border/60 bg-card/95">
-                        <CardHeader><CardTitle className="text-base">Dados do Usuario</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
+                    <Card className="border-border/60 bg-card/95">
+                      <CardHeader><CardTitle className="text-base">Dados do Usuario</CardTitle></CardHeader>
+                      <CardContent className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
@@ -415,16 +402,14 @@ export function CreateUserPageForm({
                               )}
                             />
                           )}
-                        </CardContent>
-                      </Card>
-                    </MagicCard>
+                      </CardContent>
+                    </Card>
                   )}
 
                   {currentSection === "perfil" && (
-                    <MagicCard className="rounded-xl">
-                      <Card className="border-border/60 bg-card/95">
-                        <CardHeader><CardTitle className="text-base">Informacoes complementares</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
+                    <Card className="border-border/60 bg-card/95">
+                      <CardHeader><CardTitle className="text-base">Informacoes complementares</CardTitle></CardHeader>
+                      <CardContent className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
                               control={form.control}
@@ -460,12 +445,10 @@ export function CreateUserPageForm({
                               )}
                             />
                           </div>
-                        </CardContent>
-                      </Card>
-                    </MagicCard>
+                      </CardContent>
+                    </Card>
                   )}
-                </motion.div>
-              </AnimatePresence>
+              </div>
             </div>
 
             <div className="border-t border-border/50 px-6 py-4 flex items-center justify-between">
