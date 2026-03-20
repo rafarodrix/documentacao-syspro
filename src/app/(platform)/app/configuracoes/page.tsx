@@ -43,7 +43,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         prisma.company.findMany({
             where: { deletedAt: null },
             orderBy: { razaoSocial: "asc" },
-            select: { id: true, razaoSocial: true },
+            select: { id: true, razaoSocial: true, cnpj: true },
         }),
         prisma.systemSetting.findUnique({
             where: { key: SETTING_KEYS.RBAC_MATRIX_ENABLED },

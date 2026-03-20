@@ -71,7 +71,16 @@ export async function getContractsAction() {
                 { createdAt: "desc" },
             ],
         });
-        return { success: true, data: contracts };
+        return {
+            success: true,
+            data: contracts.map((contract) => ({
+                ...contract,
+                percentage: Number(contract.percentage),
+                minimumWage: Number(contract.minimumWage),
+                taxRate: Number(contract.taxRate),
+                programmerRate: Number(contract.programmerRate),
+            })),
+        };
     } catch (error) {
         console.error("Erro ao buscar contratos:", error);
         return { success: false, error: "Erro ao carregar contratos." };
@@ -102,6 +111,15 @@ export async function createContractAction(data: CreateContractInput) {
             }
         }
 
+        const company = await prisma.company.findUnique({
+            where: { id: data.companyId },
+            select: { cnpj: true },
+        });
+
+        if (!company) {
+            return { success: false, error: "Empresa nao encontrada." };
+        }
+
         await prisma.contract.create({
             data: {
                 companyId: data.companyId,
@@ -112,7 +130,7 @@ export async function createContractAction(data: CreateContractInput) {
                 status: data.status,
                 startDate: data.startDate ? new Date(data.startDate) : new Date(),
                 endDate: data.endDate ? new Date(data.endDate) : null,
-                contractNumber: data.contractNumber?.trim() || null,
+                contractNumber: company.cnpj,
                 notes: data.notes?.trim() || null,
             }
         });
@@ -157,6 +175,15 @@ export async function updateContractAction(data: UpdateContractInput) {
     try {
         const parsed = validation.data;
 
+        const company = await prisma.company.findUnique({
+            where: { id: parsed.companyId },
+            select: { cnpj: true },
+        });
+
+        if (!company) {
+            return { success: false, error: "Empresa nao encontrada." };
+        }
+
         await prisma.contract.update({
             where: { id: parsed.id },
             data: {
@@ -167,7 +194,7 @@ export async function updateContractAction(data: UpdateContractInput) {
                 status: parsed.status,
                 startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
                 endDate: parsed.endDate ? new Date(parsed.endDate) : null,
-                contractNumber: parsed.contractNumber?.trim() || null,
+                contractNumber: company.cnpj,
                 notes: parsed.notes?.trim() || null,
             },
         });

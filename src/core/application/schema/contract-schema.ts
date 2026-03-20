@@ -6,7 +6,7 @@ export const DEFAULT_CONTRACT_TAX_RATE = 6;
 export const createContractSchema = z
   .object({
     companyId: z.string().min(1, "Selecione uma empresa."),
-    percentage: z.coerce.number().min(0.01, "O percentual deve ser maior que 0.").max(100, "O percentual nao pode exceder 100%."),
+    percentage: z.coerce.number().min(0.0001, "O percentual deve ser maior que 0.").max(100, "O percentual nao pode exceder 100%."),
     minimumWage: z.coerce.number().min(1, "O salario minimo deve ser informado."),
     taxRate: z.coerce.number().min(0, "A taxa nao pode ser negativa.").max(100, "Imposto nao pode exceder 100%."),
     programmerRate: z.coerce.number().min(0, "A taxa nao pode ser negativa.").max(100, "Repasse nao pode exceder 100%."),

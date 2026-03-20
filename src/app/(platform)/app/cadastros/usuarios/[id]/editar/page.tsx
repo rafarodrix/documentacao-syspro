@@ -50,7 +50,6 @@ export default async function CadastrosUsuariosEditarPage({ params }: PageProps)
       phone: true,
       cpf: true,
       memberships: {
-        take: 1,
         select: {
           companyId: true,
         },
@@ -86,6 +85,7 @@ export default async function CadastrosUsuariosEditarPage({ params }: PageProps)
         email: user.email,
         role: user.role,
         companyId: user.memberships[0]?.companyId ?? "",
+        additionalCompanyIds: user.memberships.slice(1).map((membership) => membership.companyId),
         jobTitle: user.jobTitle ?? "",
         phone: user.phone ?? "",
         cpf: user.cpf ?? "",
@@ -94,4 +94,3 @@ export default async function CadastrosUsuariosEditarPage({ params }: PageProps)
     />
   );
 }
-

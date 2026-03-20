@@ -281,7 +281,7 @@ model Contract {
   id String @id @default(cuid())
 
   // --- DADOS FINANCEIROS (Use Decimal para dinheiro/porcentagem precisa) ---
-  percentage     Decimal @db.Decimal(5, 2) // Ex: 10.50
+  percentage     Decimal @db.Decimal(7, 4) // Ex: 10.1234
   minimumWage    Decimal @db.Decimal(10, 2) // Ex: 1412.00
   taxRate        Decimal @default(0) @db.Decimal(5, 2)
   programmerRate Decimal @default(0) @db.Decimal(10, 2)

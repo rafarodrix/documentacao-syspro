@@ -152,7 +152,11 @@ export async function getUsersAction(filters?: GetUsersParams): Promise<ActionRe
 /**
  * CRIAR USUÁRIO (Com Rollback Corrigido)
  */
-export async function createUserAction(data: CreateUserInput): Promise<ActionResponse> {
+type UserUpsertInput = CreateUserInput & {
+    additionalCompanyIds?: string[];
+};
+
+export async function createUserAction(data: UserUpsertInput): Promise<ActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Permissão negada." };
 
@@ -163,10 +167,18 @@ export async function createUserAction(data: CreateUserInput): Promise<ActionRes
     const validation = createUserSchema.safeParse(data);
     if (!validation.success) return { success: false, errors: validation.error.flatten().fieldErrors as any, message: "Dados inválidos." };
 
+    const additionalCompanyIds = Array.isArray(data.additionalCompanyIds)
+        ? data.additionalCompanyIds.filter(Boolean)
+        : [];
+    const desiredCompanyIds = Array.from(new Set([data.companyId, ...additionalCompanyIds].filter(Boolean) as string[]));
+
     if (isClientManager) {
         const managedCompanyIds = await getSessionCompanyIds(session.userId);
         if (!data.companyId || !managedCompanyIds.includes(data.companyId)) {
             return { success: false, message: "Empresa inválida para este gestor." };
+        }
+        if (desiredCompanyIds.some((companyId) => !managedCompanyIds.includes(companyId))) {
+            return { success: false, message: "Uma ou mais empresas informadas sao invalidas para este gestor." };
         }
 
         if (data.role !== Role.CLIENTE_USER && data.role !== Role.CLIENTE_ADMIN) {
@@ -200,13 +212,14 @@ export async function createUserAction(data: CreateUserInput): Promise<ActionRes
                 }
             });
 
-            if (data.companyId) {
-                await tx.membership.create({
-                    data: {
+            if (desiredCompanyIds.length) {
+                await tx.membership.createMany({
+                    data: desiredCompanyIds.map((companyId) => ({
                         userId: createdAuthUserId!,
-                        companyId: data.companyId,
-                        role: data.role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER
-                    }
+                        companyId,
+                        role: data.role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER,
+                    })),
+                    skipDuplicates: true,
                 });
             }
         });
@@ -235,13 +248,22 @@ export async function createUserAction(data: CreateUserInput): Promise<ActionRes
 /**
  * ATUALIZAR USUÁRIO
  */
-export async function updateUserAction(id: string, data: Partial<CreateUserInput>): Promise<ActionResponse> {
+export async function updateUserAction(id: string, data: Partial<UserUpsertInput>): Promise<ActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Acesso negado." };
 
     const isSystemRole = SYSTEM_ROLES.includes(session.role);
     const isClientManager = session.role === Role.CLIENTE_ADMIN;
     if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+
+    const additionalCompanyIds = Array.isArray(data.additionalCompanyIds)
+        ? data.additionalCompanyIds.filter(Boolean)
+        : [];
+    const desiredCompanyIds = data.companyId
+        ? Array.from(new Set([data.companyId, ...additionalCompanyIds]))
+        : null;
+
+    let managedCompanyIdsForClientManager: string[] = [];
 
     if (isClientManager) {
         const canManage = await canManageTargetUser(session, id);
@@ -251,10 +273,10 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
             return { success: false, message: "Gestor não pode atribuir perfil interno." };
         }
 
-        if (data.companyId) {
-            const managedCompanyIds = await getSessionCompanyIds(session.userId);
-            if (!managedCompanyIds.includes(data.companyId)) {
-                return { success: false, message: "Empresa inválida para este gestor." };
+        if (desiredCompanyIds?.length) {
+            managedCompanyIdsForClientManager = await getSessionCompanyIds(session.userId);
+            if (desiredCompanyIds.some((companyId) => !managedCompanyIdsForClientManager.includes(companyId))) {
+                return { success: false, message: "Uma ou mais empresas informadas sao invalidas para este gestor." };
             }
         }
     }
@@ -273,28 +295,40 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
                 }
             });
 
-            if (data.companyId) {
-                const existingMembership = await tx.membership.findUnique({
-                    where: { userId_companyId: { userId: id, companyId: data.companyId } },
-                    select: { role: true },
-                });
+            if (desiredCompanyIds?.length) {
                 const membershipRole =
                     data.role === Role.CLIENTE_ADMIN
                         ? Role.CLIENTE_ADMIN
-                        : data.role === Role.CLIENTE_USER
-                            ? Role.CLIENTE_USER
-                            : existingMembership?.role === Role.CLIENTE_ADMIN
-                                ? Role.CLIENTE_ADMIN
-                                : Role.CLIENTE_USER;
+                        : Role.CLIENTE_USER;
 
-                await tx.membership.upsert({
-                    where: { userId_companyId: { userId: id, companyId: data.companyId } },
+                if (isClientManager) {
+                    await tx.membership.deleteMany({
+                        where: {
+                            userId: id,
+                            companyId: { in: managedCompanyIdsForClientManager, notIn: desiredCompanyIds },
+                        },
+                    });
+                } else {
+                    await tx.membership.deleteMany({
+                        where: {
+                            userId: id,
+                            companyId: { notIn: desiredCompanyIds },
+                        },
+                    });
+                }
+
+                await Promise.all(desiredCompanyIds.map((companyId) => tx.membership.upsert({
+                    where: { userId_companyId: { userId: id, companyId } },
                     create: {
                         userId: id,
-                        companyId: data.companyId,
-                        role: membershipRole
+                        companyId,
+                        role: membershipRole,
                     },
-                    update: { role: membershipRole }
+                    update: { role: membershipRole },
+                })));
+            } else if (!isClientManager) {
+                await tx.membership.deleteMany({
+                    where: { userId: id },
                 });
             }
         });

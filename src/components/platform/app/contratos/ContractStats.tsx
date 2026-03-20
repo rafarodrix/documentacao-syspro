@@ -9,10 +9,10 @@ import { NumberTicker } from "@/components/magicui/number-ticker";
 
 type ContractLike = {
     status: string;
-    minimumWage: number | Prisma.Decimal;
-    percentage: number | Prisma.Decimal;
-    taxRate: number | Prisma.Decimal;
-    programmerRate: number | Prisma.Decimal;
+    minimumWage: number | Prisma.Decimal | string;
+    percentage: number | Prisma.Decimal | string;
+    taxRate: number | Prisma.Decimal | string;
+    programmerRate: number | Prisma.Decimal | string;
 };
 
 interface StatCardProps {
@@ -26,8 +26,11 @@ interface StatCardProps {
     decimalPlaces?: number;
 }
 
-const toNumber = (value: number | Prisma.Decimal) =>
-    typeof value === "number" ? value : value.toNumber();
+const toNumber = (value: number | Prisma.Decimal | string) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") return Number(value);
+    return value.toNumber();
+};
 
 function StatCard({
     title, value, type = "number", icon: Icon, description, colorClass, bgClass, decimalPlaces = 0,

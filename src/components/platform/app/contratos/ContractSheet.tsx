@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 
 interface ContractSheetProps {
-    companies: { id: string; razaoSocial: string }[];
+    companies: { id: string; razaoSocial: string; cnpj: string }[];
     mode?: "button" | "full";
 }
 
@@ -33,6 +33,8 @@ const formatCurrency = (val: number) =>
 export function ContractSheet({ companies, mode = "button" }: ContractSheetProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
+    const [calcMode, setCalcMode] = useState<"PERCENT" | "VALUE">("PERCENT");
+    const [negotiatedValueInput, setNegotiatedValueInput] = useState("0");
 
     const form = useForm<CreateContractInput>({
         resolver: zodResolver(createContractSchema) as any,
@@ -67,10 +69,30 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
     const partnerRate = Number(form.watch("programmerRate")) || 0;
     const allowTaxOverride = Boolean(form.watch("allowTaxOverride"));
 
+    const selectedCompanyId = form.watch("companyId");
+    const selectedCompany = useMemo(() => companies.find((company) => company.id === selectedCompanyId) ?? null, [companies, selectedCompanyId]);
+
     const grossValue = wage * (percentage / 100);
     const taxDeduction = grossValue * (taxRate / 100);
     const partnerDeduction = grossValue * (partnerRate / 100);
     const netValue = grossValue - taxDeduction - partnerDeduction;
+
+    useEffect(() => {
+        if (calcMode !== "PERCENT") return;
+        setNegotiatedValueInput(String(Number.isFinite(grossValue) ? grossValue.toFixed(2) : "0"));
+    }, [grossValue, calcMode]);
+
+    useEffect(() => {
+        if (calcMode !== "VALUE") return;
+        const negotiated = Number(negotiatedValueInput) || 0;
+        const nextPercentage = wage > 0 ? (negotiated / wage) * 100 : 0;
+        form.setValue("percentage", Number(nextPercentage.toFixed(4)), { shouldDirty: true, shouldValidate: true });
+    }, [calcMode, negotiatedValueInput, wage, form]);
+
+    useEffect(() => {
+        if (!selectedCompany) return;
+        form.setValue("contractNumber", selectedCompany.cnpj, { shouldDirty: true, shouldValidate: true });
+    }, [selectedCompany, form]);
 
     const onSubmit: SubmitHandler<CreateContractInput> = async (data) => {
         startTransition(async () => {
@@ -113,7 +135,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <Label className="text-xs">Numero do contrato</Label>
-                                <Input type="text" placeholder="Ex.: CTR-2026-001" className="h-10" {...form.register("contractNumber")} />
+                                <Input type="text" className="h-10" value={selectedCompany?.cnpj ?? ""} readOnly />
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-xs">Empresa contratante</Label>
@@ -167,8 +189,38 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                                 <Label className="text-xs">% cobrado do cliente</Label>
                                 <div className="relative">
                                     <Percent className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input type="number" step="0.1" className="pl-9 h-10 font-mono" {...form.register("percentage")} />
+                                    <Input
+                                        type="number"
+                                        step="0.0001"
+                                        className="pl-9 h-10 font-mono"
+                                        {...form.register("percentage", {
+                                            onChange: () => setCalcMode("PERCENT"),
+                                        })}
+                                    />
                                 </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Valor negociado (bruto)</Label>
+                                <div className="relative">
+                                    <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        className="pl-9 h-10 font-mono"
+                                        value={negotiatedValueInput}
+                                        onChange={(event) => {
+                                            const raw = event.target.value;
+                                            setCalcMode("VALUE");
+                                            setNegotiatedValueInput(raw);
+                                            const negotiated = Number(raw) || 0;
+                                            const nextPercentage = wage > 0 ? (negotiated / wage) * 100 : 0;
+                                            form.setValue("percentage", Number(nextPercentage.toFixed(4)), { shouldDirty: true, shouldValidate: true });
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">
+                                    Preencha valor ou percentual. O outro campo e calculado automaticamente.
+                                </p>
                             </div>
                         </div>
 

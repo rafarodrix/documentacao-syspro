@@ -45,10 +45,10 @@ import { DEFAULT_CONTRACT_TAX_RATE } from "@/core/application/schema/contract-sc
 type ContractRow = {
     id: string;
     companyId: string;
-    percentage: number | Prisma.Decimal;
-    minimumWage: number | Prisma.Decimal;
-    taxRate: number | Prisma.Decimal;
-    programmerRate: number | Prisma.Decimal;
+    percentage: number | Prisma.Decimal | string;
+    minimumWage: number | Prisma.Decimal | string;
+    taxRate: number | Prisma.Decimal | string;
+    programmerRate: number | Prisma.Decimal | string;
     status: ContractStatus;
     startDate: string | Date;
     endDate?: string | Date | null;
@@ -78,8 +78,10 @@ const formatCurrency = (val: number) =>
 const formatDate = (dateStr: string | Date) =>
     new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(dateStr));
 
-const toNumber = (value: number | Prisma.Decimal) => {
-    return typeof value === "number" ? value : value.toNumber();
+const toNumber = (value: number | Prisma.Decimal | string) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") return Number(value);
+    return value.toNumber();
 };
 
 export function ContractsTable({ contracts }: ContractsTableProps) {
@@ -187,7 +189,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
         setAllowTaxOverride(currentTax !== DEFAULT_CONTRACT_TAX_RATE);
         setEditTarget(contract);
         setEditForm({
-            contractNumber: contract.contractNumber ?? "",
+            contractNumber: contract.company.cnpj,
             minimumWage: String(toNumber(contract.minimumWage)),
             percentage: String(toNumber(contract.percentage)),
             taxRate: String(currentTax),
@@ -321,7 +323,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                             <Label>Numero do contrato</Label>
                             <Input
                                 value={editForm.contractNumber}
-                                onChange={(event) => setEditForm((prev) => ({ ...prev, contractNumber: event.target.value }))}
+                                readOnly
                             />
                         </div>
                         <div className="space-y-2">
@@ -353,7 +355,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                             <Label>% cobrado do cliente</Label>
                             <Input
                                 type="number"
-                                step="0.1"
+                                step="0.0001"
                                 value={editForm.percentage}
                                 onChange={(event) => setEditForm((prev) => ({ ...prev, percentage: event.target.value }))}
                             />
@@ -495,7 +497,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
 
                                             <TableCell>
                                                 <Badge variant="outline" className="bg-background/50 font-mono text-[10px] font-normal border-border/60">
-                                                    {percentage}%
+                                                    {percentage.toFixed(4)}%
                                                 </Badge>
                                             </TableCell>
 

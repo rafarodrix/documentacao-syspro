@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ElementType } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,7 +45,7 @@ interface CreateUserPageFormProps {
   backHref: string;
   mode?: "create" | "edit";
   userId?: string;
-  initialData?: Partial<CreateUserInput>;
+  initialData?: Partial<CreateUserInput> & { additionalCompanyIds?: string[] };
 }
 
 type SectionId = "acesso" | "identidade" | "perfil";
@@ -81,6 +81,9 @@ export function CreateUserPageForm({
   const router = useRouter();
   const defaultRole = context === "SYSTEM" ? Role.SUPORTE : Role.CLIENTE_USER;
   const [currentSection, setCurrentSection] = useState<SectionId>("acesso");
+  const [additionalCompanyIds, setAdditionalCompanyIds] = useState<string[]>(
+    () => (Array.isArray(initialData?.additionalCompanyIds) ? initialData.additionalCompanyIds.filter(Boolean) : []),
+  );
 
   const sections: SectionConfig[] = useMemo(
     () => [
@@ -128,6 +131,12 @@ export function CreateUserPageForm({
   });
 
   const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
+  const primaryCompanyId = form.watch("companyId");
+
+  useEffect(() => {
+    if (!primaryCompanyId) return;
+    setAdditionalCompanyIds((prev) => prev.filter((id) => id !== primaryCompanyId));
+  }, [primaryCompanyId]);
 
   const sectionStateMap = useMemo(() => {
     return sections.reduce<Record<SectionId, "error" | "ready" | "idle">>((acc, section) => {
@@ -143,8 +152,9 @@ export function CreateUserPageForm({
   }, [dirtyFields, errors, sections]);
 
   const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
-    const payload: CreateUserInput = { ...data };
+    const payload: CreateUserInput & { additionalCompanyIds?: string[] } = { ...data };
     if (context === "SYSTEM") payload.companyId = undefined;
+    if (context === "CLIENT") payload.additionalCompanyIds = additionalCompanyIds;
     if (mode === "edit" && !payload.password) payload.password = undefined;
 
     const result =
@@ -282,6 +292,38 @@ export function CreateUserPageForm({
                                 </FormItem>
                               )}
                             />
+                          )}
+
+                          {context === "CLIENT" && companies.length > 0 && (
+                            <div className="space-y-2">
+                              <FormLabel>Empresas adicionais</FormLabel>
+                              <div className="max-h-44 overflow-auto rounded-md border border-border/60 bg-muted/20 p-2 space-y-1">
+                                {companies
+                                  .filter((company) => company.id !== form.watch("companyId"))
+                                  .map((company) => {
+                                    const checked = additionalCompanyIds.includes(company.id);
+                                    return (
+                                      <label key={company.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={(event) => {
+                                            setAdditionalCompanyIds((prev) =>
+                                              event.target.checked
+                                                ? Array.from(new Set([...prev, company.id]))
+                                                : prev.filter((id) => id !== company.id),
+                                            );
+                                          }}
+                                        />
+                                        <span>{company.nomeFantasia || company.razaoSocial}</span>
+                                      </label>
+                                    );
+                                  })}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                O mesmo usuario pode ser vinculado a mais de uma empresa.
+                              </p>
+                            </div>
                           )}
 
                           <FormField
@@ -438,4 +480,3 @@ export function CreateUserPageForm({
     </div>
   );
 }
-
