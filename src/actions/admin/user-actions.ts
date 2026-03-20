@@ -8,6 +8,8 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";
 import { z } from "zod";
+import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import { getRequestIp } from "@/lib/security/request-context";
 
 // --- Tipagens ---
 export type ActionResponse<T = any> = {
@@ -34,6 +36,7 @@ export type LinkUserInput = z.infer<typeof linkUserSchema>;
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
+const CREATE_USER_RATE_LIMIT = { max: 8, windowMs: 60_000 };
 
 const userListSelect = {
     id: true,
@@ -94,11 +97,9 @@ type AdminApiShape = {
 };
 
 function getAdminApi(): AdminApiShape | null {
-    const candidate = (auth.api as unknown as { admin?: unknown }).admin;
-    if (!candidate || typeof candidate !== "object") return null;
-    const removeUser = (candidate as { removeUser?: unknown }).removeUser;
-    if (typeof removeUser !== "function") return null;
-    return { removeUser: removeUser as AdminApiShape["removeUser"] };
+    const candidate = auth.api.admin;
+    if (!candidate || typeof candidate.removeUser !== "function") return null;
+    return { removeUser: candidate.removeUser as AdminApiShape["removeUser"] };
 }
 
 function revalidateCadastrosPaths() {
@@ -183,6 +184,20 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
 
     const validation = createUserSchema.safeParse(data);
     if (!validation.success) return { success: false, errors: validation.error.flatten().fieldErrors as any, message: "Dados inválidos." };
+    const ip = await getRequestIp();
+    const rateLimit = consumeActionRateLimit({
+        action: "createUserAction",
+        max: CREATE_USER_RATE_LIMIT.max,
+        windowMs: CREATE_USER_RATE_LIMIT.windowMs,
+        userId: session.userId,
+        ip,
+    });
+    if (!rateLimit.allowed) {
+        return {
+            success: false,
+            message: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s e tente novamente.`,
+        };
+    }
 
     const additionalCompanyIds = Array.isArray(data.additionalCompanyIds)
         ? data.additionalCompanyIds.filter(Boolean)
@@ -204,11 +219,22 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
     }
 
     let createdAuthUserId: string | undefined;
+    const adminApi = getAdminApi();
+    if (!adminApi) {
+        return {
+            success: false,
+            message: "Configuracao incompleta do auth: plugin admin.removeUser indisponivel.",
+        };
+    }
 
     try {
         // 1. Registro no Auth
         const authResponse = await auth.api.signUpEmail({
-            body: { email: data.email, password: data.password!, name: data.name },
+            body: {
+                email: validation.data.email,
+                password: validation.data.password || data.password || "",
+                name: validation.data.name,
+            },
             headers: await headers()
         });
 
@@ -220,10 +246,10 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
             await tx.user.update({
                 where: { id: createdAuthUserId },
                 data: {
-                    role: data.role as Role,
-                    cpf: data.cpf ? data.cpf.replace(/\D/g, "") : null,
-                    jobTitle: data.jobTitle || null,
-                    phone: data.phone || null,
+                    role: validation.data.role as Role,
+                    cpf: validation.data.cpf ?? null,
+                    jobTitle: validation.data.jobTitle || null,
+                    phone: validation.data.phone || null,
                     isActive: true,
                     emailVerified: true
                 }
@@ -234,7 +260,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
                     data: desiredCompanyIds.map((companyId) => ({
                         userId: createdAuthUserId!,
                         companyId,
-                        role: data.role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER,
+                        role: validation.data.role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER,
                     })),
                     skipDuplicates: true,
                 });
@@ -249,14 +275,11 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
         if (createdAuthUserId) {
             try {
                 const adminApi = getAdminApi();
-                if (!adminApi) {
-                    console.error("Rollback incompleto: Better Auth admin.removeUser indisponivel.");
-                } else {
-                    await adminApi.removeUser({
-                        body: { userId: createdAuthUserId },
-                        headers: await headers()
-                    });
-                }
+                if (!adminApi) throw new Error("Rollback indisponivel: admin.removeUser nao configurado.");
+                await adminApi.removeUser({
+                    body: { userId: createdAuthUserId },
+                    headers: await headers()
+                });
             } catch (rollbackError) {
                 console.error("Erro crítico no Rollback:", rollbackError);
             }
@@ -275,6 +298,14 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
     const isSystemRole = SYSTEM_ROLES.includes(session.role);
     const isClientManager = session.role === Role.CLIENTE_ADMIN;
     if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+    const updateValidation = createUserSchema.partial().safeParse(data);
+    if (!updateValidation.success) {
+        return {
+            success: false,
+            errors: updateValidation.error.flatten().fieldErrors as any,
+            message: "Dados inválidos.",
+        };
+    }
 
     const additionalCompanyIds = Array.isArray(data.additionalCompanyIds)
         ? data.additionalCompanyIds.filter(Boolean)
@@ -306,18 +337,18 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
             await tx.user.update({
                 where: { id },
                 data: {
-                    name: data.name,
-                    email: data.email,
-                    role: data.role as Role,
-                    jobTitle: data.jobTitle,
-                    phone: data.phone,
-                    cpf: data.cpf ? data.cpf.replace(/\D/g, "") : undefined,
+                    name: updateValidation.data.name,
+                    email: updateValidation.data.email,
+                    role: updateValidation.data.role as Role | undefined,
+                    jobTitle: updateValidation.data.jobTitle,
+                    phone: updateValidation.data.phone,
+                    cpf: updateValidation.data.cpf,
                 }
             });
 
             if (desiredCompanyIds?.length) {
                 const membershipRole =
-                    data.role === Role.CLIENTE_ADMIN
+                    updateValidation.data.role === Role.CLIENTE_ADMIN
                         ? Role.CLIENTE_ADMIN
                         : Role.CLIENTE_USER;
 

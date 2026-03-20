@@ -6,6 +6,8 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma, CompanyStatus, Role } from "@prisma/client";
 import { resolveCompanySegmentTriggers } from "@/core/config/company-segments";
+import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import { getRequestIp } from "@/lib/security/request-context";
 
 export type ActionResponse = {
   success: boolean;
@@ -19,6 +21,7 @@ const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIEN
 const CREATE_ROLES: Role[] = SYSTEM_ROLES;
 const UPDATE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 const DELETE_ROLES: Role[] = [Role.ADMIN];
+const CREATE_COMPANY_RATE_LIMIT = { max: 6, windowMs: 60_000 };
 
 async function getSessionCompanyIds(userId: string): Promise<string[]> {
   const memberships = await prisma.membership.findMany({
@@ -114,6 +117,17 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
   const session = await getProtectedSession();
   if (!session || !CREATE_ROLES.includes(session.role)) {
     return { success: false, message: "Permissao negada." };
+  }
+  const ip = await getRequestIp();
+  const rateLimit = consumeActionRateLimit({
+    action: "createCompanyAction",
+    max: CREATE_COMPANY_RATE_LIMIT.max,
+    windowMs: CREATE_COMPANY_RATE_LIMIT.windowMs,
+    userId: session.userId,
+    ip,
+  });
+  if (!rateLimit.allowed) {
+    return { success: false, message: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s.` };
   }
 
   const validation = createCompanySchema.safeParse(data);

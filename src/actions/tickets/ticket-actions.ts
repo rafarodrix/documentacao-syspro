@@ -11,6 +11,8 @@ import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad
 import { listCachedTickets, upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
 import { computeTicketSla } from "@/core/application/services/zammad-sla";
 import { OPERATIONAL_STATE_IDS, type QueueKey } from "@/core/config/tickets-workflow";
+import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import { getRequestIp } from "@/lib/security/request-context";
 
 type TicketListItem = {
     id: number;
@@ -55,6 +57,7 @@ type TicketsDataResponse = {
 };
 
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
+const CREATE_TICKET_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 function isSystemRole(role: Role): boolean {
     return SYSTEM_ROLES.has(role);
 }
@@ -338,6 +341,17 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
 export async function createTicketAction(_prevState: unknown, formData: FormData) {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Sessao expirada." };
+    const ip = await getRequestIp();
+    const rateLimit = consumeActionRateLimit({
+        action: "createTicketAction",
+        max: CREATE_TICKET_RATE_LIMIT.max,
+        windowMs: CREATE_TICKET_RATE_LIMIT.windowMs,
+        userId: session.userId,
+        ip,
+    });
+    if (!rateLimit.allowed) {
+        return { success: false, message: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s.` };
+    }
 
     const subject = String(formData.get("subject") || "").trim();
     const description = String(formData.get("description") || "").trim();

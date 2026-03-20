@@ -10,6 +10,18 @@ export const USER_ROLE_VALUES = [
 
 // Regex simples para telefone BR (com ou sem máscara)
 const phoneRegex = /^(\(?\d{2}\)?\s?)?9?\d{4}-?\d{4}$/;
+const optionalCpfSchema = z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => {
+        if (!value) return undefined;
+        const digits = value.replace(/\D/g, "");
+        return digits || undefined;
+    })
+    .refine((value) => value === undefined || value.length === 11, {
+        message: "CPF deve conter 11 digitos",
+    });
 
 export const createUserSchema = z.object({
     name: z.string()
@@ -43,11 +55,8 @@ export const createUserSchema = z.object({
         .optional()
         .or(z.literal("")),
 
-    cpf: z.string()
-        .min(11)
-        .max(14)
-        .optional()
-        .or(z.literal("")),
+    cpf: optionalCpfSchema,
 });
 
-export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type CreateUserInput = z.input<typeof createUserSchema>;
+export type CreateUserOutput = z.output<typeof createUserSchema>;

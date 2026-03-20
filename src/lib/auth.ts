@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "@/lib/prisma";
 import { sendResetPasswordEmail } from "./email";
 import { nextCookies } from "better-auth/next-js";
+import { admin } from "better-auth/plugins";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -58,6 +59,6 @@ export const auth = betterAuth({
     ...(process.env.EXTRA_TRUSTED_ORIGINS?.split(",").map((o) => o.trim()) ?? []),
   ],
 
-  plugins: [nextCookies()],
+  plugins: [admin(), nextCookies()],
 });
 
