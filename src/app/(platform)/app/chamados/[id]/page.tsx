@@ -11,7 +11,7 @@ export default async function ClientTicketPage({ params }: PageProps) {
     const session = await requireSession();
     const { id } = await params;
     const { ticket, articles, error } = await getTicketDetailsAction(id);
-    const isAdmin = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE].includes(session.role);
+    const isAdmin = session.role === Role.ADMIN || session.role === Role.DEVELOPER || session.role === Role.SUPORTE;
 
     return <TicketDetails ticket={ticket} articles={articles || []} error={error} isAdmin={isAdmin} />;
 }

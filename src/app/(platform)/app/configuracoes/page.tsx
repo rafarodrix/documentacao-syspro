@@ -102,9 +102,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <TabsContent value="contracts" className="space-y-6 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h3 className="text-lg font-medium">Contratos Ativos</h3>
+                            <h3 className="text-lg font-medium">Contratos</h3>
                             <p className="text-sm text-muted-foreground">
-                                Inativar contrato bloqueia a empresa e remove acesso dos usuarios vinculados.
+                                Inativar o ultimo contrato ativo bloqueia empresa e usuarios cliente vinculados.
                             </p>
                         </div>
                         <div className="flex items-center gap-3">

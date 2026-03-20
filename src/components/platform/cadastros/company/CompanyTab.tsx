@@ -35,6 +35,8 @@ interface CompanyWithRelations {
   razaoSocial: string
   nomeFantasia: string | null
   status: CompanyStatus
+  contractBlockReasonLabel?: string | null
+  isBlockedByContract?: boolean
   usersCount?: number
   _count?: {
     memberships: number
@@ -408,7 +410,22 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
                       </TableCell>
 
                       <TableCell>
-                        <StatusBadge status={company.status} />
+                        <div className="space-y-1">
+                          <StatusBadge status={company.status} />
+                          {company.isBlockedByContract && (
+                            <span className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+                              Bloqueada por contrato
+                            </span>
+                          )}
+                          {company.contractBlockReasonLabel && (
+                            <p
+                              className="max-w-[220px] truncate text-[10px] text-muted-foreground"
+                              title={company.contractBlockReasonLabel}
+                            >
+                              {company.contractBlockReasonLabel}
+                            </p>
+                          )}
+                        </div>
                       </TableCell>
 
                       <TableCell>

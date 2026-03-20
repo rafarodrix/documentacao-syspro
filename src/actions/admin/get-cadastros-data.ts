@@ -3,6 +3,7 @@
 import { Role } from "@prisma/client";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { parseContractBlockReason } from "@/core/config/contract-blocking";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
@@ -116,7 +117,17 @@ export async function getCadastrosCompaniesData() {
         select: companyListSelect,
       });
 
-      return { companies, isGlobalView: true };
+      return {
+        companies: companies.map((company) => {
+          const block = parseContractBlockReason(company.observacoes);
+          return {
+            ...company,
+            isBlockedByContract: Boolean(block),
+            contractBlockReasonLabel: block?.label ?? null,
+          };
+        }),
+        isGlobalView: true,
+      };
     }
 
     const companyIds = await getScopedCompanyIds(ctx.session.userId);
@@ -128,7 +139,17 @@ export async function getCadastrosCompaniesData() {
       select: companyListSelect,
     });
 
-    return { companies, isGlobalView: false };
+    return {
+      companies: companies.map((company) => {
+        const block = parseContractBlockReason(company.observacoes);
+        return {
+          ...company,
+          isBlockedByContract: Boolean(block),
+          contractBlockReasonLabel: block?.label ?? null,
+        };
+      }),
+      isGlobalView: false,
+    };
   } catch (error) {
     console.error(error);
     return { error: "Erro ao buscar empresas." };

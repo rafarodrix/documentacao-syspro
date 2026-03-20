@@ -6,8 +6,14 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
+import {
+    ContractBlockReason,
+    serializeContractBlockReason,
+    parseContractBlockReason,
+} from "@/core/config/contract-blocking";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN];
+const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 
 export async function getSystemParamsAction() {
     const session = await getProtectedSession();
@@ -32,9 +38,6 @@ export async function getContractsAction() {
 
     try {
         const contracts = await prisma.contract.findMany({
-            where: {
-                status: ContractStatus.ACTIVE,
-            },
             select: {
                 id: true,
                 companyId: true,
@@ -55,7 +58,10 @@ export async function getContractsAction() {
                     }
                 }
             },
-            orderBy: { createdAt: "desc" }
+            orderBy: [
+                { status: "asc" },
+                { createdAt: "desc" },
+            ],
         });
         return { success: true, data: contracts };
     } catch (error) {
@@ -102,12 +108,22 @@ export async function createContractAction(data: CreateContractInput) {
 
         await prisma.company.update({
             where: { id: data.companyId },
-            data: { status: CompanyStatus.ACTIVE, deletedAt: null },
+            data: { status: CompanyStatus.ACTIVE, deletedAt: null, observacoes: null },
+        });
+
+        await prisma.user.updateMany({
+            where: {
+                deletedAt: null,
+                role: { in: CLIENT_ROLES },
+                memberships: { some: { companyId: data.companyId } },
+            },
+            data: { isActive: true },
         });
 
         revalidatePath("/app/contratos");
         revalidatePath("/app/configuracoes");
         revalidatePath("/app/cadastros/empresa");
+        revalidatePath("/app/cadastros/usuarios");
 
         return { success: true, message: "Contrato criado com sucesso!" };
     } catch (error) {
@@ -153,7 +169,12 @@ export async function batchReadjustContractsAction(newMinimumWage: number) {
     }
 }
 
-export async function updateContractStatusAction(contractId: string, status: ContractStatus) {
+export async function updateContractStatusAction(
+    contractId: string,
+    status: ContractStatus,
+    blockReason?: ContractBlockReason,
+    blockReasonDetails?: string,
+) {
     const session = await getProtectedSession();
     if (!session || !WRITE_ROLES.includes(session.role)) {
         return { success: false, error: "Permissao negada." };
@@ -175,21 +196,72 @@ export async function updateContractStatusAction(contractId: string, status: Con
             });
 
             if (activeContracts === 0) {
+                const reason = blockReason ?? "OUTROS";
+                const notes = serializeContractBlockReason(reason, blockReasonDetails);
                 await prisma.company.update({
                     where: { id: updated.companyId },
-                    data: { status: CompanyStatus.SUSPENDED, deletedAt: new Date() },
+                    data: { status: CompanyStatus.SUSPENDED, deletedAt: new Date(), observacoes: notes },
+                });
+
+                // Desativa apenas usuarios cliente que ficaram sem qualquer empresa ativa com contrato ativo.
+                await prisma.user.updateMany({
+                    where: {
+                        deletedAt: null,
+                        role: { in: CLIENT_ROLES },
+                        AND: [
+                            { memberships: { some: { companyId: updated.companyId } } },
+                            {
+                                memberships: {
+                                    none: {
+                                        company: {
+                                            status: CompanyStatus.ACTIVE,
+                                            deletedAt: null,
+                                            contracts: {
+                                                some: {
+                                                    status: ContractStatus.ACTIVE,
+                                                    OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                    data: { isActive: false },
                 });
             }
         } else {
+            const currentCompany = await prisma.company.findUnique({
+                where: { id: updated.companyId },
+                select: { observacoes: true },
+            });
+
+            const hasContractBlock = parseContractBlockReason(currentCompany?.observacoes);
+
             await prisma.company.update({
                 where: { id: updated.companyId },
-                data: { status: CompanyStatus.ACTIVE, deletedAt: null },
+                data: {
+                    status: CompanyStatus.ACTIVE,
+                    deletedAt: null,
+                    observacoes: hasContractBlock ? null : currentCompany?.observacoes ?? null,
+                },
+            });
+
+            await prisma.user.updateMany({
+                where: {
+                    deletedAt: null,
+                    role: { in: CLIENT_ROLES },
+                    memberships: { some: { companyId: updated.companyId } },
+                },
+                data: { isActive: true },
             });
         }
 
         revalidatePath("/app/contratos");
         revalidatePath("/app/configuracoes");
         revalidatePath("/app/cadastros/empresa");
+        revalidatePath("/app/cadastros/usuarios");
 
         return {
             success: true,
