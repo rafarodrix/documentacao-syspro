@@ -31,7 +31,7 @@ import {
     Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { updateContractStatusAction } from "@/actions/admin/contract-actions";
+import { getContractSuspendImpactAction, updateContractStatusAction } from "@/actions/admin/contract-actions";
 import {
     ContractBlockReason,
     CONTRACT_BLOCK_REASONS,
@@ -58,6 +58,13 @@ interface ContractsTableProps {
     contracts: ContractRow[];
 }
 
+type SuspendImpact = {
+    companyName: string;
+    willBlockCompany: boolean;
+    blockedUsersCount: number;
+    totalLinkedUsers: number;
+};
+
 const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
 
@@ -70,12 +77,43 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
     const [suspendTarget, setSuspendTarget] = useState<ContractRow | null>(null);
     const [blockReason, setBlockReason] = useState<ContractBlockReason>("EMPRESA_FECHOU");
     const [blockReasonDetails, setBlockReasonDetails] = useState("");
+    const [suspendImpact, setSuspendImpact] = useState<SuspendImpact | null>(null);
+    const [isImpactLoading, setIsImpactLoading] = useState(false);
 
     useEffect(() => {
         setItems(contracts);
     }, [contracts]);
 
     const requiresDetails = useMemo(() => blockReason === "OUTROS", [blockReason]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadImpact = async () => {
+            if (!suspendTarget) {
+                setSuspendImpact(null);
+                setIsImpactLoading(false);
+                return;
+            }
+
+            setIsImpactLoading(true);
+            const result = await getContractSuspendImpactAction(suspendTarget.id);
+            if (!isMounted) return;
+
+            if (result.success && result.data) {
+                setSuspendImpact(result.data);
+            } else {
+                setSuspendImpact(null);
+                toast.error(typeof result.error === "string" ? result.error : "Nao foi possivel calcular o impacto.");
+            }
+            setIsImpactLoading(false);
+        };
+
+        loadImpact();
+        return () => {
+            isMounted = false;
+        };
+    }, [suspendTarget]);
 
     const handleSuspend = () => {
         if (!suspendTarget) return;
@@ -98,6 +136,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                 setSuspendTarget(null);
                 setBlockReason("EMPRESA_FECHOU");
                 setBlockReasonDetails("");
+                setSuspendImpact(null);
                 return;
             }
 
@@ -122,12 +161,24 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
 
     return (
         <>
-            <Dialog open={Boolean(suspendTarget)} onOpenChange={(open) => !open && setSuspendTarget(null)}>
+            <Dialog
+                open={Boolean(suspendTarget)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSuspendTarget(null);
+                        setSuspendImpact(null);
+                    }
+                }}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Suspender contrato</DialogTitle>
                         <DialogDescription>
-                            Se este for o ultimo contrato ativo da empresa, a empresa e os usuarios serao bloqueados automaticamente.
+                            {isImpactLoading
+                                ? "Calculando impacto da suspensao..."
+                                : suspendImpact?.willBlockCompany
+                                    ? `${suspendImpact.blockedUsersCount} usuarios serao bloqueados${suspendImpact.companyName ? ` em ${suspendImpact.companyName}` : ""} ao suspender este contrato.`
+                                    : "Este contrato nao vai bloquear usuarios agora porque ainda existe outro contrato ativo na empresa."}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -162,10 +213,10 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                     </div>
 
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setSuspendTarget(null)} disabled={isPending}>
+                        <Button variant="outline" onClick={() => setSuspendTarget(null)} disabled={isPending || isImpactLoading}>
                             Cancelar
                         </Button>
-                        <Button variant="destructive" onClick={handleSuspend} disabled={isPending}>
+                        <Button variant="destructive" onClick={handleSuspend} disabled={isPending || isImpactLoading}>
                             Confirmar suspensao
                         </Button>
                     </DialogFooter>

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, MoreHorizontal, Settings, Building2, Users, X } from "lucide-react"
+import { Search, MoreHorizontal, Settings, Building2, Users, X, CircleAlert } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { CreateCompanyDialog } from "./CreateCompanyDialog"
 import { EditCompanyDialog } from "./EditCompanyDialog"
@@ -173,6 +174,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
   const [items, setItems] = useState(data)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">("ALL")
+  const [filterBlocked, setFilterBlocked] = useState<"ALL" | "BLOCKED">("ALL")
   const [companyToEdit, setCompanyToEdit] = useState<CompanyWithRelations | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -198,9 +200,15 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
         company.cnpj.includes(cnpjRaw)
 
       const matchesStatus = filterStatus === "ALL" || company.status === filterStatus
-      return matchesSearch && matchesStatus
+      const matchesBlocked = filterBlocked === "ALL" || company.isBlockedByContract
+      return matchesSearch && matchesStatus && matchesBlocked
     })
-  }, [items, searchTerm, filterStatus])
+  }, [items, searchTerm, filterStatus, filterBlocked])
+
+  const blockedCount = useMemo(
+    () => items.filter((company) => company.isBlockedByContract).length,
+    [items],
+  )
 
   const statusCounts = useMemo(
     () => {
@@ -286,7 +294,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
               ? `Deseja excluir a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}? Essa acao e irreversivel.`
               : confirmDialog.company.status === "INACTIVE"
                 ? `Deseja reativar a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}?`
-                : `Deseja inativar a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}?`
+                : `Deseja inativar a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}? ${confirmDialog.company._count?.memberships ?? confirmDialog.company.usersCount ?? 0} usuarios poderao perder acesso.`
             : ""
         }
         confirmLabel={confirmDialog?.type === "delete" ? "Excluir empresa" : "Confirmar"}
@@ -362,6 +370,27 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
               })}
             </div>
 
+            <div className="flex items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
+              <button
+                onClick={() => setFilterBlocked("ALL")}
+                className={cn(
+                  "px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                  filterBlocked === "ALL" ? "bg-background shadow-sm text-foreground border border-border/50" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setFilterBlocked("BLOCKED")}
+                className={cn(
+                  "px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                  filterBlocked === "BLOCKED" ? "bg-background shadow-sm text-foreground border border-border/50" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Bloqueadas <span className="ml-1.5 text-[10px] text-muted-foreground">{blockedCount}</span>
+              </button>
+            </div>
+
             {canCreate && <CreateCompanyDialog />}
           </div>
         </div>
@@ -418,12 +447,30 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
                             </span>
                           )}
                           {company.contractBlockReasonLabel && (
-                            <p
-                              className="max-w-[220px] truncate text-[10px] text-muted-foreground"
-                              title={company.contractBlockReasonLabel}
-                            >
-                              {company.contractBlockReasonLabel}
-                            </p>
+                            <div className="space-y-1">
+                              <div className="hidden md:flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <span className="max-w-[190px] truncate">{company.contractBlockReasonLabel}</span>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        type="button"
+                                        className="inline-flex items-center justify-center rounded text-muted-foreground/80 hover:text-foreground"
+                                        aria-label="Ver motivo completo do bloqueio"
+                                      >
+                                        <CircleAlert className="h-3.5 w-3.5" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-[280px] whitespace-normal text-left">
+                                      {company.contractBlockReasonLabel}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                              <p className="md:hidden text-[10px] text-muted-foreground leading-4">
+                                {company.contractBlockReasonLabel}
+                              </p>
+                            </div>
                           )}
                         </div>
                       </TableCell>

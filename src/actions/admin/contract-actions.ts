@@ -272,3 +272,108 @@ export async function updateContractStatusAction(
         return { success: false, error: "Erro ao atualizar status do contrato." };
     }
 }
+
+export async function getContractSuspendImpactAction(contractId: string) {
+    const session = await getProtectedSession();
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, error: "Permissao negada." };
+    }
+
+    try {
+        const contract = await prisma.contract.findUnique({
+            where: { id: contractId },
+            select: {
+                id: true,
+                status: true,
+                companyId: true,
+                company: { select: { razaoSocial: true } },
+            },
+        });
+
+        if (!contract) {
+            return { success: false, error: "Contrato nao encontrado." };
+        }
+
+        if (contract.status !== ContractStatus.ACTIVE) {
+            return {
+                success: true,
+                data: {
+                    companyName: contract.company.razaoSocial,
+                    willBlockCompany: false,
+                    blockedUsersCount: 0,
+                    totalLinkedUsers: 0,
+                },
+            };
+        }
+
+        const remainingActiveContracts = await prisma.contract.count({
+            where: {
+                companyId: contract.companyId,
+                status: ContractStatus.ACTIVE,
+                id: { not: contract.id },
+            },
+        });
+
+        const totalLinkedUsers = await prisma.user.count({
+            where: {
+                deletedAt: null,
+                isActive: true,
+                role: { in: CLIENT_ROLES },
+                memberships: { some: { companyId: contract.companyId } },
+            },
+        });
+
+        if (remainingActiveContracts > 0) {
+            return {
+                success: true,
+                data: {
+                    companyName: contract.company.razaoSocial,
+                    willBlockCompany: false,
+                    blockedUsersCount: 0,
+                    totalLinkedUsers,
+                },
+            };
+        }
+
+        const blockedUsersCount = await prisma.user.count({
+            where: {
+                deletedAt: null,
+                isActive: true,
+                role: { in: CLIENT_ROLES },
+                AND: [
+                    { memberships: { some: { companyId: contract.companyId } } },
+                    {
+                        memberships: {
+                            none: {
+                                companyId: { not: contract.companyId },
+                                company: {
+                                    status: CompanyStatus.ACTIVE,
+                                    deletedAt: null,
+                                    contracts: {
+                                        some: {
+                                            status: ContractStatus.ACTIVE,
+                                            OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+
+        return {
+            success: true,
+            data: {
+                companyName: contract.company.razaoSocial,
+                willBlockCompany: true,
+                blockedUsersCount,
+                totalLinkedUsers,
+            },
+        };
+    } catch (error) {
+        console.error("Erro ao calcular impacto da suspensao:", error);
+        return { success: false, error: "Erro ao calcular impacto da suspensao." };
+    }
+}
