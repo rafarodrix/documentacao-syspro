@@ -18,12 +18,10 @@ globalForRoleCache.__sessionRoleCache = sessionRoleCache;
 
 function isPublicPath(pathname: string): boolean {
   const publicRoutes = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/privacidade", "/termos"];
-  const isDocsRoute = pathname === "/docs" || pathname.startsWith("/docs/");
   const isReleasesRoute = pathname === "/releases" || pathname.startsWith("/releases/");
 
   return (
     publicRoutes.includes(pathname) ||
-    isDocsRoute ||
     isReleasesRoute ||
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/auth") ||

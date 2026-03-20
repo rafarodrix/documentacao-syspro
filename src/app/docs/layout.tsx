@@ -2,11 +2,22 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { ReactNode } from 'react';
 import { baseOptions } from '@/app/docs/layout.config';
 import { source } from '@/lib/source';
+import { SiteHeader } from "@/components/site/Header";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { requireSession } from "@/lib/auth-helpers";
 
-export default function Layout({ children }: { children: ReactNode }) {
+export default async function Layout({ children }: { children: ReactNode }) {
+  await requireSession();
+
   return (
-    <DocsLayout tree={source.pageTree} {...baseOptions}>
-      {children}
-    </DocsLayout>
+    <div className="flex min-h-screen flex-col bg-background">
+      <SiteHeader />
+      <main className="flex-1">
+        <DocsLayout tree={source.pageTree} {...baseOptions}>
+          {children}
+        </DocsLayout>
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
