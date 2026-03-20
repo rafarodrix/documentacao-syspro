@@ -1,64 +1,53 @@
 import { Role } from "@prisma/client";
+import { ROLE_LABELS as APP_ROLE_LABELS } from "./role-labels";
 
-export const ROLE_LABELS: Record<Role, string> = {
-    ADMIN: "Administrador",
-    DEVELOPER: "Desenvolvedor",
-    SUPORTE: "Suporte",
-    CLIENTE_ADMIN: "Gestor",
-    CLIENTE_USER: "Usuário",
-};
+export const ROLE_LABELS: Record<Role, string> = APP_ROLE_LABELS as Record<Role, string>;
 
-// 1. Permissões Granulares
 export const SYSTEM_PERMISSIONS = {
-    // --- GERAL ---
-    "dashboard:view": "Visualizar Dashboard",
+  "dashboard:view": "Visualizar Dashboard",
 
-    // --- CADASTROS: EMPRESAS ---
-    "companies:view": "Visualizar Lista de Empresas",
-    "companies:create": "Cadastrar Nova Empresa",
-    "companies:edit": "Editar Dados da Empresa",
-    "companies:status": "Ativar/Desativar Empresa",
+  "companies:view": "Visualizar Lista de Empresas",
+  "companies:create": "Cadastrar Nova Empresa",
+  "companies:edit": "Editar Dados da Empresa",
+  "companies:status": "Ativar/Desativar Empresa",
 
-    // --- CADASTROS: USUÁRIOS ---
-    "users:view": "Visualizar Lista de Usuários",
-    "users:create": "Cadastrar/Convidar Usuário",
-    "users:edit": "Editar Usuário",
-    "users:reset_password": "Resetar Senha de Usuário",
-    "users:status": "Ativar/Desativar Acesso",
+  "users:view": "Visualizar Lista de Usuários",
+  "users:create": "Cadastrar/Convidar Usuário",
+  "users:edit": "Editar Usuário",
+  "users:reset_password": "Resetar Senha de Usuário",
+  "users:status": "Ativar/Desativar Acesso",
 
-    // --- CADASTROS: SISTEMA (Equipe Interna) ---
-    "system_team:view": "Visualizar Equipe Interna",
-    "system_team:manage": "Gerenciar Equipe Interna",
+  "system_team:view": "Visualizar Equipe Interna",
+  "system_team:manage": "Gerenciar Equipe Interna",
 } as const;
 
 export type PermissionKey = keyof typeof SYSTEM_PERMISSIONS;
-
 export type AccessControlMatrix = Record<Role, PermissionKey[]>;
 
-// 2. Matriz de Acesso (Quem pode fazer o quê)
 export const ACCESS_MATRIX: AccessControlMatrix = {
-    // SUPER ADMIN e DEV: Podem tudo
-    ADMIN: Object.keys(SYSTEM_PERMISSIONS) as PermissionKey[],
-    DEVELOPER: Object.keys(SYSTEM_PERMISSIONS) as PermissionKey[],
-
-    // SUPORTE: atua como analista operacional (empresas e usuarios), sem gerir equipe interna
-    SUPORTE: [
-        "dashboard:view",
-        "companies:view", "companies:create", "companies:edit", "companies:status",
-        "users:view", "users:create", "users:edit", "users:status", "users:reset_password",
-        "system_team:view",
-    ],
-
-    // GESTOR DO CLIENTE: Gerencia a própria empresa e equipe
-    CLIENTE_ADMIN: [
-        "dashboard:view",
-        "companies:view", "companies:edit", // Vê e edita a própria
-        "users:view", "users:create", "users:edit", "users:status" // Gerencia equipe
-    ],
-
-    // USUÁRIO COMUM: Apenas visualiza o básico (se necessário)
-    CLIENTE_USER: [
-        "dashboard:view"
-        // Não vê lista de usuários nem edita empresa
-    ],
+  ADMIN: Object.keys(SYSTEM_PERMISSIONS) as PermissionKey[],
+  DEVELOPER: Object.keys(SYSTEM_PERMISSIONS) as PermissionKey[],
+  SUPORTE: [
+    "dashboard:view",
+    "companies:view",
+    "companies:create",
+    "companies:edit",
+    "companies:status",
+    "users:view",
+    "users:create",
+    "users:edit",
+    "users:status",
+    "users:reset_password",
+    "system_team:view",
+  ],
+  CLIENTE_ADMIN: [
+    "dashboard:view",
+    "companies:view",
+    "companies:edit",
+    "users:view",
+    "users:create",
+    "users:edit",
+    "users:status",
+  ],
+  CLIENTE_USER: ["dashboard:view"],
 };

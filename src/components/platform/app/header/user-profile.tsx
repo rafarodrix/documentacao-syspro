@@ -3,12 +3,17 @@
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
+import { getRoleLabel } from "@/core/config/role-labels"
 import { LogOut, User, Settings, HelpCircle } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
 interface UserProfileProps {
@@ -18,14 +23,6 @@ interface UserProfileProps {
     image?: string | null
     role: string
   }
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN:         "Super Administrador",
-  DEVELOPER:     "Desenvolvedor",
-  SUPORTE:       "Suporte Técnico",
-  CLIENTE_ADMIN: "Gestor da Conta",
-  CLIENTE_USER:  "Colaborador",
 }
 
 export function UserProfile({ user }: UserProfileProps) {
@@ -44,7 +41,7 @@ export function UserProfile({ user }: UserProfileProps) {
     .join("")
     .toUpperCase()
 
-  const roleLabel = ROLE_LABELS[user.role] ?? user.role
+  const roleLabel = getRoleLabel(user.role)
 
   return (
     <DropdownMenu>

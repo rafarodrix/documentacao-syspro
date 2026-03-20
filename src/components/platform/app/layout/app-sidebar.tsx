@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { SIDEBAR_ROLE_RULES, SYSTEM_ROLES } from "@/core/config/route-access"
+import { getRoleLabel as getUnifiedRoleLabel } from "@/core/config/role-labels"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NavItem, NavItemType } from "./NavItem"
@@ -81,14 +82,7 @@ function filterByRole(items: NavItemType[], role: UserRole): NavItemType[] {
 }
 
 export function getRoleLabel(role: UserRole): string {
-  const labels: Record<string, string> = {
-    ADMIN: "Super Administrador",
-    DEVELOPER: "Desenvolvedor",
-    SUPORTE: "Suporte Tecnico",
-    CLIENTE_ADMIN: "Gestor da Conta",
-    CLIENTE_USER: "Colaborador",
-  }
-  return labels[role] ?? role.replace(/_/g, " ").toLowerCase()
+  return getUnifiedRoleLabel(role)
 }
 
 function getInitials(name: string): string {
