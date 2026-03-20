@@ -1,6 +1,7 @@
-﻿import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getCookieCache } from "better-auth/cookies";
 import { APP_ROLES, CADASTROS_ROUTE_RULES, DOCS_ROUTE_RULES, SYSTEM_ROLES, hasAllowedRole, type AppRole } from "@/core/config/route-access";
+import { mapLegacyAdminPathToApp } from "@/core/config/platform-route-aliases";
 
 type CachedRole = { role: AppRole; expiresAt: number };
 type SessionCachePayload = {
@@ -97,16 +98,13 @@ function redirectTo(request: NextRequest, to: string) {
   return NextResponse.redirect(url);
 }
 
-function mapAdminPathToAppPath(pathname: string): string {
-  return pathname === "/admin" ? "/app" : pathname.replace(/^\/admin/, "/app");
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+  const mappedAdminPath = mapLegacyAdminPathToApp(pathname);
+  if (mappedAdminPath) {
     const url = request.nextUrl.clone();
-    url.pathname = mapAdminPathToAppPath(pathname);
+    url.pathname = mappedAdminPath;
     return NextResponse.redirect(url);
   }
 

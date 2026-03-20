@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import { SefazService } from "@/app/api/sefaz/sefaz.service";
+import { isValidSecretToken } from "@/lib/security/request-auth";
 
-function isAuthorized(secret: string | null): boolean {
+function isAuthorized(request: Request): boolean {
   const expected = process.env.SEFAZ_CHECK_SECRET ?? process.env.REVALIDATE_SECRET;
   if (!expected) return false;
-  return secret === expected;
+  return isValidSecretToken(request, expected, {
+    headerName: "x-sefaz-check-secret",
+    queryName: "secret",
+    allowBearer: true,
+  });
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
-
-  if (!isAuthorized(secret)) {
+  if (!isAuthorized(request)) {
     return NextResponse.json({ ok: false, error: "Nao autorizado." }, { status: 401 });
   }
 
@@ -21,10 +23,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
-
-  if (!isAuthorized(secret)) {
+  if (!isAuthorized(request)) {
     return NextResponse.json({ ok: false, error: "Nao autorizado." }, { status: 401 });
   }
 

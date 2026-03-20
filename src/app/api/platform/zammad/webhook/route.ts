@@ -3,17 +3,18 @@ import { zammadOperationalTicketSchema } from "@/core/application/schema/zammad-
 import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { isValidHmacSignature } from "@/lib/security/request-auth";
 
-function isAuthorized(request: Request): boolean {
-  const secret = process.env.ZAMMAD_WEBHOOK_SECRET;
-  if (!secret) return false;
+function isAuthorized(request: Request, rawBody: string): boolean {
+  const hmacSecret = process.env.ZAMMAD_WEBHOOK_HMAC_SECRET ?? process.env.ZAMMAD_WEBHOOK_SECRET;
+  if (!hmacSecret) return false;
 
-  const authHeader = request.headers.get("x-zammad-webhook-secret");
-  if (authHeader && authHeader === secret) return true;
+  const signature =
+    request.headers.get("x-zammad-signature") ??
+    request.headers.get("x-zammad-webhook-signature") ??
+    request.headers.get("x-hub-signature-256");
 
-  const url = new URL(request.url);
-  const token = url.searchParams.get("secret");
-  return token === secret;
+  return isValidHmacSignature(rawBody, signature, hmacSecret);
 }
 
 function extractTicketFromPayload(payload: unknown): unknown {
@@ -30,12 +31,13 @@ function extractTicketFromPayload(payload: unknown): unknown {
 }
 
 export async function POST(request: Request) {
-  if (!isAuthorized(request)) {
+  const rawBody = await request.text();
+  if (!isAuthorized(request, rawBody)) {
     return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
   }
 
   try {
-    const payload = await request.json();
+    const payload = JSON.parse(rawBody) as Record<string, unknown>;
     const eventType = typeof payload?.event === "string" ? payload.event : "webhook";
     const rawTicket = extractTicketFromPayload(payload);
     const parsed = zammadOperationalTicketSchema.safeParse(rawTicket);
@@ -65,4 +67,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Erro ao processar webhook." }, { status: 500 });
   }
 }
-

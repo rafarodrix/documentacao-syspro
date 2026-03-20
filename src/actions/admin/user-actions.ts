@@ -84,6 +84,23 @@ async function canManageTargetUser(session: NonNullable<Awaited<ReturnType<typeo
     return !!targetMembership;
 }
 
+type RemoveUserInput = {
+    body: { userId: string };
+    headers: Awaited<ReturnType<typeof headers>>;
+};
+
+type AdminApiShape = {
+    removeUser: (input: RemoveUserInput) => Promise<unknown>;
+};
+
+function getAdminApi(): AdminApiShape | null {
+    const candidate = (auth.api as unknown as { admin?: unknown }).admin;
+    if (!candidate || typeof candidate !== "object") return null;
+    const removeUser = (candidate as { removeUser?: unknown }).removeUser;
+    if (typeof removeUser !== "function") return null;
+    return { removeUser: removeUser as AdminApiShape["removeUser"] };
+}
+
 function revalidateCadastrosPaths() {
     revalidatePath("/app/cadastros");
     revalidatePath("/app/cadastros/empresa");
@@ -231,12 +248,15 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
         // ROLLBACK: Remove do Auth se o banco falhar
         if (createdAuthUserId) {
             try {
-                // Usamos removeUser da API admin. Se o TS reclamar, o 'as any' garante a execução
-                // enquanto você sincroniza o plugin no arquivo de configuração do Better-Auth.
-                await (auth.api as any).admin.removeUser({
-                    body: { userId: createdAuthUserId },
-                    headers: await headers()
-                });
+                const adminApi = getAdminApi();
+                if (!adminApi) {
+                    console.error("Rollback incompleto: Better Auth admin.removeUser indisponivel.");
+                } else {
+                    await adminApi.removeUser({
+                        body: { userId: createdAuthUserId },
+                        headers: await headers()
+                    });
+                }
             } catch (rollbackError) {
                 console.error("Erro crítico no Rollback:", rollbackError);
             }

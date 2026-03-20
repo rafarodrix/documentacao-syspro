@@ -27,6 +27,7 @@ const ZAMMAD_RETRY_MAX_ATTEMPTS = Number(process.env.ZAMMAD_RETRY_MAX_ATTEMPTS ?
 const ZAMMAD_RETRY_BASE_DELAY_MS = Number(process.env.ZAMMAD_RETRY_BASE_DELAY_MS ?? 400);
 const ZAMMAD_FALLBACK_MAX_STALE_MINUTES = Number(process.env.ZAMMAD_FALLBACK_MAX_STALE_MINUTES ?? 15);
 const ZAMMAD_CIRCUIT_COOLDOWN_MS = Number(process.env.ZAMMAD_CIRCUIT_COOLDOWN_MS ?? 20_000);
+const ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER = process.env.ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER === "true";
 const DEFAULT_ROUTE_KEY = "unknown";
 
 type ResponseCacheEntry = {
@@ -140,7 +141,9 @@ async function fetchWithRetry(input: string, options: NextFetchOptions, meta: Fe
     const start = Date.now();
     const routeKey = meta.routeKey || DEFAULT_ROUTE_KEY;
 
-    const circuitOpenUntil = circuitOpenUntilByRoute.get(routeKey) ?? 0;
+    const circuitOpenUntil = ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER
+        ? (circuitOpenUntilByRoute.get(routeKey) ?? 0)
+        : 0;
     if (Date.now() < circuitOpenUntil) {
         const latencyMs = Date.now() - start;
         recordZammadMetric({
@@ -194,7 +197,7 @@ async function fetchWithRetry(input: string, options: NextFetchOptions, meta: Fe
                     attempts: attempt,
                     latencyMs: Date.now() - start,
                 });
-                if (isRetryableStatus(response.status)) {
+                if (isRetryableStatus(response.status) && ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER) {
                     circuitOpenUntilByRoute.set(routeKey, Date.now() + ZAMMAD_CIRCUIT_COOLDOWN_MS);
                 }
                 return response;
@@ -218,7 +221,9 @@ async function fetchWithRetry(input: string, options: NextFetchOptions, meta: Fe
                     attempts: attempt,
                     latencyMs: Date.now() - start,
                 });
-                circuitOpenUntilByRoute.set(routeKey, Date.now() + ZAMMAD_CIRCUIT_COOLDOWN_MS);
+                if (ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER) {
+                    circuitOpenUntilByRoute.set(routeKey, Date.now() + ZAMMAD_CIRCUIT_COOLDOWN_MS);
+                }
                 break;
             }
         }
@@ -482,34 +487,15 @@ export const ZammadGateway = {
             routeKey?: string;
         }
     ): Promise<ZammadOperationalTicket[]> {
-        const normalizedEmails = Array.from(
-            new Set(
-                emails
-                    .map((email) => email.trim().toLowerCase())
-                    .filter(Boolean)
-            )
-        );
-
-        if (!normalizedEmails.length) return [];
-
         try {
-            const perEmailLimit = options?.perEmailLimit ?? options?.limit ?? 50;
-            const ticketsPerEmail = await Promise.all(
-                normalizedEmails.map((email) =>
-                    this.getTicketsForUser(email, {
-                        stateIds: options?.stateIds,
-                        limit: perEmailLimit,
-                        page: options?.page,
-                        scope: "email-only",
-                        cacheTtlSeconds: options?.cacheTtlSeconds,
-                        tags: options?.tags,
-                        routeKey: options?.routeKey,
-                    })
-                )
-            );
-
-            const merged = dedupeOperationalTickets(ticketsPerEmail.flat());
-            return options?.limit ? merged.slice(0, options.limit) : merged;
+            return this.getTicketsForCustomerEmailsPaged(emails, {
+                stateIds: options?.stateIds,
+                limit: options?.limit,
+                page: options?.page,
+                cacheTtlSeconds: options?.cacheTtlSeconds,
+                tags: options?.tags,
+                routeKey: options?.routeKey,
+            });
         } catch (err) {
             console.error("ZammadGateway.getTicketsForCustomerEmails:", err);
             return [];

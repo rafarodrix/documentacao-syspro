@@ -3,16 +3,16 @@ import { revalidateTag } from "next/cache";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
 import { prisma } from "@/lib/prisma";
+import { isValidSecretToken } from "@/lib/security/request-auth";
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.ZAMMAD_SYNC_SECRET;
   if (!secret) return false;
-
-  const authHeader = request.headers.get("x-zammad-sync-secret");
-  if (authHeader && authHeader === secret) return true;
-
-  const url = new URL(request.url);
-  return url.searchParams.get("secret") === secret;
+  return isValidSecretToken(request, secret, {
+    headerName: "x-zammad-sync-secret",
+    queryName: "secret",
+    allowBearer: true,
+  });
 }
 
 export async function POST(request: Request) {
