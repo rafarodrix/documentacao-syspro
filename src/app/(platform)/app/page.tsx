@@ -15,6 +15,8 @@ import {
   mapTicketStatusFromStateName,
 } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
@@ -221,6 +223,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
       ZammadGateway.getAllTickets(50, {
         cacheTtlSeconds: 60,
         tags: ["tickets-dashboard"],
+        routeKey: "app-dashboard",
       }),
     ]);
     const activeTickets = ticketsRaw.filter((ticket) => {
@@ -288,11 +291,12 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
   ]);
 
   const userTickets = scopedEmails.length
-    ? await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
+      ? await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
         limit: 50,
         perEmailLimit: 10,
         cacheTtlSeconds: 60,
         tags: ["tickets-dashboard"],
+        routeKey: "app-dashboard",
       })
     : [];
 
@@ -322,6 +326,7 @@ export default async function DashboardPage() {
   const session = await requireSession();
   const data = await getDashboardData(session.userId, session.email, session.role);
   const isSystemUser = data.mode === "admin";
+  const zammadHealth = getZammadRouteHealth("app-dashboard");
 
   return (
     <div className="flex-1 space-y-4 sm:space-y-5 p-4 sm:p-6">
@@ -331,6 +336,15 @@ export default async function DashboardPage() {
           {isSystemUser ? "Visao operacional do sistema em tempo real." : "Resumo da sua conta e chamados recentes."}
         </p>
       </div>
+
+      {zammadHealth.stale && (
+        <Alert className="border-amber-500/40 bg-amber-500/10">
+          <AlertTitle>Dados em modo contingência</AlertTitle>
+          <AlertDescription>
+            Integração Zammad instável. Exibindo último cache válido de {zammadHealth.staleMinutes} min atrás.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {data.mode === "admin" ? (
         <>

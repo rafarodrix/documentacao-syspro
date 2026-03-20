@@ -5,9 +5,17 @@ import { Role } from "@prisma/client";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
-export default async function TicketsPage() {
+interface TicketsPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const session = await requireSession();
-  const { data, success } = await getTicketsAction();
+  const params = searchParams ? await searchParams : undefined;
+  const pageParam = typeof params?.page === "string" ? Number(params.page) : 1;
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+
+  const { data, success, pagination, staleWarning } = await getTicketsAction({ page, pageSize: 20 });
 
   if (!success || !data) {
     return (
@@ -18,5 +26,12 @@ export default async function TicketsPage() {
     );
   }
 
-  return <TicketsContainer tickets={data} isAdmin={SYSTEM_ROLES.includes(session.role)} />;
+  return (
+    <TicketsContainer
+      tickets={data}
+      isAdmin={SYSTEM_ROLES.includes(session.role)}
+      pagination={pagination}
+      staleWarning={staleWarning}
+    />
+  );
 }

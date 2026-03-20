@@ -12,6 +12,11 @@ import {
     ZammadUserSearch,
 } from "@/core/application/schema/zammad-api.schema";
 import { mapTicketPriority, mapTicketStatusFromStateName } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import {
+    markZammadRouteFresh,
+    markZammadRouteStale,
+    recordZammadMetric,
+} from "@/core/infrastructure/observability/zammad-observability";
 
 const ZAMMAD_URL = process.env.ZAMMAD_URL;
 const ZAMMAD_TOKEN = process.env.ZAMMAD_TOKEN;
@@ -19,10 +24,22 @@ const ZAMMAD_AUTH_SCHEME = process.env.ZAMMAD_AUTH_SCHEME?.toLowerCase();
 const ZAMMAD_TIMEOUT_MS = Number(process.env.ZAMMAD_TIMEOUT_MS ?? 10000);
 const ZAMMAD_RETRY_MAX_ATTEMPTS = Number(process.env.ZAMMAD_RETRY_MAX_ATTEMPTS ?? 3);
 const ZAMMAD_RETRY_BASE_DELAY_MS = Number(process.env.ZAMMAD_RETRY_BASE_DELAY_MS ?? 400);
+const ZAMMAD_FALLBACK_MAX_STALE_MINUTES = Number(process.env.ZAMMAD_FALLBACK_MAX_STALE_MINUTES ?? 15);
+const ZAMMAD_CIRCUIT_COOLDOWN_MS = Number(process.env.ZAMMAD_CIRCUIT_COOLDOWN_MS ?? 20_000);
+const DEFAULT_ROUTE_KEY = "unknown";
+
+type ResponseCacheEntry = {
+    ts: number;
+    data: unknown;
+};
+
+const responseCache = new Map<string, ResponseCacheEntry>();
+const circuitOpenUntilByRoute = new Map<string, number>();
 
 type ZammadCacheOptions = {
     cacheTtlSeconds?: number;
     tags?: string[];
+    routeKey?: string;
 };
 
 type NextFetchOptions = RequestInit & {
@@ -30,6 +47,11 @@ type NextFetchOptions = RequestInit & {
         revalidate?: number;
         tags?: string[];
     };
+};
+
+type FetchMeta = {
+    routeKey: string;
+    endpoint: string;
 };
 
 function buildAuthorizationHeader(token: string): string {
@@ -62,20 +84,46 @@ async function fetchZammad(endpoint: string, options: NextFetchOptions = {}, cac
         }
         : { cache: "no-store" as RequestCache };
 
-    const res = await fetchWithRetry(`${ZAMMAD_URL}/api/v1/${endpoint}`, {
+    const routeKey = cacheOptions?.routeKey ?? DEFAULT_ROUTE_KEY;
+    const url = `${ZAMMAD_URL}/api/v1/${endpoint}`;
+    const requestOptions: NextFetchOptions = {
         ...options,
         ...cachePolicy,
         headers: {
             Authorization: buildAuthorizationHeader(ZAMMAD_TOKEN),
             ...options.headers,
         },
-    });
+    };
 
-    if (!res.ok) {
-        throw new Error(`Zammad API Error [${res.status}]: ${res.statusText}`);
+    const method = String(requestOptions.method ?? "GET").toUpperCase();
+    const cacheKey = `${method}:${url}`;
+
+    try {
+        const res = await fetchWithRetry(url, requestOptions, { routeKey, endpoint });
+        if (!res.ok) {
+            throw new Error(`Zammad API Error [${res.status}]: ${res.statusText}`);
+        }
+
+        const json = await res.json();
+        if (method === "GET") {
+            responseCache.set(cacheKey, { ts: Date.now(), data: json });
+        }
+        markZammadRouteFresh(routeKey);
+        return json;
+    } catch (error) {
+        if (method === "GET") {
+            const fallback = responseCache.get(cacheKey);
+            if (fallback) {
+                const staleMinutes = Math.floor((Date.now() - fallback.ts) / 60000);
+                if (staleMinutes <= ZAMMAD_FALLBACK_MAX_STALE_MINUTES) {
+                    markZammadRouteStale(routeKey, staleMinutes);
+                    return fallback.data;
+                }
+            }
+        }
+
+        throw error;
     }
-
-    return res.json();
 }
 
 function sleep(ms: number): Promise<void> {
@@ -86,8 +134,26 @@ function isRetryableStatus(status: number): boolean {
     return status === 429 || status >= 500;
 }
 
-async function fetchWithRetry(input: string, options: NextFetchOptions): Promise<Response> {
+async function fetchWithRetry(input: string, options: NextFetchOptions, meta: FetchMeta): Promise<Response> {
     let lastError: unknown;
+    const start = Date.now();
+    const routeKey = meta.routeKey || DEFAULT_ROUTE_KEY;
+
+    const circuitOpenUntil = circuitOpenUntilByRoute.get(routeKey) ?? 0;
+    if (Date.now() < circuitOpenUntil) {
+        const latencyMs = Date.now() - start;
+        recordZammadMetric({
+            ts: Date.now(),
+            routeKey,
+            endpoint: meta.endpoint,
+            statusCode: null,
+            ok: false,
+            timeout: false,
+            attempts: 0,
+            latencyMs,
+        });
+        throw new Error("Circuit breaker ativo para rota Zammad.");
+    }
 
     for (let attempt = 1; attempt <= ZAMMAD_RETRY_MAX_ATTEMPTS; attempt += 1) {
         const controller = new AbortController();
@@ -102,13 +168,56 @@ async function fetchWithRetry(input: string, options: NextFetchOptions): Promise
 
             clearTimeout(timeoutId);
 
-            if (response.ok) return response;
-            if (!isRetryableStatus(response.status) || attempt === ZAMMAD_RETRY_MAX_ATTEMPTS) return response;
+            if (response.ok) {
+                recordZammadMetric({
+                    ts: Date.now(),
+                    routeKey,
+                    endpoint: meta.endpoint,
+                    statusCode: response.status,
+                    ok: true,
+                    timeout: false,
+                    attempts: attempt,
+                    latencyMs: Date.now() - start,
+                });
+                return response;
+            }
+
+            if (!isRetryableStatus(response.status) || attempt === ZAMMAD_RETRY_MAX_ATTEMPTS) {
+                recordZammadMetric({
+                    ts: Date.now(),
+                    routeKey,
+                    endpoint: meta.endpoint,
+                    statusCode: response.status,
+                    ok: false,
+                    timeout: false,
+                    attempts: attempt,
+                    latencyMs: Date.now() - start,
+                });
+                if (isRetryableStatus(response.status)) {
+                    circuitOpenUntilByRoute.set(routeKey, Date.now() + ZAMMAD_CIRCUIT_COOLDOWN_MS);
+                }
+                return response;
+            }
         } catch (error) {
             clearTimeout(timeoutId);
             lastError = error;
 
             if (attempt === ZAMMAD_RETRY_MAX_ATTEMPTS) {
+                const isTimeoutError =
+                    error instanceof Error &&
+                    (error.name === "AbortError" || /aborted|timeout/i.test(error.message));
+
+                recordZammadMetric({
+                    ts: Date.now(),
+                    routeKey,
+                    endpoint: meta.endpoint,
+                    statusCode: null,
+                    ok: false,
+                    timeout: isTimeoutError,
+                    attempts: attempt,
+                    latencyMs: Date.now() - start,
+                });
+                circuitOpenUntilByRoute.set(routeKey, Date.now() + ZAMMAD_CIRCUIT_COOLDOWN_MS);
                 break;
             }
         }
@@ -148,6 +257,10 @@ function dedupeOperationalTickets(tickets: ZammadOperationalTicket[]): ZammadOpe
 function buildStateQuery(stateIds?: number[]): string {
     if (!stateIds?.length) return "";
     return `(${stateIds.map((id) => `state_id:${id}`).join(" OR ")})`;
+}
+
+function buildCustomerEmailsQuery(emails: string[]): string {
+    return `(${emails.map((email) => `customer.email:${email}`).join(" OR ")})`;
 }
 
 export const ZammadGateway = {
@@ -197,12 +310,13 @@ export const ZammadGateway = {
         }
     },
 
-    async getTicketCount(query: string): Promise<number> {
+    async getTicketCount(query: string, routeKey = DEFAULT_ROUTE_KEY): Promise<number> {
         try {
             if (!ZAMMAD_URL || !ZAMMAD_TOKEN) return 0;
             const res = await fetchWithRetry(
                 `${ZAMMAD_URL}/api/v1/tickets/search?query=${encodeURIComponent(query)}&limit=1`,
-                { headers: { Authorization: buildAuthorizationHeader(ZAMMAD_TOKEN) } }
+                { headers: { Authorization: buildAuthorizationHeader(ZAMMAD_TOKEN) } },
+                { routeKey, endpoint: `tickets/search?query=${query}&limit=1` }
             );
             const total = res.headers.get("X-Total-Count");
             return total ? parseInt(total, 10) : 0;
@@ -212,13 +326,13 @@ export const ZammadGateway = {
         }
     },
 
-    async searchTickets(query: string, limit = 100): Promise<ZammadTicketAPI[]> {
+    async searchTickets(query: string, limit = 100, routeKey = DEFAULT_ROUTE_KEY): Promise<ZammadTicketAPI[]> {
         try {
             const endpoint = `tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&sort_by=updated_at&order_by=desc&expand=true`;
 
             const data = await fetchZammad(endpoint, {
                 next: { revalidate: 3600, tags: ["releases"] },
-            });
+            }, { routeKey });
 
             let rawTickets: unknown[] = [];
             if ((data as { assets?: { Ticket?: Record<string, unknown> } }).assets?.Ticket) {
@@ -237,10 +351,14 @@ export const ZammadGateway = {
         }
     },
 
-    async getAllTickets(limit = 50, cacheOptions?: ZammadCacheOptions): Promise<ZammadOperationalTicket[]> {
+    async getAllTickets(
+        limit = 50,
+        cacheOptions?: ZammadCacheOptions & { page?: number; stateIds?: number[] }
+    ): Promise<ZammadOperationalTicket[]> {
         try {
-            const query = buildStateQuery([1, 2, 3, 4, 5, 6, 7, 8, 9]) || "state_id:1";
-            const endpoint = `tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&expand=true&sort_by=updated_at&order_by=desc`;
+            const query = buildStateQuery(cacheOptions?.stateIds ?? [1, 2, 3, 4, 5, 6, 7, 8, 9]) || "state_id:1";
+            const page = Math.max(1, cacheOptions?.page ?? 1);
+            const endpoint = `tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&page=${page}&expand=true&sort_by=updated_at&order_by=desc`;
             const data = await fetchZammad(endpoint, {}, cacheOptions);
 
             return normalizeSearchResponse(data)
@@ -258,9 +376,11 @@ export const ZammadGateway = {
         options?: {
             stateIds?: number[];
             limit?: number;
+            page?: number;
             scope?: "organization-or-email" | "email-only";
             cacheTtlSeconds?: number;
             tags?: string[];
+            routeKey?: string;
         }
     ): Promise<ZammadOperationalTicket[]> {
         try {
@@ -269,7 +389,7 @@ export const ZammadGateway = {
             if ((options?.scope ?? "organization-or-email") === "organization-or-email") {
                 const usersResponse = await fetchZammad(`users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`, {
                     cache: "no-store",
-                });
+                }, { routeKey: options?.routeKey });
 
                 if (Array.isArray(usersResponse) && usersResponse.length > 0) {
                     const userParsed = zammadUserSearchSchema.safeParse(usersResponse[0]);
@@ -285,10 +405,12 @@ export const ZammadGateway = {
             const stateQuery = buildStateQuery(options?.stateIds);
             const query = stateQuery ? `(${scopeQuery}) AND ${stateQuery}` : scopeQuery;
             const limit = options?.limit ?? 50;
-            const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}`;
+            const page = Math.max(1, options?.page ?? 1);
+            const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
             const data = await fetchZammad(endpoint, {}, {
                 cacheTtlSeconds: options?.cacheTtlSeconds,
                 tags: options?.tags,
+                routeKey: options?.routeKey,
             });
 
             return normalizeSearchResponse(data)
@@ -306,9 +428,11 @@ export const ZammadGateway = {
         options?: {
             stateIds?: number[];
             limit?: number;
+            page?: number;
             perEmailLimit?: number;
             cacheTtlSeconds?: number;
             tags?: string[];
+            routeKey?: string;
         }
     ): Promise<ZammadOperationalTicket[]> {
         const normalizedEmails = Array.from(
@@ -328,9 +452,11 @@ export const ZammadGateway = {
                     this.getTicketsForUser(email, {
                         stateIds: options?.stateIds,
                         limit: perEmailLimit,
+                        page: options?.page,
                         scope: "email-only",
                         cacheTtlSeconds: options?.cacheTtlSeconds,
                         tags: options?.tags,
+                        routeKey: options?.routeKey,
                     })
                 )
             );
@@ -339,6 +465,50 @@ export const ZammadGateway = {
             return options?.limit ? merged.slice(0, options.limit) : merged;
         } catch (err) {
             console.error("ZammadGateway.getTicketsForCustomerEmails:", err);
+            return [];
+        }
+    },
+
+    async getTicketsForCustomerEmailsPaged(
+        emails: string[],
+        options?: {
+            stateIds?: number[];
+            limit?: number;
+            page?: number;
+            cacheTtlSeconds?: number;
+            tags?: string[];
+            routeKey?: string;
+        }
+    ): Promise<ZammadOperationalTicket[]> {
+        const normalizedEmails = Array.from(
+            new Set(
+                emails
+                    .map((email) => email.trim().toLowerCase())
+                    .filter(Boolean)
+            )
+        );
+
+        if (!normalizedEmails.length) return [];
+
+        try {
+            const emailQuery = buildCustomerEmailsQuery(normalizedEmails);
+            const stateQuery = buildStateQuery(options?.stateIds);
+            const query = stateQuery ? `${emailQuery} AND ${stateQuery}` : emailQuery;
+            const limit = options?.limit ?? 50;
+            const page = Math.max(1, options?.page ?? 1);
+            const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
+            const data = await fetchZammad(endpoint, {}, {
+                cacheTtlSeconds: options?.cacheTtlSeconds,
+                tags: options?.tags,
+                routeKey: options?.routeKey,
+            });
+
+            return normalizeSearchResponse(data)
+                .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
+                .filter((parsed) => parsed.success)
+                .map((parsed) => parsed.data);
+        } catch (err) {
+            console.error("ZammadGateway.getTicketsForCustomerEmailsPaged:", err);
             return [];
         }
     },

@@ -7,6 +7,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { ZammadOperationalTicket, ZammadTicketArticle } from "@/core/application/schema/zammad-api.schema";
 import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
 
 type TicketListItem = {
     id: number;
@@ -19,6 +20,27 @@ type TicketListItem = {
     customer: string;
     createdAt: string;
     updatedAt: string;
+};
+
+type GetTicketsActionParams = {
+    page?: number;
+    pageSize?: number;
+};
+
+type TicketsPagination = {
+    page: number;
+    pageSize: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+    total: number | null;
+};
+
+type TicketsDataResponse = {
+    success: boolean;
+    error?: string;
+    data: TicketListItem[];
+    pagination: TicketsPagination;
+    staleWarning?: string;
 };
 
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
@@ -68,36 +90,95 @@ function formatTickets(ticketsRaw: ZammadOperationalTicket[]): TicketListItem[] 
     return formattedTickets;
 }
 
-export async function getTicketsAction() {
+function buildPagination(page: number, pageSize: number, total: number | null, currentCount: number): TicketsPagination {
+    const hasPreviousPage = page > 1;
+    const hasNextPage = total !== null ? page * pageSize < total : currentCount >= pageSize;
+
+    return {
+        page,
+        pageSize,
+        hasPreviousPage,
+        hasNextPage,
+        total,
+    };
+}
+
+function buildEmailQueryForCount(emails: string[]): string {
+    const normalized = Array.from(new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean)));
+    if (!normalized.length) return "";
+    return `(${normalized.map((email) => `customer.email:${email}`).join(" OR ")})`;
+}
+
+export async function getTicketsAction(params: GetTicketsActionParams = {}): Promise<TicketsDataResponse> {
     const session = await getProtectedSession();
-    if (!session) return { success: false, error: "Nao autorizado", data: [] as TicketListItem[] };
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.min(50, Math.max(10, params.pageSize ?? 20));
+
+    if (!session) {
+        return {
+            success: false,
+            error: "Nao autorizado",
+            data: [],
+            pagination: buildPagination(page, pageSize, 0, 0),
+        };
+    }
 
     try {
         let ticketsRaw: ZammadOperationalTicket[] = [];
+        let total: number | null = null;
+        const routeKey = "app-chamados";
 
         if (isSystemRole(session.role)) {
-            ticketsRaw = await ZammadGateway.getAllTickets(100, {
+            const query = "(state_id:1 OR state_id:2 OR state_id:3 OR state_id:4 OR state_id:5 OR state_id:6 OR state_id:7 OR state_id:8 OR state_id:9)";
+
+            ticketsRaw = await ZammadGateway.getAllTickets(pageSize, {
+                page,
                 cacheTtlSeconds: 45,
                 tags: ["tickets-list", "tickets-dashboard"],
+                routeKey,
             });
+            total = await ZammadGateway.getTicketCount(query, routeKey);
         } else {
             const scopedEmails = await getScopedCompanyUserEmails(session.userId);
             if (!scopedEmails.length) {
-                return { success: true, data: [] as TicketListItem[] };
+                return {
+                    success: true,
+                    data: [],
+                    pagination: buildPagination(page, pageSize, 0, 0),
+                };
             }
 
-            ticketsRaw = await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
-                limit: 100,
-                perEmailLimit: 40,
+            ticketsRaw = await ZammadGateway.getTicketsForCustomerEmailsPaged(scopedEmails, {
+                limit: pageSize,
+                page,
                 cacheTtlSeconds: 45,
                 tags: ["tickets-list", "tickets-dashboard"],
+                routeKey,
             });
+
+            const query = buildEmailQueryForCount(scopedEmails);
+            total = query ? await ZammadGateway.getTicketCount(query, routeKey) : 0;
         }
 
-        return { success: true, data: formatTickets(ticketsRaw) };
+        const routeHealth = getZammadRouteHealth(routeKey);
+        const staleWarning = routeHealth.stale
+            ? `Dados do Zammad desatualizados ha ${routeHealth.staleMinutes} min.`
+            : undefined;
+
+        return {
+            success: true,
+            data: formatTickets(ticketsRaw),
+            pagination: buildPagination(page, pageSize, total, ticketsRaw.length),
+            staleWarning,
+        };
     } catch (error) {
         console.error("Erro ao buscar tickets:", error);
-        return { success: false, error: "Erro de conexao com o Zammad.", data: [] as TicketListItem[] };
+        return {
+            success: false,
+            error: "Erro de conexao com o Zammad.",
+            data: [],
+            pagination: buildPagination(page, pageSize, 0, 0),
+        };
     }
 }
 

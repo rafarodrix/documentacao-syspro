@@ -1,71 +1,77 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ChevronLeft as IconLeft, ChevronRight as IconRight } from "lucide-react";
 import { TicketSheet } from "@/components/platform/tickets/TicketSheet";
 import { TicketsStats, TicketStatusGroup } from "./TicketsStats";
 import { TicketsFilters } from "./TicketsFilters";
 import { TicketsTable } from "./TicketsTable";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft as IconLeft, ChevronRight as IconRight } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TicketListItem } from "./types";
 
 interface TicketsContainerProps {
     tickets: TicketListItem[];
     isAdmin: boolean;
+    pagination: {
+        page: number;
+        pageSize: number;
+        hasPreviousPage: boolean;
+        hasNextPage: boolean;
+        total: number | null;
+    };
+    staleWarning?: string;
 }
 
-export function TicketsContainer({ tickets: initialTickets, isAdmin }: TicketsContainerProps) {
+export function TicketsContainer({ tickets: initialTickets, isAdmin, pagination, staleWarning }: TicketsContainerProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("open");
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
-    // --- LÓGICA DE CATEGORIZAÇÃO  ---
     const getCategory = (status: string): TicketStatusGroup => {
-        const s = status.toLowerCase(); // Converte para minúsculo para facilitar
-
-        // 1. Abertos / Novos (Fila de Triagem)
-        if (s.includes('1. novo') || s.includes('1.novo')) return 'open';
-
-        // 2. Fechados / Histórico (Status 7, 8, 9)
+        const s = status.toLowerCase();
+        if (s.includes("1. novo") || s.includes("1.novo")) return "open";
         if (
-            s.includes('7. finalizado') ||
-            s.includes('8. não foi possível reproduzir') ||
-            s.includes('9. recusado') ||
-            s.includes('fechado') ||
-            s.includes('merged')
+            s.includes("7. finalizado") ||
+            s.includes("8. não foi possível reproduzir") ||
+            s.includes("9. recusado") ||
+            s.includes("fechado") ||
+            s.includes("merged")
         ) {
-            return 'closed';
+            return "closed";
         }
+        return "pending";
+    };
 
-        // 3. Em Análise / Pendentes (Todo o resto: 2, 3, 4, 5)
-        return 'pending';
-    }
-
-    // --- FILTRAGEM ---
     const filteredTickets = initialTickets.filter((ticket) => {
-        // 1. Texto
         const matchesSearch =
             ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             ticket.number.toString().includes(searchTerm) ||
             (isAdmin && String(ticket.customer).toLowerCase().includes(searchTerm.toLowerCase()));
 
-        // 2. Status
         const category = getCategory(ticket.status);
         const matchesStatus = statusFilter === category;
-
         return matchesSearch && matchesStatus;
     });
 
-    // --- PAGINAÇÃO ---
-    const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedTickets = filteredTickets.slice(startIndex, startIndex + itemsPerPage);
+    const goToPage = (nextPage: number) => {
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        params.set("page", String(Math.max(1, nextPage)));
+        router.push(`${pathname}?${params.toString()}`);
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
+            {staleWarning && (
+                <Alert className="border-amber-500/40 bg-amber-500/10">
+                    <AlertTitle>Dados em modo contingência</AlertTitle>
+                    <AlertDescription>{staleWarning}</AlertDescription>
+                </Alert>
+            )}
 
-            {/* Header */}
             <div className="flex justify-between items-start">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -80,32 +86,29 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin }: TicketsCo
                 {!isAdmin && <TicketSheet />}
             </div>
 
-            {/* Stats */}
             <TicketsStats tickets={initialTickets} getCategory={getCategory} />
 
-            {/* Filtros */}
             <TicketsFilters
                 searchTerm={searchTerm}
-                setSearchTerm={(v) => { setSearchTerm(v); setCurrentPage(1); }}
+                setSearchTerm={setSearchTerm}
                 statusFilter={statusFilter}
-                setStatusFilter={(v) => { setStatusFilter(v); setCurrentPage(1); }}
+                setStatusFilter={setStatusFilter}
                 isAdmin={isAdmin}
             />
 
-            {/* Tabela */}
-            <TicketsTable tickets={paginatedTickets} isAdmin={isAdmin} />
+            <TicketsTable tickets={filteredTickets} isAdmin={isAdmin} />
 
-            {/* Paginação Footer */}
-            {totalPages > 1 && (
+            {(pagination.hasPreviousPage || pagination.hasNextPage) && (
                 <div className="flex items-center justify-end gap-2 pt-2">
                     <span className="text-sm text-muted-foreground mr-2">
-                        Página {currentPage} de {totalPages}
+                        Página {pagination.page}
+                        {pagination.total !== null ? ` de ${Math.max(1, Math.ceil(pagination.total / pagination.pageSize))}` : ""}
                     </span>
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
+                        onClick={() => goToPage(pagination.page - 1)}
+                        disabled={!pagination.hasPreviousPage}
                         className="h-8 w-8"
                     >
                         <IconLeft className="h-4 w-4" />
@@ -113,8 +116,8 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin }: TicketsCo
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
+                        onClick={() => goToPage(pagination.page + 1)}
+                        disabled={!pagination.hasNextPage}
                         className="h-8 w-8"
                     >
                         <IconRight className="h-4 w-4" />
@@ -124,3 +127,4 @@ export function TicketsContainer({ tickets: initialTickets, isAdmin }: TicketsCo
         </div>
     );
 }
+

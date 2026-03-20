@@ -193,6 +193,7 @@ export async function GET() {
     ? await ZammadGateway.getAllTickets(30, {
         cacheTtlSeconds: 30,
         tags: ["tickets-dashboard"],
+        routeKey: "notifications",
       })
     : await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
         stateIds: ACTIVE_STATES,
@@ -200,6 +201,7 @@ export async function GET() {
         perEmailLimit: 30,
         cacheTtlSeconds: 30,
         tags: ["tickets-dashboard"],
+        routeKey: "notifications",
       });
 
   const ticketNotifications = buildTicketNotifications(tickets);

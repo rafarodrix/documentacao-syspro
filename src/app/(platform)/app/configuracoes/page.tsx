@@ -19,12 +19,13 @@ import { ContractSheet } from "@/components/platform/app/contratos/ContractSheet
 import { ContractStats } from "@/components/platform/app/contratos/ContractStats";
 import { ContractsTable } from "@/components/platform/app/contratos/ContractsTable";
 import { SefazRoutesTab } from "@/components/platform/app/settings/SefazRoutesTab";
+import { ZammadObservabilityTab } from "@/components/platform/app/settings/ZammadObservabilityTab";
 
 interface SettingsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const TAB_VALUES = new Set(["general", "access", "tax", "contracts", "sefaz"]);
+const TAB_VALUES = new Set(["general", "access", "tax", "contracts", "sefaz", "observability"]);
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
     const session = await requireSession();
@@ -110,6 +111,14 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                             <Activity className="h-4 w-4" />
                             <span className="font-medium">Rotas SEFAZ</span>
                         </TabsTrigger>
+
+                        <TabsTrigger
+                            value="observability"
+                            className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                        >
+                            <Activity className="h-4 w-4" />
+                            <span className="font-medium">Observabilidade</span>
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -170,6 +179,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <TabsContent value="sefaz" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-6xl">
                         <SefazRoutesTab initialRoutes={sefazRoutes} />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="observability" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
+                    <div className="max-w-6xl">
+                        <ZammadObservabilityTab />
                     </div>
                 </TabsContent>
             </Tabs>

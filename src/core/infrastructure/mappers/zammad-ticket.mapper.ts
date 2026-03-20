@@ -1,10 +1,8 @@
 import { TicketPriority, TicketStatus } from "@/core/domain/entities/ticket.entity";
+import { getZammadStateMatrix } from "@/core/config/zammad-state-matrix";
 
-const ACTIVE_WORKFLOW_STATE_IDS = new Set([2, 3]);
-const ACTIVE_WORKFLOW_KEYWORDS = ["analise", "análise", "desenvolvimento", "development"];
-const RESOLVED_STATE_KEYWORDS = ["closed", "fechado", "resolvido", "merged", "mesclado"];
-const PENDING_STATE_KEYWORDS = ["pendente", "pending", "aguardando", "teste", "testes", "reminder"];
-const OPEN_STATE_KEYWORDS = ["novo", "new", "open", "aberto"];
+const matrix = getZammadStateMatrix();
+const ACTIVE_WORKFLOW_STATE_IDS = new Set(matrix.activeWorkflowStateIds);
 
 function normalizeStateName(value?: string | null): string {
   if (!value) return "";
@@ -18,20 +16,17 @@ function normalizeStateName(value?: string | null): string {
 export function mapTicketStatusFromStateName(stateName: string): TicketStatus {
   const normalized = normalizeStateName(stateName);
 
-  if (RESOLVED_STATE_KEYWORDS.some((word) => normalized.includes(word))) return "Resolvido";
-  if (PENDING_STATE_KEYWORDS.some((word) => normalized.includes(word))) return "Pendente";
-  if (ACTIVE_WORKFLOW_KEYWORDS.some((word) => normalized.includes(word))) return "Em Análise";
-  if (OPEN_STATE_KEYWORDS.some((word) => normalized.includes(word))) return "Aberto";
+  for (const rule of matrix.statusRules) {
+    if (rule.keywords.some((word) => normalized.includes(normalizeStateName(word)))) {
+      return rule.status;
+    }
+  }
 
-  // fallback conservador para evitar sumir tickets do dashboard por variação de nomenclatura
   return "Em Análise";
 }
 
 export function mapTicketStatusFromStateId(stateId: number): TicketStatus {
-  if (stateId === 1) return "Aberto";
-  if (stateId === 2 || stateId === 3) return "Em Análise";
-  if (stateId === 4 || stateId === 5) return "Pendente";
-  return "Resolvido";
+  return matrix.statusByStateId[stateId] ?? "Resolvido";
 }
 
 export function mapTicketPriority(priorityId: number, name?: string): TicketPriority {
@@ -64,5 +59,8 @@ export function isAnalysisOrDevelopmentStateId(stateId?: number | null): boolean
 export function isAnalysisOrDevelopmentStateName(stateName?: string | null): boolean {
   const normalized = normalizeStateName(stateName);
   if (!normalized) return false;
-  return ACTIVE_WORKFLOW_KEYWORDS.some((word) => normalized.includes(word));
+  return matrix.statusRules
+    .filter((rule) => rule.status === "Em Análise")
+    .some((rule) => rule.keywords.some((word) => normalized.includes(normalizeStateName(word))));
 }
+

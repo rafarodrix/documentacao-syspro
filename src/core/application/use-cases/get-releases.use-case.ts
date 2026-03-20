@@ -8,7 +8,7 @@ const ZAMMAD_RELEASE_GROUP_ID = 3;
 async function fetchReleases(): Promise<Release[]> {
     const query = `(type:"Melhoria" OR type:"Bug") AND state_id:${ZAMMAD_RELEASE_STATE_ID} AND group_id:${ZAMMAD_RELEASE_GROUP_ID}`;
 
-    const tickets = await ZammadGateway.searchTickets(query);
+    const tickets = await ZammadGateway.searchTickets(query, 100, "releases");
 
     return tickets.map((t) => {
         const mainModule = t.modulo?.split("::")[0] || "Geral";
