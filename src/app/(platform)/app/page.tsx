@@ -91,6 +91,33 @@ function ticketKpis(tickets: TicketSummaryItem[]) {
   };
 }
 
+async function getScopedCompanyUserEmailsByEmail(email: string): Promise<string[]> {
+  const memberships = await prisma.membership.findMany({
+    where: {
+      user: {
+        email,
+        deletedAt: null,
+        isActive: true,
+      },
+    },
+    select: { companyId: true },
+  });
+
+  const companyIds = memberships.map((membership) => membership.companyId);
+  if (!companyIds.length) return [];
+
+  const users = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      isActive: true,
+      memberships: { some: { companyId: { in: companyIds } } },
+    },
+    select: { email: true },
+  });
+
+  return Array.from(new Set(users.map((user) => user.email.trim().toLowerCase()).filter(Boolean)));
+}
+
 type AdminDashboardData = {
   mode: "admin";
   companiesCount: number;
@@ -215,7 +242,7 @@ async function getDashboardData(email: string, role: string): Promise<AdminDashb
     };
   }
 
-  const [membership, userTickets] = await Promise.all([
+  const [membership, scopedEmails] = await Promise.all([
     prisma.membership.findFirst({
       where: { user: { email }, company: { deletedAt: null } },
       include: {
@@ -228,8 +255,16 @@ async function getDashboardData(email: string, role: string): Promise<AdminDashb
         },
       },
     }),
-    ZammadGateway.getTicketsForUser(email, { stateIds: [...DASHBOARD_ACTIVE_STATE_IDS], limit: 10 }),
+    getScopedCompanyUserEmailsByEmail(email),
   ]);
+
+  const userTickets = scopedEmails.length
+    ? await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
+        stateIds: [...DASHBOARD_ACTIVE_STATE_IDS],
+        limit: 10,
+        perEmailLimit: 10,
+      })
+    : [];
 
   const tickets = userTickets
     .filter((ticket) => isAnalysisOrDevelopmentStateId(ticket.state_id) || isAnalysisOrDevelopmentStateName(ticket.state))

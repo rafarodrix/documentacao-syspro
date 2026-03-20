@@ -41,7 +41,10 @@ export const zammadTicketDetailsSchema = z.object({
     number: z.union([z.string(), z.number()]).transform((v) => String(v)),
     title: z.string(),
     state: z.string().nullable().optional(),
+    state_id: z.number().nullable().optional(),
+    customer: z.union([z.string(), z.number()]).nullable().optional(),
     created_at: z.string(),
+    updated_at: z.string().optional(),
 });
 
 export type ZammadTicketDetails = z.infer<typeof zammadTicketDetailsSchema>;

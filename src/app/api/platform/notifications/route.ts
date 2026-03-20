@@ -158,6 +158,27 @@ function sortNotifications(items: NotificationItem[]): NotificationItem[] {
   });
 }
 
+async function getScopedCompanyUserEmails(userId: string): Promise<string[]> {
+  const memberships = await prisma.membership.findMany({
+    where: { userId },
+    select: { companyId: true },
+  });
+
+  const companyIds = memberships.map((membership) => membership.companyId);
+  if (!companyIds.length) return [];
+
+  const users = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      isActive: true,
+      memberships: { some: { companyId: { in: companyIds } } },
+    },
+    select: { email: true },
+  });
+
+  return Array.from(new Set(users.map((user) => user.email.trim().toLowerCase()).filter(Boolean)));
+}
+
 export async function GET() {
   const session = await getProtectedSession();
   if (!session) {
@@ -166,9 +187,14 @@ export async function GET() {
 
   const systemUser = isSystemRole(session.role);
 
+  const scopedEmails = systemUser ? [] : await getScopedCompanyUserEmails(session.userId);
   const tickets = systemUser
     ? await ZammadGateway.getAllTickets(30)
-    : await ZammadGateway.getTicketsForUser(session.email, { stateIds: ACTIVE_STATES, limit: 30 });
+    : await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
+        stateIds: ACTIVE_STATES,
+        limit: 30,
+        perEmailLimit: 30,
+      });
 
   const ticketNotifications = buildTicketNotifications(tickets);
   const operational = systemUser ? await buildSystemOperationalNotifications(session.role === "ADMIN") : [];

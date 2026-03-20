@@ -1,22 +1,16 @@
-import { getTicketDetailsAction } from "@/actions/tickets/ticket-actions";
+﻿import { getTicketDetailsAction } from "@/actions/tickets/ticket-actions";
 import { TicketDetails } from "@/components/platform/tickets/TicketDetails";
+import { requireSession } from "@/lib/auth-helpers";
 
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
 export default async function ClientTicketPage({ params }: PageProps) {
+    const session = await requireSession();
     const { id } = await params;
-    // A action pode retornar articles como undefined se der erro
     const { ticket, articles, error } = await getTicketDetailsAction(id);
+    const isAdmin = ["ADMIN", "DEVELOPER", "SUPORTE"].includes(session.role);
 
-    return (
-        <TicketDetails
-            ticket={ticket}
-            // CORREÇÃO: Garante array vazio se undefined
-            articles={articles || []}
-            error={error}
-            isAdmin={false}
-        />
-    );
+    return <TicketDetails ticket={ticket} articles={articles || []} error={error} isAdmin={isAdmin} />;
 }
