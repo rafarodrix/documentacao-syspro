@@ -1,10 +1,10 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Role } from "@prisma/client";
 import { requireSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import { getContractsAction } from "@/actions/admin/contract-actions";
-import { getSefazRoutesAction } from "@/actions/admin/settings-actions";
+import { getContractsAction } from "@/actions/platform/contract-actions";
+import { getSefazRoutesAction } from "@/actions/platform/settings-actions";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -191,3 +191,4 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         </div>
     );
 }
+

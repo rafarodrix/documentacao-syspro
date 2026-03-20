@@ -2,7 +2,7 @@ import { Role } from "@prisma/client";
 import { hasPermission } from "@/lib/rbac";
 import { requireRole } from "@/lib/auth-helpers";
 import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
-import { getCadastrosSystemUsersData } from "@/actions/admin/get-cadastros-data";
+import { getCadastrosSystemUsersData } from "@/actions/platform/get-cadastros-data";
 import { SystemUserTab } from "@/components/platform/cadastros/user/SystemUserTab";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
@@ -28,3 +28,4 @@ export default async function CadastrosSistemaPage() {
     </div>
   );
 }
+

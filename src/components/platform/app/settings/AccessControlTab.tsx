@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { updateRbacMatrixVisibilityAction } from "@/actions/admin/settings-actions";
+import { updateRbacMatrixVisibilityAction } from "@/actions/platform/settings-actions";
 import {
     SYSTEM_PERMISSIONS,
     ROLE_LABELS,
@@ -136,3 +136,4 @@ export function AccessControlTab({ initialEnabled }: AccessControlTabProps) {
         </Card>
     );
 }
+

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
 import { createCompanySchema, type CreateCompanyInput } from "@/core/application/schema/company-schema";
-import { createCompanyAction, updateCompanyAction } from "@/actions/admin/company-actions";
+import { createCompanyAction, updateCompanyAction } from "@/actions/platform/company-actions";
 import { COMPANY_SEGMENT_LABELS } from "@/core/config/company-segments";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
@@ -471,3 +471,4 @@ export function CreateCompanyPageForm({
     </div>
   );
 }
+

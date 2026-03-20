@@ -99,11 +99,6 @@ function redirectTo(request: NextRequest, to: string) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-    const url = request.nextUrl.clone();
-    url.pathname = pathname === "/admin" ? "/app" : pathname.replace(/^\/admin/, "/app");
-    return NextResponse.redirect(url);
-  }
 
   const sessionToken = getSessionToken(request);
   const isAuthenticated = !!sessionToken;

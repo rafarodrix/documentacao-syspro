@@ -5,6 +5,8 @@ import { computeTicketSla } from "@/core/application/services/zammad-sla";
 import { OPERATIONAL_STATE_IDS, type QueueKey } from "@/core/config/tickets-workflow";
 
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
+const CACHE_UPSERT_CHUNK_SIZE = 50;
+const CACHE_UPSERT_MAX_RETRIES = 3;
 
 function parseDate(value?: string | null): Date | null {
   if (!value) return null;
@@ -51,16 +53,47 @@ export async function upsertOperationalTicketsToCache(
 ): Promise<void> {
   if (!tickets.length) return;
 
-  await prisma.$transaction(
-    tickets.map((ticket) => {
-      const data = toCacheUpsertInput(ticket, eventType);
-      return prisma.zammadTicketCache.upsert({
-        where: { zammadTicketId: ticket.id },
-        create: data,
-        update: data,
-      });
-    })
-  );
+  const newestByTicketId = new Map<number, ZammadOperationalTicket>();
+  for (const ticket of tickets) {
+    const existing = newestByTicketId.get(ticket.id);
+    if (!existing) {
+      newestByTicketId.set(ticket.id, ticket);
+      continue;
+    }
+
+    const existingUpdatedAt = parseDate(existing.updated_at)?.getTime() ?? 0;
+    const incomingUpdatedAt = parseDate(ticket.updated_at)?.getTime() ?? 0;
+    if (incomingUpdatedAt >= existingUpdatedAt) {
+      newestByTicketId.set(ticket.id, ticket);
+    }
+  }
+
+  const dedupedTickets = Array.from(newestByTicketId.values());
+
+  for (let i = 0; i < dedupedTickets.length; i += CACHE_UPSERT_CHUNK_SIZE) {
+    const chunk = dedupedTickets.slice(i, i + CACHE_UPSERT_CHUNK_SIZE);
+
+    let attempt = 1;
+    for (;;) {
+      try {
+        await prisma.$transaction(
+          chunk.map((ticket) => {
+            const data = toCacheUpsertInput(ticket, eventType);
+            return prisma.zammadTicketCache.upsert({
+              where: { zammadTicketId: ticket.id },
+              create: data,
+              update: data,
+            });
+          })
+        );
+        break;
+      } catch (error) {
+        if (attempt >= CACHE_UPSERT_MAX_RETRIES) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+        attempt += 1;
+      }
+    }
+  }
 }
 
 export async function listCachedTickets(input: {

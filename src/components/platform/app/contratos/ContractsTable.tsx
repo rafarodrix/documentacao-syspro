@@ -34,7 +34,7 @@ import {
     Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getContractSuspendImpactAction, updateContractAction, updateContractStatusAction } from "@/actions/admin/contract-actions";
+import { getContractSuspendImpactAction, updateContractAction, updateContractStatusAction } from "@/actions/platform/contract-actions";
 import {
     ContractBlockReason,
     CONTRACT_BLOCK_REASONS,
@@ -584,3 +584,4 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
         </>
     );
 }
+

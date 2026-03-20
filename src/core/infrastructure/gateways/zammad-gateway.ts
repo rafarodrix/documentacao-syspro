@@ -1,4 +1,4 @@
-﻿import { Ticket } from "@/core/domain/entities/ticket.entity";
+import { Ticket } from "@/core/domain/entities/ticket.entity";
 import {
     zammadOperationalTicketSchema,
     zammadTicketAPISchema,
@@ -28,6 +28,7 @@ const ZAMMAD_RETRY_BASE_DELAY_MS = Number(process.env.ZAMMAD_RETRY_BASE_DELAY_MS
 const ZAMMAD_FALLBACK_MAX_STALE_MINUTES = Number(process.env.ZAMMAD_FALLBACK_MAX_STALE_MINUTES ?? 15);
 const ZAMMAD_CIRCUIT_COOLDOWN_MS = Number(process.env.ZAMMAD_CIRCUIT_COOLDOWN_MS ?? 20_000);
 const ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER = process.env.ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER === "true";
+const ZAMMAD_USER_ID_CACHE_TTL_MS = Number(process.env.ZAMMAD_USER_ID_CACHE_TTL_MS ?? 300_000);
 const DEFAULT_ROUTE_KEY = "unknown";
 
 type ResponseCacheEntry = {
@@ -37,6 +38,7 @@ type ResponseCacheEntry = {
 
 const responseCache = new Map<string, ResponseCacheEntry>();
 const circuitOpenUntilByRoute = new Map<string, number>();
+const userIdCache = new Map<string, { value: number | null; expiresAt: number }>();
 
 type ZammadCacheOptions = {
     cacheTtlSeconds?: number;
@@ -136,6 +138,42 @@ function isRetryableStatus(status: number): boolean {
     return status === 429 || status >= 500;
 }
 
+function parseRetryAfterMs(retryAfterHeader: string | null): number | null {
+    if (!retryAfterHeader) return null;
+
+    const asSeconds = Number.parseInt(retryAfterHeader, 10);
+    if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+        return asSeconds * 1000;
+    }
+
+    const asDateMs = Date.parse(retryAfterHeader);
+    if (Number.isNaN(asDateMs)) return null;
+    return Math.max(0, asDateMs - Date.now());
+}
+
+function getUserIdCacheKey(email: string): string {
+    return email.trim().toLowerCase();
+}
+
+function getCachedUserId(email: string): number | null | undefined {
+    const key = getUserIdCacheKey(email);
+    const cached = userIdCache.get(key);
+    if (!cached) return undefined;
+    if (Date.now() > cached.expiresAt) {
+        userIdCache.delete(key);
+        return undefined;
+    }
+    return cached.value;
+}
+
+function cacheUserId(email: string, value: number | null) {
+    const key = getUserIdCacheKey(email);
+    userIdCache.set(key, {
+        value,
+        expiresAt: Date.now() + ZAMMAD_USER_ID_CACHE_TTL_MS,
+    });
+}
+
 async function fetchWithRetry(input: string, options: NextFetchOptions, meta: FetchMeta): Promise<Response> {
     let lastError: unknown;
     const start = Date.now();
@@ -202,6 +240,13 @@ async function fetchWithRetry(input: string, options: NextFetchOptions, meta: Fe
                 }
                 return response;
             }
+
+            const retryAfterMs = response.status === 429
+                ? parseRetryAfterMs(response.headers.get("retry-after"))
+                : null;
+            const backoffDelayMs = ZAMMAD_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+            await sleep(retryAfterMs ?? backoffDelayMs);
+            continue;
         } catch (error) {
             clearTimeout(timeoutId);
             lastError = error;
@@ -226,10 +271,11 @@ async function fetchWithRetry(input: string, options: NextFetchOptions, meta: Fe
                 }
                 break;
             }
-        }
 
-        const delayMs = ZAMMAD_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
-        await sleep(delayMs);
+            const delayMs = ZAMMAD_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+            await sleep(delayMs);
+            continue;
+        }
     }
 
     throw lastError instanceof Error
@@ -363,6 +409,11 @@ export const ZammadGateway = {
     },
 
     async getUserIdByEmail(email: string, routeKey = DEFAULT_ROUTE_KEY): Promise<number | null> {
+        const cached = getCachedUserId(email);
+        if (cached !== undefined) {
+            return cached;
+        }
+
         try {
             const data = await fetchZammad(
                 `users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`,
@@ -370,9 +421,14 @@ export const ZammadGateway = {
                 { routeKey }
             );
 
-            if (!Array.isArray(data) || !data.length) return null;
+            if (!Array.isArray(data) || !data.length) {
+                cacheUserId(email, null);
+                return null;
+            }
             const user = data[0] as { id?: number };
-            return typeof user.id === "number" ? user.id : null;
+            const userId = typeof user.id === "number" ? user.id : null;
+            cacheUserId(email, userId);
+            return userId;
         } catch (err) {
             console.error("ZammadGateway.getUserIdByEmail:", err);
             return null;
@@ -481,7 +537,6 @@ export const ZammadGateway = {
             stateIds?: number[];
             limit?: number;
             page?: number;
-            perEmailLimit?: number;
             cacheTtlSeconds?: number;
             tags?: string[];
             routeKey?: string;

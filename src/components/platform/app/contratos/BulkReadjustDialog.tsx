@@ -3,7 +3,7 @@
 
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
-import { batchReadjustContractsAction } from "@/actions/admin/contract-actions"
+import { batchReadjustContractsAction } from "@/actions/platform/contract-actions"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,7 +23,7 @@ export function BulkReadjustDialog() {
 
   const handleReadjust = () => {
     if (!isValid) {
-      toast.error("Digite um valor válido.")
+      toast.error("Digite um valor vÃ¡lido.")
       return
     }
 
@@ -58,14 +58,14 @@ export function BulkReadjustDialog() {
 
       <DialogContent className="sm:max-w-[400px] p-0 gap-0 overflow-hidden border-none shadow-2xl">
 
-        {/* Cabeçalho */}
+        {/* CabeÃ§alho */}
         <div className="bg-amber-500/10 border-b border-amber-500/20 p-6 text-center">
           <div className="h-11 w-11 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-3 ring-4 ring-amber-50 dark:ring-amber-900/10">
             <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
           </div>
           <DialogTitle className="text-lg font-semibold">Reajuste Global</DialogTitle>
           <DialogDescription className="mt-1.5 text-sm text-amber-900/70 dark:text-amber-200/70">
-            Atualiza o <strong>Salário Base</strong> de todos os contratos ativos.
+            Atualiza o <strong>SalÃ¡rio Base</strong> de todos os contratos ativos.
           </DialogDescription>
         </div>
 
@@ -85,11 +85,11 @@ export function BulkReadjustDialog() {
               </div>
             </div>
           ) : (
-            // --- Formulário ------------------------------------------------
+            // --- FormulÃ¡rio ------------------------------------------------
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-xs font-medium uppercase text-muted-foreground tracking-wider">
-                  Novo Salário Mínimo
+                  Novo SalÃ¡rio MÃ­nimo
                 </Label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -111,7 +111,7 @@ export function BulkReadjustDialog() {
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 Aplicado apenas a contratos com status{" "}
-                <span className="text-emerald-600 font-medium">Ativo</span>. Contratos suspensos ou cancelados não serão alterados.
+                <span className="text-emerald-600 font-medium">Ativo</span>. Contratos suspensos ou cancelados nÃ£o serÃ£o alterados.
               </p>
             </div>
           )}
@@ -147,3 +147,4 @@ export function BulkReadjustDialog() {
     </Dialog>
   )
 }
+

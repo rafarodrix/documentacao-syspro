@@ -20,6 +20,8 @@ import {
 
 const WRITE_ROLES: Role[] = [Role.ADMIN];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
+const BATCH_CHUNK_SIZE = 50;
+const BATCH_CHUNK_MAX_RETRIES = 3;
 
 export async function getSystemParamsAction() {
     const session = await getProtectedSession();
@@ -223,23 +225,48 @@ export async function batchReadjustContractsAction(newMinimumWage: number) {
     }
 
     try {
-        const result = await prisma.contract.updateMany({
+        const activeContractIds = await prisma.contract.findMany({
             where: {
                 status: ContractStatus.ACTIVE,
             },
-            data: {
-                minimumWage: newMinimumWage,
-                updatedAt: new Date(),
-            },
+            select: { id: true },
         });
+
+        let affected = 0;
+        for (let i = 0; i < activeContractIds.length; i += BATCH_CHUNK_SIZE) {
+            const chunkIds = activeContractIds.slice(i, i + BATCH_CHUNK_SIZE).map((item) => item.id);
+            if (!chunkIds.length) continue;
+
+            let attempt = 1;
+            for (;;) {
+                try {
+                    const result = await prisma.contract.updateMany({
+                        where: {
+                            id: { in: chunkIds },
+                            status: ContractStatus.ACTIVE,
+                        },
+                        data: {
+                            minimumWage: newMinimumWage,
+                            updatedAt: new Date(),
+                        },
+                    });
+                    affected += result.count;
+                    break;
+                } catch (error) {
+                    if (attempt >= BATCH_CHUNK_MAX_RETRIES) throw error;
+                    await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+                    attempt += 1;
+                }
+            }
+        }
 
         revalidatePath("/app/contratos");
         revalidatePath("/app/configuracoes");
 
         return {
             success: true,
-            message: `Reajuste aplicado! ${result.count} contratos atualizados para R$ ${newMinimumWage}.`,
-            affected: result.count,
+            message: `Reajuste aplicado! ${affected} contratos atualizados para R$ ${newMinimumWage}.`,
+            affected,
         };
 
     } catch (error) {

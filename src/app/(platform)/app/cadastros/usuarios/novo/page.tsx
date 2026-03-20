@@ -2,7 +2,7 @@ import { Role } from "@prisma/client";
 import { hasPermission } from "@/lib/rbac";
 import { requireRole } from "@/lib/auth-helpers";
 import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
-import { getCadastrosClientUsersData } from "@/actions/admin/get-cadastros-data";
+import { getCadastrosClientUsersData } from "@/actions/platform/get-cadastros-data";
 import { CreateUserPageForm } from "@/components/platform/cadastros/user/CreateUserPageForm";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
@@ -26,3 +26,4 @@ export default async function CadastrosUsuariosNovoPage() {
     />
   );
 }
+

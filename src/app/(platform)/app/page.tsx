@@ -294,9 +294,8 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
   ]);
 
   const userTickets = scopedEmails.length
-    ? await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
+    ? await ZammadGateway.getTicketsForCustomerEmailsPaged(scopedEmails, {
         limit: 50,
-        perEmailLimit: 10,
         cacheTtlSeconds: 60,
         tags: ["tickets-dashboard"],
         routeKey: "app-dashboard",

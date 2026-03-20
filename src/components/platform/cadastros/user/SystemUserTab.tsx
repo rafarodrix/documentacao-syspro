@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ElementType } from "rea
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { toast } from "sonner";
-import { toggleUserStatusAction } from "@/actions/admin/user-actions";
+import { toggleUserStatusAction } from "@/actions/platform/user-actions";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -413,3 +413,4 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
     </>
   );
 }
+

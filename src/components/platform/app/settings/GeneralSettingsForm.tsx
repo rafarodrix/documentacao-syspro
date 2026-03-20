@@ -5,7 +5,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { settingsSchema, type SettingsInput } from "@/core/application/schema/settings-schema";
-import { getSettingsAction, updateSettingsAction } from "@/actions/admin/settings-actions";
+import { getSettingsAction, updateSettingsAction } from "@/actions/platform/settings-actions";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,7 @@ export default function GeneralSettingsForm() {
                     toast.error(result.error);
                 }
             } catch (error) {
-                toast.error("Erro de conexão ao carregar dados.");
+                toast.error("Erro de conexÃ£o ao carregar dados.");
             } finally {
                 if (isMounted) setIsLoading(false);
             }
@@ -72,7 +72,7 @@ export default function GeneralSettingsForm() {
             <div className="flex h-64 items-center justify-center border border-dashed rounded-xl bg-muted/10">
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm">Carregando parâmetros...</p>
+                    <p className="text-sm">Carregando parÃ¢metros...</p>
                 </div>
             </div>
         );
@@ -81,7 +81,7 @@ export default function GeneralSettingsForm() {
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in duration-500">
 
-            {/* --- SEÇÃO FINANCEIRA --- */}
+            {/* --- SEÃ‡ÃƒO FINANCEIRA --- */}
             <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
                 <CardHeader className="pb-4">
                     <div className="flex items-center gap-3">
@@ -89,8 +89,8 @@ export default function GeneralSettingsForm() {
                             <Banknote className="h-5 w-5" />
                         </div>
                         <div>
-                            <CardTitle className="text-lg">Parâmetros Financeiros</CardTitle>
-                            <CardDescription>Defina os valores base para cálculo de novos contratos.</CardDescription>
+                            <CardTitle className="text-lg">ParÃ¢metros Financeiros</CardTitle>
+                            <CardDescription>Defina os valores base para cÃ¡lculo de novos contratos.</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
@@ -98,7 +98,7 @@ export default function GeneralSettingsForm() {
                 <CardContent className="pt-6">
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="minimumWage">Salário Mínimo Nacional (Base)</Label>
+                            <Label htmlFor="minimumWage">SalÃ¡rio MÃ­nimo Nacional (Base)</Label>
                             <div className="relative group">
                                 <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-emerald-600 transition-colors" />
                                 <Input
@@ -116,14 +116,14 @@ export default function GeneralSettingsForm() {
                                 </p>
                             )}
                             <p className="text-[11px] text-muted-foreground pt-1">
-                                Alterar este valor afetará a simulação de <strong>novos</strong> contratos. Contratos antigos devem ser reajustados manualmente.
+                                Alterar este valor afetarÃ¡ a simulaÃ§Ã£o de <strong>novos</strong> contratos. Contratos antigos devem ser reajustados manualmente.
                             </p>
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* --- SEÇÃO SUPORTE --- */}
+            {/* --- SEÃ‡ÃƒO SUPORTE --- */}
             <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
                 <CardHeader className="pb-4">
                     <div className="flex items-center gap-3">
@@ -132,7 +132,7 @@ export default function GeneralSettingsForm() {
                         </div>
                         <div>
                             <CardTitle className="text-lg">Canais de Atendimento</CardTitle>
-                            <CardDescription>Informações de contato exibidas no portal do cliente.</CardDescription>
+                            <CardDescription>InformaÃ§Ãµes de contato exibidas no portal do cliente.</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
@@ -173,7 +173,7 @@ export default function GeneralSettingsForm() {
                 </CardContent>
             </Card>
 
-            {/* --- SEÇÃO SISTEMA / PERIGO --- */}
+            {/* --- SEÃ‡ÃƒO SISTEMA / PERIGO --- */}
             <Card className="border-rose-200 dark:border-rose-900/50 shadow-sm bg-rose-50/30 dark:bg-rose-950/10">
                 <CardHeader className="pb-4">
                     <div className="flex items-center gap-3">
@@ -182,7 +182,7 @@ export default function GeneralSettingsForm() {
                         </div>
                         <div>
                             <CardTitle className="text-lg text-rose-700 dark:text-rose-400">Controle de Disponibilidade</CardTitle>
-                            <CardDescription className="text-rose-600/70 dark:text-rose-400/60">Ações que afetam o acesso global à plataforma.</CardDescription>
+                            <CardDescription className="text-rose-600/70 dark:text-rose-400/60">AÃ§Ãµes que afetam o acesso global Ã  plataforma.</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
@@ -191,7 +191,7 @@ export default function GeneralSettingsForm() {
                         <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
                                 <Lock className="h-4 w-4 text-rose-500" />
-                                <Label className="text-base font-medium">Modo de Manutenção</Label>
+                                <Label className="text-base font-medium">Modo de ManutenÃ§Ã£o</Label>
                             </div>
                             <p className="text-sm text-muted-foreground">
                                 Se ativado, <strong>bloqueia o login</strong> de todos os clientes. Apenas Admins continuam com acesso.
@@ -221,7 +221,7 @@ export default function GeneralSettingsForm() {
                         </>
                     ) : (
                         <>
-                            <Save className="mr-2 h-4 w-4" /> Salvar Alterações
+                            <Save className="mr-2 h-4 w-4" /> Salvar AlteraÃ§Ãµes
                         </>
                     )}
                 </Button>
@@ -230,3 +230,4 @@ export default function GeneralSettingsForm() {
         </form>
     );
 }
+
