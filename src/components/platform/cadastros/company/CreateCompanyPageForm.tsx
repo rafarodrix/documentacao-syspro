@@ -22,6 +22,7 @@ interface CreateCompanyPageFormProps {
 
 export function CreateCompanyPageForm({ backHref }: CreateCompanyPageFormProps) {
   const router = useRouter();
+  const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
 
   const form = useForm<CreateCompanyInput>({
     resolver: zodResolver(createCompanySchema) as any,
@@ -101,7 +102,10 @@ export function CreateCompanyPageForm({ backHref }: CreateCompanyPageFormProps) 
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Segmento</FormLabel>
-                      <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={(field.value as string) ?? "__none__"}>
+                      <Select
+                        onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)}
+                        value={typeof field.value === "string" ? field.value : "__none__"}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
@@ -138,7 +142,7 @@ export function CreateCompanyPageForm({ backHref }: CreateCompanyPageFormProps) 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nome Fantasia</FormLabel>
-                    <FormControl><Input placeholder="Nome fantasia" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormControl><Input placeholder="Nome fantasia" {...field} value={toInputValue(field.value)} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -193,14 +197,14 @@ export function CreateCompanyPageForm({ backHref }: CreateCompanyPageFormProps) 
                 />
                 <FormField
                   control={form.control}
-                  name="telefone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone</FormLabel>
-                      <FormControl><Input placeholder="(00) 00000-0000" {...field} value={field.value ?? ""} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                name="telefone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone</FormLabel>
+                    <FormControl><Input placeholder="(00) 00000-0000" {...field} value={toInputValue(field.value)} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
                 />
               </div>
 
@@ -210,7 +214,7 @@ export function CreateCompanyPageForm({ backHref }: CreateCompanyPageFormProps) 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>E-mail de Contato</FormLabel>
-                    <FormControl><Input type="email" placeholder="contato@empresa.com" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormControl><Input type="email" placeholder="contato@empresa.com" {...field} value={toInputValue(field.value)} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -222,7 +226,7 @@ export function CreateCompanyPageForm({ backHref }: CreateCompanyPageFormProps) 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Observacoes</FormLabel>
-                    <FormControl><Textarea rows={4} placeholder="Observacoes internas" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormControl><Textarea rows={4} placeholder="Observacoes internas" {...field} value={toInputValue(field.value)} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
