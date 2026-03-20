@@ -24,9 +24,9 @@ import {
   X,
   Users,
   UserPlus,
+  Pencil,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { EditUserDialog } from "./EditUserDialog";
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog";
 
 interface UserWithRelations {
@@ -45,7 +45,6 @@ interface UserWithRelations {
 
 interface UserTabProps {
   data: UserWithRelations[];
-  companies: any[];
   isAdmin: boolean;
   canManage: boolean;
 }
@@ -129,11 +128,10 @@ interface UserActionsProps {
   isLoading: boolean;
   canManage: boolean;
   isAdmin: boolean;
-  onEdit: () => void;
   onToggleStatus: () => void;
 }
 
-function UserActions({ user, isLoading, canManage, isAdmin, onEdit, onToggleStatus }: UserActionsProps) {
+function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: UserActionsProps) {
   if (!canManage) return null;
 
   if (isLoading) {
@@ -168,9 +166,11 @@ function UserActions({ user, isLoading, canManage, isAdmin, onEdit, onToggleStat
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onEdit}>
-          <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-sm">Editar perfil</span>
+        <DropdownMenuItem asChild className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md">
+          <Link href={`/app/cadastros/usuarios/${user.id}/editar`}>
+            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm">Editar perfil</span>
+          </Link>
         </DropdownMenuItem>
 
         {isAdmin && (
@@ -208,11 +208,9 @@ function UserActions({ user, isLoading, canManage, isAdmin, onEdit, onToggleStat
   );
 }
 
-export function UserTab({ data, companies, isAdmin, canManage }: UserTabProps) {
+export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
   const [users, setUsers] = useState<UserWithRelations[]>(data);
   const [searchTerm, setSearchTerm] = useState("");
-  const [userToEdit, setUserToEdit] = useState<UserWithRelations | null>(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState<UserWithRelations | null>(null);
@@ -233,16 +231,6 @@ export function UserTab({ data, companies, isAdmin, canManage }: UserTabProps) {
         (user.cpf && user.cpf.includes(cpfRaw)),
     );
   }, [users, searchTerm]);
-
-  const handleEditClick = useCallback((user: UserWithRelations) => {
-    setUserToEdit(user);
-    setIsEditOpen(true);
-  }, []);
-
-  const handleEditClose = useCallback((open: boolean) => {
-    setIsEditOpen(open);
-    if (!open) setUserToEdit(null);
-  }, []);
 
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
@@ -266,8 +254,6 @@ export function UserTab({ data, companies, isAdmin, canManage }: UserTabProps) {
 
   return (
     <>
-      {userToEdit && <EditUserDialog open={isEditOpen} onOpenChange={handleEditClose} user={userToEdit} companies={companies} isAdmin={isAdmin} />}
-
       <ConfirmActionDialog
         open={!!confirmSuspend}
         onOpenChange={(open) => (!open ? setConfirmSuspend(null) : undefined)}
@@ -412,7 +398,6 @@ export function UserTab({ data, companies, isAdmin, canManage }: UserTabProps) {
                         isLoading={loadingId === user.id}
                         canManage={canManage}
                         isAdmin={isAdmin}
-                        onEdit={() => handleEditClick(user)}
                         onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
                       />
                     </TableCell>

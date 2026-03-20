@@ -35,6 +35,27 @@ export function useLogin() {
     // ✅ MELHORIA: Toast só após sucesso confirmado
     toast.success("Login realizado com sucesso!")
 
+    // Validação final de sessão ativa/autorizada no servidor.
+    // Evita loop quando há cookie de login, mas o usuário está sem acesso válido no portal.
+    try {
+      const accessProbe = await fetch("/api/platform/session-role", {
+        method: "GET",
+        cache: "no-store",
+      })
+
+      if (!accessProbe.ok) {
+        await authClient.signOut()
+        setError("Seu acesso ao portal está bloqueado. Verifique contrato ativo da empresa ou contate o suporte.")
+        setIsLoading(false)
+        return
+      }
+    } catch {
+      await authClient.signOut()
+      setError("Não foi possível validar seu acesso ao portal. Tente novamente.")
+      setIsLoading(false)
+      return
+    }
+
     // Se havia uma rota de destino, respeita ela
     if (urlCallback) {
       router.push(urlCallback)

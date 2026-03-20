@@ -26,7 +26,6 @@ export default async function CadastrosUsuariosPage() {
       />
       <UserTab
         data={result.users}
-        companies={result.companies}
         isAdmin={result.isGlobalView}
         canManage={
           hasPermission(session.role, "users:create") ||

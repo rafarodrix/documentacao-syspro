@@ -121,7 +121,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthenticated && (pathname === "/login" || pathname === "/register")) {
-    return redirectTo(request, "/");
+    return redirectTo(request, "/app");
   }
 
   if (

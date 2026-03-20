@@ -24,7 +24,7 @@ export default async function CadastrosSistemaPage() {
         description="Equipe interna para administracao, suporte e desenvolvimento."
         isGlobalView={result.isGlobalView}
       />
-      <SystemUserTab data={result.users} companies={[]} canManage={session.role === Role.ADMIN} />
+      <SystemUserTab data={result.users} canManage={session.role === Role.ADMIN} />
     </div>
   );
 }

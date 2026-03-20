@@ -25,9 +25,9 @@ import {
   X,
   ShieldCheck,
   UserPlus,
+  Pencil,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { EditUserDialog } from "./EditUserDialog";
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog";
 
 interface SystemUserWithRelations {
@@ -46,7 +46,6 @@ interface SystemUserWithRelations {
 
 interface SystemUserTabProps {
   data: SystemUserWithRelations[];
-  companies: any[];
   canManage: boolean;
 }
 
@@ -133,11 +132,10 @@ interface SystemActionsProps {
   user: SystemUserWithRelations;
   isLoading: boolean;
   canManage: boolean;
-  onEdit: () => void;
   onToggleStatus: () => void;
 }
 
-function SystemActions({ user, isLoading, canManage, onEdit, onToggleStatus }: SystemActionsProps) {
+function SystemActions({ user, isLoading, canManage, onToggleStatus }: SystemActionsProps) {
   if (!canManage) return null;
   if (isLoading) {
     return (
@@ -171,9 +169,11 @@ function SystemActions({ user, isLoading, canManage, onEdit, onToggleStatus }: S
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onEdit}>
-          <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-sm">Editar acesso</span>
+        <DropdownMenuItem asChild className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md">
+          <Link href={`/app/cadastros/sistema/${user.id}/editar`}>
+            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm">Editar acesso</span>
+          </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md">
@@ -209,11 +209,9 @@ function SystemActions({ user, isLoading, canManage, onEdit, onToggleStatus }: S
   );
 }
 
-export function SystemUserTab({ data, companies, canManage }: SystemUserTabProps) {
+export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
   const [users, setUsers] = useState<SystemUserWithRelations[]>(data);
   const [searchTerm, setSearchTerm] = useState("");
-  const [userToEdit, setUserToEdit] = useState<SystemUserWithRelations | null>(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState<SystemUserWithRelations | null>(null);
@@ -235,16 +233,6 @@ export function SystemUserTab({ data, companies, canManage }: SystemUserTabProps
         (user.cpf && user.cpf.includes(cpfRaw)),
     );
   }, [users, searchTerm]);
-
-  const handleEditClick = useCallback((user: SystemUserWithRelations) => {
-    setUserToEdit(user);
-    setIsEditOpen(true);
-  }, []);
-
-  const handleEditClose = useCallback((open: boolean) => {
-    setIsEditOpen(open);
-    if (!open) setUserToEdit(null);
-  }, []);
 
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
@@ -268,8 +256,6 @@ export function SystemUserTab({ data, companies, canManage }: SystemUserTabProps
 
   return (
     <>
-      {userToEdit && <EditUserDialog open={isEditOpen} onOpenChange={handleEditClose} user={userToEdit} companies={companies} isAdmin />}
-
       <ConfirmActionDialog
         open={!!confirmSuspend}
         onOpenChange={(open) => (!open ? setConfirmSuspend(null) : undefined)}
@@ -396,7 +382,6 @@ export function SystemUserTab({ data, companies, canManage }: SystemUserTabProps
                         user={user}
                         isLoading={loadingId === user.id}
                         canManage={canManage}
-                        onEdit={() => handleEditClick(user)}
                         onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
                       />
                     </TableCell>
