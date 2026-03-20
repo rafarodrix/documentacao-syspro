@@ -218,13 +218,17 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
         take: 2,
       }),
       prisma.company.findMany({ where: { deletedAt: null, createdAt: { gte: start } }, select: { createdAt: true } }),
-      ZammadGateway.getAllTickets(50),
+      ZammadGateway.getAllTickets(50, {
+        cacheTtlSeconds: 60,
+        tags: ["tickets-dashboard"],
+      }),
     ]);
-    const activeTickets = ticketsRaw.filter(
-      (ticket) =>
-        isAnalysisOrDevelopmentStateId(ticket.state_id) ||
-        isAnalysisOrDevelopmentStateName(ticket.state),
-    );
+    const activeTickets = ticketsRaw.filter((ticket) => {
+      const status = isAnalysisOrDevelopmentStateId(ticket.state_id)
+        ? mapTicketStatusFromStateId(ticket.state_id as number)
+        : mapTicketStatusFromStateName(ticket.state || "");
+      return status !== "Resolvido";
+    });
 
     const tickets = activeTickets.slice(0, 5).map(normalizeOperationalTicket);
     const totalOpen = activeTickets.length;
@@ -287,11 +291,18 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
     ? await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
         limit: 50,
         perEmailLimit: 10,
+        cacheTtlSeconds: 60,
+        tags: ["tickets-dashboard"],
       })
     : [];
 
   const tickets = userTickets
-    .filter((ticket) => isAnalysisOrDevelopmentStateId(ticket.state_id) || isAnalysisOrDevelopmentStateName(ticket.state))
+    .filter((ticket) => {
+      const status = isAnalysisOrDevelopmentStateId(ticket.state_id)
+        ? mapTicketStatusFromStateId(ticket.state_id as number)
+        : mapTicketStatusFromStateName(ticket.state || "");
+      return status !== "Resolvido";
+    })
     .slice(0, 10)
     .map(normalizeOperationalTicket);
   const kpis = ticketKpis(tickets);

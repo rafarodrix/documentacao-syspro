@@ -1,7 +1,7 @@
 ﻿"use server";
 
 import { Role } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
@@ -76,7 +76,10 @@ export async function getTicketsAction() {
         let ticketsRaw: ZammadOperationalTicket[] = [];
 
         if (isSystemRole(session.role)) {
-            ticketsRaw = await ZammadGateway.getAllTickets(100);
+            ticketsRaw = await ZammadGateway.getAllTickets(100, {
+                cacheTtlSeconds: 45,
+                tags: ["tickets-list", "tickets-dashboard"],
+            });
         } else {
             const scopedEmails = await getScopedCompanyUserEmails(session.userId);
             if (!scopedEmails.length) {
@@ -86,6 +89,8 @@ export async function getTicketsAction() {
             ticketsRaw = await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
                 limit: 100,
                 perEmailLimit: 40,
+                cacheTtlSeconds: 45,
+                tags: ["tickets-list", "tickets-dashboard"],
             });
         }
 
@@ -124,6 +129,8 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
         });
 
         revalidatePath("/app/chamados");
+        revalidateTag("tickets-list");
+        revalidateTag("tickets-dashboard");
         return { success: true, message: "Chamado aberto com sucesso!", data: newTicket };
     } catch (error) {
         console.error("Erro ao criar chamado:", error);
@@ -210,6 +217,8 @@ export async function replyTicketAction(ticketId: string, message: string) {
 
         await ZammadGateway.addTicketReply(ticketId, body);
         revalidatePath(`/app/chamados/${ticketId}`);
+        revalidateTag("tickets-list");
+        revalidateTag("tickets-dashboard");
         return { success: true };
     } catch (error) {
         console.error("Erro ao responder chamado:", error);

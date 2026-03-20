@@ -20,6 +20,18 @@ const ZAMMAD_TIMEOUT_MS = Number(process.env.ZAMMAD_TIMEOUT_MS ?? 10000);
 const ZAMMAD_RETRY_MAX_ATTEMPTS = Number(process.env.ZAMMAD_RETRY_MAX_ATTEMPTS ?? 3);
 const ZAMMAD_RETRY_BASE_DELAY_MS = Number(process.env.ZAMMAD_RETRY_BASE_DELAY_MS ?? 400);
 
+type ZammadCacheOptions = {
+    cacheTtlSeconds?: number;
+    tags?: string[];
+};
+
+type NextFetchOptions = RequestInit & {
+    next?: {
+        revalidate?: number;
+        tags?: string[];
+    };
+};
+
 function buildAuthorizationHeader(token: string): string {
     const normalized = token.trim();
     const lowered = normalized.toLowerCase();
@@ -35,13 +47,24 @@ function buildAuthorizationHeader(token: string): string {
     return `Token token=${normalized}`;
 }
 
-async function fetchZammad(endpoint: string, options: RequestInit = {}) {
+async function fetchZammad(endpoint: string, options: NextFetchOptions = {}, cacheOptions?: ZammadCacheOptions) {
     if (!ZAMMAD_URL || !ZAMMAD_TOKEN) {
         throw new Error("Zammad URL ou Token nao configurados.");
     }
 
+    const cachePolicy = cacheOptions?.cacheTtlSeconds && cacheOptions.cacheTtlSeconds > 0
+        ? {
+            cache: "force-cache" as RequestCache,
+            next: {
+                revalidate: cacheOptions.cacheTtlSeconds,
+                tags: cacheOptions.tags,
+            },
+        }
+        : { cache: "no-store" as RequestCache };
+
     const res = await fetchWithRetry(`${ZAMMAD_URL}/api/v1/${endpoint}`, {
         ...options,
+        ...cachePolicy,
         headers: {
             Authorization: buildAuthorizationHeader(ZAMMAD_TOKEN),
             ...options.headers,
@@ -63,7 +86,7 @@ function isRetryableStatus(status: number): boolean {
     return status === 429 || status >= 500;
 }
 
-async function fetchWithRetry(input: string, options: RequestInit): Promise<Response> {
+async function fetchWithRetry(input: string, options: NextFetchOptions): Promise<Response> {
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= ZAMMAD_RETRY_MAX_ATTEMPTS; attempt += 1) {
@@ -214,11 +237,11 @@ export const ZammadGateway = {
         }
     },
 
-    async getAllTickets(limit = 50): Promise<ZammadOperationalTicket[]> {
+    async getAllTickets(limit = 50, cacheOptions?: ZammadCacheOptions): Promise<ZammadOperationalTicket[]> {
         try {
             const query = buildStateQuery([1, 2, 3, 4, 5, 6, 7, 8, 9]) || "state_id:1";
             const endpoint = `tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&expand=true&sort_by=updated_at&order_by=desc`;
-            const data = await fetchZammad(endpoint, { cache: "no-store" });
+            const data = await fetchZammad(endpoint, {}, cacheOptions);
 
             return normalizeSearchResponse(data)
                 .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
@@ -232,7 +255,13 @@ export const ZammadGateway = {
 
     async getTicketsForUser(
         email: string,
-        options?: { stateIds?: number[]; limit?: number; scope?: "organization-or-email" | "email-only" }
+        options?: {
+            stateIds?: number[];
+            limit?: number;
+            scope?: "organization-or-email" | "email-only";
+            cacheTtlSeconds?: number;
+            tags?: string[];
+        }
     ): Promise<ZammadOperationalTicket[]> {
         try {
             let scopeQuery = `customer.email:${email}`;
@@ -257,7 +286,10 @@ export const ZammadGateway = {
             const query = stateQuery ? `(${scopeQuery}) AND ${stateQuery}` : scopeQuery;
             const limit = options?.limit ?? 50;
             const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}`;
-            const data = await fetchZammad(endpoint, { cache: "no-store" });
+            const data = await fetchZammad(endpoint, {}, {
+                cacheTtlSeconds: options?.cacheTtlSeconds,
+                tags: options?.tags,
+            });
 
             return normalizeSearchResponse(data)
                 .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
@@ -271,7 +303,13 @@ export const ZammadGateway = {
 
     async getTicketsForCustomerEmails(
         emails: string[],
-        options?: { stateIds?: number[]; limit?: number; perEmailLimit?: number }
+        options?: {
+            stateIds?: number[];
+            limit?: number;
+            perEmailLimit?: number;
+            cacheTtlSeconds?: number;
+            tags?: string[];
+        }
     ): Promise<ZammadOperationalTicket[]> {
         const normalizedEmails = Array.from(
             new Set(
@@ -291,6 +329,8 @@ export const ZammadGateway = {
                         stateIds: options?.stateIds,
                         limit: perEmailLimit,
                         scope: "email-only",
+                        cacheTtlSeconds: options?.cacheTtlSeconds,
+                        tags: options?.tags,
                     })
                 )
             );

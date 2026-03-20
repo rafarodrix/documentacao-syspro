@@ -190,11 +190,16 @@ export async function GET() {
 
   const scopedEmails = systemUser ? [] : await getScopedCompanyUserEmails(session.userId);
   const tickets = systemUser
-    ? await ZammadGateway.getAllTickets(30)
+    ? await ZammadGateway.getAllTickets(30, {
+        cacheTtlSeconds: 30,
+        tags: ["tickets-dashboard"],
+      })
     : await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
         stateIds: ACTIVE_STATES,
         limit: 30,
         perEmailLimit: 30,
+        cacheTtlSeconds: 30,
+        tags: ["tickets-dashboard"],
       });
 
   const ticketNotifications = buildTicketNotifications(tickets);

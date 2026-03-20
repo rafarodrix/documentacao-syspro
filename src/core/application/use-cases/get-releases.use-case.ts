@@ -1,10 +1,11 @@
 import { Release } from "@/core/domain/entities/release.entity";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
+import { unstable_cache } from "next/cache";
 
 const ZAMMAD_RELEASE_STATE_ID = 4;
 const ZAMMAD_RELEASE_GROUP_ID = 3;
 
-export async function getReleases(): Promise<Release[]> {
+async function fetchReleases(): Promise<Release[]> {
     const query = `(type:"Melhoria" OR type:"Bug") AND state_id:${ZAMMAD_RELEASE_STATE_ID} AND group_id:${ZAMMAD_RELEASE_GROUP_ID}`;
 
     const tickets = await ZammadGateway.searchTickets(query);
@@ -23,4 +24,13 @@ export async function getReleases(): Promise<Release[]> {
             tags: [mainModule]
         };
     });
+}
+
+const getReleasesCached = unstable_cache(fetchReleases, ["releases-zammad-v1"], {
+    revalidate: 1800,
+    tags: ["releases"],
+});
+
+export async function getReleases(): Promise<Release[]> {
+    return getReleasesCached();
 }
