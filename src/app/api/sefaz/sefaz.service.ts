@@ -1,12 +1,46 @@
 import { prisma } from "@/lib/prisma";
 import { SEFAZ_ENDPOINTS, analyzeSefazResponse } from "@/core/constants/sefaz-endpoints";
+import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
+import { sefazRoutesSchema } from "@/core/application/schema/sefaz-routes-schema";
 
 export class SefazService {
+    private async loadConfiguredEndpoints() {
+        const setting = await prisma.systemSetting.findUnique({
+            where: { key: SETTING_KEYS.SEFAZ_ROUTES },
+            select: { value: true },
+        });
+
+        if (!setting?.value) {
+            return SEFAZ_ENDPOINTS.map((endpoint) => ({
+                uf: endpoint.uf,
+                service: endpoint.service,
+                url: endpoint.url,
+                active: true,
+            }));
+        }
+
+        try {
+            const parsed = JSON.parse(setting.value);
+            const validation = sefazRoutesSchema.safeParse(parsed);
+            if (!validation.success) throw new Error("Rotas SEFAZ invalidas.");
+            return validation.data.filter((route) => route.active);
+        } catch (error) {
+            console.error("Erro ao ler rotas SEFAZ configuradas, usando padrao:", error);
+            return SEFAZ_ENDPOINTS.map((endpoint) => ({
+                uf: endpoint.uf,
+                service: endpoint.service,
+                url: endpoint.url,
+                active: true,
+            }));
+        }
+    }
+
     async runFullCheck() {
         console.log("Iniciando monitoramento nacional SEFAZ...");
+        const endpoints = await this.loadConfiguredEndpoints();
 
         const results = await Promise.allSettled(
-            SEFAZ_ENDPOINTS.map(async (endpoint) => {
+            endpoints.map(async (endpoint) => {
                 const start = Date.now();
 
                 try {

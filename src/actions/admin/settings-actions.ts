@@ -5,6 +5,9 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { settingsSchema, SettingsInput, SETTING_KEYS } from "@/core/application/schema/settings-schema";
 import { Role } from "@prisma/client";
+import { sefazRoutesSchema, type SefazRoutesInput } from "@/core/application/schema/sefaz-routes-schema";
+import { SEFAZ_ENDPOINTS } from "@/core/constants/sefaz-endpoints";
+import { SefazService } from "@/app/api/sefaz/sefaz.service";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
@@ -104,5 +107,89 @@ export async function updateRbacMatrixVisibilityAction(enabled: boolean) {
     } catch (error) {
         console.error("Erro ao atualizar visibilidade da matriz RBAC:", error);
         return { success: false, error: "Erro ao atualizar configuracao." };
+    }
+}
+
+export async function getSefazRoutesAction() {
+    const session = await getProtectedSession();
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, error: "Permissao negada.", data: [] as SefazRoutesInput };
+    }
+
+    try {
+        const setting = await prisma.systemSetting.findUnique({
+            where: { key: SETTING_KEYS.SEFAZ_ROUTES },
+            select: { value: true },
+        });
+
+        if (!setting?.value) {
+            const defaults = SEFAZ_ENDPOINTS.map((item) => ({
+                uf: item.uf,
+                service: item.service,
+                url: item.url,
+                active: true,
+            })) satisfies SefazRoutesInput;
+
+            return { success: true, data: defaults };
+        }
+
+        const parsedJson = JSON.parse(setting.value);
+        const validation = sefazRoutesSchema.safeParse(parsedJson);
+        if (!validation.success) {
+            return { success: false, error: "Formato invalido das rotas SEFAZ.", data: [] as SefazRoutesInput };
+        }
+
+        return { success: true, data: validation.data };
+    } catch (error) {
+        console.error("Erro ao carregar rotas SEFAZ:", error);
+        return { success: false, error: "Erro ao carregar rotas SEFAZ.", data: [] as SefazRoutesInput };
+    }
+}
+
+export async function updateSefazRoutesAction(routes: SefazRoutesInput) {
+    const session = await getProtectedSession();
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, error: "Permissao negada." };
+    }
+
+    const validation = sefazRoutesSchema.safeParse(routes);
+    if (!validation.success) {
+        return { success: false, error: "Dados invalidos para rotas SEFAZ." };
+    }
+
+    try {
+        await prisma.systemSetting.upsert({
+            where: { key: SETTING_KEYS.SEFAZ_ROUTES },
+            update: { value: JSON.stringify(validation.data) },
+            create: {
+                key: SETTING_KEYS.SEFAZ_ROUTES,
+                value: JSON.stringify(validation.data),
+                description: "Rotas de monitoramento SEFAZ por UF/servico",
+            },
+        });
+
+        revalidatePath("/app/configuracoes");
+        return { success: true, message: "Rotas SEFAZ salvas com sucesso." };
+    } catch (error) {
+        console.error("Erro ao salvar rotas SEFAZ:", error);
+        return { success: false, error: "Erro ao salvar rotas SEFAZ." };
+    }
+}
+
+export async function runSefazCheckAction() {
+    const session = await getProtectedSession();
+    if (!session || !WRITE_ROLES.includes(session.role)) {
+        return { success: false, error: "Permissao negada." };
+    }
+
+    try {
+        const service = new SefazService();
+        const result = await service.runFullCheck();
+        revalidatePath("/app");
+        revalidatePath("/app/configuracoes");
+        return { success: true, message: `Verificacao concluida (${result.count} rotas).` };
+    } catch (error) {
+        console.error("Erro ao executar verificacao SEFAZ:", error);
+        return { success: false, error: "Erro ao executar verificacao SEFAZ." };
     }
 }

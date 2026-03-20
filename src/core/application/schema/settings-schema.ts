@@ -16,4 +16,5 @@ export const SETTING_KEYS = {
     SUPPORT_EMAIL: "supportEmail",
     SUPPORT_PHONE: "supportPhone",
     RBAC_MATRIX_ENABLED: "rbacMatrixEnabled",
+    SEFAZ_ROUTES: "sefazRoutes",
 } as const;

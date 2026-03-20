@@ -4,10 +4,11 @@ import { Role } from "@prisma/client";
 import { requireSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getContractsAction } from "@/actions/admin/contract-actions";
+import { getSefazRoutesAction } from "@/actions/admin/settings-actions";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, ShieldCheck, Sliders, Landmark, FileText } from "lucide-react";
+import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity } from "lucide-react";
 
 import GeneralSettingsForm from "@/components/platform/app/settings/GeneralSettingsForm";
 import { AccessControlTab } from "@/components/platform/app/settings/AccessControlTab";
@@ -17,12 +18,13 @@ import { BulkReadjustDialog } from "@/components/platform/app/contratos/BulkRead
 import { ContractSheet } from "@/components/platform/app/contratos/ContractSheet";
 import { ContractStats } from "@/components/platform/app/contratos/ContractStats";
 import { ContractsTable } from "@/components/platform/app/contratos/ContractsTable";
+import { SefazRoutesTab } from "@/components/platform/app/settings/SefazRoutesTab";
 
 interface SettingsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const TAB_VALUES = new Set(["general", "access", "tax", "contracts"]);
+const TAB_VALUES = new Set(["general", "access", "tax", "contracts", "sefaz"]);
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
     const session = await requireSession();
@@ -36,7 +38,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const mode = typeof params?.mode === "string" ? params.mode : "";
     const isContractsCreateMode = mode === "create";
 
-    const [contractsRes, companies, rbacSetting] = await Promise.all([
+    const [contractsRes, companies, rbacSetting, sefazRoutesRes] = await Promise.all([
         getContractsAction(),
         prisma.company.findMany({
             where: { deletedAt: null },
@@ -47,10 +49,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             where: { key: SETTING_KEYS.RBAC_MATRIX_ENABLED },
             select: { value: true },
         }),
+        getSefazRoutesAction(),
     ]);
 
     const contracts = contractsRes.success && contractsRes.data ? contractsRes.data : [];
     const rbacMatrixEnabled = rbacSetting?.value !== "false";
+    const sefazRoutes = sefazRoutesRes.success ? sefazRoutesRes.data : [];
 
     return (
         <div className="flex flex-col gap-8 p-6 max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
@@ -97,6 +101,14 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                         >
                             <Landmark className="h-4 w-4" />
                             <span className="font-medium">Fiscal & Tributario</span>
+                        </TabsTrigger>
+
+                        <TabsTrigger
+                            value="sefaz"
+                            className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                        >
+                            <Activity className="h-4 w-4" />
+                            <span className="font-medium">Rotas SEFAZ</span>
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -152,6 +164,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                                 <TaxClassificationList />
                             </Suspense>
                         </div>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="sefaz" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
+                    <div className="max-w-6xl">
+                        <SefazRoutesTab initialRoutes={sefazRoutes} />
                     </div>
                 </TabsContent>
             </Tabs>
