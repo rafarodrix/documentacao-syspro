@@ -95,7 +95,6 @@ model Company {
   inscricaoMunicipal String?
   indicadorIE        IndicadorIE @default(NAO_CONTRIBUINTE)
   regimeTributario   TaxRegime?
-  crt                String? // 1, 2, 3 ou 4
   cnae               String?
   codSuframa         String?
   dataFundacao       DateTime?

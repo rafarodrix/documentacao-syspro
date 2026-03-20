@@ -25,7 +25,6 @@ const companyListSelect = {
   inscricaoMunicipal: true,
   indicadorIE: true,
   regimeTributario: true,
-  crt: true,
   cnae: true,
   codSuframa: true,
   dataFundacao: true,

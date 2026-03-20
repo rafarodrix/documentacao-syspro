@@ -48,7 +48,6 @@ export interface CompanyWithDetails extends CompanyWithAddress {
   indicadorIE?: IndicadorIE
   inscricaoEstadual?: string | null
   inscricaoMunicipal?: string | null
-  crt?: string | null
   cnae?: string | null
   codSuframa?: string | null
   emailContato?: string | null

@@ -48,7 +48,6 @@ export const createCompanySchema = z
 
     // DADOS FISCAIS
     regimeTributario: z.nativeEnum(TaxRegime).nullable().optional(),
-    crt: emptyToUndefined, // Código de Regime Tributário (1, 2, 3 ou 4)
     indicadorIE: z.nativeEnum(IndicadorIE).default(IndicadorIE.NAO_CONTRIBUINTE),
     inscricaoEstadual: emptyToUndefined,
     inscricaoMunicipal: emptyToUndefined,

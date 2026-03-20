@@ -47,7 +47,6 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
       parentCompanyId: true,
       accountingFirmId: true,
       regimeTributario: true,
-      crt: true,
       indicadorIE: true,
       inscricaoEstadual: true,
       inscricaoMunicipal: true,
@@ -111,7 +110,6 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
         parentCompanyId: company.parentCompanyId ?? "",
         accountingFirmId: company.accountingFirmId ?? "",
         regimeTributario: company.regimeTributario ?? undefined,
-        crt: company.crt ?? "",
         indicadorIE: company.indicadorIE,
         inscricaoEstadual: company.inscricaoEstadual ?? "",
         inscricaoMunicipal: company.inscricaoMunicipal ?? "",
@@ -155,4 +153,3 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
     />
   );
 }
-
