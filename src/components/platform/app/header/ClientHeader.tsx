@@ -8,19 +8,19 @@ import { CommandPaletteTrigger } from "./command-palette-trigger"
 import { UserProfile } from "./user-profile"
 import { NotificationsMenu } from "./NotificationsMenu"
 import Link from "next/link"
+import type { Role } from "@prisma/client"
+import { SYSTEM_ROLES } from "@/core/config/route-access"
 
 interface ClientHeaderProps {
   user: {
     name: string
     email: string
     image?: string | null
-    role: string
+    role: Role
   }
   sidebarCollapsed: boolean
   onToggleSidebar: () => void
 }
-
-const SYSTEM_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"]
 
 export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar }: ClientHeaderProps) {
   const isSystemUser = SYSTEM_ROLES.includes(user.role)

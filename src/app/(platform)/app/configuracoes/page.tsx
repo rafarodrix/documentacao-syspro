@@ -1,6 +1,7 @@
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { Role } from "@prisma/client";
 
 // UI Components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +16,7 @@ import { TaxClassificationList } from "@/components/platform/tax/TaxClassificati
 
 export default async function SettingsPage() {
     const session = await getProtectedSession();
-    if (!session || !["ADMIN"].includes(session.role)) {
+    if (!session || session.role !== Role.ADMIN) {
         redirect("/app/dashboard");
     }
 

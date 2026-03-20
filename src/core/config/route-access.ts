@@ -1,12 +1,14 @@
-export const APP_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN", "CLIENTE_USER"] as const;
-export type AppRole = (typeof APP_ROLES)[number];
+import type { Role } from "@prisma/client";
 
-export const SYSTEM_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"] as const satisfies readonly AppRole[];
-export const CADASTRO_MANAGER_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN"] as const satisfies readonly AppRole[];
+export const APP_ROLES: Role[] = ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN", "CLIENTE_USER"];
+export type AppRole = Role;
+
+export const SYSTEM_ROLES: Role[] = ["ADMIN", "DEVELOPER", "SUPORTE"];
+export const CADASTRO_MANAGER_ROLES: Role[] = ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN"];
 
 export const CADASTROS_ROUTE_RULES = {
   root: {
-    blocked: ["CLIENTE_USER"] as const satisfies readonly AppRole[],
+    blocked: ["CLIENTE_USER"],
     redirectIfBlocked: "/app",
     redirectIfAllowed: "/app/cadastros/empresa",
   },
@@ -28,14 +30,14 @@ export const CADASTROS_ROUTE_RULES = {
 } as const;
 
 export const SIDEBAR_ROLE_RULES = {
-  chamadosCliente: ["CLIENTE_ADMIN", "CLIENTE_USER"] as const satisfies readonly AppRole[],
+  chamadosCliente: ["CLIENTE_ADMIN", "CLIENTE_USER"],
   chamadosSistema: SYSTEM_ROLES,
   cadastroEmpresa: CADASTRO_MANAGER_ROLES,
   cadastroUsuarios: CADASTRO_MANAGER_ROLES,
   cadastroSistema: SYSTEM_ROLES,
-  contratos: ["ADMIN"] as const satisfies readonly AppRole[],
+  contratos: ["ADMIN"],
 } as const;
 
-export function hasAllowedRole(role: string, allowed: readonly AppRole[]): boolean {
+export function hasAllowedRole(role: string | Role, allowed: readonly AppRole[]): boolean {
   return allowed.includes(role as AppRole);
 }

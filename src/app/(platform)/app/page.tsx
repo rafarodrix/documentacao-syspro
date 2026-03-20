@@ -1,5 +1,6 @@
 ﻿import { requireSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { Role } from "@prisma/client";
 import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { ActivityChart, ActivityPoint } from "@/components/platform/app/dashboard/ActivityChart";
@@ -15,7 +16,7 @@ import {
 } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const SYSTEM_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
+const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const DASHBOARD_ACTIVE_STATE_IDS = [2, 3] as const;
 const DASHBOARD_ACTIVE_STATES_QUERY = DASHBOARD_ACTIVE_STATE_IDS.map((id) => `state_id:${id}`).join(" OR ");
 
@@ -152,7 +153,7 @@ type ClientDashboardData = {
   activity: ActivityPoint[];
 };
 
-async function getDashboardData(email: string, role: string): Promise<AdminDashboardData | ClientDashboardData> {
+async function getDashboardData(email: string, role: Role): Promise<AdminDashboardData | ClientDashboardData> {
   const isSystemUser = SYSTEM_ROLES.includes(role);
 
   if (isSystemUser) {
@@ -378,3 +379,6 @@ export default async function DashboardPage() {
     </div>
   );
 }
+
+
+

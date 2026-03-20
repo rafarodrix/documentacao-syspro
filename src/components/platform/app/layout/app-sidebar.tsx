@@ -1,5 +1,6 @@
 "use client"
 
+import type { Role } from "@prisma/client"
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -36,7 +37,7 @@ import {
   HelpCircle,
 } from "lucide-react"
 
-export type UserRole = string
+export type UserRole = Role
 
 export interface SidebarUser {
   name: string
@@ -262,7 +263,7 @@ function SidebarFooter({
 
 export function AppSidebar({ user, mobile = false, onClose, collapsed = false }: AppSidebarProps) {
   const pathname = usePathname()
-  const isSystemUser = SYSTEM_ROLES.includes(user.role as (typeof SYSTEM_ROLES)[number])
+  const isSystemUser = SYSTEM_ROLES.includes(user.role)
   const isSidebarCollapsed = !mobile && collapsed
 
   const isActive = (href: string) => (href === "/app" ? pathname === "/app" : pathname.startsWith(href))

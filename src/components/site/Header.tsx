@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Role } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ export async function SiteHeader() {
   const user = session?.user as any;
 
   const dashboardUrl =
-    user?.role === 'ADMIN' || user?.role === 'DEVELOPER' || user?.role === 'SUPORTE'
+    user?.role === Role.ADMIN || user?.role === Role.DEVELOPER || user?.role === Role.SUPORTE
       ? '/admin'
       : '/app';
 

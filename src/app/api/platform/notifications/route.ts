@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { isAnalysisOrDevelopmentStateId, isAnalysisOrDevelopmentStateName } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { Role } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,10 @@ type NotificationItem = {
   createdAt: string;
 };
 
-const SYSTEM_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
+const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const ACTIVE_STATES = [2, 3];
 
-function isSystemRole(role: string): boolean {
+function isSystemRole(role: Role): boolean {
   return SYSTEM_ROLES.includes(role);
 }
 
@@ -197,7 +198,7 @@ export async function GET() {
       });
 
   const ticketNotifications = buildTicketNotifications(tickets);
-  const operational = systemUser ? await buildSystemOperationalNotifications(session.role === "ADMIN") : [];
+  const operational = systemUser ? await buildSystemOperationalNotifications(session.role === Role.ADMIN) : [];
   const merged = sortNotifications([...ticketNotifications, ...operational]).slice(0, 12);
 
   return NextResponse.json({

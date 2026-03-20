@@ -1,8 +1,9 @@
 import { getTicketsAction } from "@/actions/tickets/ticket-actions";
 import { requireSession } from "@/lib/auth-helpers";
 import { TicketsContainer } from "@/components/platform/tickets/TicketsContainer";
+import { Role } from "@prisma/client";
 
-const SYSTEM_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"];
+const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
 export default async function TicketsPage() {
   const session = await requireSession();

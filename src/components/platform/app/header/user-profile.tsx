@@ -1,5 +1,6 @@
-"use client"
+﻿"use client"
 
+import type { Role } from "@prisma/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
@@ -21,7 +22,7 @@ interface UserProfileProps {
     name: string
     email: string
     image?: string | null
-    role: string
+    role: Role
   }
 }
 
@@ -77,7 +78,7 @@ export function UserProfile({ user }: UserProfileProps) {
 
         <DropdownMenuItem className="cursor-pointer gap-2">
           <Settings className="h-4 w-4 text-muted-foreground" />
-          Preferências
+          PreferÃªncias
         </DropdownMenuItem>
 
         <DropdownMenuItem className="cursor-pointer gap-2">
@@ -98,3 +99,4 @@ export function UserProfile({ user }: UserProfileProps) {
     </DropdownMenu>
   )
 }
+

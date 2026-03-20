@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { AppSidebar, SidebarUser } from "./app-sidebar"
 import { cn } from "@/lib/utils"
+import { SYSTEM_ROLES } from "@/core/config/route-access"
 
 interface MobileHeaderProps {
   user: SidebarUser
 }
-
-const SYSTEM_ROLES = ["ADMIN", "DEVELOPER", "SUPORTE"]
 
 export function MobileHeader({ user }: MobileHeaderProps) {
   const [open, setOpen] = useState(false)

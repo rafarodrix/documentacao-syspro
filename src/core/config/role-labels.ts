@@ -1,4 +1,4 @@
-import type { AppRole } from "./route-access";
+﻿import type { AppRole } from "./route-access";
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   ADMIN: "Super Administrador",

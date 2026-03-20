@@ -8,7 +8,7 @@ import { ACCESS_MATRIX, PermissionKey } from "@/core/config/permissions";
 export function hasPermission(role: Role, permission: PermissionKey): boolean {
 
     // 1. Failsafe de Segurança: Super Admins e Devs sempre podem tudo
-    if (role === 'ADMIN' || role === 'DEVELOPER') {
+    if (role === Role.ADMIN || role === Role.DEVELOPER) {
         return true;
     }
 
@@ -29,7 +29,7 @@ export function hasPermission(role: Role, permission: PermissionKey): boolean {
  * Útil para menus que agrupam várias funções (ex: Menu Cadastros).
  */
 export function hasAnyPermission(role: Role, permissions: PermissionKey[]): boolean {
-    if (role === 'ADMIN' || role === 'DEVELOPER') return true;
+    if (role === Role.ADMIN || role === Role.DEVELOPER) return true;
 
     return permissions.some((p) => hasPermission(role, p));
 }

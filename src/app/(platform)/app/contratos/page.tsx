@@ -2,6 +2,7 @@ import { getContractsAction } from "../../../../actions/admin/contract-actions";
 import { getCompaniesAction } from "../../../../actions/admin/company-actions";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
+import { Role } from "@prisma/client";
 
 // Componentes
 import { ContractSheet } from "@/components/platform/app/contratos/ContractSheet";
@@ -12,7 +13,7 @@ import { ContractsTable } from "@/components/platform/app/contratos/ContractsTab
 export default async function ContratosPage() {
     // 1. Camada de Segurança
     const session = await getProtectedSession();
-    if (!session || session.role !== "ADMIN") {
+    if (!session || session.role !== Role.ADMIN) {
         redirect("/app/dashboard");
     }
 

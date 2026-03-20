@@ -1,5 +1,6 @@
-"use client"
+﻿"use client"
 
+import type { Role } from "@prisma/client"
 import { useEffect, useState, type ReactNode } from "react"
 import { AppSidebar } from "@/components/platform/app/layout/app-sidebar"
 import { MobileHeader } from "@/components/platform/app/layout/MobileHeader"
@@ -9,7 +10,7 @@ interface AppShellUser {
   name: string
   email: string
   image?: string | null
-  role: string
+  role: Role
 }
 
 interface AppShellProps {
@@ -52,3 +53,4 @@ export function AppShell({ user, children }: AppShellProps) {
     </div>
   )
 }
+

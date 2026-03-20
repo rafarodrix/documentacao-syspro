@@ -5,9 +5,9 @@ import { createContractSchema, CreateContractInput } from "@/core/application/sc
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
-import { redirect } from "next/navigation";
+import { Role } from "@prisma/client";
 
-const WRITE_ROLES = ["ADMIN"];
+const WRITE_ROLES: Role[] = [Role.ADMIN];
 
 // ---------------------------------------------------------
 // HELPERS
