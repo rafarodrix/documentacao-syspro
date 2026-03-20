@@ -6,7 +6,7 @@ import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompa
 import { ActivityChart, ActivityPoint } from "@/components/platform/app/dashboard/ActivityChart";
 import { TicketsSummary, TicketSummaryItem } from "@/components/platform/app/dashboard/TicketsSummary";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
-import { ZammadOperationalTicket, ZammadTicketAPI } from "@/core/application/schema/zammad-api.schema";
+import { ZammadOperationalTicket } from "@/core/application/schema/zammad-api.schema";
 import {
   isAnalysisOrDevelopmentStateId,
   isAnalysisOrDevelopmentStateName,
@@ -17,19 +17,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const DASHBOARD_ACTIVE_STATE_IDS = [2, 3] as const;
-const DASHBOARD_ACTIVE_STATES_QUERY = DASHBOARD_ACTIVE_STATE_IDS.map((id) => `state_id:${id}`).join(" OR ");
-
-function normalizeAdminTicket(t: ZammadTicketAPI): TicketSummaryItem {
-  return {
-    id: String(t.id),
-    number: t.number,
-    subject: t.title,
-    status: mapTicketStatusFromStateId(t.state_id),
-    priority: mapTicketPriority(t.priority_id),
-    lastUpdate: t.updated_at,
-  };
-}
 
 function normalizeOperationalTicket(t: ZammadOperationalTicket): TicketSummaryItem {
   const mappedStatus = isAnalysisOrDevelopmentStateId(t.state_id)
@@ -169,7 +156,6 @@ async function getDashboardData(email: string, role: Role): Promise<AdminDashboa
       sefazRecords,
       companyActivity,
       ticketsRaw,
-      totalOpen,
     ] = await Promise.all([
       prisma.company.count({ where: { status: "ACTIVE", deletedAt: null } }),
       prisma.company.count({
@@ -208,11 +194,16 @@ async function getDashboardData(email: string, role: Role): Promise<AdminDashboa
         take: 2,
       }),
       prisma.company.findMany({ where: { deletedAt: null, createdAt: { gte: start } }, select: { createdAt: true } }),
-      ZammadGateway.searchTickets(DASHBOARD_ACTIVE_STATES_QUERY, 10),
-      ZammadGateway.getTicketCount(DASHBOARD_ACTIVE_STATES_QUERY),
+      ZammadGateway.getAllTickets(50),
     ]);
+    const activeTickets = ticketsRaw.filter(
+      (ticket) =>
+        isAnalysisOrDevelopmentStateId(ticket.state_id) ||
+        isAnalysisOrDevelopmentStateName(ticket.state),
+    );
 
-    const tickets = ticketsRaw.slice(0, 5).map(normalizeAdminTicket);
+    const tickets = activeTickets.slice(0, 5).map(normalizeOperationalTicket);
+    const totalOpen = activeTickets.length;
 
     const companies = recentCompanies.map((c) => ({
       ...c,
@@ -261,8 +252,7 @@ async function getDashboardData(email: string, role: Role): Promise<AdminDashboa
 
   const userTickets = scopedEmails.length
     ? await ZammadGateway.getTicketsForCustomerEmails(scopedEmails, {
-        stateIds: [...DASHBOARD_ACTIVE_STATE_IDS],
-        limit: 10,
+        limit: 50,
         perEmailLimit: 10,
       })
     : [];
