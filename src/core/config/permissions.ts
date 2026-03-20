@@ -11,7 +11,6 @@ export const SYSTEM_PERMISSIONS = {
   "companies:view_all": "Visualizar todas as empresas",
   "companies:view_own": "Visualizar empresas da propria unidade",
   "companies:create": "Cadastrar nova empresa",
-  "companies:edit": "Editar dados da empresa",
   "companies:status": "Ativar ou desativar empresa",
 
   "users:view": "Visualizar lista de usuarios",
@@ -58,7 +57,6 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
     "companies:view",
     "companies:view_all",
     "companies:create",
-    "companies:edit",
     "companies:status",
     "users:view",
     "users:view_all",
@@ -81,7 +79,6 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
     "dashboard:view",
     "companies:view",
     "companies:view_own",
-    "companies:edit",
     "users:view",
     "users:view_team",
     "users:create",

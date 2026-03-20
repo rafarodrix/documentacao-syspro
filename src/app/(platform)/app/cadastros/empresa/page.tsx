@@ -28,10 +28,8 @@ export default async function CadastrosEmpresaPage() {
       <CompanyTab
         data={result.companies}
         canCreate={hasPermission(session.role, "companies:create")}
-        canEdit={hasPermission(session.role, "companies:edit")}
         canToggleStatus={hasPermission(session.role, "companies:status")}
         canDelete={session.role === Role.ADMIN}
-        canEditCnpj={session.role === Role.ADMIN || session.role === Role.DEVELOPER || session.role === Role.SUPORTE}
       />
     </div>
   );

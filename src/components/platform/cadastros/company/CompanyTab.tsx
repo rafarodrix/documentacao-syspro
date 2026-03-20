@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, MoreHorizontal, Settings, Building2, Users, X, CircleAlert, Plus } from "lucide-react"
+import { Search, MoreHorizontal, Building2, Users, X, CircleAlert, Plus } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,6 @@ import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCompanySegmentLabel } from "@/core/config/company-segments"
 
-import { EditCompanyDialog } from "./EditCompanyDialog"
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/actions/admin/company-actions"
 
 interface CompanyWithRelations {
@@ -53,10 +52,8 @@ interface CompanyWithRelations {
 interface CompanyTabProps {
   data: CompanyWithRelations[]
   canCreate: boolean
-  canEdit: boolean
   canToggleStatus: boolean
   canDelete: boolean
-  canEditCnpj: boolean
 }
 
 const formatCNPJ = (cnpj: string) => cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
@@ -96,24 +93,20 @@ function StatusBadge({ status }: { status: CompanyStatus }) {
 
 function CompanyActionsMenu({
   company,
-  canEdit,
   canToggleStatus,
   canDelete,
   isLoading,
-  onEdit,
   onToggleStatus,
   onDelete,
 }: {
   company: CompanyWithRelations
-  canEdit: boolean
   canToggleStatus: boolean
   canDelete: boolean
   isLoading: boolean
-  onEdit: () => void
   onToggleStatus: () => void
   onDelete: () => void
 }) {
-  if (!canEdit && !canToggleStatus && !canDelete) return null
+  if (!canToggleStatus && !canDelete) return null
 
   return (
     <DropdownMenu>
@@ -140,13 +133,6 @@ function CompanyActionsMenu({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {canEdit && (
-          <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onEdit}>
-            <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-sm">Editar cadastro</span>
-          </DropdownMenuItem>
-        )}
-
         {canToggleStatus && (
           <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onToggleStatus}>
             <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -172,13 +158,11 @@ function CompanyActionsMenu({
   )
 }
 
-export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelete, canEditCnpj }: CompanyTabProps) {
+export function CompanyTab({ data, canCreate, canToggleStatus, canDelete }: CompanyTabProps) {
   const [items, setItems] = useState(data)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">("ALL")
   const [filterBlocked, setFilterBlocked] = useState<"ALL" | "BLOCKED">("ALL")
-  const [companyToEdit, setCompanyToEdit] = useState<CompanyWithRelations | null>(null)
-  const [isEditOpen, setIsEditOpen] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<
@@ -225,16 +209,6 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
     [items],
   );
 
-  const handleEdit = (company: CompanyWithRelations) => {
-    setCompanyToEdit(company)
-    setIsEditOpen(true)
-  }
-
-  const handleCloseEdit = (open: boolean) => {
-    setIsEditOpen(open)
-    if (!open) setCompanyToEdit(null)
-  }
-
   const handleToggleStatus = async (company: CompanyWithRelations) => {
     setLoadingId(company.id)
     try {
@@ -278,10 +252,6 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
 
   return (
     <>
-      {companyToEdit && (
-        <EditCompanyDialog open={isEditOpen} onOpenChange={handleCloseEdit} company={companyToEdit} canEditCnpj={canEditCnpj} />
-      )}
-
       <ConfirmActionDialog
         open={!!confirmDialog}
         onOpenChange={(open) => (!open ? setConfirmDialog(null) : undefined)}
@@ -504,11 +474,9 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
                       <TableCell className="text-right px-6">
                         <CompanyActionsMenu
                           company={company}
-                          canEdit={canEdit}
                           canToggleStatus={canToggleStatus}
                           canDelete={canDelete}
                           isLoading={loadingId === company.id}
-                          onEdit={() => handleEdit(company)}
                           onToggleStatus={() => setConfirmDialog({ type: "status", company })}
                           onDelete={() => setConfirmDialog({ type: "delete", company })}
                         />

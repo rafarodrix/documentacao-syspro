@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { MagicCard } from "@/components/magicui/magic-card";
+import { ShineBorder } from "@/components/magicui/shine-border";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -30,6 +32,7 @@ import {
   Loader2,
   MapPin,
   Phone as PhoneIcon,
+  Sparkles,
   Save,
   Search,
 } from "lucide-react";
@@ -183,10 +186,14 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
   const current = SECTIONS.find((s) => s.id === currentSection) ?? SECTIONS[0];
 
   return (
-    <div className="w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card overflow-hidden">
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4">
+    <div className="relative w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card/95 overflow-hidden shadow-xl">
+      <ShineBorder borderWidth={1} duration={16} shineColor={["#2dd4bf", "#60a5fa", "#a78bfa"]} />
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4 bg-gradient-to-r from-muted/30 via-background to-muted/20">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Nova Empresa</h2>
+          <h2 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary/70" />
+            Nova Empresa
+          </h2>
           <p className="text-sm text-muted-foreground">{current.title} - {current.description}</p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
@@ -197,7 +204,7 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-[calc(100vh-260px)]">
-          <aside className="w-56 border-r border-border/50 bg-muted/20 p-3 space-y-1">
+          <aside className="w-56 border-r border-border/50 bg-muted/20 p-3 space-y-1 backdrop-blur-sm">
             {SECTIONS.map((section) => {
               const Icon = section.icon;
               const isCurrent = section.id === currentSection;
@@ -210,8 +217,8 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                   type="button"
                   onClick={() => setCurrentSection(section.id)}
                   className={cn(
-                    "group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-all",
-                    isCurrent ? "bg-primary/10" : "hover:bg-muted/70",
+                    "group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-all border",
+                    isCurrent ? "bg-primary/10 border-primary/20 shadow-sm" : "hover:bg-muted/70 border-transparent hover:border-border/50",
                   )}
                 >
                   <div className={cn("mt-0.5 p-1.5 rounded-md", isCurrent ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground", hasError && "bg-destructive/10 text-destructive")}>
@@ -236,7 +243,8 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-y-auto p-6">
               {currentSection === "geral" && (
-                <Card className="border-border/60">
+                <MagicCard className="rounded-xl">
+                <Card className="border-border/60 bg-card/95">
                   <CardHeader><CardTitle className="text-base">Identificacao</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -266,10 +274,12 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                     )} />
                   </CardContent>
                 </Card>
+                </MagicCard>
               )}
 
               {currentSection === "fiscal" && (
-                <Card className="border-border/60">
+                <MagicCard className="rounded-xl">
+                <Card className="border-border/60 bg-card/95">
                   <CardHeader><CardTitle className="text-base">Fiscal</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -301,10 +311,12 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                     </div>
                   </CardContent>
                 </Card>
+                </MagicCard>
               )}
 
               {currentSection === "estrutura" && (
-                <Card className="border-border/60">
+                <MagicCard className="rounded-xl">
+                <Card className="border-border/60 bg-card/95">
                   <CardHeader><CardTitle className="text-base">Estrutura</CardTitle></CardHeader>
                   <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="parentCompanyId" render={({ field }) => (
@@ -315,10 +327,12 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                     )} />
                   </CardContent>
                 </Card>
+                </MagicCard>
               )}
 
               {currentSection === "endereco" && (
-                <Card className="border-border/60">
+                <MagicCard className="rounded-xl">
+                <Card className="border-border/60 bg-card/95">
                   <CardHeader><CardTitle className="text-base">Endereco</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -364,10 +378,12 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                     </div>
                   </CardContent>
                 </Card>
+                </MagicCard>
               )}
 
               {currentSection === "contato" && (
-                <Card className="border-border/60">
+                <MagicCard className="rounded-xl">
+                <Card className="border-border/60 bg-card/95">
                   <CardHeader><CardTitle className="text-base">Contato</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -394,6 +410,7 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                     )} />
                   </CardContent>
                 </Card>
+                </MagicCard>
               )}
             </div>
 
