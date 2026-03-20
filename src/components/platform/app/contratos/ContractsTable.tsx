@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ContractStatus } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -41,10 +42,10 @@ import {
 type ContractRow = {
     id: string;
     companyId: string;
-    percentage: number;
-    minimumWage: number;
-    taxRate: number;
-    programmerRate: number;
+    percentage: number | Prisma.Decimal;
+    minimumWage: number | Prisma.Decimal;
+    taxRate: number | Prisma.Decimal;
+    programmerRate: number | Prisma.Decimal;
     status: ContractStatus;
     startDate: string | Date;
     company: {
@@ -70,6 +71,10 @@ const formatCurrency = (val: number) =>
 
 const formatDate = (dateStr: string | Date) =>
     new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(dateStr));
+
+const toNumber = (value: number | Prisma.Decimal) => {
+    return typeof value === "number" ? value : value.toNumber();
+};
 
 export function ContractsTable({ contracts }: ContractsTableProps) {
     const [items, setItems] = useState<ContractRow[]>(contracts);
@@ -256,9 +261,14 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                                 </TableRow>
                             ) : (
                                 items.map((contract, index) => {
-                                    const gross = contract.minimumWage * (contract.percentage / 100);
-                                    const taxDed = gross * (contract.taxRate / 100);
-                                    const progDed = gross * ((contract.programmerRate || 0) / 100);
+                                    const minimumWage = toNumber(contract.minimumWage);
+                                    const percentage = toNumber(contract.percentage);
+                                    const taxRate = toNumber(contract.taxRate);
+                                    const programmerRate = toNumber(contract.programmerRate);
+
+                                    const gross = minimumWage * (percentage / 100);
+                                    const taxDed = gross * (taxRate / 100);
+                                    const progDed = gross * ((programmerRate || 0) / 100);
                                     const net = gross - taxDed - progDed;
                                     const isActive = contract.status === ContractStatus.ACTIVE;
 
@@ -293,13 +303,13 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
 
                                             <TableCell>
                                                 <span className="font-mono text-xs text-muted-foreground tabular-nums">
-                                                    {formatCurrency(contract.minimumWage)}
+                                                    {formatCurrency(minimumWage)}
                                                 </span>
                                             </TableCell>
 
                                             <TableCell>
                                                 <Badge variant="outline" className="bg-background/50 font-mono text-[10px] font-normal border-border/60">
-                                                    {contract.percentage}%
+                                                    {percentage}%
                                                 </Badge>
                                             </TableCell>
 
