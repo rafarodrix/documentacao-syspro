@@ -35,6 +35,7 @@ import {
   FileText,
   ShieldCheck,
   HelpCircle,
+  BookLock,
 } from "lucide-react"
 
 export type UserRole = Role
@@ -71,6 +72,7 @@ const NAV_SYSTEM: NavItemType[] = [
 
 const NAV_DOCS: NavItemType[] = [
   { title: "Documentacao", href: "/docs/manual", icon: BookOpen },
+  { title: "Manuais Tecnicos", href: "/docs/manuais-tecnicos", icon: BookLock, roles: [...SIDEBAR_ROLE_RULES.docsTechnical] },
   { title: "Duvidas", href: "/docs/duvidas", icon: GraduationCap },
   { title: "Treinamento", href: "/docs/treinamento", icon: GraduationCap },
   { title: "Suporte", href: "/docs/suporte", icon: Headset },

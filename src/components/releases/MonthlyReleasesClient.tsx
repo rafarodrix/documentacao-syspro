@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Bug, Rocket, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Bug, Rocket } from "lucide-react";
 import { ReleaseCard } from "./ReleaseCard";
 import type { Release } from "@/core/domain/entities/release.entity";
-
-// Shadcn Components
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -19,38 +18,39 @@ interface MonthlyReleasesClientProps {
   bugs: Release[];
 }
 
-// Utilitário puro (pode ser movido para /lib/utils.ts)
 function getYouTubeEmbedUrl(url: string | null): string | null {
   if (!url) return null;
+
   try {
     const urlObj = new URL(url);
+
     if (urlObj.hostname.includes("youtube.com")) {
       const videoId = urlObj.searchParams.get("v");
-      return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : null;
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
     }
+
     if (urlObj.hostname.includes("youtu.be")) {
       const videoId = urlObj.pathname.slice(1);
-      return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : null;
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
     }
-  } catch (error) {
-    console.error("URL de vídeo inválida:", url);
+  } catch {
+    return null;
   }
+
   return null;
 }
 
 export function MonthlyReleasesClient({ melhorias, bugs }: MonthlyReleasesClientProps) {
-  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+  const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) setPlayingVideoUrl(null);
-  };
-
-  const embedUrl = getYouTubeEmbedUrl(playingVideoUrl);
+  const embedUrl = useMemo(
+    () => getYouTubeEmbedUrl(selectedRelease?.videoLink ?? null),
+    [selectedRelease?.videoLink],
+  );
 
   return (
     <>
       <div className="space-y-10 animate-in fade-in duration-500">
-        {/* Seção de Melhorias */}
         {melhorias.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-xl font-semibold flex items-center gap-2 text-emerald-600 dark:text-emerald-500">
@@ -64,17 +64,12 @@ export function MonthlyReleasesClient({ melhorias, bugs }: MonthlyReleasesClient
             </h2>
             <div className="grid grid-cols-1 gap-4">
               {melhorias.map((release) => (
-                <ReleaseCard
-                  key={release.id}
-                  release={release}
-                  onVideoClick={setPlayingVideoUrl}
-                />
+                <ReleaseCard key={release.id} release={release} onOpenDetails={setSelectedRelease} />
               ))}
             </div>
           </section>
         )}
 
-        {/* Seção de Bugs */}
         {bugs.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-xl font-semibold flex items-center gap-2 text-amber-600 dark:text-amber-500">
@@ -88,50 +83,64 @@ export function MonthlyReleasesClient({ melhorias, bugs }: MonthlyReleasesClient
             </h2>
             <div className="grid grid-cols-1 gap-4">
               {bugs.map((release) => (
-                <ReleaseCard
-                  key={release.id}
-                  release={release}
-                  onVideoClick={setPlayingVideoUrl}
-                />
+                <ReleaseCard key={release.id} release={release} onOpenDetails={setSelectedRelease} />
               ))}
             </div>
           </section>
         )}
       </div>
 
-      {/* Modal de Vídeo */}
-      <Dialog open={!!playingVideoUrl} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-zinc-800">
-          {/* Cabeçalho acessível (visualmente oculto ou discreto) */}
-          <DialogHeader className="sr-only">
-            <DialogTitle>Demonstração em Vídeo</DialogTitle>
-            <DialogDescription>
-              Reproduzindo vídeo demonstrativo da atualização.
-            </DialogDescription>
-          </DialogHeader>
+      <Dialog open={!!selectedRelease} onOpenChange={(open) => !open && setSelectedRelease(null)}>
+        <DialogContent className="max-w-3xl">
+          {selectedRelease && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  Release #{selectedRelease.id}
+                  <Badge variant="outline" className="font-medium">
+                    {selectedRelease.type}
+                  </Badge>
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedRelease.isoDate}
+                </DialogDescription>
+              </DialogHeader>
 
-          <div className="aspect-video w-full relative bg-zinc-950 flex items-center justify-center">
-            {embedUrl ? (
-              <iframe
-                className="w-full h-full"
-                src={embedUrl}
-                title="YouTube video player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            ) : (
-              <div className="text-white text-sm">Carregando vídeo...</div>
-            )}
+              <div className="space-y-4">
+                {selectedRelease.title && (
+                  <h3 className="text-lg font-semibold text-foreground">{selectedRelease.title}</h3>
+                )}
 
-            {/* Botão de Fechar Customizado (opcional, o DialogContent já traz um X, mas esse fica sobre o vídeo) */}
-            <button
-              onClick={() => setPlayingVideoUrl(null)}
-              className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors z-50 backdrop-blur-sm"
-              aria-label="Fechar vídeo"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {selectedRelease.summary}
+                </p>
+
+                {selectedRelease.tags?.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRelease.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-[11px] uppercase tracking-wide">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {embedUrl && (
+                  <div className="rounded-lg overflow-hidden border border-border/60 bg-black">
+                    <div className="aspect-video w-full">
+                      <iframe
+                        className="w-full h-full"
+                        src={embedUrl}
+                        title={`Video da release ${selectedRelease.id}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </>
