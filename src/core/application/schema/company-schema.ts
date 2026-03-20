@@ -10,7 +10,7 @@ const emptyToUndefined = z.preprocess(
  * Schema do Endereço
  */
 export const addressSchema = z.object({
-  description: z.string().min(1, "Descrição é obrigatória").default("Sede"),
+  description: emptyToUndefined.default("Sede"),
   cep: z
     .string()
     .min(8, "CEP incompleto")

@@ -69,7 +69,7 @@ const SECTIONS: Array<{ id: SectionId; title: string; description: string; icon:
     title: "Fiscal",
     description: "Regime e inscricoes",
     icon: FileText,
-    fields: ["regimeTributario", "crt", "indicadorIE", "inscricaoEstadual", "inscricaoMunicipal", "cnae", "codSuframa"],
+    fields: ["regimeTributario", "indicadorIE", "inscricaoEstadual", "inscricaoMunicipal", "cnae", "codSuframa"],
   },
   {
     id: "estrutura",
@@ -86,15 +86,12 @@ const SECTIONS: Array<{ id: SectionId; title: string; description: string; icon:
     fields: [
       "address.cep",
       "address.pais",
-      "address.description",
       "address.logradouro",
       "address.numero",
       "address.complemento",
       "address.bairro",
       "address.cidade",
       "address.estado",
-      "address.codigoIbgeCidade",
-      "address.codigoIbgeEstado",
     ],
   },
   {
@@ -141,7 +138,6 @@ export function CreateCompanyPageForm({
       status: CompanyStatus.ACTIVE,
       indicadorIE: IndicadorIE.NAO_CONTRIBUINTE,
       regimeTributario: undefined,
-      crt: "",
       inscricaoEstadual: "",
       inscricaoMunicipal: "",
       cnae: "",
@@ -327,12 +323,9 @@ export function CreateCompanyPageForm({
                 <Card className="border-border/60 bg-card/95">
                   <CardHeader><CardTitle className="text-base">Fiscal</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField control={form.control} name="regimeTributario" render={({ field }) => (
                         <FormItem><FormLabel>Regime Tributario</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definido</SelectItem>{Object.values(TaxRegime).map((regime) => <SelectItem key={regime} value={regime}>{regime.replace(/_/g, " ")}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="crt" render={({ field }) => (
-                        <FormItem><FormLabel>CRT</FormLabel><FormControl><Input placeholder="1, 2, 3 ou 4" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="indicadorIE" render={({ field }) => (
                         <FormItem><FormLabel>Indicador IE</FormLabel><Select onValueChange={field.onChange} value={toInputValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value={IndicadorIE.CONTRIBUINTE}>Contribuinte</SelectItem><SelectItem value={IndicadorIE.ISENTO}>Isento</SelectItem><SelectItem value={IndicadorIE.NAO_CONTRIBUINTE}>Nao contribuinte</SelectItem></SelectContent></Select><FormMessage /></FormItem>
@@ -380,15 +373,12 @@ export function CreateCompanyPageForm({
                 <Card className="border-border/60 bg-card/95">
                   <CardHeader><CardTitle className="text-base">Endereco</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField control={form.control} name="address.cep" render={({ field }) => (
                         <FormItem><FormLabel>CEP</FormLabel><FormControl><div className="relative"><Input placeholder="00000-000" {...field} value={toInputValue(field.value)} onChange={(event) => handleCepChange(event.target.value)} />{isLoadingCep ? <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" /> : <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />}</div></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="address.pais" render={({ field }) => (
                         <FormItem><FormLabel>Pais</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="address.description" render={({ field }) => (
-                        <FormItem><FormLabel>Descricao do Endereco</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
                     </div>
                     <FormField control={form.control} name="address.logradouro" render={({ field }) => (
@@ -396,7 +386,7 @@ export function CreateCompanyPageForm({
                     )} />
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField control={form.control} name="address.numero" render={({ field }) => (
-                        <FormItem><FormLabel>Numero</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Numero</FormLabel><FormControl><Input id="numero-input" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="address.complemento" render={({ field }) => (
                         <FormItem><FormLabel>Complemento</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
@@ -405,20 +395,15 @@ export function CreateCompanyPageForm({
                         <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Cidade e UF sao preenchidos automaticamente via CEP e podem ser ajustados manualmente quando necessario.
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField control={form.control} name="address.cidade" render={({ field }) => (
                         <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="address.estado" render={({ field }) => (
                         <FormItem><FormLabel>UF</FormLabel><FormControl><Input {...field} maxLength={2} className="uppercase" value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="address.codigoIbgeCidade" render={({ field }) => (
-                        <FormItem><FormLabel>Codigo IBGE Cidade</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="address.codigoIbgeEstado" render={({ field }) => (
-                        <FormItem><FormLabel>Codigo IBGE Estado</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
                     </div>
                   </CardContent>
