@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
+import { SIDEBAR_ROLE_RULES, SYSTEM_ROLES } from "@/core/config/route-access"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NavItem, NavItemType } from "./NavItem"
@@ -50,23 +51,21 @@ export interface AppSidebarProps {
   collapsed?: boolean
 }
 
-const SYSTEM_ROLES: UserRole[] = ["ADMIN", "DEVELOPER", "SUPORTE"]
-
 const NAV_MAIN: NavItemType[] = [
   { title: "Dashboard", href: "/app", icon: LayoutDashboard },
-  { title: "Meus Chamados", href: "/app/chamados", icon: Ticket, roles: ["CLIENTE_ADMIN", "CLIENTE_USER"] },
-  { title: "Tickets", href: "/app/chamados", icon: Ticket, roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Meus Chamados", href: "/app/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
+  { title: "Tickets", href: "/app/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
 ]
 
 const NAV_CADASTROS: NavItemType[] = [
-  { title: "Cadastro Empresa", href: "/app/cadastros/empresa", icon: FileText, roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
-  { title: "Cadastro Usuario", href: "/app/cadastros/usuarios", icon: Users, roles: ["CLIENTE_ADMIN", "ADMIN", "DEVELOPER", "SUPORTE"] },
-  { title: "Analista de Sistemas", href: "/app/cadastros/sistema", icon: ShieldCheck, roles: ["ADMIN", "DEVELOPER", "SUPORTE"] },
+  { title: "Cadastro Empresa", href: "/app/cadastros/empresa", icon: FileText, roles: [...SIDEBAR_ROLE_RULES.cadastroEmpresa] },
+  { title: "Cadastro Usuario", href: "/app/cadastros/usuarios", icon: Users, roles: [...SIDEBAR_ROLE_RULES.cadastroUsuarios] },
+  { title: "Analista de Sistemas", href: "/app/cadastros/sistema", icon: ShieldCheck, roles: [...SIDEBAR_ROLE_RULES.cadastroSistema] },
 ]
 
 const NAV_SYSTEM: NavItemType[] = [
   { title: "Ferramentas", href: "/app/tools", icon: Wrench },
-  { title: "Contratos", href: "/app/contratos", icon: FileText, roles: ["ADMIN"] },
+  { title: "Contratos", href: "/app/contratos", icon: FileText, roles: [...SIDEBAR_ROLE_RULES.contratos] },
 ]
 
 const NAV_DOCS: NavItemType[] = [
@@ -269,7 +268,7 @@ function SidebarFooter({
 
 export function AppSidebar({ user, mobile = false, onClose, collapsed = false }: AppSidebarProps) {
   const pathname = usePathname()
-  const isSystemUser = SYSTEM_ROLES.includes(user.role)
+  const isSystemUser = SYSTEM_ROLES.includes(user.role as (typeof SYSTEM_ROLES)[number])
   const isSidebarCollapsed = !mobile && collapsed
 
   const isActive = (href: string) => (href === "/app" ? pathname === "/app" : pathname.startsWith(href))

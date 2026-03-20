@@ -32,6 +32,7 @@ export type LinkUserInput = z.infer<typeof linkUserSchema>;
 
 // --- Permissões ---
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 
 async function getSessionCompanyIds(userId: string): Promise<string[]> {
@@ -45,6 +46,14 @@ async function getSessionCompanyIds(userId: string): Promise<string[]> {
 async function canManageTargetUser(session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>, targetUserId: string): Promise<boolean> {
     if (SYSTEM_ROLES.includes(session.role)) return true;
     if (session.role !== Role.CLIENTE_ADMIN) return false;
+
+    const targetUser = await prisma.user.findUnique({
+        where: { id: targetUserId },
+        select: { role: true, deletedAt: true },
+    });
+    if (!targetUser || targetUser.deletedAt) return false;
+    if (!CLIENT_ROLES.includes(targetUser.role)) return false;
+
     const managedCompanyIds = await getSessionCompanyIds(session.userId);
     if (managedCompanyIds.length === 0) return false;
     const targetMembership = await prisma.membership.findFirst({
@@ -244,14 +253,27 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
             });
 
             if (data.companyId) {
+                const existingMembership = await tx.membership.findUnique({
+                    where: { userId_companyId: { userId: id, companyId: data.companyId } },
+                    select: { role: true },
+                });
+                const membershipRole =
+                    data.role === Role.CLIENTE_ADMIN
+                        ? Role.CLIENTE_ADMIN
+                        : data.role === Role.CLIENTE_USER
+                            ? Role.CLIENTE_USER
+                            : existingMembership?.role === Role.CLIENTE_ADMIN
+                                ? Role.CLIENTE_ADMIN
+                                : Role.CLIENTE_USER;
+
                 await tx.membership.upsert({
                     where: { userId_companyId: { userId: id, companyId: data.companyId } },
                     create: {
                         userId: id,
                         companyId: data.companyId,
-                        role: data.role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER
+                        role: membershipRole
                     },
-                    update: { role: data.role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER }
+                    update: { role: membershipRole }
                 });
             }
         });
@@ -269,6 +291,13 @@ export async function updateUserAction(id: string, data: Partial<CreateUserInput
 export async function deleteUserAction(id: string): Promise<ActionResponse> {
     const session = await getProtectedSession();
     if (!session || id === session.userId) return { success: false, message: "Operação inválida." };
+
+    const isSystemRole = SYSTEM_ROLES.includes(session.role);
+    const isClientManager = session.role === Role.CLIENTE_ADMIN;
+    if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+    if (isClientManager && !(await canManageTargetUser(session, id))) {
+        return { success: false, message: "Você não pode remover este usuário." };
+    }
 
     try {
         await prisma.user.update({
@@ -306,6 +335,9 @@ export async function linkUserToCompanyAction(data: LinkUserInput): Promise<Acti
 
         const user = await prisma.user.findUnique({ where: { email: data.email } });
         if (!user) return { success: false, message: "Usuário não encontrado." };
+        if (isClientManager && !CLIENT_ROLES.includes(user.role)) {
+            return { success: false, message: "Não é permitido vincular usuário interno." };
+        }
 
         await prisma.membership.upsert({
             where: { userId_companyId: { userId: user.id, companyId: data.companyId } },
@@ -357,6 +389,9 @@ export async function removeUserFromCompanyAction(userId: string, companyId: str
     const isClientManager = session.role === Role.CLIENTE_ADMIN;
     if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
     if (isClientManager) {
+        if (!(await canManageTargetUser(session, userId))) {
+            return { success: false, message: "Você não pode alterar este usuário." };
+        }
         const managedCompanyIds = await getSessionCompanyIds(session.userId);
         if (!managedCompanyIds.includes(companyId)) {
             return { success: false, message: "Empresa inválida para este gestor." };
@@ -387,6 +422,9 @@ export async function updateMembershipRoleAction(userId: string, companyId: stri
     const isClientManager = session.role === Role.CLIENTE_ADMIN;
     if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
     if (isClientManager) {
+        if (!(await canManageTargetUser(session, userId))) {
+            return { success: false, message: "Você não pode alterar este usuário." };
+        }
         const managedCompanyIds = await getSessionCompanyIds(session.userId);
         if (!managedCompanyIds.includes(companyId)) {
             return { success: false, message: "Empresa inválida para este gestor." };
