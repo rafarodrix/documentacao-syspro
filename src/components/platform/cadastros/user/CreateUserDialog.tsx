@@ -128,7 +128,11 @@ function TabSelector({ active, onChange }: { active: TabMode; onChange: (tab: Ta
   )
 }
 
-export function CreateUserDialog({ companies, isAdmin, context = "CLIENT" }: CreateUserDialogProps) {
+export function CreateUserDialog({
+  companies,
+  isAdmin,
+  context = "CLIENT",
+}: CreateUserDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<TabMode>("create")
@@ -208,178 +212,55 @@ export function CreateUserDialog({ companies, isAdmin, context = "CLIENT" }: Cre
 
   return (
     <Dialog open={open} onOpenChange={(value) => (value ? setOpen(true) : closeDialog())}>
-      <button
+      <Button
+        type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+        className="inline-flex items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"
       >
         {context === "SYSTEM" ? <ShieldCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
         {triggerLabel}
-      </button>
+      </Button>
 
-      <DialogContent className="p-0 gap-0 flex flex-col sm:max-w-[620px] max-h-[92vh] border-border/60 shadow-2xl" onInteractOutside={(e) => e.preventDefault()}>
-        <DialogHeader className="flex-none px-6 py-4 border-b bg-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                {context === "SYSTEM" ? <ShieldCheck className="w-5 h-5 text-primary" /> : <UserPlus className="w-5 h-5 text-primary" />}
-              </div>
-              <div>
-                <DialogTitle className="text-base font-bold tracking-tight leading-tight">
-                  {context === "SYSTEM" ? "Novo membro da equipe" : "Novo usuario"}
-                </DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {context === "SYSTEM" ? "Cadastro da equipe interna" : "Selecione empresa e conclua o cadastro"}
-                </p>
-              </div>
+    <DialogContent
+      className={cn(
+        "p-0 gap-0 flex flex-col border-border/60 shadow-2xl",
+        "h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-none",
+      )}
+      onInteractOutside={(e) => e.preventDefault()}
+    >
+      <DialogHeader className="flex-none px-6 py-4 border-b bg-card">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              {context === "SYSTEM" ? <ShieldCheck className="w-5 h-5 text-primary" /> : <UserPlus className="w-5 h-5 text-primary" />}
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold tracking-tight leading-tight">
+                {context === "SYSTEM" ? "Novo membro da equipe" : "Novo usuario"}
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {context === "SYSTEM" ? "Cadastro da equipe interna" : "Selecione empresa e conclua o cadastro"}
+              </p>
             </div>
           </div>
-        </DialogHeader>
+        </div>
+      </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {context !== "SYSTEM" && <TabSelector active={activeTab} onChange={setActiveTab} />}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 bg-card">
+        {context !== "SYSTEM" && <TabSelector active={activeTab} onChange={setActiveTab} />}
 
-          {(context === "SYSTEM" || activeTab === "create") && (
-            <Form {...formCreate}>
-              <form onSubmit={formCreate.handleSubmit(submitCreate)} className="space-y-5">
-                <div className="space-y-4">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">1. Empresa e acesso</p>
-
-                  <FormField
-                    control={formCreate.control}
-                    name="companyId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" /> Empresa</FormLabel>
-                        <FormControl>
-                          <CompanyField value={field.value || ""} onChange={field.onChange} companies={companies} context={context} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={formCreate.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nivel de acesso</FormLabel>
-                        <FormControl>
-                          <RoleSelect value={field.value} onChange={field.onChange} isAdmin={isAdmin} context={context} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {mustChooseCompanyFirst && (
-                  <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
-                    <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                      Selecione a empresa para liberar os campos de cadastro do usuario.
-                    </p>
-                  </div>
-                )}
-
-                <div className={cn("space-y-5", mustChooseCompanyFirst && "opacity-60 pointer-events-none")}>
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">2. Dados do usuario</p>
-
-                    <FormField
-                      control={formCreate.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> Nome completo</FormLabel>
-                          <FormControl><Input placeholder="Joao da Silva" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={formCreate.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> E-mail</FormLabel>
-                            <FormControl><Input type="email" placeholder="usuario@empresa.com" {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={formCreate.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> Senha</FormLabel>
-                            <FormControl><Input type="password" placeholder="Min. 8 caracteres" {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={formCreate.control}
-                        name="jobTitle"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" /> Cargo</FormLabel>
-                            <FormControl><Input placeholder="Ex: Financeiro" {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={formCreate.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> Telefone</FormLabel>
-                            <FormControl><Input placeholder="(00) 90000-0000" {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={closeDialog} disabled={formCreate.formState.isSubmitting}>Cancelar</Button>
-                  <Button type="submit" disabled={formCreate.formState.isSubmitting || mustChooseCompanyFirst} className="min-w-[120px] font-semibold">
-                    {formCreate.formState.isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : <><UserPlus className="mr-2 h-4 w-4" /> Cadastrar usuario</>}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          )}
-
-          {context !== "SYSTEM" && activeTab === "link" && (
-            <Form {...formLink}>
-              <form onSubmit={formLink.handleSubmit(submitLink)} className="space-y-5">
-                <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-4 py-3">
-                  <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                    Vincule um usuario que ja possui conta na plataforma.
-                  </p>
-                </div>
+        {(context === "SYSTEM" || activeTab === "create") && (
+          <Form {...formCreate}>
+            <form onSubmit={formCreate.handleSubmit(submitCreate)} className="space-y-5">
+              <div className="space-y-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">1. Empresa e acesso</p>
 
                 <FormField
-                  control={formLink.control}
+                  control={formCreate.control}
                   name="companyId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Empresa</FormLabel>
+                      <FormLabel className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" /> Empresa</FormLabel>
                       <FormControl>
                         <CompanyField value={field.value || ""} onChange={field.onChange} companies={companies} context={context} />
                       </FormControl>
@@ -389,19 +270,7 @@ export function CreateUserDialog({ companies, isAdmin, context = "CLIENT" }: Cre
                 />
 
                 <FormField
-                  control={formLink.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>E-mail do usuario</FormLabel>
-                      <FormControl><Input type="email" placeholder="usuario@existente.com" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={formLink.control}
+                  control={formCreate.control}
                   name="role"
                   render={({ field }) => (
                     <FormItem>
@@ -413,18 +282,160 @@ export function CreateUserDialog({ companies, isAdmin, context = "CLIENT" }: Cre
                     </FormItem>
                   )}
                 />
+              </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={closeDialog} disabled={formLink.formState.isSubmitting}>Cancelar</Button>
-                  <Button type="submit" variant="secondary" disabled={formLink.formState.isSubmitting} className="min-w-[120px] font-semibold gap-2">
-                    {formLink.formState.isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Vinculando...</> : <><LinkIcon className="h-4 w-4" /> Vincular usuario</>}
-                  </Button>
+              {mustChooseCompanyFirst && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+                  <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                    Selecione a empresa para liberar os campos de cadastro do usuario.
+                  </p>
                 </div>
-              </form>
-            </Form>
-          )}
-        </div>
-      </DialogContent>
+              )}
+
+              <div className={cn("space-y-5", mustChooseCompanyFirst && "opacity-60 pointer-events-none")}>
+                <Separator />
+
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">2. Dados do usuario</p>
+
+                  <FormField
+                    control={formCreate.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> Nome completo</FormLabel>
+                        <FormControl><Input placeholder="Joao da Silva" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={formCreate.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> E-mail</FormLabel>
+                          <FormControl><Input type="email" placeholder="usuario@empresa.com" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={formCreate.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> Senha</FormLabel>
+                          <FormControl><Input type="password" placeholder="Min. 8 caracteres" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={formCreate.control}
+                      name="jobTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" /> Cargo</FormLabel>
+                          <FormControl><Input placeholder="Ex: Financeiro" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={formCreate.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> Telefone</FormLabel>
+                          <FormControl><Input placeholder="(00) 90000-0000" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button type="button" variant="ghost" size="sm" onClick={closeDialog} disabled={formCreate.formState.isSubmitting}>Cancelar</Button>
+                <Button type="submit" disabled={formCreate.formState.isSubmitting || mustChooseCompanyFirst} className="min-w-[120px] font-semibold">
+                  {formCreate.formState.isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : <><UserPlus className="mr-2 h-4 w-4" /> Cadastrar usuario</>}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        )}
+
+        {context !== "SYSTEM" && activeTab === "link" && (
+          <Form {...formLink}>
+            <form onSubmit={formLink.handleSubmit(submitLink)} className="space-y-5">
+              <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-4 py-3">
+                <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                  Vincule um usuario que ja possui conta na plataforma.
+                </p>
+              </div>
+
+              <FormField
+                control={formLink.control}
+                name="companyId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Empresa</FormLabel>
+                    <FormControl>
+                      <CompanyField value={field.value || ""} onChange={field.onChange} companies={companies} context={context} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={formLink.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>E-mail do usuario</FormLabel>
+                    <FormControl><Input type="email" placeholder="usuario@existente.com" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={formLink.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nivel de acesso</FormLabel>
+                    <FormControl>
+                      <RoleSelect value={field.value} onChange={field.onChange} isAdmin={isAdmin} context={context} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button type="button" variant="ghost" size="sm" onClick={closeDialog} disabled={formLink.formState.isSubmitting}>Cancelar</Button>
+                <Button type="submit" variant="secondary" disabled={formLink.formState.isSubmitting} className="min-w-[120px] font-semibold gap-2">
+                  {formLink.formState.isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Vinculando...</> : <><LinkIcon className="h-4 w-4" /> Vincular usuario</>}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        )}
+      </div>
+    </DialogContent>
     </Dialog>
   )
 }

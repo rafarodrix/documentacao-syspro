@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Role } from "@prisma/client";
 import { toast } from "sonner";
 import { toggleUserStatusAction } from "@/actions/admin/user-actions";
@@ -22,9 +23,9 @@ import {
   Fingerprint,
   X,
   Users,
+  UserPlus,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { CreateUserDialog } from "./CreateUserDialog";
 import { EditUserDialog } from "./EditUserDialog";
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog";
 
@@ -315,7 +316,17 @@ export function UserTab({ data, companies, isAdmin, canManage }: UserTabProps) {
             )}
           </div>
 
-          {canManage && <CreateUserDialog companies={companies} isAdmin={isAdmin} context="CLIENT" />}
+          {canManage && (
+            <Link href="/app/cadastros/usuarios/novo">
+              <Button
+                type="button"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                Novo usuario
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">

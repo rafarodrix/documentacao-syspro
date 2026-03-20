@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { CompanySegment, CompanyStatus } from "@prisma/client"
 import { toast } from "sonner"
 import {
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, MoreHorizontal, Settings, Building2, Users, X, CircleAlert } from "lucide-react"
+import { Search, MoreHorizontal, Settings, Building2, Users, X, CircleAlert, Plus } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +28,6 @@ import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCompanySegmentLabel } from "@/core/config/company-segments"
 
-import { CreateCompanyDialog } from "./CreateCompanyDialog"
 import { EditCompanyDialog } from "./EditCompanyDialog"
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/actions/admin/company-actions"
 
@@ -393,7 +393,17 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
               </button>
             </div>
 
-            {canCreate && <CreateCompanyDialog />}
+            {canCreate && (
+              <Link href="/app/cadastros/empresa/novo">
+                <Button
+                  type="button"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nova Empresa
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
