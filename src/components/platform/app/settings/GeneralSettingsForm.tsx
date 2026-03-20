@@ -29,6 +29,7 @@ export default function GeneralSettingsForm() {
             maintenanceMode: false,
             supportEmail: "",
             supportPhone: "",
+            rbacMatrixEnabled: true,
         } as any,
         mode: "onChange"
     });

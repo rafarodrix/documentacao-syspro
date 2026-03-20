@@ -4,6 +4,7 @@ import { Role } from "@prisma/client";
 import { requireSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getContractsAction } from "@/actions/admin/contract-actions";
+import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, ShieldCheck, Sliders, Landmark, FileText } from "lucide-react";
@@ -32,17 +33,24 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const params = searchParams ? await searchParams : undefined;
     const rawTab = typeof params?.tab === "string" ? params.tab : "general";
     const defaultTab = TAB_VALUES.has(rawTab) ? rawTab : "general";
+    const mode = typeof params?.mode === "string" ? params.mode : "";
+    const isContractsCreateMode = mode === "create";
 
-    const [contractsRes, companies] = await Promise.all([
+    const [contractsRes, companies, rbacSetting] = await Promise.all([
         getContractsAction(),
         prisma.company.findMany({
             where: { deletedAt: null },
             orderBy: { razaoSocial: "asc" },
             select: { id: true, razaoSocial: true },
         }),
+        prisma.systemSetting.findUnique({
+            where: { key: SETTING_KEYS.RBAC_MATRIX_ENABLED },
+            select: { value: true },
+        }),
     ]);
 
     const contracts = contractsRes.success && contractsRes.data ? contractsRes.data : [];
+    const rbacMatrixEnabled = rbacSetting?.value !== "false";
 
     return (
         <div className="flex flex-col gap-8 p-6 max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
@@ -108,18 +116,28 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <BulkReadjustDialog />
-                            <ContractSheet companies={companies} />
+                            {!isContractsCreateMode && (
+                                <>
+                                    <BulkReadjustDialog />
+                                    <ContractSheet companies={companies} mode="button" />
+                                </>
+                            )}
                         </div>
                     </div>
 
-                    <ContractStats contracts={contracts} />
-                    <ContractsTable contracts={contracts} />
+                    {isContractsCreateMode ? (
+                        <ContractSheet companies={companies} mode="full" />
+                    ) : (
+                        <>
+                            <ContractStats contracts={contracts} />
+                            <ContractsTable contracts={contracts} />
+                        </>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="access" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-5xl">
-                        <AccessControlTab />
+                        <AccessControlTab initialEnabled={rbacMatrixEnabled} />
                     </div>
                 </TabsContent>
 
