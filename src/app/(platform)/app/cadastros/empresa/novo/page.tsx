@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
 import { CreateCompanyPageForm } from "@/components/platform/cadastros/company/CreateCompanyPageForm";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
+import { prisma } from "@/lib/prisma";
 
 export default async function CadastrosEmpresaNovoPage() {
   const session = await requireRole(
@@ -13,5 +14,15 @@ export default async function CadastrosEmpresaNovoPage() {
 
   if (!hasPermission(session.role, "companies:create")) return <CadastrosAccessDenied />;
 
-  return <CreateCompanyPageForm backHref="/app/cadastros/empresa" />;
+  const companies = await prisma.company.findMany({
+    where: { deletedAt: null },
+    orderBy: { razaoSocial: "asc" },
+    select: {
+      id: true,
+      razaoSocial: true,
+      nomeFantasia: true,
+    },
+  });
+
+  return <CreateCompanyPageForm backHref="/app/cadastros/empresa" companies={companies} />;
 }

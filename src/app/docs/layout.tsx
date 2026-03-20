@@ -11,7 +11,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <SiteHeader />
-      <main className="flex-1 min-h-0 overflow-y-auto">
+      <main className="flex-1 min-h-0 [--fd-banner-height:64px]">
         <DocsLayout tree={source.pageTree} {...baseOptions}>
           {children}
         </DocsLayout>
