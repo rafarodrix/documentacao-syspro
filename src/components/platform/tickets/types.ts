@@ -24,6 +24,14 @@ export interface TicketDetailsItem {
     title: string;
     status: string;
     number: string;
+    priority: number;
+    ownerId?: number | null;
+    updatedAt?: string | null;
+    firstResponseAt?: string | null;
+    resolvedAt?: string | null;
+    slaBreached?: boolean;
+    slaWarning?: boolean;
+    minutesToBreach?: number;
     createdAt: string;
 }
 

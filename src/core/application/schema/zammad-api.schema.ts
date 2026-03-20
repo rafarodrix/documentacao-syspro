@@ -46,9 +46,14 @@ export const zammadTicketDetailsSchema = z.object({
     title: z.string(),
     state: z.string().nullable().optional(),
     state_id: z.number().nullable().optional(),
+    priority_id: z.number().nullable().optional(),
+    owner_id: z.number().nullable().optional(),
     customer: z.union([z.string(), z.number()]).nullable().optional(),
+    first_response_at: z.string().nullable().optional(),
+    close_at: z.string().nullable().optional(),
+    escalation_at: z.string().nullable().optional(),
     created_at: z.string(),
-    updated_at: z.string().optional(),
+    updated_at: z.string().nullable().optional(),
 });
 
 export type ZammadTicketDetails = z.infer<typeof zammadTicketDetailsSchema>;

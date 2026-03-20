@@ -373,13 +373,30 @@ export async function getTicketDetailsAction(ticketId: string) {
 
         return {
             success: true,
-            ticket: {
-                id: ticket.id,
-                title: ticket.title,
-                status: mapTicketStateLabel(ticket.state || ""),
-                number: ticket.number,
-                createdAt: new Date(ticket.created_at).toLocaleDateString("pt-BR"),
-            },
+            ticket: (() => {
+                const sla = computeTicketSla({
+                    createdAt: new Date(ticket.created_at),
+                    firstResponseAt: ticket.first_response_at ? new Date(ticket.first_response_at) : null,
+                    resolvedAt: ticket.close_at ? new Date(ticket.close_at) : null,
+                    priorityId: ticket.priority_id ?? null,
+                });
+
+                return {
+                    id: ticket.id,
+                    title: ticket.title,
+                    status: mapTicketStateLabel(ticket.state || ""),
+                    number: ticket.number,
+                    priority: ticket.priority_id ?? 2,
+                    ownerId: ticket.owner_id ?? null,
+                    updatedAt: ticket.updated_at ?? null,
+                    firstResponseAt: ticket.first_response_at ?? null,
+                    resolvedAt: ticket.close_at ?? null,
+                    slaBreached: sla.breached,
+                    slaWarning: sla.warning,
+                    minutesToBreach: sla.minutesToBreach,
+                    createdAt: new Date(ticket.created_at).toLocaleDateString("pt-BR"),
+                };
+            })(),
             articles: visibleArticles.map((article: ZammadTicketArticle) => ({
                 id: article.id,
                 from: article.from || "Sistema",
