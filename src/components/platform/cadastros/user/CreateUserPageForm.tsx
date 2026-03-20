@@ -5,7 +5,6 @@ import type { ElementType } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Role } from "@prisma/client";
 import { createUserSchema, type CreateUserInput } from "@/core/application/schema/user-schema";
 import { createUserAction, updateUserAction } from "@/actions/admin/user-actions";
 import { cn } from "@/lib/utils";
@@ -31,6 +30,14 @@ import {
   UserRound,
   IdCard,
 } from "lucide-react";
+
+const ROLE = {
+  ADMIN: "ADMIN",
+  DEVELOPER: "DEVELOPER",
+  SUPORTE: "SUPORTE",
+  CLIENTE_ADMIN: "CLIENTE_ADMIN",
+  CLIENTE_USER: "CLIENTE_USER",
+} as const;
 
 interface CompanyOption {
   id: string;
@@ -79,7 +86,7 @@ export function CreateUserPageForm({
   initialData,
 }: CreateUserPageFormProps) {
   const router = useRouter();
-  const defaultRole = context === "SYSTEM" ? Role.SUPORTE : Role.CLIENTE_USER;
+  const defaultRole = context === "SYSTEM" ? ROLE.SUPORTE : ROLE.CLIENTE_USER;
   const [currentSection, setCurrentSection] = useState<SectionId>("acesso");
   const [additionalCompanyIds, setAdditionalCompanyIds] = useState<string[]>(
     () => (Array.isArray(initialData?.additionalCompanyIds) ? initialData.additionalCompanyIds.filter(Boolean) : []),
@@ -343,15 +350,15 @@ export function CreateUserPageForm({
                                   <SelectContent>
                                     {context === "CLIENT" && (
                                       <>
-                                        <SelectItem value={Role.CLIENTE_USER}>Usuario</SelectItem>
-                                        <SelectItem value={Role.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
+                                        <SelectItem value={ROLE.CLIENTE_USER}>Usuario</SelectItem>
+                                        <SelectItem value={ROLE.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
                                       </>
                                     )}
                                     {context === "SYSTEM" && (
                                       <>
-                                        <SelectItem value={Role.SUPORTE}>Suporte</SelectItem>
-                                        <SelectItem value={Role.DEVELOPER}>Desenvolvedor</SelectItem>
-                                        {isAdmin && <SelectItem value={Role.ADMIN}>Admin</SelectItem>}
+                                        <SelectItem value={ROLE.SUPORTE}>Suporte</SelectItem>
+                                        <SelectItem value={ROLE.DEVELOPER}>Desenvolvedor</SelectItem>
+                                        {isAdmin && <SelectItem value={ROLE.ADMIN}>Admin</SelectItem>}
                                       </>
                                     )}
                                   </SelectContent>

@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { Role } from "@prisma/client";
+
+export const USER_ROLE_VALUES = [
+    "ADMIN",
+    "DEVELOPER",
+    "SUPORTE",
+    "CLIENTE_ADMIN",
+    "CLIENTE_USER",
+] as const;
 
 // Regex simples para telefone BR (com ou sem máscara)
 const phoneRegex = /^(\(?\d{2}\)?\s?)?9?\d{4}-?\d{4}$/;
@@ -20,7 +27,7 @@ export const createUserSchema = z.object({
         .optional()
         .or(z.literal("")),
 
-    role: z.nativeEnum(Role),
+    role: z.enum(USER_ROLE_VALUES),
 
     companyId: z.string().optional(),
 
