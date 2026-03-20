@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ElementType } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
 import { createCompanySchema, type CreateCompanyInput } from "@/core/application/schema/company-schema";
-import { createCompanyAction } from "@/actions/admin/company-actions";
+import { createCompanyAction, updateCompanyAction } from "@/actions/admin/company-actions";
 import { COMPANY_SEGMENT_LABELS } from "@/core/config/company-segments";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { MagicCard } from "@/components/magicui/magic-card";
 import { ShineBorder } from "@/components/magicui/shine-border";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -31,6 +32,7 @@ import {
   Landmark,
   Loader2,
   MapPin,
+  CheckCircle2,
   Phone as PhoneIcon,
   Sparkles,
   Save,
@@ -46,6 +48,10 @@ interface CompanyOption {
 interface CreateCompanyPageFormProps {
   backHref: string;
   companies: CompanyOption[];
+  mode?: "create" | "edit";
+  companyId?: string;
+  initialData?: Partial<CreateCompanyInput>;
+  canEditCnpj?: boolean;
 }
 
 type SectionId = "geral" | "fiscal" | "estrutura" | "endereco" | "contato";
@@ -111,7 +117,14 @@ function hasPath(obj: unknown, path: string): boolean {
   return !!current;
 }
 
-export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPageFormProps) {
+export function CreateCompanyPageForm({
+  backHref,
+  companies,
+  mode = "create",
+  companyId,
+  initialData,
+  canEditCnpj = true,
+}: CreateCompanyPageFormProps) {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<SectionId>("geral");
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -154,6 +167,7 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
         codigoIbgeCidade: "",
         codigoIbgeEstado: "",
       },
+      ...(initialData ?? {}),
     },
     mode: "onTouched",
   });
@@ -161,29 +175,37 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
   const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
   const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue);
 
-  const sectionHasErrors = (sectionId: SectionId) => {
-    const section = SECTIONS.find((s) => s.id === sectionId);
-    return section ? section.fields.some((field) => hasPath(errors, field)) : false;
-  };
-
-  const sectionIsDirty = (sectionId: SectionId) => {
-    const section = SECTIONS.find((s) => s.id === sectionId);
-    return section ? section.fields.some((field) => hasPath(dirtyFields, field)) : false;
-  };
-
   const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
-    const result = await createCompanyAction(data);
+    const result =
+      mode === "edit" && companyId
+        ? await updateCompanyAction(companyId, data)
+        : await createCompanyAction(data);
     if (!result.success) {
-      toast.error(result.message ?? "Erro ao cadastrar empresa.");
+      toast.error(result.message ?? (mode === "edit" ? "Erro ao atualizar empresa." : "Erro ao cadastrar empresa."));
       return;
     }
 
-    toast.success(result.message ?? "Empresa cadastrada com sucesso.");
+    toast.success(result.message ?? (mode === "edit" ? "Empresa atualizada com sucesso." : "Empresa cadastrada com sucesso."));
     router.push(backHref);
     router.refresh();
   };
 
   const current = SECTIONS.find((s) => s.id === currentSection) ?? SECTIONS[0];
+  const currentIndex = Math.max(SECTIONS.findIndex((s) => s.id === current.id), 0);
+  const progressPct = Math.round(((currentIndex + 1) / SECTIONS.length) * 100);
+
+  const sectionStateMap = useMemo(() => {
+    return SECTIONS.reduce<Record<SectionId, "error" | "ready" | "idle">>((acc, section) => {
+      const hasError = section.fields.some((field) => hasPath(errors, field));
+      if (hasError) {
+        acc[section.id] = "error";
+        return acc;
+      }
+      const hasTouched = section.fields.some((field) => hasPath(dirtyFields, field));
+      acc[section.id] = hasTouched ? "ready" : "idle";
+      return acc;
+    }, {} as Record<SectionId, "error" | "ready" | "idle">);
+  }, [dirtyFields, errors]);
 
   return (
     <div className="relative w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card/95 overflow-hidden shadow-xl">
@@ -192,7 +214,7 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
         <div>
           <h2 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary/70" />
-            Nova Empresa
+            {mode === "edit" ? "Editar Empresa" : "Nova Empresa"}
           </h2>
           <p className="text-sm text-muted-foreground">{current.title} - {current.description}</p>
         </div>
@@ -201,6 +223,15 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
           Voltar
         </Button>
       </div>
+      <div className="border-b border-border/50 px-6 py-3 bg-muted/20">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Progresso do cadastro</span>
+          <span className="font-medium text-foreground">{currentIndex + 1}/{SECTIONS.length}</span>
+        </div>
+        <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+          <div className="h-1.5 rounded-full bg-primary transition-all duration-300" style={{ width: `${progressPct}%` }} />
+        </div>
+      </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-[calc(100vh-260px)]">
@@ -208,8 +239,9 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
             {SECTIONS.map((section) => {
               const Icon = section.icon;
               const isCurrent = section.id === currentSection;
-              const hasError = sectionHasErrors(section.id);
-              const changed = sectionIsDirty(section.id);
+              const state = sectionStateMap[section.id];
+              const hasError = state === "error";
+              const isReady = state === "ready";
 
               return (
                 <button
@@ -229,10 +261,15 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                       <p className={cn("text-sm font-medium truncate", isCurrent ? "text-primary" : "text-foreground", hasError && "text-destructive")}>
                         {section.title}
                       </p>
-                      {changed && !hasError && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
+                      {isReady && !hasError && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
                       {hasError && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
                     </div>
                     <p className="text-[11px] text-muted-foreground/70 truncate">{section.description}</p>
+                    {isReady && !hasError && (
+                      <Badge variant="outline" className="mt-1 h-5 rounded-full border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] text-emerald-600">
+                        Pronto
+                      </Badge>
+                    )}
                   </div>
                   {isCurrent && <ChevronRight className="h-3.5 w-3.5 text-primary/70 mt-1" />}
                 </button>
@@ -242,6 +279,14 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
 
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-y-auto p-6">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={currentSection}
+                  initial={{ opacity: 0, x: 18 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -18 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
               {currentSection === "geral" && (
                 <MagicCard className="rounded-xl">
                 <Card className="border-border/60 bg-card/95">
@@ -249,7 +294,7 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField control={form.control} name="cnpj" render={({ field }) => (
-                        <FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={toInputValue(field.value)} onChange={(event) => field.onChange(formatCNPJ(event.target.value))} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} disabled={mode === "edit" && !canEditCnpj} value={toInputValue(field.value)} onChange={(event) => field.onChange(formatCNPJ(event.target.value))} /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="segment" render={({ field }) => (
                         <FormItem><FormLabel>Segmento</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definido</SelectItem>{Object.values(CompanySegment).map((segment) => <SelectItem key={segment} value={segment}>{COMPANY_SEGMENT_LABELS[segment]}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
@@ -412,6 +457,8 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                 </Card>
                 </MagicCard>
               )}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             <div className="border-t border-border/50 px-6 py-4 flex items-center justify-between">
@@ -429,7 +476,7 @@ export function CreateCompanyPageForm({ backHref, companies }: CreateCompanyPage
                 </Button>
                 <Button type="submit" className="gap-2" disabled={isSubmitting || !isDirty}>
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Salvar Empresa
+                  {mode === "edit" ? "Salvar Alteracoes" : "Salvar Empresa"}
                 </Button>
               </div>
             </div>

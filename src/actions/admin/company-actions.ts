@@ -17,6 +17,7 @@ export type ActionResponse = {
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 const CREATE_ROLES: Role[] = SYSTEM_ROLES;
+const UPDATE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 const DELETE_ROLES: Role[] = [Role.ADMIN];
 
 async function getSessionCompanyIds(userId: string): Promise<string[]> {
@@ -149,6 +150,89 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
 
     revalidateCadastrosPaths();
     return { success: true, message: "Empresa criada com sucesso!", data: { ...result, segmentTriggers } };
+  } catch (error: any) {
+    return handleActionError(error);
+  }
+}
+
+export async function updateCompanyAction(id: string, data: CreateCompanyInput): Promise<ActionResponse> {
+  const session = await getProtectedSession();
+  if (!session || !UPDATE_ROLES.includes(session.role)) {
+    return { success: false, message: "Permissao negada." };
+  }
+
+  const validation = createCompanySchema.safeParse(data);
+  if (!validation.success) {
+    return {
+      success: false,
+      errors: validation.error.flatten().fieldErrors as any,
+      message: "Verifique os campos destacados.",
+    };
+  }
+
+  const companyScopeIds = session.role === Role.CLIENTE_ADMIN ? await getSessionCompanyIds(session.userId) : null;
+  if (session.role === Role.CLIENTE_ADMIN && (!companyScopeIds?.length || !companyScopeIds.includes(id))) {
+    return { success: false, message: "Sem permissao para editar esta empresa." };
+  }
+
+  try {
+    const existing = await prisma.company.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        cnpj: true,
+        addresses: {
+          select: { id: true },
+          take: 1,
+          orderBy: { id: "asc" },
+        },
+      },
+    });
+
+    if (!existing) {
+      return { success: false, message: "Empresa nao encontrada." };
+    }
+
+    const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
+    const nextCnpj = session.role === Role.CLIENTE_ADMIN ? existing.cnpj : validData.cnpj;
+
+    await prisma.company.update({
+      where: { id },
+      data: {
+        ...validData,
+        cnpj: nextCnpj,
+        accountingFirm: accountingFirmId ? { connect: { id: accountingFirmId } } : { disconnect: true },
+        parentCompany: parentCompanyId ? { connect: { id: parentCompanyId } } : { disconnect: true },
+        addresses:
+          address && typeof address === "object" && address.cep
+            ? existing.addresses[0]
+              ? {
+                  update: {
+                    where: { id: existing.addresses[0].id },
+                    data: {
+                      ...address,
+                      description: address.description || "Sede",
+                    },
+                  },
+                }
+              : {
+                  create: {
+                    ...address,
+                    description: address.description || "Sede",
+                  },
+                }
+            : existing.addresses[0]
+              ? {
+                  delete: {
+                    id: existing.addresses[0].id,
+                  },
+                }
+              : undefined,
+      },
+    });
+
+    revalidateCadastrosPaths();
+    return { success: true, message: "Empresa atualizada com sucesso!" };
   } catch (error: any) {
     return handleActionError(error);
   }

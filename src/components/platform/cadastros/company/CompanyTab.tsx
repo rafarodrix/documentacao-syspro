@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, MoreHorizontal, Building2, Users, X, CircleAlert, Plus } from "lucide-react"
+import { Search, MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +52,7 @@ interface CompanyWithRelations {
 interface CompanyTabProps {
   data: CompanyWithRelations[]
   canCreate: boolean
+  canEdit: boolean
   canToggleStatus: boolean
   canDelete: boolean
 }
@@ -93,6 +94,7 @@ function StatusBadge({ status }: { status: CompanyStatus }) {
 
 function CompanyActionsMenu({
   company,
+  canEdit,
   canToggleStatus,
   canDelete,
   isLoading,
@@ -100,13 +102,14 @@ function CompanyActionsMenu({
   onDelete,
 }: {
   company: CompanyWithRelations
+  canEdit: boolean
   canToggleStatus: boolean
   canDelete: boolean
   isLoading: boolean
   onToggleStatus: () => void
   onDelete: () => void
 }) {
-  if (!canToggleStatus && !canDelete) return null
+  if (!canEdit && !canToggleStatus && !canDelete) return null
 
   return (
     <DropdownMenu>
@@ -133,6 +136,15 @@ function CompanyActionsMenu({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
+        {canEdit && (
+          <DropdownMenuItem asChild className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md">
+            <Link href={`/app/cadastros/empresa/${company.id}/editar`}>
+              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm">Editar empresa</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
+
         {canToggleStatus && (
           <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onToggleStatus}>
             <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -158,7 +170,7 @@ function CompanyActionsMenu({
   )
 }
 
-export function CompanyTab({ data, canCreate, canToggleStatus, canDelete }: CompanyTabProps) {
+export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelete }: CompanyTabProps) {
   const [items, setItems] = useState(data)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">("ALL")
@@ -474,6 +486,7 @@ export function CompanyTab({ data, canCreate, canToggleStatus, canDelete }: Comp
                       <TableCell className="text-right px-6">
                         <CompanyActionsMenu
                           company={company}
+                          canEdit={canEdit}
                           canToggleStatus={canToggleStatus}
                           canDelete={canDelete}
                           isLoading={loadingId === company.id}
