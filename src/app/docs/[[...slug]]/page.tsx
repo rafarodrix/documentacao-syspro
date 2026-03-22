@@ -56,15 +56,12 @@ export default async function Page(props: {
 
     const visiblePages = allPages
       .filter((_, index) => visibility[index])
-      .map((item) => {
-        const data = item.data as Record<string, unknown>;
-        return {
-          href: item.url,
-          title: String(item.data.title),
-          description: typeof data.description === 'string' ? data.description : undefined,
-          lastUpdated: typeof data.lastUpdated === 'string' ? data.lastUpdated : undefined,
-        };
-      });
+      .map((item) => ({
+        href: item.url,
+        title: String(item.data.title),
+        description: typeof item.data.description === 'string' ? item.data.description : undefined,
+        lastUpdated: typeof item.data.lastUpdated === 'string' ? item.data.lastUpdated : undefined,
+      }));
 
     return (
       <DocsPage toc={[]} full={false}>
