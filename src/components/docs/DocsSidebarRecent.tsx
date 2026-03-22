@@ -129,6 +129,17 @@ export function DocsSidebarRecent() {
       localStorage.setItem(POPULAR_STORAGE_KEY, JSON.stringify(next));
       return next;
     });
+
+    void fetch('/api/docs/views', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        href: pathname,
+        title,
+        visitedAt: Date.now(),
+      }),
+      keepalive: true,
+    }).catch(() => undefined);
   }, [pathname]);
 
   const recentItems = useMemo(

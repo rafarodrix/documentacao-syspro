@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import { useMemo, useState, useEffect } from 'react';
-import { ArrowRight, Clock3, Flame, Search } from 'lucide-react';
+import { ArrowRight, Clock3, Flame, Sparkles } from 'lucide-react';
+import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
+import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
 
 type DocsHomeEntry = {
   href: string;
@@ -18,6 +21,7 @@ type DocsRecentItem = {
 };
 
 type PopularMap = Record<string, { title: string; count: number; lastVisited: number }>;
+type GlobalPopularItem = { href: string; title: string; count: number; lastViewed: number };
 
 const RECENT_STORAGE_KEY = 'docs:recent';
 const POPULAR_STORAGE_KEY = 'docs:popular';
@@ -42,10 +46,15 @@ function formatDate(date?: string) {
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(value);
 }
 
+function formatDateTime(timestamp: number) {
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(timestamp));
+}
+
 export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry[]; canViewTechnical: boolean }) {
-  const [query, setQuery] = useState('');
   const [recentItems, setRecentItems] = useState<DocsRecentItem[]>([]);
   const [popularItems, setPopularItems] = useState<PopularMap>({});
+  const [globalPopular, setGlobalPopular] = useState<GlobalPopularItem[]>([]);
+  const [lastReadFromApi, setLastReadFromApi] = useState<DocsRecentItem | null>(null);
 
   useEffect(() => {
     try {
@@ -61,18 +70,30 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
     } catch {
       setPopularItems({});
     }
-  }, []);
 
-  const searchResults = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return [];
-    return pages
-      .filter((page) => {
-        const haystack = `${page.title} ${page.description ?? ''} ${page.href}`.toLowerCase();
-        return haystack.includes(normalized);
+    void fetch('/api/docs/views', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json() as Promise<{
+          ok?: boolean;
+          globalPopular?: GlobalPopularItem[];
+          lastRead?: { href: string; title: string; visitedAt: number } | null;
+        }>;
       })
-      .slice(0, 8);
-  }, [pages, query]);
+      .then((payload) => {
+        if (!payload?.ok) return;
+        if (Array.isArray(payload.globalPopular)) setGlobalPopular(payload.globalPopular);
+        if (
+          payload.lastRead &&
+          typeof payload.lastRead.href === 'string' &&
+          typeof payload.lastRead.title === 'string' &&
+          typeof payload.lastRead.visitedAt === 'number'
+        ) {
+          setLastReadFromApi(payload.lastRead);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   const latestUpdates = useMemo(
     () => [...pages].sort((a, b) => parseDate(b.lastUpdated) - parseDate(a.lastUpdated)).slice(0, 6),
@@ -103,81 +124,97 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
       .map((entry) => ({
         href: entry.href,
         title: pageByHref.get(entry.href)?.title ?? entry.title,
+        visitedAt: entry.visitedAt,
       }))
       .slice(0, 6);
   }, [pages, recentItems]);
 
+  const continueReading = useMemo(() => {
+    if (lastReadFromApi) {
+      const fromPages = pages.find((page) => page.href === lastReadFromApi.href);
+      return {
+        href: lastReadFromApi.href,
+        title: fromPages?.title ?? lastReadFromApi.title,
+        visitedAt: lastReadFromApi.visitedAt,
+      };
+    }
+
+    const firstRecent = recentItems[0];
+    if (!firstRecent) return null;
+    const fromPages = pages.find((page) => page.href === firstRecent.href);
+    return {
+      href: firstRecent.href,
+      title: fromPages?.title ?? firstRecent.title,
+      visitedAt: firstRecent.visitedAt,
+    };
+  }, [lastReadFromApi, pages, recentItems]);
+
   return (
     <div className="space-y-8">
-      <section className="rounded-xl border border-border/60 bg-card/40 p-4 md:p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-lg font-semibold">Central de Documentação</h2>
-          <span className="rounded-full border border-border/70 px-2 py-0.5 text-xs text-muted-foreground">
-            {pages.length} páginas
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/10 p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-xs text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5" />
+              Experiência guiada
+            </div>
+            <h2 className="text-2xl font-semibold tracking-tight">Central de Documentação</h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Encontre respostas mais rápido com a busca nativa da docs, acesse atalhos por contexto e retome de onde parou.
+            </p>
+          </div>
+          <span className="rounded-full border border-border/70 bg-background/70 px-2 py-1 text-xs text-muted-foreground">
+            {pages.length} páginas disponíveis
           </span>
         </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Pesquise conteúdos, acesse guias principais e acompanhe atualizações recentes.
-        </p>
 
-        <div className="relative mt-4">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar na documentação"
-            className="h-10 w-full rounded-lg border border-border/60 bg-background pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/60"
-          />
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <LargeSearchToggle className="h-11 min-w-[280px] flex-1 justify-start rounded-xl border-border/70 bg-background/85 text-sm" />
+          <Link
+            href="/docs/manual"
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-4 text-sm font-medium hover:bg-accent"
+          >
+            Começar pelo Manual
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
-
-        {query.trim() ? (
-          <div className="mt-3 space-y-1">
-            {searchResults.length === 0 ? (
-              <p className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-muted-foreground">
-                Nenhum resultado encontrado.
-              </p>
-            ) : (
-              searchResults.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-3 py-2 text-sm hover:bg-accent"
-                >
-                  <span className="truncate">{item.title}</span>
-                  <ArrowRight className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                </Link>
-              ))
-            )}
-          </div>
-        ) : null}
       </section>
+
+      <Callout title="Dica de produtividade">
+        Use `Ctrl + K` para abrir a busca de qualquer página e ir direto para o conteúdo desejado.
+      </Callout>
+
+      {continueReading ? (
+        <section className="rounded-xl border border-border/60 bg-card/40 p-4">
+          <p className="text-sm font-semibold">Continuar leitura</p>
+          <p className="mt-1 text-xs text-muted-foreground">Último acesso em {formatDateTime(continueReading.visitedAt)}</p>
+          <Link
+            href={continueReading.href}
+            className="mt-3 flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2 text-sm hover:bg-accent"
+          >
+            <span className="line-clamp-2">{continueReading.title}</span>
+            <ArrowRight className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+          </Link>
+        </section>
+      ) : null}
 
       <section>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Links diretos</h3>
-        <div className="grid gap-3 md:grid-cols-2">
+        <Cards>
           {QUICK_LINKS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-xl border border-border/60 bg-card/40 p-4 transition-colors hover:bg-accent"
-            >
-              <p className="font-medium">{item.title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-            </Link>
+            <Card key={item.href} href={item.href} title={item.title}>
+              {item.description}
+            </Card>
           ))}
           {canViewTechnical ? (
-            <Link
-              href="/docs/manuais-tecnicos"
-              className="rounded-xl border border-border/60 bg-card/40 p-4 transition-colors hover:bg-accent"
-            >
-              <p className="font-medium">Manuais Técnicos</p>
-              <p className="mt-1 text-sm text-muted-foreground">Arquitetura, backlog e padrões de engenharia.</p>
-            </Link>
+            <Card href="/docs/manuais-tecnicos" title="Manuais Técnicos">
+              Arquitetura, backlog e padrões de engenharia.
+            </Card>
           ) : null}
-        </div>
+        </Cards>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 lg:grid-cols-4">
         <div className="rounded-xl border border-border/60 bg-card/40 p-4">
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
             <Clock3 className="h-4 w-4 text-muted-foreground" />
@@ -225,6 +262,31 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
         </div>
 
         <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <Flame className="h-4 w-4 text-muted-foreground" />
+            Populares na base
+          </p>
+          <div className="space-y-2">
+            {globalPopular.length === 0 ? (
+              <p className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-muted-foreground">
+                Ainda sem ranking global disponível.
+              </p>
+            ) : (
+              globalPopular.slice(0, 6).map((item) => (
+                <Link
+                  key={`global-${item.href}`}
+                  href={item.href}
+                  className="flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2 text-sm hover:bg-accent"
+                >
+                  <span className="line-clamp-2">{item.title}</span>
+                  <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">{item.count}</span>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-card/40 p-4">
           <p className="mb-3 text-sm font-semibold">Recentes</p>
           <div className="space-y-2">
             {recent.length === 0 ? (
@@ -239,6 +301,7 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
                   className="block rounded-md border border-border/60 bg-background px-3 py-2 text-sm hover:bg-accent"
                 >
                   <span className="line-clamp-2">{item.title}</span>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.visitedAt)}</p>
                 </Link>
               ))
             )}
