@@ -20,11 +20,7 @@ import {
   Wrench,
   Search,
 } from 'lucide-react';
-
-// --- Dependências Externas (Assumindo que existem no seu projeto) ---
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
@@ -32,9 +28,6 @@ import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
 import { MagicCard } from '@/components/magicui/magic-card';
 import { ShineBorder } from '@/components/magicui/shine-border';
 
-// ==========================================
-// 1. TIPAGENS (Idealmente em um arquivo types.ts)
-// ==========================================
 type DocsHomeEntry = { href: string; title: string; description?: string; lastUpdated?: string; };
 type DocsRecentItem = { href: string; title: string; visitedAt: number; };
 type PopularMap = Record<string, { title: string; count: number; lastVisited: number }>;
@@ -51,9 +44,6 @@ type QuickLink = {
   tone: QuickLinkTone;
 };
 
-// ==========================================
-// 2. CONSTANTES (Idealmente em um arquivo constants.ts)
-// ==========================================
 const RECENT_KEY = 'docs:recent';
 const POPULAR_KEY = 'docs:popular';
 
@@ -101,16 +91,13 @@ const ROLE_LABELS: Record<RoleSegment, string> = {
 };
 
 const TONE_STYLES: Record<QuickLinkTone, { shineColor: string[]; pillClass: string; glowClass: string; }> = {
-  docs: { shineColor: ['#60a5fa55', '#38bdf855'], pillClass: 'border-blue-400/30 bg-blue-500/10 text-blue-100', glowClass: 'from-blue-500/20' },
-  faq: { shineColor: ['#f59e0b55', '#f9731655'], pillClass: 'border-amber-400/30 bg-amber-500/10 text-amber-100', glowClass: 'from-amber-500/20' },
-  training: { shineColor: ['#22c55e55', '#14b8a655'], pillClass: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100', glowClass: 'from-emerald-500/20' },
-  support: { shineColor: ['#f43f5e55', '#a855f755'], pillClass: 'border-rose-400/30 bg-rose-500/10 text-rose-100', glowClass: 'from-rose-500/20' },
-  technical: { shineColor: ['#22d3ee55', '#a78bfa55'], pillClass: 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100', glowClass: 'from-cyan-500/20' },
+  docs: { shineColor: ['#94a3b822', '#64748b18'], pillClass: 'border-slate-400/20 bg-slate-500/5 text-slate-200', glowClass: 'from-slate-400/8' },
+  faq: { shineColor: ['#94a3b822', '#47556918'], pillClass: 'border-slate-400/20 bg-slate-500/5 text-slate-200', glowClass: 'from-slate-400/8' },
+  training: { shineColor: ['#94a3b822', '#64748b18'], pillClass: 'border-slate-400/20 bg-slate-500/5 text-slate-200', glowClass: 'from-slate-400/8' },
+  support: { shineColor: ['#94a3b822', '#47556918'], pillClass: 'border-slate-400/20 bg-slate-500/5 text-slate-200', glowClass: 'from-slate-400/8' },
+  technical: { shineColor: ['#cbd5e122', '#64748b18'], pillClass: 'border-slate-300/20 bg-slate-400/5 text-slate-100', glowClass: 'from-slate-300/8' },
 };
 
-// ==========================================
-// 3. FUNÇÕES UTILITÁRIAS (Idealmente em utils.ts)
-// ==========================================
 const staggerStyle = (index: number): CSSProperties => ({ animationDelay: `${Math.min(index * 70, 700)}ms` });
 const parseDate = (date?: string): number => date ? (Number.isNaN(Date.parse(date)) ? 0 : Date.parse(date)) : 0;
 const formatDate = (date?: string): string | null => {
@@ -123,9 +110,6 @@ const readLocalStorage = <T,>(key: string, fallback: T): T => {
   try { return JSON.parse(localStorage.getItem(key) || '') as T; } catch { return fallback; }
 };
 
-// ==========================================
-// 4. CUSTOM HOOK DE REGRAS DE NEGÓCIO
-// ==========================================
 function useDocsDashboard(pages: DocsHomeEntry[], role: Role, canViewTechnical: boolean) {
   const [recentItems, setRecentItems] = useState<DocsRecentItem[]>([]);
   const [popularItems, setPopularItems] = useState<PopularMap>({});
@@ -197,24 +181,29 @@ function useDocsDashboard(pages: DocsHomeEntry[], role: Role, canViewTechnical: 
   }, [role, canViewTechnical]);
 
   return {
-    state: { roleSegment, loadingInsights },
+    status: { roleSegment, loadingInsights },
     derived: { latestUpdates, mostAccessed, recent, continueReading, quickLinks, startTasks, globalPopular, rolePopular },
     metrics: { totalPages: pages.length, insightCount: rolePopular.length + globalPopular.length + mostAccessed.length }
   };
 }
 
-// ==========================================
-// 5. COMPONENTES MENORES (UI Pura)
-// ==========================================
 function HeroMetric({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) {
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-border/70 bg-background/60 p-3 transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-background/75">
-      <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+    <div className="group relative overflow-hidden rounded-xl border border-border/70 bg-background/60 p-3 transition-colors hover:border-border hover:bg-background/75">
+      <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-300/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
       <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
         <Icon className="h-3.5 w-3.5" /> {label}
       </p>
       <p className="mt-1 text-lg font-semibold tracking-tight">{value}</p>
     </div>
+  );
+}
+
+function CountBadge({ count }: { count: number }) {
+  return (
+    <Badge variant="secondary" className="ml-2 shrink-0 rounded-md border border-border/60 bg-card tabular-nums">
+      {count}
+    </Badge>
   );
 }
 
@@ -234,10 +223,10 @@ function PremiumLinkCard({ item, style }: { item: QuickLink; style?: CSSProperti
 
   return (
     <Link href={item.href} className="group block animate-docs-fade-up opacity-0" style={style}>
-      <MagicCard className="h-full rounded-2xl transition-transform duration-300 group-hover:-translate-y-1">
-        <div className="relative h-full rounded-2xl p-4 sm:p-5">
-          <div className={cn('pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br to-transparent opacity-70', tone.glowClass)} />
-          <ShineBorder shineColor={tone.shineColor} duration={11} className="opacity-70" />
+      <MagicCard className="h-full rounded-2xl">
+        <div className="relative h-full rounded-2xl border border-border/70 bg-card/70 p-4 transition-colors sm:p-5 group-hover:bg-card">
+          <div className={cn('pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br to-transparent opacity-20', tone.glowClass)} />
+          <ShineBorder shineColor={tone.shineColor} duration={11} className="opacity-15" />
           <div className="relative z-10 flex items-start justify-between gap-3">
             <div className="space-y-2">
               <span className={cn('inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs', tone.pillClass)}>
@@ -245,7 +234,7 @@ function PremiumLinkCard({ item, style }: { item: QuickLink; style?: CSSProperti
               </span>
               <p className="text-sm text-muted-foreground">{item.description}</p>
             </div>
-            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-foreground" />
+            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
           </div>
         </div>
       </MagicCard>
@@ -255,16 +244,13 @@ function PremiumLinkCard({ item, style }: { item: QuickLink; style?: CSSProperti
 
 function InsightCard({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/70 to-card/35 p-4 shadow-[0_10px_30px_-22px_rgba(56,189,248,0.45)]', className)}>
-      <ShineBorder shineColor={['#60a5fa33', '#22d3ee2e']} duration={15} className="opacity-70" />
+    <div className={cn('relative overflow-hidden rounded-2xl border border-border/60 bg-card/60 p-4 shadow-[0_10px_24px_-24px_rgba(15,23,42,0.55)]', className)}>
+      <ShineBorder shineColor={['#cbd5e10d', '#64748b0a']} duration={15} className="opacity-15" />
       <div className="relative z-10">{children}</div>
     </div>
   );
 }
 
-// ==========================================
-// 6. COMPONENTE PRINCIPAL DE PÁGINA
-// ==========================================
 type DocsHomePageProps = {
   pages: DocsHomeEntry[];
   canViewTechnical: boolean;
@@ -272,22 +258,27 @@ type DocsHomePageProps = {
 };
 
 export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProps) {
-  // A Lógica complexa foi abstraída para o hook customizado
-  const { state, derived, metrics } = useDocsDashboard(pages, role, canViewTechnical);
+  const { status, derived, metrics } = useDocsDashboard(pages, role, canViewTechnical);
 
-  const openSearch = () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
+  const openSearch = () => {
+    const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+    window.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'k',
+      ctrlKey: !isMac,
+      metaKey: isMac,
+      bubbles: true,
+    }));
+  };
 
   return (
     <div className="space-y-10 pb-28">
-      
-      {/* SEÇÃO 1: Hero & Search */}
-      <section className="relative animate-docs-fade-up overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-6 opacity-0 md:p-8" style={staggerStyle(0)}>
-        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-20 h-60 w-60 rounded-full bg-blue-500/10 blur-3xl" />
+      <section className="relative animate-docs-fade-up overflow-hidden rounded-2xl border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] bg-card p-6 opacity-0 md:p-8" style={staggerStyle(0)}>
+        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-slate-400/3 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-20 h-60 w-60 rounded-full bg-slate-300/3 blur-3xl" />
         
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div className="max-w-3xl">
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-3 py-1 text-xs text-muted-foreground">
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-400/15 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
               <Sparkles className="h-3 w-3" /> Central de documentação
             </div>
             <h1 className="text-2xl font-semibold tracking-tight md:text-4xl">Como podemos ajudar?</h1>
@@ -296,12 +287,12 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
               <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">Ctrl K</kbd> em qualquer página para acesso rápido.
             </p>
           </div>
-          <Badge variant="outline" className="shrink-0 text-muted-foreground">{metrics.totalPages} páginas disponíveis</Badge>
+          <Badge variant="outline" className="shrink-0 border-slate-400/15 bg-muted/30 text-muted-foreground">{metrics.totalPages} páginas disponíveis</Badge>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <LargeSearchToggle className="h-11 min-w-[260px] flex-1 justify-start rounded-xl border-border/70 bg-background/85 text-sm" />
-          <Link href="/docs/manual" className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-5 text-sm font-medium transition-colors hover:bg-accent">
+          <Link href="/docs/manual" className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-5 text-sm font-medium transition-colors hover:bg-accent">
             <BookOpen className="h-4 w-4" /> Ver manual
           </Link>
         </div>
@@ -313,7 +304,6 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         </div>
       </section>
 
-      {/* SEÇÃO 2: Acesso Rápido */}
       <section className="animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(1)}>
         <DocsSectionHeader icon={LayoutDashboard} label="Acesso rápido" />
         <div className="grid gap-3 sm:grid-cols-2">
@@ -323,7 +313,6 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         </div>
       </section>
 
-      {/* SEÇÃO 3: Comece por aqui */}
       <section className="animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(3)}>
         <DocsSectionHeader icon={LayoutDashboard} label="Comece por aqui" />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -343,7 +332,6 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         </div>
       </section>
 
-      {/* SEÇÃO 4: Continuar Leitura */}
       {derived.continueReading && (
         <section className="animate-docs-fade-up opacity-0" style={staggerStyle(3.5)}>
           <DocsSectionHeader icon={History} label="Continuar leitura" />
@@ -362,13 +350,12 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         </section>
       )}
 
-      {/* SEÇÃO 5: Insights de Uso */}
       <section className="animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(4)}>
         <DocsSectionHeader icon={TrendingUp} label="Insights de uso" />
-        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-card/30 via-transparent to-primary/5 p-3 sm:p-4">
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-3 sm:p-4">
           <div className="mb-3 flex items-center justify-between px-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Painel de inteligência</p>
-            <Badge variant="outline" className="text-[11px] text-muted-foreground">Atualização contínua</Badge>
+            <Badge variant="outline" className="border-slate-400/15 bg-muted/20 text-[11px] text-muted-foreground">Atualização contínua</Badge>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             
@@ -388,34 +375,53 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
               {derived.mostAccessed.length === 0 ? <DocsEmptyState message="Nenhum dado." /> : (
                 <div className="space-y-1.5">
                   {derived.mostAccessed.map(item => (
-                    <InsightLink key={item.href} href={item.href} title={item.title} meta={<Badge variant="secondary" className="ml-2">{item.count}</Badge>} />
+                    <InsightLink key={item.href} href={item.href} title={item.title} meta={<CountBadge count={item.count} />} />
                   ))}
                 </div>
               )}
             </InsightCard>
 
+            <InsightCard>
+              <DocsSectionHeader icon={Users} label={ROLE_LABELS[status.roleSegment]} />
+              {status.loadingInsights ? <DocsEmptyState message="Carregando ranking por perfil..." /> : derived.rolePopular.length === 0 ? <DocsEmptyState message="Ainda sem ranking por perfil." /> : (
+                <div className="space-y-1.5">
+                  {derived.rolePopular.map(item => (
+                    <InsightLink key={`role-${item.href}`} href={item.href} title={item.title} meta={<CountBadge count={item.count} />} />
+                  ))}
+                </div>
+              )}
+            </InsightCard>
+
+            <InsightCard>
+              <DocsSectionHeader icon={TrendingUp} label="Populares na base" />
+              {status.loadingInsights ? <DocsEmptyState message="Carregando ranking global..." /> : derived.globalPopular.length === 0 ? <DocsEmptyState message="Ainda sem ranking global." /> : (
+                <div className="space-y-1.5">
+                  {derived.globalPopular.map(item => (
+                    <InsightLink key={`global-${item.href}`} href={item.href} title={item.title} meta={<CountBadge count={item.count} />} />
+                  ))}
+                </div>
+              )}
+            </InsightCard>
           </div>
         </div>
       </section>
 
-      {/* SEÇÃO 6: Bottom Bar Flutuante */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4">
-        <div className="pointer-events-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/85 p-2 backdrop-blur-md sm:gap-3 shadow-lg">
-          <button onClick={openSearch} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-border/70 bg-card/70 px-3 text-sm font-medium transition-colors hover:bg-accent">
+        <div className="pointer-events-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/95 p-2 backdrop-blur-md sm:gap-3 shadow-[0_8px_24px_-24px_rgba(15,23,42,0.65)]">
+          <button onClick={openSearch} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 text-sm font-medium transition-colors hover:bg-accent">
             <Search className="h-4 w-4" /> Abrir busca
           </button>
-          <Link href={derived.startTasks[0]?.href ?? '/docs/manual'} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/15">
+          <Link href={derived.startTasks[0]?.href ?? '/docs/manual'} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300/15 bg-slate-200/5 px-3 text-sm font-medium text-foreground transition-colors hover:bg-slate-200/10">
             Ver trilha recomendada <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
 
-      {/* STYLES (Nota: Em produção, mova isso para o globals.css ou tailwind.config) */}
       <style jsx global>{`
         @media (prefers-reduced-motion: no-preference) {
-          .animate-docs-fade-up { animation: docsFadeUp 540ms cubic-bezier(0.2, 0.65, 0.2, 1) forwards; }
+          .animate-docs-fade-up { animation: docsFadeUp 320ms cubic-bezier(0.2, 0.65, 0.2, 1) forwards; }
           @keyframes docsFadeUp {
-            0% { opacity: 0; transform: translateY(12px) scale(0.99); }
+            0% { opacity: 0; transform: translateY(8px); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
           }
         }
