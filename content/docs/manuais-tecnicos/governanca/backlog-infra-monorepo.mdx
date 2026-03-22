@@ -31,24 +31,40 @@ Nao vamos tratar workspaces, mobile e API separada como primeiros passos.
 
 ### EPIC A1 - Migracao por feature para `src/features`
 
-- [ ] `INFRA-001` [Alta] Migrar `company` para `src/features/company`.
+- [x] `INFRA-001` [Alta] Migrar `company` para `src/features/company`.
 Criterios de aceite:
-- `domain`, `application`, `interface` criados.
+- `application` e `interface` criados.
 - `page.tsx` e `actions` consumindo a feature, nao regra espalhada.
-Status atual:
-- application e interface iniciados em `src/features/company`.
+Status de fechamento:
+- `application` e `interface` consolidados em `src/features/company`.
 - pages e componentes principais de empresa ja consomem a feature.
 - implementacao principal migrada para `src/features/company/application/actions.ts`.
-- falta introduzir domain dedicado e separar melhor queries de writes.
+- `src/actions/platform/company-actions.ts` atua como ponte fina.
+Observacao:
+- o acabamento restante foi desdobrado em item proprio.
 
-- [ ] `INFRA-002` [Alta] Migrar `tax` para `src/features/tax`.
+- [ ] `INFRA-001A` [Media] Consolidar `domain` e `queries` de `company`.
 Criterios de aceite:
-- consultas, sync e UI separados por camada.
-- regras de negocio fora de page/component.
-Status atual:
-- application e interface iniciados em `src/features/tax`.
+- `src/features/company/domain` criado com tipos e regras do modulo.
+- `queries` separadas de `writes`.
+- tipos e view models da empresa deixam de ficar espalhados fora da feature.
+
+- [x] `INFRA-002` [Alta] Migrar `tax` para `src/features/tax`.
+Criterios de aceite:
+- `application` e `interface` criados.
+- pages e sync consumindo a feature.
+Status de fechamento:
+- implementacao principal migrada para `src/features/tax/application/actions.ts`.
+- `src/actions/tax/tax-actions.ts` atua como ponte fina.
 - pages e rota de sync ja consomem a feature.
-- falta extrair a implementacao de `src/actions/tax/tax-actions.ts`.
+Observacao:
+- o acabamento restante foi desdobrado em item proprio.
+
+- [ ] `INFRA-002A` [Media] Consolidar `domain` e separar consultas fiscais em `tax`.
+Criterios de aceite:
+- `src/features/tax/domain` criado com tipos e regras fiscais do modulo.
+- `queries` e `writes` separados.
+- modelos e contratos de resposta deixam de ficar espalhados fora da feature.
 
 - [ ] `INFRA-003` [Alta] Migrar `settings/contracts` para `src/features`.
 Criterios de aceite:
@@ -66,14 +82,13 @@ Criterios de aceite:
 
 ### EPIC A2 - Actions finas e contratos internos
 
-- [ ] `INFRA-005` [Alta] Transformar `src/actions/*` em camada fina de transporte.
+- [x] `INFRA-005` [Alta] Transformar `src/actions/*` em camada fina de transporte.
 Criterios de aceite:
 - `actions` delegam para `application`.
 - sem duplicacao de query, filtro ou regra em action.
-Status atual:
-- concluido para `tickets`, `settings` e `contracts`.
-- concluido para `company`, `tickets`, `settings` e `contracts`.
-- em andamento para 	ax.
+Status de fechamento:
+- concluido para `company`, `tax`, `tickets`, `settings` e `contracts`.
+- pendente apenas expandir o padrao para proximas features novas.
 
 - [ ] `INFRA-006` [Alta] Criar view models e contratos por feature dentro do app atual.
 Criterios de aceite:
@@ -197,14 +212,13 @@ Criterios de aceite:
 
 ### Sprint 1 - Consolidacao do monolito modular
 
-- `INFRA-001` Migrar `company`
-- `INFRA-002` Migrar `tax`
-- `INFRA-005` Actions finas
+- `INFRA-001A` Consolidar `company`
+- `INFRA-002A` Consolidar `tax`
+- `INFRA-003` Migrar `settings/contracts`
 - `INFRA-006` Contratos internos por feature
 
 ### Sprint 2 - Features administrativas e guardrails
 
-- `INFRA-003` Migrar `settings/contracts`
 - `INFRA-004` Migrar `user-access`
 - `INFRA-007` Gateways/adapters
 - `INFRA-008` Checklist de PR
@@ -236,7 +250,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. concluir a migracao de features mais acopladas (`company`, `tax`, `settings`)
-2. mover os contratos internos para cada feature antes de abrir `packages/contracts`
-3. so depois iniciar a raiz de workspace e a extracao para `apps/web`
-
+1. consolidar `domain` e `queries` de `company` e `tax`
+2. concluir `settings/contracts` com `queries/domain`
+3. depois iniciar `user-access`

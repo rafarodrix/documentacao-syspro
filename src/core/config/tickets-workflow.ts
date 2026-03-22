@@ -1,3 +1,5 @@
+import { getZammadStateMatrix } from "@/core/config/zammad-state-matrix";
+
 export type QueueKey = "all" | "my_queue" | "unassigned" | "critical" | "no_response";
 
 export type TicketStatusGroup = "open" | "pending" | "closed";
@@ -5,10 +7,56 @@ export type TicketStatusGroup = "open" | "pending" | "closed";
 export const TICKET_QUEUE_KEYS: QueueKey[] = ["all", "my_queue", "unassigned", "critical", "no_response"];
 export const TICKET_STATUS_GROUPS: TicketStatusGroup[] = ["open", "pending", "closed"];
 
-export const OPERATIONAL_STATE_IDS = [1, 2, 3, 4, 5, 7] as const;
-export const OPEN_STATE_IDS = [1] as const;
-export const PENDING_STATE_IDS = [2, 3, 4, 5] as const;
-export const CLOSED_STATE_IDS = [7] as const;
+const matrix = getZammadStateMatrix();
+
+function uniqueSorted(values: number[]): number[] {
+  return Array.from(new Set(values)).sort((a, b) => a - b);
+}
+
+function normalizeLoose(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/Ã¡/gi, "a")
+    .replace(/Ã©/gi, "e")
+    .replace(/Ã­/gi, "i")
+    .replace(/Ã³/gi, "o")
+    .replace(/Ãº/gi, "u")
+    .replace(/Ã£/gi, "a")
+    .replace(/Ãµ/gi, "o")
+    .toLowerCase();
+}
+
+function matchesBucket(value: string, bucket: TicketStatusGroup): boolean {
+  const normalized = normalizeLoose(value);
+  if (bucket === "open") return normalized.includes("aberto") || normalized.includes("novo") || normalized.includes("open") || normalized.includes("new");
+  if (bucket === "closed") return normalized.includes("resolvido") || normalized.includes("fechado") || normalized.includes("closed") || normalized.includes("finalizado");
+  return (
+    normalized.includes("anal") ||
+    normalized.includes("desenvolv") ||
+    normalized.includes("pend") ||
+    normalized.includes("aguard") ||
+    normalized.includes("test")
+  );
+}
+
+function getStateIdsByBucket(bucket: TicketStatusGroup): number[] {
+  return uniqueSorted(
+    Object.entries(matrix.statusByStateId)
+      .filter(([, status]) => matchesBucket(String(status), bucket))
+      .map(([stateId]) => Number(stateId))
+      .filter((stateId) => Number.isFinite(stateId))
+  );
+}
+
+export const OPEN_STATE_IDS = uniqueSorted(getStateIdsByBucket("open")) as number[];
+export const PENDING_STATE_IDS = uniqueSorted(getStateIdsByBucket("pending")) as number[];
+export const CLOSED_STATE_IDS = uniqueSorted(getStateIdsByBucket("closed")) as number[];
+export const OPERATIONAL_STATE_IDS = uniqueSorted([
+  ...OPEN_STATE_IDS,
+  ...PENDING_STATE_IDS,
+  ...CLOSED_STATE_IDS,
+]) as number[];
 
 const STATUS_GROUP_KEYWORDS: Record<TicketStatusGroup, string[]> = {
   open: ["1. novo", "novo", "new", "aberto", "open"],

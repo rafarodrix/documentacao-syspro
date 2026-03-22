@@ -38,9 +38,6 @@ export function TicketsFilters({
         <div className="flex flex-col items-center justify-between gap-4 p-1 lg:flex-row">
             <Tabs defaultValue="all" value={statusFilter} onValueChange={handleStatusChange} className="w-full lg:w-auto">
                 <TabsList className="grid h-11 w-full grid-cols-4 rounded-lg border border-border/40 bg-muted/40 p-1 lg:w-auto">
-                    <TabsTrigger value="all" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                        Todos
-                    </TabsTrigger>
                     <TabsTrigger value="open" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                         Abertos ({counts.open})
                     </TabsTrigger>
@@ -49,6 +46,9 @@ export function TicketsFilters({
                     </TabsTrigger>
                     <TabsTrigger value="closed" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                         Fechados ({counts.closed})
+                    </TabsTrigger>
+                    <TabsTrigger value="all" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                        Todos
                     </TabsTrigger>
                 </TabsList>
             </Tabs>
