@@ -22,27 +22,59 @@ const SYSTEM_LINKS: QuickLink[] = [
 export function DocsSidebarQuickLinks({ role }: { role: Role }) {
   const isSystemRole = role === 'ADMIN' || role === 'DEVELOPER' || role === 'SUPORTE';
   const quickLinks = isSystemRole ? [...BASE_LINKS, ...SYSTEM_LINKS] : BASE_LINKS;
+
   const [open, setOpen] = useState(true);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
+  const [hasSavedPreference, setHasSavedPreference] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-height: 860px)');
+    const update = () => setIsCompactViewport(media.matches);
+    update();
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', update);
+      return () => media.removeEventListener('change', update);
+    }
+
+    media.addListener(update);
+    return () => media.removeListener(update);
+  }, []);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('docs:quick-links:open');
       if (saved === '0') {
         setOpen(false);
-      } else {
-        // Primeiro acesso ou preferencia aberta
-        setOpen(true);
-        if (saved === null) localStorage.setItem('docs:quick-links:open', '1');
+        setHasSavedPreference(true);
+        return;
       }
+      if (saved === '1') {
+        setOpen(true);
+        setHasSavedPreference(true);
+        return;
+      }
+
+      const initialOpen = !isCompactViewport;
+      setOpen(initialOpen);
+      localStorage.setItem('docs:quick-links:open', initialOpen ? '1' : '0');
+      setHasSavedPreference(false);
     } catch {
-      // ignore storage issues
+      setOpen(!isCompactViewport);
+      setHasSavedPreference(false);
     }
-  }, []);
+  }, [isCompactViewport]);
+
+  useEffect(() => {
+    if (hasSavedPreference) return;
+    setOpen(!isCompactViewport);
+  }, [isCompactViewport, hasSavedPreference]);
 
   function toggleOpen() {
     setOpen((prev) => {
       const next = !prev;
       localStorage.setItem('docs:quick-links:open', next ? '1' : '0');
+      setHasSavedPreference(true);
       return next;
     });
   }
@@ -52,11 +84,15 @@ export function DocsSidebarQuickLinks({ role }: { role: Role }) {
       <button
         type="button"
         onClick={toggleOpen}
-        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent"
+        className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent"
       >
         <span>Atalhos</span>
+        <span className="ml-auto mr-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+          {quickLinks.length}
+        </span>
         <ChevronDown className={cn('h-4 w-4 transition-transform', !open && '-rotate-90')} />
       </button>
+
       {open ? (
         <div className="mt-1 space-y-1">
           {quickLinks.map(({ href, label, icon: Icon }) => (
@@ -73,7 +109,9 @@ export function DocsSidebarQuickLinks({ role }: { role: Role }) {
             </Link>
           ))}
         </div>
-      ) : null}
+      ) : (
+        <p className="px-2 pb-1 pt-1 text-xs text-muted-foreground">Abra para visualizar os atalhos.</p>
+      )}
     </div>
   );
 }

@@ -34,7 +34,24 @@ export function DocsSidebarRecent() {
   const pathname = usePathname();
   const [items, setItems] = useState<RecentDocItem[]>([]);
   const [popularMap, setPopularMap] = useState<Record<string, { title: string; count: number; lastVisited: number }>>({});
+
   const [open, setOpen] = useState(true);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
+  const [hasSavedPreference, setHasSavedPreference] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-height: 860px)');
+    const update = () => setIsCompactViewport(media.matches);
+    update();
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', update);
+      return () => media.removeEventListener('change', update);
+    }
+
+    media.addListener(update);
+    return () => media.removeListener(update);
+  }, []);
 
   useEffect(() => {
     try {
@@ -58,15 +75,29 @@ export function DocsSidebarRecent() {
       const savedOpen = localStorage.getItem('docs:quick-nav:open');
       if (savedOpen === '0') {
         setOpen(false);
-      } else {
-        // Primeiro acesso ou preferencia aberta
-        setOpen(true);
-        if (savedOpen === null) localStorage.setItem('docs:quick-nav:open', '1');
+        setHasSavedPreference(true);
+        return;
       }
+      if (savedOpen === '1') {
+        setOpen(true);
+        setHasSavedPreference(true);
+        return;
+      }
+
+      const initialOpen = !isCompactViewport;
+      setOpen(initialOpen);
+      localStorage.setItem('docs:quick-nav:open', initialOpen ? '1' : '0');
+      setHasSavedPreference(false);
     } catch {
-      // ignore storage issues
+      setOpen(!isCompactViewport);
+      setHasSavedPreference(false);
     }
-  }, []);
+  }, [isCompactViewport]);
+
+  useEffect(() => {
+    if (hasSavedPreference) return;
+    setOpen(!isCompactViewport);
+  }, [isCompactViewport, hasSavedPreference]);
 
   useEffect(() => {
     if (!pathname?.startsWith('/docs')) return;
@@ -100,7 +131,7 @@ export function DocsSidebarRecent() {
     });
   }, [pathname]);
 
-  const visibleItems = useMemo(
+  const recentItems = useMemo(
     () => items.filter((item) => item.href !== pathname).slice(0, 4),
     [items, pathname],
   );
@@ -117,12 +148,13 @@ export function DocsSidebarRecent() {
     [popularMap, pathname],
   );
 
-  if (visibleItems.length === 0 && popularItems.length === 0) return null;
+  if (recentItems.length === 0 && popularItems.length === 0) return null;
 
   function toggleOpen() {
     setOpen((prev) => {
       const next = !prev;
       localStorage.setItem('docs:quick-nav:open', next ? '1' : '0');
+      setHasSavedPreference(true);
       return next;
     });
   }
@@ -132,23 +164,31 @@ export function DocsSidebarRecent() {
       <button
         type="button"
         onClick={toggleOpen}
-        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent"
+        className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent"
       >
         <span>Navegação rápida</span>
+        <span className="ml-auto mr-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+          R {recentItems.length}
+        </span>
+        <span className="mr-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+          P {popularItems.length}
+        </span>
         <ChevronDown className={cn('h-4 w-4 transition-transform', !open && '-rotate-90')} />
       </button>
+
       {open ? (
         <Tabs defaultValue="recentes" className="mt-2">
           <TabsList className="grid h-8 w-full grid-cols-2">
             <TabsTrigger value="recentes" className="text-xs">Recentes</TabsTrigger>
             <TabsTrigger value="populares" className="text-xs">Populares</TabsTrigger>
           </TabsList>
+
           <TabsContent value="recentes">
-            <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
-              {visibleItems.length === 0 ? (
+            <div className="max-h-44 space-y-1 overflow-y-auto pr-1">
+              {recentItems.length === 0 ? (
                 <p className="px-2 py-1.5 text-xs text-muted-foreground">Sem histórico recente ainda.</p>
               ) : (
-                visibleItems.map((item) => (
+                recentItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -161,8 +201,9 @@ export function DocsSidebarRecent() {
               )}
             </div>
           </TabsContent>
+
           <TabsContent value="populares">
-            <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
+            <div className="max-h-44 space-y-1 overflow-y-auto pr-1">
               {popularItems.length === 0 ? (
                 <p className="px-2 py-1.5 text-xs text-muted-foreground">Sem dados de popularidade ainda.</p>
               ) : (
@@ -181,14 +222,9 @@ export function DocsSidebarRecent() {
             </div>
           </TabsContent>
         </Tabs>
-      ) : null}
-      {open ? null : (
+      ) : (
         <p className="px-2 pb-1 pt-1 text-xs text-muted-foreground">Abra para acessar recentes e populares.</p>
       )}
-      <div className="mt-2 h-px bg-border/40" />
-      <div className="mt-2 px-2 text-[11px] text-muted-foreground">
-        Dica: use os atalhos para ações rápidas e a árvore para navegação completa.
-      </div>
     </div>
   );
 }
