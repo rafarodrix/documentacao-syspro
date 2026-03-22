@@ -110,6 +110,11 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 500 });
   }
 
+  const insertedCount = "inserted" in result ? (result.inserted ?? 0) : 0;
+  const updatedCount = "updated" in result ? (result.updated ?? 0) : 0;
+  const unchangedCount = "unchanged" in result ? (result.unchanged ?? 0) : 0;
+  const failedCount = "failed" in result ? (result.failed ?? 0) : 0;
+
   const chunkHash = createHash("sha1").update(JSON.stringify(body.chunk)).digest("hex");
   const previous = await prisma.taxSyncJob.findUnique({
     where: { id: jobId },
@@ -124,10 +129,10 @@ export async function POST(request: Request) {
     data: {
       currentChunk: chunkIndex + 1,
       processedItems: { increment: body.chunk.length },
-      insertedCount: { increment: result.inserted ?? 0 },
-      updatedCount: { increment: result.updated ?? 0 },
-      unchangedCount: { increment: result.unchanged ?? 0 },
-      failedCount: { increment: result.failed ?? 0 },
+      insertedCount: { increment: insertedCount },
+      updatedCount: { increment: updatedCount },
+      unchangedCount: { increment: unchangedCount },
+      failedCount: { increment: failedCount },
       payloadHash: mergedHash,
       ...(isLastChunk
         ? {
