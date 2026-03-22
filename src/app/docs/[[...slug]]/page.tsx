@@ -13,6 +13,7 @@ import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/core/con
 import { SYSTEM_ROLES } from '@/core/config/route-access';
 import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 import { DocsHomePage } from '@/components/docs/DocsHomePage';
+import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -106,6 +107,7 @@ export default async function Page(props: {
             a: createRelativeLink(source, page),
           }}
         />
+        <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
         <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
       </DocsBody>
     </DocsPage>

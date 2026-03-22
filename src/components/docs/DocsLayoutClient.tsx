@@ -6,7 +6,6 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { DocsSidebarItem } from '@/components/docs/DocsSidebarItem';
 import { DocsSidebarQuickLinks } from '@/components/docs/DocsSidebarQuickLinks';
-import { DocsSidebarRecent } from '@/components/docs/DocsSidebarRecent';
 import { DocsSidebarTopControls } from '@/components/docs/DocsSidebarTopControls';
 
 export function DocsLayoutClient({
@@ -44,7 +43,6 @@ export function DocsLayoutClient({
             <DocsSidebarQuickLinks role={role} />
           </div>
         ),
-        footer: <DocsSidebarRecent />,
       }}
     >
       {children}
