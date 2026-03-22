@@ -5,6 +5,8 @@ import {
   DocsDescription,
   DocsTitle,
 } from 'fumadocs-ui/page';
+import { PageLastUpdate } from 'fumadocs-ui/layouts/docs/page';
+import { DocsCategory } from 'fumadocs-ui/page.server';
 import { notFound, redirect } from 'next/navigation';
 import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
 import { Role } from '@prisma/client';
@@ -88,6 +90,8 @@ export default async function Page(props: {
   const formattedLastUpdated = lastUpdated
     ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(lastUpdated))
     : null;
+  const lastUpdateDate = lastUpdated ? new Date(lastUpdated) : null;
+  const showCategory = slug.length === 1;
 
   const allPages = source.getPages().filter((item) => item.url !== docSlug);
   const sameSectionPrefix = slug[0] ? `/docs/${slug[0]}` : '/docs';
@@ -118,7 +122,11 @@ export default async function Page(props: {
     }));
 
   return (
-    <DocsPage toc={page.data.toc} full={page.data.full}>
+    <DocsPage
+      toc={page.data.toc}
+      full={page.data.full}
+      tableOfContent={{ style: 'clerk' }}
+    >
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       {(status || owner || formattedLastUpdated) ? (
@@ -137,9 +145,11 @@ export default async function Page(props: {
             a: createRelativeLink(source, page),
           }}
         />
+        {showCategory ? <DocsCategory page={page} from={source} className="mt-8" /> : null}
         <DocsNextSteps items={nextSteps} />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
         <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
+        {lastUpdateDate ? <PageLastUpdate date={lastUpdateDate} /> : null}
       </DocsBody>
     </DocsPage>
   );
