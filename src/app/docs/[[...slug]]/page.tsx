@@ -19,7 +19,14 @@ import { DocsNextSteps } from '@/components/docs/DocsNextSteps';
 import { DocsSectionLinks } from '@/components/docs/DocsSectionLinks';
 import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
 import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
+import { DocsReadingTime } from '@/components/docs/DocsReadingTime';
+import { DocsPrevNextPreview } from '@/components/docs/DocsPrevNextPreview';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
+
+function estimateReadingTimeMinutes(content: string): number {
+  const words = content.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 220));
+}
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -100,6 +107,10 @@ export default async function Page(props: {
   const lastUpdateDate = lastUpdated ? new Date(lastUpdated) : null;
   const showCategory = slug.length === 1;
 
+  const structuredData = (page.data as { structuredData?: { contents?: Array<{ content?: string }> } }).structuredData;
+  const bodyText = structuredData?.contents?.map((item) => item.content ?? '').join(' ') ?? page.data.description ?? '';
+  const readingTimeMinutes = estimateReadingTimeMinutes(`${String(page.data.title ?? '')} ${bodyText}`);
+
   const allPages = source.getPages().filter((item) => item.url !== docSlug);
   const sameSectionPrefix = slug[0] ? `/docs/${slug[0]}` : '/docs';
   const contextPages = allPages
@@ -145,6 +156,27 @@ export default async function Page(props: {
       sinceVersion: typeof item.data.sinceVersion === 'string' ? item.data.sinceVersion : undefined,
     }));
 
+  const navigationPool = source.getPages().filter((item) => item.url !== '/docs');
+  const navigationVisibility = await Promise.all(
+    navigationPool.map(async (item) => {
+      if (!SYSTEM_ROLES.includes(session.role) && item.url.startsWith('/docs/manuais-tecnicos')) return false;
+      if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
+        const relativeSlug = item.url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
+        const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
+        if (requiredSegments.length === 0) return true;
+        return canAccessByCompanySegment(session.userId, requiredSegments);
+      }
+      return true;
+    }),
+  );
+
+  const visibleNavigationPages = navigationPool.filter((_, index) => navigationVisibility[index]);
+  const currentIndex = visibleNavigationPages.findIndex((item) => item.url === docSlug);
+  const previousPage = currentIndex > 0 ? visibleNavigationPages[currentIndex - 1] : null;
+  const nextPage = currentIndex >= 0 && currentIndex < visibleNavigationPages.length - 1
+    ? visibleNavigationPages[currentIndex + 1]
+    : null;
+
   return (
     <DocsPage
       toc={page.data.toc}
@@ -156,6 +188,7 @@ export default async function Page(props: {
       <div className="mt-2">
         <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
       </div>
+      <DocsReadingTime minutes={readingTimeMinutes} />
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
       <DocsBody>
@@ -174,6 +207,18 @@ export default async function Page(props: {
         />
         {showCategory ? <DocsSectionLinks items={sectionLinks} /> : null}
         <DocsNextSteps items={nextSteps} />
+        <DocsPrevNextPreview
+          previous={previousPage ? {
+            href: previousPage.url,
+            title: String(previousPage.data.title),
+            description: typeof previousPage.data.description === 'string' ? previousPage.data.description : undefined,
+          } : undefined}
+          next={nextPage ? {
+            href: nextPage.url,
+            title: String(nextPage.data.title),
+            description: typeof nextPage.data.description === 'string' ? nextPage.data.description : undefined,
+          } : undefined}
+        />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
         <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
         {lastUpdateDate ? <PageLastUpdate date={lastUpdateDate} /> : null}

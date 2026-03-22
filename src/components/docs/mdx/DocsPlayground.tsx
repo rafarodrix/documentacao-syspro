@@ -1,11 +1,6 @@
-import dynamic from 'next/dynamic';
+'use client';
 
-const Playground = dynamic(
-  () => import('./DocsPlaygroundClient').then((mod) => mod.DocsPlaygroundClient),
-  {
-    ssr: false,
-  },
-);
+import { DocsPlaygroundClient } from './DocsPlaygroundClient';
 
 export function PlaygroundInline({
   code,
@@ -16,5 +11,5 @@ export function PlaygroundInline({
   height?: number;
   title?: string;
 }) {
-  return <Playground code={code} height={height} title={title} />;
+  return <DocsPlaygroundClient code={code} height={height} title={title} />;
 }
