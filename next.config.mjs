@@ -12,6 +12,20 @@ const withMDX = createMDX({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        source: '/docs/suporte/processos/integra%C3%A7%C3%A3o%20zammad',
+        destination: '/docs/suporte/processos/integracao-zammad',
+        permanent: true,
+      },
+      {
+        source: '/docs/suporte/processos/integracao zammad',
+        destination: '/docs/suporte/processos/integracao-zammad',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withMDX(nextConfig);

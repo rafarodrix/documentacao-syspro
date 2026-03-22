@@ -1,9 +1,8 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
-import { NavTitle } from '@/components/docs/NavTitle';
 
 export const baseOptions: BaseLayoutProps = {
   nav: {
-    title: <NavTitle />,
+    title: null,
   },
   links: [
     /*{
