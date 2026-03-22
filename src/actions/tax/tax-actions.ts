@@ -175,6 +175,11 @@ const toPrismaJson = (value: Record<string, unknown>): Prisma.InputJsonValue => 
     return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 };
 
+const getPayloadHash = (value: unknown): string => {
+    const serialized = JSON.stringify(value) ?? "";
+    return createHash("sha1").update(serialized).digest("hex");
+};
+
 const normalizeNcmDigits = (value: string | null): string | null => {
     if (!value) return null;
     const digits = value.replace(/\D/g, "");
@@ -204,6 +209,61 @@ const extractNcmCodesFromUnknown = (value: unknown, bag: Set<string>) => {
     for (const child of Object.values(record)) {
         if (typeof child === "object" && child !== null) {
             extractNcmCodesFromUnknown(child, bag);
+        }
+    }
+};
+
+type NcmClassMapRowInput = {
+    ncm: string;
+    classCode: string | null;
+    cstCode: string | null;
+    anexoCode: string | null;
+    startDate: Date | null;
+    endDate: Date | null;
+};
+
+const extractNcmClassMappingsFromUnknown = (value: unknown, bag: NcmClassMapRowInput[]) => {
+    if (Array.isArray(value)) {
+        for (const item of value) extractNcmClassMappingsFromUnknown(item, bag);
+        return;
+    }
+
+    const record = asRecord(value);
+    if (!record) return;
+
+    const ncm = normalizeNcmDigits(
+        getStringFromAliases(record, ["NCM", "ncm", "cNCM", "codNCM", "codigoNCM", "codigo_ncm"]),
+    );
+    const classCode = getStringFromAliases(record, [
+        "cClassTrib",
+        "classTrib",
+        "classificacao",
+        "classTribCodigo",
+        "codigoClassTrib",
+    ]);
+    const cstCode = getStringFromAliases(record, ["CST", "cst", "codCST", "codigoCST"]);
+    const anexoCode = getStringFromAliases(record, ["Anexo", "anexo", "codAnexo", "codigoAnexo"]);
+    const startDate = parseNullableDateSafe(
+        getStringFromAliases(record, ["InicioVigencia", "inicioVigencia", "startDate", "dthIniVig"]),
+    );
+    const endDate = parseNullableDateSafe(
+        getStringFromAliases(record, ["FimVigencia", "fimVigencia", "endDate", "dthFimVig"]),
+    );
+
+    if (ncm) {
+        bag.push({
+            ncm,
+            classCode,
+            cstCode,
+            anexoCode,
+            startDate,
+            endDate,
+        });
+    }
+
+    for (const child of Object.values(record)) {
+        if (typeof child === "object" && child !== null) {
+            extractNcmClassMappingsFromUnknown(child, bag);
         }
     }
 };
@@ -456,6 +516,10 @@ type SaveResult = {
     success: boolean;
     message?: string;
     error?: string;
+    inserted?: number;
+    updated?: number;
+    unchanged?: number;
+    failed?: number;
 };
 
 export async function saveTaxAnexosBatch(
@@ -484,7 +548,25 @@ export async function saveTaxAnexosBatch(
             .filter((item): item is Record<string, unknown> => item !== null);
 
         let count = 0;
+        let inserted = 0;
+        let updated = 0;
+        let unchanged = 0;
+        let inserted = 0;
+        let updated = 0;
+        let unchanged = 0;
+        let inserted = 0;
+        let updated = 0;
+        let unchanged = 0;
         const chunkRefRows: Array<{ anexoId: string; ncm: string }> = [];
+        const chunkClassMapRows: Array<{
+            ncm: string;
+            classCode: string | null;
+            cstCode: string | null;
+            anexoCode: string | null;
+            sourceAnexoId: string;
+            startDate: Date | null;
+            endDate: Date | null;
+        }> = [];
         const chunkAnexoIds = new Set<string>();
 
         // Evita transaction interativa longa (P2028) em cargas grandes.
@@ -533,6 +615,33 @@ export async function saveTaxAnexosBatch(
             const endDate =
                 parseNullableDateSafe(getStringFromAliases(item, ["fimVigencia", "dataFimVigencia", "endDate", "dthFimVig"]));
 
+            const payloadHash = getPayloadHash(item);
+            const existing = await prisma.taxAnexo.findUnique({
+                where: { externalKey },
+                select: { id: true, payloadHash: true },
+            });
+
+            if (existing && existing.payloadHash === payloadHash) {
+                unchanged++;
+                chunkAnexoIds.add(existing.id);
+                const ncmSetUnchanged = new Set<string>();
+                extractNcmCodesFromUnknown(item, ncmSetUnchanged);
+                for (const ncm of ncmSetUnchanged) {
+                    chunkRefRows.push({ anexoId: existing.id, ncm });
+                }
+                const mappedRowsUnchanged: NcmClassMapRowInput[] = [];
+                extractNcmClassMappingsFromUnknown(item, mappedRowsUnchanged);
+                for (const row of mappedRowsUnchanged) {
+                    chunkClassMapRows.push({
+                        ...row,
+                        sourceAnexoId: existing.id,
+                        anexoCode: row.anexoCode ?? code ?? externalKey,
+                    });
+                }
+                count++;
+                continue;
+            }
+
             const upserted = await prisma.taxAnexo.upsert({
                 where: { externalKey },
                 update: {
@@ -544,6 +653,7 @@ export async function saveTaxAnexosBatch(
                     startDate,
                     endDate,
                     raw: toPrismaJson(item),
+                    payloadHash,
                     lastUpdated: new Date(),
                 },
                 create: {
@@ -556,15 +666,29 @@ export async function saveTaxAnexosBatch(
                     startDate,
                     endDate,
                     raw: toPrismaJson(item),
+                    payloadHash,
                 },
                 select: { id: true },
             });
+
+            if (existing) updated++;
+            else inserted++;
 
             chunkAnexoIds.add(upserted.id);
             const ncmSet = new Set<string>();
             extractNcmCodesFromUnknown(item, ncmSet);
             for (const ncm of ncmSet) {
                 chunkRefRows.push({ anexoId: upserted.id, ncm });
+            }
+
+            const mappedRows: NcmClassMapRowInput[] = [];
+            extractNcmClassMappingsFromUnknown(item, mappedRows);
+            for (const row of mappedRows) {
+                chunkClassMapRows.push({
+                    ...row,
+                    sourceAnexoId: upserted.id,
+                    anexoCode: row.anexoCode ?? code ?? externalKey,
+                });
             }
 
             count++;
@@ -583,6 +707,19 @@ export async function saveTaxAnexosBatch(
                     skipDuplicates: true,
                 });
             }
+
+            await prisma.taxNcmClassMap.deleteMany({
+                where: {
+                    sourceAnexoId: { in: Array.from(chunkAnexoIds) },
+                },
+            });
+
+            if (chunkClassMapRows.length > 0) {
+                await prisma.taxNcmClassMap.createMany({
+                    data: chunkClassMapRows,
+                    skipDuplicates: true,
+                });
+            }
         }
 
         if (options?.revalidate ?? true) {
@@ -592,6 +729,10 @@ export async function saveTaxAnexosBatch(
         return {
             success: true,
             message: `Sucesso! ${count} anexos processados.`,
+            inserted,
+            updated,
+            unchanged,
+            failed: 0,
         };
     } catch (error: any) {
         console.error("Erro crÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­tico na importaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de anexos fiscais:", error);
@@ -681,6 +822,18 @@ export async function saveTaxCredPresumidoBatch(
             const endDate =
                 parseNullableDateSafe(getStringFromAliases(item, ["dthFimVig", "fimVigencia", "dataFimVigencia", "endDate"]));
 
+            const payloadHash = getPayloadHash(item);
+            const existing = await prisma.taxCredPresumido.findUnique({
+                where: { externalKey },
+                select: { id: true, payloadHash: true },
+            });
+
+            if (existing && existing.payloadHash === payloadHash) {
+                unchanged++;
+                count++;
+                continue;
+            }
+
             await prisma.taxCredPresumido.upsert({
                 where: { externalKey },
                 update: {
@@ -692,6 +845,7 @@ export async function saveTaxCredPresumidoBatch(
                     startDate,
                     endDate,
                     raw: toPrismaJson(item),
+                    payloadHash,
                     lastUpdated: new Date(),
                 },
                 create: {
@@ -704,8 +858,12 @@ export async function saveTaxCredPresumidoBatch(
                     startDate,
                     endDate,
                     raw: toPrismaJson(item),
+                    payloadHash,
                 },
             });
+
+            if (existing) updated++;
+            else inserted++;
 
             count++;
         }
@@ -717,6 +875,10 @@ export async function saveTaxCredPresumidoBatch(
         return {
             success: true,
             message: `Sucesso! ${count} registros de credito presumido processados.`,
+            inserted,
+            updated,
+            unchanged,
+            failed: 0,
         };
     } catch (error: any) {
         console.error("Erro critico na importacao de credito presumido:", error);
@@ -804,6 +966,18 @@ export async function saveTaxNcmBatch(
                     .replace(/\D/g, "")
                     .slice(0, 8) || null;
 
+            const payloadHash = getPayloadHash(item);
+            const existing = await prisma.taxNcm.findUnique({
+                where: { code },
+                select: { id: true, payloadHash: true },
+            });
+
+            if (existing && existing.payloadHash === payloadHash) {
+                unchanged++;
+                count++;
+                continue;
+            }
+
             await prisma.taxNcm.upsert({
                 where: { code },
                 update: {
@@ -816,6 +990,7 @@ export async function saveTaxNcmBatch(
                     actYear,
                     replacedByCode,
                     raw: toPrismaJson(item),
+                    payloadHash,
                     lastUpdated: new Date(),
                 },
                 create: {
@@ -829,8 +1004,12 @@ export async function saveTaxNcmBatch(
                     actYear,
                     replacedByCode,
                     raw: toPrismaJson(item),
+                    payloadHash,
                 },
             });
+
+            if (existing) updated++;
+            else inserted++;
 
             count++;
         }
@@ -843,6 +1022,10 @@ export async function saveTaxNcmBatch(
         return {
             success: true,
             message: `Sucesso! ${count} NCM(s) processado(s).`,
+            inserted,
+            updated,
+            unchanged,
+            failed: 0,
         };
     } catch (error: any) {
         console.error("Erro critico na importacao de NCM:", error);

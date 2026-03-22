@@ -70,6 +70,13 @@ enum SefazStatusType {
   OFFLINE
 }
 
+enum TaxSyncStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -340,6 +347,7 @@ model TaxCST {
   classifications TaxClassification[]
 
   lastUpdated DateTime @default(now())
+  payloadHash String?
 
   @@map("tax_cst")
 }
@@ -396,6 +404,7 @@ model TaxClassification {
   publishDate DateTime
   startDate   DateTime
   endDate     DateTime?
+  payloadHash String?
 
   @@index([cstId]) // Index para performance no Join
   @@index([code]) // Index para buscar rapidament pelo cÃƒÂ³digo na emissÃƒÂ£o de NFe
@@ -422,8 +431,10 @@ model TaxAnexo {
   raw Json
 
   ncmRefs TaxAnexoNcm[]
+  ncmMappings TaxNcmClassMap[]
 
   lastUpdated DateTime @default(now())
+  payloadHash String?
 
   @@index([code])
   @@index([category])
@@ -446,6 +457,32 @@ model TaxAnexoNcm {
   @@map("tax_anexo_ncm")
 }
 
+model TaxNcmClassMap {
+  id String @id @default(cuid())
+
+  ncm String
+  classCode String?
+  cstCode String?
+  anexoCode String?
+
+  sourceAnexoId String
+  sourceAnexo TaxAnexo @relation(fields: [sourceAnexoId], references: [id], onDelete: Cascade)
+
+  startDate DateTime?
+  endDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ncm])
+  @@index([classCode])
+  @@index([cstCode])
+  @@index([anexoCode])
+  @@index([sourceAnexoId])
+  @@unique([ncm, classCode, cstCode, anexoCode, sourceAnexoId])
+  @@map("tax_ncm_class_map")
+}
+
 model TaxCredPresumido {
   id String @id @default(cuid())
 
@@ -466,6 +503,7 @@ model TaxCredPresumido {
   raw Json
 
   lastUpdated DateTime @default(now())
+  payloadHash String?
 
   @@index([code])
   @@index([category])
@@ -497,10 +535,44 @@ model TaxNcm {
   raw Json
 
   lastUpdated DateTime @default(now())
+  payloadHash String?
 
   @@index([code])
   @@index([replacedByCode])
   @@map("tax_ncm")
+}
+
+model TaxSyncJob {
+  id String @id @default(cuid())
+
+  mode String
+  source String?
+  status TaxSyncStatus @default(PENDING)
+
+  snapshotVersion String
+  fetchedAt DateTime?
+  payloadHash String?
+
+  totalChunks Int @default(0)
+  currentChunk Int @default(0)
+  totalItems Int @default(0)
+  processedItems Int @default(0)
+
+  insertedCount Int @default(0)
+  updatedCount Int @default(0)
+  unchangedCount Int @default(0)
+  failedCount Int @default(0)
+
+  errorMessage String?
+
+  startedAt DateTime?
+  finishedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([mode, createdAt])
+  @@index([status, createdAt])
+  @@map("tax_sync_job")
 }
 
 model DocumentoConfig {

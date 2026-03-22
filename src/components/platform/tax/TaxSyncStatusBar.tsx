@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Play, Trash2 } from "lucide-react";
 
@@ -11,6 +11,7 @@ type SyncProgress = {
   currentChunk: number;
   totalChunks: number;
   updatedAt: number;
+  jobId?: string;
   startedAt?: number;
   totalItems?: number;
   processedItems?: number;
@@ -21,6 +22,27 @@ type SyncStateRow = {
   mode: SyncMode;
   label: string;
   progress: SyncProgress;
+};
+
+type TaxSyncJob = {
+  id: string;
+  mode: string;
+  status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED";
+  source: string | null;
+  snapshotVersion: string;
+  fetchedAt: string | null;
+  totalChunks: number;
+  currentChunk: number;
+  totalItems: number;
+  processedItems: number;
+  insertedCount: number;
+  updatedCount: number;
+  unchangedCount: number;
+  failedCount: number;
+  errorMessage: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
 };
 
 const MODES: Array<{ mode: SyncMode; label: string }> = [
@@ -61,11 +83,33 @@ function formatDuration(ms: number) {
 
 export function TaxSyncStatusBar() {
   const [tick, setTick] = useState(0);
+  const [jobs, setJobs] = useState<TaxSyncJob[]>([]);
 
   useEffect(() => {
     const id = window.setInterval(() => setTick((v) => v + 1), 1500);
     return () => window.clearInterval(id);
   }, []);
+
+  const loadJobs = useCallback(async () => {
+    try {
+      const response = await fetch("/api/tax/sync-jobs", { cache: "no-store" });
+      if (!response.ok) return;
+      const data = (await response.json()) as { success?: boolean; jobs?: TaxSyncJob[] };
+      if (data.success && Array.isArray(data.jobs)) {
+        setJobs(data.jobs);
+      }
+    } catch {
+      // silently ignore api errors to keep local fallback working
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadJobs();
+    const id = window.setInterval(() => {
+      void loadJobs();
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [loadJobs]);
 
   const rows = useMemo<SyncStateRow[]>(() => {
     void tick;
@@ -75,7 +119,7 @@ export function TaxSyncStatusBar() {
     }).filter((row): row is SyncStateRow => row !== null);
   }, [tick]);
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0 && jobs.length === 0) return null;
 
   const resumeMode = (mode: SyncMode) => {
     window.dispatchEvent(new CustomEvent("tax-sync:resume", { detail: { mode } }));
@@ -91,12 +135,21 @@ export function TaxSyncStatusBar() {
     setTick((v) => v + 1);
   };
 
+  const recentJobs = jobs.slice(0, 5);
+
+  const statusClassName = (status: TaxSyncJob["status"]) => {
+    if (status === "SUCCESS") return "text-emerald-300 border-emerald-500/30 bg-emerald-500/10";
+    if (status === "FAILED") return "text-red-300 border-red-500/30 bg-red-500/10";
+    if (status === "RUNNING") return "text-amber-300 border-amber-500/30 bg-amber-500/10";
+    return "text-muted-foreground border-border/50 bg-muted/30";
+  };
+
   return (
     <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-medium text-amber-200">
           <AlertTriangle className="h-4 w-4" />
-          Sincronizacao com estado pendente
+          Sincronizacao fiscal
         </div>
         <Button variant="outline" size="sm" onClick={clearAll} className="gap-2">
           <Trash2 className="h-3.5 w-3.5" />
@@ -104,6 +157,7 @@ export function TaxSyncStatusBar() {
         </Button>
       </div>
 
+      {rows.length > 0 ? <p className="mb-2 text-xs font-medium text-muted-foreground">Execucoes em andamento/local</p> : null}
       <div className="space-y-2">
         {rows.map((row) => (
           <div key={row.mode} className="rounded-md border border-border/50 bg-background/60 p-2.5">
@@ -165,6 +219,34 @@ export function TaxSyncStatusBar() {
           </div>
         ))}
       </div>
+
+      {recentJobs.length > 0 ? (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Historico real de jobs</p>
+          <div className="space-y-2">
+            {recentJobs.map((job) => (
+              <div key={job.id} className="rounded-md border border-border/50 bg-background/60 p-2.5">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{job.mode}</span>
+                    {" - "}
+                    {job.processedItems}/{job.totalItems} registros
+                    {" - "}
+                    {job.currentChunk}/{job.totalChunks} lotes
+                  </div>
+                  <span className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${statusClassName(job.status)}`}>
+                    {job.status}
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  ins: {job.insertedCount} | upd: {job.updatedCount} | same: {job.unchangedCount} | fail: {job.failedCount}
+                  {job.errorMessage ? ` | erro: ${job.errorMessage}` : ""}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

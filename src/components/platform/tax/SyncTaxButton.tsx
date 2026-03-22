@@ -17,6 +17,7 @@ type SyncProgress = {
   currentChunk: number;
   totalChunks: number;
   updatedAt: number;
+  jobId?: string;
   startedAt?: number;
   totalItems?: number;
   processedItems?: number;
@@ -103,6 +104,10 @@ function splitByApproxSize<T>(items: T[], maxBytes: number): T[][] {
 async function sendChunk(
   mode: SyncMode,
   chunk: unknown[],
+  totalItems: number,
+  source: string,
+  fetchedAt: number,
+  jobId: string | null,
   chunkIndex = 0,
   totalChunks = 1,
 ) {
@@ -111,10 +116,19 @@ async function sendChunk(
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ mode, chunk, chunkIndex, totalChunks }),
+    body: JSON.stringify({
+      mode,
+      chunk,
+      chunkIndex,
+      totalChunks,
+      totalItems,
+      source,
+      fetchedAt,
+      jobId: jobId ?? undefined,
+    }),
   });
 
-  const data = (await response.json()) as { success?: boolean; error?: string; message?: string };
+  const data = (await response.json()) as { success?: boolean; error?: string; message?: string; jobId?: string };
   if (!response.ok || !data.success) {
     throw new Error(data.error ?? `Falha ao persistir lote (${response.status}).`);
   }
@@ -125,6 +139,10 @@ async function sendChunk(
 async function sendChunkWithRetry(
   mode: SyncMode,
   chunk: unknown[],
+  totalItems: number,
+  source: string,
+  fetchedAt: number,
+  jobId: string | null,
   maxAttempts = 2,
   chunkIndex = 0,
   totalChunks = 1,
@@ -134,7 +152,7 @@ async function sendChunkWithRetry(
 
   while (attempt <= maxAttempts) {
     try {
-      return await sendChunk(mode, chunk, chunkIndex, totalChunks);
+      return await sendChunk(mode, chunk, totalItems, source, fetchedAt, jobId, chunkIndex, totalChunks);
     } catch (error) {
       lastError = error;
       attempt += 1;
@@ -202,6 +220,8 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
       const maxBytes = isClassTrib ? 450_000 : isNcm ? 500_000 : 300_000;
       const chunks = splitByApproxSize(list, maxBytes);
       const startedAt = Date.now();
+      const fetchedAt = Date.now();
+      let jobId: string | null = null;
 
       writeProgress(mode, {
         inProgress: true,
@@ -224,13 +244,25 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
               inProgress: true,
               currentChunk: i + 1,
               totalChunks: chunks.length,
+              jobId,
               totalItems: list.length,
               processedItems: total + chunks[i].length,
               startedAt,
               updatedAt: Date.now(),
             });
 
-            await sendChunkWithRetry(mode, chunks[i], 2, i, chunks.length);
+            const chunkResult = await sendChunkWithRetry(
+              mode,
+              chunks[i],
+              list.length,
+              routeUrl,
+              fetchedAt,
+              jobId,
+              2,
+              i,
+              chunks.length,
+            );
+            jobId = chunkResult.jobId ?? jobId;
             total += chunks[i].length;
           }
 
@@ -252,6 +284,7 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
             inProgress: false,
             currentChunk: last?.currentChunk ?? 0,
             totalChunks: chunks.length,
+            jobId: last?.jobId ?? jobId ?? undefined,
             totalItems: list.length,
             processedItems: total,
             startedAt: last?.startedAt ?? startedAt,

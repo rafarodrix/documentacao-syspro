@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { getProtectedSession } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma";
+import { createHash } from "crypto";
 import {
   saveTaxAnexosBatch,
   saveTaxCredPresumidoBatch,
@@ -15,6 +17,10 @@ type SyncChunkBody = {
   chunk?: unknown[];
   chunkIndex?: number;
   totalChunks?: number;
+  totalItems?: number;
+  source?: string;
+  fetchedAt?: number;
+  jobId?: string;
 };
 
 function isSyncMode(value: unknown): value is SyncMode {
@@ -46,28 +52,94 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Chunk vazio." }, { status: 400 });
   }
 
+  const chunkIndex = typeof body.chunkIndex === "number" ? body.chunkIndex : 0;
+  const totalChunks = typeof body.totalChunks === "number" ? body.totalChunks : 1;
+  const isLastChunk = chunkIndex === totalChunks - 1;
+  const totalItems = typeof body.totalItems === "number" ? body.totalItems : body.chunk.length;
+
+  let jobId = body.jobId;
+  if (!jobId) {
+    const snapshotVersion = `${body.mode}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+    const created = await prisma.taxSyncJob.create({
+      data: {
+        mode: body.mode,
+        source: body.source ?? null,
+        status: "RUNNING",
+        snapshotVersion,
+        fetchedAt: typeof body.fetchedAt === "number" ? new Date(body.fetchedAt) : new Date(),
+        totalChunks,
+        totalItems,
+        startedAt: new Date(),
+      },
+      select: { id: true },
+    });
+    jobId = created.id;
+  }
+
   const result =
     body.mode === "classTrib"
       ? await saveTaxDataBatch(body.chunk, {
-          revalidate: body.chunkIndex === (body.totalChunks ?? 1) - 1,
+          revalidate: isLastChunk,
         })
       : body.mode === "anexos"
         ? await saveTaxAnexosBatch(body.chunk, {
-            isFirstChunk: body.chunkIndex === 0,
-            revalidate: body.chunkIndex === (body.totalChunks ?? 1) - 1,
+            isFirstChunk: chunkIndex === 0,
+            revalidate: isLastChunk,
           })
         : body.mode === "credPresumido"
           ? await saveTaxCredPresumidoBatch(body.chunk, {
-              isFirstChunk: body.chunkIndex === 0,
-              revalidate: body.chunkIndex === (body.totalChunks ?? 1) - 1,
+              isFirstChunk: chunkIndex === 0,
+              revalidate: isLastChunk,
             })
           : await saveTaxNcmBatch(body.chunk, {
-              revalidate: body.chunkIndex === (body.totalChunks ?? 1) - 1,
+              revalidate: isLastChunk,
             });
 
   if (!result.success) {
+    if (jobId) {
+      await prisma.taxSyncJob.update({
+        where: { id: jobId },
+        data: {
+          status: "FAILED",
+          errorMessage: result.error ?? "Falha na sincronizacao.",
+          finishedAt: new Date(),
+          failedCount: { increment: body.chunk.length },
+        },
+      });
+    }
     return NextResponse.json(result, { status: 500 });
   }
 
-  return NextResponse.json(result);
+  const chunkHash = createHash("sha1").update(JSON.stringify(body.chunk)).digest("hex");
+  const previous = await prisma.taxSyncJob.findUnique({
+    where: { id: jobId },
+    select: { payloadHash: true },
+  });
+  const mergedHash = createHash("sha1")
+    .update(`${previous?.payloadHash ?? ""}|${chunkHash}`)
+    .digest("hex");
+
+  await prisma.taxSyncJob.update({
+    where: { id: jobId },
+    data: {
+      currentChunk: chunkIndex + 1,
+      processedItems: { increment: body.chunk.length },
+      insertedCount: { increment: result.inserted ?? 0 },
+      updatedCount: { increment: result.updated ?? 0 },
+      unchangedCount: { increment: result.unchanged ?? 0 },
+      failedCount: { increment: result.failed ?? 0 },
+      payloadHash: mergedHash,
+      ...(isLastChunk
+        ? {
+            status: "SUCCESS",
+            finishedAt: new Date(),
+          }
+        : {}),
+    },
+  });
+
+  return NextResponse.json({
+    ...result,
+    jobId,
+  });
 }
