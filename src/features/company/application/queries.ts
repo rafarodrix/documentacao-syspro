@@ -1,1 +1,1 @@
-export { getCompaniesAction } from "@/actions/platform/company-actions";
+export { getCompaniesAction, getCompanyZammadEmailsAction } from "@/features/company/application/actions";

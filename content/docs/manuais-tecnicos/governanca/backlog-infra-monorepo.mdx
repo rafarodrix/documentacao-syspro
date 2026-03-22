@@ -38,7 +38,8 @@ Criterios de aceite:
 Status atual:
 - application e interface iniciados em `src/features/company`.
 - pages e componentes principais de empresa ja consomem a feature.
-- falta mover a implementacao de `src/actions/platform/company-actions.ts` para `application`.
+- implementacao principal migrada para `src/features/company/application/actions.ts`.
+- falta introduzir domain dedicado e separar melhor queries de writes.
 
 - [ ] `INFRA-002` [Alta] Migrar `tax` para `src/features/tax`.
 Criterios de aceite:
@@ -71,7 +72,8 @@ Criterios de aceite:
 - sem duplicacao de query, filtro ou regra em action.
 Status atual:
 - concluido para `tickets`, `settings` e `contracts`.
-- em andamento para `company` e `tax`.
+- concluido para `company`, `tickets`, `settings` e `contracts`.
+- em andamento para 	ax.
 
 - [ ] `INFRA-006` [Alta] Criar view models e contratos por feature dentro do app atual.
 Criterios de aceite:
@@ -237,3 +239,4 @@ Criterios de aceite:
 1. concluir a migracao de features mais acopladas (`company`, `tax`, `settings`)
 2. mover os contratos internos para cada feature antes de abrir `packages/contracts`
 3. so depois iniciar a raiz de workspace e a extracao para `apps/web`
+
