@@ -47,11 +47,17 @@ type ContinueReadingItem = {
   title: string;
   visitedAt: number;
 };
+type QuickLink = {
+  href: string;
+  title: string;
+  description: string;
+  icon: typeof BookOpen;
+};
 
 const RECENT_KEY = 'docs:recent';
 const POPULAR_KEY = 'docs:popular';
 
-const BASE_QUICK_LINKS = [
+const BASE_QUICK_LINKS: QuickLink[] = [
   {
     href: '/docs/manual',
     title: 'Manual de uso',
@@ -76,7 +82,7 @@ const BASE_QUICK_LINKS = [
     description: 'Processos, integrações e operação.',
     icon: Wrench,
   },
-] as const;
+];
 
 const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string; description: string }>> = {
   ADMIN: [
