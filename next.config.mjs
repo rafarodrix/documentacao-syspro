@@ -27,6 +27,41 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/docs/manuais-tecnicos/arquitetura-aplicacao-monorepo',
+        destination: '/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo',
+        permanent: true,
+      },
+      {
+        source: '/docs/manuais-tecnicos/arquitetura-documentacao-fumadocs',
+        destination: '/docs/manuais-tecnicos/arquitetura/arquitetura-documentacao-fumadocs',
+        permanent: true,
+      },
+      {
+        source: '/docs/manuais-tecnicos/arquitetura-referencia-por-fluxo',
+        destination: '/docs/manuais-tecnicos/arquitetura/arquitetura-referencia-por-fluxo',
+        permanent: true,
+      },
+      {
+        source: '/docs/manuais-tecnicos/backlog-infra-monorepo',
+        destination: '/docs/manuais-tecnicos/governanca/backlog-infra-monorepo',
+        permanent: true,
+      },
+      {
+        source: '/docs/manuais-tecnicos/padrao-componentes-mdx',
+        destination: '/docs/manuais-tecnicos/padroes/padrao-componentes-mdx',
+        permanent: true,
+      },
+      {
+        source: '/docs/manuais-tecnicos/diff-highlighting-shiki',
+        destination: '/docs/manuais-tecnicos/padroes/diff-highlighting-shiki',
+        permanent: true,
+      },
+      {
+        source: '/docs/manuais-tecnicos/estrategia-plataforma-remota',
+        destination: '/docs/manuais-tecnicos/estrategia/estrategia-plataforma-remota',
+        permanent: true,
+      },
+      {
         source: '/docs/suporte/processos/integra%C3%A7%C3%A3o%20zammad',
         destination: '/docs/suporte/processos/integracao-zammad',
         permanent: true,

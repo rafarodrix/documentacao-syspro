@@ -1,0 +1,135 @@
+---
+title: Estratégia de Plataforma Remota (Futuro)
+description: Base técnica para evolução da plataforma com acesso remoto, credenciais, backup, APIs e roadmap por fases.
+full: true
+lastUpdated: "2026-03-22"
+owner: Equipe de Arquitetura
+status: draft
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+Este documento consolida a implementação-base para evolução futura da plataforma Trilink, com foco em operação remota segura, credenciais centralizadas, backup de banco e arquitetura escalável por fases.
+
+## Resumo executivo
+
+- Engine remota recomendada para MVP: **RustDesk self-hosted**.
+- Cenário web-first futuro: **Apache Guacamole**.
+- Cofre de credenciais: **HashiCorp Vault**.
+- Banco legado Firebird:
+  - **`gbak`** como padrão de backup lógico.
+  - **`nbackup`** em cenários específicos de backup físico/incremental.
+
+<Callout type="info" title="Diretriz prática">
+  Começar com RustDesk reduz tempo e risco de implementação. Guacamole entra como evolução quando houver necessidade de experiência 100% via navegador.
+</Callout>
+
+## Arquitetura proposta
+
+### Camadas
+
+1. **Portal Web (Next.js)**
+2. **API/BFF (tRPC/REST interno)**
+3. **Orquestrador de sessão remota**
+4. **Cofre de segredos (Vault)**
+5. **Módulo de backup e restore (Firebird)**
+6. **Auditoria e observabilidade**
+
+### Módulos principais do sistema
+
+- Gestão de clientes, ambientes e agentes.
+- Acesso remoto (início, encerramento, trilha de auditoria).
+- Gestão de credenciais e rotação.
+- Rotinas de backup, restauração e validação.
+- Alertas operacionais e health checks.
+- Registro de ações por usuário/técnico.
+
+## Banco de dados (sugestão inicial)
+
+Entidades-base para MVP:
+
+- `RemoteHost`
+- `RemoteSession`
+- `CredentialVaultRef`
+- `BackupJob`
+- `BackupArtifact`
+- `RestoreJob`
+- `AuditLog`
+- `IntegrationEndpoint`
+
+## Fluxos críticos
+
+### 1) Acesso remoto
+
+1. Usuário seleciona cliente/ambiente.
+2. API valida permissão e política.
+3. Orquestrador abre sessão remota.
+4. Sistema registra início/fim e metadados de auditoria.
+
+### 2) Credenciais
+
+1. Portal solicita segredo por referência.
+2. API consulta Vault por policy.
+3. Segredo é entregue apenas ao contexto autorizado.
+4. Toda leitura/uso é auditada.
+
+### 3) Backup e restauração
+
+1. Scheduler dispara rotina.
+2. Módulo executa `gbak` (padrão) ou `nbackup` (casos específicos).
+3. Artefatos são validados e catalogados.
+4. Restore passa por checklist e confirmação dupla.
+
+## Endpoints de API (MVP)
+
+- `POST /api/remote/session/start`
+- `POST /api/remote/session/stop`
+- `GET /api/remote/session/:id`
+- `POST /api/credentials/request`
+- `POST /api/backup/run`
+- `GET /api/backup/jobs`
+- `POST /api/restore/run`
+- `GET /api/audit/events`
+
+## Telas (MVP)
+
+- Painel de ambientes remotos.
+- Sessões ativas e histórico de sessão.
+- Cofre de credenciais (somente referência e acesso controlado).
+- Backup/restore com status e logs.
+- Auditoria com filtros por usuário, cliente e período.
+
+## Roadmap por fases
+
+<Steps>
+  <Step>
+    ### Fase 1 — Fundação (MVP)
+    RustDesk self-hosted, controle de sessão, auditoria mínima, backup padrão com `gbak`.
+  </Step>
+  <Step>
+    ### Fase 2 — Segurança e governança
+    Integração completa com Vault, políticas por role, rotação de credenciais e trilha ampliada.
+  </Step>
+  <Step>
+    ### Fase 3 — Escala e experiência web-first
+    Cenários com Guacamole, gravação/replay no navegador, operação multiambiente e observabilidade avançada.
+  </Step>
+</Steps>
+
+## Stack recomendada
+
+- **Frontend:** Next.js (App Router), React, Tailwind.
+- **Backend:** Node/TypeScript, tRPC/REST interno.
+- **Banco:** PostgreSQL + Prisma.
+- **Segredos:** HashiCorp Vault.
+- **Acesso remoto:** RustDesk (MVP) e Guacamole (evolução).
+- **Fila/Jobs:** worker assíncrono para sessões, backup e rotinas.
+
+## Referências
+
+- Apache Guacamole — gravação e playback no navegador:  
+  https://guacamole.apache.org/doc/gug/recording-playback.html
+- RustDesk — opções de self-hosted:  
+  https://rustdesk.com/pricing
+

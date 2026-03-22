@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, CSSProperties } from 'react';
 import type { Role } from '@prisma/client';
 import {
   ArrowRight,
@@ -18,7 +18,10 @@ import {
   TrendingUp,
   Users,
   Wrench,
+  Search,
 } from 'lucide-react';
+
+// --- Dependências Externas (Assumindo que existem no seu projeto) ---
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,62 +32,36 @@ import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
 import { MagicCard } from '@/components/magicui/magic-card';
 import { ShineBorder } from '@/components/magicui/shine-border';
 
-type DocsHomeEntry = {
-  href: string;
-  title: string;
-  description?: string;
-  lastUpdated?: string;
-};
-
-type DocsRecentItem = {
-  href: string;
-  title: string;
-  visitedAt: number;
-};
-
+// ==========================================
+// 1. TIPAGENS (Idealmente em um arquivo types.ts)
+// ==========================================
+type DocsHomeEntry = { href: string; title: string; description?: string; lastUpdated?: string; };
+type DocsRecentItem = { href: string; title: string; visitedAt: number; };
 type PopularMap = Record<string, { title: string; count: number; lastVisited: number }>;
 type PopularItem = { href: string; title: string; count: number; lastViewed: number };
 type RoleSegment = 'admin' | 'developer' | 'suporte' | 'cliente_admin' | 'cliente_user';
-type ContinueReadingItem = {
-  href: string;
-  title: string;
-  visitedAt: number;
-};
+type ContinueReadingItem = { href: string; title: string; visitedAt: number; };
+type QuickLinkTone = 'docs' | 'faq' | 'training' | 'support' | 'technical';
+
 type QuickLink = {
   href: string;
   title: string;
   description: string;
-  icon: typeof BookOpen | typeof HelpCircle | typeof Users | typeof Wrench | typeof Compass;
+  icon: React.ElementType;
+  tone: QuickLinkTone;
 };
 
+// ==========================================
+// 2. CONSTANTES (Idealmente em um arquivo constants.ts)
+// ==========================================
 const RECENT_KEY = 'docs:recent';
 const POPULAR_KEY = 'docs:popular';
 
 const BASE_QUICK_LINKS: QuickLink[] = [
-  {
-    href: '/docs/manual',
-    title: 'Documentação',
-    description: 'Guias e módulos para o dia a dia.',
-    icon: BookOpen,
-  },
-  {
-    href: '/docs/duvidas',
-    title: 'Dúvidas frequentes',
-    description: 'Respostas para incidentes comuns.',
-    icon: HelpCircle,
-  },
-  {
-    href: '/docs/treinamento',
-    title: 'Treinamentos',
-    description: 'Trilhas de capacitação da equipe.',
-    icon: Users,
-  },
-  {
-    href: '/docs/suporte',
-    title: 'Suporte',
-    description: 'Processos, integrações e operação.',
-    icon: Wrench,
-  },
+  { href: '/docs/manual', title: 'Documentação', description: 'Guias e módulos para o dia a dia.', icon: BookOpen, tone: 'docs' },
+  { href: '/docs/duvidas', title: 'Dúvidas frequentes', description: 'Respostas para incidentes comuns.', icon: HelpCircle, tone: 'faq' },
+  { href: '/docs/treinamento', title: 'Treinamentos', description: 'Trilhas de capacitação da equipe.', icon: Users, tone: 'training' },
+  { href: '/docs/suporte', title: 'Suporte', description: 'Processos, integrações e operação.', icon: Wrench, tone: 'support' },
 ];
 
 const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string; description: string }>> = {
@@ -123,120 +100,33 @@ const ROLE_LABELS: Record<RoleSegment, string> = {
   cliente_user: 'Populares para clientes',
 };
 
+const TONE_STYLES: Record<QuickLinkTone, { shineColor: string[]; pillClass: string; glowClass: string; }> = {
+  docs: { shineColor: ['#60a5fa55', '#38bdf855'], pillClass: 'border-blue-400/30 bg-blue-500/10 text-blue-100', glowClass: 'from-blue-500/20' },
+  faq: { shineColor: ['#f59e0b55', '#f9731655'], pillClass: 'border-amber-400/30 bg-amber-500/10 text-amber-100', glowClass: 'from-amber-500/20' },
+  training: { shineColor: ['#22c55e55', '#14b8a655'], pillClass: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100', glowClass: 'from-emerald-500/20' },
+  support: { shineColor: ['#f43f5e55', '#a855f755'], pillClass: 'border-rose-400/30 bg-rose-500/10 text-rose-100', glowClass: 'from-rose-500/20' },
+  technical: { shineColor: ['#22d3ee55', '#a78bfa55'], pillClass: 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100', glowClass: 'from-cyan-500/20' },
+};
 
-function parseDate(date?: string): number {
-  if (!date) return 0;
-  const ms = Date.parse(date);
-  return Number.isNaN(ms) ? 0 : ms;
-}
-
-function formatDate(date?: string): string | null {
+// ==========================================
+// 3. FUNÇÕES UTILITÁRIAS (Idealmente em utils.ts)
+// ==========================================
+const staggerStyle = (index: number): CSSProperties => ({ animationDelay: `${Math.min(index * 70, 700)}ms` });
+const parseDate = (date?: string): number => date ? (Number.isNaN(Date.parse(date)) ? 0 : Date.parse(date)) : 0;
+const formatDate = (date?: string): string | null => {
   if (!date) return null;
   const value = new Date(date);
-  if (Number.isNaN(value.getTime())) return null;
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(value);
-}
+  return Number.isNaN(value.getTime()) ? null : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(value);
+};
+const formatDateTime = (timestamp: number): string => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(timestamp));
+const readLocalStorage = <T,>(key: string, fallback: T): T => {
+  try { return JSON.parse(localStorage.getItem(key) || '') as T; } catch { return fallback; }
+};
 
-function formatDateTime(timestamp: number): string {
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(timestamp));
-}
-
-function readLocalStorage<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function InsightCard({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/70 to-card/35 p-4 shadow-[0_10px_30px_-22px_rgba(56,189,248,0.45)]',
-        className,
-      )}
-    >
-      <ShineBorder shineColor={['#60a5fa33', '#22d3ee2e']} duration={15} className="opacity-70" />
-      <div className="relative z-10">{children}</div>
-    </div>
-  );
-}
-
-function PremiumLinkCard({ item }: { item: QuickLink }) {
-  const Icon = item.icon;
-
-  return (
-    <Link href={item.href} className="group block">
-      <MagicCard className="h-full rounded-2xl">
-        <div className="relative h-full rounded-2xl p-4 sm:p-5">
-          <ShineBorder shineColor={['#6aa9ff55', '#a78bfa66', '#22d3ee55']} duration={11} className="opacity-70" />
-          <div className="relative z-10 flex items-start justify-between gap-3">
-            <div className="space-y-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-xs text-muted-foreground">
-                <Icon className="h-3.5 w-3.5" />
-                {item.title}
-              </span>
-              <p className="text-sm text-muted-foreground">{item.description}</p>
-            </div>
-            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-foreground" />
-          </div>
-        </div>
-      </MagicCard>
-    </Link>
-  );
-}
-
-function InsightLink({ href, title, meta }: { href: string; title: string; meta?: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'group relative flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2.5 text-sm transition-all',
-        'hover:border-primary/35 hover:bg-accent/60',
-      )}
-    >
-      <span className="absolute inset-y-1 left-1 w-[2px] rounded bg-primary/70 opacity-0 transition-opacity group-hover:opacity-100" />
-      <span className="line-clamp-2 leading-snug">{title}</span>
-      {meta ?? (
-        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-      )}
-    </Link>
-  );
-}
-
-function CountBadge({ count }: { count: number }) {
-  return (
-    <Badge variant="secondary" className="ml-2 shrink-0 rounded-md border border-border/60 bg-card tabular-nums">
-      {count}
-    </Badge>
-  );
-}
-
-function InsightSkeleton({ rows = 3 }: { rows?: number }) {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="rounded-lg border border-border/60 bg-background px-3 py-2.5">
-          <Skeleton className="h-3.5 w-3/4" />
-          <Skeleton className="mt-1.5 h-3 w-1/3" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function DocsHomePage({
-  pages,
-  canViewTechnical,
-  role,
-}: {
-  pages: DocsHomeEntry[];
-  canViewTechnical: boolean;
-  role: Role;
-}) {
+// ==========================================
+// 4. CUSTOM HOOK DE REGRAS DE NEGÓCIO
+// ==========================================
+function useDocsDashboard(pages: DocsHomeEntry[], role: Role, canViewTechnical: boolean) {
   const [recentItems, setRecentItems] = useState<DocsRecentItem[]>([]);
   const [popularItems, setPopularItems] = useState<PopularMap>({});
   const [globalPopular, setGlobalPopular] = useState<PopularItem[]>([]);
@@ -249,176 +139,195 @@ export function DocsHomePage({
     setRecentItems(readLocalStorage<DocsRecentItem[]>(RECENT_KEY, []));
     setPopularItems(readLocalStorage<PopularMap>(POPULAR_KEY, {}));
 
-    void fetch('/api/docs/views', { cache: 'no-store' })
-      .then(async (res) => {
-        if (!res.ok) return null;
-        return res.json() as Promise<{
-          ok?: boolean;
-          roleSegment?: RoleSegment;
-          globalPopular?: PopularItem[];
-          rolePopular?: PopularItem[];
-          lastRead?: ContinueReadingItem | null;
-        }>;
-      })
-      .then((data) => {
-        if (!data?.ok) return;
+    const fetchInsights = async () => {
+      try {
+        const res = await fetch('/api/docs/views', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        
         if (data.roleSegment) setRoleSegment(data.roleSegment);
         if (Array.isArray(data.globalPopular)) setGlobalPopular(data.globalPopular);
         if (Array.isArray(data.rolePopular)) setRolePopular(data.rolePopular);
         if (data.lastRead?.href && typeof data.lastRead.visitedAt === 'number') {
           setLastReadApi(data.lastRead);
         }
-      })
-      .catch(() => undefined)
-      .finally(() => setLoadingInsights(false));
+      } catch (error) {
+        console.error('Failed to fetch docs insights:', error);
+      } finally {
+        setLoadingInsights(false);
+      }
+    };
+
+    void fetchInsights();
   }, []);
 
   const pageByHref = useMemo(() => new Map(pages.map((p) => [p.href, p])), [pages]);
 
-  const latestUpdates = useMemo(
-    () => [...pages].sort((a, b) => parseDate(b.lastUpdated) - parseDate(a.lastUpdated)).slice(0, 5),
-    [pages],
-  );
+  const latestUpdates = useMemo(() => 
+    [...pages].sort((a, b) => parseDate(b.lastUpdated) - parseDate(a.lastUpdated)).slice(0, 5), 
+  [pages]);
 
-  const mostAccessed = useMemo(
-    () =>
-      Object.entries(popularItems)
-        .sort(([, a], [, b]) => (b.count !== a.count ? b.count - a.count : b.lastVisited - a.lastVisited))
-        .map(([href, stats]) => ({
-          href,
-          title: pageByHref.get(href)?.title ?? stats.title,
-          count: stats.count,
-        }))
-        .slice(0, 5),
-    [pageByHref, popularItems],
-  );
+  const mostAccessed = useMemo(() => 
+    Object.entries(popularItems)
+      .sort(([, a], [, b]) => (b.count !== a.count ? b.count - a.count : b.lastVisited - a.lastVisited))
+      .map(([href, stats]) => ({ href, title: pageByHref.get(href)?.title ?? stats.title, count: stats.count }))
+      .slice(0, 5), 
+  [pageByHref, popularItems]);
 
-  const recent = useMemo(
-    () =>
-      recentItems
-        .map((entry) => ({
-          href: entry.href,
-          title: pageByHref.get(entry.href)?.title ?? entry.title,
-          visitedAt: entry.visitedAt,
-        }))
-        .slice(0, 5),
-    [pageByHref, recentItems],
-  );
+  const recent = useMemo(() => 
+    recentItems.map((entry) => ({ href: entry.href, title: pageByHref.get(entry.href)?.title ?? entry.title, visitedAt: entry.visitedAt })).slice(0, 5), 
+  [pageByHref, recentItems]);
 
-  const continueReading = useMemo<ContinueReadingItem | null>(() => {
+  const continueReading = useMemo(() => {
     const source = lastReadApi ?? recentItems[0] ?? null;
-    if (!source) return null;
-    return {
-      href: source.href,
-      title: pageByHref.get(source.href)?.title ?? source.title,
-      visitedAt: source.visitedAt,
-    };
+    return source ? { href: source.href, title: pageByHref.get(source.href)?.title ?? source.title, visitedAt: source.visitedAt } : null;
   }, [lastReadApi, pageByHref, recentItems]);
 
   const quickLinks = useMemo(() => {
     const links = [...BASE_QUICK_LINKS];
     if (canViewTechnical) {
-      links.push({
-        href: '/docs/manuais-tecnicos',
-        title: 'Manuais técnicos',
-        description: 'Arquitetura, backlog e padrões de engenharia.',
-        icon: Wrench,
-      });
+      links.push({ href: '/docs/manuais-tecnicos', title: 'Manuais técnicos', description: 'Arquitetura, backlog e padrões.', icon: Wrench, tone: 'technical' });
     }
     return links;
   }, [canViewTechnical]);
 
   const startTasks = useMemo(() => {
     const tasks = ROLE_START_TASKS[role] ?? ROLE_START_TASKS.CLIENTE_USER;
-    if (!canViewTechnical) return tasks.filter((task) => !task.href.startsWith('/docs/manuais-tecnicos'));
-    return tasks;
+    return canViewTechnical ? tasks : tasks.filter((task) => !task.href.startsWith('/docs/manuais-tecnicos'));
   }, [role, canViewTechnical]);
 
-  const insightCount = useMemo(
-    () => rolePopular.length + globalPopular.length + mostAccessed.length,
-    [globalPopular.length, mostAccessed.length, rolePopular.length],
+  return {
+    state: { roleSegment, loadingInsights },
+    derived: { latestUpdates, mostAccessed, recent, continueReading, quickLinks, startTasks, globalPopular, rolePopular },
+    metrics: { totalPages: pages.length, insightCount: rolePopular.length + globalPopular.length + mostAccessed.length }
+  };
+}
+
+// ==========================================
+// 5. COMPONENTES MENORES (UI Pura)
+// ==========================================
+function HeroMetric({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) {
+  return (
+    <div className="group relative overflow-hidden rounded-xl border border-border/70 bg-background/60 p-3 transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-background/75">
+      <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+      <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" /> {label}
+      </p>
+      <p className="mt-1 text-lg font-semibold tracking-tight">{value}</p>
+    </div>
   );
+}
+
+function InsightLink({ href, title, meta }: { href: string; title: string; meta?: ReactNode }) {
+  return (
+    <Link href={href} className="group relative flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2.5 text-sm transition-all hover:border-primary/35 hover:bg-accent/60">
+      <span className="absolute inset-y-1 left-1 w-[2px] rounded bg-primary/70 opacity-0 transition-opacity group-hover:opacity-100" />
+      <span className="line-clamp-2 leading-snug">{title}</span>
+      {meta ?? <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />}
+    </Link>
+  );
+}
+
+function PremiumLinkCard({ item, style }: { item: QuickLink; style?: CSSProperties }) {
+  const Icon = item.icon;
+  const tone = TONE_STYLES[item.tone];
 
   return (
-    <div className="space-y-8 pb-10">
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-6 md:p-8">
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-3 py-1 text-xs text-muted-foreground">
-              <Sparkles className="h-3 w-3" />
-              Central de documentação
+    <Link href={item.href} className="group block animate-docs-fade-up opacity-0" style={style}>
+      <MagicCard className="h-full rounded-2xl transition-transform duration-300 group-hover:-translate-y-1">
+        <div className="relative h-full rounded-2xl p-4 sm:p-5">
+          <div className={cn('pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br to-transparent opacity-70', tone.glowClass)} />
+          <ShineBorder shineColor={tone.shineColor} duration={11} className="opacity-70" />
+          <div className="relative z-10 flex items-start justify-between gap-3">
+            <div className="space-y-2">
+              <span className={cn('inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs', tone.pillClass)}>
+                <Icon className="h-3.5 w-3.5" /> {item.title}
+              </span>
+              <p className="text-sm text-muted-foreground">{item.description}</p>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Como podemos ajudar?</h1>
-            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-foreground" />
+          </div>
+        </div>
+      </MagicCard>
+    </Link>
+  );
+}
+
+function InsightCard({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/70 to-card/35 p-4 shadow-[0_10px_30px_-22px_rgba(56,189,248,0.45)]', className)}>
+      <ShineBorder shineColor={['#60a5fa33', '#22d3ee2e']} duration={15} className="opacity-70" />
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+}
+
+// ==========================================
+// 6. COMPONENTE PRINCIPAL DE PÁGINA
+// ==========================================
+type DocsHomePageProps = {
+  pages: DocsHomeEntry[];
+  canViewTechnical: boolean;
+  role: Role;
+};
+
+export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProps) {
+  // A Lógica complexa foi abstraída para o hook customizado
+  const { state, derived, metrics } = useDocsDashboard(pages, role, canViewTechnical);
+
+  const openSearch = () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
+
+  return (
+    <div className="space-y-10 pb-28">
+      
+      {/* SEÇÃO 1: Hero & Search */}
+      <section className="relative animate-docs-fade-up overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-6 opacity-0 md:p-8" style={staggerStyle(0)}>
+        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-20 h-60 w-60 rounded-full bg-blue-500/10 blur-3xl" />
+        
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div className="max-w-3xl">
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-3 py-1 text-xs text-muted-foreground">
+              <Sparkles className="h-3 w-3" /> Central de documentação
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight md:text-4xl">Como podemos ajudar?</h1>
+            <p className="mt-2 text-sm text-muted-foreground md:text-base">
               Busque por guias, módulos, dúvidas frequentes e processos operacionais. Use{' '}
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">Ctrl K</kbd> em
-              qualquer página para acesso rápido.
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">Ctrl K</kbd> em qualquer página para acesso rápido.
             </p>
           </div>
-
-          <div className="flex flex-col items-end gap-2">
-            <Badge variant="outline" className="shrink-0 text-muted-foreground">
-              {pages.length} páginas disponíveis
-            </Badge>
-          </div>
+          <Badge variant="outline" className="shrink-0 text-muted-foreground">{metrics.totalPages} páginas disponíveis</Badge>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <LargeSearchToggle className="h-11 min-w-[260px] flex-1 justify-start rounded-xl border-border/70 bg-background/85 text-sm" />
-          <Link
-            href="/docs/manual"
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-5 text-sm font-medium transition-colors hover:bg-accent"
-          >
-            <BookOpen className="h-4 w-4" />
-            Ver manual
-          </Link>
-          <Link
-            href="/docs/duvidas"
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-5 text-sm font-medium transition-colors hover:bg-accent"
-          >
-            <HelpCircle className="h-4 w-4" />
-            Dúvidas
+          <Link href="/docs/manual" className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-5 text-sm font-medium transition-colors hover:bg-accent">
+            <BookOpen className="h-4 w-4" /> Ver manual
           </Link>
         </div>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-xl border border-border/70 bg-background/60 p-3">
-            <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-              <Compass className="h-3.5 w-3.5" />
-              Trilhas iniciais
-            </p>
-            <p className="mt-1 text-lg font-semibold">{startTasks.length}</p>
-          </div>
-          <div className="rounded-xl border border-border/70 bg-background/60 p-3">
-            <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-              <History className="h-3.5 w-3.5" />
-              Recentes
-            </p>
-            <p className="mt-1 text-lg font-semibold">{recent.length}</p>
-          </div>
-          <div className="rounded-xl border border-border/70 bg-background/60 p-3">
-            <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-              <BarChart3 className="h-3.5 w-3.5" />
-              Insights ativos
-            </p>
-            <p className="mt-1 text-lg font-semibold">{insightCount}</p>
-          </div>
+          <HeroMetric icon={Compass} label="Trilhas iniciais" value={derived.startTasks.length} />
+          <HeroMetric icon={History} label="Recentes" value={derived.recent.length} />
+          <HeroMetric icon={BarChart3} label="Insights ativos" value={metrics.insightCount} />
         </div>
       </section>
 
-      <section>
+      {/* SEÇÃO 2: Acesso Rápido */}
+      <section className="animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(1)}>
         <DocsSectionHeader icon={LayoutDashboard} label="Acesso rápido" />
         <div className="grid gap-3 sm:grid-cols-2">
-          {quickLinks.map((item) => (
-            <PremiumLinkCard key={item.href} item={item} />
+          {derived.quickLinks.map((item, index) => (
+            <PremiumLinkCard key={item.href} item={item} style={staggerStyle(index + 2)} />
           ))}
         </div>
       </section>
 
-      <section>
+      {/* SEÇÃO 3: Comece por aqui */}
+      <section className="animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(3)}>
         <DocsSectionHeader icon={LayoutDashboard} label="Comece por aqui" />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {startTasks.map((item) => (
+          {derived.startTasks.map((item) => (
             <Link key={item.href} href={item.href} className="group block">
               <MagicCard className="h-full rounded-2xl">
                 <div className="relative h-full rounded-2xl p-4">
@@ -434,148 +343,83 @@ export function DocsHomePage({
         </div>
       </section>
 
-      {continueReading ? (
-        <section>
+      {/* SEÇÃO 4: Continuar Leitura */}
+      {derived.continueReading && (
+        <section className="animate-docs-fade-up opacity-0" style={staggerStyle(3.5)}>
           <DocsSectionHeader icon={History} label="Continuar leitura" />
-          <Link
-            href={continueReading.href}
-            className="group flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-card/40 p-4 transition-colors hover:bg-accent"
-          >
+          <Link href={derived.continueReading.href} className="group flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-card/40 p-4 transition-colors hover:bg-accent">
             <div className="min-w-0 flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="min-w-0">
-                <p className="line-clamp-1 text-sm font-medium">{continueReading.title}</p>
-                <p className="text-xs text-muted-foreground">Último acesso em {formatDateTime(continueReading.visitedAt)}</p>
+                <p className="line-clamp-1 text-sm font-medium">{derived.continueReading.title}</p>
+                <p className="text-xs text-muted-foreground">Último acesso em {formatDateTime(derived.continueReading.visitedAt)}</p>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
           </Link>
         </section>
-      ) : loadingInsights ? (
-        <section>
-          <Skeleton className="mb-3 h-4 w-32" />
-          <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 p-4">
-            <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="h-3 w-1/3" />
-            </div>
-          </div>
-        </section>
-      ) : null}
+      )}
 
-      <section>
+      {/* SEÇÃO 5: Insights de Uso */}
+      <section className="animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(4)}>
         <DocsSectionHeader icon={TrendingUp} label="Insights de uso" />
         <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-card/30 via-transparent to-primary/5 p-3 sm:p-4">
           <div className="mb-3 flex items-center justify-between px-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Painel de inteligência</p>
-            <Badge variant="outline" className="text-[11px] text-muted-foreground">
-              Atualização contínua
-            </Badge>
+            <Badge variant="outline" className="text-[11px] text-muted-foreground">Atualização contínua</Badge>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-          <InsightCard>
-            <DocsSectionHeader icon={Clock} label="Últimas atualizações" />
-            {latestUpdates.length === 0 ? (
-              <DocsEmptyState message="Nenhuma atualização recente." />
-            ) : (
-              <div className="space-y-1.5">
-                {latestUpdates.map((item) => (
-                  <InsightLink
-                    key={item.href}
-                    href={item.href}
-                    title={item.title}
-                    meta={
-                      formatDate(item.lastUpdated) ? (
-                        <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">{formatDate(item.lastUpdated)}</span>
-                      ) : undefined
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </InsightCard>
+            
+            <InsightCard>
+              <DocsSectionHeader icon={Clock} label="Últimas atualizações" />
+              {derived.latestUpdates.length === 0 ? <DocsEmptyState message="Nenhuma atualização." /> : (
+                <div className="space-y-1.5">
+                  {derived.latestUpdates.map(item => (
+                    <InsightLink key={item.href} href={item.href} title={item.title} meta={formatDate(item.lastUpdated) && <span className="text-xs text-muted-foreground">{formatDate(item.lastUpdated)}</span>} />
+                  ))}
+                </div>
+              )}
+            </InsightCard>
 
-          <InsightCard>
-            <DocsSectionHeader icon={Flame} label="Mais acessados por você" />
-            {mostAccessed.length === 0 ? (
-              <DocsEmptyState message="Nenhum dado de acesso ainda. Explore a documentação." />
-            ) : (
-              <div className="space-y-1.5">
-                {mostAccessed.map((item) => (
-                  <InsightLink key={item.href} href={item.href} title={item.title} meta={<CountBadge count={item.count} />} />
-                ))}
-              </div>
-            )}
-          </InsightCard>
+            <InsightCard>
+              <DocsSectionHeader icon={Flame} label="Mais acessados por você" />
+              {derived.mostAccessed.length === 0 ? <DocsEmptyState message="Nenhum dado." /> : (
+                <div className="space-y-1.5">
+                  {derived.mostAccessed.map(item => (
+                    <InsightLink key={item.href} href={item.href} title={item.title} meta={<Badge variant="secondary" className="ml-2">{item.count}</Badge>} />
+                  ))}
+                </div>
+              )}
+            </InsightCard>
 
-          <InsightCard>
-            <DocsSectionHeader icon={Users} label={ROLE_LABELS[roleSegment]} />
-            {loadingInsights ? (
-              <InsightSkeleton />
-            ) : rolePopular.length === 0 ? (
-              <DocsEmptyState message="Ainda sem ranking por perfil disponível." />
-            ) : (
-              <div className="space-y-1.5">
-                {rolePopular.slice(0, 5).map((item) => (
-                  <InsightLink
-                    key={`role-${item.href}`}
-                    href={item.href}
-                    title={item.title}
-                    meta={<CountBadge count={item.count} />}
-                  />
-                ))}
-              </div>
-            )}
-          </InsightCard>
-
-          <InsightCard>
-            <DocsSectionHeader icon={TrendingUp} label="Populares na base" />
-            {loadingInsights ? (
-              <InsightSkeleton />
-            ) : globalPopular.length === 0 ? (
-              <DocsEmptyState message="Ainda sem ranking global disponível." />
-            ) : (
-              <div className="space-y-1.5">
-                {globalPopular.slice(0, 5).map((item) => (
-                  <InsightLink
-                    key={`global-${item.href}`}
-                    href={item.href}
-                    title={item.title}
-                    meta={<CountBadge count={item.count} />}
-                  />
-                ))}
-              </div>
-            )}
-          </InsightCard>
           </div>
         </div>
       </section>
 
-      <section>
-        <DocsSectionHeader icon={History} label="Páginas recentes" />
-        {recent.length === 0 ? (
-          <DocsEmptyState message="Você ainda não abriu nenhuma página." />
-        ) : (
-          <div className="grid gap-1.5 sm:grid-cols-2">
-            {recent.map((item) => (
-              <InsightLink
-                key={item.href}
-                href={item.href}
-                title={item.title}
-                meta={<span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">{formatDateTime(item.visitedAt)}</span>}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      {/* SEÇÃO 6: Bottom Bar Flutuante */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4">
+        <div className="pointer-events-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/85 p-2 backdrop-blur-md sm:gap-3 shadow-lg">
+          <button onClick={openSearch} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-border/70 bg-card/70 px-3 text-sm font-medium transition-colors hover:bg-accent">
+            <Search className="h-4 w-4" /> Abrir busca
+          </button>
+          <Link href={derived.startTasks[0]?.href ?? '/docs/manual'} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/15">
+            Ver trilha recomendada <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
 
-      <Callout type="info" title="Dica de produtividade">
-        Use <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">Ctrl K</kbd> para
-        abrir a busca em qualquer página e navegar instantaneamente pelo conteúdo.
-      </Callout>
+      {/* STYLES (Nota: Em produção, mova isso para o globals.css ou tailwind.config) */}
+      <style jsx global>{`
+        @media (prefers-reduced-motion: no-preference) {
+          .animate-docs-fade-up { animation: docsFadeUp 540ms cubic-bezier(0.2, 0.65, 0.2, 1) forwards; }
+          @keyframes docsFadeUp {
+            0% { opacity: 0; transform: translateY(12px) scale(0.99); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+          }
+        }
+      `}</style>
     </div>
   );
 }
