@@ -1,14 +1,46 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
-import { saveTaxAnexosBatch, saveTaxCredPresumidoBatch, saveTaxDataBatch } from "@/actions/tax/tax-actions";
 import { toast } from "sonner";
 
 const CLASS_TRIB_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/classTrib";
 const ANEXOS_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/anexos";
 const CRED_PRESUMIDO_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/credPresumido";
+
+type SyncMode = "classTrib" | "anexos" | "credPresumido";
+
+type SyncProgress = {
+  inProgress: boolean;
+  currentChunk: number;
+  totalChunks: number;
+  updatedAt: number;
+};
+
+function progressKey(mode: SyncMode) {
+  return `tax-sync:progress:${mode}`;
+}
+
+function readProgress(mode: SyncMode): SyncProgress | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(progressKey(mode));
+    if (!raw) return null;
+    return JSON.parse(raw) as SyncProgress;
+  } catch {
+    return null;
+  }
+}
+
+function writeProgress(mode: SyncMode, progress: SyncProgress | null) {
+  if (typeof window === "undefined") return;
+  if (!progress) {
+    window.localStorage.removeItem(progressKey(mode));
+    return;
+  }
+  window.localStorage.setItem(progressKey(mode), JSON.stringify(progress));
+}
 
 function normalizeTaxPayload(data: unknown): unknown[] {
   if (Array.isArray(data)) return data;
@@ -62,7 +94,40 @@ function splitByApproxSize<T>(items: T[], maxBytes: number): T[][] {
   return chunks;
 }
 
-type SyncMode = "classTrib" | "anexos" | "credPresumido";
+async function sendChunk(mode: SyncMode, chunk: unknown[]) {
+  const response = await fetch("/api/tax/sync-chunk", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ mode, chunk }),
+  });
+
+  const data = (await response.json()) as { success?: boolean; error?: string; message?: string };
+  if (!response.ok || !data.success) {
+    throw new Error(data.error ?? `Falha ao persistir lote (${response.status}).`);
+  }
+
+  return data;
+}
+
+async function sendChunkWithRetry(mode: SyncMode, chunk: unknown[], maxAttempts = 2) {
+  let attempt = 0;
+  let lastError: unknown = null;
+
+  while (attempt <= maxAttempts) {
+    try {
+      return await sendChunk(mode, chunk);
+    } catch (error) {
+      lastError = error;
+      attempt += 1;
+      if (attempt > maxAttempts) break;
+      await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Falha ao enviar lote.");
+}
 
 function SyncRouteButton({ mode }: { mode: SyncMode }) {
   const [isPending, startTransition] = useTransition();
@@ -79,10 +144,17 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
       ? "Credito Presumido (credPresumido)"
       : "Anexos Fiscais (anexos)";
   const subtitle = isClassTrib
-    ? "Sincroniza CST + cClassTrib em lotes para evitar limite de 1MB."
+    ? "Consulta no cliente + persistencia backend por lote (hibrido)."
     : isCredPresumido
-      ? "Sincroniza credito presumido oficial em lotes para evitar limite de 1MB."
-      : "Sincroniza anexos oficiais em lotes para evitar limite de 1MB.";
+      ? "Consulta no cliente + persistencia backend por lote (hibrido)."
+      : "Consulta no cliente + persistencia backend por lote (hibrido).";
+
+  const savedProgress = useMemo(() => readProgress(mode), [mode]);
+
+  useEffect(() => {
+    if (!savedProgress?.inProgress) return;
+    setStatusMessage(`Sincronizacao em andamento (${savedProgress.currentChunk}/${savedProgress.totalChunks})`);
+  }, [savedProgress]);
 
   const handleSync = async () => {
     setLastStatus("idle");
@@ -99,39 +171,49 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
         return;
       }
 
-      const maxBytes = isClassTrib ? 450_000 : 350_000;
+      const maxBytes = isClassTrib ? 450_000 : 300_000;
       const chunks = splitByApproxSize(list, maxBytes);
+
+      writeProgress(mode, {
+        inProgress: true,
+        currentChunk: 0,
+        totalChunks: chunks.length,
+        updatedAt: Date.now(),
+      });
 
       startTransition(async () => {
         let total = 0;
 
-        for (let i = 0; i < chunks.length; i++) {
-          setStatusMessage(`Salvando lote ${i + 1}/${chunks.length}...`);
+        try {
+          for (let i = 0; i < chunks.length; i++) {
+            setStatusMessage(`Persistindo lote ${i + 1}/${chunks.length}...`);
 
-          const result = isClassTrib
-            ? await saveTaxDataBatch(chunks[i] as unknown[])
-            : isCredPresumido
-              ? await saveTaxCredPresumidoBatch(chunks[i] as unknown[])
-              : await saveTaxAnexosBatch(chunks[i] as unknown[]);
+            writeProgress(mode, {
+              inProgress: true,
+              currentChunk: i + 1,
+              totalChunks: chunks.length,
+              updatedAt: Date.now(),
+            });
 
-          if (!result.success) {
-            toast.error(result.error ?? "Falha ao sincronizar lote.");
-            setLastStatus("error");
-            setStatusMessage("Falha na Sincronizacao");
-            return;
+            await sendChunkWithRetry(mode, chunks[i], 2);
+            total += chunks[i].length;
           }
 
-          total += chunks[i].length;
+          toast.success(`${title}: ${total} registro(s) processado(s) em ${chunks.length} lote(s).`);
+          setLastStatus("success");
+          setStatusMessage("Sincronizacao concluida");
+          writeProgress(mode, null);
+
+          setTimeout(() => {
+            setLastStatus("idle");
+            setStatusMessage("Sincronizar Agora");
+          }, 3000);
+        } catch (error: any) {
+          toast.error(error?.message ?? "Falha ao persistir sincronizacao.");
+          setLastStatus("error");
+          setStatusMessage("Falha na Sincronizacao");
+          writeProgress(mode, null);
         }
-
-        toast.success(`${title}: ${total} registro(s) processado(s) em ${chunks.length} lote(s).`);
-        setLastStatus("success");
-        setStatusMessage("Sincronizacao concluida");
-
-        setTimeout(() => {
-          setLastStatus("idle");
-          setStatusMessage("Sincronizar Agora");
-        }, 3000);
       });
     } catch (error: any) {
       console.error("Erro no Sync:", error);
@@ -142,6 +224,7 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
       toast.error(msg);
       setLastStatus("error");
       setStatusMessage("Falha na Conexao");
+      writeProgress(mode, null);
 
       setTimeout(() => {
         setLastStatus("idle");
