@@ -2,10 +2,8 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Role } from "@prisma/client";
 import { requireSession } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
-import { getContractsAction } from "@/features/contracts/application/actions";
-import { getSefazRoutesAction } from "@/features/settings/application/actions";
-import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
+import { getContractsAdminViewData } from "@/features/contracts/application/queries";
+import { getSettingsAdminViewData } from "@/features/settings/application/queries";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files, Wallet, Boxes } from "lucide-react";
@@ -42,23 +40,15 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const mode = typeof params?.mode === "string" ? params.mode : "";
     const isContractsCreateMode = mode === "create";
 
-    const [contractsRes, companies, rbacSetting, sefazRoutesRes] = await Promise.all([
-        getContractsAction(),
-        prisma.company.findMany({
-            where: { deletedAt: null },
-            orderBy: { razaoSocial: "asc" },
-            select: { id: true, razaoSocial: true, cnpj: true },
-        }),
-        prisma.systemSetting.findUnique({
-            where: { key: SETTING_KEYS.RBAC_MATRIX_ENABLED },
-            select: { value: true },
-        }),
-        getSefazRoutesAction(),
+    const [contractsView, settingsView] = await Promise.all([
+        getContractsAdminViewData(),
+        getSettingsAdminViewData(),
     ]);
 
-    const contracts = contractsRes.success && contractsRes.data ? contractsRes.data : [];
-    const rbacMatrixEnabled = rbacSetting?.value !== "false";
-    const sefazRoutes = sefazRoutesRes.success ? sefazRoutesRes.data : [];
+    const contracts = contractsView.contracts;
+    const companies = contractsView.companies;
+    const rbacMatrixEnabled = settingsView.rbacMatrixEnabled;
+    const sefazRoutes = settingsView.sefazRoutes;
 
     return (
         <div className="flex flex-col gap-8 p-6 max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">

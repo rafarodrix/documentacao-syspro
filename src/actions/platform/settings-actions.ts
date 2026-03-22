@@ -1,19 +1,11 @@
 "use server";
 
 import {
-  getSettingsAction as getSettingsActionImpl,
-  getSefazRoutesAction as getSefazRoutesActionImpl,
   runSefazCheckAction as runSefazCheckActionImpl,
   updateRbacMatrixVisibilityAction as updateRbacMatrixVisibilityActionImpl,
   updateSettingsAction as updateSettingsActionImpl,
   updateSefazRoutesAction as updateSefazRoutesActionImpl,
 } from "@/features/settings/application/actions";
-
-export async function getSettingsAction(
-  ...args: Parameters<typeof getSettingsActionImpl>
-) {
-  return getSettingsActionImpl(...args);
-}
 
 export async function updateSettingsAction(
   ...args: Parameters<typeof updateSettingsActionImpl>
@@ -25,12 +17,6 @@ export async function updateRbacMatrixVisibilityAction(
   ...args: Parameters<typeof updateRbacMatrixVisibilityActionImpl>
 ) {
   return updateRbacMatrixVisibilityActionImpl(...args);
-}
-
-export async function getSefazRoutesAction(
-  ...args: Parameters<typeof getSefazRoutesActionImpl>
-) {
-  return getSefazRoutesActionImpl(...args);
 }
 
 export async function updateSefazRoutesAction(

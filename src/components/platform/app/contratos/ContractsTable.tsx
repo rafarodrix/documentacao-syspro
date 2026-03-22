@@ -34,7 +34,8 @@ import {
     Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getContractSuspendImpactAction, updateContractAction, updateContractStatusAction } from "@/features/contracts/application/actions";
+import { updateContractAction, updateContractStatusAction } from "@/features/contracts/application/actions";
+import { getContractSuspendImpactAction } from "@/features/contracts/application/queries";
 import {
     ContractBlockReason,
     CONTRACT_BLOCK_REASONS,

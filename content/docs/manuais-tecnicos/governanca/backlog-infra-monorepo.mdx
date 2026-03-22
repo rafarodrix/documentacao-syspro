@@ -66,14 +66,20 @@ Criterios de aceite:
 - `queries` e `writes` separados.
 - modelos e contratos de resposta deixam de ficar espalhados fora da feature.
 
-- [ ] `INFRA-003` [Alta] Migrar `settings/contracts` para `src/features`.
+- [x] `INFRA-003` [Alta] Migrar `settings/contracts` para `src/features`.
 Criterios de aceite:
 - boundaries claros por modulo.
 - sem acesso direto a infraestrutura na interface.
-Status atual:
-- settings e contracts ja possuem `application` e `interface`.
-- `src/actions/platform/settings-actions.ts` e `src/actions/platform/contract-actions.ts` agora atuam como ponte fina.
-- falta concluir `queries/domain` e expandir o padrao para o restante do modulo administrativo.
+Status de fechamento:
+- `settings` e `contracts` possuem `application`, `queries`, `domain` e `interface`.
+- `src/actions/platform/settings-actions.ts` e `src/actions/platform/contract-actions.ts` atuam como ponte fina.
+- `src/app/(platform)/app/configuracoes/page.tsx` passou a consumir a feature, sem leitura direta de infraestrutura para esses modulos.
+
+- [ ] `INFRA-003A` [Media] Consolidar acabamento arquitetural de `settings/contracts`.
+Criterios de aceite:
+- tipos e view models administrativos ficam centralizados na feature.
+- leituras e escritas seguem padrao consistente entre `settings` e `contracts`.
+- fronteira pronta para futura extracao para `packages/contracts` e `packages/core`.
 
 - [ ] `INFRA-004` [Alta] Migrar `users/authz` para `src/features/user-access`.
 Criterios de aceite:
@@ -214,7 +220,7 @@ Criterios de aceite:
 
 - `INFRA-001A` Consolidar `company`
 - `INFRA-002A` Consolidar `tax`
-- `INFRA-003` Migrar `settings/contracts`
+- `INFRA-003A` Consolidar `settings/contracts`
 - `INFRA-006` Contratos internos por feature
 
 ### Sprint 2 - Features administrativas e guardrails
@@ -251,5 +257,5 @@ Criterios de aceite:
 ## Proximo passo recomendado
 
 1. consolidar `domain` e `queries` de `company` e `tax`
-2. concluir `settings/contracts` com `queries/domain`
+2. consolidar o acabamento arquitetural de `settings/contracts`
 3. depois iniciar `user-access`
