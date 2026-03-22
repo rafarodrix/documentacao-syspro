@@ -123,13 +123,6 @@ const ROLE_LABELS: Record<RoleSegment, string> = {
   cliente_user: 'Populares para clientes',
 };
 
-const ROLE_HERO_LABEL: Record<Role, string> = {
-  ADMIN: 'Visão administrativa',
-  DEVELOPER: 'Visão de desenvolvimento',
-  SUPORTE: 'Visão de suporte',
-  CLIENTE_ADMIN: 'Visão do cliente (admin)',
-  CLIENTE_USER: 'Visão do cliente',
-};
 
 function parseDate(date?: string): number {
   if (!date) return 0;
@@ -352,9 +345,6 @@ export function DocsHomePage({
           <div className="flex flex-col items-end gap-2">
             <Badge variant="outline" className="shrink-0 text-muted-foreground">
               {pages.length} páginas disponíveis
-            </Badge>
-            <Badge variant="secondary" className="shrink-0">
-              {ROLE_HERO_LABEL[role]}
             </Badge>
           </div>
         </div>

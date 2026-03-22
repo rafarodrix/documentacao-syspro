@@ -8,7 +8,6 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsLayout as NotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { DocsSidebarItem } from '@/components/docs/DocsSidebarItem';
-import { DocsSidebarTopControls } from '@/components/docs/DocsSidebarTopControls';
 
 const ADMIN_LAYOUT_STORAGE_KEY = 'docs:admin:layout-mode';
 
@@ -40,45 +39,54 @@ export function DocsLayoutClient({
   }, [isAdmin]);
 
   const layoutMode = useMemo(() => {
-    if (isDocsHome) return 'notebook';
+    if (isDocsHome) return 'docs';
     if (isAdmin) return adminLayoutMode;
     return getDefaultLayoutForRole(role);
   }, [isAdmin, adminLayoutMode, role, isDocsHome]);
 
-  const LayoutComponent = layoutMode === 'notebook' ? NotebookLayout : DocsLayout;
-
-  function toggleAdminLayoutMode() {
-    if (!isAdmin) return;
-    setAdminLayoutMode((prev) => {
-      const next = prev === 'notebook' ? 'docs' : 'notebook';
-      localStorage.setItem(ADMIN_LAYOUT_STORAGE_KEY, next);
-      return next;
-    });
+  if (layoutMode === 'notebook') {
+    return (
+      <NotebookLayout
+        tree={docsTree}
+        nav={{
+          title: null,
+          children: null,
+          mode: 'top',
+        }}
+        themeSwitch={{
+          enabled: false,
+        }}
+        searchToggle={{
+          enabled: false,
+        }}
+        sidebar={{
+          defaultOpenLevel: 2,
+          collapsible: false,
+          components: {
+            Item: DocsSidebarItem,
+          },
+        }}
+      >
+        {children}
+      </NotebookLayout>
+    );
   }
 
   return (
-    <LayoutComponent
+    <DocsLayout
       tree={docsTree}
       nav={{
         title: null,
-        children: (
-          <DocsSidebarTopControls
-            showAdminToggle={isAdmin}
-            adminLayoutMode={adminLayoutMode}
-            onToggleAdminLayout={toggleAdminLayoutMode}
-          />
-        ),
-        ...(layoutMode === 'notebook' ? { mode: 'top' as const } : {}),
+        children: null,
       }}
       themeSwitch={{
         enabled: false,
       }}
       searchToggle={{
-        components: {
-          lg: false,
-        },
+        enabled: false,
       }}
       sidebar={{
+        enabled: !isDocsHome,
         defaultOpenLevel: 2,
         collapsible: false,
         components: {
@@ -87,6 +95,6 @@ export function DocsLayoutClient({
       }}
     >
       {children}
-    </LayoutComponent>
+    </DocsLayout>
   );
 }
