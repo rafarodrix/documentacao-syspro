@@ -6,6 +6,9 @@ import { SiteHeader } from "@/components/site/Header";
 import { requireSession } from "@/lib/auth-helpers";
 import { SYSTEM_ROLES } from '@/core/config/route-access';
 import type { Root as PageTreeRoot, Node as PageTreeNode, Item as PageTreeItem } from 'fumadocs-core/page-tree';
+import { DocsSidebarItem } from '@/components/docs/DocsSidebarItem';
+import { DocsSidebarQuickLinks } from '@/components/docs/DocsSidebarQuickLinks';
+import { DocsSidebarRecent } from '@/components/docs/DocsSidebarRecent';
 
 type DocsTree = typeof source.pageTree;
 
@@ -62,7 +65,19 @@ export default async function Layout({ children }: { children: ReactNode }) {
         <SiteHeader />
       </div>
       <main className="flex-1 min-h-0 [--fd-banner-height:0px] md:[--fd-banner-height:64px]">
-        <DocsLayout tree={docsTree} {...baseOptions}>
+        <DocsLayout
+          tree={docsTree}
+          {...baseOptions}
+          sidebar={{
+            defaultOpenLevel: 2,
+            collapsible: false,
+            components: {
+              Item: DocsSidebarItem,
+            },
+            banner: <DocsSidebarQuickLinks />,
+            footer: <DocsSidebarRecent />,
+          }}
+        >
           {children}
         </DocsLayout>
       </main>

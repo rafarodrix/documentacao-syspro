@@ -1,8 +1,16 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
+import { DocsSidebarTopControls } from '@/components/docs/DocsSidebarTopControls';
 
 export const baseOptions: BaseLayoutProps = {
   nav: {
     title: null,
+    children: <DocsSidebarTopControls />,
+  },
+  searchToggle: {
+    // Mantem busca no mobile (topbar), mas desativa a barra de busca grande nativa do desktop.
+    components: {
+      lg: false,
+    },
   },
   links: [
     /*{
