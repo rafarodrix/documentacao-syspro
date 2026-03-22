@@ -763,6 +763,9 @@ export async function saveTaxCredPresumidoBatch(
             .filter((item): item is Record<string, unknown> => item !== null);
 
         let count = 0;
+        let inserted = 0;
+        let updated = 0;
+        let unchanged = 0;
 
         // Evita transaction interativa longa (P2028) em cargas grandes.
         for (let index = 0; index < normalized.length; index++) {
@@ -900,6 +903,9 @@ export async function saveTaxNcmBatch(
             .filter((item): item is Record<string, unknown> => item !== null);
 
         let count = 0;
+        let inserted = 0;
+        let updated = 0;
+        let unchanged = 0;
 
         for (let index = 0; index < normalized.length; index++) {
             const item = normalized[index];
