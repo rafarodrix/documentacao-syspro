@@ -1,25 +1,29 @@
-'use client';
-
 import Image from 'next/image';
-import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
 
 export function NavTitle() {
-  const { theme } = useTheme();
-  const [logoSrc, setLogoSrc] = useState('/logo/logo-escura.png');
-
-  useEffect(() => {
-    setLogoSrc(theme === 'dark' ? '/logo/logo-clara.png' : '/logo/logo-escura.png');
-  }, [theme]);
-
   return (
-    <Image
-      src={logoSrc}
-      alt="Logo Trilink Software"
-      width={128}
-      height={32} 
-      priority 
-      className="h-8 w-auto" 
-    />
+    <>
+      <div className="relative h-8 w-32 md:hidden dark:hidden">
+        <Image
+          src="/logo/logo-escura.png"
+          alt="Logo Trilink Software"
+          fill
+          priority
+          className="object-contain object-left"
+          sizes="128px"
+        />
+      </div>
+      <div className="relative hidden h-8 w-32 md:hidden dark:block">
+        <Image
+          src="/logo/logo-clara.png"
+          alt="Logo Trilink Software"
+          fill
+          priority
+          className="object-contain object-left"
+          sizes="128px"
+        />
+      </div>
+      <span className="hidden md:inline font-semibold">Syspro ERP</span>
+    </>
   );
 }
