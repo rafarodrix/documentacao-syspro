@@ -2,6 +2,7 @@
   "title": "Manuais Tecnicos",
   "description": "Conteudo tecnico restrito para administracao e equipe interna.",
   "pages": [
-    "index"
+    "index",
+    "backlog-infra-monorepo"
   ]
 }

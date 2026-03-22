@@ -1,0 +1,187 @@
+---
+title: Backlog de Infraestrutura Monorepo
+description: Backlog priorizado para implantar a arquitetura com Next.js, tRPC, Better Auth, Prisma e Turborepo.
+---
+
+## Objetivo
+
+Implementar a infraestrutura alvo do produto com foco em:
+
+- Seguranca e autenticacao centralizada
+- Escalabilidade de codigo via monorepo
+- Contratos compartilhados entre camadas
+- Observabilidade e deploy com qualidade
+
+## Fases
+
+## Fase 0 - Fundacao do Monorepo
+
+### EPIC 0.1 - Bootstrap do workspace
+
+- [ ] `INFRA-001` Estruturar raiz do monorepo com `apps/web` e `packages/*`.
+Criterios de aceite:
+- `npm run dev` executa o app web a partir da raiz.
+- `npm run build` funciona com pipeline Turborepo.
+- Alias de import entre pacotes funciona com TypeScript.
+
+- [ ] `INFRA-002` Configurar `turbo.json` com pipelines (`build`, `lint`, `test`, `typecheck`, `dev`).
+Criterios de aceite:
+- Cache local ativo para `build` e `typecheck`.
+- Dependencias entre tasks respeitam ordem entre pacotes.
+
+- [ ] `INFRA-003` Padronizar qualidade (ESLint, Prettier, tsconfig base compartilhado).
+Criterios de aceite:
+- Configuracoes centralizadas em pacote compartilhado.
+- Todos os workspaces herdam a mesma regra base.
+
+### EPIC 0.2 - Base de ambientes
+
+- [ ] `INFRA-004` Definir estrategia de `.env` por app/pacote (dev, test, prod).
+Criterios de aceite:
+- Variaveis obrigatorias documentadas.
+- Validacao de ambiente falha cedo no bootstrap.
+
+- [ ] `INFRA-005` Criar guia operacional inicial em `docs` (setup local e troubleshooting).
+Criterios de aceite:
+- Novo desenvolvedor sobe ambiente com passos reproduziveis.
+
+## Fase 1 - Dados e Persistencia
+
+### EPIC 1.1 - Package `database`
+
+- [ ] `INFRA-006` Criar `packages/database` com Prisma schema e client.
+Criterios de aceite:
+- Client gerado e reutilizavel entre apps/pacotes.
+- Conexao com Neon validada em ambiente local.
+
+- [ ] `INFRA-007` Estruturar migracoes e padrao de versionamento.
+Criterios de aceite:
+- Processo de `migrate dev` e `migrate deploy` documentado.
+- Convencao de nomes de migracao definida.
+
+- [ ] `INFRA-008` Implementar seeds idempotentes (usuarios, roles, dados base).
+Criterios de aceite:
+- Seed pode ser executado mais de uma vez sem duplicar dados criticos.
+
+### EPIC 1.2 - Qualidade de dados
+
+- [ ] `INFRA-009` Criar estrategia de testes de integracao com banco.
+Criterios de aceite:
+- Testes rodam em pipeline CI sem depender de banco manual.
+
+## Fase 2 - Contratos e Camada de Aplicacao
+
+### EPIC 2.1 - Pacotes compartilhados
+
+- [ ] `INFRA-010` Criar `packages/contracts` para DTOs de entrada/saida.
+Criterios de aceite:
+- Contratos tipados usados em `api` e `web`.
+- Breaking changes detectaveis por typecheck.
+
+- [ ] `INFRA-011` Criar `packages/shared` para schemas (ex: Zod) e utilitarios.
+Criterios de aceite:
+- Validacoes de dominio reaproveitadas sem duplicacao.
+
+- [ ] `INFRA-012` Criar `packages/ui` para componentes reutilizaveis e tokens.
+Criterios de aceite:
+- Pelo menos um fluxo real do `web` consumindo componentes de `ui`.
+
+### EPIC 2.2 - Package `api` com tRPC 11
+
+- [ ] `INFRA-013` Criar `packages/api` com roteadores modulares por dominio.
+Criterios de aceite:
+- Router raiz agrega subrouters por contexto funcional.
+
+- [ ] `INFRA-014` Implementar contexto tRPC (sessao, prisma, tracing).
+Criterios de aceite:
+- Procedures protegidas validam sessao e permissoes.
+
+- [ ] `INFRA-015` Definir middlewares padrao (authz, logging, error mapping).
+Criterios de aceite:
+- Erros de dominio retornam formato consistente para frontend.
+
+## Fase 3 - Autenticacao e Autorizacao
+
+### EPIC 3.1 - Better Auth
+
+- [ ] `INFRA-016` Integrar Better Auth no `apps/web` com providers necessarios.
+Criterios de aceite:
+- Login, logout e renovacao de sessao funcionais.
+
+- [ ] `INFRA-017` Persistir usuarios/sessoes no PostgreSQL com Prisma.
+Criterios de aceite:
+- Tabelas e adaptadores de auth versionados por migracao.
+
+- [ ] `INFRA-018` Implementar RBAC baseline (ADMIN, SUPORTE, USUARIO).
+Criterios de aceite:
+- Regras aplicadas em rotas web e procedures tRPC protegidas.
+
+## Fase 4 - Integracao Web + BFF
+
+### EPIC 4.1 - App Router e consumo tRPC
+
+- [ ] `INFRA-019` Configurar cliente/servidor tRPC no Next.js 15 (App Router).
+Criterios de aceite:
+- SSR e client components consumindo procedures sem hacks.
+
+- [ ] `INFRA-020` Definir padrao de data fetching, cache e invalidacao.
+Criterios de aceite:
+- Convencao documentada para query, mutation e revalidacao.
+
+- [ ] `INFRA-021` Criar layout de erro, loading e observabilidade de requests.
+Criterios de aceite:
+- Falhas de backend exibem estados de erro consistentes na UI.
+
+## Fase 5 - Plataforma de Engenharia
+
+### EPIC 5.1 - CI/CD e qualidade
+
+- [ ] `INFRA-022` Criar pipeline CI (lint, typecheck, test, build).
+Criterios de aceite:
+- Pull request so pode mergear com checks obrigatorios verdes.
+
+- [ ] `INFRA-023` Adicionar verificacao de contrato e schema em PR.
+Criterios de aceite:
+- Mudancas quebrando contrato falham antes do merge.
+
+- [ ] `INFRA-024` Configurar deploy para web e banco com estrategia de rollback.
+Criterios de aceite:
+- Processo de release documentado e ensaiado.
+
+### EPIC 5.2 - Observabilidade e operacao
+
+- [ ] `INFRA-025` Instrumentar logs estruturados e correlation id.
+Criterios de aceite:
+- Fluxo web -> api -> banco rastreavel por request id.
+
+- [ ] `INFRA-026` Definir metricas minimas (latencia, erro, throughput).
+Criterios de aceite:
+- Dashboard operacional com alertas basicos.
+
+## Sequenciamento recomendado (MVP de infraestrutura)
+
+1. `INFRA-001` a `INFRA-008` (monorepo + banco + seeds)
+2. `INFRA-010` a `INFRA-015` (contratos + shared + tRPC)
+3. `INFRA-016` a `INFRA-020` (auth + integracao web)
+4. `INFRA-022` a `INFRA-024` (CI/CD)
+5. `INFRA-025` e `INFRA-026` (observabilidade)
+
+## Definicao de pronto (DoD)
+
+Uma historia de infraestrutura so pode ser concluida quando:
+
+- Existe documentacao em `docs` para operacao/manutencao.
+- Existe teste automatizado ou justificativa tecnica para excecao.
+- Telemetria minima esta implementada (log de sucesso/erro).
+- Checklist de seguranca foi validado (segredos, auth, permissoes).
+
+## Riscos e mitigacoes
+
+- Risco: acoplamento excessivo entre `web` e `api`.
+Mitigacao: obrigar uso de `contracts` e validacao em CI.
+
+- Risco: drift de schema Prisma entre ambientes.
+Mitigacao: bloquear deploy sem `migrate deploy`.
+
+- Risco: regressao silenciosa em auth.
+Mitigacao: testes de integracao cobrindo login, sessao e RBAC.

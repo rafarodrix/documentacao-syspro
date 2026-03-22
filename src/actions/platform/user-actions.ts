@@ -97,9 +97,9 @@ type AdminApiShape = {
 };
 
 function getAdminApi(): AdminApiShape | null {
-    const candidate = auth.api.admin;
-    if (!candidate || typeof candidate.removeUser !== "function") return null;
-    return { removeUser: candidate.removeUser as AdminApiShape["removeUser"] };
+    const candidate = auth.api.removeUser;
+    if (typeof candidate !== "function") return null;
+    return { removeUser: candidate as AdminApiShape["removeUser"] };
 }
 
 function revalidateCadastrosPaths() {
