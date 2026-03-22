@@ -551,12 +551,6 @@ export async function saveTaxAnexosBatch(
         let inserted = 0;
         let updated = 0;
         let unchanged = 0;
-        let inserted = 0;
-        let updated = 0;
-        let unchanged = 0;
-        let inserted = 0;
-        let updated = 0;
-        let unchanged = 0;
         const chunkRefRows: Array<{ anexoId: string; ncm: string }> = [];
         const chunkClassMapRows: Array<{
             ncm: string;

@@ -14,6 +14,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -26,6 +28,8 @@ import {
   Shield,
   UserRound,
   IdCard,
+  Plus,
+  X,
 } from "lucide-react";
 
 const ROLE = {
@@ -88,6 +92,8 @@ export function CreateUserPageForm({
   const [additionalCompanyIds, setAdditionalCompanyIds] = useState<string[]>(
     () => (Array.isArray(initialData?.additionalCompanyIds) ? initialData.additionalCompanyIds.filter(Boolean) : []),
   );
+  const [additionalCompaniesOpen, setAdditionalCompaniesOpen] = useState(false);
+  const [additionalCompaniesQuery, setAdditionalCompaniesQuery] = useState("");
 
   const sections: SectionConfig[] = useMemo(
     () => [
@@ -136,6 +142,26 @@ export function CreateUserPageForm({
 
   const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
   const primaryCompanyId = form.watch("companyId");
+  const availableAdditionalCompanies = useMemo(
+    () => companies.filter((company) => company.id !== primaryCompanyId),
+    [companies, primaryCompanyId],
+  );
+  const filteredAdditionalCompanies = useMemo(() => {
+    const normalizedQuery = additionalCompaniesQuery.trim().toLowerCase();
+    if (!normalizedQuery) return availableAdditionalCompanies;
+    return availableAdditionalCompanies.filter((company) => {
+      const name = (company.nomeFantasia || company.razaoSocial).toLowerCase();
+      const documentId = company.razaoSocial.toLowerCase();
+      return name.includes(normalizedQuery) || documentId.includes(normalizedQuery);
+    });
+  }, [additionalCompaniesQuery, availableAdditionalCompanies]);
+  const selectedAdditionalCompanies = useMemo(
+    () =>
+      additionalCompanyIds
+        .map((id) => companies.find((company) => company.id === id))
+        .filter((company): company is CompanyOption => Boolean(company)),
+    [additionalCompanyIds, companies],
+  );
 
   useEffect(() => {
     if (!primaryCompanyId) return;
@@ -294,31 +320,75 @@ export function CreateUserPageForm({
 
                           {context === "CLIENT" && companies.length > 0 && (
                             <div className="space-y-2">
-                              <label className="text-sm font-medium leading-none">
-                                Empresas adicionais
-                              </label>
-                              <div className="max-h-44 overflow-auto rounded-md border border-border/60 bg-muted/20 p-2 space-y-1">
-                                {companies
-                                  .filter((company) => company.id !== form.watch("companyId"))
-                                  .map((company) => {
-                                    const checked = additionalCompanyIds.includes(company.id);
-                                    return (
-                                      <label key={company.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={checked}
-                                          onChange={(event) => {
-                                            setAdditionalCompanyIds((prev) =>
-                                              event.target.checked
-                                                ? Array.from(new Set([...prev, company.id]))
-                                                : prev.filter((id) => id !== company.id),
+                              <div className="flex items-center justify-between gap-3">
+                                <label className="text-sm font-medium leading-none">Empresas adicionais</label>
+                                <Popover open={additionalCompaniesOpen} onOpenChange={setAdditionalCompaniesOpen}>
+                                  <PopoverTrigger asChild>
+                                    <Button type="button" variant="outline" size="sm" className="gap-1.5">
+                                      <Plus className="h-3.5 w-3.5" />
+                                      Adicionar empresa
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="end" className="w-[360px] p-3">
+                                    <div className="space-y-2">
+                                      <Input
+                                        value={additionalCompaniesQuery}
+                                        onChange={(event) => setAdditionalCompaniesQuery(event.target.value)}
+                                        placeholder="Buscar empresa..."
+                                      />
+                                      <div className="max-h-56 overflow-auto rounded-md border border-border/60 bg-muted/20 p-1">
+                                        {filteredAdditionalCompanies.length === 0 ? (
+                                          <p className="px-2 py-3 text-xs text-muted-foreground">Nenhuma empresa encontrada.</p>
+                                        ) : (
+                                          filteredAdditionalCompanies.map((company) => {
+                                            const checked = additionalCompanyIds.includes(company.id);
+                                            return (
+                                              <label
+                                                key={company.id}
+                                                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60 cursor-pointer"
+                                              >
+                                                <Checkbox
+                                                  checked={checked}
+                                                  onCheckedChange={(value) => {
+                                                    setAdditionalCompanyIds((prev) =>
+                                                      value === true
+                                                        ? Array.from(new Set([...prev, company.id]))
+                                                        : prev.filter((id) => id !== company.id),
+                                                    );
+                                                  }}
+                                                />
+                                                <span className="line-clamp-1">{company.nomeFantasia || company.razaoSocial}</span>
+                                              </label>
                                             );
-                                          }}
-                                        />
-                                        <span>{company.nomeFantasia || company.razaoSocial}</span>
-                                      </label>
-                                    );
-                                  })}
+                                          })
+                                        )}
+                                      </div>
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                              <div className="rounded-md border border-border/60 bg-muted/10 p-2">
+                                {selectedAdditionalCompanies.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">Nenhuma empresa adicional vinculada.</p>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {selectedAdditionalCompanies.map((company) => (
+                                      <Badge key={company.id} variant="secondary" className="gap-1 rounded-md pl-2 pr-1 py-1">
+                                        <span className="max-w-[220px] truncate">{company.nomeFantasia || company.razaoSocial}</span>
+                                        <button
+                                          type="button"
+                                          className="rounded p-0.5 hover:bg-background/60"
+                                          onClick={() =>
+                                            setAdditionalCompanyIds((prev) => prev.filter((id) => id !== company.id))
+                                          }
+                                          aria-label={`Remover ${company.nomeFantasia || company.razaoSocial}`}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                               <p className="text-[11px] text-muted-foreground">
                                 O mesmo usuario pode ser vinculado a mais de uma empresa.
