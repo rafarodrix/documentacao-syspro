@@ -149,7 +149,13 @@ export async function listCachedTickets(input: {
       searchConditions.push({ customer: { contains: search, mode: "insensitive" } });
     }
 
-    where.AND = [...(where.AND ?? []), { OR: searchConditions }];
+    const existingAnd = where.AND
+      ? Array.isArray(where.AND)
+        ? where.AND
+        : [where.AND]
+      : [];
+
+    where.AND = [...existingAnd, { OR: searchConditions }];
   }
 
   if (input.statusGroup && input.statusGroup !== "all") {
