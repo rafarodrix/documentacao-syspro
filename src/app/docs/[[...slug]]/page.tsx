@@ -11,6 +11,7 @@ import { Role } from '@prisma/client';
 import { requireSession, canAccessByCompanySegment } from '@/lib/auth-helpers';
 import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/core/config/docs-access';
 import { SYSTEM_ROLES } from '@/core/config/route-access';
+import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -35,11 +36,27 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const MDXContent = page.data.body;
+  const lastUpdated = typeof page.data.lastUpdated === 'string' ? page.data.lastUpdated : undefined;
+  const owner = typeof page.data.owner === 'string' ? page.data.owner : undefined;
+  const status = typeof page.data.status === 'string' ? page.data.status : undefined;
+  const docSlug = `/docs${slug.length ? `/${slug.join('/')}` : ''}`;
+  const formattedLastUpdated = lastUpdated
+    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(lastUpdated))
+    : null;
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
+      {(status || owner || formattedLastUpdated) ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          {status ? <span className="rounded-full border border-border/70 px-2 py-1">Status: {status}</span> : null}
+          {owner ? <span className="rounded-full border border-border/70 px-2 py-1">Owner: {owner}</span> : null}
+          {formattedLastUpdated ? (
+            <span className="rounded-full border border-border/70 px-2 py-1">Atualizado em: {formattedLastUpdated}</span>
+          ) : null}
+        </div>
+      ) : null}
       <DocsBody>
         <MDXContent
           components={{
@@ -47,6 +64,7 @@ export default async function Page(props: {
             a: createRelativeLink(source, page),
           }}
         />
+        <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
       </DocsBody>
     </DocsPage>
   );

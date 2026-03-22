@@ -1,7 +1,7 @@
-{
+﻿{
   "root": true,
   "title": "Dúvidas Frequentes",
-  "description": "Seção estão soluções para dúvidas frequentes.",
+  "description": "Respostas rápidas para dúvidas comuns e erros recorrentes no uso do Syspro ERP.",
   "pages": [
     "index",
     "---Erros---",

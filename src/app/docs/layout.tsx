@@ -74,7 +74,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
             components: {
               Item: DocsSidebarItem,
             },
-            banner: <DocsSidebarQuickLinks />,
+            banner: <DocsSidebarQuickLinks role={session.role} />,
             footer: <DocsSidebarRecent />,
           }}
         >

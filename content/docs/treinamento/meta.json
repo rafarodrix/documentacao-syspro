@@ -1,15 +1,13 @@
-{
+﻿{
   "root": true,
   "title": "Treinamentos",
-  "description": "Guias e treinamento para o Syspro ERP.",
+  "description": "Trilhas de treinamento para capacitação prática no uso do Syspro ERP.",
   "pages": [
     "---Primeiros Passos---",
     "steps-auto-center",
     "steps-comercial",
-
     "---Fiscal---",
     "fiscal/geracao-sintegra",
-
     "---Produção---",
     "producao/ordem-producao"
   ]

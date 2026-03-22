@@ -1,13 +1,13 @@
-{
-    "root": false,
-    "title": "Syspro ERP",
-    "description": "Documentação oficial do Syspro ERP, incluindo manuais, guias de suporte e treinamentos.",
-    "pages": [
-      "index",
-      "manual",
-      "manuais-tecnicos",
-      "duvidas",
-      "treinamento",
-      "suporte"
-    ]
-  }
+﻿{
+  "root": false,
+  "title": "Syspro ERP",
+  "description": "Central oficial de documentação do Syspro ERP, com manuais, treinamentos, suporte e dúvidas frequentes.",
+  "pages": [
+    "index",
+    "manual",
+    "manuais-tecnicos",
+    "duvidas",
+    "treinamento",
+    "suporte"
+  ]
+}

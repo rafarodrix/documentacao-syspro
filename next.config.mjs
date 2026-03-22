@@ -6,6 +6,10 @@ const withMDX = createMDX({
     title: z.string(),
     description: z.string().optional(),
     causa_do_erro: z.string().optional(),
+    lastUpdated: z.string().optional(),
+    owner: z.string().optional(),
+    status: z.enum(['draft', 'review', 'published', 'archived']).optional(),
+    tags: z.array(z.string()).optional(),
   }),
 });
 

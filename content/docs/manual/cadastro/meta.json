@@ -1,6 +1,6 @@
-{
+﻿{
   "title": "Cadastro",
-  "description": "The official content source",
+  "description": "Cadastros essenciais para operação: empresas, participantes, usuários e tabelas de apoio.",
   "root": false,
   "pages": [
     "empresa",
@@ -11,6 +11,5 @@
     "---Usuário---",
     "usuario",
     "perfil-acesso"
-
   ]
 }

@@ -1,5 +1,5 @@
-{
-    "root": false,
-    "title": "Venda",
-    "description": "O módulo de Venda automatiza o processo de vendas, desde a oferta até o fechamento de pedidos, melhorando a relação com o cliente"
-  }
+﻿{
+  "root": false,
+  "title": "Vendas",
+  "description": "Fluxos de vendas do Syspro ERP, da negociação ao fechamento de pedidos com mais controle."
+}

@@ -5,6 +5,7 @@ const ROOT = resolve(process.cwd(), "content", "docs");
 const MDX_EXTENSION = ".mdx";
 const SEPARATOR_RE = /^---.*---$/;
 const NON_ASCII_OR_SPACE_RE = /[^\x00-\x7F]|\s/;
+const ALLOWED_STATUS = new Set(["draft", "review", "published", "archived"]);
 
 const errors = [];
 const warnings = [];
@@ -48,6 +49,110 @@ function checkMdxFrontmatter(mdxFiles) {
     }
     if (!/^description:\s*.+$/m.test(text)) {
       errors.push(`Frontmatter sem description: ${relative(process.cwd(), filePath)}`);
+    }
+    if (!/^lastUpdated:\s*.+$/m.test(text)) {
+      errors.push(`Frontmatter sem lastUpdated: ${relative(process.cwd(), filePath)}`);
+    }
+    if (!/^owner:\s*.+$/m.test(text)) {
+      errors.push(`Frontmatter sem owner: ${relative(process.cwd(), filePath)}`);
+    }
+    if (!/^status:\s*.+$/m.test(text)) {
+      errors.push(`Frontmatter sem status: ${relative(process.cwd(), filePath)}`);
+    } else {
+      const statusMatch = text.match(/^status:\s*["']?([a-z-]+)["']?$/m);
+      if (statusMatch && !ALLOWED_STATUS.has(statusMatch[1])) {
+        errors.push(
+          `Frontmatter status invalido em ${relative(process.cwd(), filePath)}: ${statusMatch[1]} (use draft/review/published/archived)`,
+        );
+      }
+    }
+  }
+}
+
+function routeFromMdx(filePath) {
+  const rel = relative(ROOT, filePath).replace(/\\/g, "/");
+  const noExt = rel.replace(/\.mdx$/, "");
+  const route =
+    noExt === "index"
+      ? "/docs"
+      : noExt.endsWith("/index")
+        ? `/docs/${noExt.slice(0, -"/index".length)}`
+        : `/docs/${noExt}`;
+  return normalizeRoute(route);
+}
+
+function normalizeRoute(route) {
+  if (!route) return route;
+  let value = route.split("#")[0].split("?")[0];
+  if (!value.startsWith("/")) value = `/${value}`;
+  if (value !== "/" && value.endsWith("/")) value = value.slice(0, -1);
+  return value;
+}
+
+function resolveRelativeRoute(currentRoute, href) {
+  const currentSegments = currentRoute.replace(/^\/+/, "").split("/");
+  if (currentSegments.length > 0) currentSegments.pop();
+
+  const hrefSegments = href.split("/");
+  for (const segment of hrefSegments) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") {
+      if (currentSegments.length > 0) currentSegments.pop();
+      continue;
+    }
+    currentSegments.push(segment);
+  }
+  return normalizeRoute(`/${currentSegments.join("/")}`);
+}
+
+function extractLinks(text) {
+  const noCodeBlocks = text.replace(/```[\s\S]*?```/g, "");
+  const links = [];
+
+  const markdownRe = /\[[^\]]*?\]\(([^)\s]+(?:\s+"[^"]*")?)\)/g;
+  let markdownMatch;
+  while ((markdownMatch = markdownRe.exec(noCodeBlocks)) !== null) {
+    const raw = markdownMatch[1].trim();
+    const href = raw.split(/\s+"/)[0];
+    links.push(href);
+  }
+
+  const htmlRe = /href=["']([^"']+)["']/g;
+  let htmlMatch;
+  while ((htmlMatch = htmlRe.exec(noCodeBlocks)) !== null) {
+    links.push(htmlMatch[1].trim());
+  }
+
+  return links;
+}
+
+function checkInternalMdxLinks(mdxFiles) {
+  const validRoutes = new Set(mdxFiles.map(routeFromMdx));
+
+  for (const filePath of mdxFiles) {
+    const text = readText(filePath);
+    const currentRoute = routeFromMdx(filePath);
+    const relPath = relative(process.cwd(), filePath);
+    const links = extractLinks(text);
+
+    for (const href of links) {
+      if (!href) continue;
+      if (href.startsWith("#")) continue;
+      if (/^(https?:|mailto:|tel:)/i.test(href)) continue;
+
+      let targetRoute = "";
+      if (href.startsWith("/docs")) {
+        targetRoute = normalizeRoute(href);
+      } else if (href.startsWith("./") || href.startsWith("../")) {
+        targetRoute = resolveRelativeRoute(currentRoute, href);
+      } else {
+        continue;
+      }
+
+      if (!targetRoute.startsWith("/docs")) continue;
+      if (!validRoutes.has(targetRoute)) {
+        errors.push(`Link interno quebrado em ${relPath}: ${href} -> ${targetRoute}`);
+      }
     }
   }
 }
@@ -115,6 +220,7 @@ function main() {
 
   checkMdxFrontmatter(mdxFiles);
   checkMetaReferences(metaFiles);
+  checkInternalMdxLinks(mdxFiles);
   checkFileNaming(allFiles);
 
   if (warnings.length > 0) {

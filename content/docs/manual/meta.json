@@ -1,7 +1,7 @@
-{
+﻿{
   "root": true,
   "title": "Documentação",
-  "description": "Nesta seção estão soluções para dúvidas frequentes.",
+  "description": "Guias operacionais do Syspro ERP para execução das rotinas do dia a dia.",
   "pages": [
     "index",
     "cadastro",
