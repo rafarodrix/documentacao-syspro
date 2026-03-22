@@ -76,32 +76,32 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <Tabs defaultValue={defaultTab} className="space-y-6">
                 <div className="flex items-center">
                     <TabsList className="bg-muted/50 p-1 border border-border/40 h-auto flex-wrap">
-                        <TabsTrigger value="general" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+                        <TabsTrigger value="general" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Settings className="h-4 w-4" />
                             <span className="font-medium">Geral & Financeiro</span>
                         </TabsTrigger>
 
-                        <TabsTrigger value="contracts" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+                        <TabsTrigger value="contracts" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <FileText className="h-4 w-4" />
                             <span className="font-medium">Contratos</span>
                         </TabsTrigger>
 
-                        <TabsTrigger value="access" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+                        <TabsTrigger value="access" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <ShieldCheck className="h-4 w-4" />
                             <span className="font-medium">Perfis de Acesso</span>
                         </TabsTrigger>
 
-                        <TabsTrigger value="tax" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+                        <TabsTrigger value="tax" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Landmark className="h-4 w-4" />
                             <span className="font-medium">Fiscal & Tributario</span>
                         </TabsTrigger>
 
-                        <TabsTrigger value="sefaz" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+                        <TabsTrigger value="sefaz" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Activity className="h-4 w-4" />
                             <span className="font-medium">Rotas SEFAZ</span>
                         </TabsTrigger>
 
-                        <TabsTrigger value="observability" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+                        <TabsTrigger value="observability" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Activity className="h-4 w-4" />
                             <span className="font-medium">Observabilidade</span>
                         </TabsTrigger>
@@ -146,7 +146,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     </div>
                 </TabsContent>
 
-                <TabsContent value="tax" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
+                <TabsContent value="tax" className="space-y-4 focus-visible:ring-0 outline-none">
                     <div className="max-w-6xl">
                         <h3 className="mb-4 text-lg font-medium">Sincronizacao de Tabelas Fiscais</h3>
                         <TaxSyncStatusBar />

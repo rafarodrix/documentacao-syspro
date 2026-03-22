@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<Vige
   return "active";
 }
 
-export function TaxNcmPanel({ items }: { items: Item[] }) {
+function TaxNcmPanelComponent({ items }: { items: Item[] }) {
   const INITIAL_ROWS = 80;
   const [query, setQuery] = useState("");
   const [vigencia, setVigencia] = useState<VigenciaFilter>("all");
@@ -50,6 +50,7 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
   const [itemCode, setItemCode] = useState<string>("all");
   const [visibleCount, setVisibleCount] = useState(INITIAL_ROWS);
   const [ready, setReady] = useState(false);
+  const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
     const id = window.setTimeout(() => setReady(true), 0);
@@ -58,7 +59,7 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
 
   useEffect(() => {
     setVisibleCount(INITIAL_ROWS);
-  }, [query, vigencia, groupCode, subgroupCode, itemCode]);
+  }, [deferredQuery, vigencia, groupCode, subgroupCode, itemCode]);
 
   const sourceItems = ready ? items : [];
 
@@ -67,7 +68,7 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
   }, [sourceItems]);
 
   const baseFiltered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return validNcms.filter((item) => {
       const matchQuery =
         item.code.toLowerCase().includes(q) ||
@@ -78,7 +79,7 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
       const matchVigencia = vigencia === "all" ? true : getVigencia(item.startDate, item.endDate) === vigencia;
       return (q ? matchQuery : true) && matchVigencia;
     });
-  }, [validNcms, query, vigencia]);
+  }, [validNcms, deferredQuery, vigencia]);
 
   const groupOptions = useMemo(() => {
     const map = new Map<string, { count: number; description: string }>();
@@ -101,7 +102,8 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
   }, [baseFiltered]);
 
   const subgroupOptions = useMemo(() => {
-    const source = groupCode === "all" ? baseFiltered : baseFiltered.filter((item) => item.code.startsWith(groupCode));
+    if (groupCode === "all") return [] as Array<[string, { count: number; description: string }]>;
+    const source = baseFiltered.filter((item) => item.code.startsWith(groupCode));
     const map = new Map<string, { count: number; description: string }>();
     for (const item of source) {
       const key = item.code.slice(0, 4);
@@ -122,9 +124,8 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
   }, [baseFiltered, groupCode]);
 
   const itemOptions = useMemo(() => {
-    const source = subgroupCode === "all" ? (
-      groupCode === "all" ? baseFiltered : baseFiltered.filter((entry) => entry.code.startsWith(groupCode))
-    ) : baseFiltered.filter((entry) => entry.code.startsWith(subgroupCode));
+    if (subgroupCode === "all") return [] as Array<[string, { count: number; description: string }]>;
+    const source = baseFiltered.filter((entry) => entry.code.startsWith(subgroupCode));
     const map = new Map<string, { count: number; description: string }>();
     for (const entry of source) {
       const key = entry.code.slice(0, 6);
@@ -142,7 +143,7 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
       }
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [baseFiltered, groupCode, subgroupCode]);
+  }, [baseFiltered, subgroupCode]);
 
   const filtered = useMemo(() => {
     return baseFiltered.filter((entry) => {
@@ -178,7 +179,7 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Buscar NCM por cÃ³digo, descriÃ§Ã£o, substituiÃ§Ã£o ou tipo de ato..."
+            placeholder="Buscar NCM por código, descrição, substituição ou tipo de ato..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -188,13 +189,13 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
           value={vigencia}
           onChange={(e) => setVigencia(e.target.value as VigenciaFilter)}
         >
-          <option value="all">Vigencia: todas</option>
+          <option value="all">Vigência: todas</option>
           <option value="active">Ativas</option>
           <option value="future">Futuras</option>
           <option value="expired">Expiradas</option>
         </select>
         <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
-          NCM vÃ¡lidos: <span className="font-semibold text-foreground">{validNcms.length}</span>
+          NCM válidos: <span className="font-semibold text-foreground">{validNcms.length}</span>
         </div>
       </div>
 
@@ -204,7 +205,7 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
           value={groupCode}
           onChange={(e) => handleGroupChange(e.target.value)}
         >
-          <option value="all">Grupo (2 dÃ­gitos): todos</option>
+          <option value="all">Grupo (2 dígitos): todos</option>
           {groupOptions.map(([code, meta]) => (
             <option key={code} value={code}>
               {code} - {meta.description} ({meta.count})
@@ -217,7 +218,9 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
           value={subgroupCode}
           onChange={(e) => handleSubgroupChange(e.target.value)}
         >
-          <option value="all">Subgrupo (4 dÃ­gitos): todos</option>
+          <option value="all">
+            {groupCode === "all" ? "Subgrupo (4 dígitos): selecione o grupo" : "Subgrupo (4 dígitos): todos"}
+          </option>
           {subgroupOptions.map(([code, meta]) => (
             <option key={code} value={code}>
               {code} - {meta.description} ({meta.count})
@@ -230,7 +233,9 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
           value={itemCode}
           onChange={(e) => setItemCode(e.target.value)}
         >
-          <option value="all">Item (6 dÃ­gitos): todos</option>
+          <option value="all">
+            {subgroupCode === "all" ? "Item (6 dígitos): selecione o subgrupo" : "Item (6 dígitos): todos"}
+          </option>
           {itemOptions.map(([code, meta]) => (
             <option key={code} value={code}>
               {code} - {meta.description} ({meta.count})
@@ -243,7 +248,7 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
         <div className="border-b bg-muted/30 p-4">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <Boxes className="h-4 w-4" />
-            NCM vÃ¡lidos no recorte ({filtered.length})
+            NCM válidos no recorte ({filtered.length})
           </h3>
         </div>
 
@@ -252,9 +257,9 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead className="w-[140px]">NCM</TableHead>
-                <TableHead>Descricao</TableHead>
+                <TableHead>Descrição</TableHead>
                 <TableHead className="w-[150px]">Substitui por</TableHead>
-                <TableHead className="w-[120px]">Inicio</TableHead>
+                <TableHead className="w-[120px]">Início</TableHead>
                 <TableHead className="w-[120px]">Fim</TableHead>
               </TableRow>
             </TableHeader>
@@ -306,3 +311,5 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
     </div>
   );
 }
+
+export const TaxNcmPanel = memo(TaxNcmPanelComponent);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +41,7 @@ function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<Vige
   return "active";
 }
 
-export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
+function TaxAnexosPanelComponent({ items }: { items: TaxAnexoItem[] }) {
   const PAGE_SIZE = 120;
   const [query, setQuery] = useState("");
   const [vigencia, setVigencia] = useState<VigenciaFilter>("all");
@@ -189,3 +189,5 @@ export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
     </div>
   );
 }
+
+export const TaxAnexosPanel = memo(TaxAnexosPanelComponent);

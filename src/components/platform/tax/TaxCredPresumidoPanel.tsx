@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<Vige
   return "active";
 }
 
-export function TaxCredPresumidoPanel({ items }: { items: Item[] }) {
+function TaxCredPresumidoPanelComponent({ items }: { items: Item[] }) {
   const PAGE_SIZE = 120;
   const [query, setQuery] = useState("");
   const [vigencia, setVigencia] = useState<VigenciaFilter>("all");
@@ -181,3 +181,5 @@ export function TaxCredPresumidoPanel({ items }: { items: Item[] }) {
     </div>
   );
 }
+
+export const TaxCredPresumidoPanel = memo(TaxCredPresumidoPanelComponent);
