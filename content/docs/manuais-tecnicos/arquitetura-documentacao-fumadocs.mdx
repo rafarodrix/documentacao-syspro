@@ -1,0 +1,100 @@
+---
+title: Arquitetura da Documentacao com Fumadocs
+description: Padrao tecnico da area de docs, organizacao de conteudo e componentes reutilizaveis.
+lastUpdated: 2026-03-22
+owner: Equipe de Documentacao
+status: published
+tags:
+  - docs
+  - fumadocs
+  - arquitetura
+---
+
+## Objetivo
+
+Definir um padrao unico para evoluir a documentacao com Fumadocs, mantendo consistencia visual, navegacao previsivel e manutencao simples.
+
+## Stack da documentacao
+
+- `Next.js` (App Router)
+- `fumadocs-ui`
+- `fumadocs-mdx`
+- `fumadocs-core`
+- componentes locais em `src/components/docs`
+
+## Estrutura recomendada
+
+```text
+content/docs/
+  index.mdx
+  manual/
+  duvidas/
+  treinamento/
+  suporte/
+  manuais-tecnicos/
+src/app/docs/
+  layout.tsx
+  [[...slug]]/page.tsx
+src/components/docs/
+  DocsHomePage.tsx
+  DocsLayoutClient.tsx
+  DocsPageFeedback.tsx
+  mdx/
+```
+
+## Padrao de paginas MDX
+
+Cada pagina deve ter frontmatter minimo:
+
+```yaml
+---
+title: Titulo objetivo
+description: Resumo curto da pagina
+lastUpdated: 2026-03-22
+owner: Equipe responsavel
+status: published # draft | review | published | archived
+---
+```
+
+Campos opcionais recomendados:
+
+- `featureStatus`: `new | deprecated | beta | experimental`
+- `sinceVersion`: versao da funcionalidade
+- `tags`: classificacao para busca e curadoria
+
+## Componentes oficiais para autores
+
+- Admonitions: `<Tip>`, `<Note>`, `<Warning>`, `<Danger>`
+- Tabs de codigo: `<CodeTabs>` e `<CodeTab>`
+- Playground inline: `<PlaygroundInline>`
+- Feedback de pagina: componente no template da rota docs
+
+## Regras editoriais
+
+1. Abrir com `Objetivo` e, quando necessario, `Pre-requisitos`.
+2. Usar secoes curtas e orientadas a tarefa.
+3. Evitar textos longos sem bloco visual de apoio.
+4. Priorizar exemplos praticos e validaveis.
+5. Revisar links internos antes de publicar.
+
+## Padrao de navegacao
+
+1. Home de docs como ponto de entrada principal.
+2. Sidebar com foco em secoes principais e baixa poluicao visual.
+3. Busca global do Fumadocs como mecanismo oficial de descoberta.
+4. Conteudo tecnico em `/docs/manuais-tecnicos` com acesso restrito.
+
+## Checklist antes do merge
+
+- Frontmatter valido
+- Slug em `kebab-case`
+- Links internos funcionando
+- `docs:check` aprovado
+- Revisao de conteudo concluida
+
+## Relacao com o manual interno
+
+Para detalhes de uso de componentes MDX:
+
+- `/docs/manuais-tecnicos/padrao-componentes-mdx`
+- `/docs/suporte/documentacao-docs-interna` (interno/admin)

@@ -16,7 +16,7 @@ Concentrar apenas o backlog **ainda não concluído**, priorizando impacto em:
 
 ## Pendências de Plataforma
 
-### Fase 0 — Fundação do Monorepo
+### Fase 0 - Fundação do Monorepo
 
 - [ ] `INFRA-001` Estruturar raiz do monorepo com `apps/web` e `packages/*`.
 - [ ] `INFRA-002` Configurar `turbo.json` com pipelines (`build`, `lint`, `test`, `typecheck`, `dev`).
@@ -24,14 +24,14 @@ Concentrar apenas o backlog **ainda não concluído**, priorizando impacto em:
 - [ ] `INFRA-004` Definir estratégia de `.env` por app/pacote (dev, test, prod).
 - [ ] `INFRA-005` Criar guia operacional inicial em `docs` (setup local e troubleshooting).
 
-### Fase 1 — Dados e Persistência
+### Fase 1 - Dados e Persistência
 
 - [ ] `INFRA-006` Criar `packages/database` com Prisma schema e client.
 - [ ] `INFRA-007` Estruturar migrações e padrão de versionamento.
 - [ ] `INFRA-008` Implementar seeds idempotentes (usuários, roles, dados base).
 - [ ] `INFRA-009` Criar estratégia de testes de integração com banco.
 
-### Fase 2 — Contratos e Aplicação
+### Fase 2 - Contratos e Aplicação
 
 - [ ] `INFRA-010` Criar `packages/contracts` para DTOs de entrada/saída.
 - [ ] `INFRA-011` Criar `packages/shared` para schemas (Zod) e utilitários.
@@ -40,19 +40,19 @@ Concentrar apenas o backlog **ainda não concluído**, priorizando impacto em:
 - [ ] `INFRA-014` Implementar contexto tRPC (sessão, prisma, tracing).
 - [ ] `INFRA-015` Definir middlewares padrão (authz, logging, error mapping).
 
-### Fase 3 — Autenticação e Autorização
+### Fase 3 - Autenticação e Autorização
 
 - [ ] `INFRA-016` Integrar Better Auth no `apps/web`.
 - [ ] `INFRA-017` Persistir usuários/sessões no PostgreSQL com Prisma.
 - [ ] `INFRA-018` Implementar RBAC baseline.
 
-### Fase 4 — Integração Web + BFF
+### Fase 4 - Integração Web + BFF
 
 - [ ] `INFRA-019` Configurar cliente/servidor tRPC no Next.js App Router.
 - [ ] `INFRA-020` Definir padrão de data fetching, cache e invalidação.
 - [ ] `INFRA-021` Criar layout de erro/loading e observabilidade de requests.
 
-### Fase 5 — Engenharia
+### Fase 5 - Engenharia
 
 - [ ] `INFRA-022` Criar pipeline CI (lint, typecheck, test, build).
 - [ ] `INFRA-023` Adicionar verificação de contrato/schema em PR.
@@ -76,20 +76,53 @@ Concentrar apenas o backlog **ainda não concluído**, priorizando impacto em:
 - [ ] `INFRA-044` [Média] Feedback útil? com comentário opcional persistido.
 - [ ] `INFRA-045` [Melhoria] Transição suave no toggle de tema.
 
-## Itens Adicionados (Gap Analysis)
+## Itens adicionados (Gap analysis)
 
 - [ ] `INFRA-054` [Alta] Acessibilidade da documentação (WCAG AA).
-Criterios de aceite:
+Critérios de aceite:
 - Contraste, foco visível e navegação por teclado auditados na rota `/docs`.
 - Componentes críticos com `aria-*` e semântica consistente.
 
 - [ ] `INFRA-055` [Alta] Testes E2E da experiência de docs.
-Criterios de aceite:
+Critérios de aceite:
 - Cobertura de busca, navegação sidebar, atalhos e proteção por role.
 - Testes executados no CI antes do build de produção.
 
-## Sequenciamento recomendado (próximo ciclo)
+## Sprints de desenvolvimento recomendados
 
-1. `INFRA-022`, `INFRA-023`, `INFRA-055`
-2. `INFRA-039`, `INFRA-040`, `INFRA-043`, `INFRA-044`
-3. `INFRA-052`, `INFRA-053`, `INFRA-054`
+### Sprint 1 (Fundação de qualidade e confiabilidade)
+
+Objetivo: garantir base de entrega segura no CI/CD e reduzir regressão de docs.
+
+- `INFRA-022` Pipeline CI (lint, typecheck, test, build)
+- `INFRA-023` Verificação de contrato/schema em PR
+- `INFRA-055` Testes E2E da experiência de docs
+
+### Sprint 2 (Busca, interação e feedback)
+
+Objetivo: melhorar descoberta de conteúdo e capturar sinais reais de qualidade.
+
+- `INFRA-039` Histórico de buscas (top 5)
+- `INFRA-040` Filtro de busca por categoria/tag
+- `INFRA-043` Copy button com feedback + analytics
+- `INFRA-044` Feedback de utilidade com comentário
+
+### Sprint 3 (SEO, observabilidade e acessibilidade)
+
+Objetivo: aumentar alcance orgânico, diagnóstico de uso e qualidade de uso.
+
+- `INFRA-052` `sitemap.xml` automático para docs
+- `INFRA-053` Analytics de páginas e buscas sem resultado
+- `INFRA-054` Acessibilidade da documentação (WCAG AA)
+- `INFRA-045` Transição suave no toggle de tema
+
+### Sprint 4 (Plataforma monorepo e arquitetura alvo)
+
+Objetivo: concluir base estrutural do monorepo e padrão de arquitetura por pacote.
+
+- `INFRA-001` a `INFRA-005` Fundação do monorepo
+- `INFRA-006` a `INFRA-009` Dados e persistência
+- `INFRA-010` a `INFRA-015` Contratos e camada de aplicação
+- `INFRA-016` a `INFRA-021` Auth, RBAC e integração Web + BFF
+- `INFRA-024` a `INFRA-026` Deploy, logs e métricas
+- `INFRA-031` Metadados editoriais

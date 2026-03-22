@@ -1,0 +1,98 @@
+---
+title: Arquitetura da Aplicacao e Monorepo
+description: Padrao de arquitetura por pacote, estrutura de features e regras de dependencia.
+lastUpdated: 2026-03-22
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - arquitetura
+  - monorepo
+  - engenharia
+---
+
+## Objetivo
+
+Definir a arquitetura oficial da aplicacao para garantir escalabilidade, separacao de responsabilidades e manutencao previsivel.
+
+## Arquitetura por pacote
+
+- `apps/web`
+  - Next.js (App Router)
+  - UI e composicao de fluxos
+  - acesso ao banco restrito a adapters tecnicos (ex.: auth/session)
+- `packages/api`
+  - camada de transporte e orquestracao (tRPC)
+  - valida entrada, chama casos de uso e aplica contexto de tenant
+- `packages/core`
+  - regras de dominio e casos de uso
+  - sem dependencia de framework web
+- `packages/contracts`
+  - contratos compartilhados entre web/api/core
+  - tipos, schemas e payloads de fronteira
+- `packages/database`
+  - Prisma schema, migrations, client e rotinas de dados
+- `packages/shared`
+  - utilitarios e validacoes transversais
+- `packages/ui`
+  - componentes visuais reutilizaveis
+
+## Estrutura obrigatoria por feature
+
+Cada modulo novo deve seguir:
+
+- `src/features/<feature>/domain`
+  - tipos, enums, regras puras e mapeamentos sem efeito colateral
+- `src/features/<feature>/application`
+  - orchestration da feature: queries, actions e casos de uso
+- `src/features/<feature>/interface`
+  - componentes React da feature (listas, modais, client root)
+
+Exemplo:
+
+```text
+src/features/participantes/
+  domain/
+    model.ts
+  application/
+    actions.ts
+    queries.ts
+  interface/
+    ParticipantesClient.tsx
+  index.ts
+```
+
+## Regras de dependencia
+
+- fluxo permitido: `interface -> application -> domain`
+- `interface` nao importa `@/lib/actions` nem `@/lib/queries` diretamente
+- `application` pode acessar infraestrutura (`@/lib/actions`, `@/lib/queries`, tRPC)
+- `domain` nao depende de React nem infraestrutura
+
+## Contratos (fonte unica)
+
+Os contratos de entrada/saida da aplicacao devem ficar em `packages/contracts`.
+
+## Guardrails de implementacao
+
+1. Nao criar regra de negocio em componente React.
+2. Nao acoplar validacao de dominio na camada de transporte.
+3. Nao duplicar schema entre `core` e `contracts`.
+4. Sempre exportar a feature por `index.ts`.
+5. Toda feature nova deve seguir o mesmo formato de pastas.
+
+## Checklist de revisao arquitetural
+
+- Feature criada em `src/features/<feature>` com 3 camadas
+- Regras de negocio isoladas em `domain`/`core`
+- Contratos centralizados em `packages/contracts`
+- Dependencias respeitando o fluxo oficial
+- Sem acesso direto ao banco fora de `packages/database` e adapters permitidos
+
+## Anti-padroes (o que evitar)
+
+1. Colocar regra de negocio em componente React ou handler de tela.
+2. Criar regra de negocio dentro de router tRPC.
+3. Acessar banco diretamente em camada de interface.
+4. Duplicar tipos/schemas de payload em mais de um pacote.
+5. Misturar responsabilidade de tenant/autorizacao com regra de dominio.
+6. Criar feature sem estrutura `domain/application/interface`.

@@ -1,8 +1,11 @@
 {
-  "title": "Manuais Técnicos",
-  "description": "Conteúdo técnico restrito para administração, suporte e equipe interna.",
+  "title": "Manuais Tecnicos",
+  "description": "Conteudo tecnico restrito para administracao, suporte e equipe interna.",
   "pages": [
     "index",
+    "arquitetura-documentacao-fumadocs",
+    "arquitetura-aplicacao-monorepo",
+    "arquitetura-referencia-por-fluxo",
     "backlog-infra-monorepo",
     "padrao-componentes-mdx",
     "diff-highlighting-shiki"
