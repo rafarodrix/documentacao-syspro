@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Clock3, Flame, Sparkles } from 'lucide-react';
+import type { Role } from '@prisma/client';
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { Cards, Card } from 'fumadocs-ui/components/card';
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -28,12 +29,40 @@ type RoleSegment = 'admin' | 'developer' | 'suporte' | 'cliente_admin' | 'client
 const RECENT_STORAGE_KEY = 'docs:recent';
 const POPULAR_STORAGE_KEY = 'docs:popular';
 
-const QUICK_LINKS = [
+const BASE_QUICK_LINKS = [
   { href: '/docs/manual', title: 'Documentação', description: 'Guias e módulos de uso diário.' },
   { href: '/docs/duvidas', title: 'Dúvidas Frequentes', description: 'Respostas rápidas para incidentes comuns.' },
   { href: '/docs/treinamento', title: 'Treinamentos', description: 'Trilhas para capacitação da equipe.' },
   { href: '/docs/suporte', title: 'Suporte', description: 'Processos, integrações e operação.' },
 ];
+
+const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string; description: string }>> = {
+  ADMIN: [
+    { href: '/docs/manuais-tecnicos', title: 'Arquitetura e backlog', description: 'Governança técnica e padrões.' },
+    { href: '/docs/suporte', title: 'Operação de suporte', description: 'Fluxos de atendimento e escalonamento.' },
+    { href: '/docs/manual', title: 'Visão funcional do produto', description: 'Conteúdo orientado ao cliente final.' },
+  ],
+  DEVELOPER: [
+    { href: '/docs/manuais-tecnicos', title: 'Manuais técnicos', description: 'Infra, stack e decisões de arquitetura.' },
+    { href: '/docs/suporte', title: 'Processos de suporte', description: 'Contexto de operação e troubleshooting.' },
+    { href: '/docs/duvidas', title: 'Erros recorrentes', description: 'Base para correções rápidas.' },
+  ],
+  SUPORTE: [
+    { href: '/docs/suporte', title: 'Procedimentos de suporte', description: 'Playbooks e processos operacionais.' },
+    { href: '/docs/duvidas', title: 'Dúvidas e erros comuns', description: 'Resolução rápida de incidentes.' },
+    { href: '/docs/treinamento', title: 'Treinamentos', description: 'Capacitação contínua do time.' },
+  ],
+  CLIENTE_ADMIN: [
+    { href: '/docs/manual', title: 'Operação do sistema', description: 'Rotinas principais do dia a dia.' },
+    { href: '/docs/treinamento', title: 'Treinar equipe', description: 'Materiais para onboarding interno.' },
+    { href: '/docs/duvidas', title: 'Resolver problemas comuns', description: 'Perguntas e respostas rápidas.' },
+  ],
+  CLIENTE_USER: [
+    { href: '/docs/manual', title: 'Primeiros passos', description: 'Fluxo básico para começar a operar.' },
+    { href: '/docs/duvidas', title: 'Erros mais comuns', description: 'Como resolver os principais bloqueios.' },
+    { href: '/docs/treinamento', title: 'Aprender mais rápido', description: 'Guias práticos por módulo.' },
+  ],
+};
 
 function parseDate(date?: string) {
   if (!date) return 0;
@@ -52,12 +81,20 @@ function formatDateTime(timestamp: number) {
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(timestamp));
 }
 
-export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry[]; canViewTechnical: boolean }) {
+export function DocsHomePage({
+  pages,
+  canViewTechnical,
+  role,
+}: {
+  pages: DocsHomeEntry[];
+  canViewTechnical: boolean;
+  role: Role;
+}) {
   const [recentItems, setRecentItems] = useState<DocsRecentItem[]>([]);
   const [popularItems, setPopularItems] = useState<PopularMap>({});
   const [globalPopular, setGlobalPopular] = useState<PopularItem[]>([]);
   const [rolePopular, setRolePopular] = useState<PopularItem[]>([]);
-  const [roleSegment, setRoleSegment] = useState<RoleSegment>('cliente');
+  const [roleSegment, setRoleSegment] = useState<RoleSegment>('cliente_user');
   const [lastReadFromApi, setLastReadFromApi] = useState<DocsRecentItem | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(true);
 
@@ -167,6 +204,24 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
     return 'Populares para CLIENTE_USER';
   }, [roleSegment]);
 
+  const quickLinks = useMemo(() => {
+    const links = [...BASE_QUICK_LINKS];
+    if (canViewTechnical) {
+      links.push({
+        href: '/docs/manuais-tecnicos',
+        title: 'Manuais Técnicos',
+        description: 'Arquitetura, backlog e padrões de engenharia.',
+      });
+    }
+    return links;
+  }, [canViewTechnical]);
+
+  const startTasks = useMemo(() => {
+    const tasks = ROLE_START_TASKS[role] ?? ROLE_START_TASKS.CLIENTE_USER;
+    if (!canViewTechnical) return tasks.filter((task) => !task.href.startsWith('/docs/manuais-tecnicos'));
+    return tasks;
+  }, [role, canViewTechnical]);
+
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/10 p-5 md:p-6">
@@ -202,6 +257,17 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
         Use `Ctrl + K` para abrir a busca de qualquer página e ir direto para o conteúdo desejado.
       </Callout>
 
+      <section>
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Comece por aqui</h3>
+        <Cards>
+          {startTasks.map((item) => (
+            <Card key={item.href} href={item.href} title={item.title}>
+              {item.description}
+            </Card>
+          ))}
+        </Cards>
+      </section>
+
       {continueReading ? (
         <section className="rounded-xl border border-border/60 bg-card/40 p-4">
           <p className="text-sm font-semibold">Continuar leitura</p>
@@ -225,16 +291,11 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
       <section>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Links diretos</h3>
         <Cards>
-          {QUICK_LINKS.map((item) => (
+          {quickLinks.map((item) => (
             <Card key={item.href} href={item.href} title={item.title}>
               {item.description}
             </Card>
           ))}
-          {canViewTechnical ? (
-            <Card href="/docs/manuais-tecnicos" title="Manuais Técnicos">
-              Arquitetura, backlog e padrões de engenharia.
-            </Card>
-          ) : null}
         </Cards>
       </section>
 

@@ -14,6 +14,7 @@ import { SYSTEM_ROLES } from '@/core/config/route-access';
 import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 import { DocsHomePage } from '@/components/docs/DocsHomePage';
 import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
+import { DocsNextSteps } from '@/components/docs/DocsNextSteps';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -72,6 +73,7 @@ export default async function Page(props: {
           <DocsHomePage
             pages={visiblePages}
             canViewTechnical={SYSTEM_ROLES.includes(session.role)}
+            role={session.role}
           />
         </DocsBody>
       </DocsPage>
@@ -86,6 +88,34 @@ export default async function Page(props: {
   const formattedLastUpdated = lastUpdated
     ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(lastUpdated))
     : null;
+
+  const allPages = source.getPages().filter((item) => item.url !== docSlug);
+  const sameSectionPrefix = slug[0] ? `/docs/${slug[0]}` : '/docs';
+  const contextPages = allPages
+    .filter((item) => item.url.startsWith(sameSectionPrefix))
+    .slice(0, 30);
+
+  const visibility = await Promise.all(
+    contextPages.map(async (item) => {
+      if (!SYSTEM_ROLES.includes(session.role) && item.url.startsWith('/docs/manuais-tecnicos')) return false;
+      if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
+        const relativeSlug = item.url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
+        const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
+        if (requiredSegments.length === 0) return true;
+        return canAccessByCompanySegment(session.userId, requiredSegments);
+      }
+      return true;
+    }),
+  );
+
+  const nextSteps = contextPages
+    .filter((_, index) => visibility[index])
+    .slice(0, 4)
+    .map((item) => ({
+      href: item.url,
+      title: String(item.data.title),
+      description: typeof item.data.description === 'string' ? item.data.description : undefined,
+    }));
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
@@ -107,6 +137,7 @@ export default async function Page(props: {
             a: createRelativeLink(source, page),
           }}
         />
+        <DocsNextSteps items={nextSteps} />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
         <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
       </DocsBody>
