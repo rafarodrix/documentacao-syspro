@@ -112,6 +112,10 @@ const parseNullableDateSafe = (value: unknown): Date | null => {
     return Number.isNaN(dt.getTime()) ? null : dt;
 };
 
+const toPrismaJson = (value: Record<string, unknown>): Prisma.InputJsonValue => {
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+};
+
 const getAnexoExternalKey = (item: Record<string, unknown>, index: number): string => {
     const possibleKeys = [
         item.id,
@@ -389,7 +393,7 @@ export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
                         publishDate,
                         startDate,
                         endDate,
-                        raw: item,
+                        raw: toPrismaJson(item),
                         lastUpdated: new Date(),
                     },
                     create: {
@@ -401,7 +405,7 @@ export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
                         publishDate,
                         startDate,
                         endDate,
-                        raw: item,
+                        raw: toPrismaJson(item),
                     },
                 });
 
