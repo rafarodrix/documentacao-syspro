@@ -44,8 +44,10 @@ export async function SiteHeader() {
 
         {/* 2. Navegação Desktop */}
         <nav className="hidden md:flex items-center gap-1">
+          <NavLink href="/docs">Central</NavLink>
           <NavLink href="/docs/manual">Documentação</NavLink>
           <NavLink href="/docs/duvidas">Dúvidas Frequentes</NavLink>
+          <NavLink href="/docs/treinamento">Treinamentos</NavLink>
           <NavLink href="/docs/suporte">Suporte</NavLink>
           <NavLink href="/releases">Releases</NavLink>
           <div className="h-4 w-px bg-border/50 mx-2" />
@@ -146,9 +148,12 @@ export async function SiteHeader() {
                     </MobileNavLink>
                   )}
                   <div className="h-px bg-border/50 my-2" />
+                  <MobileNavLink href="/docs">Central</MobileNavLink>
                   <MobileNavLink href="/docs/manual">Documentação</MobileNavLink>
                   <MobileNavLink href="/docs/duvidas">Dúvidas Frequentes</MobileNavLink>
+                  <MobileNavLink href="/docs/treinamento">Treinamentos</MobileNavLink>
                   <MobileNavLink href="/docs/suporte">Suporte</MobileNavLink>
+                  <MobileNavLink href="/releases">Releases</MobileNavLink>
                   <MobileNavLink href="https://trilink.com.br" external>Institucional</MobileNavLink>
                 </div>
 
