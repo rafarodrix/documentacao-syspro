@@ -3,38 +3,32 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Inbox, Clock, CheckCircle2 } from "lucide-react"
 import { LucideIcon } from "lucide-react"
-import { TicketListItem } from "./types"
-import { type TicketStatusGroup } from "@/core/config/tickets-workflow"
+import { TicketStatusCounts } from "./types"
 
 interface TicketsStatsProps {
-    tickets: TicketListItem[]
-    getCategory: (status: string) => TicketStatusGroup
+    counts: TicketStatusCounts
 }
 
-export function TicketsStats({ tickets, getCategory }: TicketsStatsProps) {
-    const kpiOpen = tickets.filter((t) => getCategory(t.status) === "open").length;
-    const kpiPending = tickets.filter((t) => getCategory(t.status) === "pending").length;
-    const kpiClosed = tickets.filter((t) => getCategory(t.status) === "closed").length;
-
+export function TicketsStats({ counts }: TicketsStatsProps) {
     return (
         <div className="grid gap-4 md:grid-cols-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <KpiCard
                 title="Novos & Abertos"
-                value={kpiOpen}
+                value={counts.open}
                 icon={Inbox}
                 color="blue"
                 label="Fila de atendimento"
             />
             <KpiCard
                 title="Em Analise"
-                value={kpiPending}
+                value={counts.pending}
                 icon={Clock}
                 color="amber"
                 label="Aguardando resposta"
             />
             <KpiCard
                 title="Finalizados"
-                value={kpiClosed}
+                value={counts.closed}
                 icon={CheckCircle2}
                 color="green"
                 label="Historico recente"

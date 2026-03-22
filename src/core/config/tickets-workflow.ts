@@ -6,6 +6,9 @@ export const TICKET_QUEUE_KEYS: QueueKey[] = ["all", "my_queue", "unassigned", "
 export const TICKET_STATUS_GROUPS: TicketStatusGroup[] = ["open", "pending", "closed"];
 
 export const OPERATIONAL_STATE_IDS = [1, 2, 3, 4, 5, 7] as const;
+export const OPEN_STATE_IDS = [1] as const;
+export const PENDING_STATE_IDS = [2, 3, 4, 5] as const;
+export const CLOSED_STATE_IDS = [7] as const;
 
 const STATUS_GROUP_KEYWORDS: Record<TicketStatusGroup, string[]> = {
   open: ["1. novo", "novo", "new", "aberto", "open"],
@@ -35,4 +38,10 @@ export function getTicketStatusGroup(status: string): TicketStatusGroup {
 
 export function isTicketStatusGroup(value: string): value is TicketStatusGroup {
   return TICKET_STATUS_GROUPS.includes(value as TicketStatusGroup);
+}
+
+export function getStateIdsForStatusGroup(group: TicketStatusGroup): readonly number[] {
+  if (group === "open") return OPEN_STATE_IDS;
+  if (group === "closed") return CLOSED_STATE_IDS;
+  return PENDING_STATE_IDS;
 }

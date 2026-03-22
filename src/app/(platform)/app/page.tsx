@@ -17,8 +17,8 @@ import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { ArrowUpRight, BookOpen, Headset, Sparkles, Users } from "lucide-react";
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
-import { getTicketsAction } from "@/actions/tickets/ticket-actions";
 import { getTicketStatusGroup } from "@/core/config/tickets-workflow";
+import { queryTicketsForViewer } from "@/core/application/services/tickets/ticket-query-service";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
@@ -154,7 +154,7 @@ async function getUserDashboardUF(userId: string): Promise<string> {
   return state && state.length === 2 ? state : "MG";
 }
 
-async function getDashboardData(userId: string, _email: string, role: Role): Promise<AdminDashboardData | ClientDashboardData> {
+async function getDashboardData(userId: string, email: string, role: Role): Promise<AdminDashboardData | ClientDashboardData> {
   const isSystemUser = SYSTEM_ROLES.includes(role);
   const dashboardUF = await getUserDashboardUF(userId);
 
@@ -209,7 +209,7 @@ async function getDashboardData(userId: string, _email: string, role: Role): Pro
       }),
       prisma.company.findMany({ where: { deletedAt: null, createdAt: { gte: start } }, select: { createdAt: true } }),
     ]);
-    const ticketsResponse = await getTicketsAction({ page: 1, pageSize: 50, queue: "all" });
+    const ticketsResponse = await queryTicketsForViewer({ userId, email, role }, { page: 1, pageSize: 50, queue: "all", statusGroup: "all" });
     const normalizedTickets = ticketsResponse.success
       ? ticketsResponse.data.map((ticket) => ({
           id: String(ticket.id),
@@ -221,7 +221,9 @@ async function getDashboardData(userId: string, _email: string, role: Role): Pro
         }))
       : [];
     const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 5);
-    const totalOpen = ticketsResponse.success ? ticketsResponse.queueCounts.all : normalizedTickets.length;
+    const totalOpen = ticketsResponse.success
+      ? ticketsResponse.statusCounts.open + ticketsResponse.statusCounts.pending
+      : normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").length;
 
     const companies = recentCompanies.map((c) => ({
       ...c,
@@ -278,7 +280,7 @@ async function getDashboardData(userId: string, _email: string, role: Role): Pro
   ]);
 
   const ticketsResponse = scopedEmails.length
-    ? await getTicketsAction({ page: 1, pageSize: 20, queue: "all" })
+    ? await queryTicketsForViewer({ userId, email, role }, { page: 1, pageSize: 20, queue: "all", statusGroup: "all" })
     : null;
   const normalizedTickets = ticketsResponse?.success
     ? ticketsResponse.data.map((ticket) => ({
@@ -291,7 +293,13 @@ async function getDashboardData(userId: string, _email: string, role: Role): Pro
       }))
     : [];
   const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 10);
-  const kpis = ticketKpis(normalizedTickets);
+  const kpis = ticketsResponse?.success
+    ? {
+        open: ticketsResponse.statusCounts.open,
+        pending: ticketsResponse.statusCounts.pending,
+        resolved: ticketsResponse.statusCounts.closed,
+      }
+    : ticketKpis(normalizedTickets);
 
   return {
     mode: "client",
@@ -308,7 +316,7 @@ export default async function DashboardPage() {
   const session = await requireSession();
   const data = await getDashboardData(session.userId, session.email, session.role);
   const isSystemUser = data.mode === "admin";
-  const zammadHealth = getZammadRouteHealth("app-dashboard");
+  const zammadHealth = getZammadRouteHealth("app-chamados");
 
   return (
     <div className="flex-1 space-y-4 sm:space-y-5 p-4 sm:p-6">

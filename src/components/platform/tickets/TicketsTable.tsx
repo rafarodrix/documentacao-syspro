@@ -73,7 +73,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                 </TableHeader>
                 <TableBody>
                     {tickets.length === 0 ? (
-                        <EmptyState />
+                        <EmptyState isAdmin={isAdmin} />
                     ) : (
                         tickets.map((ticket) => (
                             <TableRow key={ticket.id} className="group hover:bg-muted/40 transition-colors border-b border-border/40 last:border-0">
@@ -185,10 +185,10 @@ function SlaBadge({ ticket }: { ticket: TicketListItem }) {
     return <Badge variant="outline" className="text-[10px] px-2 rounded-full">No prazo</Badge>;
 }
 
-function EmptyState() {
+function EmptyState({ isAdmin }: { isAdmin: boolean }) {
     return (
         <TableRow>
-            <TableCell colSpan={8} className="h-64 text-center">
+            <TableCell colSpan={isAdmin ? 8 : 7} className="h-64 text-center">
                 <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
                     <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
                         <SearchX className="h-6 w-6 text-muted-foreground/50" />

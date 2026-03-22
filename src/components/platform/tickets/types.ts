@@ -1,3 +1,4 @@
+import type { QueueKey, TicketStatusGroup } from "@/core/config/tickets-workflow";
 export type TicketPriorityLevel = number;
 
 export interface TicketListItem {
@@ -17,6 +18,38 @@ export interface TicketListItem {
     minutesToBreach?: number;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface TicketsPagination {
+    page: number;
+    pageSize: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+    total: number | null;
+}
+
+export interface TicketStatusCounts {
+    open: number;
+    pending: number;
+    closed: number;
+}
+
+export interface TicketQueryParams {
+    page?: number;
+    pageSize?: number;
+    queue?: QueueKey;
+    search?: string;
+    statusGroup?: TicketStatusGroup | "all";
+}
+
+export interface TicketsDataResponse {
+    success: boolean;
+    error?: string;
+    data: TicketListItem[];
+    pagination: TicketsPagination;
+    staleWarning?: string;
+    queueCounts: Record<QueueKey, number>;
+    statusCounts: TicketStatusCounts;
 }
 
 export interface TicketDetailsItem {

@@ -2,7 +2,7 @@ import { getTicketsAction } from "@/actions/tickets/ticket-actions";
 import { requireSession } from "@/lib/auth-helpers";
 import { TicketsContainer } from "@/components/platform/tickets/TicketsContainer";
 import { Role } from "@prisma/client";
-import { type QueueKey, TICKET_QUEUE_KEYS } from "@/core/config/tickets-workflow";
+import { type QueueKey, type TicketStatusGroup, TICKET_QUEUE_KEYS, isTicketStatusGroup } from "@/core/config/tickets-workflow";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
@@ -16,12 +16,21 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const pageParam = typeof params?.page === "string" ? Number(params.page) : 1;
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const queueParam = typeof params?.queue === "string" ? params.queue : "all";
+  const search = typeof params?.search === "string" ? params.search : "";
+  const statusParam = typeof params?.status === "string" ? params.status : "all";
 
   const queue = TICKET_QUEUE_KEYS.includes(queueParam as QueueKey)
     ? (queueParam as QueueKey)
     : "all";
+  const statusGroup: TicketStatusGroup | "all" = isTicketStatusGroup(statusParam) ? statusParam : "all";
 
-  const { data, success, pagination, staleWarning, queueCounts } = await getTicketsAction({ page, pageSize: 20, queue });
+  const { data, success, pagination, staleWarning, queueCounts, statusCounts } = await getTicketsAction({
+    page,
+    pageSize: 20,
+    queue,
+    search,
+    statusGroup,
+  });
 
   if (!success || !data) {
     return (
@@ -40,6 +49,9 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       staleWarning={staleWarning}
       queue={queue}
       queueCounts={queueCounts}
+      statusCounts={statusCounts}
+      search={search}
+      statusGroup={statusGroup}
     />
   );
 }

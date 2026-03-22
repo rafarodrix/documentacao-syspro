@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft as IconLeft, ChevronRight as IconRight } from "lucide-react";
 import { TicketSheet } from "@/components/platform/tickets/TicketSheet";
@@ -9,64 +9,92 @@ import { TicketsFilters } from "./TicketsFilters";
 import { TicketsTable } from "./TicketsTable";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { TicketListItem } from "./types";
-import { getTicketStatusGroup, type QueueKey, type TicketStatusGroup } from "@/core/config/tickets-workflow";
+import type { TicketListItem, TicketStatusCounts, TicketsPagination } from "./types";
+import type { QueueKey, TicketStatusGroup } from "@/core/config/tickets-workflow";
 
 interface TicketsContainerProps {
     tickets: TicketListItem[];
     isAdmin: boolean;
-    pagination: {
-        page: number;
-        pageSize: number;
-        hasPreviousPage: boolean;
-        hasNextPage: boolean;
-        total: number | null;
-    };
+    pagination: TicketsPagination;
     staleWarning?: string;
     queue: QueueKey;
     queueCounts: Record<QueueKey, number>;
+    statusCounts: TicketStatusCounts;
+    search: string;
+    statusGroup: TicketStatusGroup | "all";
 }
 
 export function TicketsContainer({
-    tickets: initialTickets,
+    tickets,
     isAdmin,
     pagination,
     staleWarning,
     queue,
     queueCounts,
+    statusCounts,
+    search,
+    statusGroup,
 }: TicketsContainerProps) {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState<TicketStatusGroup>("open");
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const [searchTerm, setSearchTerm] = useState(search);
 
-    const filteredTickets = initialTickets.filter((ticket) => {
-        const matchesSearch =
-            ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            ticket.number.toString().includes(searchTerm) ||
-            (isAdmin && String(ticket.customer).toLowerCase().includes(searchTerm.toLowerCase()));
+    useEffect(() => {
+        setSearchTerm(search);
+    }, [search]);
 
-        const category = getTicketStatusGroup(ticket.status);
-        const matchesStatus = statusFilter === category;
-        return matchesSearch && matchesStatus;
-    });
+    useEffect(() => {
+        const nextValue = searchTerm.trim();
+        const currentValue = (searchParams?.get("search") || "").trim();
+        if (nextValue === currentValue) return;
+
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(searchParams?.toString() || "");
+            if (nextValue) {
+                params.set("search", nextValue);
+            } else {
+                params.delete("search");
+            }
+            params.set("page", "1");
+            router.replace(`${pathname}?${params.toString()}`);
+        }, 250);
+
+        return () => clearTimeout(timer);
+    }, [pathname, router, searchParams, searchTerm]);
+
+    const updateParams = (mutate: (params: URLSearchParams) => void) => {
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        mutate(params);
+        router.push(`${pathname}?${params.toString()}`);
+    };
 
     const goToPage = (nextPage: number) => {
-        const params = new URLSearchParams(searchParams?.toString() || "");
-        params.set("page", String(Math.max(1, nextPage)));
-        router.push(`${pathname}?${params.toString()}`);
+        updateParams((params) => {
+            params.set("page", String(Math.max(1, nextPage)));
+        });
     };
 
     const setQueueFilter = (nextQueue: QueueKey) => {
-        const params = new URLSearchParams(searchParams?.toString() || "");
-        params.set("queue", nextQueue);
-        params.set("page", "1");
-        router.push(`${pathname}?${params.toString()}`);
+        updateParams((params) => {
+            params.set("queue", nextQueue);
+            params.set("page", "1");
+        });
+    };
+
+    const setStatusFilter = (nextStatus: TicketStatusGroup | "all") => {
+        updateParams((params) => {
+            if (nextStatus === "all") {
+                params.delete("status");
+            } else {
+                params.set("status", nextStatus);
+            }
+            params.set("page", "1");
+        });
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
+        <div className="animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10 duration-700">
             {staleWarning && (
                 <Alert className="border-amber-500/40 bg-amber-500/10">
                     <AlertTitle>Dados em modo contingencia</AlertTitle>
@@ -74,19 +102,19 @@ export function TicketsContainer({
                 </Alert>
             )}
 
-            <div className="flex justify-between items-start">
+            <div className="flex items-start justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">
                         {isAdmin ? "Central de Atendimento" : "Meus Chamados"}
                     </h1>
-                    <p className="text-muted-foreground text-lg mt-1">
+                    <p className="mt-1 text-lg text-muted-foreground">
                         {isAdmin ? "Gerencie a fila de suporte e solicitacoes." : "Acompanhe o status das suas solicitacoes."}
                     </p>
                 </div>
                 {!isAdmin && <TicketSheet />}
             </div>
 
-            <TicketsStats tickets={initialTickets} getCategory={getTicketStatusGroup} />
+            <TicketsStats counts={statusCounts} />
 
             {isAdmin && (
                 <div className="flex flex-wrap gap-2">
@@ -111,21 +139,22 @@ export function TicketsContainer({
             <TicketsFilters
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                statusFilter={statusFilter}
+                statusFilter={statusGroup}
                 setStatusFilter={setStatusFilter}
                 isAdmin={isAdmin}
+                counts={statusCounts}
             />
 
-            <TicketsTable tickets={filteredTickets} isAdmin={isAdmin} />
+            <TicketsTable tickets={tickets} isAdmin={isAdmin} />
 
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Total da fila: {pagination.total ?? queueCounts[queue]}</span>
-                <span>Itens nesta pagina: {initialTickets.length}</span>
+                <span>Total filtrado: {pagination.total ?? tickets.length}</span>
+                <span>Itens nesta pagina: {tickets.length}</span>
             </div>
 
             {(pagination.hasPreviousPage || pagination.hasNextPage) && (
                 <div className="flex items-center justify-end gap-2 pt-2">
-                    <span className="text-sm text-muted-foreground mr-2">
+                    <span className="mr-2 text-sm text-muted-foreground">
                         Pagina {pagination.page}
                         {pagination.total !== null ? ` de ${Math.max(1, Math.ceil(pagination.total / pagination.pageSize))}` : ""}
                     </span>

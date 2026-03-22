@@ -2,7 +2,7 @@ import { Prisma, Role, ZammadTicketCache } from "@prisma/client";
 import { ZammadOperationalTicket } from "@/core/application/schema/zammad-api.schema";
 import { prisma } from "@/lib/prisma";
 import { computeTicketSla } from "@/core/application/services/zammad-sla";
-import { OPERATIONAL_STATE_IDS, type QueueKey } from "@/core/config/tickets-workflow";
+import { OPERATIONAL_STATE_IDS, getStateIdsForStatusGroup, type QueueKey, type TicketStatusGroup } from "@/core/config/tickets-workflow";
 
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
 const CACHE_UPSERT_CHUNK_SIZE = 50;
@@ -104,6 +104,8 @@ export async function listCachedTickets(input: {
   pageSize: number;
   queue?: QueueKey;
   zammadUserId?: number | null;
+  search?: string;
+  statusGroup?: TicketStatusGroup | "all";
 }): Promise<{ rows: ZammadTicketCache[]; total: number }> {
   const where: Prisma.ZammadTicketCacheWhereInput = {
     stateId: { in: [...OPERATIONAL_STATE_IDS] },
@@ -116,8 +118,12 @@ export async function listCachedTickets(input: {
     }));
   }
 
-  if (input.queue === "my_queue" && input.zammadUserId) {
-    where.ownerId = input.zammadUserId;
+  if (input.queue === "my_queue") {
+    if (input.zammadUserId) {
+      where.ownerId = input.zammadUserId;
+    } else {
+      where.zammadTicketId = -1;
+    }
   }
 
   if (input.queue === "unassigned") {
@@ -130,6 +136,24 @@ export async function listCachedTickets(input: {
 
   if (input.queue === "no_response") {
     where.firstResponseAt = null;
+  }
+
+  const search = input.search?.trim();
+  if (search) {
+    const searchConditions: Prisma.ZammadTicketCacheWhereInput[] = [
+      { number: { contains: search, mode: "insensitive" } },
+      { title: { contains: search, mode: "insensitive" } },
+    ];
+
+    if (SYSTEM_ROLES.has(input.role)) {
+      searchConditions.push({ customer: { contains: search, mode: "insensitive" } });
+    }
+
+    where.AND = [...(where.AND ?? []), { OR: searchConditions }];
+  }
+
+  if (input.statusGroup && input.statusGroup !== "all") {
+    where.stateId = { in: [...getStateIdsForStatusGroup(input.statusGroup)] };
   }
 
   const [rows, total] = await prisma.$transaction([
