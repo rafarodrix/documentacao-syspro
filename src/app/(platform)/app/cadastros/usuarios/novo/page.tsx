@@ -2,8 +2,8 @@ import { Role } from "@prisma/client";
 import { hasPermission } from "@/lib/rbac";
 import { requireRole } from "@/lib/auth-helpers";
 import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
-import { getCadastrosClientUsersData } from "@/actions/platform/get-cadastros-data";
-import { CreateUserPageForm } from "@/components/platform/cadastros/user/CreateUserPageForm";
+import { getClientUsersAdminViewData } from "@/features/user-access/application/queries";
+import { CreateUserPageForm } from "@/features/user-access/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
 export default async function CadastrosUsuariosNovoPage() {
@@ -14,7 +14,7 @@ export default async function CadastrosUsuariosNovoPage() {
 
   if (!hasPermission(session.role, "users:create")) return <CadastrosAccessDenied />;
 
-  const result = await getCadastrosClientUsersData();
+  const result = await getClientUsersAdminViewData();
   if ("error" in result) return <div>Erro: {result.error}</div>;
 
   return (

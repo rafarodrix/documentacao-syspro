@@ -81,10 +81,15 @@ Criterios de aceite:
 - leituras e escritas seguem padrao consistente entre `settings` e `contracts`.
 - fronteira pronta para futura extracao para `packages/contracts` e `packages/core`.
 
-- [ ] `INFRA-004` [Alta] Migrar `users/authz` para `src/features/user-access`.
+- [x] `INFRA-004` [Alta] Migrar `users/authz` para `src/features/user-access`.
 Criterios de aceite:
 - fluxo de cadastro, memberships e roles separados por feature.
 - sem regra critica de permissao espalhada em page/component.
+Status de fechamento:
+- `src/features/user-access` criado com `domain`, `application` e `interface`.
+- implementacao principal de usuarios/memberships migrada para `src/features/user-access/application/actions.ts`.
+- listagens e telas de edicao passaram a consumir `src/features/user-access/application/queries.ts`.
+- `src/actions/platform/user-actions.ts` atua como ponte fina.
 
 ### EPIC A2 - Actions finas e contratos internos
 
