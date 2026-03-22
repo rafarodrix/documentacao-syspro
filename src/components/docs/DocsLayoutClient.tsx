@@ -7,7 +7,6 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsLayout as NotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { DocsSidebarItem } from '@/components/docs/DocsSidebarItem';
-import { DocsSidebarQuickLinks } from '@/components/docs/DocsSidebarQuickLinks';
 import { DocsSidebarTopControls } from '@/components/docs/DocsSidebarTopControls';
 
 const ADMIN_LAYOUT_STORAGE_KEY = 'docs:admin:layout-mode';
@@ -81,11 +80,6 @@ export function DocsLayoutClient({
         components: {
           Item: DocsSidebarItem,
         },
-        banner: (
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-            <DocsSidebarQuickLinks role={role} />
-          </div>
-        ),
       }}
     >
       {children}
