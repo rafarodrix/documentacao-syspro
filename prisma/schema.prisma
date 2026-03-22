@@ -454,6 +454,37 @@ model TaxCredPresumido {
   @@map("tax_cred_presumido")
 }
 
+model TaxNcm {
+  id String @id @default(cuid())
+
+  // Chave estavel para upsert da API de NCM
+  externalKey String @unique
+
+  // Codigo NCM sem mascara (8 digitos)
+  code String @unique
+
+  description String @db.Text
+
+  // Campos de vigencia / ato legal
+  startDate DateTime?
+  endDate   DateTime?
+  actType   String?
+  actNumber String?
+  actYear   String?
+
+  // Correlacao: NCM que substituiu este codigo (quando houver)
+  replacedByCode String?
+
+  // Payload completo retornado pela API
+  raw Json
+
+  lastUpdated DateTime @default(now())
+
+  @@index([code])
+  @@index([replacedByCode])
+  @@map("tax_ncm")
+}
+
 model DocumentoConfig {
   id String @id @default(uuid())
 

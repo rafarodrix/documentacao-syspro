@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Play, Trash2 } from "lucide-react";
 
-type SyncMode = "classTrib" | "anexos" | "credPresumido";
+type SyncMode = "classTrib" | "anexos" | "credPresumido" | "ncm";
 
 type SyncProgress = {
   inProgress: boolean;
@@ -27,6 +27,7 @@ const MODES: Array<{ mode: SyncMode; label: string }> = [
   { mode: "classTrib", label: "classTrib" },
   { mode: "anexos", label: "anexos" },
   { mode: "credPresumido", label: "credPresumido" },
+  { mode: "ncm", label: "ncm" },
 ];
 
 function progressKey(mode: SyncMode) {

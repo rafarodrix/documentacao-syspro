@@ -166,6 +166,27 @@ const getCredPresumidoExternalKey = (item: Record<string, unknown>, index: numbe
     return `cred_presumido_${index}_${hash}`;
 };
 
+const getNcmExternalKey = (item: Record<string, unknown>, index: number): string => {
+    const possibleKeys = [
+        item.codigo,
+        item.Codigo,
+        item.ncm,
+        item.NCM,
+        item.code,
+        item.Code,
+        item.id,
+        item.ID,
+    ];
+
+    for (const key of possibleKeys) {
+        const value = asString(key);
+        if (value) return value.replace(/\D/g, "");
+    }
+
+    const hash = createHash("sha1").update(JSON.stringify(item)).digest("hex").slice(0, 16);
+    return `ncm_${index}_${hash}`;
+};
+
 // ==============================================================================
 // 3. SERVER ACTION (PROCESSAMENTO HIERÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂRQUICO)
 // ==============================================================================
@@ -585,6 +606,127 @@ export async function saveTaxCredPresumidoBatch(data: unknown[]): Promise<SaveRe
         return {
             success: false,
             error: `Erro ao salvar credito presumido no banco: ${error.message}`,
+        };
+    }
+}
+
+export async function saveTaxNcmBatch(data: unknown[]): Promise<SaveResult> {
+    if (!Array.isArray(data) || data.length === 0) {
+        return {
+            success: true,
+            message: "Nenhum NCM para processar.",
+        };
+    }
+
+    try {
+        const normalized = data
+            .map((item) => asRecord(item))
+            .filter((item): item is Record<string, unknown> => item !== null);
+
+        let count = 0;
+
+        for (let index = 0; index < normalized.length; index++) {
+            const item = normalized[index];
+            const externalKey = getNcmExternalKey(item, index);
+
+            const codeRaw =
+                asString(item.codigo) ??
+                asString(item.Codigo) ??
+                asString(item.ncm) ??
+                asString(item.NCM) ??
+                asString(item.code) ??
+                asString(item.Code) ??
+                externalKey;
+
+            const code = codeRaw.replace(/\D/g, "").slice(0, 8);
+            if (!code) continue;
+
+            const description =
+                asString(item.descricao) ??
+                asString(item.Descricao) ??
+                asString(item.descricao_resumida) ??
+                asString(item.description) ??
+                "Sem descricao";
+
+            const startDate =
+                parseNullableDateSafe(item.data_inicio) ??
+                parseNullableDateSafe(item.dataInicio) ??
+                parseNullableDateSafe(item.inicioVigencia) ??
+                parseNullableDateSafe(item.InicioVigencia);
+
+            const endDate =
+                parseNullableDateSafe(item.data_fim) ??
+                parseNullableDateSafe(item.dataFim) ??
+                parseNullableDateSafe(item.fimVigencia) ??
+                parseNullableDateSafe(item.FimVigencia);
+
+            const actType =
+                asString(item.tipo_ato) ??
+                asString(item.tipoAto) ??
+                asString(item.tipo_legal);
+
+            const actNumber =
+                asString(item.numero_ato) ??
+                asString(item.numeroAto) ??
+                asString(item.num_ato);
+
+            const actYear =
+                asString(item.ano_ato) ??
+                asString(item.anoAto);
+
+            const replacedByCode =
+                (asString(item.substituido_por) ??
+                    asString(item.substituidoPor) ??
+                    asString(item.replaced_by) ??
+                    asString(item.replacedBy) ??
+                    asString(item.ncmSubstituto) ??
+                    "")
+                    .replace(/\D/g, "")
+                    .slice(0, 8) || null;
+
+            await prisma.taxNcm.upsert({
+                where: { code },
+                update: {
+                    externalKey,
+                    description,
+                    startDate,
+                    endDate,
+                    actType,
+                    actNumber,
+                    actYear,
+                    replacedByCode,
+                    raw: toPrismaJson(item),
+                    lastUpdated: new Date(),
+                },
+                create: {
+                    externalKey,
+                    code,
+                    description,
+                    startDate,
+                    endDate,
+                    actType,
+                    actNumber,
+                    actYear,
+                    replacedByCode,
+                    raw: toPrismaJson(item),
+                },
+            });
+
+            count++;
+        }
+
+        revalidatePath("/app/configuracoes");
+        revalidatePath("/app/reforma-tributaria");
+
+        return {
+            success: true,
+            message: `Sucesso! ${count} NCM(s) processado(s).`,
+        };
+    } catch (error: any) {
+        console.error("Erro critico na importacao de NCM:", error);
+        return {
+            success: false,
+            error: `Erro ao salvar NCM no banco: ${error.message}`,
         };
     }
 }

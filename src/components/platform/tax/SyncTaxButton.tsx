@@ -8,8 +8,9 @@ import { toast } from "sonner";
 const CLASS_TRIB_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/classTrib";
 const ANEXOS_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/anexos";
 const CRED_PRESUMIDO_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/credPresumido";
+const NCM_URL = "https://brasilapi.com.br/api/ncm/v1";
 
-type SyncMode = "classTrib" | "anexos" | "credPresumido";
+type SyncMode = "classTrib" | "anexos" | "credPresumido" | "ncm";
 
 type SyncProgress = {
   inProgress: boolean;
@@ -53,6 +54,7 @@ function normalizeTaxPayload(data: unknown): unknown[] {
     const objectData = data as Record<string, unknown>;
 
     if (Array.isArray(objectData.resultado)) return objectData.resultado;
+    if (Array.isArray(objectData.ncms)) return objectData.ncms;
     if (objectData.CST) return [objectData];
   }
 
@@ -140,18 +142,29 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
 
   const isClassTrib = mode === "classTrib";
   const isCredPresumido = mode === "credPresumido";
-  const routeUrl = isClassTrib ? CLASS_TRIB_URL : isCredPresumido ? CRED_PRESUMIDO_URL : ANEXOS_URL;
+  const isNcm = mode === "ncm";
+  const routeUrl = isClassTrib
+    ? CLASS_TRIB_URL
+    : isCredPresumido
+      ? CRED_PRESUMIDO_URL
+      : isNcm
+        ? NCM_URL
+        : ANEXOS_URL;
 
   const title = isClassTrib
     ? "Classificacoes Tributarias (classTrib)"
     : isCredPresumido
       ? "Credito Presumido (credPresumido)"
-      : "Anexos Fiscais (anexos)";
+      : isNcm
+        ? "Tabela NCM (ncm)"
+        : "Anexos Fiscais (anexos)";
   const subtitle = isClassTrib
     ? "Consulta no cliente + persistencia backend por lote (hibrido)."
     : isCredPresumido
       ? "Consulta no cliente + persistencia backend por lote (hibrido)."
-      : "Consulta no cliente + persistencia backend por lote (hibrido).";
+      : isNcm
+        ? "Consulta publica de NCM + persistencia backend por lote."
+        : "Consulta no cliente + persistencia backend por lote (hibrido).";
 
   const savedProgress = useMemo(() => readProgress(mode), [mode]);
 
@@ -162,12 +175,15 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
 
   const handleSync = useCallback(async () => {
     setLastStatus("idle");
-    setStatusMessage("Aguardando Certificado...");
+    setStatusMessage(isNcm ? "Preparando consulta..." : "Aguardando Certificado...");
 
     try {
       setStatusMessage("Consultando rota...");
       const rawData = await fetchSefazRoute(routeUrl);
-      const list = isClassTrib ? normalizeTaxPayload(rawData) : (Array.isArray(rawData) ? rawData : [rawData]);
+      const list =
+        isClassTrib || isNcm
+          ? normalizeTaxPayload(rawData)
+          : (Array.isArray(rawData) ? rawData : [rawData]);
 
       if (list.length === 0) {
         toast.warning("A API retornou dados vazios.");
@@ -175,7 +191,7 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
         return;
       }
 
-      const maxBytes = isClassTrib ? 450_000 : 300_000;
+      const maxBytes = isClassTrib ? 450_000 : isNcm ? 500_000 : 300_000;
       const chunks = splitByApproxSize(list, maxBytes);
       const startedAt = Date.now();
 
@@ -252,7 +268,7 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
         setStatusMessage("Sincronizar Agora");
       }, 3000);
     }
-  }, [isClassTrib, mode, routeUrl, title]);
+  }, [isClassTrib, isNcm, mode, routeUrl, title]);
 
   useEffect(() => {
     const onResume = (event: Event) => {
@@ -275,9 +291,15 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
       <div className="flex-1">
         <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
           {title}
-          <span className="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">
-            <Lock className="h-3 w-3" /> Requer Certificado
-          </span>
+          {isNcm ? (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700">
+              API publica
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">
+              <Lock className="h-3 w-3" /> Requer Certificado
+            </span>
+          )}
         </h4>
         <p className="text-xs text-muted-foreground">{subtitle}</p>
         <p className="mt-1 text-[11px] text-muted-foreground/80">Rota: {routeUrl}</p>
@@ -319,6 +341,10 @@ export function SyncTaxCredPresumidoButton() {
   return <SyncRouteButton mode="credPresumido" />;
 }
 
+export function SyncTaxNcmButton() {
+  return <SyncRouteButton mode="ncm" />;
+}
+
 // Compatibilidade com uso antigo
 export function SyncTaxButton() {
   return (
@@ -326,6 +352,7 @@ export function SyncTaxButton() {
       <SyncTaxClassTribButton />
       <SyncTaxAnexosButton />
       <SyncTaxCredPresumidoButton />
+      <SyncTaxNcmButton />
     </div>
   );
 }

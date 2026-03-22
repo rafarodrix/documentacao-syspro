@@ -1,0 +1,150 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, Boxes } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+type Item = {
+  id: string;
+  code: string;
+  description: string;
+  startDate: Date | null;
+  endDate: Date | null;
+  replacedByCode: string | null;
+  actType: string | null;
+  actNumber: string | null;
+  actYear: string | null;
+  lastUpdated: Date;
+};
+
+type VigenciaFilter = "all" | "active" | "future" | "expired";
+
+function fmtDate(value: Date | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("pt-BR").format(new Date(value));
+}
+
+function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<VigenciaFilter, "all"> {
+  const now = new Date();
+  if (startDate && startDate > now) return "future";
+  if (endDate && endDate < now) return "expired";
+  return "active";
+}
+
+export function TaxNcmPanel({ items }: { items: Item[] }) {
+  const [query, setQuery] = useState("");
+  const [vigencia, setVigencia] = useState<VigenciaFilter>("all");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items.filter((item) => {
+      const matchQuery =
+        item.code.toLowerCase().includes(q) ||
+        item.description.toLowerCase().includes(q) ||
+        (item.replacedByCode ?? "").toLowerCase().includes(q) ||
+        (item.actType ?? "").toLowerCase().includes(q);
+
+      const matchVigencia = vigencia === "all" ? true : getVigencia(item.startDate, item.endDate) === vigencia;
+      return (q ? matchQuery : true) && matchVigencia;
+    });
+  }, [items, query, vigencia]);
+
+  const handleSync = () => {
+    window.dispatchEvent(new CustomEvent("tax-sync:resume", { detail: { mode: "ncm" } }));
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="relative md:col-span-2">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar NCM por codigo, descricao, substituicao ou tipo de ato..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <select
+          className="h-10 rounded-md border bg-background px-2 text-sm"
+          value={vigencia}
+          onChange={(e) => setVigencia(e.target.value as VigenciaFilter)}
+        >
+          <option value="all">Vigencia: todas</option>
+          <option value="active">Ativas</option>
+          <option value="future">Futuras</option>
+          <option value="expired">Expiradas</option>
+        </select>
+      </div>
+
+      <div className="rounded-md border bg-card">
+        <div className="border-b bg-muted/30 p-4">
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <Boxes className="h-4 w-4" />
+            NCM sincronizados ({filtered.length})
+          </h3>
+        </div>
+
+        <div className="max-h-[560px] overflow-auto">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-background">
+              <TableRow>
+                <TableHead className="w-[140px]">NCM</TableHead>
+                <TableHead>Descricao</TableHead>
+                <TableHead className="w-[150px]">Substitui por</TableHead>
+                <TableHead className="w-[120px]">Inicio</TableHead>
+                <TableHead className="w-[120px]">Fim</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                    <div className="flex flex-col items-center gap-3">
+                      <span>Nenhum NCM encontrado com os filtros atuais.</span>
+                      <Button size="sm" onClick={handleSync}>
+                        Sincronizar NCM
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono">
+                        {item.code}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{item.description}</div>
+                      {(item.actType || item.actNumber || item.actYear) && (
+                        <div className="text-xs text-muted-foreground">
+                          Ato: {[item.actType, item.actNumber, item.actYear].filter(Boolean).join(" / ")}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{item.replacedByCode ?? "-"}</TableCell>
+                    <TableCell className="text-xs">{fmtDate(item.startDate)}</TableCell>
+                    <TableCell className="text-xs">{fmtDate(item.endDate)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -5,9 +5,10 @@ import {
   saveTaxAnexosBatch,
   saveTaxCredPresumidoBatch,
   saveTaxDataBatch,
+  saveTaxNcmBatch,
 } from "@/actions/tax/tax-actions";
 
-type SyncMode = "classTrib" | "anexos" | "credPresumido";
+type SyncMode = "classTrib" | "anexos" | "credPresumido" | "ncm";
 
 type SyncChunkBody = {
   mode?: SyncMode;
@@ -15,7 +16,7 @@ type SyncChunkBody = {
 };
 
 function isSyncMode(value: unknown): value is SyncMode {
-  return value === "classTrib" || value === "anexos" || value === "credPresumido";
+  return value === "classTrib" || value === "anexos" || value === "credPresumido" || value === "ncm";
 }
 
 export async function POST(request: Request) {
@@ -48,7 +49,9 @@ export async function POST(request: Request) {
       ? await saveTaxDataBatch(body.chunk)
       : body.mode === "anexos"
         ? await saveTaxAnexosBatch(body.chunk)
-        : await saveTaxCredPresumidoBatch(body.chunk);
+        : body.mode === "credPresumido"
+          ? await saveTaxCredPresumidoBatch(body.chunk)
+          : await saveTaxNcmBatch(body.chunk);
 
   if (!result.success) {
     return NextResponse.json(result, { status: 500 });
@@ -56,4 +59,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json(result);
 }
-
