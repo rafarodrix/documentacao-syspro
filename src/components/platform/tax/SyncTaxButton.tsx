@@ -244,7 +244,7 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
               inProgress: true,
               currentChunk: i + 1,
               totalChunks: chunks.length,
-              jobId,
+              jobId: jobId ?? undefined,
               totalItems: list.length,
               processedItems: total + chunks[i].length,
               startedAt,
