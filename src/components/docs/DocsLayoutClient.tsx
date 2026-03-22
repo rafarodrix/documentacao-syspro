@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import type { Role } from '@prisma/client';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
+import { DocsLayout as NotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { DocsSidebarItem } from '@/components/docs/DocsSidebarItem';
 import { DocsSidebarQuickLinks } from '@/components/docs/DocsSidebarQuickLinks';
@@ -17,12 +18,16 @@ export function DocsLayoutClient({
   role: Role;
   children: ReactNode;
 }) {
+  const isSupportRole = role === 'SUPORTE';
+  const LayoutComponent = isSupportRole ? NotebookLayout : DocsLayout;
+
   return (
-    <DocsLayout
+    <LayoutComponent
       tree={docsTree}
       nav={{
         title: null,
         children: <DocsSidebarTopControls />,
+        ...(isSupportRole ? { mode: 'top' as const } : {}),
       }}
       themeSwitch={{
         enabled: false,
@@ -46,6 +51,6 @@ export function DocsLayoutClient({
       }}
     >
       {children}
-    </DocsLayout>
+    </LayoutComponent>
   );
 }
