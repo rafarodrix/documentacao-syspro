@@ -9,6 +9,7 @@ import { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/c
 import { createCompanySchema, type CreateCompanyInput } from "@/core/application/schema/company-schema";
 import {
   createCompanyAction,
+  lookupCompanyProfileByCnpjAction,
   updateCompanyAction,
   type CompanyZammadEmailInput,
 } from "@/actions/platform/company-actions";
@@ -147,6 +148,7 @@ export function CreateCompanyPageForm({
   const [zammadEmails, setZammadEmails] = useState<CompanyZammadEmailInput[]>(initialNormalizedZammadEmails);
   const [zammadEmailInput, setZammadEmailInput] = useState("");
   const [zammadEmailLabel, setZammadEmailLabel] = useState("");
+  const [isImportingCnpj, setIsImportingCnpj] = useState(false);
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
 
@@ -202,6 +204,69 @@ export function CreateCompanyPageForm({
     const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
     const query = cnpj ? `?cnpj=${encodeURIComponent(cnpj)}` : "";
     window.open(`/app/tools/consulta-cnpj${query}`, "_blank", "noopener,noreferrer");
+  }
+
+  async function importCompanyByCnpj() {
+    const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
+    if (cnpj.replace(/\D/g, "").length !== 14) {
+      toast.error("Informe um CNPJ completo antes de importar.");
+      return;
+    }
+
+    setIsImportingCnpj(true);
+    try {
+      const result = await lookupCompanyProfileByCnpjAction(cnpj);
+      if (!result.success || !result.data?.profile) {
+        toast.error(result.message ?? "Nao foi possivel consultar o provedor oficial de CNPJ.");
+        return;
+      }
+
+      const profile = result.data.profile as {
+        cnpj: string;
+        legalName: string;
+        tradeName?: string;
+        openingDate?: string;
+        primaryCnae?: string;
+        email?: string;
+        phone?: string;
+        address?: {
+          cep?: string;
+          street?: string;
+          number?: string;
+          complement?: string;
+          district?: string;
+          city?: string;
+          state?: string;
+          country?: string;
+        };
+      };
+
+      form.setValue("cnpj", formatCNPJ(profile.cnpj), { shouldDirty: true });
+      form.setValue("razaoSocial", profile.legalName ?? "", { shouldDirty: true });
+      form.setValue("nomeFantasia", profile.tradeName ?? "", { shouldDirty: true });
+      form.setValue("cnae", profile.primaryCnae ?? "", { shouldDirty: true });
+      form.setValue("emailContato", profile.email ?? "", { shouldDirty: true });
+      form.setValue("telefone", profile.phone ? formatPhone(profile.phone) : "", { shouldDirty: true });
+
+      if (profile.openingDate) {
+        form.setValue("dataFundacao", profile.openingDate, { shouldDirty: true });
+      }
+
+      if (profile.address) {
+        form.setValue("address.cep", profile.address.cep ?? "", { shouldDirty: true });
+        form.setValue("address.logradouro", profile.address.street ?? "", { shouldDirty: true });
+        form.setValue("address.numero", profile.address.number ?? "", { shouldDirty: true });
+        form.setValue("address.complemento", profile.address.complement ?? "", { shouldDirty: true });
+        form.setValue("address.bairro", profile.address.district ?? "", { shouldDirty: true });
+        form.setValue("address.cidade", profile.address.city ?? "", { shouldDirty: true });
+        form.setValue("address.estado", profile.address.state ?? "", { shouldDirty: true });
+        form.setValue("address.pais", profile.address.country ?? "BR", { shouldDirty: true });
+      }
+
+      toast.success("Dados do CNPJ importados para o cadastro.");
+    } finally {
+      setIsImportingCnpj(false);
+    }
   }
 
   const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
@@ -352,13 +417,19 @@ export function CreateCompanyPageForm({
                         <FormItem>
                           <div className="flex items-center justify-between gap-2">
                             <FormLabel>CNPJ</FormLabel>
-                            <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={openCnpjLookup}>
-                              <ExternalLink className="h-3.5 w-3.5" />
-                              Consultar CNPJ
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={openCnpjLookup}>
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                Consulta manual
+                              </Button>
+                              <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={importCompanyByCnpj} disabled={isImportingCnpj}>
+                                {isImportingCnpj ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                                Preencher automatico
+                              </Button>
+                            </div>
                           </div>
                           <FormControl><Input placeholder="00.000.000/0000-00" {...field} disabled={mode === "edit" && !canEditCnpj} value={toInputValue(field.value)} onChange={(event) => field.onChange(formatCNPJ(event.target.value))} /></FormControl>
-                          <p className="text-[11px] text-muted-foreground">Abre a consulta oficial da Receita em nova aba com o CNPJ preenchido.</p>
+                          <p className="text-[11px] text-muted-foreground">Arquitetura pronta para provedor oficial de CNPJ com auto-preenchimento server-side.</p>
                           <FormMessage />
                         </FormItem>
                       )} />

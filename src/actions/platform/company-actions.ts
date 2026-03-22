@@ -8,6 +8,7 @@ import { Prisma, CompanyStatus, Role } from "@prisma/client";
 import { resolveCompanySegmentTriggers } from "@/core/config/company-segments";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
+import { CompanyRegistryGateway } from "@/core/infrastructure/gateways/company-registry-gateway";
 
 export type ActionResponse = {
   success: boolean;
@@ -20,6 +21,32 @@ export type CompanyZammadEmailInput = {
   email: string;
   label?: string;
   isActive?: boolean;
+};
+
+export type CompanyRegistryLookupResponse = {
+  configured: boolean;
+  provider: string;
+  profile?: {
+    cnpj: string;
+    legalName: string;
+    tradeName?: string;
+    status?: string;
+    openingDate?: string;
+    primaryCnae?: string;
+    primaryCnaeDescription?: string;
+    email?: string;
+    phone?: string;
+    address?: {
+      cep?: string;
+      street?: string;
+      number?: string;
+      complement?: string;
+      district?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+    };
+  };
 };
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
@@ -94,6 +121,43 @@ function handleActionError(error: any): ActionResponse {
     success: false,
     message: error instanceof Error ? error.message : "Ocorreu um erro interno. Tente novamente.",
   };
+}
+
+export async function lookupCompanyProfileByCnpjAction(cnpj: string): Promise<ActionResponse> {
+  const session = await getProtectedSession();
+  if (!session || !UPDATE_ROLES.includes(session.role)) {
+    return { success: false, message: "Permissao negada." };
+  }
+
+  const normalizedCnpj = String(cnpj || "").replace(/\D/g, "");
+  if (normalizedCnpj.length !== 14) {
+    return { success: false, message: "Informe um CNPJ completo para consulta." };
+  }
+
+  if (!CompanyRegistryGateway.isConfigured()) {
+    return {
+      success: false,
+      message: "Integracao oficial de CNPJ nao configurada.",
+      data: {
+        configured: false,
+        provider: CompanyRegistryGateway.getProviderLabel(),
+      } satisfies CompanyRegistryLookupResponse,
+    };
+  }
+
+  try {
+    const profile = await CompanyRegistryGateway.getProfileByCnpj(normalizedCnpj);
+    return {
+      success: true,
+      data: {
+        configured: true,
+        provider: CompanyRegistryGateway.getProviderLabel(),
+        profile,
+      } satisfies CompanyRegistryLookupResponse,
+    };
+  } catch (error) {
+    return handleActionError(error);
+  }
 }
 
 export async function getCompaniesAction(filters?: { search?: string; status?: string }) {
