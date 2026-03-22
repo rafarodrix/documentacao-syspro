@@ -88,14 +88,10 @@ function ticketKpis(tickets: TicketSummaryItem[]) {
   };
 }
 
-async function getScopedCompanyZammadEmailsByUserEmail(email: string): Promise<string[]> {
+async function getScopedCompanyZammadEmailsByUserId(userId: string): Promise<string[]> {
   const memberships = await prisma.membership.findMany({
     where: {
-      user: {
-        email,
-        deletedAt: null,
-        isActive: true,
-      },
+      userId,
     },
     select: { companyId: true },
   });
@@ -284,7 +280,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
 
   const [membership, scopedEmails] = await Promise.all([
     prisma.membership.findFirst({
-      where: { user: { email }, company: { deletedAt: null } },
+      where: { userId, company: { deletedAt: null } },
       include: {
         company: {
           select: {
@@ -295,7 +291,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
         },
       },
     }),
-    getScopedCompanyZammadEmailsByUserEmail(email),
+    getScopedCompanyZammadEmailsByUserId(userId),
   ]);
 
   const userTickets = scopedEmails.length
@@ -309,25 +305,18 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
 
   await upsertOperationalTicketsToCache(userTickets);
 
-  const tickets = userTickets
-    .filter((ticket) => {
-      const status = isAnalysisOrDevelopmentStateId(ticket.state_id)
-        ? mapTicketStatusFromStateId(ticket.state_id as number)
-        : mapTicketStatusFromStateName(ticket.state || "");
-      return status !== "Resolvido";
-    })
-    .slice(0, 10)
-    .map(normalizeOperationalTicket);
-  const kpis = ticketKpis(tickets);
+  const normalizedTickets = userTickets.map(normalizeOperationalTicket);
+  const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 10);
+  const kpis = ticketKpis(normalizedTickets);
 
   return {
     mode: "client",
     companyName: membership?.company?.nomeFantasia || membership?.company?.razaoSocial || "Sem empresa vinculada",
     companyUsers: membership?.company?._count?.memberships || 0,
     tickets,
-    totalOpen: tickets.filter((t) => t.status !== "Resolvido").length,
+    totalOpen: normalizedTickets.filter((t) => t.status !== "Resolvido").length,
     kpis,
-    activity: toSeries(tickets.map((t) => new Date(t.lastUpdate))),
+    activity: toSeries(normalizedTickets.map((t) => new Date(t.lastUpdate))),
   };
 }
 
