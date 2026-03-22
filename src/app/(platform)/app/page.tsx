@@ -25,6 +25,7 @@ import { ArrowUpRight, BookOpen, Headset, Sparkles, Users } from "lucide-react";
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
 import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
 import { getTicketsAction } from "@/actions/tickets/ticket-actions";
+import { getTicketStatusGroup } from "@/core/config/tickets-workflow";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
@@ -87,6 +88,13 @@ function ticketKpis(tickets: TicketSummaryItem[]) {
     pending: tickets.filter((t) => t.status === "Pendente" || t.status === "Em Análise").length,
     resolved: tickets.filter((t) => t.status === "Resolvido").length,
   };
+}
+
+function mapDashboardStatus(rawStatus: string, statusLabel?: string): TicketSummaryItem["status"] {
+  const group = getTicketStatusGroup(rawStatus || statusLabel || "");
+  if (group === "open") return "Aberto";
+  if (group === "closed") return "Resolvido";
+  return "Em Análise";
 }
 
 async function getScopedCompanyZammadEmailsByUserId(userId: string): Promise<string[]> {
@@ -303,7 +311,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
         id: String(ticket.id),
         number: ticket.number,
         subject: ticket.title,
-        status: mapTicketStatusFromStateName(ticket.status),
+        status: mapDashboardStatus(ticket.status, ticket.statusLabel),
         priority: mapTicketPriority(ticket.priority),
         lastUpdate: ticket.updatedAt,
       }))
