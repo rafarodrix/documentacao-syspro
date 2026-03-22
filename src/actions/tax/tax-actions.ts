@@ -114,20 +114,50 @@ const normalizeKey = (key: string): string =>
 
 const getStringFromAliases = (item: Record<string, unknown>, aliases: string[]): string | null => {
     const target = new Set(aliases.map((alias) => normalizeKey(alias)));
+    const queue: unknown[] = [item];
+    const seen = new Set<unknown>();
 
-    for (const [key, value] of Object.entries(item)) {
-        const normalized = normalizeKey(key);
-        const strValue = asString(value);
+    while (queue.length > 0) {
+        const current = queue.shift();
+        if (!current || typeof current !== "object" || seen.has(current)) continue;
+        seen.add(current);
 
-        if (target.has(normalized) && strValue) return strValue;
+        if (Array.isArray(current)) {
+            for (const entry of current) queue.push(entry);
+            continue;
+        }
 
-        if (value && typeof value === "object" && !Array.isArray(value)) {
-            const nested = value as Record<string, unknown>;
-            for (const [nestedKey, nestedValue] of Object.entries(nested)) {
-                const nestedNormalized = normalizeKey(nestedKey);
-                const nestedString = asString(nestedValue);
-                if (target.has(nestedNormalized) && nestedString) return nestedString;
-            }
+        const record = current as Record<string, unknown>;
+        for (const [key, value] of Object.entries(record)) {
+            const normalized = normalizeKey(key);
+            const strValue = asString(value);
+            if (target.has(normalized) && strValue) return strValue;
+
+            if (value && typeof value === "object") queue.push(value);
+        }
+    }
+
+    return null;
+};
+
+const getAnyMeaningfulString = (item: Record<string, unknown>): string | null => {
+    const queue: unknown[] = [item];
+    const seen = new Set<unknown>();
+
+    while (queue.length > 0) {
+        const current = queue.shift();
+        if (!current || typeof current !== "object" || seen.has(current)) continue;
+        seen.add(current);
+
+        if (Array.isArray(current)) {
+            for (const entry of current) queue.push(entry);
+            continue;
+        }
+
+        for (const value of Object.values(current as Record<string, unknown>)) {
+            const str = asString(value);
+            if (str && str.length >= 3) return str;
+            if (value && typeof value === "object") queue.push(value);
         }
     }
 
@@ -440,16 +470,14 @@ export async function saveTaxAnexosBatch(
     }
 
     try {
-        if (options?.isFirstChunk) {
-            // Limpa legados sem chave estavel (gerados por fallback antigo).
-            await prisma.taxAnexo.deleteMany({
-                where: {
-                    externalKey: {
-                        startsWith: "anexo_",
-                    },
+        // Limpa legados sem chave estavel (gerados por fallback antigo).
+        await prisma.taxAnexo.deleteMany({
+            where: {
+                externalKey: {
+                    startsWith: "anexo_",
                 },
-            });
-        }
+            },
+        });
 
         const normalized = data
             .map((item) => asRecord(item))
@@ -472,7 +500,7 @@ export async function saveTaxAnexosBatch(
                 "code",
                 "codigo_anexo",
                 "cod_anexo",
-            ]);
+            ]) ?? externalKey;
 
             const title = getStringFromAliases(item, [
                 "titulo",
@@ -481,7 +509,7 @@ export async function saveTaxAnexosBatch(
                 "anexo",
                 "title",
                 "name",
-            ]);
+            ]) ?? getAnyMeaningfulString(item);
 
             const description = getStringFromAliases(item, [
                 "descricao",
@@ -489,7 +517,7 @@ export async function saveTaxAnexosBatch(
                 "detalhe",
                 "description",
                 "textoLegal",
-            ]);
+            ]) ?? getAnyMeaningfulString(item);
 
             const category = getStringFromAliases(item, [
                 "categoria",
@@ -586,16 +614,14 @@ export async function saveTaxCredPresumidoBatch(
     }
 
     try {
-        if (options?.isFirstChunk) {
-            // Limpa legados sem chave estavel (gerados por fallback antigo).
-            await prisma.taxCredPresumido.deleteMany({
-                where: {
-                    externalKey: {
-                        startsWith: "cred_presumido_",
-                    },
+        // Limpa legados sem chave estavel (gerados por fallback antigo).
+        await prisma.taxCredPresumido.deleteMany({
+            where: {
+                externalKey: {
+                    startsWith: "cred_presumido_",
                 },
-            });
-        }
+            },
+        });
 
         const normalized = data
             .map((item) => asRecord(item))
@@ -615,7 +641,7 @@ export async function saveTaxCredPresumidoBatch(
                 "codCredito",
                 "cCredito",
                 "code",
-            ]);
+            ]) ?? externalKey;
 
             const title = getStringFromAliases(item, [
                 "nomeOperacao",
@@ -625,7 +651,7 @@ export async function saveTaxCredPresumidoBatch(
                 "credito",
                 "title",
                 "name",
-            ]);
+            ]) ?? getAnyMeaningfulString(item);
 
             const legalText = getStringFromAliases(item, ["texDispLegal", "textoDispLegal", "dispositivoLegal", "baseLegal"]);
             const operationLocation = getStringFromAliases(item, ["texLocalOperacao", "localOperacao"]);
