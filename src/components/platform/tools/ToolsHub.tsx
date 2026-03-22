@@ -13,6 +13,7 @@ import {
   Divide,
   Coins,
   Scale,
+  Building2,
 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -87,6 +88,14 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
       icon: FileText,
       href: `${basePath}/visualizador-danfe`,
       category: "utilitarios",
+    },
+    {
+      title: "Consulta CNPJ",
+      description: "Abra a consulta oficial da Receita com validacao local do CNPJ.",
+      icon: Building2,
+      href: `${basePath}/consulta-cnpj`,
+      category: "utilitarios",
+      badge: "Oficial",
     },
     {
       title: "Configuracao de Documentos",

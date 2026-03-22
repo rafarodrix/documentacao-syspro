@@ -32,6 +32,7 @@ import {
   ArrowLeft,
   Building2,
   ChevronRight,
+  ExternalLink,
   FileText,
   Landmark,
   Loader2,
@@ -195,6 +196,13 @@ export function CreateCompanyPageForm({
   const zammadEmailsDirty =
     JSON.stringify(normalizeZammadEmails(zammadEmails)) !== JSON.stringify(initialNormalizedZammadEmails);
   const canSubmit = isDirty || zammadEmailsDirty;
+  const currentCnpj = form.watch("cnpj");
+
+  function openCnpjLookup() {
+    const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
+    const query = cnpj ? `?cnpj=${encodeURIComponent(cnpj)}` : "";
+    window.open(`/app/tools/consulta-cnpj${query}`, "_blank", "noopener,noreferrer");
+  }
 
   const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
     const normalizedZammadEmails = normalizeZammadEmails(zammadEmails);
@@ -341,7 +349,18 @@ export function CreateCompanyPageForm({
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField control={form.control} name="cnpj" render={({ field }) => (
-                        <FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} disabled={mode === "edit" && !canEditCnpj} value={toInputValue(field.value)} onChange={(event) => field.onChange(formatCNPJ(event.target.value))} /></FormControl><FormMessage /></FormItem>
+                        <FormItem>
+                          <div className="flex items-center justify-between gap-2">
+                            <FormLabel>CNPJ</FormLabel>
+                            <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={openCnpjLookup}>
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              Consultar CNPJ
+                            </Button>
+                          </div>
+                          <FormControl><Input placeholder="00.000.000/0000-00" {...field} disabled={mode === "edit" && !canEditCnpj} value={toInputValue(field.value)} onChange={(event) => field.onChange(formatCNPJ(event.target.value))} /></FormControl>
+                          <p className="text-[11px] text-muted-foreground">Abre a consulta oficial da Receita em nova aba com o CNPJ preenchido.</p>
+                          <FormMessage />
+                        </FormItem>
                       )} />
                       <FormField control={form.control} name="segment" render={({ field }) => (
                         <FormItem><FormLabel>Segmento</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definido</SelectItem>{Object.values(CompanySegment).map((segment) => <SelectItem key={segment} value={segment}>{COMPANY_SEGMENT_LABELS[segment]}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
