@@ -23,8 +23,8 @@ export function ActivityChart({
   title,
   description,
   points,
-  badgeLabel = "Ultimos 7 dias",
-  emptyLabel = "Sem atividade no periodo",
+  badgeLabel = "Últimos 7 dias",
+  emptyLabel = "Sem atividade no período",
 }: ActivityChartProps) {
   const max = Math.max(...points.map((p) => p.value), 0);
   const hasData = max > 0;
@@ -78,3 +78,4 @@ export function ActivityChart({
     </Card>
   );
 }
+

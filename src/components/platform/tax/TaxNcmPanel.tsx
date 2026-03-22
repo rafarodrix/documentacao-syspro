@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -179,7 +179,7 @@ function TaxNcmPanelComponent({ items }: { items: Item[] }) {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Buscar NCM por código, descrição, substituição ou tipo de ato..."
+            placeholder="Buscar NCM por cÃ³digo, descriÃ§Ã£o, substituiÃ§Ã£o ou tipo de ato..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -189,13 +189,13 @@ function TaxNcmPanelComponent({ items }: { items: Item[] }) {
           value={vigencia}
           onChange={(e) => setVigencia(e.target.value as VigenciaFilter)}
         >
-          <option value="all">Vigência: todas</option>
+          <option value="all">VigÃªncia: todas</option>
           <option value="active">Ativas</option>
           <option value="future">Futuras</option>
           <option value="expired">Expiradas</option>
         </select>
         <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
-          NCM válidos: <span className="font-semibold text-foreground">{validNcms.length}</span>
+          NCM vÃ¡lidos: <span className="font-semibold text-foreground">{validNcms.length}</span>
         </div>
       </div>
 
@@ -205,7 +205,7 @@ function TaxNcmPanelComponent({ items }: { items: Item[] }) {
           value={groupCode}
           onChange={(e) => handleGroupChange(e.target.value)}
         >
-          <option value="all">Grupo (2 dígitos): todos</option>
+          <option value="all">Grupo (2 dÃ­gitos): todos</option>
           {groupOptions.map(([code, meta]) => (
             <option key={code} value={code}>
               {code} - {meta.description} ({meta.count})
@@ -219,7 +219,7 @@ function TaxNcmPanelComponent({ items }: { items: Item[] }) {
           onChange={(e) => handleSubgroupChange(e.target.value)}
         >
           <option value="all">
-            {groupCode === "all" ? "Subgrupo (4 dígitos): selecione o grupo" : "Subgrupo (4 dígitos): todos"}
+            {groupCode === "all" ? "Subgrupo (4 dÃ­gitos): selecione o grupo" : "Subgrupo (4 dÃ­gitos): todos"}
           </option>
           {subgroupOptions.map(([code, meta]) => (
             <option key={code} value={code}>
@@ -234,7 +234,7 @@ function TaxNcmPanelComponent({ items }: { items: Item[] }) {
           onChange={(e) => setItemCode(e.target.value)}
         >
           <option value="all">
-            {subgroupCode === "all" ? "Item (6 dígitos): selecione o subgrupo" : "Item (6 dígitos): todos"}
+            {subgroupCode === "all" ? "Item (6 dÃ­gitos): selecione o subgrupo" : "Item (6 dÃ­gitos): todos"}
           </option>
           {itemOptions.map(([code, meta]) => (
             <option key={code} value={code}>
@@ -248,7 +248,7 @@ function TaxNcmPanelComponent({ items }: { items: Item[] }) {
         <div className="border-b bg-muted/30 p-4">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <Boxes className="h-4 w-4" />
-            NCM válidos no recorte ({filtered.length})
+            NCM vÃ¡lidos no recorte ({filtered.length})
           </h3>
         </div>
 
@@ -257,9 +257,9 @@ function TaxNcmPanelComponent({ items }: { items: Item[] }) {
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead className="w-[140px]">NCM</TableHead>
-                <TableHead>Descrição</TableHead>
+                <TableHead>DescriÃ§Ã£o</TableHead>
                 <TableHead className="w-[150px]">Substitui por</TableHead>
-                <TableHead className="w-[120px]">Início</TableHead>
+                <TableHead className="w-[120px]">InÃ­cio</TableHead>
                 <TableHead className="w-[120px]">Fim</TableHead>
               </TableRow>
             </TableHeader>
@@ -313,3 +313,4 @@ function TaxNcmPanelComponent({ items }: { items: Item[] }) {
 }
 
 export const TaxNcmPanel = memo(TaxNcmPanelComponent);
+
