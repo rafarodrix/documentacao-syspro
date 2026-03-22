@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,9 +42,12 @@ function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<Vige
 }
 
 export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
+  const PAGE_SIZE = 120;
   const [query, setQuery] = useState("");
   const [vigencia, setVigencia] = useState<VigenciaFilter>("all");
   const [category, setCategory] = useState<string>("all");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const deferredQuery = useDeferredValue(query);
 
   const categories = useMemo(() => {
     const values = new Set<string>();
@@ -55,7 +58,7 @@ export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
   }, [items]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return items.filter((item) => {
       const matchQuery =
         (item.code ?? "").toLowerCase().includes(q) ||
@@ -69,7 +72,14 @@ export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
 
       return (q ? matchQuery : true) && matchVigencia && matchCategory;
     });
-  }, [category, items, query, vigencia]);
+  }, [category, deferredQuery, items, vigencia]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [deferredQuery, vigencia, category]);
+
+  const visibleRows = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleRows.length < filtered.length;
 
   const handleSync = () => {
     window.dispatchEvent(new CustomEvent("tax-sync:resume", { detail: { mode: "anexos" } }));
@@ -146,7 +156,7 @@ export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((item) => (
+                visibleRows.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <Badge variant="outline" className="font-mono">
@@ -168,6 +178,13 @@ export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
             </TableBody>
           </Table>
         </div>
+        {hasMore ? (
+          <div className="flex justify-center border-t p-3">
+            <Button variant="outline" size="sm" onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}>
+              Mostrar mais ({filtered.length - visibleRows.length} restantes)
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

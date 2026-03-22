@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,12 @@ function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<Vige
 }
 
 export function TaxCredPresumidoPanel({ items }: { items: Item[] }) {
+  const PAGE_SIZE = 120;
   const [query, setQuery] = useState("");
   const [vigencia, setVigencia] = useState<VigenciaFilter>("all");
   const [category, setCategory] = useState<string>("all");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const deferredQuery = useDeferredValue(query);
 
   const categories = useMemo(() => {
     const values = new Set<string>();
@@ -54,7 +57,7 @@ export function TaxCredPresumidoPanel({ items }: { items: Item[] }) {
   }, [items]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return items.filter((item) =>
       ((q
         ? [item.code, item.title, item.description, item.category, item.externalKey]
@@ -64,7 +67,14 @@ export function TaxCredPresumidoPanel({ items }: { items: Item[] }) {
         (vigencia === "all" ? true : getVigencia(item.startDate, item.endDate) === vigencia) &&
         (category === "all" ? true : (item.category ?? "") === category)),
     );
-  }, [category, items, query, vigencia]);
+  }, [category, deferredQuery, items, vigencia]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [deferredQuery, vigencia, category]);
+
+  const visibleRows = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleRows.length < filtered.length;
 
   const handleSync = () => {
     window.dispatchEvent(new CustomEvent("tax-sync:resume", { detail: { mode: "credPresumido" } }));
@@ -140,7 +150,7 @@ export function TaxCredPresumidoPanel({ items }: { items: Item[] }) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((item) => (
+                visibleRows.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <Badge variant="outline" className="font-mono">
@@ -160,6 +170,13 @@ export function TaxCredPresumidoPanel({ items }: { items: Item[] }) {
             </TableBody>
           </Table>
         </div>
+        {hasMore ? (
+          <div className="flex justify-center border-t p-3">
+            <Button variant="outline" size="sm" onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}>
+              Mostrar mais ({filtered.length - visibleRows.length} restantes)
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
