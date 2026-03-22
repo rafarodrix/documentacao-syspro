@@ -22,8 +22,6 @@ import {
 import {
   LayoutDashboard,
   BookOpen,
-  GraduationCap,
-  Headset,
   Ticket,
   Users,
   Sparkles,
@@ -71,11 +69,7 @@ const NAV_SYSTEM: NavItemType[] = [
 ]
 
 const NAV_DOCS_USER: NavItemType[] = [
-  { title: "Central de Documentacao", href: "/docs", icon: BookOpen },
-  { title: "Documentacao", href: "/docs/manual", icon: BookOpen },
-  { title: "Duvidas", href: "/docs/duvidas", icon: GraduationCap },
-  { title: "Treinamento", href: "/docs/treinamento", icon: GraduationCap },
-  { title: "Suporte", href: "/docs/suporte", icon: Headset },
+  { title: "Documentacao", href: "/docs", icon: BookOpen },
   { title: "Releases", href: "/releases", icon: Rocket },
 ]
 
