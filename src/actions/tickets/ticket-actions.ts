@@ -62,7 +62,7 @@ function isSystemRole(role: Role): boolean {
     return SYSTEM_ROLES.has(role);
 }
 
-async function getScopedCompanyUserEmails(userId: string): Promise<string[]> {
+async function getScopedCompanyZammadEmails(userId: string): Promise<string[]> {
     const memberships = await prisma.membership.findMany({
         where: { userId },
         select: { companyId: true },
@@ -71,17 +71,16 @@ async function getScopedCompanyUserEmails(userId: string): Promise<string[]> {
     const companyIds = memberships.map((membership) => membership.companyId);
     if (!companyIds.length) return [];
 
-    const users = await prisma.user.findMany({
+    const configured = await prisma.companyZammadEmail.findMany({
         where: {
-            deletedAt: null,
+            companyId: { in: companyIds },
             isActive: true,
-            memberships: { some: { companyId: { in: companyIds } } },
         },
         select: { email: true },
     });
 
     return Array.from(
-        new Set(users.map((user) => user.email.trim().toLowerCase()).filter(Boolean))
+        new Set(configured.map((item) => item.email.trim().toLowerCase()).filter(Boolean))
     );
 }
 
@@ -263,7 +262,7 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
         const zammadUserId = isSystemRole(session.role)
             ? await ZammadGateway.getUserIdByEmail(session.email, routeKey)
             : null;
-        const scopedEmails = isSystemRole(session.role) ? [] : await getScopedCompanyUserEmails(session.userId);
+        const scopedEmails = isSystemRole(session.role) ? [] : await getScopedCompanyZammadEmails(session.userId);
 
         if (!isSystemRole(session.role) && !scopedEmails.length) {
             return {
@@ -315,7 +314,7 @@ export async function getTicketsAction(params: GetTicketsActionParams = {}): Pro
         const zammadUserId = isSystemRole(session.role)
             ? await ZammadGateway.getUserIdByEmail(session.email, "app-chamados-cache-fallback")
             : null;
-        const scopedEmails = isSystemRole(session.role) ? [] : await getScopedCompanyUserEmails(session.userId);
+        const scopedEmails = isSystemRole(session.role) ? [] : await getScopedCompanyZammadEmails(session.userId);
 
         const cached = await listCachedTickets({
             role: session.role,
@@ -394,7 +393,7 @@ export async function getTicketDetailsAction(ticketId: string) {
 
     try {
         if (!systemUser) {
-            const scopedEmails = await getScopedCompanyUserEmails(session.userId);
+            const scopedEmails = await getScopedCompanyZammadEmails(session.userId);
             if (!scopedEmails.length) {
                 return { success: false, error: "Chamado nao encontrado." };
             }
@@ -469,7 +468,7 @@ export async function replyTicketAction(ticketId: string, message: string) {
 
     try {
         if (!systemUser) {
-            const scopedEmails = await getScopedCompanyUserEmails(session.userId);
+            const scopedEmails = await getScopedCompanyZammadEmails(session.userId);
             if (!scopedEmails.length) {
                 return { success: false, error: "Voce nao pode responder este chamado." };
             }

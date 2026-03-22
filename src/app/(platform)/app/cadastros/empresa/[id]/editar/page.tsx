@@ -59,6 +59,14 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
       whatsapp: true,
       website: true,
       observacoes: true,
+      zammadEmails: {
+        orderBy: [{ isActive: "desc" }, { email: "asc" }],
+        select: {
+          email: true,
+          label: true,
+          isActive: true,
+        },
+      },
       addresses: {
         take: 1,
         orderBy: { id: "asc" },
@@ -100,6 +108,11 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
       canEditCnpj={session.role !== Role.CLIENTE_ADMIN}
       backHref="/app/cadastros/empresa"
       companies={companies}
+      initialZammadEmails={company.zammadEmails.map((item) => ({
+        email: item.email,
+        label: item.label ?? undefined,
+        isActive: item.isActive,
+      }))}
       initialData={{
         cnpj: company.cnpj,
         razaoSocial: company.razaoSocial,

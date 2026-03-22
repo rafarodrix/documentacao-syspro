@@ -16,6 +16,12 @@ export type ActionResponse = {
   data?: any;
 };
 
+export type CompanyZammadEmailInput = {
+  email: string;
+  label?: string;
+  isActive?: boolean;
+};
+
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 const CREATE_ROLES: Role[] = SYSTEM_ROLES;
@@ -36,6 +42,43 @@ function revalidateCadastrosPaths() {
   revalidatePath("/app/cadastros/empresa");
   revalidatePath("/app/cadastros/usuarios");
   revalidatePath("/app/cadastros/sistema");
+}
+
+function normalizeZammadEmails(items: CompanyZammadEmailInput[] | undefined): CompanyZammadEmailInput[] {
+  if (!Array.isArray(items)) return [];
+  const map = new Map<string, CompanyZammadEmailInput>();
+  for (const item of items) {
+    const rawEmail = typeof item?.email === "string" ? item.email.trim().toLowerCase() : "";
+    if (!rawEmail) continue;
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail);
+    if (!valid) continue;
+    map.set(rawEmail, {
+      email: rawEmail,
+      label: typeof item?.label === "string" ? item.label.trim() || undefined : undefined,
+      isActive: item?.isActive ?? true,
+    });
+  }
+  return Array.from(map.values());
+}
+
+async function replaceCompanyZammadEmails(companyId: string, items: CompanyZammadEmailInput[] | undefined) {
+  const normalized = normalizeZammadEmails(items);
+
+  await prisma.companyZammadEmail.deleteMany({
+    where: { companyId },
+  });
+
+  if (normalized.length === 0) return;
+
+  await prisma.companyZammadEmail.createMany({
+    data: normalized.map((item) => ({
+      companyId,
+      email: item.email,
+      label: item.label,
+      isActive: item.isActive ?? true,
+    })),
+    skipDuplicates: true,
+  });
 }
 
 function handleActionError(error: any): ActionResponse {
@@ -113,7 +156,10 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
   }
 }
 
-export async function createCompanyAction(data: CreateCompanyInput): Promise<ActionResponse> {
+export async function createCompanyAction(
+  data: CreateCompanyInput,
+  zammadEmails?: CompanyZammadEmailInput[],
+): Promise<ActionResponse> {
   const session = await getProtectedSession();
   if (!session || !CREATE_ROLES.includes(session.role)) {
     return { success: false, message: "Permissao negada." };
@@ -160,6 +206,10 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
       },
     });
 
+    if (zammadEmails !== undefined) {
+      await replaceCompanyZammadEmails(result.id, zammadEmails);
+    }
+
     const segmentTriggers = resolveCompanySegmentTriggers(result.segment);
 
     revalidateCadastrosPaths();
@@ -169,7 +219,11 @@ export async function createCompanyAction(data: CreateCompanyInput): Promise<Act
   }
 }
 
-export async function updateCompanyAction(id: string, data: CreateCompanyInput): Promise<ActionResponse> {
+export async function updateCompanyAction(
+  id: string,
+  data: CreateCompanyInput,
+  zammadEmails?: CompanyZammadEmailInput[],
+): Promise<ActionResponse> {
   const session = await getProtectedSession();
   if (!session || !UPDATE_ROLES.includes(session.role)) {
     return { success: false, message: "Permissao negada." };
@@ -245,11 +299,35 @@ export async function updateCompanyAction(id: string, data: CreateCompanyInput):
       },
     });
 
+    if (zammadEmails !== undefined) {
+      await replaceCompanyZammadEmails(id, zammadEmails);
+    }
+
     revalidateCadastrosPaths();
     return { success: true, message: "Empresa atualizada com sucesso!" };
   } catch (error: any) {
     return handleActionError(error);
   }
+}
+
+export async function getCompanyZammadEmailsAction(companyId: string): Promise<ActionResponse> {
+  const session = await getProtectedSession();
+  if (!session || !READ_ROLES.includes(session.role)) {
+    return { success: false, message: "Nao autorizado." };
+  }
+
+  const companyScopeIds = session.role === Role.CLIENTE_ADMIN ? await getSessionCompanyIds(session.userId) : null;
+  if (session.role === Role.CLIENTE_ADMIN && (!companyScopeIds?.length || !companyScopeIds.includes(companyId))) {
+    return { success: false, message: "Sem permissao para esta empresa." };
+  }
+
+  const rows = await prisma.companyZammadEmail.findMany({
+    where: { companyId },
+    orderBy: [{ isActive: "desc" }, { email: "asc" }],
+    select: { id: true, email: true, label: true, isActive: true },
+  });
+
+  return { success: true, data: rows };
 }
 
 export async function updateCompanyStatusAction(id: string, status: CompanyStatus): Promise<ActionResponse> {

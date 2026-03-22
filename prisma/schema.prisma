@@ -122,6 +122,7 @@ model Company {
   accountingClients Company[]    @relation("AccountantClient")
   contracts         Contract[]
   memberships       Membership[]
+  zammadEmails      CompanyZammadEmail[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -132,6 +133,25 @@ model Company {
   @@index([razaoSocial])
   @@index([cnpj])
   @@map("company")
+}
+
+model CompanyZammadEmail {
+  id String @id @default(cuid())
+
+  companyId String
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  email String
+  label String?
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, email])
+  @@index([companyId, isActive])
+  @@index([email])
+  @@map("company_zammad_email")
 }
 
 model Address {

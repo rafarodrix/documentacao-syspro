@@ -88,7 +88,7 @@ function ticketKpis(tickets: TicketSummaryItem[]) {
   };
 }
 
-async function getScopedCompanyUserEmailsByEmail(email: string): Promise<string[]> {
+async function getScopedCompanyZammadEmailsByUserEmail(email: string): Promise<string[]> {
   const memberships = await prisma.membership.findMany({
     where: {
       user: {
@@ -103,16 +103,15 @@ async function getScopedCompanyUserEmailsByEmail(email: string): Promise<string[
   const companyIds = memberships.map((membership) => membership.companyId);
   if (!companyIds.length) return [];
 
-  const users = await prisma.user.findMany({
+  const configured = await prisma.companyZammadEmail.findMany({
     where: {
-      deletedAt: null,
+      companyId: { in: companyIds },
       isActive: true,
-      memberships: { some: { companyId: { in: companyIds } } },
     },
     select: { email: true },
   });
 
-  return Array.from(new Set(users.map((user) => user.email.trim().toLowerCase()).filter(Boolean)));
+  return Array.from(new Set(configured.map((item) => item.email.trim().toLowerCase()).filter(Boolean)));
 }
 
 type AdminDashboardData = {
@@ -296,7 +295,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
         },
       },
     }),
-    getScopedCompanyUserEmailsByEmail(email),
+    getScopedCompanyZammadEmailsByUserEmail(email),
   ]);
 
   const userTickets = scopedEmails.length

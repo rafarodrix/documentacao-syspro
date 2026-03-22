@@ -7,7 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
 import { createCompanySchema, type CreateCompanyInput } from "@/core/application/schema/company-schema";
-import { createCompanyAction, updateCompanyAction } from "@/actions/platform/company-actions";
+import {
+  createCompanyAction,
+  updateCompanyAction,
+  type CompanyZammadEmailInput,
+} from "@/actions/platform/company-actions";
 import { COMPANY_SEGMENT_LABELS } from "@/core/config/company-segments";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
@@ -51,6 +55,7 @@ interface CreateCompanyPageFormProps {
   mode?: "create" | "edit";
   companyId?: string;
   initialData?: Partial<CreateCompanyInput>;
+  initialZammadEmails?: CompanyZammadEmailInput[];
   canEditCnpj?: boolean;
 }
 
@@ -120,10 +125,22 @@ export function CreateCompanyPageForm({
   mode = "create",
   companyId,
   initialData,
+  initialZammadEmails = [],
   canEditCnpj = true,
 }: CreateCompanyPageFormProps) {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<SectionId>("geral");
+  const [zammadEmails, setZammadEmails] = useState<CompanyZammadEmailInput[]>(() =>
+    (Array.isArray(initialZammadEmails) ? initialZammadEmails : [])
+      .map((item) => ({
+        email: item.email.trim().toLowerCase(),
+        label: item.label?.trim() || undefined,
+        isActive: item.isActive ?? true,
+      }))
+      .filter((item) => item.email.length > 0),
+  );
+  const [zammadEmailInput, setZammadEmailInput] = useState("");
+  const [zammadEmailLabel, setZammadEmailLabel] = useState("");
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
 
@@ -172,10 +189,18 @@ export function CreateCompanyPageForm({
   const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue);
 
   const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
+    const normalizedZammadEmails = zammadEmails
+      .map((item) => ({
+        email: item.email.trim().toLowerCase(),
+        label: item.label?.trim() || undefined,
+        isActive: item.isActive ?? true,
+      }))
+      .filter((item) => item.email);
+
     const result =
       mode === "edit" && companyId
-        ? await updateCompanyAction(companyId, data)
-        : await createCompanyAction(data);
+        ? await updateCompanyAction(companyId, data, normalizedZammadEmails)
+        : await createCompanyAction(data, normalizedZammadEmails);
     if (!result.success) {
       toast.error(result.message ?? (mode === "edit" ? "Erro ao atualizar empresa." : "Erro ao cadastrar empresa."));
       return;
@@ -202,6 +227,30 @@ export function CreateCompanyPageForm({
       return acc;
     }, {} as Record<SectionId, "error" | "ready" | "idle">);
   }, [dirtyFields, errors]);
+
+  function addZammadEmail() {
+    const email = zammadEmailInput.trim().toLowerCase();
+    if (!email) return;
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!valid) {
+      toast.error("Informe um e-mail válido para integração Zammad.");
+      return;
+    }
+    if (zammadEmails.some((item) => item.email === email)) {
+      toast.error("Este e-mail já foi adicionado.");
+      return;
+    }
+    setZammadEmails((prev) => [
+      ...prev,
+      {
+        email,
+        label: zammadEmailLabel.trim() || undefined,
+        isActive: true,
+      },
+    ]);
+    setZammadEmailInput("");
+    setZammadEmailLabel("");
+  }
 
   return (
     <div className="relative w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card/95 overflow-hidden shadow-xl">
@@ -438,6 +487,72 @@ export function CreateCompanyPageForm({
                     <FormField control={form.control} name="observacoes" render={({ field }) => (
                       <FormItem><FormLabel>Observacoes</FormLabel><FormControl><Textarea rows={4} placeholder="Observacoes internas" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                     )} />
+                    <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-3">
+                      <div>
+                        <p className="text-sm font-medium">E-mails vinculados ao Zammad</p>
+                        <p className="text-xs text-muted-foreground">
+                          Use esta lista para incluir caixas compartilhadas da empresa (ex.: suporte@, fiscal@).
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_180px_auto]">
+                        <Input
+                          type="email"
+                          placeholder="suporte@empresa.com.br"
+                          value={zammadEmailInput}
+                          onChange={(event) => setZammadEmailInput(event.target.value)}
+                        />
+                        <Input
+                          placeholder="Label (opcional)"
+                          value={zammadEmailLabel}
+                          onChange={(event) => setZammadEmailLabel(event.target.value)}
+                        />
+                        <Button type="button" variant="outline" onClick={addZammadEmail}>
+                          Adicionar
+                        </Button>
+                      </div>
+                      {zammadEmails.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Nenhum e-mail adicional configurado.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {zammadEmails.map((item) => (
+                            <div key={item.email} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-2 py-1.5">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={item.isActive ? "default" : "outline"}>{item.isActive ? "Ativo" : "Inativo"}</Badge>
+                                <span className="text-sm font-medium">{item.email}</span>
+                                {item.label ? <span className="text-xs text-muted-foreground">({item.label})</span> : null}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() =>
+                                    setZammadEmails((prev) =>
+                                      prev.map((current) =>
+                                        current.email === item.email
+                                          ? { ...current, isActive: !(current.isActive ?? true) }
+                                          : current,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  {item.isActive ? "Desativar" : "Ativar"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setZammadEmails((prev) => prev.filter((current) => current.email !== item.email))}
+                                >
+                                  Remover
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
                 </MagicCard>
