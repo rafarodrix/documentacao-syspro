@@ -3,27 +3,26 @@ import { Suspense } from "react";
 import { Role } from "@prisma/client";
 import { requireSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import { getContractsAction } from "@/actions/platform/contract-actions";
-import { getSefazRoutesAction } from "@/actions/platform/settings-actions";
+import { getContractsAction } from "@/features/contracts/application/actions";
+import { getSefazRoutesAction } from "@/features/settings/application/actions";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files, Wallet, Boxes } from "lucide-react";
 
-import GeneralSettingsForm from "@/components/platform/app/settings/GeneralSettingsForm";
-import { AccessControlTab } from "@/components/platform/app/settings/AccessControlTab";
-import { SyncTaxAnexosButton, SyncTaxClassTribButton, SyncTaxCredPresumidoButton, SyncTaxNcmButton } from "@/components/platform/tax/SyncTaxButton";
-import { TaxSyncStatusBar } from "@/components/platform/tax/TaxSyncStatusBar";
-import { TaxClassificationList } from "@/components/platform/tax/TaxClassificationList";
-import { TaxAnexosContainer } from "@/components/platform/tax/TaxAnexosContainer";
-import { TaxCredPresumidoContainer } from "@/components/platform/tax/TaxCredPresumidoContainer";
-import { TaxNcmContainer } from "@/components/platform/tax/TaxNcmContainer";
-import { BulkReadjustDialog } from "@/components/platform/app/contratos/BulkReadjustDialog";
-import { ContractSheet } from "@/components/platform/app/contratos/ContractSheet";
-import { ContractStats } from "@/components/platform/app/contratos/ContractStats";
-import { ContractsTable } from "@/components/platform/app/contratos/ContractsTable";
-import { SefazRoutesTab } from "@/components/platform/app/settings/SefazRoutesTab";
-import { ZammadObservabilityTab } from "@/components/platform/app/settings/ZammadObservabilityTab";
+import { AccessControlTab, GeneralSettingsForm, SefazRoutesTab, ZammadObservabilityTab } from "@/features/settings/interface";
+import {
+    SyncTaxAnexosButton,
+    SyncTaxClassTribButton,
+    SyncTaxCredPresumidoButton,
+    SyncTaxNcmButton,
+    TaxAnexosContainer,
+    TaxClassificationList,
+    TaxCredPresumidoContainer,
+    TaxNcmContainer,
+    TaxSyncStatusBar,
+} from "@/features/tax/interface";
+import { BulkReadjustDialog, ContractSheet, ContractStats, ContractsTable } from "@/features/contracts/interface";
 
 interface SettingsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;

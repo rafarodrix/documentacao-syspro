@@ -28,7 +28,7 @@ import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCompanySegmentLabel } from "@/core/config/company-segments"
 
-import { deleteCompanyAction, updateCompanyStatusAction } from "@/actions/platform/company-actions"
+import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/actions"
 
 interface CompanyWithRelations {
   id: string

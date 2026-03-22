@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { type SefazRoutesInput } from "@/core/application/schema/sefaz-routes-schema";
-import { runSefazCheckAction, updateSefazRoutesAction } from "@/actions/platform/settings-actions";
+import { runSefazCheckAction, updateSefazRoutesAction } from "@/features/settings/application/actions";
 import { buildDefaultSefazRoutes } from "@/core/constants/sefaz-endpoints";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

@@ -1,9 +1,7 @@
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { TaxViewerContainer } from "@/components/platform/tax/TaxViewerContainer";
-import { TaxAnexosContainer } from "@/components/platform/tax/TaxAnexosContainer";
-import { TaxNcmLookup } from "@/components/platform/tax/TaxNcmLookup";
+import { TaxAnexosContainer, TaxNcmLookup, TaxViewerContainer } from "@/features/tax/interface";
 import { BookOpen, Scale, Info, CalendarDays, Files, Search } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";

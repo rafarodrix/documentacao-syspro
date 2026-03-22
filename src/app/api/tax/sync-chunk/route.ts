@@ -8,7 +8,7 @@ import {
   saveTaxCredPresumidoBatch,
   saveTaxDataBatch,
   saveTaxNcmBatch,
-} from "@/actions/tax/tax-actions";
+} from "@/features/tax/application/actions";
 
 type SyncMode = "classTrib" | "anexos" | "credPresumido" | "ncm";
 

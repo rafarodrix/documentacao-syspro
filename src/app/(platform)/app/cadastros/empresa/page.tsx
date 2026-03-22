@@ -3,7 +3,7 @@ import { hasPermission } from "@/lib/rbac";
 import { requireRole } from "@/lib/auth-helpers";
 import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
 import { getCadastrosCompaniesData } from "@/actions/platform/get-cadastros-data";
-import { CompanyTab } from "@/components/platform/cadastros/company/CompanyTab";
+import { CompanyTab } from "@/features/company/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 

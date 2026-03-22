@@ -1,6 +1,6 @@
 ---
 title: Arquitetura da Aplicacao e Monorepo
-description: Padrao de arquitetura por pacote, estrutura de features e regras de dependencia.
+description: Arquitetura alvo, estrategia incremental de migracao e guardrails para escalar web, mobile e backend separado.
 lastUpdated: 2026-03-22
 owner: Engenharia de Plataforma
 status: published
@@ -12,87 +12,221 @@ tags:
 
 ## Objetivo
 
-Definir a arquitetura oficial da aplicacao para garantir escalabilidade, separacao de responsabilidades e manutencao previsivel.
+Definir a arquitetura oficial da aplicacao para garantir:
 
-## Arquitetura por pacote
+- escalabilidade tecnica
+- separacao previsivel de responsabilidades
+- evolucao segura para mobile e backend separado
+- reducao de acoplamento entre UI, regras e infraestrutura
+
+## Diagnostico da situacao atual
+
+Hoje o projeto ainda e, na pratica, um **modular monolith em Next.js**, com boa parte da regra ja concentrada em `src/core`, mas com estes gaps:
+
+- mistura de responsabilidades entre `app`, `actions`, `components` e `core`
+- features ainda parcialmente espalhadas fora de `src/features`
+- contratos ainda nao centralizados em um pacote proprio
+- acesso a infraestrutura ainda acoplado ao app web em varios fluxos
+- monorepo alvo documentado, mas ainda sem fase intermediaria formal
+
+## Avaliacao da arquitetura desejada
+
+### O que esta certo
+
+A arquitetura alvo com:
 
 - `apps/web`
-  - Next.js (App Router)
-  - UI e composicao de fluxos
-  - acesso ao banco restrito a adapters tecnicos (ex.: auth/session)
 - `packages/api`
-  - camada de transporte e orquestracao (tRPC)
-  - valida entrada, chama casos de uso e aplica contexto de tenant
 - `packages/core`
-  - regras de dominio e casos de uso
-  - sem dependencia de framework web
 - `packages/contracts`
-  - contratos compartilhados entre web/api/core
-  - tipos, schemas e payloads de fronteira
 - `packages/database`
-  - Prisma schema, migrations, client e rotinas de dados
 - `packages/shared`
-  - utilitarios e validacoes transversais
 - `packages/ui`
-  - componentes visuais reutilizaveis
 
-## Estrutura obrigatoria por feature
+e **boa e escalavel** para:
 
-Cada modulo novo deve seguir:
+- multi-app (`web`, `mobile`, `workers`)
+- backend separado no futuro
+- compartilhamento de contratos
+- evolucao por times e dominios
+
+### O que precisa melhorar
+
+O ponto a ajustar nao e a arquitetura final, e a **sequencia de migracao**.
+
+Ir direto para:
+
+- workspaces
+- extracao de todos os packages
+- criacao de `apps/web`
+- API dedicada
+
+em um unico movimento **nao e a melhor estrategia** para este projeto.
+
+Para escalar com menos risco, a arquitetura correta precisa ter **4 estagios**:
+
+1. **Fase A - Modular monolith disciplinado**
+   - consolidar `src/features/<feature>/domain|application|interface`
+   - remover duplicacao de regra entre dashboard, actions, pages e components
+   - estabelecer contratos internos e boundaries
+
+2. **Fase B - Monorepo estrutural**
+   - criar `apps/web`
+   - criar `packages/shared`, `packages/ui`, `packages/contracts`
+   - mover apenas o que ja estiver estabilizado
+
+3. **Fase C - Monorepo de dominio**
+   - extrair `packages/core`
+   - extrair `packages/database`
+   - reduzir dependencia direta de `Next.js` e `Server Actions`
+
+4. **Fase D - Multi-app**
+   - adicionar `apps/mobile`
+   - adicionar `apps/api` ou `apps/bff`
+   - mover casos de uso compartilhados para consumo externo
+
+## Arquitetura recomendada para escala
+
+### Fase A - Arquitetura recomendada agora
+
+Antes de extrair pacotes, a aplicacao deve ficar assim:
 
 - `src/features/<feature>/domain`
-  - tipos, enums, regras puras e mapeamentos sem efeito colateral
+  - tipos, enums, regras puras, mapeamentos sem efeito colateral
 - `src/features/<feature>/application`
-  - orchestration da feature: queries, actions e casos de uso
+  - queries, actions, orchestration, facades e mapeamento para view model
 - `src/features/<feature>/interface`
-  - componentes React da feature (listas, modais, client root)
+  - componentes React, containers, tabelas, modais
 
-Exemplo:
+Camadas complementares:
 
-```text
-src/features/participantes/
-  domain/
-    model.ts
-  application/
-    actions.ts
-    queries.ts
-  interface/
-    ParticipantesClient.tsx
-  index.ts
-```
+- `src/core/domain`
+  - entidades e contratos realmente transversais
+- `src/core/infrastructure`
+  - gateways, cache, observabilidade, adapters
+- `src/actions`
+  - apenas ponte de transporte para chamar a camada de application
+- `src/app`
+  - roteamento e composicao de tela
+
+### Fase B - Arquitetura alvo de monorepo
+
+- `apps/web`
+  - Next.js App Router
+  - rotas, layouts, providers e composicao de interface
+- `packages/contracts`
+  - DTOs, schemas Zod e payloads de fronteira
+- `packages/shared`
+  - utilitarios, helpers, constants e funcoes puras compartilhadas
+- `packages/ui`
+  - design system e componentes reutilizaveis
+- `packages/core`
+  - casos de uso, dominio, politicas, regras de negocio
+- `packages/database`
+  - Prisma schema, migrations, client e repositories/adapters
+- `packages/api`
+  - tRPC ou BFF, authz, context, middlewares e roteadores
+
+### Fase C - Arquitetura para mobile e servidor separado
+
+Quando houver `apps/mobile` ou `apps/api`, o consumo ideal fica:
+
+- `apps/web` -> `packages/contracts`, `packages/ui`, `packages/core`
+- `apps/mobile` -> `packages/contracts`, `packages/core`, `packages/shared`
+- `apps/api` -> `packages/contracts`, `packages/core`, `packages/database`
 
 ## Regras de dependencia
 
+### Dentro do app atual
+
 - fluxo permitido: `interface -> application -> domain`
-- `interface` nao importa `@/lib/actions` nem `@/lib/queries` diretamente
-- `application` pode acessar infraestrutura (`@/lib/actions`, `@/lib/queries`, tRPC)
-- `domain` nao depende de React nem infraestrutura
+- `interface` nao importa `prisma`, `@/lib/prisma` ou gateway tecnico diretamente
+- `application` pode chamar infraestrutura via adapter/gateway
+- `domain` nao depende de React, Next.js, Prisma ou transporte
 
-## Contratos (fonte unica)
+### No monorepo alvo
 
-Os contratos de entrada/saida da aplicacao devem ficar em `packages/contracts`.
+- `apps/*` nao concentram regra de negocio
+- `packages/contracts` nao depende de framework
+- `packages/core` nao depende de Next.js
+- `packages/database` nao depende de UI
+- `packages/ui` nao depende de Prisma nem auth
+
+## O que e melhor nao extrair agora
+
+Para escalar com menos risco, **nao vale extrair imediatamente**:
+
+- `packages/api`
+- `packages/database`
+- `apps/mobile`
+- `apps/api`
+
+Esses itens devem vir **depois** que:
+
+- features criticas estiverem em `src/features`
+- contratos tiverem estabilizado
+- a aplicacao parar de depender de varios atalhos internos
+
+## Prioridade arquitetural recomendada
+
+### Prioridade 1
+
+- consolidar features no padrao `domain/application/interface`
+- transformar `actions` em ponte fina
+- criar contratos/view models compartilhados por feature
+- eliminar logica duplicada entre dashboard, page e components
+
+### Prioridade 2
+
+- criar workspaces
+- mover `web` para `apps/web`
+- extrair `packages/shared`, `packages/ui`, `packages/contracts`
+
+### Prioridade 3
+
+- extrair `packages/core`
+- extrair `packages/database`
+- introduzir camada `packages/api`
+
+### Prioridade 4
+
+- mobile
+- backend dedicado
+- workers/filas
 
 ## Guardrails de implementacao
 
 1. Nao criar regra de negocio em componente React.
-2. Nao acoplar validacao de dominio na camada de transporte.
-3. Nao duplicar schema entre `core` e `contracts`.
-4. Sempre exportar a feature por `index.ts`.
-5. Toda feature nova deve seguir o mesmo formato de pastas.
+2. Nao duplicar filtros, mapeamentos e KPIs entre telas.
+3. Toda feature nova deve nascer em `src/features/<feature>`.
+4. `actions` devem delegar para `application`, nao carregar regra propria.
+5. Nao mover para `packages/*` o que ainda muda toda semana.
+6. Extracao para monorepo deve ser por bloco estavel, nao por entusiasmo arquitetural.
 
 ## Checklist de revisao arquitetural
 
 - Feature criada em `src/features/<feature>` com 3 camadas
-- Regras de negocio isoladas em `domain`/`core`
-- Contratos centralizados em `packages/contracts`
-- Dependencias respeitando o fluxo oficial
-- Sem acesso direto ao banco fora de `packages/database` e adapters permitidos
+- Pagina consome `application`, nao regra espalhada
+- `actions` finas e sem duplicacao
+- contratos e view models centralizados por feature
+- gateways tecnicos isolados em infraestrutura
+- nenhuma tela recalcula regra ja existente em outro ponto
 
-## Anti-padroes (o que evitar)
+## Anti-padroes
 
-1. Colocar regra de negocio em componente React ou handler de tela.
-2. Criar regra de negocio dentro de router tRPC.
-3. Acessar banco diretamente em camada de interface.
-4. Duplicar tipos/schemas de payload em mais de um pacote.
-5. Misturar responsabilidade de tenant/autorizacao com regra de dominio.
-6. Criar feature sem estrutura `domain/application/interface`.
+1. Colocar regra em componente React.
+2. Colocar logica de negocio dentro de `page.tsx`.
+3. Duplicar query de ticket, KPI ou filtro em mais de uma tela.
+4. Extrair pacote cedo demais e carregar mais custo operacional que beneficio.
+5. Misturar auth, tenant e regra de dominio no mesmo componente.
+6. Criar API dedicada antes de estabilizar contratos internos.
+
+## Conclusao
+
+A arquitetura documentada **e boa como arquitetura alvo**, mas a melhor versao para escalar este projeto e:
+
+- **agora:** modular monolith disciplinado por feature
+- **depois:** monorepo estrutural
+- **por fim:** multi-app e backend separado
+
+Ou seja: a arquitetura final continua valida, mas o plano correto e **evolucao em etapas**, nao migracao total imediata.

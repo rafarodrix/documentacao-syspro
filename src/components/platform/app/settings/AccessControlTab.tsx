@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { updateRbacMatrixVisibilityAction } from "@/actions/platform/settings-actions";
+import { updateRbacMatrixVisibilityAction } from "@/features/settings/application/actions";
 import {
     SYSTEM_PERMISSIONS,
     ROLE_LABELS,

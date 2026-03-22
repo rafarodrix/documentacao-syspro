@@ -1,128 +1,239 @@
 ---
 title: Backlog de Infraestrutura Monorepo
-description: Pendências priorizadas para evolução da arquitetura e da experiência de documentação.
+description: Backlog priorizado para sair do monolito modular atual e chegar ao monorepo alvo com risco controlado.
 lastUpdated: 2026-03-22
-owner: Equipe de Documentação
+owner: Engenharia de Plataforma
 status: published
 ---
 
 ## Objetivo
 
-Concentrar apenas o backlog **ainda não concluído**, priorizando impacto em:
+Concentrar apenas o backlog ainda nao concluido, priorizando:
 
-- Segurança e autenticação
-- Qualidade de entrega (CI/CD, observabilidade)
-- Experiência do usuário na documentação
+- escalabilidade da arquitetura
+- reducao de acoplamento
+- qualidade de entrega
+- preparacao para mobile e backend separado
 
-## Pendências de Plataforma
+## Diretriz de execucao
 
-### Fase 0 - Fundação do Monorepo
+O backlog passa a seguir esta ordem:
 
-- [ ] `INFRA-001` Estruturar raiz do monorepo com `apps/web` e `packages/*`.
-- [ ] `INFRA-002` Configurar `turbo.json` com pipelines (`build`, `lint`, `test`, `typecheck`, `dev`).
-- [ ] `INFRA-003` Padronizar qualidade (ESLint, Prettier, tsconfig base compartilhado).
-- [ ] `INFRA-004` Definir estratégia de `.env` por app/pacote (dev, test, prod).
-- [ ] `INFRA-005` Criar guia operacional inicial em `docs` (setup local e troubleshooting).
+1. consolidar o **modular monolith**
+2. estabilizar contratos e boundaries
+3. extrair o **monorepo estrutural**
+4. extrair o **monorepo de dominio**
+5. abrir caminho para mobile e API dedicada
 
-### Fase 1 - Dados e Persistência
+Nao vamos tratar workspaces, mobile e API separada como primeiros passos.
 
-- [ ] `INFRA-006` Criar `packages/database` com Prisma schema e client.
-- [ ] `INFRA-007` Estruturar migrações e padrão de versionamento.
-- [ ] `INFRA-008` Implementar seeds idempotentes (usuários, roles, dados base).
-- [ ] `INFRA-009` Criar estratégia de testes de integração com banco.
+## Fase A - Modular Monolith Disciplinado
 
-### Fase 2 - Contratos e Aplicação
+### EPIC A1 - Migracao por feature para `src/features`
 
-- [ ] `INFRA-010` Criar `packages/contracts` para DTOs de entrada/saída.
-- [ ] `INFRA-011` Criar `packages/shared` para schemas (Zod) e utilitários.
-- [ ] `INFRA-012` Criar `packages/ui` para componentes reutilizáveis e tokens.
-- [ ] `INFRA-013` Criar `packages/api` com roteadores modulares tRPC.
-- [ ] `INFRA-014` Implementar contexto tRPC (sessão, prisma, tracing).
-- [ ] `INFRA-015` Definir middlewares padrão (authz, logging, error mapping).
+- [ ] `INFRA-001` [Alta] Migrar `company` para `src/features/company`.
+Criterios de aceite:
+- `domain`, `application`, `interface` criados.
+- `page.tsx` e `actions` consumindo a feature, nao regra espalhada.
+Status atual:
+- application e interface iniciados em `src/features/company`.
+- pages e componentes principais de empresa ja consomem a feature.
+- falta mover a implementacao de `src/actions/platform/company-actions.ts` para `application`.
 
-### Fase 3 - Autenticação e Autorização
+- [ ] `INFRA-002` [Alta] Migrar `tax` para `src/features/tax`.
+Criterios de aceite:
+- consultas, sync e UI separados por camada.
+- regras de negocio fora de page/component.
+Status atual:
+- application e interface iniciados em `src/features/tax`.
+- pages e rota de sync ja consomem a feature.
+- falta extrair a implementacao de `src/actions/tax/tax-actions.ts`.
 
-- [ ] `INFRA-016` Integrar Better Auth no `apps/web`.
-- [ ] `INFRA-017` Persistir usuários/sessões no PostgreSQL com Prisma.
-- [ ] `INFRA-018` Implementar RBAC baseline.
+- [ ] `INFRA-003` [Alta] Migrar `settings/contracts` para `src/features`.
+Criterios de aceite:
+- boundaries claros por modulo.
+- sem acesso direto a infraestrutura na interface.
+Status atual:
+- settings e contracts ja possuem `application` e `interface`.
+- `src/actions/platform/settings-actions.ts` e `src/actions/platform/contract-actions.ts` agora atuam como ponte fina.
+- falta concluir `queries/domain` e expandir o padrao para o restante do modulo administrativo.
 
-### Fase 4 - Integração Web + BFF
+- [ ] `INFRA-004` [Alta] Migrar `users/authz` para `src/features/user-access`.
+Criterios de aceite:
+- fluxo de cadastro, memberships e roles separados por feature.
+- sem regra critica de permissao espalhada em page/component.
 
-- [ ] `INFRA-019` Configurar cliente/servidor tRPC no Next.js App Router.
-- [ ] `INFRA-020` Definir padrão de data fetching, cache e invalidação.
-- [ ] `INFRA-021` Criar layout de erro/loading e observabilidade de requests.
+### EPIC A2 - Actions finas e contratos internos
 
-### Fase 5 - Engenharia
+- [ ] `INFRA-005` [Alta] Transformar `src/actions/*` em camada fina de transporte.
+Criterios de aceite:
+- `actions` delegam para `application`.
+- sem duplicacao de query, filtro ou regra em action.
+Status atual:
+- concluido para `tickets`, `settings` e `contracts`.
+- em andamento para `company` e `tax`.
 
-- [ ] `INFRA-022` Criar pipeline CI (lint, typecheck, test, build).
-- [ ] `INFRA-023` Adicionar verificação de contrato/schema em PR.
-- [ ] `INFRA-024` Configurar deploy web + banco com rollback.
-- [ ] `INFRA-025` Instrumentar logs estruturados e correlation id.
-- [ ] `INFRA-026` Definir métricas mínimas (latência, erro, throughput).
-- [ ] `INFRA-031` Definir metadados editoriais (`owner`, `lastUpdated`, `status`, `tags`).
+- [ ] `INFRA-006` [Alta] Criar view models e contratos por feature dentro do app atual.
+Criterios de aceite:
+- dashboard, listagem e detalhes usam o mesmo contrato.
+- nenhum componente forte depende de shape improvisado local.
 
-## Pendências de Experiência em Docs
+- [ ] `INFRA-007` [Alta] Padronizar gateways/adapters tecnicos em `core/infrastructure`.
+Criterios de aceite:
+- Zammad, company registry, tax sync e observabilidade seguem contrato explicito.
+- pagina nao fala com client tecnico direto.
 
-### Busca e descoberta
+### EPIC A3 - Guardrails e governanca
 
-- [ ] `INFRA-039` [Média] Histórico das últimas buscas (top 5) no modal.
-- [ ] `INFRA-040` [Melhoria] Filtro de busca por categoria/tag.
-- [ ] `INFRA-052` [Média] `sitemap.xml` automático para páginas de docs.
-- [ ] `INFRA-053` [Melhoria] Analytics de páginas e buscas sem resultado.
+- [ ] `INFRA-008` [Alta] Criar checklist de PR para arquitetura por feature.
+Criterios de aceite:
+- revisar camada, acoplamento, contrato e regra duplicada.
 
-### Conteúdo e interação
+- [ ] `INFRA-009` [Alta] Adicionar lint arquitetural basico por convencao.
+Criterios de aceite:
+- impedir import proibido de `interface -> prisma/lib`.
+- impedir page/component chamando infraestrutura diretamente onde ja houver feature.
 
-- [ ] `INFRA-043` [Média] Copy button com feedback animado + analytics.
-- [ ] `INFRA-044` [Média] Feedback útil? com comentário opcional persistido.
-- [ ] `INFRA-045` [Melhoria] Transição suave no toggle de tema.
+## Fase B - Monorepo Estrutural
 
-## Itens adicionados (Gap analysis)
+### EPIC B1 - Workspace e shell
 
-- [ ] `INFRA-054` [Alta] Acessibilidade da documentação (WCAG AA).
-Critérios de aceite:
-- Contraste, foco visível e navegação por teclado auditados na rota `/docs`.
-- Componentes críticos com `aria-*` e semântica consistente.
+- [ ] `INFRA-010` [Alta] Estruturar raiz do monorepo com `apps/web` e `packages/*`.
+Criterios de aceite:
+- `pnpm-workspace.yaml` e `turbo.json` configurados.
+- `apps/web` criado sem regressao funcional.
 
-- [ ] `INFRA-055` [Alta] Testes E2E da experiência de docs.
-Critérios de aceite:
-- Cobertura de busca, navegação sidebar, atalhos e proteção por role.
-- Testes executados no CI antes do build de produção.
+- [ ] `INFRA-011` [Alta] Mover a aplicacao Next.js para `apps/web`.
+Criterios de aceite:
+- build, docs, auth e app funcionando a partir de `apps/web`.
+- imports ajustados sem alias quebrado.
 
-## Sprints de desenvolvimento recomendados
+- [ ] `INFRA-012` [Alta] Padronizar qualidade compartilhada.
+Criterios de aceite:
+- ESLint, tsconfig base e convencoes compartilhadas.
+- pipeline pronta para workspace.
 
-### Sprint 1 (Fundação de qualidade e confiabilidade)
+### EPIC B2 - Extracao dos primeiros pacotes
 
-Objetivo: garantir base de entrega segura no CI/CD e reduzir regressão de docs.
+- [ ] `INFRA-013` [Alta] Criar `packages/shared`.
+Criterios de aceite:
+- utilitarios puros, constants e helpers sem dependencia de app.
 
-- `INFRA-022` Pipeline CI (lint, typecheck, test, build)
-- `INFRA-023` Verificação de contrato/schema em PR
-- `INFRA-055` Testes E2E da experiência de docs
+- [ ] `INFRA-014` [Alta] Criar `packages/ui`.
+Criterios de aceite:
+- primitives e componentes reutilizaveis extraidos de forma segura.
+- sem dependencia de prisma, auth ou regra de negocio.
 
-### Sprint 2 (Busca, interação e feedback)
+- [ ] `INFRA-015` [Alta] Criar `packages/contracts`.
+Criterios de aceite:
+- DTOs e schemas de fronteira consolidados.
+- web e futuros consumers usando a mesma fonte.
 
-Objetivo: melhorar descoberta de conteúdo e capturar sinais reais de qualidade.
+## Fase C - Monorepo de Dominio
 
-- `INFRA-039` Histórico de buscas (top 5)
-- `INFRA-040` Filtro de busca por categoria/tag
-- `INFRA-043` Copy button com feedback + analytics
-- `INFRA-044` Feedback de utilidade com comentário
+### EPIC C1 - Core e persistencia
 
-### Sprint 3 (SEO, observabilidade e acessibilidade)
+- [ ] `INFRA-016` [Alta] Extrair `packages/core`.
+Criterios de aceite:
+- casos de uso, dominio e politicas sem dependencia de Next.js.
+- features estaveis movidas sem quebrar importacao.
 
-Objetivo: aumentar alcance orgânico, diagnóstico de uso e qualidade de uso.
+- [ ] `INFRA-017` [Alta] Extrair `packages/database`.
+Criterios de aceite:
+- Prisma schema, migrations, client e adapters centralizados.
+- acesso ao banco fora do app web controlado.
 
-- `INFRA-052` `sitemap.xml` automático para docs
-- `INFRA-053` Analytics de páginas e buscas sem resultado
-- `INFRA-054` Acessibilidade da documentação (WCAG AA)
-- `INFRA-045` Transição suave no toggle de tema
+- [ ] `INFRA-018` [Alta] Definir estrategia de repositories/adapters para persistencia.
+Criterios de aceite:
+- `core` nao depende de Prisma diretamente.
+- contratos de persistencia definidos para features criticas.
 
-### Sprint 4 (Plataforma monorepo e arquitetura alvo)
+### EPIC C2 - BFF e transporte
 
-Objetivo: concluir base estrutural do monorepo e padrão de arquitetura por pacote.
+- [ ] `INFRA-019` [Media] Criar `packages/api` com roteadores modulares.
+Criterios de aceite:
+- tRPC/BFF consumindo casos de uso.
+- authz, logging e error mapping padronizados.
 
-- `INFRA-001` a `INFRA-005` Fundação do monorepo
-- `INFRA-006` a `INFRA-009` Dados e persistência
-- `INFRA-010` a `INFRA-015` Contratos e camada de aplicação
-- `INFRA-016` a `INFRA-021` Auth, RBAC e integração Web + BFF
-- `INFRA-024` a `INFRA-026` Deploy, logs e métricas
-- `INFRA-031` Metadados editoriais
+- [ ] `INFRA-020` [Media] Definir padrao de data fetching e invalidacao.
+Criterios de aceite:
+- web deixa de depender de fluxos duplicados entre page/action/component.
+
+## Fase D - Multi-App
+
+### EPIC D1 - Mobile e backend separado
+
+- [ ] `INFRA-021` [Media] Preparar `apps/mobile`.
+Criterios de aceite:
+- contratos e casos de uso necessarios ja compartilhados.
+- sem dependencias indevidas de Next.js no dominio.
+
+- [ ] `INFRA-022` [Media] Preparar `apps/api` ou backend dedicado.
+Criterios de aceite:
+- casos de uso compartilhados reaproveitaveis.
+- transporte separado do app web.
+
+## Qualidade, CI e observabilidade
+
+- [ ] `INFRA-023` [Alta] Pipeline CI (lint, typecheck, test, build).
+- [ ] `INFRA-024` [Alta] Verificacao de contrato/schema em PR.
+- [ ] `INFRA-025` [Alta] Logs estruturados e correlation id.
+- [ ] `INFRA-026` [Alta] Metricas minimas por rota critica.
+- [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs.
+
+## Experiencia em docs
+
+- [ ] `INFRA-028` [Media] Historico de buscas no modal.
+- [ ] `INFRA-029` [Media] Filtro de busca por categoria/tag.
+- [ ] `INFRA-030` [Media] `sitemap.xml` automatico para docs.
+- [ ] `INFRA-031` [Media] Analytics de paginas e buscas sem resultado.
+- [ ] `INFRA-032` [Media] Copy button com feedback animado.
+- [ ] `INFRA-033` [Media] Feedback "Esse conteudo ajudou?" com persistencia.
+- [ ] `INFRA-034` [Media] Acessibilidade WCAG AA na rota `/docs`.
+
+## Roadmap recomendado
+
+### Sprint 1 - Consolidacao do monolito modular
+
+- `INFRA-001` Migrar `company`
+- `INFRA-002` Migrar `tax`
+- `INFRA-005` Actions finas
+- `INFRA-006` Contratos internos por feature
+
+### Sprint 2 - Features administrativas e guardrails
+
+- `INFRA-003` Migrar `settings/contracts`
+- `INFRA-004` Migrar `user-access`
+- `INFRA-007` Gateways/adapters
+- `INFRA-008` Checklist de PR
+- `INFRA-009` Lint arquitetural
+
+### Sprint 3 - Monorepo estrutural
+
+- `INFRA-010` Raiz do monorepo
+- `INFRA-011` `apps/web`
+- `INFRA-012` Qualidade compartilhada
+- `INFRA-013` `packages/shared`
+- `INFRA-014` `packages/ui`
+- `INFRA-015` `packages/contracts`
+
+### Sprint 4 - Dominio compartilhado
+
+- `INFRA-016` `packages/core`
+- `INFRA-017` `packages/database`
+- `INFRA-018` Repositories/adapters
+- `INFRA-019` `packages/api`
+- `INFRA-020` Data fetching e invalidacao
+
+### Sprint 5 - Confiabilidade e multiplataforma
+
+- `INFRA-021` `apps/mobile`
+- `INFRA-022` `apps/api`
+- `INFRA-023` a `INFRA-027` Qualidade e observabilidade
+- `INFRA-028` a `INFRA-034` Evolucao de docs
+
+## Proximo passo recomendado
+
+1. concluir a migracao de features mais acopladas (`company`, `tax`, `settings`)
+2. mover os contratos internos para cada feature antes de abrir `packages/contracts`
+3. so depois iniciar a raiz de workspace e a extracao para `apps/web`

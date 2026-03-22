@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createContractSchema, CreateContractInput } from "@/core/application/schema/contract-schema";
-import { createContractAction, getSystemParamsAction } from "@/actions/platform/contract-actions";
+import { createContractAction, getSystemParamsAction } from "@/features/contracts/application/actions";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

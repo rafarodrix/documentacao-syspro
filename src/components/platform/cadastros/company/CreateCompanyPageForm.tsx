@@ -12,7 +12,7 @@ import {
   lookupCompanyProfileByCnpjAction,
   updateCompanyAction,
   type CompanyZammadEmailInput,
-} from "@/actions/platform/company-actions";
+} from "@/features/company/application/actions";
 import { COMPANY_SEGMENT_LABELS } from "@/core/config/company-segments";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";

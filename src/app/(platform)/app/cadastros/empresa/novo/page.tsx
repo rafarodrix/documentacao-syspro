@@ -2,7 +2,7 @@ import { Role } from "@prisma/client";
 import { hasPermission } from "@/lib/rbac";
 import { requireRole } from "@/lib/auth-helpers";
 import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
-import { CreateCompanyPageForm } from "@/components/platform/cadastros/company/CreateCompanyPageForm";
+import { CreateCompanyPageForm } from "@/features/company/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 import { prisma } from "@/lib/prisma";
 
