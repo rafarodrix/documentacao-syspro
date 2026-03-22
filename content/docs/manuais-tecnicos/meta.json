@@ -3,6 +3,7 @@
   "description": "Conteúdo técnico restrito para administração, suporte e equipe interna.",
   "pages": [
     "index",
-    "backlog-infra-monorepo"
+    "backlog-infra-monorepo",
+    "padrao-componentes-mdx"
   ]
 }

@@ -1,0 +1,72 @@
+---
+title: Padrao de Componentes MDX
+description: Guia editorial para callouts e tabs de codigo reutilizaveis na documentacao.
+lastUpdated: 2026-03-22
+owner: Equipe de Documentacao
+status: published
+tags:
+  - docs
+  - ux
+  - mdx
+---
+
+## Objetivo
+
+Padronizar componentes de conteudo na docs para manter consistencia visual, leitura rapida e melhor manutencao.
+
+## Admonitions
+
+Use os componentes abaixo em MDX:
+
+- `<Tip>` para boas praticas ou atalhos.
+- `<Note>` para observacoes de contexto.
+- `<Warning>` para riscos operacionais.
+- `<Danger>` para impacto critico ou acao irreversivel.
+
+### Exemplo
+
+```mdx
+<Tip>
+  Use `Ctrl + K` para abrir a busca em qualquer pagina.
+</Tip>
+
+<Note>
+  Este fluxo exige permissao de administrador.
+</Note>
+
+<Warning>
+  Execute em homologacao antes de aplicar em producao.
+</Warning>
+
+<Danger>
+  Esta acao remove dados e nao pode ser desfeita.
+</Danger>
+```
+
+## Tabs de codigo com persistencia global
+
+Use `CodeTabs` e `CodeTab`. A linguagem escolhida fica persistida no navegador e e reaplicada nas outras paginas.
+
+### Exemplo
+
+```mdx
+<CodeTabs items={['TypeScript', 'JavaScript']}>
+  <CodeTab value="TypeScript">
+    ```ts
+    const user = { id: '1', role: 'ADMIN' };
+    ```
+  </CodeTab>
+  <CodeTab value="JavaScript">
+    ```js
+    const user = { id: '1', role: 'ADMIN' };
+    ```
+  </CodeTab>
+</CodeTabs>
+```
+
+## Regras editoriais
+
+1. Nao usar mais de um `Danger` por secao curta.
+2. Priorizar `Tip` e `Note` para reducao de ruido visual.
+3. Sempre manter a mesma ordem de linguagens em `CodeTabs` (ex.: TypeScript antes de JavaScript).
+4. Evitar tabs com mais de 4 opcoes para nao comprometer leitura em mobile.

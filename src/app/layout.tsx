@@ -17,7 +17,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <body className="min-h-screen bg-background text-foreground antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <RootProvider>
+          <RootProvider
+            search={{
+              enabled: true,
+              options: {
+                type: 'static',
+                api: '/api/search',
+              },
+            }}
+          >
             {children}
           </RootProvider>
         </ThemeProvider>

@@ -18,6 +18,7 @@ import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
 import { DocsNextSteps } from '@/components/docs/DocsNextSteps';
 import { DocsSectionLinks } from '@/components/docs/DocsSectionLinks';
 import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
+import { CodeTab, CodeTabs, Danger, Note, Tip, Warning } from '@/components/docs/mdx';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -146,6 +147,12 @@ export default async function Page(props: {
           components={{
             ...defaultMdxComponents,
             a: createRelativeLink(source, page),
+            Tip,
+            Note,
+            Warning,
+            Danger,
+            CodeTabs,
+            CodeTab,
           }}
         />
         {showCategory ? <DocsSectionLinks items={sectionLinks} /> : null}
