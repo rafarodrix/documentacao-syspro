@@ -6,6 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "start": "next start",
+    "docs:check": "node scripts/docs-check.mjs",
     "test:authz": "vitest run tests/authz --reporter=verbose",
     "test:tickets": "vitest run tests/tickets --reporter=verbose",
     "postinstall": "fumadocs-mdx && prisma generate",

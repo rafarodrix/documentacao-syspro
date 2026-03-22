@@ -6,12 +6,10 @@
     "departamento",
     "estoques",
     "---grupo---",
-    "grupo-estoque",
-    "grupo-grade",
-    "grupo-preco-especial",
-    "grupo-preco",
-    "grupo-servico"
-
-
+    "grupo/grupo-estoque",
+    "grupo/grupo-grade",
+    "grupo/grupo-preco-especial",
+    "grupo/grupo-preco",
+    "grupo/grupo-servico"
   ]
 }

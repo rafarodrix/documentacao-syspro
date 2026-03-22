@@ -158,6 +158,33 @@ Criterios de aceite:
 Criterios de aceite:
 - Dashboard operacional com alertas basicos.
 
+### EPIC 5.3 - Governanca de Documentacao (Fumadocs)
+
+- [x] `INFRA-027` Corrigir referencias quebradas em `meta.json`.
+Criterios de aceite:
+- Nenhum item de navegacao aponta para rota inexistente.
+- Estrutura de pastas e slugs em `meta.json` refletem os arquivos reais.
+
+- [x] `INFRA-028` Ocultar secoes restritas da navegacao por perfil.
+Criterios de aceite:
+- Usuarios sem role de sistema nao visualizam `manuais-tecnicos` na sidebar.
+- A regra de exibicao segue RBAC ja aplicado na rota.
+
+- [x] `INFRA-029` Criar validacao automatica de docs (`docs:check`).
+Criterios de aceite:
+- Script valida frontmatter obrigatorio e referencias dos `meta.json`.
+- Pipeline pode executar validacao antes do build.
+
+- [ ] `INFRA-030` Padronizar nomenclatura de slugs/arquivos (`kebab-case` ASCII).
+Criterios de aceite:
+- Arquivos e pastas sem espacos, sem acentos e com naming consistente.
+- URLs previsiveis e estaveis.
+
+- [ ] `INFRA-031` Definir metadados editoriais (`owner`, `lastUpdated`, `status`, `tags`).
+Criterios de aceite:
+- Template padrao de frontmatter publicado.
+- Novas paginas seguem o padrao minimo de governanca.
+
 ## Sequenciamento recomendado (MVP de infraestrutura)
 
 1. `INFRA-001` a `INFRA-008` (monorepo + banco + seeds)
@@ -165,6 +192,7 @@ Criterios de aceite:
 3. `INFRA-016` a `INFRA-020` (auth + integracao web)
 4. `INFRA-022` a `INFRA-024` (CI/CD)
 5. `INFRA-025` e `INFRA-026` (observabilidade)
+6. `INFRA-027` a `INFRA-031` (governanca de documentacao)
 
 ## Definicao de pronto (DoD)
 
