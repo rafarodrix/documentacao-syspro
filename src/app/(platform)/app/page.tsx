@@ -5,13 +5,8 @@ import { DashboardStats } from "@/components/platform/app/dashboard/DashboardSta
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { ActivityChart, ActivityPoint } from "@/components/platform/app/dashboard/ActivityChart";
 import { TicketsSummary, TicketSummaryItem } from "@/components/platform/app/dashboard/TicketsSummary";
-import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
-import { ZammadOperationalTicket } from "@/core/application/schema/zammad-api.schema";
 import {
-  isAnalysisOrDevelopmentStateId,
   mapTicketPriority,
-  mapTicketStatusFromStateId,
-  mapTicketStatusFromStateName,
 } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,26 +17,10 @@ import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { ArrowUpRight, BookOpen, Headset, Sparkles, Users } from "lucide-react";
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
-import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
 import { getTicketsAction } from "@/actions/tickets/ticket-actions";
 import { getTicketStatusGroup } from "@/core/config/tickets-workflow";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-
-function normalizeOperationalTicket(t: ZammadOperationalTicket): TicketSummaryItem {
-  const mappedStatus = isAnalysisOrDevelopmentStateId(t.state_id)
-    ? mapTicketStatusFromStateId(t.state_id as number)
-    : mapTicketStatusFromStateName(t.state || "");
-
-  return {
-    id: String(t.id),
-    number: t.number,
-    subject: t.title,
-    status: mappedStatus,
-    priority: mapTicketPriority(t.priority_id ?? 2),
-    lastUpdate: t.updated_at,
-  };
-}
 
 function getLast7DaysRange() {
   const start = new Date();
@@ -175,7 +154,7 @@ async function getUserDashboardUF(userId: string): Promise<string> {
   return state && state.length === 2 ? state : "MG";
 }
 
-async function getDashboardData(userId: string, email: string, role: Role): Promise<AdminDashboardData | ClientDashboardData> {
+async function getDashboardData(userId: string, _email: string, role: Role): Promise<AdminDashboardData | ClientDashboardData> {
   const isSystemUser = SYSTEM_ROLES.includes(role);
   const dashboardUF = await getUserDashboardUF(userId);
 
@@ -191,7 +170,6 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
       recentCompanies,
       sefazRecords,
       companyActivity,
-      ticketsRaw,
     ] = await Promise.all([
       prisma.company.count({ where: { status: "ACTIVE", deletedAt: null } }),
       prisma.company.count({
@@ -230,23 +208,20 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
         take: 2,
       }),
       prisma.company.findMany({ where: { deletedAt: null, createdAt: { gte: start } }, select: { createdAt: true } }),
-      ZammadGateway.getAllTickets(50, {
-        cacheTtlSeconds: 60,
-        tags: ["tickets-dashboard"],
-        routeKey: "app-dashboard",
-      }),
     ]);
-    const activeTickets = ticketsRaw.filter((ticket) => {
-      const status = isAnalysisOrDevelopmentStateId(ticket.state_id)
-        ? mapTicketStatusFromStateId(ticket.state_id as number)
-        : mapTicketStatusFromStateName(ticket.state || "");
-      return status !== "Resolvido";
-    });
-
-    await upsertOperationalTicketsToCache(activeTickets);
-
-    const tickets = activeTickets.slice(0, 5).map(normalizeOperationalTicket);
-    const totalOpen = activeTickets.length;
+    const ticketsResponse = await getTicketsAction({ page: 1, pageSize: 50, queue: "all" });
+    const normalizedTickets = ticketsResponse.success
+      ? ticketsResponse.data.map((ticket) => ({
+          id: String(ticket.id),
+          number: ticket.number,
+          subject: ticket.title,
+          status: mapDashboardStatus(ticket.status, ticket.statusLabel),
+          priority: mapTicketPriority(ticket.priority),
+          lastUpdate: ticket.updatedAt,
+        }))
+      : [];
+    const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 5);
+    const totalOpen = ticketsResponse.success ? ticketsResponse.queueCounts.all : normalizedTickets.length;
 
     const companies = recentCompanies.map((c) => ({
       ...c,
