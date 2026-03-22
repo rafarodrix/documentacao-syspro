@@ -52,7 +52,7 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
             data: [],
             pagination: {
                 page: Math.max(1, params.page ?? 1),
-                pageSize: Math.min(50, Math.max(10, params.pageSize ?? 20)),
+                pageSize: Math.min(20, Math.max(10, params.pageSize ?? 20)),
                 hasPreviousPage: false,
                 hasNextPage: false,
                 total: 0,

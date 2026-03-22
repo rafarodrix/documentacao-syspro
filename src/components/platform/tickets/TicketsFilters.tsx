@@ -23,6 +23,8 @@ export function TicketsFilters({
     isAdmin,
     counts,
 }: TicketsFiltersProps) {
+    const total = counts.open + counts.pending + counts.closed;
+
     const handleStatusChange = (value: string) => {
         if (value === "all") {
             setStatusFilter("all");
@@ -48,7 +50,7 @@ export function TicketsFilters({
                         Fechados ({counts.closed})
                     </TabsTrigger>
                     <TabsTrigger value="all" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                        Todos
+                        Todos ({total})
                     </TabsTrigger>
                 </TabsList>
             </Tabs>

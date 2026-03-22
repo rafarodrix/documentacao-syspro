@@ -55,10 +55,9 @@ export const CLOSED_STATE_IDS = uniqueSorted(getStateIdsByBucket("closed")) as n
 export const OPERATIONAL_STATE_IDS = uniqueSorted([
   ...OPEN_STATE_IDS,
   ...PENDING_STATE_IDS,
-  ...CLOSED_STATE_IDS,
 ]) as number[];
 
-const STATUS_GROUP_KEYWORDS: Record<TicketStatusGroup, string[]> = {
+export const TICKET_STATUS_QUERY_TERMS: Record<TicketStatusGroup, string[]> = {
   open: ["1. novo", "novo", "new", "aberto", "open"],
   pending: [
     "2. em analise",
@@ -78,9 +77,9 @@ const STATUS_GROUP_KEYWORDS: Record<TicketStatusGroup, string[]> = {
 };
 
 export function getTicketStatusGroup(status: string): TicketStatusGroup {
-  const normalized = (status || "").toLowerCase();
-  if (STATUS_GROUP_KEYWORDS.open.some((keyword) => normalized.includes(keyword))) return "open";
-  if (STATUS_GROUP_KEYWORDS.closed.some((keyword) => normalized.includes(keyword))) return "closed";
+  const normalized = normalizeLoose(status || "");
+  if (TICKET_STATUS_QUERY_TERMS.open.some((keyword) => normalized.includes(normalizeLoose(keyword)))) return "open";
+  if (TICKET_STATUS_QUERY_TERMS.closed.some((keyword) => normalized.includes(normalizeLoose(keyword)))) return "closed";
   return "pending";
 }
 

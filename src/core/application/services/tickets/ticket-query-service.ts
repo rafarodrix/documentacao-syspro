@@ -7,7 +7,9 @@ import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad
 import { listCachedTickets, upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
 import { computeTicketSla } from "@/core/application/services/zammad-sla";
 import {
+    CLOSED_STATE_IDS,
     OPERATIONAL_STATE_IDS,
+    TICKET_STATUS_QUERY_TERMS,
     getStateIdsForStatusGroup,
     type QueueKey,
     type TicketStatusGroup,
@@ -134,8 +136,17 @@ function buildPagination(page: number, pageSize: number, total: number | null, c
     };
 }
 
-function buildStateQuery(stateIds: readonly number[] = OPERATIONAL_STATE_IDS): string {
+function buildStateIdQuery(stateIds: readonly number[]): string {
     return `(${stateIds.map((id) => `state_id:${id}`).join(" OR ")})`;
+}
+
+function buildStatusTermsQuery(statusGroup: TicketStatusGroup): string {
+    const terms = TICKET_STATUS_QUERY_TERMS[statusGroup] ?? [];
+    if (!terms.length) return "";
+
+    return `(${terms
+        .map((term) => `state:"${escapeSearchTerm(term)}"`)
+        .join(" OR ")})`;
 }
 
 function buildEmailScopeQuery(emails: string[]): string {
@@ -179,7 +190,38 @@ function combineQueryParts(...parts: Array<string | null | undefined>): string {
 
 function buildStatusQuery(statusGroup?: TicketStatusGroup | "all"): string {
     if (!statusGroup || statusGroup === "all") return "";
-    return buildStateQuery(getStateIdsForStatusGroup(statusGroup));
+    const stateIds = getStateIdsForStatusGroup(statusGroup);
+    const parts = [
+        stateIds.length ? buildStateIdQuery(stateIds) : "",
+        buildStatusTermsQuery(statusGroup),
+    ].filter(Boolean);
+
+    if (!parts.length) return "id:-1";
+    if (parts.length === 1) return parts[0];
+    return `(${parts.join(" OR ")})`;
+}
+
+function buildTrackedStatusQuery(): string {
+    const parts = [
+        buildStatusQuery("open"),
+        buildStatusQuery("pending"),
+        buildStatusQuery("closed"),
+    ].filter(Boolean);
+
+    if (!parts.length) return "";
+    if (parts.length === 1) return parts[0];
+    return `(${parts.join(" OR ")})`;
+}
+
+function buildOperationalStatusQuery(): string {
+    const parts = [
+        buildStatusQuery("open"),
+        buildStatusQuery("pending"),
+    ].filter(Boolean);
+
+    if (!parts.length) return "";
+    if (parts.length === 1) return parts[0];
+    return `(${parts.join(" OR ")})`;
 }
 
 async function getQueueCountsFromZammad(
@@ -231,9 +273,7 @@ function buildCacheWhere(input: {
     search?: string;
     statusGroup?: TicketStatusGroup | "all";
 }): Prisma.ZammadTicketCacheWhereInput {
-    const where: Prisma.ZammadTicketCacheWhereInput = {
-        stateId: { in: [...OPERATIONAL_STATE_IDS] },
-    };
+    const where: Prisma.ZammadTicketCacheWhereInput = {};
 
     if (!isSystemRole(input.role)) {
         const emails = input.scopedEmails.length ? input.scopedEmails : [input.email];
@@ -282,6 +322,8 @@ function buildCacheWhere(input: {
 
     if (input.statusGroup && input.statusGroup !== "all") {
         where.stateId = { in: [...getStateIdsForStatusGroup(input.statusGroup)] };
+    } else {
+        where.stateId = { in: Array.from(new Set([...OPERATIONAL_STATE_IDS, ...CLOSED_STATE_IDS])) };
     }
 
     return where;
@@ -351,13 +393,14 @@ export async function queryTicketsForViewer(
     params: TicketQueryParams = {}
 ): Promise<TicketsDataResponse> {
     const page = Math.max(1, params.page ?? 1);
-    const pageSize = Math.min(50, Math.max(10, params.pageSize ?? 20));
+    const pageSize = Math.min(20, Math.max(10, params.pageSize ?? 20));
     const queue = params.queue ?? "all";
     const statusGroup = params.statusGroup ?? "all";
     const search = (params.search || "").trim();
 
     const routeKey = "app-chamados";
-    const stateQuery = buildStateQuery();
+    const trackedStatusQuery = buildTrackedStatusQuery();
+    const operationalStatusQuery = buildOperationalStatusQuery();
     const zammadUserId = isSystemRole(viewer.role)
         ? await ZammadGateway.getUserIdByEmail(viewer.email, routeKey)
         : null;
@@ -373,13 +416,16 @@ export async function queryTicketsForViewer(
         };
     }
 
-    const baseQuery = isSystemRole(viewer.role)
-        ? stateQuery
-        : combineQueryParts(buildEmailScopeQuery(scopedEmails), stateQuery);
+    const viewerScopeQuery = isSystemRole(viewer.role)
+        ? ""
+        : buildEmailScopeQuery(scopedEmails);
     const searchQuery = buildSearchQuery(search, isSystemRole(viewer.role));
     const queueQuery = buildQueueQuery(queue, zammadUserId);
-    const scopedQuery = combineQueryParts(baseQuery, searchQuery, queueQuery);
-    const finalQuery = combineQueryParts(scopedQuery, buildStatusQuery(statusGroup));
+    const scopedQuery = combineQueryParts(viewerScopeQuery, searchQuery, queueQuery);
+    const finalQuery = combineQueryParts(
+        scopedQuery,
+        statusGroup === "all" ? trackedStatusQuery : buildStatusQuery(statusGroup)
+    );
 
     try {
         const [ticketsRaw, total, queueCounts, statusCounts] = await Promise.all([
@@ -391,7 +437,7 @@ export async function queryTicketsForViewer(
                 routeKey,
             }),
             ZammadGateway.getTicketCount(finalQuery, routeKey),
-            getQueueCountsFromZammad(baseQuery, routeKey, zammadUserId, searchQuery),
+            getQueueCountsFromZammad(combineQueryParts(viewerScopeQuery, operationalStatusQuery), routeKey, zammadUserId, searchQuery),
             getStatusCountsFromZammad(scopedQuery, routeKey),
         ]);
 

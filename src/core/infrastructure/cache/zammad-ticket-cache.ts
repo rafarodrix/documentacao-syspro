@@ -2,7 +2,7 @@ import { Prisma, Role, ZammadTicketCache } from "@prisma/client";
 import { ZammadOperationalTicket } from "@/core/application/schema/zammad-api.schema";
 import { prisma } from "@/lib/prisma";
 import { computeTicketSla } from "@/core/application/services/zammad-sla";
-import { OPERATIONAL_STATE_IDS, getStateIdsForStatusGroup, type QueueKey, type TicketStatusGroup } from "@/core/config/tickets-workflow";
+import { CLOSED_STATE_IDS, OPERATIONAL_STATE_IDS, getStateIdsForStatusGroup, type QueueKey, type TicketStatusGroup } from "@/core/config/tickets-workflow";
 
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
 const CACHE_UPSERT_CHUNK_SIZE = 50;
@@ -107,9 +107,7 @@ export async function listCachedTickets(input: {
   search?: string;
   statusGroup?: TicketStatusGroup | "all";
 }): Promise<{ rows: ZammadTicketCache[]; total: number }> {
-  const where: Prisma.ZammadTicketCacheWhereInput = {
-    stateId: { in: [...OPERATIONAL_STATE_IDS] },
-  };
+  const where: Prisma.ZammadTicketCacheWhereInput = {};
 
   if (!SYSTEM_ROLES.has(input.role)) {
     const emails = input.scopedEmails?.length ? input.scopedEmails : [input.email];
@@ -160,6 +158,8 @@ export async function listCachedTickets(input: {
 
   if (input.statusGroup && input.statusGroup !== "all") {
     where.stateId = { in: [...getStateIdsForStatusGroup(input.statusGroup)] };
+  } else {
+    where.stateId = { in: Array.from(new Set([...OPERATIONAL_STATE_IDS, ...CLOSED_STATE_IDS])) };
   }
 
   const [rows, total] = await prisma.$transaction([
