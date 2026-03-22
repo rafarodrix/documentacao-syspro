@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 type QuickLink = { href: string; label: string; icon: typeof BookOpenText };
 
 const BASE_LINKS: QuickLink[] = [
+  { href: '/docs', label: 'Central da Doc', icon: BookOpenText },
   { href: '/docs/manual/cadastro', label: 'Cadastro', icon: BookOpenText },
   { href: '/docs/manual/financeiro', label: 'Financeiro', icon: ReceiptText },
   { href: '/docs/duvidas/rejeicoes/nfe-nfce', label: 'Rejeições NFe', icon: CircleHelp },

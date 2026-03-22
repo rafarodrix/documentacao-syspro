@@ -159,6 +159,13 @@ export function DocsSidebarRecent() {
     });
   }
 
+  function clearHistory() {
+    setItems([]);
+    setPopularMap({});
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(POPULAR_STORAGE_KEY);
+  }
+
   return (
     <div className="mt-3 rounded-lg border border-border/60 bg-card/40 p-2">
       <button
@@ -178,6 +185,15 @@ export function DocsSidebarRecent() {
 
       {open ? (
         <Tabs defaultValue="recentes" className="mt-2">
+          <div className="mb-2 flex justify-end">
+            <button
+              type="button"
+              onClick={clearHistory}
+              className="rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              Limpar histórico
+            </button>
+          </div>
           <TabsList className="grid h-8 w-full grid-cols-2">
             <TabsTrigger value="recentes" className="text-xs">Recentes</TabsTrigger>
             <TabsTrigger value="populares" className="text-xs">Populares</TabsTrigger>

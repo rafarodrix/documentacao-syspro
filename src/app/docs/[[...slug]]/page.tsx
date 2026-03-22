@@ -12,6 +12,7 @@ import { requireSession, canAccessByCompanySegment } from '@/lib/auth-helpers';
 import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/core/config/docs-access';
 import { SYSTEM_ROLES } from '@/core/config/route-access';
 import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
+import { DocsHomePage } from '@/components/docs/DocsHomePage';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -34,6 +35,50 @@ export default async function Page(props: {
 
   const page = source.getPage(params.slug);
   if (!page) notFound();
+
+  if (slug.length === 0) {
+    const allPages = source.getPages().filter((item) => item.url !== '/docs');
+
+    const visibility = await Promise.all(
+      allPages.map(async (item) => {
+        if (!SYSTEM_ROLES.includes(session.role) && item.url.startsWith('/docs/manuais-tecnicos')) return false;
+
+        if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
+          const relativeSlug = item.url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
+          const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
+          if (requiredSegments.length === 0) return true;
+          return canAccessByCompanySegment(session.userId, requiredSegments);
+        }
+
+        return true;
+      }),
+    );
+
+    const visiblePages = allPages
+      .filter((_, index) => visibility[index])
+      .map((item) => {
+        const data = item.data as Record<string, unknown>;
+        return {
+          href: item.url,
+          title: String(item.data.title),
+          description: typeof data.description === 'string' ? data.description : undefined,
+          lastUpdated: typeof data.lastUpdated === 'string' ? data.lastUpdated : undefined,
+        };
+      });
+
+    return (
+      <DocsPage toc={[]} full={false}>
+        <DocsTitle>{page.data.title}</DocsTitle>
+        <DocsDescription>{page.data.description}</DocsDescription>
+        <DocsBody>
+          <DocsHomePage
+            pages={visiblePages}
+            canViewTechnical={SYSTEM_ROLES.includes(session.role)}
+          />
+        </DocsBody>
+      </DocsPage>
+    );
+  }
 
   const MDXContent = page.data.body;
   const lastUpdated = typeof page.data.lastUpdated === 'string' ? page.data.lastUpdated : undefined;

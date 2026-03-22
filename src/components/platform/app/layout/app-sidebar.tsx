@@ -71,6 +71,7 @@ const NAV_SYSTEM: NavItemType[] = [
 ]
 
 const NAV_DOCS_USER: NavItemType[] = [
+  { title: "Central de Documentacao", href: "/docs", icon: BookOpen },
   { title: "Documentacao", href: "/docs/manual", icon: BookOpen },
   { title: "Duvidas", href: "/docs/duvidas", icon: GraduationCap },
   { title: "Treinamento", href: "/docs/treinamento", icon: GraduationCap },
