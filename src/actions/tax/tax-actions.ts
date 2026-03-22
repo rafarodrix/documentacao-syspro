@@ -43,7 +43,7 @@ type TaxClassificationDTO = {
     MonofasiaDiferimento?: boolean;
     MonofasiaPadrao?: boolean;
     Anexo?: string | null;
-    // Outros campos ÃƒÆ’Ã‚Âºteis
+    // Outros campos ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºteis
     TipoAliquota: string;
     Link: string | null;
 
@@ -77,7 +77,7 @@ type TaxCstDTO = {
 };
 
 // ==============================================================================
-// 2. FUNÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES AUXILIARES
+// 2. FUNÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ES AUXILIARES
 // ==============================================================================
 const parseDate = (dateStr?: string | null) => {
     if (!dateStr) return new Date();
@@ -140,11 +140,37 @@ const getAnexoExternalKey = (item: Record<string, unknown>, index: number): stri
     return `anexo_${index}_${hash}`;
 };
 
+const getCredPresumidoExternalKey = (item: Record<string, unknown>, index: number): string => {
+    const possibleKeys = [
+        item.codOperacao,
+        item.CodOperacao,
+        item.id,
+        item.ID,
+        item.codigo,
+        item.Codigo,
+        item.codCredito,
+        item.CodCredito,
+        item.cCredito,
+        item.credito,
+        item.Credito,
+        item.chave,
+        item.Chave,
+    ];
+
+    for (const key of possibleKeys) {
+        const value = asString(key);
+        if (value) return value;
+    }
+
+    const hash = createHash("sha1").update(JSON.stringify(item)).digest("hex").slice(0, 16);
+    return `cred_presumido_${index}_${hash}`;
+};
+
 // ==============================================================================
-// 3. SERVER ACTION (PROCESSAMENTO HIERÃƒÆ’Ã‚ÂRQUICO)
+// 3. SERVER ACTION (PROCESSAMENTO HIERÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂRQUICO)
 // ==============================================================================
 export async function saveTaxDataBatch(data: any[]) {
-    // Cast forÃƒÆ’Ã‚Â§ado para garantir intelisense aqui dentro, 
+    // Cast forÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ado para garantir intelisense aqui dentro, 
     // assumindo que o input vem correto do front
     const cstList = data as TaxCstDTO[];
 
@@ -197,7 +223,7 @@ export async function saveTaxDataBatch(data: any[]) {
                 countCST++;
 
                 // -------------------------------------------------------
-                // 2. SALVAR AS CLASSIFICAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã¢â‚¬Â¢ES (FILHAS) DESTE CST
+                // 2. SALVAR AS CLASSIFICAÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ES (FILHAS) DESTE CST
                 // -------------------------------------------------------
                 if (item.classificacoesTributarias && item.classificacoesTributarias.length > 0) {
                     for (const subItem of item.classificacoesTributarias) {
@@ -207,7 +233,7 @@ export async function saveTaxDataBatch(data: any[]) {
 
                             update: {
                                 description: subItem.DescricaoClassTrib,
-                                cstId: cstRecord.id, // Atualiza vÃƒÆ’Ã‚Â­nculo se mudar
+                                cstId: cstRecord.id, // Atualiza vÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­nculo se mudar
 
                                 pRedIBS: parseDecimal(subItem.pRedIBS),
                                 pRedCBS: parseDecimal(subItem.pRedCBS),
@@ -249,7 +275,7 @@ export async function saveTaxDataBatch(data: any[]) {
                             create: {
                                 code: subItem.cClassTrib,
                                 description: subItem.DescricaoClassTrib,
-                                cstId: cstRecord.id, // VÃƒÆ’Ã‚ÂNCULO FK
+                                cstId: cstRecord.id, // VÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂNCULO FK
 
                                 pRedIBS: parseDecimal(subItem.pRedIBS),
                                 pRedCBS: parseDecimal(subItem.pRedCBS),
@@ -304,11 +330,11 @@ export async function saveTaxDataBatch(data: any[]) {
 
         return {
             success: true,
-            message: `Sucesso! ${result.cst} CSTs e ${result.class} ClassificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes processadas.`,
+            message: `Sucesso! ${result.cst} CSTs e ${result.class} ClassificaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµes processadas.`,
         };
 
     } catch (error: any) {
-        console.error("Erro crÃƒÆ’Ã‚Â­tico na importaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o fiscal:", error);
+        console.error("Erro crÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­tico na importaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o fiscal:", error);
         return {
             success: false,
             error: `Erro ao salvar no banco: ${error.message}`,
@@ -335,97 +361,230 @@ export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
             .map((item) => asRecord(item))
             .filter((item): item is Record<string, unknown> => item !== null);
 
-        const result = await prisma.$transaction(async (tx) => {
-            let count = 0;
+        let count = 0;
 
-            for (let index = 0; index < normalized.length; index++) {
-                const item = normalized[index];
-                const externalKey = getAnexoExternalKey(item, index);
+        // Evita transaction interativa longa (P2028) em cargas grandes.
+        for (let index = 0; index < normalized.length; index++) {
+            const item = normalized[index];
+            const externalKey = getAnexoExternalKey(item, index);
 
-                const code =
-                    asString(item.codigo) ??
-                    asString(item.Codigo) ??
-                    asString(item.codAnexo) ??
-                    asString(item.CodAnexo) ??
-                    asString(item.cAnexo) ??
-                    null;
+            const code =
+                asString(item.codigo) ??
+                asString(item.Codigo) ??
+                asString(item.codAnexo) ??
+                asString(item.CodAnexo) ??
+                asString(item.cAnexo) ??
+                null;
 
-                const title =
-                    asString(item.titulo) ??
-                    asString(item.Titulo) ??
-                    asString(item.nome) ??
-                    asString(item.Nome) ??
-                    asString(item.anexo) ??
-                    asString(item.Anexo) ??
-                    null;
+            const title =
+                asString(item.titulo) ??
+                asString(item.Titulo) ??
+                asString(item.nome) ??
+                asString(item.Nome) ??
+                asString(item.anexo) ??
+                asString(item.Anexo) ??
+                null;
 
-                const description =
-                    asString(item.descricao) ??
-                    asString(item.Descricao) ??
-                    asString(item.texto) ??
-                    asString(item.Texto) ??
-                    null;
+            const description =
+                asString(item.descricao) ??
+                asString(item.Descricao) ??
+                asString(item.texto) ??
+                asString(item.Texto) ??
+                null;
 
-                const category =
-                    asString(item.categoria) ??
-                    asString(item.Categoria) ??
-                    asString(item.tipo) ??
-                    asString(item.Tipo) ??
-                    null;
+            const category =
+                asString(item.categoria) ??
+                asString(item.Categoria) ??
+                asString(item.tipo) ??
+                asString(item.Tipo) ??
+                null;
 
-                const publishDate =
-                    parseNullableDateSafe(item.publicacao) ??
-                    parseNullableDateSafe(item.Publicacao);
-                const startDate =
-                    parseNullableDateSafe(item.inicioVigencia) ??
-                    parseNullableDateSafe(item.InicioVigencia);
-                const endDate =
-                    parseNullableDateSafe(item.fimVigencia) ??
-                    parseNullableDateSafe(item.FimVigencia);
+            const publishDate =
+                parseNullableDateSafe(item.publicacao) ??
+                parseNullableDateSafe(item.Publicacao);
+            const startDate =
+                parseNullableDateSafe(item.inicioVigencia) ??
+                parseNullableDateSafe(item.InicioVigencia);
+            const endDate =
+                parseNullableDateSafe(item.fimVigencia) ??
+                parseNullableDateSafe(item.FimVigencia);
 
-                await tx.taxAnexo.upsert({
-                    where: { externalKey },
-                    update: {
-                        code,
-                        title,
-                        description,
-                        category,
-                        publishDate,
-                        startDate,
-                        endDate,
-                        raw: toPrismaJson(item),
-                        lastUpdated: new Date(),
-                    },
-                    create: {
-                        externalKey,
-                        code,
-                        title,
-                        description,
-                        category,
-                        publishDate,
-                        startDate,
-                        endDate,
-                        raw: toPrismaJson(item),
-                    },
-                });
+            await prisma.taxAnexo.upsert({
+                where: { externalKey },
+                update: {
+                    code,
+                    title,
+                    description,
+                    category,
+                    publishDate,
+                    startDate,
+                    endDate,
+                    raw: toPrismaJson(item),
+                    lastUpdated: new Date(),
+                },
+                create: {
+                    externalKey,
+                    code,
+                    title,
+                    description,
+                    category,
+                    publishDate,
+                    startDate,
+                    endDate,
+                    raw: toPrismaJson(item),
+                },
+            });
 
-                count++;
-            }
-
-            return { count };
-        });
+            count++;
+        }
 
         revalidatePath("/app/configuracoes");
 
         return {
             success: true,
-            message: `Sucesso! ${result.count} anexos processados.`,
+            message: `Sucesso! ${count} anexos processados.`,
         };
     } catch (error: any) {
-        console.error("Erro crÃƒÆ’Ã‚Â­tico na importaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o de anexos fiscais:", error);
+        console.error("Erro crÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­tico na importaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de anexos fiscais:", error);
         return {
             success: false,
             error: `Erro ao salvar anexos no banco: ${error.message}`,
+        };
+    }
+}
+
+export async function saveTaxCredPresumidoBatch(data: unknown[]): Promise<SaveResult> {
+    if (!Array.isArray(data) || data.length === 0) {
+        return {
+            success: true,
+            message: "Nenhum credito presumido para processar.",
+        };
+    }
+
+    try {
+        const normalized = data
+            .map((item) => asRecord(item))
+            .filter((item): item is Record<string, unknown> => item !== null);
+
+        let count = 0;
+
+        // Evita transaction interativa longa (P2028) em cargas grandes.
+        for (let index = 0; index < normalized.length; index++) {
+            const item = normalized[index];
+            const externalKey = getCredPresumidoExternalKey(item, index);
+
+            const code =
+                asString(item.codOperacao) ??
+                asString(item.CodOperacao) ??
+                asString(item.codigo) ??
+                asString(item.Codigo) ??
+                asString(item.codCredito) ??
+                asString(item.CodCredito) ??
+                asString(item.cCredito) ??
+                null;
+
+            const title =
+                asString(item.nomeOperacao) ??
+                asString(item.NomeOperacao) ??
+                asString(item.titulo) ??
+                asString(item.Titulo) ??
+                asString(item.nome) ??
+                asString(item.Nome) ??
+                asString(item.credito) ??
+                asString(item.Credito) ??
+                null;
+
+            const legalText =
+                asString(item.texDispLegal) ??
+                asString(item.TexDispLegal);
+            const operationLocation =
+                asString(item.texLocalOperacao) ??
+                asString(item.TexLocalOperacao);
+            const supplierLocation =
+                asString(item.texLocalFornec) ??
+                asString(item.TexLocalFornec);
+            const supplierProfile =
+                asString(item.texCaractFornec) ??
+                asString(item.TexCaractFornec);
+
+            const fallbackDescriptionParts = [
+                legalText ? `Base legal: ${legalText}` : null,
+                operationLocation ? `Local da operacao: ${operationLocation}` : null,
+                supplierLocation ? `Local do fornecedor: ${supplierLocation}` : null,
+                supplierProfile ? `Perfil do fornecimento: ${supplierProfile}` : null,
+            ].filter((part): part is string => Boolean(part));
+
+            const description =
+                asString(item.descricao) ??
+                asString(item.Descricao) ??
+                asString(item.texto) ??
+                asString(item.Texto) ??
+                (fallbackDescriptionParts.length ? fallbackDescriptionParts.join(" | ") : null);
+
+            const category =
+                legalText ??
+                asString(item.categoria) ??
+                asString(item.Categoria) ??
+                asString(item.tipo) ??
+                asString(item.Tipo) ??
+                null;
+
+            const publishDate =
+                parseNullableDateSafe(item.dthPublicacao) ??
+                parseNullableDateSafe(item.DthPublicacao) ??
+                parseNullableDateSafe(item.publicacao) ??
+                parseNullableDateSafe(item.Publicacao);
+            const startDate =
+                parseNullableDateSafe(item.dthIniVig) ??
+                parseNullableDateSafe(item.DthIniVig) ??
+                parseNullableDateSafe(item.inicioVigencia) ??
+                parseNullableDateSafe(item.InicioVigencia);
+            const endDate =
+                parseNullableDateSafe(item.dthFimVig) ??
+                parseNullableDateSafe(item.DthFimVig) ??
+                parseNullableDateSafe(item.fimVigencia) ??
+                parseNullableDateSafe(item.FimVigencia);
+
+            await prisma.taxCredPresumido.upsert({
+                where: { externalKey },
+                update: {
+                    code,
+                    title,
+                    description,
+                    category,
+                    publishDate,
+                    startDate,
+                    endDate,
+                    raw: toPrismaJson(item),
+                    lastUpdated: new Date(),
+                },
+                create: {
+                    externalKey,
+                    code,
+                    title,
+                    description,
+                    category,
+                    publishDate,
+                    startDate,
+                    endDate,
+                    raw: toPrismaJson(item),
+                },
+            });
+
+            count++;
+        }
+
+        revalidatePath("/app/configuracoes");
+
+        return {
+            success: true,
+            message: `Sucesso! ${count} registros de credito presumido processados.`,
+        };
+    } catch (error: any) {
+        console.error("Erro critico na importacao de credito presumido:", error);
+        return {
+            success: false,
+            error: `Erro ao salvar credito presumido no banco: ${error.message}`,
         };
     }
 }

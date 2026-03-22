@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
-import { saveTaxAnexosBatch, saveTaxDataBatch } from "@/actions/tax/tax-actions";
+import { saveTaxAnexosBatch, saveTaxCredPresumidoBatch, saveTaxDataBatch } from "@/actions/tax/tax-actions";
 import { toast } from "sonner";
 
 const CLASS_TRIB_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/classTrib";
 const ANEXOS_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/anexos";
+const CRED_PRESUMIDO_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/credPresumido";
 
 function normalizeTaxPayload(data: unknown): unknown[] {
   if (Array.isArray(data)) return data;
@@ -61,7 +62,7 @@ function splitByApproxSize<T>(items: T[], maxBytes: number): T[][] {
   return chunks;
 }
 
-type SyncMode = "classTrib" | "anexos";
+type SyncMode = "classTrib" | "anexos" | "credPresumido";
 
 function SyncRouteButton({ mode }: { mode: SyncMode }) {
   const [isPending, startTransition] = useTransition();
@@ -69,12 +70,19 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
   const [statusMessage, setStatusMessage] = useState("Sincronizar Agora");
 
   const isClassTrib = mode === "classTrib";
-  const routeUrl = isClassTrib ? CLASS_TRIB_URL : ANEXOS_URL;
+  const isCredPresumido = mode === "credPresumido";
+  const routeUrl = isClassTrib ? CLASS_TRIB_URL : isCredPresumido ? CRED_PRESUMIDO_URL : ANEXOS_URL;
 
-  const title = isClassTrib ? "Classificacoes Tributarias (classTrib)" : "Anexos Fiscais (anexos)";
+  const title = isClassTrib
+    ? "Classificacoes Tributarias (classTrib)"
+    : isCredPresumido
+      ? "Credito Presumido (credPresumido)"
+      : "Anexos Fiscais (anexos)";
   const subtitle = isClassTrib
     ? "Sincroniza CST + cClassTrib em lotes para evitar limite de 1MB."
-    : "Sincroniza anexos oficiais em lotes para evitar limite de 1MB.";
+    : isCredPresumido
+      ? "Sincroniza credito presumido oficial em lotes para evitar limite de 1MB."
+      : "Sincroniza anexos oficiais em lotes para evitar limite de 1MB.";
 
   const handleSync = async () => {
     setLastStatus("idle");
@@ -102,7 +110,9 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
 
           const result = isClassTrib
             ? await saveTaxDataBatch(chunks[i] as unknown[])
-            : await saveTaxAnexosBatch(chunks[i] as unknown[]);
+            : isCredPresumido
+              ? await saveTaxCredPresumidoBatch(chunks[i] as unknown[])
+              : await saveTaxAnexosBatch(chunks[i] as unknown[]);
 
           if (!result.success) {
             toast.error(result.error ?? "Falha ao sincronizar lote.");
@@ -189,12 +199,17 @@ export function SyncTaxAnexosButton() {
   return <SyncRouteButton mode="anexos" />;
 }
 
+export function SyncTaxCredPresumidoButton() {
+  return <SyncRouteButton mode="credPresumido" />;
+}
+
 // Compatibilidade com uso antigo
 export function SyncTaxButton() {
   return (
     <div className="space-y-3">
       <SyncTaxClassTribButton />
       <SyncTaxAnexosButton />
+      <SyncTaxCredPresumidoButton />
     </div>
   );
 }

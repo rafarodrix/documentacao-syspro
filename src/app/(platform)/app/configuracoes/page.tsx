@@ -8,13 +8,14 @@ import { getSefazRoutesAction } from "@/actions/platform/settings-actions";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files } from "lucide-react";
+import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files, Wallet } from "lucide-react";
 
 import GeneralSettingsForm from "@/components/platform/app/settings/GeneralSettingsForm";
 import { AccessControlTab } from "@/components/platform/app/settings/AccessControlTab";
-import { SyncTaxAnexosButton, SyncTaxClassTribButton } from "@/components/platform/tax/SyncTaxButton";
+import { SyncTaxAnexosButton, SyncTaxClassTribButton, SyncTaxCredPresumidoButton } from "@/components/platform/tax/SyncTaxButton";
 import { TaxClassificationList } from "@/components/platform/tax/TaxClassificationList";
 import { TaxAnexosContainer } from "@/components/platform/tax/TaxAnexosContainer";
+import { TaxCredPresumidoContainer } from "@/components/platform/tax/TaxCredPresumidoContainer";
 import { BulkReadjustDialog } from "@/components/platform/app/contratos/BulkReadjustDialog";
 import { ContractSheet } from "@/components/platform/app/contratos/ContractSheet";
 import { ContractStats } from "@/components/platform/app/contratos/ContractStats";
@@ -157,6 +158,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                                     <Files className="h-4 w-4" />
                                     Rota anexos
                                 </TabsTrigger>
+                                <TabsTrigger value="cred-presumido" className="gap-2 px-4 py-2">
+                                    <Wallet className="h-4 w-4" />
+                                    Rota credPresumido
+                                </TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="class-trib" className="space-y-4">
@@ -173,6 +178,15 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                                 <div className="mt-6">
                                     <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Carregando anexos...</div>}>
                                         <TaxAnexosContainer />
+                                    </Suspense>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="cred-presumido" className="space-y-4">
+                                <SyncTaxCredPresumidoButton />
+                                <div className="mt-6">
+                                    <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Carregando credito presumido...</div>}>
+                                        <TaxCredPresumidoContainer />
                                     </Suspense>
                                 </div>
                             </TabsContent>

@@ -106,10 +106,10 @@ model Company {
   whatsapp        String?
   website         String?
 
-  // ENDEREÃ‡O
+  // ENDEREÃƒâ€¡O
   addresses Address[]
 
-  // RELAÃ‡Ã•ES
+  // RELAÃƒâ€¡Ãƒâ€¢ES
   accountingFirmId  String?
   accountingFirm    Company?     @relation("AccountantClient", fields: [accountingFirmId], references: [id])
   accountingClients Company[]    @relation("AccountantClient")
@@ -129,7 +129,7 @@ model Company {
 
 model Address {
   id               String  @id @default(cuid())
-  description      String? // Ex: "Sede", "DepÃ³sito", "Faturamento"
+  description      String? // Ex: "Sede", "DepÃƒÂ³sito", "Faturamento"
   cep              String
   logradouro       String
   numero           String
@@ -147,7 +147,7 @@ model Address {
   @@map("address")
 }
 
-// AtualizaÃ§Ã£o no seu DocumentoConfig para vincular Ã  empresa
+// AtualizaÃƒÂ§ÃƒÂ£o no seu DocumentoConfig para vincular ÃƒÂ  empresa
 // model DocumentoConfig {
 //   ... campos atuais ...
 //   companyId String
@@ -160,8 +160,8 @@ model User {
   name  String?
   image String?
 
-  // --- SEGURANÃ‡A E AUTH ---
-  // Se usar login por senha (alÃ©m de OAuth), considere adicionar:
+  // --- SEGURANÃƒâ€¡A E AUTH ---
+  // Se usar login por senha (alÃƒÂ©m de OAuth), considere adicionar:
   // passwordHash String? 
   emailVerified  Boolean   @default(false)
   isActive       Boolean   @default(true)
@@ -173,10 +173,10 @@ model User {
   phone    String?
   cpf      String? @unique
 
-  // --- LOCALIZAÃ‡ÃƒO ---
+  // --- LOCALIZAÃƒâ€¡ÃƒÆ’O ---
   language String @default("pt-BR")
 
-  // --- PREFERÃŠNCIAS ---
+  // --- PREFERÃƒÅ NCIAS ---
   preferences Json? @default("{}")
 
   // --- AUDITORIA ---
@@ -188,12 +188,12 @@ model User {
   // --- SISTEMA ---
   role Role @default(CLIENTE_USER)
 
-  // RELAÃ‡Ã•ES
+  // RELAÃƒâ€¡Ãƒâ€¢ES
   memberships Membership[]
   sessions    Session[]
   accounts    Account[]
 
-  // ÃNDICES PARA PERFORMANCE
+  // ÃƒÂNDICES PARA PERFORMANCE
   @@index([name])
   @@index([role])
   @@index([isActive])
@@ -201,11 +201,11 @@ model User {
   @@map("user")
 }
 
-// RelaÃ§Ã£o entre UsuÃ¡rio e Empresa (Tabela PivÃ´)
+// RelaÃƒÂ§ÃƒÂ£o entre UsuÃƒÂ¡rio e Empresa (Tabela PivÃƒÂ´)
 model Membership {
   id String @id @default(cuid())
 
-  // O Cargo ESPECÃFICO nesta empresa
+  // O Cargo ESPECÃƒÂFICO nesta empresa
   role Role @default(CLIENTE_USER)
 
   // Chaves Estrangeiras
@@ -220,16 +220,16 @@ model Membership {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Regra: Um usuÃ¡rio nÃ£o pode ter 2 cargos na MESMA empresa
+  // Regra: Um usuÃƒÂ¡rio nÃƒÂ£o pode ter 2 cargos na MESMA empresa
   @@unique([userId, companyId])
-  // Ãndices para performance
+  // ÃƒÂndices para performance
   @@index([userId])
   @@index([companyId])
   @@map("membership")
 }
 
 // ---------------------------------------------------------
-// MODELOS DE AUTENTICAÃ‡ÃƒO E OUTROS
+// MODELOS DE AUTENTICAÃƒâ€¡ÃƒÆ’O E OUTROS
 // ---------------------------------------------------------
 
 model Session {
@@ -290,9 +290,9 @@ model Contract {
   contractNumber String?
   notes          String?  @db.Text
 
-  // --- VIGÃŠNCIA ---
+  // --- VIGÃƒÅ NCIA ---
   startDate DateTime  @default(now())
-  endDate   DateTime? // Se nulo, Ã© indeterminado
+  endDate   DateTime? // Se nulo, ÃƒÂ© indeterminado
 
   // --- ESTADO ---
   status ContractStatus @default(ACTIVE)
@@ -319,9 +319,9 @@ model SystemSetting {
 model TaxCST {
   id          String @id @default(cuid())
   cst         String @unique // Ex: "01", "50"
-  description String @db.Text // DescriÃ§Ãµes fiscais podem ser longas
+  description String @db.Text // DescriÃƒÂ§ÃƒÂµes fiscais podem ser longas
 
-  // Indicadores (Flags do nÃ­vel CST)
+  // Indicadores (Flags do nÃƒÂ­vel CST)
   indIBSCBS         Boolean @default(false)
   indRedBC          Boolean @default(false)
   indRedAliq        Boolean @default(false)
@@ -331,7 +331,7 @@ model TaxCST {
   indIBSCBSMono     Boolean @default(false)
   indCredPresIBSZFM Boolean @default(false)
 
-  // VigÃªncia do CST
+  // VigÃƒÂªncia do CST
   publishDate DateTime
   startDate   DateTime
   endDate     DateTime?
@@ -355,15 +355,15 @@ model TaxClassification {
   code        String @unique // "cClassTrib": "000001"
   description String @db.Text
 
-  // Valores EspecÃ­ficos: USE DECIMAL PARA CÃLCULOS
-  // @db.Decimal(precisÃ£o, casas_decimais)
+  // Valores EspecÃƒÂ­ficos: USE DECIMAL PARA CÃƒÂLCULOS
+  // @db.Decimal(precisÃƒÂ£o, casas_decimais)
   pRedIBS Decimal? @db.Decimal(5, 2) // Permite valores como 100.00 ou 50.55
   pRedCBS Decimal? @db.Decimal(5, 2)
 
   tipoAliquota String? // Pode ser nulo dependendo da API
   link         String?
 
-  // Indicadores EspecÃ­ficos
+  // Indicadores EspecÃƒÂ­ficos
   indTribRegular  Boolean @default(false)
   indCredPresOper Boolean @default(false)
   indEstornoCred  Boolean @default(false)
@@ -392,20 +392,20 @@ model TaxClassification {
   monofasiaPadrao          Boolean @default(false)
   anexo                    String?
 
-  // VigÃªncia
+  // VigÃƒÂªncia
   publishDate DateTime
   startDate   DateTime
   endDate     DateTime?
 
   @@index([cstId]) // Index para performance no Join
-  @@index([code]) // Index para buscar rapidament pelo cÃ³digo na emissÃ£o de NFe
+  @@index([code]) // Index para buscar rapidament pelo cÃƒÂ³digo na emissÃƒÂ£o de NFe
   @@map("tax_classification")
 }
 
 model TaxAnexo {
   id String @id @default(cuid())
 
-  // Chave estÃ¡vel para upsert do registro vindo da API de anexos
+  // Chave estÃƒÂ¡vel para upsert do registro vindo da API de anexos
   externalKey String @unique
 
   // Metadados opcionais para facilitar leitura/filtros
@@ -426,6 +426,32 @@ model TaxAnexo {
   @@index([code])
   @@index([category])
   @@map("tax_anexo")
+}
+
+model TaxCredPresumido {
+  id String @id @default(cuid())
+
+  // Chave estÃ¡vel para upsert do registro vindo da API de crÃ©dito presumido
+  externalKey String @unique
+
+  // Metadados opcionais para facilitar leitura/filtros
+  code        String?
+  title       String?
+  description String? @db.Text
+  category    String?
+
+  publishDate DateTime?
+  startDate   DateTime?
+  endDate     DateTime?
+
+  // Payload completo retornado pela API
+  raw Json
+
+  lastUpdated DateTime @default(now())
+
+  @@index([code])
+  @@index([category])
+  @@map("tax_cred_presumido")
 }
 
 model DocumentoConfig {
@@ -455,7 +481,7 @@ model DocumentoConfig {
   cfopEstadual      String? // Ex: 5102
   cfopInterestadual String? // Ex: 6102
 
-  // 2. SubstituiÃ§Ã£o TributÃ¡ria (ST)
+  // 2. SubstituiÃƒÂ§ÃƒÂ£o TributÃƒÂ¡ria (ST)
   cfopEstadualST      String? // Novo (Ex: 5405)
   cfopInterestadualST String? // Novo (Ex: 6403)
 
