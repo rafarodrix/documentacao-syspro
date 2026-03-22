@@ -152,7 +152,17 @@ function readLocalStorage<T>(key: string, fallback: T): T {
 }
 
 function InsightCard({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('rounded-xl border border-border/60 bg-card/40 p-4', className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/70 to-card/35 p-4 shadow-[0_10px_30px_-22px_rgba(56,189,248,0.45)]',
+        className,
+      )}
+    >
+      <ShineBorder shineColor={['#60a5fa33', '#22d3ee2e']} duration={15} className="opacity-70" />
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
 }
 
 function PremiumLinkCard({ item }: { item: QuickLink }) {
@@ -183,8 +193,12 @@ function InsightLink({ href, title, meta }: { href: string; title: string; meta?
   return (
     <Link
       href={href}
-      className="group flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2.5 text-sm transition-colors hover:bg-accent"
+      className={cn(
+        'group relative flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2.5 text-sm transition-all',
+        'hover:border-primary/35 hover:bg-accent/60',
+      )}
     >
+      <span className="absolute inset-y-1 left-1 w-[2px] rounded bg-primary/70 opacity-0 transition-opacity group-hover:opacity-100" />
       <span className="line-clamp-2 leading-snug">{title}</span>
       {meta ?? (
         <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
@@ -195,7 +209,7 @@ function InsightLink({ href, title, meta }: { href: string; title: string; meta?
 
 function CountBadge({ count }: { count: number }) {
   return (
-    <Badge variant="secondary" className="ml-2 shrink-0 tabular-nums">
+    <Badge variant="secondary" className="ml-2 shrink-0 rounded-md border border-border/60 bg-card tabular-nums">
       {count}
     </Badge>
   );
@@ -454,7 +468,14 @@ export function DocsHomePage({
 
       <section>
         <DocsSectionHeader icon={TrendingUp} label="Insights de uso" />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-card/30 via-transparent to-primary/5 p-3 sm:p-4">
+          <div className="mb-3 flex items-center justify-between px-1">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Painel de inteligência</p>
+            <Badge variant="outline" className="text-[11px] text-muted-foreground">
+              Atualização contínua
+            </Badge>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
           <InsightCard>
             <DocsSectionHeader icon={Clock} label="Últimas atualizações" />
             {latestUpdates.length === 0 ? (
@@ -529,6 +550,7 @@ export function DocsHomePage({
               </div>
             )}
           </InsightCard>
+          </div>
         </div>
       </section>
 
