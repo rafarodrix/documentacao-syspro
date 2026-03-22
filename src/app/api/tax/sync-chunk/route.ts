@@ -13,6 +13,8 @@ type SyncMode = "classTrib" | "anexos" | "credPresumido" | "ncm";
 type SyncChunkBody = {
   mode?: SyncMode;
   chunk?: unknown[];
+  chunkIndex?: number;
+  totalChunks?: number;
 };
 
 function isSyncMode(value: unknown): value is SyncMode {
@@ -46,12 +48,22 @@ export async function POST(request: Request) {
 
   const result =
     body.mode === "classTrib"
-      ? await saveTaxDataBatch(body.chunk)
+      ? await saveTaxDataBatch(body.chunk, {
+          revalidate: body.chunkIndex === (body.totalChunks ?? 1) - 1,
+        })
       : body.mode === "anexos"
-        ? await saveTaxAnexosBatch(body.chunk)
+        ? await saveTaxAnexosBatch(body.chunk, {
+            isFirstChunk: body.chunkIndex === 0,
+            revalidate: body.chunkIndex === (body.totalChunks ?? 1) - 1,
+          })
         : body.mode === "credPresumido"
-          ? await saveTaxCredPresumidoBatch(body.chunk)
-          : await saveTaxNcmBatch(body.chunk);
+          ? await saveTaxCredPresumidoBatch(body.chunk, {
+              isFirstChunk: body.chunkIndex === 0,
+              revalidate: body.chunkIndex === (body.totalChunks ?? 1) - 1,
+            })
+          : await saveTaxNcmBatch(body.chunk, {
+              revalidate: body.chunkIndex === (body.totalChunks ?? 1) - 1,
+            });
 
   if (!result.success) {
     return NextResponse.json(result, { status: 500 });

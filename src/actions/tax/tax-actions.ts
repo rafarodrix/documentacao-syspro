@@ -145,6 +145,39 @@ const toPrismaJson = (value: Record<string, unknown>): Prisma.InputJsonValue => 
     return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 };
 
+const normalizeNcmDigits = (value: string | null): string | null => {
+    if (!value) return null;
+    const digits = value.replace(/\D/g, "");
+    return digits.length === 8 ? digits : null;
+};
+
+const extractNcmCodesFromUnknown = (value: unknown, bag: Set<string>) => {
+    if (Array.isArray(value)) {
+        for (const item of value) extractNcmCodesFromUnknown(item, bag);
+        return;
+    }
+
+    const record = asRecord(value);
+    if (!record) return;
+
+    const directNcm = getStringFromAliases(record, [
+        "NCM",
+        "ncm",
+        "cNCM",
+        "codNCM",
+        "codigoNCM",
+        "codigo_ncm",
+    ]);
+    const normalized = normalizeNcmDigits(directNcm);
+    if (normalized) bag.add(normalized);
+
+    for (const child of Object.values(record)) {
+        if (typeof child === "object" && child !== null) {
+            extractNcmCodesFromUnknown(child, bag);
+        }
+    }
+};
+
 const getAnexoExternalKey = (item: Record<string, unknown>, index: number): string => {
     const direct =
         getStringFromAliases(item, [
@@ -211,7 +244,10 @@ const getNcmExternalKey = (item: Record<string, unknown>, index: number): string
 // ==============================================================================
 // 3. SERVER ACTION (PROCESSAMENTO HIERÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂRQUICO)
 // ==============================================================================
-export async function saveTaxDataBatch(data: any[]) {
+export async function saveTaxDataBatch(
+    data: any[],
+    options?: { revalidate?: boolean },
+) {
     // Cast forÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ado para garantir intelisense aqui dentro, 
     // assumindo que o input vem correto do front
     const cstList = data as TaxCstDTO[];
@@ -368,7 +404,9 @@ export async function saveTaxDataBatch(data: any[]) {
             timeout: 60000 // 60s timeout, pois pode haver muitos registros
         });
 
-        revalidatePath("/app/configuracoes");
+        if (options?.revalidate ?? true) {
+            revalidatePath("/app/configuracoes");
+        }
 
         return {
             success: true,
@@ -390,7 +428,10 @@ type SaveResult = {
     error?: string;
 };
 
-export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
+export async function saveTaxAnexosBatch(
+    data: unknown[],
+    options?: { isFirstChunk?: boolean; revalidate?: boolean },
+): Promise<SaveResult> {
     if (!Array.isArray(data) || data.length === 0) {
         return {
             success: true,
@@ -399,20 +440,24 @@ export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
     }
 
     try {
-        // Limpa legados sem chave estavel (gerados por fallback antigo).
-        await prisma.taxAnexo.deleteMany({
-            where: {
-                externalKey: {
-                    startsWith: "anexo_",
+        if (options?.isFirstChunk) {
+            // Limpa legados sem chave estavel (gerados por fallback antigo).
+            await prisma.taxAnexo.deleteMany({
+                where: {
+                    externalKey: {
+                        startsWith: "anexo_",
+                    },
                 },
-            },
-        });
+            });
+        }
 
         const normalized = data
             .map((item) => asRecord(item))
             .filter((item): item is Record<string, unknown> => item !== null);
 
         let count = 0;
+        const chunkRefRows: Array<{ anexoId: string; ncm: string }> = [];
+        const chunkAnexoIds = new Set<string>();
 
         // Evita transaction interativa longa (P2028) em cargas grandes.
         for (let index = 0; index < normalized.length; index++) {
@@ -460,7 +505,7 @@ export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
             const endDate =
                 parseNullableDateSafe(getStringFromAliases(item, ["fimVigencia", "dataFimVigencia", "endDate", "dthFimVig"]));
 
-            await prisma.taxAnexo.upsert({
+            const upserted = await prisma.taxAnexo.upsert({
                 where: { externalKey },
                 update: {
                     code,
@@ -484,12 +529,37 @@ export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
                     endDate,
                     raw: toPrismaJson(item),
                 },
+                select: { id: true },
             });
+
+            chunkAnexoIds.add(upserted.id);
+            const ncmSet = new Set<string>();
+            extractNcmCodesFromUnknown(item, ncmSet);
+            for (const ncm of ncmSet) {
+                chunkRefRows.push({ anexoId: upserted.id, ncm });
+            }
 
             count++;
         }
 
-        revalidatePath("/app/configuracoes");
+        if (chunkAnexoIds.size > 0) {
+            await prisma.taxAnexoNcm.deleteMany({
+                where: {
+                    anexoId: { in: Array.from(chunkAnexoIds) },
+                },
+            });
+
+            if (chunkRefRows.length > 0) {
+                await prisma.taxAnexoNcm.createMany({
+                    data: chunkRefRows,
+                    skipDuplicates: true,
+                });
+            }
+        }
+
+        if (options?.revalidate ?? true) {
+            revalidatePath("/app/configuracoes");
+        }
 
         return {
             success: true,
@@ -504,7 +574,10 @@ export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
     }
 }
 
-export async function saveTaxCredPresumidoBatch(data: unknown[]): Promise<SaveResult> {
+export async function saveTaxCredPresumidoBatch(
+    data: unknown[],
+    options?: { isFirstChunk?: boolean; revalidate?: boolean },
+): Promise<SaveResult> {
     if (!Array.isArray(data) || data.length === 0) {
         return {
             success: true,
@@ -513,14 +586,16 @@ export async function saveTaxCredPresumidoBatch(data: unknown[]): Promise<SaveRe
     }
 
     try {
-        // Limpa legados sem chave estavel (gerados por fallback antigo).
-        await prisma.taxCredPresumido.deleteMany({
-            where: {
-                externalKey: {
-                    startsWith: "cred_presumido_",
+        if (options?.isFirstChunk) {
+            // Limpa legados sem chave estavel (gerados por fallback antigo).
+            await prisma.taxCredPresumido.deleteMany({
+                where: {
+                    externalKey: {
+                        startsWith: "cred_presumido_",
+                    },
                 },
-            },
-        });
+            });
+        }
 
         const normalized = data
             .map((item) => asRecord(item))
@@ -609,7 +684,9 @@ export async function saveTaxCredPresumidoBatch(data: unknown[]): Promise<SaveRe
             count++;
         }
 
-        revalidatePath("/app/configuracoes");
+        if (options?.revalidate ?? true) {
+            revalidatePath("/app/configuracoes");
+        }
 
         return {
             success: true,
@@ -624,7 +701,10 @@ export async function saveTaxCredPresumidoBatch(data: unknown[]): Promise<SaveRe
     }
 }
 
-export async function saveTaxNcmBatch(data: unknown[]): Promise<SaveResult> {
+export async function saveTaxNcmBatch(
+    data: unknown[],
+    options?: { revalidate?: boolean },
+): Promise<SaveResult> {
     if (!Array.isArray(data) || data.length === 0) {
         return {
             success: true,
@@ -729,8 +809,10 @@ export async function saveTaxNcmBatch(data: unknown[]): Promise<SaveResult> {
             count++;
         }
 
-        revalidatePath("/app/configuracoes");
-        revalidatePath("/app/reforma-tributaria");
+        if (options?.revalidate ?? true) {
+            revalidatePath("/app/configuracoes");
+            revalidatePath("/app/reforma-tributaria");
+        }
 
         return {
             success: true,

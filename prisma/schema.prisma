@@ -421,11 +421,29 @@ model TaxAnexo {
   // Payload completo retornado pela API
   raw Json
 
+  ncmRefs TaxAnexoNcm[]
+
   lastUpdated DateTime @default(now())
 
   @@index([code])
   @@index([category])
   @@map("tax_anexo")
+}
+
+model TaxAnexoNcm {
+  id String @id @default(cuid())
+
+  ncm String
+
+  anexoId String
+  anexo   TaxAnexo @relation(fields: [anexoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([anexoId, ncm])
+  @@index([ncm])
+  @@index([anexoId])
+  @@map("tax_anexo_ncm")
 }
 
 model TaxCredPresumido {

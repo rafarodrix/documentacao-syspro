@@ -100,13 +100,18 @@ function splitByApproxSize<T>(items: T[], maxBytes: number): T[][] {
   return chunks;
 }
 
-async function sendChunk(mode: SyncMode, chunk: unknown[]) {
+async function sendChunk(
+  mode: SyncMode,
+  chunk: unknown[],
+  chunkIndex = 0,
+  totalChunks = 1,
+) {
   const response = await fetch("/api/tax/sync-chunk", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ mode, chunk }),
+    body: JSON.stringify({ mode, chunk, chunkIndex, totalChunks }),
   });
 
   const data = (await response.json()) as { success?: boolean; error?: string; message?: string };
@@ -117,13 +122,19 @@ async function sendChunk(mode: SyncMode, chunk: unknown[]) {
   return data;
 }
 
-async function sendChunkWithRetry(mode: SyncMode, chunk: unknown[], maxAttempts = 2) {
+async function sendChunkWithRetry(
+  mode: SyncMode,
+  chunk: unknown[],
+  maxAttempts = 2,
+  chunkIndex = 0,
+  totalChunks = 1,
+) {
   let attempt = 0;
   let lastError: unknown = null;
 
   while (attempt <= maxAttempts) {
     try {
-      return await sendChunk(mode, chunk);
+      return await sendChunk(mode, chunk, chunkIndex, totalChunks);
     } catch (error) {
       lastError = error;
       attempt += 1;
@@ -219,7 +230,7 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
               updatedAt: Date.now(),
             });
 
-            await sendChunkWithRetry(mode, chunks[i], 2);
+            await sendChunkWithRetry(mode, chunks[i], 2, i, chunks.length);
             total += chunks[i].length;
           }
 

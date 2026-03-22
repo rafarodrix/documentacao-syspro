@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
+import { Prisma } from "@prisma/client";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -62,29 +63,67 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Informe um NCM valido com 8 digitos." }, { status: 400 });
   }
 
-  const anexos = await prisma.taxAnexo.findMany({
+  const anexoNcmRefs = await prisma.taxAnexoNcm.findMany({
+    where: { ncm },
     select: {
-      id: true,
-      code: true,
-      externalKey: true,
-      title: true,
-      category: true,
-      raw: true,
-      startDate: true,
-      endDate: true,
+      anexo: {
+        select: {
+          id: true,
+          code: true,
+          externalKey: true,
+          title: true,
+          category: true,
+          raw: true,
+          startDate: true,
+          endDate: true,
+        },
+      },
     },
   });
 
-  const extracted: JsonRecord[] = [];
-  const matchedAnexos = anexos.filter((anexo) => {
-    const localMatches: JsonRecord[] = [];
-    findNcmMatches(anexo.raw, ncm, localMatches);
-    if (localMatches.length > 0) {
-      extracted.push(...localMatches);
-      return true;
+  let matchedAnexos: Array<{
+    id: string;
+    code: string | null;
+    externalKey: string;
+    title: string | null;
+    category: string | null;
+    raw: Prisma.JsonValue;
+    startDate: Date | null;
+    endDate: Date | null;
+  }> = [];
+
+  if (anexoNcmRefs.length > 0) {
+    const byAnexoId = new Map<string, (typeof anexoNcmRefs)[number]["anexo"]>();
+    for (const ref of anexoNcmRefs) {
+      byAnexoId.set(ref.anexo.id, ref.anexo);
     }
-    return false;
-  });
+    matchedAnexos = Array.from(byAnexoId.values());
+  } else {
+    // Fallback de compatibilidade para base antiga sem indice populado.
+    const allAnexos = await prisma.taxAnexo.findMany({
+      select: {
+        id: true,
+        code: true,
+        externalKey: true,
+        title: true,
+        category: true,
+        raw: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+
+    matchedAnexos = allAnexos.filter((anexo) => {
+      const localMatches: JsonRecord[] = [];
+      findNcmMatches(anexo.raw, ncm, localMatches);
+      return localMatches.length > 0;
+    });
+  }
+
+  const extracted: JsonRecord[] = [];
+  for (const anexo of matchedAnexos) {
+    findNcmMatches(anexo.raw, ncm, extracted);
+  }
 
   const anexoCodes = unique(
     matchedAnexos.flatMap((anexo) => [anexo.code, anexo.externalKey, readString(anexo as unknown as JsonRecord, ["Anexo", "anexo"])]),
@@ -164,4 +203,3 @@ export async function GET(request: Request) {
     })),
   });
 }
-
