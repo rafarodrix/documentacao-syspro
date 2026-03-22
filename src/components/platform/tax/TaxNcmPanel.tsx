@@ -44,10 +44,17 @@ function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<Vige
 export function TaxNcmPanel({ items }: { items: Item[] }) {
   const [query, setQuery] = useState("");
   const [vigencia, setVigencia] = useState<VigenciaFilter>("all");
+  const [groupCode, setGroupCode] = useState<string>("all");
+  const [subgroupCode, setSubgroupCode] = useState<string>("all");
+  const [itemCode, setItemCode] = useState<string>("all");
 
-  const filtered = useMemo(() => {
+  const validNcms = useMemo(() => {
+    return items.filter((item) => /^\d{8}$/.test(item.code));
+  }, [items]);
+
+  const baseFiltered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return items.filter((item) => {
+    return validNcms.filter((item) => {
       const matchQuery =
         item.code.toLowerCase().includes(q) ||
         item.description.toLowerCase().includes(q) ||
@@ -57,20 +64,71 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
       const matchVigencia = vigencia === "all" ? true : getVigencia(item.startDate, item.endDate) === vigencia;
       return (q ? matchQuery : true) && matchVigencia;
     });
-  }, [items, query, vigencia]);
+  }, [validNcms, query, vigencia]);
+
+  const groupOptions = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of baseFiltered) {
+      const key = item.code.slice(0, 2);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [baseFiltered]);
+
+  const subgroupOptions = useMemo(() => {
+    const source = groupCode === "all" ? baseFiltered : baseFiltered.filter((item) => item.code.startsWith(groupCode));
+    const map = new Map<string, number>();
+    for (const item of source) {
+      const key = item.code.slice(0, 4);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [baseFiltered, groupCode]);
+
+  const itemOptions = useMemo(() => {
+    const source = subgroupCode === "all" ? (
+      groupCode === "all" ? baseFiltered : baseFiltered.filter((entry) => entry.code.startsWith(groupCode))
+    ) : baseFiltered.filter((entry) => entry.code.startsWith(subgroupCode));
+    const map = new Map<string, number>();
+    for (const entry of source) {
+      const key = entry.code.slice(0, 6);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [baseFiltered, groupCode, subgroupCode]);
+
+  const filtered = useMemo(() => {
+    return baseFiltered.filter((entry) => {
+      if (groupCode !== "all" && !entry.code.startsWith(groupCode)) return false;
+      if (subgroupCode !== "all" && !entry.code.startsWith(subgroupCode)) return false;
+      if (itemCode !== "all" && !entry.code.startsWith(itemCode)) return false;
+      return true;
+    });
+  }, [baseFiltered, groupCode, subgroupCode, itemCode]);
 
   const handleSync = () => {
     window.dispatchEvent(new CustomEvent("tax-sync:resume", { detail: { mode: "ncm" } }));
   };
 
+  const handleGroupChange = (next: string) => {
+    setGroupCode(next);
+    setSubgroupCode("all");
+    setItemCode("all");
+  };
+
+  const handleSubgroupChange = (next: string) => {
+    setSubgroupCode(next);
+    setItemCode("all");
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-4">
         <div className="relative md:col-span-2">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Buscar NCM por codigo, descricao, substituicao ou tipo de ato..."
+            placeholder="Buscar NCM por código, descrição, substituição ou tipo de ato..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -85,13 +143,57 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
           <option value="future">Futuras</option>
           <option value="expired">Expiradas</option>
         </select>
+        <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
+          NCM válidos: <span className="font-semibold text-foreground">{validNcms.length}</span>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <select
+          className="h-10 rounded-md border bg-background px-2 text-sm"
+          value={groupCode}
+          onChange={(e) => handleGroupChange(e.target.value)}
+        >
+          <option value="all">Grupo (2 dígitos): todos</option>
+          {groupOptions.map(([code, count]) => (
+            <option key={code} value={code}>
+              {code} ({count})
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="h-10 rounded-md border bg-background px-2 text-sm"
+          value={subgroupCode}
+          onChange={(e) => handleSubgroupChange(e.target.value)}
+        >
+          <option value="all">Subgrupo (4 dígitos): todos</option>
+          {subgroupOptions.map(([code, count]) => (
+            <option key={code} value={code}>
+              {code} ({count})
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="h-10 rounded-md border bg-background px-2 text-sm"
+          value={itemCode}
+          onChange={(e) => setItemCode(e.target.value)}
+        >
+          <option value="all">Item (6 dígitos): todos</option>
+          {itemOptions.map(([code, count]) => (
+            <option key={code} value={code}>
+              {code} ({count})
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="rounded-md border bg-card">
         <div className="border-b bg-muted/30 p-4">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <Boxes className="h-4 w-4" />
-            NCM sincronizados ({filtered.length})
+            NCM válidos no recorte ({filtered.length})
           </h3>
         </div>
 
@@ -147,4 +249,3 @@ export function TaxNcmPanel({ items }: { items: Item[] }) {
     </div>
   );
 }
-
