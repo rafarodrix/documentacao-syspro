@@ -1,342 +1,95 @@
 ---
 title: Backlog de Infraestrutura Monorepo
-description: Backlog priorizado para implantar a arquitetura com Next.js, tRPC, Better Auth, Prisma e Turborepo.
+description: Pendências priorizadas para evolução da arquitetura e da experiência de documentação.
 lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+owner: Equipe de Documentação
 status: published
 ---
 
 ## Objetivo
 
-Implementar a infraestrutura alvo do produto com foco em:
+Concentrar apenas o backlog **ainda não concluído**, priorizando impacto em:
 
-- Seguranca e autenticacao centralizada
-- Escalabilidade de codigo via monorepo
-- Contratos compartilhados entre camadas
-- Observabilidade e deploy com qualidade
+- Segurança e autenticação
+- Qualidade de entrega (CI/CD, observabilidade)
+- Experiência do usuário na documentação
 
-## Fases
+## Pendências de Plataforma
 
-## Fase 0 - Fundacao do Monorepo
-
-### EPIC 0.1 - Bootstrap do workspace
+### Fase 0 — Fundação do Monorepo
 
 - [ ] `INFRA-001` Estruturar raiz do monorepo com `apps/web` e `packages/*`.
-Criterios de aceite:
-- `npm run dev` executa o app web a partir da raiz.
-- `npm run build` funciona com pipeline Turborepo.
-- Alias de import entre pacotes funciona com TypeScript.
-
 - [ ] `INFRA-002` Configurar `turbo.json` com pipelines (`build`, `lint`, `test`, `typecheck`, `dev`).
-Criterios de aceite:
-- Cache local ativo para `build` e `typecheck`.
-- Dependencias entre tasks respeitam ordem entre pacotes.
-
 - [ ] `INFRA-003` Padronizar qualidade (ESLint, Prettier, tsconfig base compartilhado).
-Criterios de aceite:
-- Configuracoes centralizadas em pacote compartilhado.
-- Todos os workspaces herdam a mesma regra base.
-
-### EPIC 0.2 - Base de ambientes
-
-- [ ] `INFRA-004` Definir estrategia de `.env` por app/pacote (dev, test, prod).
-Criterios de aceite:
-- Variaveis obrigatorias documentadas.
-- Validacao de ambiente falha cedo no bootstrap.
-
+- [ ] `INFRA-004` Definir estratégia de `.env` por app/pacote (dev, test, prod).
 - [ ] `INFRA-005` Criar guia operacional inicial em `docs` (setup local e troubleshooting).
-Criterios de aceite:
-- Novo desenvolvedor sobe ambiente com passos reproduziveis.
 
-## Fase 1 - Dados e Persistencia
-
-### EPIC 1.1 - Package `database`
+### Fase 1 — Dados e Persistência
 
 - [ ] `INFRA-006` Criar `packages/database` com Prisma schema e client.
-Criterios de aceite:
-- Client gerado e reutilizavel entre apps/pacotes.
-- Conexao com Neon validada em ambiente local.
+- [ ] `INFRA-007` Estruturar migrações e padrão de versionamento.
+- [ ] `INFRA-008` Implementar seeds idempotentes (usuários, roles, dados base).
+- [ ] `INFRA-009` Criar estratégia de testes de integração com banco.
 
-- [ ] `INFRA-007` Estruturar migracoes e padrao de versionamento.
-Criterios de aceite:
-- Processo de `migrate dev` e `migrate deploy` documentado.
-- Convencao de nomes de migracao definida.
+### Fase 2 — Contratos e Aplicação
 
-- [ ] `INFRA-008` Implementar seeds idempotentes (usuarios, roles, dados base).
-Criterios de aceite:
-- Seed pode ser executado mais de uma vez sem duplicar dados criticos.
+- [ ] `INFRA-010` Criar `packages/contracts` para DTOs de entrada/saída.
+- [ ] `INFRA-011` Criar `packages/shared` para schemas (Zod) e utilitários.
+- [ ] `INFRA-012` Criar `packages/ui` para componentes reutilizáveis e tokens.
+- [ ] `INFRA-013` Criar `packages/api` com roteadores modulares tRPC.
+- [ ] `INFRA-014` Implementar contexto tRPC (sessão, prisma, tracing).
+- [ ] `INFRA-015` Definir middlewares padrão (authz, logging, error mapping).
 
-### EPIC 1.2 - Qualidade de dados
+### Fase 3 — Autenticação e Autorização
 
-- [ ] `INFRA-009` Criar estrategia de testes de integracao com banco.
-Criterios de aceite:
-- Testes rodam em pipeline CI sem depender de banco manual.
+- [ ] `INFRA-016` Integrar Better Auth no `apps/web`.
+- [ ] `INFRA-017` Persistir usuários/sessões no PostgreSQL com Prisma.
+- [ ] `INFRA-018` Implementar RBAC baseline.
 
-## Fase 2 - Contratos e Camada de Aplicacao
+### Fase 4 — Integração Web + BFF
 
-### EPIC 2.1 - Pacotes compartilhados
+- [ ] `INFRA-019` Configurar cliente/servidor tRPC no Next.js App Router.
+- [ ] `INFRA-020` Definir padrão de data fetching, cache e invalidação.
+- [ ] `INFRA-021` Criar layout de erro/loading e observabilidade de requests.
 
-- [ ] `INFRA-010` Criar `packages/contracts` para DTOs de entrada/saida.
-Criterios de aceite:
-- Contratos tipados usados em `api` e `web`.
-- Breaking changes detectaveis por typecheck.
-
-- [ ] `INFRA-011` Criar `packages/shared` para schemas (ex: Zod) e utilitarios.
-Criterios de aceite:
-- Validacoes de dominio reaproveitadas sem duplicacao.
-
-- [ ] `INFRA-012` Criar `packages/ui` para componentes reutilizaveis e tokens.
-Criterios de aceite:
-- Pelo menos um fluxo real do `web` consumindo componentes de `ui`.
-
-### EPIC 2.2 - Package `api` com tRPC 11
-
-- [ ] `INFRA-013` Criar `packages/api` com roteadores modulares por dominio.
-Criterios de aceite:
-- Router raiz agrega subrouters por contexto funcional.
-
-- [ ] `INFRA-014` Implementar contexto tRPC (sessao, prisma, tracing).
-Criterios de aceite:
-- Procedures protegidas validam sessao e permissoes.
-
-- [ ] `INFRA-015` Definir middlewares padrao (authz, logging, error mapping).
-Criterios de aceite:
-- Erros de dominio retornam formato consistente para frontend.
-
-## Fase 3 - Autenticacao e Autorizacao
-
-### EPIC 3.1 - Better Auth
-
-- [ ] `INFRA-016` Integrar Better Auth no `apps/web` com providers necessarios.
-Criterios de aceite:
-- Login, logout e renovacao de sessao funcionais.
-
-- [ ] `INFRA-017` Persistir usuarios/sessoes no PostgreSQL com Prisma.
-Criterios de aceite:
-- Tabelas e adaptadores de auth versionados por migracao.
-
-- [ ] `INFRA-018` Implementar RBAC baseline (ADMIN, SUPORTE, USUARIO).
-Criterios de aceite:
-- Regras aplicadas em rotas web e procedures tRPC protegidas.
-
-## Fase 4 - Integracao Web + BFF
-
-### EPIC 4.1 - App Router e consumo tRPC
-
-- [ ] `INFRA-019` Configurar cliente/servidor tRPC no Next.js 15 (App Router).
-Criterios de aceite:
-- SSR e client components consumindo procedures sem hacks.
-
-- [ ] `INFRA-020` Definir padrao de data fetching, cache e invalidacao.
-Criterios de aceite:
-- Convencao documentada para query, mutation e revalidacao.
-
-- [ ] `INFRA-021` Criar layout de erro, loading e observabilidade de requests.
-Criterios de aceite:
-- Falhas de backend exibem estados de erro consistentes na UI.
-
-## Fase 5 - Plataforma de Engenharia
-
-### EPIC 5.1 - CI/CD e qualidade
+### Fase 5 — Engenharia
 
 - [ ] `INFRA-022` Criar pipeline CI (lint, typecheck, test, build).
-Criterios de aceite:
-- Pull request so pode mergear com checks obrigatorios verdes.
-
-- [ ] `INFRA-023` Adicionar verificacao de contrato e schema em PR.
-Criterios de aceite:
-- Mudancas quebrando contrato falham antes do merge.
-
-- [ ] `INFRA-024` Configurar deploy para web e banco com estrategia de rollback.
-Criterios de aceite:
-- Processo de release documentado e ensaiado.
-
-### EPIC 5.2 - Observabilidade e operacao
-
+- [ ] `INFRA-023` Adicionar verificação de contrato/schema em PR.
+- [ ] `INFRA-024` Configurar deploy web + banco com rollback.
 - [ ] `INFRA-025` Instrumentar logs estruturados e correlation id.
-Criterios de aceite:
-- Fluxo web -> api -> banco rastreavel por request id.
-
-- [ ] `INFRA-026` Definir metricas minimas (latencia, erro, throughput).
-Criterios de aceite:
-- Dashboard operacional com alertas basicos.
-
-### EPIC 5.3 - Governanca de Documentacao (Fumadocs)
-
-- [x] `INFRA-027` Corrigir referencias quebradas em `meta.json`.
-Criterios de aceite:
-- Nenhum item de navegacao aponta para rota inexistente.
-- Estrutura de pastas e slugs em `meta.json` refletem os arquivos reais.
-
-- [x] `INFRA-028` Ocultar secoes restritas da navegacao por perfil.
-Criterios de aceite:
-- Usuarios sem role de sistema nao visualizam `manuais-tecnicos` na sidebar.
-- A regra de exibicao segue RBAC ja aplicado na rota.
-
-- [x] `INFRA-029` Criar validacao automatica de docs (`docs:check`).
-Criterios de aceite:
-- Script valida frontmatter obrigatorio e referencias dos `meta.json`.
-- Pipeline pode executar validacao antes do build.
-
-- [x] `INFRA-030` Padronizar nomenclatura de slugs/arquivos (`kebab-case` ASCII).
-Criterios de aceite:
-- Arquivos e pastas sem espacos, sem acentos e com naming consistente.
-- URLs previsiveis e estaveis.
-- Redirects configurados para manter compatibilidade com links legados.
-
+- [ ] `INFRA-026` Definir métricas mínimas (latência, erro, throughput).
 - [ ] `INFRA-031` Definir metadados editoriais (`owner`, `lastUpdated`, `status`, `tags`).
+
+## Pendências de Experiência em Docs
+
+### Busca e descoberta
+
+- [ ] `INFRA-039` [Média] Histórico das últimas buscas (top 5) no modal.
+- [ ] `INFRA-040` [Melhoria] Filtro de busca por categoria/tag.
+- [ ] `INFRA-052` [Média] `sitemap.xml` automático para páginas de docs.
+- [ ] `INFRA-053` [Melhoria] Analytics de páginas e buscas sem resultado.
+
+### Conteúdo e interação
+
+- [ ] `INFRA-043` [Média] Copy button com feedback animado + analytics.
+- [ ] `INFRA-044` [Média] Feedback útil? com comentário opcional persistido.
+- [ ] `INFRA-045` [Melhoria] Transição suave no toggle de tema.
+
+## Itens Adicionados (Gap Analysis)
+
+- [ ] `INFRA-054` [Alta] Acessibilidade da documentação (WCAG AA).
 Criterios de aceite:
-- Template padrao de frontmatter publicado.
-- Novas paginas seguem o padrao minimo de governanca.
+- Contraste, foco visível e navegação por teclado auditados na rota `/docs`.
+- Componentes críticos com `aria-*` e semântica consistente.
 
-## Fase 6 - Experiencia de Documentacao (UX, Busca, SEO)
-
-### EPIC 6.1 - Navegacao e orientacao do usuario
-
-- [x] `INFRA-032` [Alta] Breadcrumb hierarquico completo em todas as paginas de docs.
+- [ ] `INFRA-055` [Alta] Testes E2E da experiência de docs.
 Criterios de aceite:
-- Breadcrumb exibe caminho completo da pagina atual.
-- Funciona em rotas com multiplos niveis de pasta.
+- Cobertura de busca, navegação sidebar, atalhos e proteção por role.
+- Testes executados no CI antes do build de produção.
 
-- [x] `INFRA-033` [Alta] Indicador de progresso de leitura na sidebar (visitado x nao visitado).
-Criterios de aceite:
-- Paginas visitadas recebem estado visual distinto no menu lateral.
-- Estado persistido no navegador sem backend.
+## Sequenciamento recomendado (próximo ciclo)
 
-- [ ] `INFRA-034` [Media] TOC sticky com scroll spy mais preciso (IntersectionObserver).
-Criterios de aceite:
-- Secao ativa muda de forma estavel em paginas longas.
-- Sem "saltos" de destaque durante scroll continuo.
-
-- [x] `INFRA-035` [Media] Navegacao anterior/proximo com preview de descricao.
-Criterios de aceite:
-- Rodape mostra titulo e trecho curto da pagina vizinha.
-- Usuario consegue decidir continuar trilha sem abrir nova pagina.
-
-- [ ] `INFRA-036` [Melhoria] Atalhos de teclado globais (`?`, `[`, `]`, `Ctrl/Cmd+K`).
-Criterios de aceite:
-- Painel de atalhos acessivel por `?`.
-- Navegacao de paginas com `[` e `]`.
-
-### EPIC 6.2 - Busca e recuperacao de conteudo
-
-- [x] `INFRA-037` [Alta] Busca full-text local com Orama.
-Criterios de aceite:
-- Busca retorna resultados por relevancia e fuzzy matching.
-- Sem roundtrip de rede para consultar indice local.
-
-- [x] `INFRA-038` [Alta] Snippet de contexto nos resultados de busca.
-Criterios de aceite:
-- Resultado mostra trecho onde o termo foi encontrado.
-- Trecho ajuda decisao de clique sem abrir pagina.
-
-- [ ] `INFRA-039` [Media] Historico de ultimas buscas (top 5).
-Criterios de aceite:
-- Sugestoes recentes aparecem ao abrir busca vazia.
-- Historico persistido no navegador.
-
-- [ ] `INFRA-040` [Melhoria] Filtro de busca por categoria/tag de docs.
-Criterios de aceite:
-- Frontmatter suporta categoria/tag para indexacao.
-- Modal de busca permite filtrar por secao.
-
-### EPIC 6.3 - UI de conteudo e interacao
-
-- [x] `INFRA-041` [Alta] Padrao de callouts/admonitions em MDX (`tip`, `warning`, `danger`, `note`).
-Criterios de aceite:
-- Componentes visuais padronizados e reutilizaveis.
-- Guia editorial define quando usar cada tipo.
-
-- [x] `INFRA-042` [Alta] Tabs de codigo multi-linguagem com persistencia global.
-Criterios de aceite:
-- Preferencia de linguagem salva e reaplicada nas paginas seguintes.
-- API de componente unica para todos os exemplos.
-
-- [ ] `INFRA-043` [Media] Copy button com feedback animado + evento de analytics.
-Criterios de aceite:
-- Usuario recebe confirmacao visual ao copiar trecho.
-- Evento de copia registrado para analise de uso.
-
-- [ ] `INFRA-044` [Media] Feedback "Esta pagina foi util?" com opcao de comentario.
-Criterios de aceite:
-- Voto positivo/negativo no fim da pagina.
-- API registra voto e comentario opcional.
-
-- [ ] `INFRA-045` [Melhoria] Transicao suave no toggle de tema (dark/light).
-Criterios de aceite:
-- Troca de tema sem flicker abrupto.
-- Variaveis globais com transicao curta controlada.
-
-### EPIC 6.4 - DX e metadados tecnicos
-
-- [x] `INFRA-046` [Alta] Playground inline para exemplos executaveis (Sandpack/react-live).
-Criterios de aceite:
-- Exemplo editavel e executavel dentro da pagina.
-- Componente isolado sem impactar bundle global indevidamente.
-
-- [x] `INFRA-047` [Alta] Badges de versao/status no conteudo (`new`, `deprecated`, `beta`, `experimental`).
-Criterios de aceite:
-- Frontmatter controla badge por pagina/feature.
-- Badge visivel em pagina e, quando aplicavel, na navegacao.
-
-- [ ] `INFRA-048` [Media] Diff highlighting em blocos de codigo com Shiki.
-Criterios de aceite:
-- Suporte a destaque de linhas adicionadas/removidas.
-- Guia de uso publicado para autores de docs.
-
-- [x] `INFRA-049` [Melhoria] Tempo estimado de leitura no topo da pagina.
-Criterios de aceite:
-- Minutos de leitura exibidos em paginas longas.
-- Calculo consistente com volume real de texto.
-
-### EPIC 6.5 - Performance, discoverability e dados de uso
-
-- [x] `INFRA-050` [Alta] OG image dinamica por pagina de docs.
-Criterios de aceite:
-- Compartilhamento gera card com titulo/secao/branding.
-- URLs de docs usam metadados OG especificos.
-
-- [x] `INFRA-051` [Alta] SSG completo para rotas de docs com `generateStaticParams`.
-Criterios de aceite:
-- Todas as paginas de docs pre-geradas no build.
-- Sem SSR desnecessario para conteudo estatico.
-
-- [ ] `INFRA-052` [Media] `sitemap.xml` automatico para todas as paginas de docs.
-Criterios de aceite:
-- Sitemap inclui novas paginas adicionadas ao source.
-- Rotas excluidas/restritas nao entram no sitemap publico.
-
-- [ ] `INFRA-053` [Melhoria] Analytics de pagina e busca (mais visitadas e buscas sem resultado).
-Criterios de aceite:
-- Dashboard basico com top paginas e consultas sem match.
-- Dados usados para priorizacao editorial trimestral.
-
-## Sequenciamento recomendado (MVP de infraestrutura)
-
-1. `INFRA-001` a `INFRA-008` (monorepo + banco + seeds)
-2. `INFRA-010` a `INFRA-015` (contratos + shared + tRPC)
-3. `INFRA-016` a `INFRA-020` (auth + integracao web)
-4. `INFRA-022` a `INFRA-024` (CI/CD)
-5. `INFRA-025` e `INFRA-026` (observabilidade)
-6. `INFRA-027` a `INFRA-031` (governanca de documentacao)
-
-## Definicao de pronto (DoD)
-
-Uma historia de infraestrutura so pode ser concluida quando:
-
-- Existe documentacao em `docs` para operacao/manutencao.
-- Existe teste automatizado ou justificativa tecnica para excecao.
-- Telemetria minima esta implementada (log de sucesso/erro).
-- Checklist de seguranca foi validado (segredos, auth, permissoes).
-
-## Riscos e mitigacoes
-
-- Risco: acoplamento excessivo entre `web` e `api`.
-Mitigacao: obrigar uso de `contracts` e validacao em CI.
-
-- Risco: drift de schema Prisma entre ambientes.
-Mitigacao: bloquear deploy sem `migrate deploy`.
-
-- Risco: regressao silenciosa em auth.
-Mitigacao: testes de integracao cobrindo login, sessao e RBAC.
-
+1. `INFRA-022`, `INFRA-023`, `INFRA-055`
+2. `INFRA-039`, `INFRA-040`, `INFRA-043`, `INFRA-044`
+3. `INFRA-052`, `INFRA-053`, `INFRA-054`

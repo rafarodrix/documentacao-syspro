@@ -6,8 +6,10 @@ import type { ReactNode } from 'react';
 import type { Role } from '@prisma/client';
 import {
   ArrowRight,
+  BarChart3,
   BookOpen,
   Clock,
+  Compass,
   Flame,
   HelpCircle,
   History,
@@ -118,6 +120,14 @@ const ROLE_LABELS: Record<RoleSegment, string> = {
   suporte: 'Populares no suporte',
   cliente_admin: 'Populares para cliente admin',
   cliente_user: 'Populares para clientes',
+};
+
+const ROLE_HERO_LABEL: Record<Role, string> = {
+  ADMIN: 'Visão administrativa',
+  DEVELOPER: 'Visão de desenvolvimento',
+  SUPORTE: 'Visão de suporte',
+  CLIENTE_ADMIN: 'Visão do cliente (admin)',
+  CLIENTE_USER: 'Visão do cliente',
 };
 
 function parseDate(date?: string): number {
@@ -292,6 +302,11 @@ export function DocsHomePage({
     return tasks;
   }, [role, canViewTechnical]);
 
+  const insightCount = useMemo(
+    () => rolePopular.length + globalPopular.length + mostAccessed.length,
+    [globalPopular.length, mostAccessed.length, rolePopular.length],
+  );
+
   return (
     <div className="space-y-8 pb-10">
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-6 md:p-8">
@@ -309,9 +324,14 @@ export function DocsHomePage({
             </p>
           </div>
 
-          <Badge variant="outline" className="shrink-0 text-muted-foreground">
-            {pages.length} páginas disponíveis
-          </Badge>
+          <div className="flex flex-col items-end gap-2">
+            <Badge variant="outline" className="shrink-0 text-muted-foreground">
+              {pages.length} páginas disponíveis
+            </Badge>
+            <Badge variant="secondary" className="shrink-0">
+              {ROLE_HERO_LABEL[role]}
+            </Badge>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -330,6 +350,30 @@ export function DocsHomePage({
             <HelpCircle className="h-4 w-4" />
             Dúvidas
           </Link>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border border-border/70 bg-background/60 p-3">
+            <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+              <Compass className="h-3.5 w-3.5" />
+              Trilhas iniciais
+            </p>
+            <p className="mt-1 text-lg font-semibold">{startTasks.length}</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background/60 p-3">
+            <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+              <History className="h-3.5 w-3.5" />
+              Recentes
+            </p>
+            <p className="mt-1 text-lg font-semibold">{recent.length}</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background/60 p-3">
+            <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Insights ativos
+            </p>
+            <p className="mt-1 text-lg font-semibold">{insightCount}</p>
+          </div>
         </div>
       </section>
 

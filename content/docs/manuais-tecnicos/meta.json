@@ -4,6 +4,7 @@
   "pages": [
     "index",
     "backlog-infra-monorepo",
-    "padrao-componentes-mdx"
+    "padrao-componentes-mdx",
+    "diff-highlighting-shiki"
   ]
 }

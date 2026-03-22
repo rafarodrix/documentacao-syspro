@@ -21,6 +21,8 @@ import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
 import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
 import { DocsReadingTime } from '@/components/docs/DocsReadingTime';
 import { DocsPrevNextPreview } from '@/components/docs/DocsPrevNextPreview';
+import { DocsKeyboardShortcuts } from '@/components/docs/DocsKeyboardShortcuts';
+import { DocsTocScrollSpy } from '@/components/docs/DocsTocScrollSpy';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 
 function estimateReadingTimeMinutes(content: string): number {
@@ -219,6 +221,8 @@ export default async function Page(props: {
             description: typeof nextPage.data.description === 'string' ? nextPage.data.description : undefined,
           } : undefined}
         />
+        <DocsKeyboardShortcuts previousHref={previousPage?.url} nextHref={nextPage?.url} />
+        <DocsTocScrollSpy />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
         <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
         {lastUpdateDate ? <PageLastUpdate date={lastUpdateDate} /> : null}
