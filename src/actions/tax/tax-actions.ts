@@ -105,6 +105,35 @@ const asString = (value: unknown): string | null => {
     return null;
 };
 
+const normalizeKey = (key: string): string =>
+    key
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+
+const getStringFromAliases = (item: Record<string, unknown>, aliases: string[]): string | null => {
+    const target = new Set(aliases.map((alias) => normalizeKey(alias)));
+
+    for (const [key, value] of Object.entries(item)) {
+        const normalized = normalizeKey(key);
+        const strValue = asString(value);
+
+        if (target.has(normalized) && strValue) return strValue;
+
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+            const nested = value as Record<string, unknown>;
+            for (const [nestedKey, nestedValue] of Object.entries(nested)) {
+                const nestedNormalized = normalizeKey(nestedKey);
+                const nestedString = asString(nestedValue);
+                if (target.has(nestedNormalized) && nestedString) return nestedString;
+            }
+        }
+    }
+
+    return null;
+};
+
 const parseNullableDateSafe = (value: unknown): Date | null => {
     const str = asString(value);
     if (!str) return null;
@@ -117,50 +146,42 @@ const toPrismaJson = (value: Record<string, unknown>): Prisma.InputJsonValue => 
 };
 
 const getAnexoExternalKey = (item: Record<string, unknown>, index: number): string => {
-    const possibleKeys = [
-        item.id,
-        item.ID,
-        item.codigo,
-        item.Codigo,
-        item.codAnexo,
-        item.CodAnexo,
-        item.cAnexo,
-        item.anexo,
-        item.Anexo,
-        item.chave,
-        item.Chave,
-    ];
+    const direct =
+        getStringFromAliases(item, [
+            "id",
+            "codigo",
+            "codAnexo",
+            "cAnexo",
+            "anexo",
+            "chave",
+            "externalKey",
+            "external_key",
+        ]) ??
+        getStringFromAliases(item, ["code"]);
 
-    for (const key of possibleKeys) {
-        const value = asString(key);
-        if (value) return value;
-    }
+    if (direct) return direct;
 
     const hash = createHash("sha1").update(JSON.stringify(item)).digest("hex").slice(0, 16);
     return `anexo_${index}_${hash}`;
 };
 
 const getCredPresumidoExternalKey = (item: Record<string, unknown>, index: number): string => {
-    const possibleKeys = [
-        item.codOperacao,
-        item.CodOperacao,
-        item.id,
-        item.ID,
-        item.codigo,
-        item.Codigo,
-        item.codCredito,
-        item.CodCredito,
-        item.cCredito,
-        item.credito,
-        item.Credito,
-        item.chave,
-        item.Chave,
-    ];
+    const direct =
+        getStringFromAliases(item, [
+            "codOperacao",
+            "cod_operacao",
+            "id",
+            "codigo",
+            "codCredito",
+            "cCredito",
+            "credito",
+            "chave",
+            "externalKey",
+            "external_key",
+        ]) ??
+        getStringFromAliases(item, ["code"]);
 
-    for (const key of possibleKeys) {
-        const value = asString(key);
-        if (value) return value;
-    }
+    if (direct) return direct;
 
     const hash = createHash("sha1").update(JSON.stringify(item)).digest("hex").slice(0, 16);
     return `cred_presumido_${index}_${hash}`;
@@ -378,6 +399,15 @@ export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
     }
 
     try {
+        // Limpa legados sem chave estavel (gerados por fallback antigo).
+        await prisma.taxAnexo.deleteMany({
+            where: {
+                externalKey: {
+                    startsWith: "anexo_",
+                },
+            },
+        });
+
         const normalized = data
             .map((item) => asRecord(item))
             .filter((item): item is Record<string, unknown> => item !== null);
@@ -389,46 +419,46 @@ export async function saveTaxAnexosBatch(data: unknown[]): Promise<SaveResult> {
             const item = normalized[index];
             const externalKey = getAnexoExternalKey(item, index);
 
-            const code =
-                asString(item.codigo) ??
-                asString(item.Codigo) ??
-                asString(item.codAnexo) ??
-                asString(item.CodAnexo) ??
-                asString(item.cAnexo) ??
-                null;
+            const code = getStringFromAliases(item, [
+                "codigo",
+                "codAnexo",
+                "cAnexo",
+                "anexo",
+                "code",
+                "codigo_anexo",
+                "cod_anexo",
+            ]);
 
-            const title =
-                asString(item.titulo) ??
-                asString(item.Titulo) ??
-                asString(item.nome) ??
-                asString(item.Nome) ??
-                asString(item.anexo) ??
-                asString(item.Anexo) ??
-                null;
+            const title = getStringFromAliases(item, [
+                "titulo",
+                "nome",
+                "descricaoCurta",
+                "anexo",
+                "title",
+                "name",
+            ]);
 
-            const description =
-                asString(item.descricao) ??
-                asString(item.Descricao) ??
-                asString(item.texto) ??
-                asString(item.Texto) ??
-                null;
+            const description = getStringFromAliases(item, [
+                "descricao",
+                "texto",
+                "detalhe",
+                "description",
+                "textoLegal",
+            ]);
 
-            const category =
-                asString(item.categoria) ??
-                asString(item.Categoria) ??
-                asString(item.tipo) ??
-                asString(item.Tipo) ??
-                null;
+            const category = getStringFromAliases(item, [
+                "categoria",
+                "tipo",
+                "grupo",
+                "category",
+            ]);
 
             const publishDate =
-                parseNullableDateSafe(item.publicacao) ??
-                parseNullableDateSafe(item.Publicacao);
+                parseNullableDateSafe(getStringFromAliases(item, ["publicacao", "dataPublicacao", "publishDate", "dthPublicacao"]));
             const startDate =
-                parseNullableDateSafe(item.inicioVigencia) ??
-                parseNullableDateSafe(item.InicioVigencia);
+                parseNullableDateSafe(getStringFromAliases(item, ["inicioVigencia", "dataInicioVigencia", "startDate", "dthIniVig"]));
             const endDate =
-                parseNullableDateSafe(item.fimVigencia) ??
-                parseNullableDateSafe(item.FimVigencia);
+                parseNullableDateSafe(getStringFromAliases(item, ["fimVigencia", "dataFimVigencia", "endDate", "dthFimVig"]));
 
             await prisma.taxAnexo.upsert({
                 where: { externalKey },
@@ -483,6 +513,15 @@ export async function saveTaxCredPresumidoBatch(data: unknown[]): Promise<SaveRe
     }
 
     try {
+        // Limpa legados sem chave estavel (gerados por fallback antigo).
+        await prisma.taxCredPresumido.deleteMany({
+            where: {
+                externalKey: {
+                    startsWith: "cred_presumido_",
+                },
+            },
+        });
+
         const normalized = data
             .map((item) => asRecord(item))
             .filter((item): item is Record<string, unknown> => item !== null);
@@ -494,39 +533,29 @@ export async function saveTaxCredPresumidoBatch(data: unknown[]): Promise<SaveRe
             const item = normalized[index];
             const externalKey = getCredPresumidoExternalKey(item, index);
 
-            const code =
-                asString(item.codOperacao) ??
-                asString(item.CodOperacao) ??
-                asString(item.codigo) ??
-                asString(item.Codigo) ??
-                asString(item.codCredito) ??
-                asString(item.CodCredito) ??
-                asString(item.cCredito) ??
-                null;
+            const code = getStringFromAliases(item, [
+                "codOperacao",
+                "cod_operacao",
+                "codigo",
+                "codCredito",
+                "cCredito",
+                "code",
+            ]);
 
-            const title =
-                asString(item.nomeOperacao) ??
-                asString(item.NomeOperacao) ??
-                asString(item.titulo) ??
-                asString(item.Titulo) ??
-                asString(item.nome) ??
-                asString(item.Nome) ??
-                asString(item.credito) ??
-                asString(item.Credito) ??
-                null;
+            const title = getStringFromAliases(item, [
+                "nomeOperacao",
+                "nome_operacao",
+                "titulo",
+                "nome",
+                "credito",
+                "title",
+                "name",
+            ]);
 
-            const legalText =
-                asString(item.texDispLegal) ??
-                asString(item.TexDispLegal);
-            const operationLocation =
-                asString(item.texLocalOperacao) ??
-                asString(item.TexLocalOperacao);
-            const supplierLocation =
-                asString(item.texLocalFornec) ??
-                asString(item.TexLocalFornec);
-            const supplierProfile =
-                asString(item.texCaractFornec) ??
-                asString(item.TexCaractFornec);
+            const legalText = getStringFromAliases(item, ["texDispLegal", "textoDispLegal", "dispositivoLegal", "baseLegal"]);
+            const operationLocation = getStringFromAliases(item, ["texLocalOperacao", "localOperacao"]);
+            const supplierLocation = getStringFromAliases(item, ["texLocalFornec", "localFornecedor"]);
+            const supplierProfile = getStringFromAliases(item, ["texCaractFornec", "caracteristicaFornecedor"]);
 
             const fallbackDescriptionParts = [
                 legalText ? `Base legal: ${legalText}` : null,
@@ -536,35 +565,20 @@ export async function saveTaxCredPresumidoBatch(data: unknown[]): Promise<SaveRe
             ].filter((part): part is string => Boolean(part));
 
             const description =
-                asString(item.descricao) ??
-                asString(item.Descricao) ??
-                asString(item.texto) ??
-                asString(item.Texto) ??
+                getStringFromAliases(item, ["descricao", "texto", "detalhe", "description"]) ??
                 (fallbackDescriptionParts.length ? fallbackDescriptionParts.join(" | ") : null);
 
             const category =
                 legalText ??
-                asString(item.categoria) ??
-                asString(item.Categoria) ??
-                asString(item.tipo) ??
-                asString(item.Tipo) ??
+                getStringFromAliases(item, ["categoria", "tipo", "grupo", "category"]) ??
                 null;
 
             const publishDate =
-                parseNullableDateSafe(item.dthPublicacao) ??
-                parseNullableDateSafe(item.DthPublicacao) ??
-                parseNullableDateSafe(item.publicacao) ??
-                parseNullableDateSafe(item.Publicacao);
+                parseNullableDateSafe(getStringFromAliases(item, ["dthPublicacao", "publicacao", "dataPublicacao", "publishDate"]));
             const startDate =
-                parseNullableDateSafe(item.dthIniVig) ??
-                parseNullableDateSafe(item.DthIniVig) ??
-                parseNullableDateSafe(item.inicioVigencia) ??
-                parseNullableDateSafe(item.InicioVigencia);
+                parseNullableDateSafe(getStringFromAliases(item, ["dthIniVig", "inicioVigencia", "dataInicioVigencia", "startDate"]));
             const endDate =
-                parseNullableDateSafe(item.dthFimVig) ??
-                parseNullableDateSafe(item.DthFimVig) ??
-                parseNullableDateSafe(item.fimVigencia) ??
-                parseNullableDateSafe(item.FimVigencia);
+                parseNullableDateSafe(getStringFromAliases(item, ["dthFimVig", "fimVigencia", "dataFimVigencia", "endDate"]));
 
             await prisma.taxCredPresumido.upsert({
                 where: { externalKey },

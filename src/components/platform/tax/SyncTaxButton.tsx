@@ -180,10 +180,7 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
     try {
       setStatusMessage("Consultando rota...");
       const rawData = await fetchSefazRoute(routeUrl);
-      const list =
-        isClassTrib || isNcm
-          ? normalizeTaxPayload(rawData)
-          : (Array.isArray(rawData) ? rawData : [rawData]);
+      const list = normalizeTaxPayload(rawData);
 
       if (list.length === 0) {
         toast.warning("A API retornou dados vazios.");
