@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +16,10 @@ type SyncProgress = {
   currentChunk: number;
   totalChunks: number;
   updatedAt: number;
+  startedAt?: number;
+  totalItems?: number;
+  processedItems?: number;
+  lastError?: string;
 };
 
 function progressKey(mode: SyncMode) {
@@ -156,7 +160,7 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
     setStatusMessage(`Sincronizacao em andamento (${savedProgress.currentChunk}/${savedProgress.totalChunks})`);
   }, [savedProgress]);
 
-  const handleSync = async () => {
+  const handleSync = useCallback(async () => {
     setLastStatus("idle");
     setStatusMessage("Aguardando Certificado...");
 
@@ -173,11 +177,15 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
 
       const maxBytes = isClassTrib ? 450_000 : 300_000;
       const chunks = splitByApproxSize(list, maxBytes);
+      const startedAt = Date.now();
 
       writeProgress(mode, {
         inProgress: true,
         currentChunk: 0,
         totalChunks: chunks.length,
+        totalItems: list.length,
+        processedItems: 0,
+        startedAt,
         updatedAt: Date.now(),
       });
 
@@ -192,6 +200,9 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
               inProgress: true,
               currentChunk: i + 1,
               totalChunks: chunks.length,
+              totalItems: list.length,
+              processedItems: total + chunks[i].length,
+              startedAt,
               updatedAt: Date.now(),
             });
 
@@ -212,7 +223,17 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
           toast.error(error?.message ?? "Falha ao persistir sincronizacao.");
           setLastStatus("error");
           setStatusMessage("Falha na Sincronizacao");
-          writeProgress(mode, null);
+          const last = readProgress(mode);
+          writeProgress(mode, {
+            inProgress: false,
+            currentChunk: last?.currentChunk ?? 0,
+            totalChunks: chunks.length,
+            totalItems: list.length,
+            processedItems: total,
+            startedAt: last?.startedAt ?? startedAt,
+            updatedAt: Date.now(),
+            lastError: error?.message ?? "Falha ao persistir sincronizacao.",
+          });
         }
       });
     } catch (error: any) {
@@ -231,7 +252,19 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
         setStatusMessage("Sincronizar Agora");
       }, 3000);
     }
-  };
+  }, [isClassTrib, mode, routeUrl, title]);
+
+  useEffect(() => {
+    const onResume = (event: Event) => {
+      const custom = event as CustomEvent<{ mode?: SyncMode }>;
+      if (custom.detail?.mode !== mode) return;
+      if (statusMessage !== "Sincronizar Agora") return;
+      void handleSync();
+    };
+
+    window.addEventListener("tax-sync:resume", onResume as EventListener);
+    return () => window.removeEventListener("tax-sync:resume", onResume as EventListener);
+  }, [handleSync, mode, statusMessage]);
 
   return (
     <div className="flex items-center gap-4 rounded-xl border border-border/50 bg-muted/10 p-4">

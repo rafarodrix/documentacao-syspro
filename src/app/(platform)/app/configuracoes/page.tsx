@@ -13,6 +13,7 @@ import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files, Wa
 import GeneralSettingsForm from "@/components/platform/app/settings/GeneralSettingsForm";
 import { AccessControlTab } from "@/components/platform/app/settings/AccessControlTab";
 import { SyncTaxAnexosButton, SyncTaxClassTribButton, SyncTaxCredPresumidoButton } from "@/components/platform/tax/SyncTaxButton";
+import { TaxSyncStatusBar } from "@/components/platform/tax/TaxSyncStatusBar";
 import { TaxClassificationList } from "@/components/platform/tax/TaxClassificationList";
 import { TaxAnexosContainer } from "@/components/platform/tax/TaxAnexosContainer";
 import { TaxCredPresumidoContainer } from "@/components/platform/tax/TaxCredPresumidoContainer";
@@ -147,6 +148,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <TabsContent value="tax" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-6xl">
                         <h3 className="mb-4 text-lg font-medium">Sincronizacao de Tabelas Fiscais</h3>
+                        <TaxSyncStatusBar />
 
                         <Tabs defaultValue="class-trib" className="space-y-4">
                             <TabsList className="h-auto flex-wrap bg-muted/50 p-1">

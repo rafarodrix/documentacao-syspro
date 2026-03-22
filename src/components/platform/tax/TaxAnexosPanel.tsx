@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -26,39 +27,91 @@ type TaxAnexoItem = {
   lastUpdated: Date;
 };
 
+type VigenciaFilter = "all" | "active" | "future" | "expired";
+
 function fmtDate(value: Date | null) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("pt-BR").format(new Date(value));
 }
 
+function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<VigenciaFilter, "all"> {
+  const now = new Date();
+  if (startDate && startDate > now) return "future";
+  if (endDate && endDate < now) return "expired";
+  return "active";
+}
+
 export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
   const [query, setQuery] = useState("");
+  const [vigencia, setVigencia] = useState<VigenciaFilter>("all");
+  const [category, setCategory] = useState<string>("all");
+
+  const categories = useMemo(() => {
+    const values = new Set<string>();
+    for (const item of items) {
+      if (item.category) values.add(item.category);
+    }
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [items]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return items;
-
     return items.filter((item) => {
-      return (
+      const matchQuery =
         (item.code ?? "").toLowerCase().includes(q) ||
         (item.title ?? "").toLowerCase().includes(q) ||
         (item.description ?? "").toLowerCase().includes(q) ||
         (item.category ?? "").toLowerCase().includes(q) ||
-        item.externalKey.toLowerCase().includes(q)
-      );
+        item.externalKey.toLowerCase().includes(q);
+
+      const matchVigencia = vigencia === "all" ? true : getVigencia(item.startDate, item.endDate) === vigencia;
+      const matchCategory = category === "all" ? true : (item.category ?? "") === category;
+
+      return (q ? matchQuery : true) && matchVigencia && matchCategory;
     });
-  }, [items, query]);
+  }, [category, items, query, vigencia]);
+
+  const handleSync = () => {
+    window.dispatchEvent(new CustomEvent("tax-sync:resume", { detail: { mode: "anexos" } }));
+  };
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Buscar anexos por codigo, titulo, descricao ou categoria..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="relative md:col-span-2">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar anexos por codigo, titulo, descricao ou categoria..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            className="h-10 rounded-md border bg-background px-2 text-sm"
+            value={vigencia}
+            onChange={(e) => setVigencia(e.target.value as VigenciaFilter)}
+          >
+            <option value="all">Vigencia: todas</option>
+            <option value="active">Ativas</option>
+            <option value="future">Futuras</option>
+            <option value="expired">Expiradas</option>
+          </select>
+          <select
+            className="h-10 rounded-md border bg-background px-2 text-sm"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option value="all">Categoria: todas</option>
+            {categories.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="rounded-md border bg-card">
@@ -84,7 +137,12 @@ export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
               {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                    Nenhum anexo encontrado.
+                    <div className="flex flex-col items-center gap-3">
+                      <span>Nenhum anexo encontrado com os filtros atuais.</span>
+                      <Button size="sm" onClick={handleSync}>
+                        Sincronizar anexos
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -114,4 +172,3 @@ export function TaxAnexosPanel({ items }: { items: TaxAnexoItem[] }) {
     </div>
   );
 }
-

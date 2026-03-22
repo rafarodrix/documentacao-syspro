@@ -87,6 +87,35 @@ export function TaxNcmLookup() {
 
       {result ? (
         <div className="space-y-4">
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+            <h3 className="mb-2 text-sm font-semibold text-emerald-300">Resumo executivo</h3>
+            <div className="grid gap-2 text-sm md:grid-cols-2">
+              <div className="rounded-md border border-emerald-500/20 bg-background/70 p-3">
+                <p className="text-xs text-muted-foreground">cClassTrib principal</p>
+                <p className="font-mono font-medium">{result.classifications[0]?.code ?? "-"}</p>
+              </div>
+              <div className="rounded-md border border-emerald-500/20 bg-background/70 p-3">
+                <p className="text-xs text-muted-foreground">CST principal</p>
+                <p className="font-mono font-medium">{result.classifications[0]?.cst?.code ?? result.csts[0]?.code ?? "-"}</p>
+              </div>
+              <div className="rounded-md border border-emerald-500/20 bg-background/70 p-3">
+                <p className="text-xs text-muted-foreground">Anexo relacionado</p>
+                <p className="font-mono font-medium">{result.classifications[0]?.anexo ?? result.anexos[0]?.code ?? "-"}</p>
+              </div>
+              <div className="rounded-md border border-emerald-500/20 bg-background/70 p-3">
+                <p className="text-xs text-muted-foreground">Base legal</p>
+                {result.classifications[0]?.link ? (
+                  <a className="inline-flex items-center gap-1 font-medium underline" href={result.classifications[0].link} target="_blank" rel="noreferrer">
+                    <Link2 className="h-3 w-3" />
+                    Abrir referencia
+                  </a>
+                ) : (
+                  <p className="font-medium">-</p>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-xl border bg-card p-4">
             <h3 className="mb-2 text-sm font-semibold">Resultado consolidado para NCM {result.ncm}</h3>
             <div className="flex flex-wrap gap-2">
@@ -158,4 +187,3 @@ export function TaxNcmLookup() {
     </div>
   );
 }
-
