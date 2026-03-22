@@ -24,6 +24,7 @@ import { ShineBorder } from "@/components/magicui/shine-border";
 import { ArrowUpRight, BookOpen, Headset, Sparkles, Users } from "lucide-react";
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
 import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
+import { getTicketsAction } from "@/actions/tickets/ticket-actions";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
@@ -294,18 +295,19 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
     getScopedCompanyZammadEmailsByUserId(userId),
   ]);
 
-  const userTickets = scopedEmails.length
-    ? await ZammadGateway.getTicketsForCustomerEmailsPaged(scopedEmails, {
-        limit: 50,
-        cacheTtlSeconds: 60,
-        tags: ["tickets-dashboard"],
-        routeKey: "app-dashboard",
-      })
+  const ticketsResponse = scopedEmails.length
+    ? await getTicketsAction({ page: 1, pageSize: 20, queue: "all" })
+    : null;
+  const normalizedTickets = ticketsResponse?.success
+    ? ticketsResponse.data.map((ticket) => ({
+        id: String(ticket.id),
+        number: ticket.number,
+        subject: ticket.title,
+        status: mapTicketStatusFromStateName(ticket.status),
+        priority: mapTicketPriority(ticket.priority),
+        lastUpdate: ticket.updatedAt,
+      }))
     : [];
-
-  await upsertOperationalTicketsToCache(userTickets);
-
-  const normalizedTickets = userTickets.map(normalizeOperationalTicket);
   const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 10);
   const kpis = ticketKpis(normalizedTickets);
 
@@ -314,7 +316,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
     companyName: membership?.company?.nomeFantasia || membership?.company?.razaoSocial || "Sem empresa vinculada",
     companyUsers: membership?.company?._count?.memberships || 0,
     tickets,
-    totalOpen: normalizedTickets.filter((t) => t.status !== "Resolvido").length,
+    totalOpen: kpis.open + kpis.pending,
     kpis,
     activity: toSeries(normalizedTickets.map((t) => new Date(t.lastUpdate))),
   };
