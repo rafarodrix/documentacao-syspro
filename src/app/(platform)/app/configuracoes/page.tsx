@@ -8,12 +8,13 @@ import { getSefazRoutesAction } from "@/actions/platform/settings-actions";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity } from "lucide-react";
+import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files } from "lucide-react";
 
 import GeneralSettingsForm from "@/components/platform/app/settings/GeneralSettingsForm";
 import { AccessControlTab } from "@/components/platform/app/settings/AccessControlTab";
-import { SyncTaxButton } from "@/components/platform/tax/SyncTaxButton";
+import { SyncTaxAnexosButton, SyncTaxClassTribButton } from "@/components/platform/tax/SyncTaxButton";
 import { TaxClassificationList } from "@/components/platform/tax/TaxClassificationList";
+import { TaxAnexosContainer } from "@/components/platform/tax/TaxAnexosContainer";
 import { BulkReadjustDialog } from "@/components/platform/app/contratos/BulkReadjustDialog";
 import { ContractSheet } from "@/components/platform/app/contratos/ContractSheet";
 import { ContractStats } from "@/components/platform/app/contratos/ContractStats";
@@ -72,50 +73,32 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <Tabs defaultValue={defaultTab} className="space-y-6">
                 <div className="flex items-center">
                     <TabsList className="bg-muted/50 p-1 border border-border/40 h-auto flex-wrap">
-                        <TabsTrigger
-                            value="general"
-                            className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                        >
+                        <TabsTrigger value="general" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
                             <Settings className="h-4 w-4" />
                             <span className="font-medium">Geral & Financeiro</span>
                         </TabsTrigger>
 
-                        <TabsTrigger
-                            value="contracts"
-                            className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                        >
+                        <TabsTrigger value="contracts" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
                             <FileText className="h-4 w-4" />
                             <span className="font-medium">Contratos</span>
                         </TabsTrigger>
 
-                        <TabsTrigger
-                            value="access"
-                            className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                        >
+                        <TabsTrigger value="access" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
                             <ShieldCheck className="h-4 w-4" />
                             <span className="font-medium">Perfis de Acesso</span>
                         </TabsTrigger>
 
-                        <TabsTrigger
-                            value="tax"
-                            className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                        >
+                        <TabsTrigger value="tax" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
                             <Landmark className="h-4 w-4" />
                             <span className="font-medium">Fiscal & Tributario</span>
                         </TabsTrigger>
 
-                        <TabsTrigger
-                            value="sefaz"
-                            className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                        >
+                        <TabsTrigger value="sefaz" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
                             <Activity className="h-4 w-4" />
                             <span className="font-medium">Rotas SEFAZ</span>
                         </TabsTrigger>
 
-                        <TabsTrigger
-                            value="observability"
-                            className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                        >
+                        <TabsTrigger value="observability" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
                             <Activity className="h-4 w-4" />
                             <span className="font-medium">Observabilidade</span>
                         </TabsTrigger>
@@ -132,9 +115,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <h3 className="text-lg font-medium">Contratos</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Inativar o ultimo contrato ativo bloqueia empresa e usuarios cliente vinculados.
-                            </p>
+                            <p className="text-sm text-muted-foreground">Inativar o ultimo contrato ativo bloqueia empresa e usuarios cliente vinculados.</p>
                         </div>
                         <div className="flex items-center gap-3">
                             {!isContractsCreateMode && (
@@ -163,16 +144,39 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 </TabsContent>
 
                 <TabsContent value="tax" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
-                    <div className="max-w-5xl">
-                        <h3 className="text-lg font-medium mb-4">Sincronizacao de Tabelas</h3>
+                    <div className="max-w-6xl">
+                        <h3 className="mb-4 text-lg font-medium">Sincronizacao de Tabelas Fiscais</h3>
 
-                        <SyncTaxButton />
+                        <Tabs defaultValue="class-trib" className="space-y-4">
+                            <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
+                                <TabsTrigger value="class-trib" className="gap-2 px-4 py-2">
+                                    <Landmark className="h-4 w-4" />
+                                    Rota classTrib
+                                </TabsTrigger>
+                                <TabsTrigger value="anexos" className="gap-2 px-4 py-2">
+                                    <Files className="h-4 w-4" />
+                                    Rota anexos
+                                </TabsTrigger>
+                            </TabsList>
 
-                        <div className="mt-8">
-                            <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Carregando dados fiscais...</div>}>
-                                <TaxClassificationList />
-                            </Suspense>
-                        </div>
+                            <TabsContent value="class-trib" className="space-y-4">
+                                <SyncTaxClassTribButton />
+                                <div className="mt-6">
+                                    <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Carregando classTrib...</div>}>
+                                        <TaxClassificationList />
+                                    </Suspense>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="anexos" className="space-y-4">
+                                <SyncTaxAnexosButton />
+                                <div className="mt-6">
+                                    <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Carregando anexos...</div>}>
+                                        <TaxAnexosContainer />
+                                    </Suspense>
+                                </div>
+                            </TabsContent>
+                        </Tabs>
                     </div>
                 </TabsContent>
 
@@ -191,4 +195,3 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         </div>
     );
 }
-

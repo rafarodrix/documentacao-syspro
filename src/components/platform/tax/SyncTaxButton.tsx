@@ -25,9 +25,7 @@ function normalizeTaxPayload(data: unknown): unknown[] {
 async function fetchSefazRoute(url: string) {
   const response = await fetch(url, {
     method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
+    headers: { Accept: "application/json" },
   });
 
   if (!response.ok) {
@@ -37,54 +35,88 @@ async function fetchSefazRoute(url: string) {
   return response.json();
 }
 
-export function SyncTaxButton() {
+function splitByApproxSize<T>(items: T[], maxBytes: number): T[][] {
+  if (!items.length) return [];
+
+  const chunks: T[][] = [];
+  let currentChunk: T[] = [];
+  let currentSize = 0;
+
+  for (const item of items) {
+    const json = JSON.stringify(item);
+    const itemSize = new TextEncoder().encode(json).length;
+
+    if (currentChunk.length > 0 && currentSize + itemSize > maxBytes) {
+      chunks.push(currentChunk);
+      currentChunk = [item];
+      currentSize = itemSize;
+      continue;
+    }
+
+    currentChunk.push(item);
+    currentSize += itemSize;
+  }
+
+  if (currentChunk.length > 0) chunks.push(currentChunk);
+  return chunks;
+}
+
+type SyncMode = "classTrib" | "anexos";
+
+function SyncRouteButton({ mode }: { mode: SyncMode }) {
   const [isPending, startTransition] = useTransition();
   const [lastStatus, setLastStatus] = useState<"idle" | "success" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("Sincronizar Agora");
+
+  const isClassTrib = mode === "classTrib";
+  const routeUrl = isClassTrib ? CLASS_TRIB_URL : ANEXOS_URL;
+
+  const title = isClassTrib ? "Classificacoes Tributarias (classTrib)" : "Anexos Fiscais (anexos)";
+  const subtitle = isClassTrib
+    ? "Sincroniza CST + cClassTrib em lotes para evitar limite de 1MB."
+    : "Sincroniza anexos oficiais em lotes para evitar limite de 1MB.";
 
   const handleSync = async () => {
     setLastStatus("idle");
     setStatusMessage("Aguardando Certificado...");
 
     try {
-      setStatusMessage("Consultando classTrib...");
-      const classTribData = await fetchSefazRoute(CLASS_TRIB_URL);
+      setStatusMessage("Consultando rota...");
+      const rawData = await fetchSefazRoute(routeUrl);
+      const list = isClassTrib ? normalizeTaxPayload(rawData) : (Array.isArray(rawData) ? rawData : [rawData]);
 
-      setStatusMessage("Consultando anexos...");
-      const anexosData = await fetchSefazRoute(ANEXOS_URL);
-      const anexosList = Array.isArray(anexosData) ? anexosData : [anexosData];
-
-      setStatusMessage("Processando dados...");
-      const listaParaSalvar = normalizeTaxPayload(classTribData);
-
-      if (listaParaSalvar.length === 0) {
-        toast.warning("A API principal retornou dados vazios ou formato desconhecido.");
-        setLastStatus("idle");
+      if (list.length === 0) {
+        toast.warning("A API retornou dados vazios.");
         setStatusMessage("Sincronizar Agora");
         return;
       }
 
+      const maxBytes = isClassTrib ? 450_000 : 350_000;
+      const chunks = splitByApproxSize(list, maxBytes);
+
       startTransition(async () => {
-        setStatusMessage("Salvando no banco...");
+        let total = 0;
 
-        const [classTribResult, anexosResult] = await Promise.all([
-          saveTaxDataBatch(listaParaSalvar),
-          saveTaxAnexosBatch(anexosList),
-        ]);
+        for (let i = 0; i < chunks.length; i++) {
+          setStatusMessage(`Salvando lote ${i + 1}/${chunks.length}...`);
 
-        if (classTribResult.success && anexosResult.success) {
-          toast.success(classTribResult.message ?? "Classificacoes sincronizadas.");
-          toast.success(anexosResult.message ?? "Anexos sincronizados.");
-          setLastStatus("success");
-        } else {
-          if (!classTribResult.success) {
-            toast.error(classTribResult.error ?? "Falha ao salvar classTrib.");
+          const result = isClassTrib
+            ? await saveTaxDataBatch(chunks[i] as unknown[])
+            : await saveTaxAnexosBatch(chunks[i] as unknown[]);
+
+          if (!result.success) {
+            toast.error(result.error ?? "Falha ao sincronizar lote.");
+            setLastStatus("error");
+            setStatusMessage("Falha na Sincronizacao");
+            return;
           }
-          if (!anexosResult.success) {
-            toast.error(anexosResult.error ?? "Falha ao salvar anexos.");
-          }
-          setLastStatus("error");
+
+          total += chunks[i].length;
         }
+
+        toast.success(`${title}: ${total} registro(s) processado(s) em ${chunks.length} lote(s).`);
+        setLastStatus("success");
+        setStatusMessage("Sincronizacao concluida");
 
         setTimeout(() => {
           setLastStatus("idle");
@@ -116,21 +148,20 @@ export function SyncTaxButton() {
 
       <div className="flex-1">
         <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
-          Tabelas Fiscais (SEFAZ RS)
+          {title}
           <span className="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">
             <Lock className="h-3 w-3" /> Requer Certificado
           </span>
         </h4>
-        <p className="text-xs text-muted-foreground">
-          Consulta `classTrib` e `anexos` da SVRS. O navegador solicitara o certificado digital.
-        </p>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground/80">Rota: {routeUrl}</p>
       </div>
 
       <Button
         onClick={handleSync}
         disabled={isPending || statusMessage !== "Sincronizar Agora"}
         variant={lastStatus === "error" ? "destructive" : "default"}
-        className="min-w-[170px]"
+        className="min-w-[185px]"
       >
         {statusMessage === "Sincronizar Agora" ? (
           "Sincronizar Agora"
@@ -146,6 +177,24 @@ export function SyncTaxButton() {
           statusMessage
         )}
       </Button>
+    </div>
+  );
+}
+
+export function SyncTaxClassTribButton() {
+  return <SyncRouteButton mode="classTrib" />;
+}
+
+export function SyncTaxAnexosButton() {
+  return <SyncRouteButton mode="anexos" />;
+}
+
+// Compatibilidade com uso antigo
+export function SyncTaxButton() {
+  return (
+    <div className="space-y-3">
+      <SyncTaxClassTribButton />
+      <SyncTaxAnexosButton />
     </div>
   );
 }
