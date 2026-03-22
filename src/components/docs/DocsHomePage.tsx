@@ -23,7 +23,7 @@ type DocsRecentItem = {
 
 type PopularMap = Record<string, { title: string; count: number; lastVisited: number }>;
 type PopularItem = { href: string; title: string; count: number; lastViewed: number };
-type RoleSegment = 'cliente' | 'suporte' | 'admin';
+type RoleSegment = 'admin' | 'developer' | 'suporte' | 'cliente_admin' | 'cliente_user';
 
 const RECENT_STORAGE_KEY = 'docs:recent';
 const POPULAR_STORAGE_KEY = 'docs:popular';
@@ -160,9 +160,11 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
   }, [lastReadFromApi, pages, recentItems]);
 
   const rolePopularTitle = useMemo(() => {
-    if (roleSegment === 'admin') return 'Populares para administração';
+    if (roleSegment === 'admin') return 'Populares para ADMIN';
+    if (roleSegment === 'developer') return 'Populares para DEVELOPER';
     if (roleSegment === 'suporte') return 'Populares para suporte';
-    return 'Populares para clientes';
+    if (roleSegment === 'cliente_admin') return 'Populares para CLIENTE_ADMIN';
+    return 'Populares para CLIENTE_USER';
   }, [roleSegment]);
 
   return (

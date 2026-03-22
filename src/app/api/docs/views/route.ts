@@ -33,10 +33,12 @@ function toObject(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function getRoleSegment(role: Role): 'cliente' | 'suporte' | 'admin' {
+function getRoleSegment(role: Role): 'admin' | 'developer' | 'suporte' | 'cliente_admin' | 'cliente_user' {
+  if (role === 'ADMIN') return 'admin';
+  if (role === 'DEVELOPER') return 'developer';
   if (role === 'SUPORTE') return 'suporte';
-  if (role === 'ADMIN' || role === 'DEVELOPER') return 'admin';
-  return 'cliente';
+  if (role === 'CLIENTE_ADMIN') return 'cliente_admin';
+  return 'cliente_user';
 }
 
 function toPopularList(stats: GlobalDocStats, limit = 8) {

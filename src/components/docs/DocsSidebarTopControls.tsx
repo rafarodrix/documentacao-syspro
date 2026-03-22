@@ -7,13 +7,33 @@ import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
-export function DocsSidebarTopControls() {
+type AdminLayoutMode = 'docs' | 'notebook';
+
+export function DocsSidebarTopControls({
+  showAdminToggle = false,
+  adminLayoutMode = 'docs',
+  onToggleAdminLayout,
+}: {
+  showAdminToggle?: boolean;
+  adminLayoutMode?: AdminLayoutMode;
+  onToggleAdminLayout?: () => void;
+}) {
   const { collapsed } = useSidebar();
   const actionLabel = collapsed ? 'Expandir barra lateral' : 'Recolher barra lateral';
 
   return (
     <div className="hidden w-full items-center gap-2 md:flex">
       <LargeSearchToggle hideIfDisabled className="flex-1" />
+      {showAdminToggle ? (
+        <button
+          type="button"
+          onClick={onToggleAdminLayout}
+          className="inline-flex h-9 items-center rounded-md border border-border/60 px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          title="Alternar entre visão Cliente e Suporte"
+        >
+          {adminLayoutMode === 'notebook' ? 'Visão Suporte' : 'Visão Cliente'}
+        </button>
+      ) : null}
       <TooltipProvider delayDuration={120}>
         <Tooltip>
           <TooltipTrigger asChild>
