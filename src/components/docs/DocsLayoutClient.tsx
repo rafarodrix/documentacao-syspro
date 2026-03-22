@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Role } from '@prisma/client';
+import { usePathname } from 'next/navigation';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsLayout as NotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
@@ -25,7 +26,9 @@ export function DocsLayoutClient({
   role: Role;
   children: ReactNode;
 }) {
+  const pathname = usePathname();
   const isAdmin = role === 'ADMIN';
+  const isDocsHome = pathname === '/docs';
   const [adminLayoutMode, setAdminLayoutMode] = useState<'docs' | 'notebook'>('docs');
 
   useEffect(() => {
@@ -37,9 +40,10 @@ export function DocsLayoutClient({
   }, [isAdmin]);
 
   const layoutMode = useMemo(() => {
+    if (isDocsHome) return 'notebook';
     if (isAdmin) return adminLayoutMode;
     return getDefaultLayoutForRole(role);
-  }, [isAdmin, adminLayoutMode, role]);
+  }, [isAdmin, adminLayoutMode, role, isDocsHome]);
 
   const LayoutComponent = layoutMode === 'notebook' ? NotebookLayout : DocsLayout;
 

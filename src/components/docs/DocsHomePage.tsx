@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -20,13 +20,14 @@ import {
   Wrench,
 } from 'lucide-react';
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
-import { Cards, Card } from 'fumadocs-ui/components/card';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
 import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
+import { MagicCard } from '@/components/magicui/magic-card';
+import { ShineBorder } from '@/components/magicui/shine-border';
 
 type DocsHomeEntry = {
   href: string;
@@ -53,7 +54,7 @@ type QuickLink = {
   href: string;
   title: string;
   description: string;
-  icon: typeof BookOpen;
+  icon: typeof BookOpen | typeof HelpCircle | typeof Users | typeof Wrench | typeof Compass;
 };
 
 const RECENT_KEY = 'docs:recent';
@@ -62,7 +63,7 @@ const POPULAR_KEY = 'docs:popular';
 const BASE_QUICK_LINKS: QuickLink[] = [
   {
     href: '/docs/manual',
-    title: 'Manual de uso',
+    title: 'Documentação',
     description: 'Guias e módulos para o dia a dia.',
     icon: BookOpen,
   },
@@ -159,6 +160,30 @@ function readLocalStorage<T>(key: string, fallback: T): T {
 
 function InsightCard({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('rounded-xl border border-border/60 bg-card/40 p-4', className)}>{children}</div>;
+}
+
+function PremiumLinkCard({ item }: { item: QuickLink }) {
+  const Icon = item.icon;
+
+  return (
+    <Link href={item.href} className="group block">
+      <MagicCard className="h-full rounded-2xl">
+        <div className="relative h-full rounded-2xl p-4 sm:p-5">
+          <ShineBorder shineColor={['#6aa9ff55', '#a78bfa66', '#22d3ee55']} duration={11} className="opacity-70" />
+          <div className="relative z-10 flex items-start justify-between gap-3">
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-xs text-muted-foreground">
+                <Icon className="h-3.5 w-3.5" />
+                {item.title}
+              </span>
+              <p className="text-sm text-muted-foreground">{item.description}</p>
+            </div>
+            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-foreground" />
+          </div>
+        </div>
+      </MagicCard>
+    </Link>
+  );
 }
 
 function InsightLink({ href, title, meta }: { href: string; title: string; meta?: ReactNode }) {
@@ -378,14 +403,31 @@ export function DocsHomePage({
       </section>
 
       <section>
-        <DocsSectionHeader icon={LayoutDashboard} label="Comece por aqui" />
-        <Cards>
-          {startTasks.map((item) => (
-            <Card key={item.href} href={item.href} title={item.title}>
-              {item.description}
-            </Card>
+        <DocsSectionHeader icon={LayoutDashboard} label="Acesso rápido" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {quickLinks.map((item) => (
+            <PremiumLinkCard key={item.href} item={item} />
           ))}
-        </Cards>
+        </div>
+      </section>
+
+      <section>
+        <DocsSectionHeader icon={LayoutDashboard} label="Comece por aqui" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {startTasks.map((item) => (
+            <Link key={item.href} href={item.href} className="group block">
+              <MagicCard className="h-full rounded-2xl">
+                <div className="relative h-full rounded-2xl p-4">
+                  <ShineBorder shineColor={['#22d3ee40', '#38bdf855']} duration={13} className="opacity-60" />
+                  <div className="relative z-10">
+                    <p className="font-medium">{item.title}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+                  </div>
+                </div>
+              </MagicCard>
+            </Link>
+          ))}
+        </div>
       </section>
 
       {continueReading ? (
@@ -419,17 +461,6 @@ export function DocsHomePage({
           </div>
         </section>
       ) : null}
-
-      <section>
-        <DocsSectionHeader icon={LayoutDashboard} label="Acesso rápido" />
-        <Cards>
-          {quickLinks.map((item) => (
-            <Card key={item.href} href={item.href} title={item.title}>
-              {item.description}
-            </Card>
-          ))}
-        </Cards>
-      </section>
 
       <section>
         <DocsSectionHeader icon={TrendingUp} label="Insights de uso" />
