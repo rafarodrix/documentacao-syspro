@@ -1,3 +1,5 @@
+import type { ContractStatus } from "@prisma/client";
+
 export interface ContractCompanyOption {
   id: string;
   razaoSocial: string;
@@ -11,7 +13,28 @@ export interface ContractSuspendImpact {
   totalLinkedUsers: number;
 }
 
+export interface ContractListItem {
+  id: string;
+  companyId: string;
+  percentage: number | string;
+  minimumWage: number | string;
+  taxRate: number | string;
+  programmerRate: number | string;
+  contractNumber?: string | null;
+  notes?: string | null;
+  status: ContractStatus;
+  startDate: string | Date;
+  endDate?: string | Date | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  company: {
+    id: string;
+    razaoSocial: string;
+    cnpj: string;
+  };
+}
+
 export interface ContractsAdminViewData {
-  contracts: unknown[];
+  contracts: ContractListItem[];
   companies: ContractCompanyOption[];
 }

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
-import type { ContractsAdminViewData } from "@/features/contracts/domain/model";
+import type { ContractListItem, ContractsAdminViewData } from "@/features/contracts/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
@@ -56,15 +56,16 @@ export async function getContractsAction() {
       },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     });
+    const data: ContractListItem[] = contracts.map((contract) => ({
+      ...contract,
+      percentage: Number(contract.percentage),
+      minimumWage: Number(contract.minimumWage),
+      taxRate: Number(contract.taxRate),
+      programmerRate: Number(contract.programmerRate),
+    }));
     return {
       success: true,
-      data: contracts.map((contract) => ({
-        ...contract,
-        percentage: Number(contract.percentage),
-        minimumWage: Number(contract.minimumWage),
-        taxRate: Number(contract.taxRate),
-        programmerRate: Number(contract.programmerRate),
-      })),
+      data,
     };
   } catch (error) {
     console.error("Erro ao buscar contratos:", error);
