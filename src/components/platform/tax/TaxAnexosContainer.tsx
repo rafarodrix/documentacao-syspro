@@ -4,7 +4,7 @@ import { TaxAnexosPanel } from "./TaxAnexosPanel";
 export async function TaxAnexosContainer() {
   const anexos = await prisma.taxAnexo.findMany({
     orderBy: [{ code: "asc" }, { title: "asc" }],
-    take: 500,
+    take: 300,
     select: {
       id: true,
       externalKey: true,
@@ -21,4 +21,3 @@ export async function TaxAnexosContainer() {
 
   return <TaxAnexosPanel items={anexos} />;
 }
-

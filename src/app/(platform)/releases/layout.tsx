@@ -1,4 +1,4 @@
-import { SiteHeader } from "@/components/site/Header";
+import { StaticSiteHeader } from "@/components/site/StaticHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
 export default function ReleasesLayout({
@@ -10,7 +10,7 @@ export default function ReleasesLayout({
         <div className="min-h-screen bg-background font-sans antialiased flex flex-col">
 
             {/* 1. Reutilizando o Header do Site */}
-            <SiteHeader />
+            <StaticSiteHeader />
 
             {/* 2. Background Decorativo*/}
             <div className="fixed inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]">

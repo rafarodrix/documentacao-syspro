@@ -5,7 +5,7 @@ export async function TaxCredPresumidoContainer() {
   try {
     const items = await prisma.taxCredPresumido.findMany({
       orderBy: [{ code: "asc" }, { title: "asc" }],
-      take: 500,
+      take: 300,
       select: {
         id: true,
         externalKey: true,

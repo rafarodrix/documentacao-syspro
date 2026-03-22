@@ -4,7 +4,7 @@ import { TaxNcmPanel } from "./TaxNcmPanel";
 export async function TaxNcmContainer() {
   const items = await prisma.taxNcm.findMany({
     orderBy: [{ code: "asc" }],
-    take: 1000,
+    take: 400,
     select: {
       id: true,
       code: true,
@@ -21,4 +21,3 @@ export async function TaxNcmContainer() {
 
   return <TaxNcmPanel items={items} />;
 }
-
