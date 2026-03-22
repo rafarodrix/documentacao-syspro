@@ -18,7 +18,6 @@ import {
   TrendingUp,
   Users,
   Wrench,
-  Search,
 } from 'lucide-react';
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { Badge } from '@/components/ui/badge';
@@ -228,11 +227,16 @@ function PremiumLinkCard({ item, style }: { item: QuickLink; style?: CSSProperti
           <div className={cn('pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br to-transparent opacity-20', tone.glowClass)} />
           <ShineBorder shineColor={tone.shineColor} duration={11} className="opacity-15" />
           <div className="relative z-10 flex items-start justify-between gap-3">
-            <div className="space-y-2">
-              <span className={cn('inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs', tone.pillClass)}>
-                <Icon className="h-3.5 w-3.5" /> {item.title}
-              </span>
-              <p className="text-sm text-muted-foreground">{item.description}</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-background/70">
+                <Icon className="h-4.5 w-4.5 text-foreground/80" />
+              </div>
+              <div className="space-y-1.5">
+                <span className={cn('inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px]', tone.pillClass)}>
+                  {item.title}
+                </span>
+                <p className="text-sm text-muted-foreground">{item.description}</p>
+              </div>
             </div>
             <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
           </div>
@@ -260,44 +264,24 @@ type DocsHomePageProps = {
 export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProps) {
   const { status, derived, metrics } = useDocsDashboard(pages, role, canViewTechnical);
 
-  const openSearch = () => {
-    const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
-    window.dispatchEvent(new KeyboardEvent('keydown', {
-      key: 'k',
-      ctrlKey: !isMac,
-      metaKey: isMac,
-      bubbles: true,
-    }));
-  };
-
   return (
-    <div className="space-y-10 pb-28">
-      <section className="relative animate-docs-fade-up overflow-hidden rounded-2xl border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] bg-card p-6 opacity-0 md:p-8" style={staggerStyle(0)}>
+    <div className="space-y-10 pb-12">
+      <section className="relative animate-docs-fade-up overflow-hidden rounded-2xl border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] bg-card p-5 opacity-0 md:p-6" style={staggerStyle(0)}>
         <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-slate-400/3 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-20 h-60 w-60 rounded-full bg-slate-300/3 blur-3xl" />
         
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="max-w-3xl">
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-400/15 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
-              <Sparkles className="h-3 w-3" /> Central de documentação
-            </div>
             <h1 className="text-2xl font-semibold tracking-tight md:text-4xl">Como podemos ajudar?</h1>
-            <p className="mt-2 text-sm text-muted-foreground md:text-base">
-              Busque por guias, módulos, dúvidas frequentes e processos operacionais. Use{' '}
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">Ctrl K</kbd> em qualquer página para acesso rápido.
-            </p>
           </div>
           <Badge variant="outline" className="shrink-0 border-slate-400/15 bg-muted/30 text-muted-foreground">{metrics.totalPages} páginas disponíveis</Badge>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <LargeSearchToggle className="h-11 min-w-[260px] flex-1 justify-start rounded-xl border-border/70 bg-background/85 text-sm" />
-          <Link href="/docs/manual" className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-5 text-sm font-medium transition-colors hover:bg-accent">
-            <BookOpen className="h-4 w-4" /> Ver manual
-          </Link>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <HeroMetric icon={Compass} label="Trilhas iniciais" value={derived.startTasks.length} />
           <HeroMetric icon={History} label="Recentes" value={derived.recent.length} />
           <HeroMetric icon={BarChart3} label="Insights ativos" value={metrics.insightCount} />
@@ -313,27 +297,8 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         </div>
       </section>
 
-      <section className="animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(3)}>
-        <DocsSectionHeader icon={LayoutDashboard} label="Comece por aqui" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {derived.startTasks.map((item) => (
-            <Link key={item.href} href={item.href} className="group block">
-              <MagicCard className="h-full rounded-2xl">
-                <div className="relative h-full rounded-2xl p-4">
-                  <ShineBorder shineColor={['#22d3ee40', '#38bdf855']} duration={13} className="opacity-60" />
-                  <div className="relative z-10">
-                    <p className="font-medium">{item.title}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                  </div>
-                </div>
-              </MagicCard>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       {derived.continueReading && (
-        <section className="animate-docs-fade-up opacity-0" style={staggerStyle(3.5)}>
+        <section className="animate-docs-fade-up opacity-0" style={staggerStyle(3)}>
           <DocsSectionHeader icon={History} label="Continuar leitura" />
           <Link href={derived.continueReading.href} className="group flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-card/40 p-4 transition-colors hover:bg-accent">
             <div className="min-w-0 flex items-center gap-3">
@@ -357,7 +322,7 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Painel de inteligência</p>
             <Badge variant="outline" className="border-slate-400/15 bg-muted/20 text-[11px] text-muted-foreground">Atualização contínua</Badge>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             
             <InsightCard>
               <DocsSectionHeader icon={Clock} label="Últimas atualizações" />
@@ -405,17 +370,6 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
           </div>
         </div>
       </section>
-
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4">
-        <div className="pointer-events-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/95 p-2 backdrop-blur-md sm:gap-3 shadow-[0_8px_24px_-24px_rgba(15,23,42,0.65)]">
-          <button onClick={openSearch} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 text-sm font-medium transition-colors hover:bg-accent">
-            <Search className="h-4 w-4" /> Abrir busca
-          </button>
-          <Link href={derived.startTasks[0]?.href ?? '/docs/manual'} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300/15 bg-slate-200/5 px-3 text-sm font-medium text-foreground transition-colors hover:bg-slate-200/10">
-            Ver trilha recomendada <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </div>
 
       <style jsx global>{`
         @media (prefers-reduced-motion: no-preference) {
