@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 type RecentDocItem = {
   href: string;
@@ -31,6 +34,7 @@ export function DocsSidebarRecent() {
   const pathname = usePathname();
   const [items, setItems] = useState<RecentDocItem[]>([]);
   const [popularMap, setPopularMap] = useState<Record<string, { title: string; count: number; lastVisited: number }>>({});
+  const [open, setOpen] = useState(true);
 
   useEffect(() => {
     try {
@@ -48,6 +52,19 @@ export function DocsSidebarRecent() {
       if (parsedPopular && typeof parsedPopular === 'object') setPopularMap(parsedPopular);
     } catch {
       setPopularMap({});
+    }
+
+    try {
+      const savedOpen = localStorage.getItem('docs:quick-nav:open');
+      if (savedOpen === '0') {
+        setOpen(false);
+      } else {
+        // Primeiro acesso ou preferencia aberta
+        setOpen(true);
+        if (savedOpen === null) localStorage.setItem('docs:quick-nav:open', '1');
+      }
+    } catch {
+      // ignore storage issues
     }
   }, []);
 
@@ -102,50 +119,75 @@ export function DocsSidebarRecent() {
 
   if (visibleItems.length === 0 && popularItems.length === 0) return null;
 
+  function toggleOpen() {
+    setOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem('docs:quick-nav:open', next ? '1' : '0');
+      return next;
+    });
+  }
+
   return (
-    <div className="mt-3 space-y-3">
-      <div className="rounded-lg border border-border/60 bg-card/40 p-2">
-        <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Recentes
-        </p>
-        <div className="space-y-1">
-          {visibleItems.length === 0 ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">Sem histórico recente ainda.</p>
-          ) : (
-            visibleItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                title={item.title}
-              >
-                <span className="line-clamp-2">{item.title}</span>
-              </Link>
-            ))
-          )}
-        </div>
-      </div>
-      <div className="rounded-lg border border-border/60 bg-card/40 p-2">
-        <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Populares
-        </p>
-        <div className="space-y-1">
-          {popularItems.length === 0 ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">Sem dados de popularidade ainda.</p>
-          ) : (
-            popularItems.map(([href, info]) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                title={info.title}
-              >
-                <span className="line-clamp-2">{info.title}</span>
-                <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">{info.count}</span>
-              </Link>
-            ))
-          )}
-        </div>
+    <div className="mt-3 rounded-lg border border-border/60 bg-card/40 p-2">
+      <button
+        type="button"
+        onClick={toggleOpen}
+        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent"
+      >
+        <span>Navegação rápida</span>
+        <ChevronDown className={cn('h-4 w-4 transition-transform', !open && '-rotate-90')} />
+      </button>
+      {open ? (
+        <Tabs defaultValue="recentes" className="mt-2">
+          <TabsList className="grid h-8 w-full grid-cols-2">
+            <TabsTrigger value="recentes" className="text-xs">Recentes</TabsTrigger>
+            <TabsTrigger value="populares" className="text-xs">Populares</TabsTrigger>
+          </TabsList>
+          <TabsContent value="recentes">
+            <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
+              {visibleItems.length === 0 ? (
+                <p className="px-2 py-1.5 text-xs text-muted-foreground">Sem histórico recente ainda.</p>
+              ) : (
+                visibleItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    title={item.title}
+                  >
+                    <span className="line-clamp-2">{item.title}</span>
+                  </Link>
+                ))
+              )}
+            </div>
+          </TabsContent>
+          <TabsContent value="populares">
+            <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
+              {popularItems.length === 0 ? (
+                <p className="px-2 py-1.5 text-xs text-muted-foreground">Sem dados de popularidade ainda.</p>
+              ) : (
+                popularItems.map(([href, info]) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    title={info.title}
+                  >
+                    <span className="line-clamp-2">{info.title}</span>
+                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">{info.count}</span>
+                  </Link>
+                ))
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      ) : null}
+      {open ? null : (
+        <p className="px-2 pb-1 pt-1 text-xs text-muted-foreground">Abra para acessar recentes e populares.</p>
+      )}
+      <div className="mt-2 h-px bg-border/40" />
+      <div className="mt-2 px-2 text-[11px] text-muted-foreground">
+        Dica: use os atalhos para ações rápidas e a árvore para navegação completa.
       </div>
     </div>
   );

@@ -6,6 +6,9 @@ export const baseOptions: BaseLayoutProps = {
     title: null,
     children: <DocsSidebarTopControls />,
   },
+  themeSwitch: {
+    enabled: false,
+  },
   searchToggle: {
     // Mantem busca no mobile (topbar), mas desativa a barra de busca grande nativa do desktop.
     components: {
