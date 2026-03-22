@@ -1,6 +1,6 @@
-import { getTicketsAction } from "@/actions/tickets/ticket-actions";
 import { requireSession } from "@/lib/auth-helpers";
-import { TicketsContainer } from "@/components/platform/tickets/TicketsContainer";
+import { getTicketsAction } from "@/features/tickets/application/actions";
+import { TicketsContainer } from "@/features/tickets/interface";
 import { Role } from "@prisma/client";
 import { type QueueKey, type TicketStatusGroup, TICKET_QUEUE_KEYS, isTicketStatusGroup } from "@/core/config/tickets-workflow";
 

@@ -4,10 +4,6 @@ import { Role } from "@prisma/client";
 import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { ActivityChart, ActivityPoint } from "@/components/platform/app/dashboard/ActivityChart";
-import { TicketsSummary, TicketSummaryItem } from "@/components/platform/app/dashboard/TicketsSummary";
-import {
-  mapTicketPriority,
-} from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,8 +13,10 @@ import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { ArrowUpRight, BookOpen, Headset, Sparkles, Users } from "lucide-react";
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
-import { getTicketStatusGroup } from "@/core/config/tickets-workflow";
-import { queryTicketsForViewer } from "@/core/application/services/tickets/ticket-query-service";
+import { TicketsSummary } from "@/features/tickets/interface";
+import { buildTicketKpis, toTicketSummaryItems } from "@/features/tickets/application/dashboard";
+import { queryTicketsForViewer } from "@/features/tickets/application/queries";
+import type { TicketSummaryItem } from "@/features/tickets/domain/model";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
@@ -58,21 +56,6 @@ function toSeries(events: Date[]): ActivityPoint[] {
       value: map.get(key) || 0,
     };
   });
-}
-
-function ticketKpis(tickets: TicketSummaryItem[]) {
-  return {
-    open: tickets.filter((t) => t.status === "Aberto").length,
-    pending: tickets.filter((t) => t.status === "Pendente" || t.status === "Em Análise").length,
-    resolved: tickets.filter((t) => t.status === "Resolvido").length,
-  };
-}
-
-function mapDashboardStatus(rawStatus: string, statusLabel?: string): TicketSummaryItem["status"] {
-  const group = getTicketStatusGroup(rawStatus || statusLabel || "");
-  if (group === "open") return "Aberto";
-  if (group === "closed") return "Resolvido";
-  return "Em Análise";
 }
 
 async function getScopedCompanyZammadEmailsByUserId(userId: string): Promise<string[]> {
@@ -211,14 +194,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
     ]);
     const ticketsResponse = await queryTicketsForViewer({ userId, email, role }, { page: 1, pageSize: 50, queue: "all", statusGroup: "all" });
     const normalizedTickets = ticketsResponse.success
-      ? ticketsResponse.data.map((ticket) => ({
-          id: String(ticket.id),
-          number: ticket.number,
-          subject: ticket.title,
-          status: mapDashboardStatus(ticket.status, ticket.statusLabel),
-          priority: mapTicketPriority(ticket.priority),
-          lastUpdate: ticket.updatedAt,
-        }))
+      ? toTicketSummaryItems(ticketsResponse.data)
       : [];
     const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 5);
     const totalOpen = ticketsResponse.success
@@ -283,14 +259,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
     ? await queryTicketsForViewer({ userId, email, role }, { page: 1, pageSize: 20, queue: "all", statusGroup: "all" })
     : null;
   const normalizedTickets = ticketsResponse?.success
-    ? ticketsResponse.data.map((ticket) => ({
-        id: String(ticket.id),
-        number: ticket.number,
-        subject: ticket.title,
-        status: mapDashboardStatus(ticket.status, ticket.statusLabel),
-        priority: mapTicketPriority(ticket.priority),
-        lastUpdate: ticket.updatedAt,
-      }))
+    ? toTicketSummaryItems(ticketsResponse.data)
     : [];
   const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 10);
   const kpis = ticketsResponse?.success
@@ -299,7 +268,7 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
         pending: ticketsResponse.statusCounts.pending,
         resolved: ticketsResponse.statusCounts.closed,
       }
-    : ticketKpis(normalizedTickets);
+    : buildTicketKpis(normalizedTickets);
 
   return {
     mode: "client",

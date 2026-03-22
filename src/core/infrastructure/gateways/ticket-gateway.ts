@@ -1,4 +1,4 @@
-import { createTicketAction } from "@/actions/tickets/ticket-actions";
+import { createTicketAction } from "@/features/tickets/application/actions";
 import { TicketFormInput } from "@/core/application/schema/ticket-form.schema";
 import { Result } from "@/core/application/dto/result.dto";
 

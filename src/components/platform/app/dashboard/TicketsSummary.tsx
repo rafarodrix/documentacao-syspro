@@ -4,15 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Headset, ArrowUpRight, Clock, AlertTriangle, CheckCircle2, Inbox } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-
-export interface TicketSummaryItem {
-  id: string
-  number: string
-  subject: string
-  status: "Aberto" | "Em Análise" | "Pendente" | "Resolvido"
-  priority: "Alta" | "Média" | "Baixa"
-  lastUpdate: string
-}
+import type { TicketSummaryItem } from "@/features/tickets/domain/model"
 
 interface TicketsSummaryProps {
   tickets: TicketSummaryItem[]
