@@ -18,6 +18,8 @@ export const docs = defineDocs({
       lastUpdated: lastUpdatedSchema,
       owner: z.string().optional(),
       status: z.enum(['draft', 'review', 'published', 'archived']).optional(),
+      featureStatus: z.enum(['new', 'deprecated', 'beta', 'experimental']).optional(),
+      sinceVersion: z.string().optional(),
       tags: z.array(z.string()).optional(),
     }),
   },

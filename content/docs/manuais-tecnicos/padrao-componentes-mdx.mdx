@@ -49,7 +49,7 @@ Use `CodeTabs` e `CodeTab`. A linguagem escolhida fica persistida no navegador e
 
 ### Exemplo
 
-```mdx
+~~~mdx
 <CodeTabs items={['TypeScript', 'JavaScript']}>
   <CodeTab value="TypeScript">
     ```ts
@@ -62,7 +62,7 @@ Use `CodeTabs` e `CodeTab`. A linguagem escolhida fica persistida no navegador e
     ```
   </CodeTab>
 </CodeTabs>
-```
+~~~
 
 ## Regras editoriais
 
@@ -70,3 +70,28 @@ Use `CodeTabs` e `CodeTab`. A linguagem escolhida fica persistida no navegador e
 2. Priorizar `Tip` e `Note` para reducao de ruido visual.
 3. Sempre manter a mesma ordem de linguagens em `CodeTabs` (ex.: TypeScript antes de JavaScript).
 4. Evitar tabs com mais de 4 opcoes para nao comprometer leitura em mobile.
+
+## Playground inline executavel
+
+Use `PlaygroundInline` quando a pagina exigir experimentacao rapida de codigo sem sair da documentacao.
+
+### Exemplo
+
+```mdx
+<PlaygroundInline
+  title="Teste rapido de JavaScript"
+  code={`const total = [10, 20, 30].reduce((acc, n) => acc + n, 0);
+console.log('Total:', total);`}
+/>
+```
+
+## Badges de versao/status por frontmatter
+
+Use os campos no frontmatter da pagina:
+
+```yaml
+featureStatus: beta # new | deprecated | beta | experimental
+sinceVersion: v2.4
+```
+
+Esses badges aparecem no topo da pagina e em blocos de navegacao contextual (quando aplicavel).

@@ -18,7 +18,8 @@ import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
 import { DocsNextSteps } from '@/components/docs/DocsNextSteps';
 import { DocsSectionLinks } from '@/components/docs/DocsSectionLinks';
 import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
-import { CodeTab, CodeTabs, Danger, Note, Tip, Warning } from '@/components/docs/mdx';
+import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
+import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -88,6 +89,10 @@ export default async function Page(props: {
   const lastUpdated = typeof page.data.lastUpdated === 'string' ? page.data.lastUpdated : undefined;
   const owner = typeof page.data.owner === 'string' ? page.data.owner : undefined;
   const status = typeof page.data.status === 'string' ? page.data.status : undefined;
+  const featureStatus = typeof page.data.featureStatus === 'string'
+    ? page.data.featureStatus as FeatureStatus
+    : undefined;
+  const sinceVersion = typeof page.data.sinceVersion === 'string' ? page.data.sinceVersion : undefined;
   const docSlug = `/docs${slug.length ? `/${slug.join('/')}` : ''}`;
   const formattedLastUpdated = lastUpdated
     ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(lastUpdated))
@@ -122,6 +127,10 @@ export default async function Page(props: {
       href: item.url,
       title: String(item.data.title),
       description: typeof item.data.description === 'string' ? item.data.description : undefined,
+      featureStatus: typeof item.data.featureStatus === 'string'
+        ? item.data.featureStatus as FeatureStatus
+        : undefined,
+      sinceVersion: typeof item.data.sinceVersion === 'string' ? item.data.sinceVersion : undefined,
     }));
 
   const nextSteps = visibleContextPages
@@ -130,6 +139,10 @@ export default async function Page(props: {
       href: item.url,
       title: String(item.data.title),
       description: typeof item.data.description === 'string' ? item.data.description : undefined,
+      featureStatus: typeof item.data.featureStatus === 'string'
+        ? item.data.featureStatus as FeatureStatus
+        : undefined,
+      sinceVersion: typeof item.data.sinceVersion === 'string' ? item.data.sinceVersion : undefined,
     }));
 
   return (
@@ -140,6 +153,9 @@ export default async function Page(props: {
       tableOfContent={{ style: 'clerk' }}
     >
       <DocsTitle>{page.data.title}</DocsTitle>
+      <div className="mt-2">
+        <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
+      </div>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
       <DocsBody>
@@ -153,6 +169,7 @@ export default async function Page(props: {
             Danger,
             CodeTabs,
             CodeTab,
+            PlaygroundInline,
           }}
         />
         {showCategory ? <DocsSectionLinks items={sectionLinks} /> : null}
@@ -166,8 +183,11 @@ export default async function Page(props: {
 }
 
 export async function generateStaticParams() {
-  return source.generateParams();
+  const params = source.generateParams();
+  return [{ slug: [] as string[] }, ...params];
 }
+
+export const dynamicParams = false;
 
 export async function generateMetadata(props: {
   params: Promise<{ slug?: string[] }>;
@@ -179,5 +199,20 @@ export async function generateMetadata(props: {
   return {
     title: page.data.title,
     description: page.data.description,
+    openGraph: {
+      title: String(page.data.title),
+      description: typeof page.data.description === 'string' ? page.data.description : undefined,
+      images: [
+        {
+          url: `/api/og/docs?slug=${encodeURIComponent((params.slug ?? []).join('/'))}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: String(page.data.title),
+      description: typeof page.data.description === 'string' ? page.data.description : undefined,
+      images: [`/api/og/docs?slug=${encodeURIComponent((params.slug ?? []).join('/'))}`],
+    },
   };
 }

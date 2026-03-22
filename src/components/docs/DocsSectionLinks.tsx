@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { ArrowRight, FolderOpen } from 'lucide-react';
+import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
 
 type SectionLinkItem = {
   href: string;
   title: string;
   description?: string;
+  featureStatus?: FeatureStatus;
+  sinceVersion?: string;
 };
 
 export function DocsSectionLinks({
@@ -37,7 +40,10 @@ export function DocsSectionLinks({
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="line-clamp-1 text-sm font-medium">{item.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="line-clamp-1 text-sm font-medium">{item.title}</p>
+                  <DocsFeatureBadge status={item.featureStatus} version={item.sinceVersion} className="text-[10px]" />
+                </div>
                 {item.description ? (
                   <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
                 ) : null}
