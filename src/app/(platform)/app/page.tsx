@@ -9,7 +9,6 @@ import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { ZammadOperationalTicket } from "@/core/application/schema/zammad-api.schema";
 import {
   isAnalysisOrDevelopmentStateId,
-  isAnalysisOrDevelopmentStateName,
   mapTicketPriority,
   mapTicketStatusFromStateId,
   mapTicketStatusFromStateName,
