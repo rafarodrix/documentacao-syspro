@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import { Role } from '@prisma/client';
 import { source } from '@/lib/source';
 import { SiteHeader } from "@/components/site/Header";
 import { requireSession } from "@/lib/auth-helpers";
 import { SYSTEM_ROLES } from '@/core/config/route-access';
+import { isAdminOnlyDocUrl } from '@/core/config/docs-access';
 import type { Root as PageTreeRoot, Node as PageTreeNode, Item as PageTreeItem } from 'fumadocs-core/page-tree';
 import { DocsLayoutClient } from '@/components/docs/DocsLayoutClient';
 
@@ -47,13 +49,53 @@ function stripTechnicalDocsTree(tree: PageTreeRoot): PageTreeRoot {
   };
 }
 
+function stripAdminOnlyPage(page: PageTreeItem): PageTreeItem | null {
+  return isAdminOnlyDocUrl(page.url) ? null : page;
+}
+
+function stripAdminOnlyNode(node: PageTreeNode): PageTreeNode | null {
+  if (node.type === 'page') {
+    return stripAdminOnlyPage(node);
+  }
+
+  if (node.type === 'folder') {
+    const children = node.children
+      .map(stripAdminOnlyNode)
+      .filter((value): value is PageTreeNode => value !== null);
+    const index = node.index ? stripAdminOnlyPage(node.index) : undefined;
+
+    if (children.length === 0 && !index) return null;
+
+    return {
+      ...node,
+      children,
+      ...(index ? { index } : {}),
+    };
+  }
+
+  return node;
+}
+
+function stripAdminOnlyTree(tree: PageTreeRoot): PageTreeRoot {
+  return {
+    ...tree,
+    children: tree.children
+      .map(stripAdminOnlyNode)
+      .filter((value): value is PageTreeNode => value !== null),
+    ...(tree.fallback ? { fallback: stripAdminOnlyTree(tree.fallback) } : {}),
+  };
+}
+
 export default async function Layout({ children }: { children: ReactNode }) {
   const session = await requireSession();
 
   const canViewTechnicalDocs = SYSTEM_ROLES.includes(session.role);
-  const docsTree: DocsTree = canViewTechnicalDocs
+  const roleFilteredTree: DocsTree = canViewTechnicalDocs
     ? source.pageTree
     : stripTechnicalDocsTree(source.pageTree);
+  const docsTree: DocsTree = session.role === Role.ADMIN
+    ? roleFilteredTree
+    : stripAdminOnlyTree(roleFilteredTree);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

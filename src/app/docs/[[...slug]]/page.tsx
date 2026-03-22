@@ -10,7 +10,7 @@ import { notFound, redirect } from 'next/navigation';
 import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
 import { Role } from '@prisma/client';
 import { requireSession, canAccessByCompanySegment } from '@/lib/auth-helpers';
-import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/core/config/docs-access';
+import { getRequiredSegmentsForDocSlug, isAdminOnlyDocSlug, isAdminOnlyDocUrl, isTechnicalManualSlug } from '@/core/config/docs-access';
 import { SYSTEM_ROLES } from '@/core/config/route-access';
 import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 import { DocsHomePage } from '@/components/docs/DocsHomePage';
@@ -31,6 +31,9 @@ export default async function Page(props: {
   if (isTechnicalManualSlug(slug) && !SYSTEM_ROLES.includes(session.role)) {
     redirect("/docs");
   }
+  if (isAdminOnlyDocSlug(slug) && session.role !== Role.ADMIN) {
+    redirect("/docs");
+  }
 
   if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
     const requiredSegments = getRequiredSegmentsForDocSlug(slug);
@@ -49,6 +52,7 @@ export default async function Page(props: {
     const visibility = await Promise.all(
       allPages.map(async (item) => {
         if (!SYSTEM_ROLES.includes(session.role) && item.url.startsWith('/docs/manuais-tecnicos')) return false;
+        if (session.role !== Role.ADMIN && isAdminOnlyDocUrl(item.url)) return false;
 
         if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
           const relativeSlug = item.url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
@@ -109,6 +113,7 @@ export default async function Page(props: {
   const visibility = await Promise.all(
     contextPages.map(async (item) => {
       if (!SYSTEM_ROLES.includes(session.role) && item.url.startsWith('/docs/manuais-tecnicos')) return false;
+      if (session.role !== Role.ADMIN && isAdminOnlyDocUrl(item.url)) return false;
       if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
         const relativeSlug = item.url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
         const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
