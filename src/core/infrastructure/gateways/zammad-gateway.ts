@@ -315,6 +315,12 @@ function buildCustomerEmailsQuery(emails: string[]): string {
     return `(${emails.map((email) => `customer.email:${email}`).join(" OR ")})`;
 }
 
+function buildCustomerEmailsFallbackQuery(emails: string[]): string {
+    return `(${emails
+        .map((email) => `(customer.email:${email} OR customer:${email} OR "${email}")`)
+        .join(" OR ")})`;
+}
+
 export const ZammadGateway = {
     async searchOperationalTickets(
         query: string,
@@ -591,10 +597,30 @@ export const ZammadGateway = {
                 routeKey: options?.routeKey,
             });
 
-            return normalizeSearchResponse(data)
+            const primary = normalizeSearchResponse(data)
                 .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
                 .filter((parsed) => parsed.success)
                 .map((parsed) => parsed.data);
+
+            if (primary.length > 0) {
+                return dedupeOperationalTickets(primary);
+            }
+
+            const fallbackEmailQuery = buildCustomerEmailsFallbackQuery(normalizedEmails);
+            const fallbackQuery = stateQuery ? `${fallbackEmailQuery} AND ${stateQuery}` : fallbackEmailQuery;
+            const fallbackEndpoint = `tickets/search?query=${encodeURIComponent(fallbackQuery)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
+            const fallbackData = await fetchZammad(fallbackEndpoint, {}, {
+                cacheTtlSeconds: options?.cacheTtlSeconds,
+                tags: options?.tags,
+                routeKey: options?.routeKey,
+            });
+
+            return dedupeOperationalTickets(
+                normalizeSearchResponse(fallbackData)
+                    .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
+                    .filter((parsed) => parsed.success)
+                    .map((parsed) => parsed.data)
+            );
         } catch (err) {
             console.error("ZammadGateway.getTicketsForCustomerEmailsPaged:", err);
             return [];
