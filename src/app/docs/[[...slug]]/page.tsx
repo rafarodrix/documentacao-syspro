@@ -69,7 +69,7 @@ export default async function Page(props: {
       }));
 
     return (
-      <DocsPage toc={[]} full={false}>
+      <DocsPage toc={[]} full={false} breadcrumb={{ full: true }}>
         <DocsTitle>{page.data.title}</DocsTitle>
         <DocsDescription>{page.data.description}</DocsDescription>
         <DocsBody>
@@ -135,6 +135,7 @@ export default async function Page(props: {
     <DocsPage
       toc={page.data.toc}
       full={page.data.full}
+      breadcrumb={{ full: true }}
       tableOfContent={{ style: 'clerk' }}
     >
       <DocsTitle>{page.data.title}</DocsTitle>

@@ -9,9 +9,11 @@ type RecentDocItem = {
 };
 
 type PopularMap = Record<string, { title: string; count: number; lastVisited: number }>;
+type VisitedMap = Record<string, number>;
 
 const RECENT_STORAGE_KEY = 'docs:recent';
 const POPULAR_STORAGE_KEY = 'docs:popular';
+const VISITED_STORAGE_KEY = 'docs:visited';
 const MAX_RECENT_ITEMS = 8;
 
 export function DocsPageViewTracker({ href, title }: { href: string; title: string }) {
@@ -41,6 +43,18 @@ export function DocsPageViewTracker({ href, title }: { href: string; title: stri
         },
       };
       localStorage.setItem(POPULAR_STORAGE_KEY, JSON.stringify(nextPopular));
+    } catch {
+      // no-op
+    }
+
+    try {
+      const parsedVisited = JSON.parse(localStorage.getItem(VISITED_STORAGE_KEY) ?? '{}') as VisitedMap;
+      const visited = parsedVisited && typeof parsedVisited === 'object' ? parsedVisited : {};
+      const nextVisited: VisitedMap = {
+        ...visited,
+        [href]: visitedAt,
+      };
+      localStorage.setItem(VISITED_STORAGE_KEY, JSON.stringify(nextVisited));
     } catch {
       // no-op
     }
