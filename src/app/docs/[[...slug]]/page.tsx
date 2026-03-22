@@ -6,6 +6,7 @@ import {
   DocsTitle
 } from 'fumadocs-ui/page';
 import { PageLastUpdate } from 'fumadocs-ui/layouts/docs/page';
+import { DocsCategory } from 'fumadocs-ui/page.server';
 import { notFound, redirect } from 'next/navigation';
 import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
 import { Role } from '@prisma/client';
@@ -16,8 +17,6 @@ import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 import { DocsHomePage } from '@/components/docs/DocsHomePage';
 import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
 import { DocsNextSteps } from '@/components/docs/DocsNextSteps';
-import { DocsSectionLinks } from '@/components/docs/DocsSectionLinks';
-import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -113,17 +112,8 @@ export default async function Page(props: {
     }),
   );
 
-  const visibleContextPages = contextPages.filter((_, index) => visibility[index]);
-
-  const sectionLinks = visibleContextPages
-    .slice(0, 8)
-    .map((item) => ({
-      href: item.url,
-      title: String(item.data.title),
-      description: typeof item.data.description === 'string' ? item.data.description : undefined,
-    }));
-
-  const nextSteps = visibleContextPages
+  const nextSteps = contextPages
+    .filter((_, index) => visibility[index])
     .slice(0, 4)
     .map((item) => ({
       href: item.url,
@@ -139,7 +129,15 @@ export default async function Page(props: {
     >
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
-      <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
+      {(status || owner || formattedLastUpdated) ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          {status ? <span className="rounded-full border border-border/70 px-2 py-1">Status: {status}</span> : null}
+          {owner ? <span className="rounded-full border border-border/70 px-2 py-1">Owner: {owner}</span> : null}
+          {formattedLastUpdated ? (
+            <span className="rounded-full border border-border/70 px-2 py-1">Atualizado em: {formattedLastUpdated}</span>
+          ) : null}
+        </div>
+      ) : null}
       <DocsBody>
         <MDXContent
           components={{
@@ -147,7 +145,7 @@ export default async function Page(props: {
             a: createRelativeLink(source, page),
           }}
         />
-        {showCategory ? <DocsSectionLinks items={sectionLinks} /> : null}
+        {showCategory ? <DocsCategory page={page} from={source} className="mt-8" /> : null}
         <DocsNextSteps items={nextSteps} />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
         <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
