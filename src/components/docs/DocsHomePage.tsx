@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Clock3, Flame, Sparkles } from 'lucide-react';
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { Cards, Card } from 'fumadocs-ui/components/card';
 import { Callout } from 'fumadocs-ui/components/callout';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type DocsHomeEntry = {
   href: string;
@@ -21,7 +22,8 @@ type DocsRecentItem = {
 };
 
 type PopularMap = Record<string, { title: string; count: number; lastVisited: number }>;
-type GlobalPopularItem = { href: string; title: string; count: number; lastViewed: number };
+type PopularItem = { href: string; title: string; count: number; lastViewed: number };
+type RoleSegment = 'cliente' | 'suporte' | 'admin';
 
 const RECENT_STORAGE_KEY = 'docs:recent';
 const POPULAR_STORAGE_KEY = 'docs:popular';
@@ -53,8 +55,11 @@ function formatDateTime(timestamp: number) {
 export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry[]; canViewTechnical: boolean }) {
   const [recentItems, setRecentItems] = useState<DocsRecentItem[]>([]);
   const [popularItems, setPopularItems] = useState<PopularMap>({});
-  const [globalPopular, setGlobalPopular] = useState<GlobalPopularItem[]>([]);
+  const [globalPopular, setGlobalPopular] = useState<PopularItem[]>([]);
+  const [rolePopular, setRolePopular] = useState<PopularItem[]>([]);
+  const [roleSegment, setRoleSegment] = useState<RoleSegment>('cliente');
   const [lastReadFromApi, setLastReadFromApi] = useState<DocsRecentItem | null>(null);
+  const [loadingInsights, setLoadingInsights] = useState(true);
 
   useEffect(() => {
     try {
@@ -76,13 +81,17 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
         if (!response.ok) return null;
         return response.json() as Promise<{
           ok?: boolean;
-          globalPopular?: GlobalPopularItem[];
+          roleSegment?: RoleSegment;
+          globalPopular?: PopularItem[];
+          rolePopular?: PopularItem[];
           lastRead?: { href: string; title: string; visitedAt: number } | null;
         }>;
       })
       .then((payload) => {
         if (!payload?.ok) return;
+        if (payload.roleSegment) setRoleSegment(payload.roleSegment);
         if (Array.isArray(payload.globalPopular)) setGlobalPopular(payload.globalPopular);
+        if (Array.isArray(payload.rolePopular)) setRolePopular(payload.rolePopular);
         if (
           payload.lastRead &&
           typeof payload.lastRead.href === 'string' &&
@@ -92,7 +101,8 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
           setLastReadFromApi(payload.lastRead);
         }
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => setLoadingInsights(false));
   }, []);
 
   const latestUpdates = useMemo(
@@ -149,6 +159,12 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
     };
   }, [lastReadFromApi, pages, recentItems]);
 
+  const rolePopularTitle = useMemo(() => {
+    if (roleSegment === 'admin') return 'Populares para administração';
+    if (roleSegment === 'suporte') return 'Populares para suporte';
+    return 'Populares para clientes';
+  }, [roleSegment]);
+
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/10 p-5 md:p-6">
@@ -195,6 +211,12 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
             <span className="line-clamp-2">{continueReading.title}</span>
             <ArrowRight className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
           </Link>
+        </section>
+      ) : loadingInsights ? (
+        <section className="rounded-xl border border-border/60 bg-card/40 p-4">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="mt-2 h-3 w-48" />
+          <Skeleton className="mt-3 h-12 w-full" />
         </section>
       ) : null}
 
@@ -264,10 +286,47 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
         <div className="rounded-xl border border-border/60 bg-card/40 p-4">
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
             <Flame className="h-4 w-4 text-muted-foreground" />
-            Populares na base
+            {rolePopularTitle}
           </p>
           <div className="space-y-2">
-            {globalPopular.length === 0 ? (
+            {loadingInsights ? (
+              <>
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </>
+            ) : rolePopular.length === 0 ? (
+              <p className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-muted-foreground">
+                Ainda sem ranking por perfil disponível.
+              </p>
+            ) : (
+              rolePopular.slice(0, 6).map((item) => (
+                <Link
+                  key={`role-${item.href}`}
+                  href={item.href}
+                  className="flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2 text-sm hover:bg-accent"
+                >
+                  <span className="line-clamp-2">{item.title}</span>
+                  <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">{item.count}</span>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <Flame className="h-4 w-4 text-muted-foreground" />
+            Populares na base (global)
+          </p>
+          <div className="space-y-2">
+            {loadingInsights ? (
+              <>
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </>
+            ) : globalPopular.length === 0 ? (
               <p className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-muted-foreground">
                 Ainda sem ranking global disponível.
               </p>
@@ -285,27 +344,27 @@ export function DocsHomePage({ pages, canViewTechnical }: { pages: DocsHomeEntry
             )}
           </div>
         </div>
+      </section>
 
-        <div className="rounded-xl border border-border/60 bg-card/40 p-4">
-          <p className="mb-3 text-sm font-semibold">Recentes</p>
-          <div className="space-y-2">
-            {recent.length === 0 ? (
-              <p className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-muted-foreground">
-                Você ainda não abriu nenhuma página.
-              </p>
-            ) : (
-              recent.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="block rounded-md border border-border/60 bg-background px-3 py-2 text-sm hover:bg-accent"
-                >
-                  <span className="line-clamp-2">{item.title}</span>
-                  <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.visitedAt)}</p>
-                </Link>
-              ))
-            )}
-          </div>
+      <section className="rounded-xl border border-border/60 bg-card/40 p-4">
+        <p className="mb-3 text-sm font-semibold">Recentes</p>
+        <div className="space-y-2">
+          {recent.length === 0 ? (
+            <p className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-muted-foreground">
+              Você ainda não abriu nenhuma página.
+            </p>
+          ) : (
+            recent.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="block rounded-md border border-border/60 bg-background px-3 py-2 text-sm hover:bg-accent"
+              >
+                <span className="line-clamp-2">{item.title}</span>
+                <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.visitedAt)}</p>
+              </Link>
+            ))
+          )}
         </div>
       </section>
     </div>

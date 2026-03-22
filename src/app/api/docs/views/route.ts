@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import type { Prisma, Role } from '@prisma/client';
+import { unstable_cache, revalidateTag } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getProtectedSession } from '@/lib/auth-helpers';
-import type { Prisma } from '@prisma/client';
 
-const POPULAR_KEY = 'docs:popular:global';
+const POPULAR_GLOBAL_KEY = 'docs:popular:global';
+const POPULAR_ROLE_KEY_PREFIX = 'docs:popular:role:';
+const POPULAR_CACHE_TAG = 'docs-popular';
 
 type GlobalDocStats = Record<
   string,
@@ -25,68 +28,97 @@ function parseGlobalStats(value: string | null): GlobalDocStats {
   }
 }
 
-function getDocsPreferences(value: unknown): {
-  lastRead?: { href: string; title: string; visitedAt: number };
-} {
-  if (!value || typeof value !== 'object') return {};
-  const root = value as Record<string, unknown>;
-  const docs = root.docs;
-  if (!docs || typeof docs !== 'object') return {};
-  const docsObj = docs as Record<string, unknown>;
-  const lastRead = docsObj.lastRead;
-  if (!lastRead || typeof lastRead !== 'object') return {};
-  const readObj = lastRead as Record<string, unknown>;
-  if (
-    typeof readObj.href === 'string' &&
-    typeof readObj.title === 'string' &&
-    typeof readObj.visitedAt === 'number'
-  ) {
-    return {
-      lastRead: {
-        href: readObj.href,
-        title: readObj.title,
-        visitedAt: readObj.visitedAt,
-      },
-    };
-  }
-  return {};
-}
-
 function toObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
 }
 
-export async function GET() {
-  const session = await getProtectedSession();
-  if (!session) return NextResponse.json({ ok: false }, { status: 401 });
+function getRoleSegment(role: Role): 'cliente' | 'suporte' | 'admin' {
+  if (role === 'SUPORTE') return 'suporte';
+  if (role === 'ADMIN' || role === 'DEVELOPER') return 'admin';
+  return 'cliente';
+}
 
-  const [setting, user] = await Promise.all([
-    prisma.systemSetting.findUnique({ where: { key: POPULAR_KEY } }),
-    prisma.user.findUnique({ where: { id: session.userId }, select: { preferences: true } }),
-  ]);
-
-  const stats = parseGlobalStats(setting?.value ?? null);
-  const globalPopular = Object.entries(stats)
+function toPopularList(stats: GlobalDocStats, limit = 8) {
+  return Object.entries(stats)
     .sort(([, a], [, b]) => {
       if (b.count !== a.count) return b.count - a.count;
       return b.lastViewed - a.lastViewed;
     })
-    .slice(0, 8)
+    .slice(0, limit)
     .map(([href, value]) => ({
       href,
       title: value.title,
       count: value.count,
       lastViewed: value.lastViewed,
     }));
+}
+
+function getDocsPreferences(value: unknown): {
+  lastRead?: { href: string; title: string; visitedAt: number };
+} {
+  const root = toObject(value);
+  const docs = toObject(root.docs);
+  const lastRead = toObject(docs.lastRead);
+
+  if (
+    typeof lastRead.href === 'string' &&
+    typeof lastRead.title === 'string' &&
+    typeof lastRead.visitedAt === 'number'
+  ) {
+    return {
+      lastRead: {
+        href: lastRead.href,
+        title: lastRead.title,
+        visitedAt: lastRead.visitedAt,
+      },
+    };
+  }
+
+  return {};
+}
+
+const getPopularStatsCached = unstable_cache(
+  async (key: string) => {
+    const setting = await prisma.systemSetting.findUnique({
+      where: { key },
+      select: { value: true },
+    });
+    return parseGlobalStats(setting?.value ?? null);
+  },
+  ['docs-popular-stats'],
+  { revalidate: 300, tags: [POPULAR_CACHE_TAG] },
+);
+
+export async function GET() {
+  const session = await getProtectedSession();
+  if (!session) return NextResponse.json({ ok: false }, { status: 401 });
+
+  const roleSegment = getRoleSegment(session.role);
+  const roleKey = `${POPULAR_ROLE_KEY_PREFIX}${roleSegment}`;
+
+  const [globalStats, roleStats, user] = await Promise.all([
+    getPopularStatsCached(POPULAR_GLOBAL_KEY),
+    getPopularStatsCached(roleKey),
+    prisma.user.findUnique({ where: { id: session.userId }, select: { preferences: true } }),
+  ]);
 
   const { lastRead } = getDocsPreferences(user?.preferences);
 
-  return NextResponse.json({
-    ok: true,
-    globalPopular,
-    lastRead: lastRead ?? null,
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      roleSegment,
+      globalPopular: toPopularList(globalStats),
+      rolePopular: toPopularList(roleStats),
+      lastRead: lastRead ?? null,
+    },
+    {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+      },
+    },
+  );
 }
 
 export async function POST(request: Request) {
@@ -104,33 +136,36 @@ export async function POST(request: Request) {
     }
 
     const safeTitle = title.slice(0, 160);
+    const roleSegment = getRoleSegment(session.role);
+    const roleKey = `${POPULAR_ROLE_KEY_PREFIX}${roleSegment}`;
 
-    const [setting, user] = await Promise.all([
-      prisma.systemSetting.findUnique({
-        where: { key: POPULAR_KEY },
-        select: { value: true },
-      }),
-      prisma.user.findUnique({
-        where: { id: session.userId },
-        select: { preferences: true },
-      }),
+    const [globalSetting, roleSetting, user] = await Promise.all([
+      prisma.systemSetting.findUnique({ where: { key: POPULAR_GLOBAL_KEY }, select: { value: true } }),
+      prisma.systemSetting.findUnique({ where: { key: roleKey }, select: { value: true } }),
+      prisma.user.findUnique({ where: { id: session.userId }, select: { preferences: true } }),
     ]);
 
-    const current = parseGlobalStats(setting?.value ?? null);
-    const previous = current[href];
-    const next: GlobalDocStats = {
-      ...current,
+    const globalCurrent = parseGlobalStats(globalSetting?.value ?? null);
+    const globalPrevious = globalCurrent[href];
+    const globalNext: GlobalDocStats = {
+      ...globalCurrent,
       [href]: {
-        title: safeTitle || previous?.title || href,
-        count: (previous?.count ?? 0) + 1,
+        title: safeTitle || globalPrevious?.title || href,
+        count: (globalPrevious?.count ?? 0) + 1,
         lastViewed: visitedAt,
       },
     };
 
-    const entries = Object.entries(next)
-      .sort(([, a], [, b]) => b.lastViewed - a.lastViewed)
-      .slice(0, 400);
-    const limited = Object.fromEntries(entries) as GlobalDocStats;
+    const roleCurrent = parseGlobalStats(roleSetting?.value ?? null);
+    const rolePrevious = roleCurrent[href];
+    const roleNext: GlobalDocStats = {
+      ...roleCurrent,
+      [href]: {
+        title: safeTitle || rolePrevious?.title || href,
+        count: (rolePrevious?.count ?? 0) + 1,
+        lastViewed: visitedAt,
+      },
+    };
 
     const currentPreferences = toObject(user?.preferences);
     const currentDocs = toObject(currentPreferences.docs);
@@ -148,15 +183,27 @@ export async function POST(request: Request) {
 
     await prisma.$transaction([
       prisma.systemSetting.upsert({
-        where: { key: POPULAR_KEY },
+        where: { key: POPULAR_GLOBAL_KEY },
         update: {
-          value: JSON.stringify(limited),
+          value: JSON.stringify(globalNext),
           description: 'Contador global de visualizações da documentação',
         },
         create: {
-          key: POPULAR_KEY,
-          value: JSON.stringify(limited),
+          key: POPULAR_GLOBAL_KEY,
+          value: JSON.stringify(globalNext),
           description: 'Contador global de visualizações da documentação',
+        },
+      }),
+      prisma.systemSetting.upsert({
+        where: { key: roleKey },
+        update: {
+          value: JSON.stringify(roleNext),
+          description: `Contador de visualizações da documentação por perfil (${roleSegment})`,
+        },
+        create: {
+          key: roleKey,
+          value: JSON.stringify(roleNext),
+          description: `Contador de visualizações da documentação por perfil (${roleSegment})`,
         },
       }),
       prisma.user.update({
@@ -167,6 +214,7 @@ export async function POST(request: Request) {
       }),
     ]);
 
+    revalidateTag(POPULAR_CACHE_TAG);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[docs.views.error]', error);
