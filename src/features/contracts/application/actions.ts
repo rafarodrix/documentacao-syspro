@@ -13,10 +13,9 @@ import { revalidatePath } from "next/cache";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
 import {
-  ContractBlockReason,
   serializeContractBlockReason,
-  parseContractBlockReason,
 } from "@/core/config/contract-blocking";
+import type { ContractBlockReason } from "@/core/config/contract-blocking";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
@@ -276,7 +275,8 @@ export async function batchReadjustContractsAction(newMinimumWage: number) {
 export async function updateContractStatusAction(
   contractId: string,
   status: ContractStatus,
-  reason?: string | null,
+  reason?: ContractBlockReason | null,
+  details?: string | null,
 ) {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
@@ -312,10 +312,7 @@ export async function updateContractStatusAction(
       });
 
       if (isDeactivating && activeContracts === 0) {
-        const blockReason = serializeContractBlockReason({
-          code: ContractBlockReason.LAST_CONTRACT_INACTIVATED,
-          note: reason ?? undefined,
-        });
+        const blockReason = reason ? serializeContractBlockReason(reason, details ?? undefined) : null;
 
         await tx.company.update({
           where: { id: contract.companyId },
