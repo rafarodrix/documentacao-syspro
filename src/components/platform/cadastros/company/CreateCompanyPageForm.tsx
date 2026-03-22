@@ -130,15 +130,20 @@ export function CreateCompanyPageForm({
 }: CreateCompanyPageFormProps) {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<SectionId>("geral");
-  const [zammadEmails, setZammadEmails] = useState<CompanyZammadEmailInput[]>(() =>
-    (Array.isArray(initialZammadEmails) ? initialZammadEmails : [])
+  const normalizeZammadEmails = (items: CompanyZammadEmailInput[]) =>
+    items
       .map((item) => ({
         email: item.email.trim().toLowerCase(),
         label: item.label?.trim() || undefined,
         isActive: item.isActive ?? true,
       }))
-      .filter((item) => item.email.length > 0),
+      .filter((item) => item.email.length > 0)
+      .sort((a, b) => a.email.localeCompare(b.email));
+  const initialNormalizedZammadEmails = useMemo(
+    () => normalizeZammadEmails(Array.isArray(initialZammadEmails) ? initialZammadEmails : []),
+    [initialZammadEmails],
   );
+  const [zammadEmails, setZammadEmails] = useState<CompanyZammadEmailInput[]>(initialNormalizedZammadEmails);
   const [zammadEmailInput, setZammadEmailInput] = useState("");
   const [zammadEmailLabel, setZammadEmailLabel] = useState("");
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -187,15 +192,12 @@ export function CreateCompanyPageForm({
 
   const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
   const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue);
+  const zammadEmailsDirty =
+    JSON.stringify(normalizeZammadEmails(zammadEmails)) !== JSON.stringify(initialNormalizedZammadEmails);
+  const canSubmit = isDirty || zammadEmailsDirty;
 
   const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
-    const normalizedZammadEmails = zammadEmails
-      .map((item) => ({
-        email: item.email.trim().toLowerCase(),
-        label: item.label?.trim() || undefined,
-        isActive: item.isActive ?? true,
-      }))
-      .filter((item) => item.email);
+    const normalizedZammadEmails = normalizeZammadEmails(zammadEmails);
 
     const result =
       mode === "edit" && companyId
@@ -574,7 +576,7 @@ export function CreateCompanyPageForm({
                 <Button type="button" variant="ghost" onClick={() => router.push(backHref)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="gap-2" disabled={isSubmitting || !isDirty}>
+                <Button type="submit" className="gap-2" disabled={isSubmitting || !canSubmit}>
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {mode === "edit" ? "Salvar Alteracoes" : "Salvar Empresa"}
                 </Button>
