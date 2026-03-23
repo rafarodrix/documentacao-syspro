@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import { toast } from "sonner";
-import { replyTicketAction } from "@/actions/tickets/ticket-actions";
+import { replyTicketAction } from "@/features/tickets/application/actions";
 import { useSession } from "@/lib/auth-client"; // Para identificar "Eu" vs "Eles"
 
 export function useTicketChat(ticketId: string, articles: any[]) {

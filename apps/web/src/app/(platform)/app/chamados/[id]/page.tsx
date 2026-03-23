@@ -1,5 +1,5 @@
 import { Role } from "@prisma/client";
-import { getTicketDetailsAction } from "@/actions/tickets/ticket-actions";
+import { getTicketDetailsAction } from "@/features/tickets/application/actions";
 import { TicketDetails } from "@/components/platform/tickets/TicketDetails";
 import { requireSession } from "@/lib/auth-helpers";
 
@@ -15,3 +15,4 @@ export default async function ClientTicketPage({ params }: PageProps) {
 
     return <TicketDetails ticket={ticket} articles={articles || []} error={error} isAdmin={isAdmin} />;
 }
+

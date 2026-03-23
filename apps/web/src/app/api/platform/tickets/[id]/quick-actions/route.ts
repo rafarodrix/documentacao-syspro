@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ticketQuickAction } from "@/actions/tickets/ticket-actions";
+import { ticketQuickAction } from "@/features/tickets/application/actions";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -21,4 +21,5 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ success: false, error: "Erro interno." }, { status: 500 });
   }
 }
+
 

@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"; // Certifique-se de ter este comp
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
 
 // Import das Actions Reais
-import { getDocumentos, saveDocumento, deleteDocumento } from '@/actions/documentos/documento-actions';
+import { getDocumentos, saveDocumento, deleteDocumento } from '@/features/documentos/application/actions';
 
 export default function DocumentosContainer() {
     const [viewState, setViewState] = useState<'list' | 'form'>('list');
