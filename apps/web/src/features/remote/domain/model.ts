@@ -116,3 +116,41 @@ export type RemotePlatformOverview = {
     status: RemoteHostStatus;
   }>;
 };
+
+export type RemoteConfiguredHostItem = {
+  id: string;
+  companyId: string;
+  companyName: string | null;
+  name: string;
+  environment: string | null;
+  provider: string | null;
+  rustdeskId: string | null;
+  status: RemoteHostStatus;
+  description: string;
+  openSessionCount: number;
+  lastSessionAt: string | null;
+};
+
+export type RemotePlatformDirectory = {
+  tenantScope: RemoteTenantScope;
+  stats: {
+    totalHosts: number;
+    activeHosts: number;
+    companies: number;
+  };
+  items: RemoteConfiguredHostItem[];
+};
+
+export type RemoteHostDetails = {
+  host: RemoteConfiguredHostItem;
+  recentSessions: Array<
+    RemoteSessionSummary & {
+      hostName: string;
+      companyName: string | null;
+      requestedByName: string | null;
+      createdAt: string;
+      startedAt: string | null;
+      endedAt: string | null;
+    }
+  >;
+};

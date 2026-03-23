@@ -1,10 +1,63 @@
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
-import type { RemotePlatformOverview } from "@/features/remote/domain/model";
+import type {
+  RemoteConfiguredHostItem,
+  RemoteHostDetails,
+  RemotePlatformDirectory,
+  RemotePlatformOverview,
+} from "@/features/remote/domain/model";
+
+function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
+  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
+}
+
+function mapHostDescription(input: { environment: string | null; provider: string | null; rustdeskId: string | null }) {
+  return [
+    input.environment ? `Ambiente: ${input.environment}` : null,
+    input.provider ? `Provider: ${input.provider}` : null,
+    input.rustdeskId ? `RustDesk ID: ${input.rustdeskId}` : null,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function mapDirectoryItem(host: {
+  id: string;
+  companyId: string;
+  name: string;
+  environment: string | null;
+  provider: string | null;
+  agentExternalId: string | null;
+  status: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
+  company: { nomeFantasia: string | null; razaoSocial: string };
+  sessions: Array<{ createdAt: Date; status: string }>;
+}): RemoteConfiguredHostItem {
+  const companyName = host.company.nomeFantasia ?? host.company.razaoSocial;
+  const openSessionCount = host.sessions.filter((session) => session.status === "REQUESTED" || session.status === "STARTED").length;
+  const lastSessionAt = host.sessions[0]?.createdAt.toISOString() ?? null;
+
+  return {
+    id: host.id,
+    companyId: host.companyId,
+    companyName,
+    name: host.name,
+    environment: host.environment,
+    provider: host.provider,
+    rustdeskId: host.agentExternalId,
+    status: host.status,
+    description: mapHostDescription({
+      environment: host.environment,
+      provider: host.provider,
+      rustdeskId: host.agentExternalId,
+    }),
+    openSessionCount,
+    lastSessionAt,
+  };
+}
 
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
   const tenantScope = await getRemoteTenantScope();
-  const scopedWhere = tenantScope.isGlobalView ? {} : { companyId: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } };
+  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
   const [
     recentHosts,
@@ -248,6 +301,91 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       companyId: host.companyId,
       label: `${host.name} (${host.company.nomeFantasia ?? host.company.razaoSocial})`,
       status: host.status,
+    })),
+  };
+}
+
+export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirectory> {
+  const tenantScope = await getRemoteTenantScope();
+  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+
+  const [hosts, totalHosts, activeHosts, companies] = await Promise.all([
+    prisma.remoteHost.findMany({
+      where: scopedWhere,
+      include: {
+        company: { select: { nomeFantasia: true, razaoSocial: true } },
+        sessions: {
+          select: { createdAt: true, status: true },
+          orderBy: [{ createdAt: "desc" }],
+          take: 10,
+        },
+      },
+      orderBy: [{ company: { razaoSocial: "asc" } }, { name: "asc" }],
+    }),
+    prisma.remoteHost.count({ where: scopedWhere }),
+    prisma.remoteHost.count({ where: { ...scopedWhere, status: "ACTIVE" } }),
+    prisma.remoteHost.groupBy({
+      by: ["companyId"],
+      where: scopedWhere,
+    }),
+  ]);
+
+  return {
+    tenantScope,
+    stats: {
+      totalHosts,
+      activeHosts,
+      companies: companies.length,
+    },
+    items: hosts.map(mapDirectoryItem),
+  };
+}
+
+export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDetails | null> {
+  const tenantScope = await getRemoteTenantScope();
+  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+
+  const host = await prisma.remoteHost.findFirst({
+    where: {
+      id: hostId,
+      ...scopedWhere,
+    },
+    include: {
+      company: { select: { nomeFantasia: true, razaoSocial: true } },
+      sessions: {
+        include: {
+          company: { select: { nomeFantasia: true, razaoSocial: true } },
+          host: { select: { name: true } },
+          requestedByUser: { select: { name: true } },
+        },
+        orderBy: [{ createdAt: "desc" }],
+        take: 20,
+      },
+    },
+  });
+
+  if (!host) return null;
+
+  return {
+    host: mapDirectoryItem({
+      ...host,
+      sessions: host.sessions.map((session) => ({ createdAt: session.createdAt, status: session.status })),
+    }),
+    recentSessions: host.sessions.map((session) => ({
+      id: session.id,
+      companyId: session.companyId,
+      ticketId: session.ticketId,
+      ticketNumber: session.ticketNumber,
+      hostId: session.hostId,
+      requestedByUserId: session.requestedByUserId,
+      startedByUserId: session.startedByUserId,
+      status: session.status,
+      hostName: session.host.name,
+      companyName: session.company.nomeFantasia ?? session.company.razaoSocial,
+      requestedByName: session.requestedByUser.name,
+      createdAt: session.createdAt.toISOString(),
+      startedAt: session.startedAt?.toISOString() ?? null,
+      endedAt: session.endedAt?.toISOString() ?? null,
     })),
   };
 }

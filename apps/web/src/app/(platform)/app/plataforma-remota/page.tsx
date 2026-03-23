@@ -1,14 +1,14 @@
 import { Role } from "@prisma/client";
 import { requireRole } from "@/lib/auth-helpers";
-import { getRemotePlatformOverview } from "@/features/remote/application/queries";
-import { RemotePlatformOverviewPanel } from "@/features/remote/interface";
+import { getRemotePlatformDirectory } from "@/features/remote/application/queries";
+import { RemotePlatformDirectoryPanel } from "@/features/remote/interface/directory-page";
 import { Monitor } from "lucide-react";
 
 const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 
 export default async function RemotePlatformPage() {
   await requireRole(ALLOWED_ROLES, "/app");
-  const overview = await getRemotePlatformOverview();
+  const directory = await getRemotePlatformDirectory();
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -18,11 +18,11 @@ export default async function RemotePlatformPage() {
           Plataforma Remota
         </h1>
         <p className="max-w-3xl text-muted-foreground text-lg">
-          Estrutura inicial para acesso remoto, cofres de credenciais, backup e auditoria operacional.
+          Diretorio operacional dos clientes e hosts remotos ja configurados para acesso.
         </p>
       </div>
 
-      <RemotePlatformOverviewPanel overview={overview} />
+      <RemotePlatformDirectoryPanel directory={directory} />
     </div>
   );
 }
