@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { authGateway } from "@/core/infrastructure/gateways/auth-gateway"
+import { authGateway } from "@/features/auth/infrastructure/gateways/auth-gateway"
 
 export function useRegister() {
     const [loading, setLoading] = useState(false)

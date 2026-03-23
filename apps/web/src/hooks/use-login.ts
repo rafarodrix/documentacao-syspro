@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { authGateway } from "@/core/infrastructure/gateways/auth-gateway"
+import { authGateway } from "@/features/auth/infrastructure/gateways/auth-gateway"
 import { authClient } from "@/lib/auth-client"
 import { toast } from "sonner"
 
