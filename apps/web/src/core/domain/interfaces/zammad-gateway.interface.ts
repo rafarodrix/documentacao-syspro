@@ -4,6 +4,7 @@ import type {
   ZammadTicketArticle,
   ZammadTicketDetails,
 } from "@/core/application/schema/zammad-api.schema";
+import type { Ticket } from "@/core/domain/entities/ticket.entity";
 
 export type ZammadCacheOptions = {
   cacheTtlSeconds?: number;
@@ -28,6 +29,41 @@ export interface IZammadGateway {
   getAllTickets(
     limit?: number,
     cacheOptions?: ZammadCacheOptions & { page?: number; stateIds?: number[] }
+  ): Promise<ZammadOperationalTicket[]>;
+  getUserTickets(userEmail: string): Promise<Ticket[]>;
+  getTicketsForUser(
+    email: string,
+    options?: {
+      stateIds?: number[];
+      limit?: number;
+      page?: number;
+      scope?: "organization-or-email" | "email-only";
+      cacheTtlSeconds?: number;
+      tags?: string[];
+      routeKey?: string;
+    }
+  ): Promise<ZammadOperationalTicket[]>;
+  getTicketsForCustomerEmails(
+    emails: string[],
+    options?: {
+      stateIds?: number[];
+      limit?: number;
+      page?: number;
+      cacheTtlSeconds?: number;
+      tags?: string[];
+      routeKey?: string;
+    }
+  ): Promise<ZammadOperationalTicket[]>;
+  getTicketsForCustomerEmailsPaged(
+    emails: string[],
+    options?: {
+      stateIds?: number[];
+      limit?: number;
+      page?: number;
+      cacheTtlSeconds?: number;
+      tags?: string[];
+      routeKey?: string;
+    }
   ): Promise<ZammadOperationalTicket[]>;
   getTicketById(ticketId: string | number): Promise<ZammadTicketDetails>;
   getTicketArticles(ticketId: string | number): Promise<ZammadTicketArticle[]>;
