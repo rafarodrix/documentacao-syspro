@@ -38,6 +38,41 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     return values.sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [directory.items]);
 
+  function getStatusLabel(status: "ACTIVE" | "MAINTENANCE" | "INACTIVE") {
+    if (status === "ACTIVE") return "Ativo";
+    if (status === "MAINTENANCE") return "Manutenção";
+    return "Inativo";
+  }
+
+  function getReadinessMeta(item: RemotePlatformDirectory["items"][number]) {
+    if (!item.rustdeskId) {
+      return {
+        label: "Sem RustDesk ID",
+        className: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
+      };
+    }
+
+    const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
+    if (heartbeat.bucket === "recent") {
+      return {
+        label: "Pronto para acesso",
+        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      };
+    }
+
+    if (heartbeat.bucket === "stale") {
+      return {
+        label: "Heartbeat antigo",
+        className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      };
+    }
+
+    return {
+      label: "Sem heartbeat",
+      className: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
+    };
+  }
+
   function getHeartbeatMeta(lastHeartbeatAt: string | null) {
     if (!lastHeartbeatAt) {
       return {
@@ -318,10 +353,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
                 className="h-10 rounded-md border border-border bg-background px-3 text-sm"
               >
-                <option value="all">Todos os status</option>
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="MAINTENANCE">MAINTENANCE</option>
-                <option value="INACTIVE">INACTIVE</option>
+                    <option value="all">Todos os status</option>
+                    <option value="ACTIVE">Ativo</option>
+                    <option value="MAINTENANCE">Manutenção</option>
+                    <option value="INACTIVE">Inativo</option>
               </select>
 
               <select
@@ -353,6 +388,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           {filteredItems.length ? (
             filteredItems.map((item) => {
               const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
+              const readiness = getReadinessMeta(item);
               const HeartbeatIcon = heartbeat.icon;
               const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
 
@@ -366,8 +402,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           <HeartbeatIcon className="mr-1 h-3.5 w-3.5" />
                           {heartbeat.label}
                         </Badge>
+                        <Badge variant="outline" className={readiness.className}>
+                          {readiness.label}
+                        </Badge>
                         <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                          {item.status}
+                          {getStatusLabel(item.status)}
                         </Badge>
                         {rustdeskHref ? (
                           <a href={rustdeskHref} className={cn(buttonVariants({ variant: "outline" }), "h-8 gap-1 px-3")}>
@@ -377,7 +416,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         ) : null}
                       </div>
                       <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>RustDesk ID: {item.rustdeskId ?? "Nao configurado"}</p>
+                        <p>RustDesk ID: {item.rustdeskId ?? "Não configurado"}</p>
                         <p>Descricao: {item.description || "Sem descricao operacional."}</p>
                         {item.lastSessionAt ? (
                           <p>

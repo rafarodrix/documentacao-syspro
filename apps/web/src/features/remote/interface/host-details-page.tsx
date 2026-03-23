@@ -15,6 +15,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const { host } = details;
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
+  const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutenção" : "Inativo";
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
       return {
@@ -50,6 +51,39 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     };
   }, [host.lastHeartbeatAt]);
 
+  const readiness = useMemo(() => {
+    if (!normalizedRustdeskId) {
+      return {
+        label: "Sem RustDesk ID",
+        tone: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
+        description: "O host ainda nao tem identificador RustDesk valido para acesso direto.",
+      };
+    }
+
+    if (!host.lastHeartbeatAt) {
+      return {
+        label: "Sem heartbeat",
+        tone: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
+        description: "O agente ainda nao reportou atividade. Validar instalacao e conectividade.",
+      };
+    }
+
+    const diffMinutes = Math.floor((Date.now() - new Date(host.lastHeartbeatAt).getTime()) / 60000);
+    if (diffMinutes <= 5) {
+      return {
+        label: "Pronto para acesso",
+        tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+        description: "Host com RustDesk ID e heartbeat recente. Fluxo pronto para suporte.",
+      };
+    }
+
+    return {
+      label: "Heartbeat antigo",
+      tone: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
+      description: "O acesso pode funcionar, mas convem confirmar conectividade antes da sessao.",
+    };
+  }, [host.lastHeartbeatAt, normalizedRustdeskId]);
+
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
       toast.error(`${label} nao configurado.`);
@@ -82,7 +116,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">{host.name}</h1>
           <p className="text-muted-foreground">
-            {host.companyName ?? "Sem empresa"}{host.environment ? ` | ${host.environment}` : ""}
+            {host.companyName ?? "Sem empresa"}{host.environment ? ` | ${host.environment}` : ""}{` | ${statusLabel}`}
           </p>
         </div>
 
@@ -139,6 +173,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             <Badge variant="outline" className={heartbeat.tone}>
               {heartbeat.label}
             </Badge>
+            <Badge variant="outline" className={readiness.tone}>
+              {readiness.label}
+            </Badge>
+            <p className="text-sm text-muted-foreground">{readiness.description}</p>
             <p className="text-sm text-muted-foreground">{heartbeat.description}</p>
             <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm text-muted-foreground">
               <p>1. Abra o RustDesk pelo botao acima.</p>

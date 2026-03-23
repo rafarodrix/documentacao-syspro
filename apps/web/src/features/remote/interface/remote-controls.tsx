@@ -120,6 +120,20 @@ export function RemotePlatformControls({ overview }: Props) {
     };
   }
 
+  function getStatusLabel(status: "ACTIVE" | "INACTIVE" | "MAINTENANCE") {
+    if (status === "ACTIVE") return "Ativo";
+    if (status === "MAINTENANCE") return "Manutenção";
+    return "Inativo";
+  }
+
+  function getReadinessLabel(host: (typeof recentHosts)[number]) {
+    if (!host.agentExternalId) return "Sem RustDesk ID";
+    const heartbeat = getHeartbeatMeta(host.lastHeartbeatAt);
+    if (heartbeat.bucket === "recent") return "Pronto para acesso";
+    if (heartbeat.bucket === "stale") return "Heartbeat antigo";
+    return "Sem heartbeat";
+  }
+
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
       toast.error(`${label} nao configurado.`);
@@ -467,9 +481,9 @@ export function RemotePlatformControls({ overview }: Props) {
                       <SelectValue placeholder="Selecione o status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                      <SelectItem value="MAINTENANCE">MAINTENANCE</SelectItem>
-                      <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                      <SelectItem value="ACTIVE">Ativo</SelectItem>
+                      <SelectItem value="MAINTENANCE">Manutenção</SelectItem>
+                      <SelectItem value="INACTIVE">Inativo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -499,9 +513,9 @@ export function RemotePlatformControls({ overview }: Props) {
                     className="h-10 rounded-md border border-border bg-background px-3 text-sm"
                   >
                     <option value="all">Todos os status</option>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="MAINTENANCE">MAINTENANCE</option>
-                    <option value="INACTIVE">INACTIVE</option>
+                    <option value="ACTIVE">Ativo</option>
+                    <option value="MAINTENANCE">Manutenção</option>
+                    <option value="INACTIVE">Inativo</option>
                   </select>
                   <select
                     value={hostHeartbeatFilter}
@@ -519,6 +533,7 @@ export function RemotePlatformControls({ overview }: Props) {
                   filteredRecentHosts.map((host) => {
                     const heartbeat = getHeartbeatMeta(host.lastHeartbeatAt);
                     const HeartbeatIcon = heartbeat.icon;
+                    const readinessLabel = getReadinessLabel(host);
 
                     return (
                     <div key={host.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
@@ -529,6 +544,12 @@ export function RemotePlatformControls({ overview }: Props) {
                             <Badge variant="outline" className={heartbeat.className}>
                               <HeartbeatIcon className="mr-1 h-3.5 w-3.5" />
                               {heartbeat.label}
+                            </Badge>
+                            <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                              {readinessLabel}
+                            </Badge>
+                            <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                              {getStatusLabel(host.status)}
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
