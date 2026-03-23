@@ -172,7 +172,7 @@ interface DepartmentTableProps {
   totalRevenue: number;
   onUpdateDepartment: (id: number, field: keyof Department, value: any) => void;
   onDelete: (id: number) => void;
-  lastAddedRef: React.Ref<HTMLInputSlement>;
+  lastAddedRef: React.Ref<HTMLInputElement>;
 }
 
 function DepartmentTable({
@@ -374,7 +374,7 @@ export function FixedCostSimulator() {
   const [costTarget, setCostTarget] = useState(0.4); // 40%
   const [allocationMode, setAllocationMode] = useState<AllocationMode>('auto');
 
-  const lastAddedInputRef = useRef<HTMLInputSlement>(null);
+  const lastAddedInputRef = useRef<HTMLInputElement>(null);
 
   // --- Cálculos Derivados ---
   const totalRevenue = useMemo(() => departments.reduce((sum, d) => sum + d.totalRevenue, 0), [departments]);
