@@ -4,7 +4,7 @@ import { source } from '@/lib/source';
 import { SiteHeader } from "@/components/site/Header";
 import { requireSession } from "@/lib/auth-helpers";
 import { SYSTEM_ROLES } from '@dosc-syspro/core';
-import { isAdminOnlyDocUrl } from '@/core/config/docs-access';
+import { isAdminOnlyDocUrl } from '@/app/docs/docs-access';
 import type { Root as PageTreeRoot, Node as PageTreeNode, Item as PageTreeItem } from 'fumadocs-core/page-tree';
 import { DocsLayoutClient } from '@/components/docs/DocsLayoutClient';
 
@@ -110,3 +110,4 @@ export default async function Layout({ children }: { children: ReactNode }) {
     </div>
   );
 }
+

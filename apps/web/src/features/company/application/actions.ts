@@ -1,10 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createCompanySchema, CreateCompanyInput } from "@/core/application/schema/company-schema";
+import { createCompanySchema, CreateCompanyInput } from "@/features/company/application/company-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { Prisma, CompanyStatus, Role } from "@prisma/client";
-import { resolveCompanySegmentTriggers } from "@/core/config/company-segments";
+import { resolveCompanySegmentTriggers } from "@/features/company/domain/company-segments";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { CompanyRegistryGateway } from "@/core/infrastructure/gateways/company-registry-gateway";
@@ -345,3 +345,4 @@ export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
     return handleActionError(error);
   }
 }
+

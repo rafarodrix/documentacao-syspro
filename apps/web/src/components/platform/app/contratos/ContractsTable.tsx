@@ -41,7 +41,7 @@ import {
     CONTRACT_BLOCK_REASONS,
     CONTRACT_BLOCK_REASON_LABEL,
 } from "@dosc-syspro/core";
-import { DEFAULT_CONTRACT_TAX_RATE } from "@/core/application/schema/contract-schema";
+import { DEFAULT_CONTRACT_TAX_RATE } from "@/features/contracts/application/contract-schema";
 
 interface ContractsTableProps {
     contracts: ContractListItem[];
@@ -558,4 +558,5 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
         </>
     );
 }
+
 

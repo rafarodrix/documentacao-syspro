@@ -10,7 +10,7 @@ import { notFound, redirect } from 'next/navigation';
 import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
 import { Role } from '@prisma/client';
 import { requireSession, canAccessByCompanySegment } from '@/lib/auth-helpers';
-import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/core/config/docs-access';
+import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/app/docs/docs-access';
 import { SYSTEM_ROLES } from '@dosc-syspro/core';
 import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 import { DocsHomePage } from '@/components/docs/DocsHomePage';

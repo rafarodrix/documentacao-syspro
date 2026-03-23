@@ -1,5 +1,5 @@
 import type { CompanyStatus } from "@prisma/client";
-import type { CreateCompanyInput } from "@/core/application/schema/company-schema";
+import type { CreateCompanyInput } from "@/features/company/application/company-schema";
 import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
@@ -22,3 +22,4 @@ export interface CompanyWriteRepository {
   updateCompanyStatus(id: string, status: CompanyStatus): Promise<CompanyActionResponse>;
   deleteCompany(id: string): Promise<CompanyActionResponse>;
 }
+

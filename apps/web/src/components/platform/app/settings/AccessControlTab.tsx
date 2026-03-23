@@ -16,7 +16,7 @@ import {
     ROLE_LABELS,
     ACCESS_MATRIX,
     PermissionKey,
-} from "@/core/config/permissions";
+} from "@/features/user-access/domain/permissions";
 import { Role } from "@prisma/client";
 
 interface AccessControlTabProps {
@@ -136,4 +136,5 @@ export function AccessControlTab({ initialEnabled }: AccessControlTabProps) {
         </Card>
     );
 }
+
 

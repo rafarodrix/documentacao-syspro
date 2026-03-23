@@ -6,14 +6,14 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
-import { createCompanySchema, type CreateCompanyInput } from "@/core/application/schema/company-schema";
+import { createCompanySchema, type CreateCompanyInput } from "@/features/company/application/company-schema";
 import type { CompanyOption, CompanyZammadEmailInput } from "@/features/company/domain/model";
 import {
   createCompanyAction,
   lookupCompanyProfileByCnpjAction,
   updateCompanyAction,
 } from "@/features/company/application/actions";
-import { COMPANY_SEGMENT_LABELS } from "@/core/config/company-segments";
+import { COMPANY_SEGMENT_LABELS } from "@/features/company/domain/company-segments";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -672,4 +672,5 @@ export function CreateCompanyPageForm({
     </div>
   );
 }
+
 

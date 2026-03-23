@@ -7,7 +7,7 @@ import {
   CreateContractInput,
   UpdateContractInput,
   DEFAULT_CONTRACT_TAX_RATE,
-} from "@/core/application/schema/contract-schema";
+} from "@/features/contracts/application/contract-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { SETTING_KEYS } from "@dosc-syspro/contracts";
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
@@ -293,3 +293,4 @@ export async function updateContractStatusAction(
     return { success: false, error: "Erro ao atualizar status do contrato." };
   }
 }
+

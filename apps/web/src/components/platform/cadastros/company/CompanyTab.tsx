@@ -26,7 +26,7 @@ import {
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { getCompanySegmentLabel } from "@/core/config/company-segments"
+import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/actions"
 
@@ -505,4 +505,5 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
     </>
   )
 }
+
 

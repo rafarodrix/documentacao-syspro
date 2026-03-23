@@ -1,5 +1,5 @@
 import { Role } from "@prisma/client";
-import { ACCESS_MATRIX, PermissionKey } from "@/core/config/permissions";
+import { ACCESS_MATRIX, PermissionKey } from "@/features/user-access/domain/permissions";
 
 /**
  * Verifica se uma Role tem permissão para realizar uma ação.
@@ -33,3 +33,4 @@ export function hasAnyPermission(role: Role, permissions: PermissionKey[]): bool
 
     return permissions.some((p) => hasPermission(role, p));
 }
+

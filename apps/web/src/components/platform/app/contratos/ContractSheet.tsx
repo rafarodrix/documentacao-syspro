@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createContractSchema, CreateContractInput } from "@/core/application/schema/contract-schema";
+import { createContractSchema, CreateContractInput } from "@/features/contracts/application/contract-schema";
 import { createContractAction } from "@/features/contracts/application/actions";
 import { getSystemParamsAction } from "@/features/contracts/application/queries";
 import type { ContractCompanyOption } from "@/features/contracts/domain/model";
@@ -313,4 +313,5 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
         </div>
     );
 }
+
 
