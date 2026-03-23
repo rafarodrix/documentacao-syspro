@@ -24,7 +24,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
-vi.mock("@/core/infrastructure/gateways/zammad-gateway", () => ({
+vi.mock("@/features/tickets/infrastructure/gateways/zammad-gateway", () => ({
   ZammadGateway: {
     getUserIdByEmail: getUserIdByEmailMock,
     searchOperationalTickets: searchOperationalTicketsMock,
@@ -32,11 +32,11 @@ vi.mock("@/core/infrastructure/gateways/zammad-gateway", () => ({
   },
 }));
 
-vi.mock("@/core/infrastructure/observability/zammad-observability", () => ({
+vi.mock("@/features/tickets/infrastructure/observability/zammad-observability", () => ({
   getZammadRouteHealth: getZammadRouteHealthMock,
 }));
 
-vi.mock("@/core/infrastructure/cache/zammad-ticket-cache", () => ({
+vi.mock("@/features/tickets/infrastructure/cache/zammad-ticket-cache", () => ({
   upsertOperationalTicketsToCache: upsertOperationalTicketsToCacheMock,
   listCachedTickets: listCachedTicketsMock,
 }));

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
-import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
+import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+import { upsertOperationalTicketsToCache } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { prisma } from "@/lib/prisma";
 import { isValidSecretToken } from "@/lib/security/request-auth";
 

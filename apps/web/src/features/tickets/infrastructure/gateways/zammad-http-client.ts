@@ -2,7 +2,7 @@ import {
   markZammadRouteFresh,
   markZammadRouteStale,
   recordZammadMetric,
-} from "@/core/infrastructure/observability/zammad-observability";
+} from "@/features/tickets/infrastructure/observability/zammad-observability";
 import type { ZammadCacheOptions } from "@/features/tickets/domain/repositories/zammad-gateway.repository";
 
 const ZAMMAD_URL = process.env.ZAMMAD_URL;

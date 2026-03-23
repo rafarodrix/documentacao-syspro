@@ -1,6 +1,6 @@
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
+import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import { CLOSED_STATE_IDS, OPERATIONAL_STATE_IDS, type QueueKey, type TicketStatusGroup } from "@dosc-syspro/core";
 import { getStateIdsForStatusGroup } from "@dosc-syspro/core";
 import type { TicketStatusCounts } from "@/components/platform/tickets/types";

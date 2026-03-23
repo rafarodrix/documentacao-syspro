@@ -1,8 +1,8 @@
 import { computeTicketSla } from "@dosc-syspro/core";
-import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { mapTicketStateLabel } from "@/features/tickets/infrastructure/mappers/zammad-ticket.mapper";
 import type { ZammadOperationalTicket } from "@dosc-syspro/contracts";
 import type { TicketListItem, TicketsPagination } from "@/components/platform/tickets/types";
-import type { listCachedTickets } from "@/core/infrastructure/cache/zammad-ticket-cache";
+import type { listCachedTickets } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 
 export function formatTickets(ticketsRaw: ZammadOperationalTicket[]): TicketListItem[] {
   const formattedTickets: TicketListItem[] = ticketsRaw.map((ticket) => ({

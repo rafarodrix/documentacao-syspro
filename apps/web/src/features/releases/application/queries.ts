@@ -1,5 +1,5 @@
 import { Release } from "@dosc-syspro/core";
-import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
+import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import { unstable_cache } from "next/cache";
 
 const ZAMMAD_RELEASE_STATE_ID = 4;

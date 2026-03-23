@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { zammadOperationalTicketSchema } from "@dosc-syspro/contracts";
-import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
+import { upsertOperationalTicketsToCache } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { isValidHmacSignature } from "@/lib/security/request-auth";

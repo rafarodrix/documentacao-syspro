@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Calendar, Bug, Rocket, Sparkles } from "lucide-react";
 import { getReleases } from '@/features/releases/application/queries';
-import { groupReleasesByDate, monthNames } from "@/core/infrastructure/mappers/zammad-release.mapper";
+import { groupReleasesByDate, monthNames } from "@/features/releases/infrastructure/mappers/zammad-release.mapper";
 
 // Shadcn Imports
 import {

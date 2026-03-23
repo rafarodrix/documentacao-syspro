@@ -1,6 +1,6 @@
-import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
-import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
-import { listCachedTickets, upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
+import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+import { getZammadRouteHealth } from "@/features/tickets/infrastructure/observability/zammad-observability";
+import { listCachedTickets, upsertOperationalTicketsToCache } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { buildEmailScopeQuery, buildOperationalStatusQuery, buildQueueQuery, buildSearchQuery, buildStatusQuery, buildTrackedStatusQuery, combineQueryParts } from "@/features/tickets/application/services/ticket-query-builders";
 import { getQueueCountsFromCache, getQueueCountsFromZammad, getStatusCountsFromCache, getStatusCountsFromZammad } from "@/features/tickets/application/services/ticket-query-counts.service";
 import { buildPagination, formatCachedTickets, formatTickets } from "@/features/tickets/application/services/ticket-query-formatters";

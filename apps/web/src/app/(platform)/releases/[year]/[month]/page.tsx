@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getReleases } from "@/features/releases/application/queries";
 import { ReleasesClientPage } from "@/components/releases/client-page";
-import { monthNames } from "@/core/infrastructure/mappers/zammad-release.mapper";
+import { monthNames } from "@/features/releases/infrastructure/mappers/zammad-release.mapper";
 
 // Mantém a geração estática para performance máxima em docs
 export async function generateStaticParams() {
@@ -77,3 +77,4 @@ export default async function MonthlyReleasePage({
     />
   );
 }
+

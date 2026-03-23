@@ -12,7 +12,7 @@ import {
   type ZammadUserSearch,
 } from "@dosc-syspro/contracts";
 import { OPERATIONAL_STATE_IDS } from "@dosc-syspro/core";
-import { mapTicketPriority, mapTicketStatusFromStateName } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { mapTicketPriority, mapTicketStatusFromStateName } from "@/features/tickets/infrastructure/mappers/zammad-ticket.mapper";
 import type { ZammadGatewayRepository, ZammadCacheOptions } from "@/features/tickets/domain/repositories/zammad-gateway.repository";
 import {
   buildAuthorizationHeader,

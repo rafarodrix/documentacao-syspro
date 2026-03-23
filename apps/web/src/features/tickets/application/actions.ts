@@ -1,11 +1,11 @@
 "use server";
 
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
+import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import { ZammadTicketArticle } from "@dosc-syspro/contracts";
 import { computeTicketSla } from "@dosc-syspro/core";
 import { queryTicketsForViewer } from "@/features/tickets/application/services/ticket-query.service";
-import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { mapTicketStateLabel } from "@/features/tickets/infrastructure/mappers/zammad-ticket.mapper";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";

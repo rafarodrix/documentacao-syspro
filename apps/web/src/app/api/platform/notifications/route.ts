@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
-import { isAnalysisOrDevelopmentStateId, isAnalysisOrDevelopmentStateName } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+import { isAnalysisOrDevelopmentStateId, isAnalysisOrDevelopmentStateName } from "@/features/tickets/infrastructure/mappers/zammad-ticket.mapper";
 import { Role } from "@prisma/client";
-import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
+import { upsertOperationalTicketsToCache } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { computeTicketSla } from "@dosc-syspro/core";
 
 export const dynamic = "force-dynamic";

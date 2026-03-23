@@ -1,4 +1,4 @@
-import { mapTicketPriority } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+import { mapTicketPriority } from "@/features/tickets/infrastructure/mappers/zammad-ticket.mapper";
 import { getTicketStatusGroup } from "@dosc-syspro/core";
 import type {
     TicketDashboardPriority,

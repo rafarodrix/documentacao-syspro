@@ -4,7 +4,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import {
   getZammadMetricsSnapshot,
   getZammadRouteHealth,
-} from "@/core/infrastructure/observability/zammad-observability";
+} from "@/features/tickets/infrastructure/observability/zammad-observability";
 import { prisma } from "@/lib/prisma";
 
 const ROUTES = ["app-dashboard", "app-chamados", "notifications"] as const;

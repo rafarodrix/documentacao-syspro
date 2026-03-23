@@ -7,7 +7,7 @@ import { Prisma, CompanyStatus, Role } from "@prisma/client";
 import { resolveCompanySegmentTriggers } from "@/features/company/domain/company-segments";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
-import { CompanyRegistryGateway } from "@/core/infrastructure/gateways/company-registry-gateway";
+import { CompanyRegistryGateway } from "@/features/company/infrastructure/gateways/company-registry-gateway";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
   CompanyActionResponse as ActionResponse,
