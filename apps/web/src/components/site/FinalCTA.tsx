@@ -9,7 +9,7 @@ export function FinalCTA() {
       {/* --- Background Magic --- */}
       <div className="absolute inset-0 -z-10 h-full w-full bg-background">
         {/* Grid Pattern Sutil */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.12)_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
         {/* Glow Radial de Fundo */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-primary/5 blur-[100px] pointer-events-none"></div>

@@ -1,8 +1,8 @@
 ---
-title: EstratÃ©gia de Plataforma Remota (Futuro)
-description: Base tÃ©cnica para evoluÃ§Ã£o da plataforma com acesso remoto, credenciais, backup, APIs e roadmap por fases.
+title: Estrategia de Plataforma Remota
+description: Diretrizes tecnicas e estado atual da plataforma remota com RustDesk, Zammad, tenant scope e roadmap operacional.
 full: true
-lastUpdated: "2026-03-22"
+lastUpdated: "2026-03-23"
 owner: Equipe de Arquitetura
 status: draft
 ---
@@ -10,47 +10,92 @@ status: draft
 import { Callout } from "fumadocs-ui/components/callout";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 
-Este documento consolida a implementaÃ§Ã£o-base para evoluÃ§Ã£o futura da plataforma Trilink, com foco em operaÃ§Ã£o remota segura, credenciais centralizadas, backup de banco e arquitetura escalÃ¡vel por fases.
+Este documento consolida a direcao tecnica e o estado atual da plataforma remota da Trilink, com foco em acesso remoto seguro, integracao com atendimento, segregacao por empresa e evolucao gradual para backup, cofres de credenciais e auditoria operacional.
 
 ## Resumo executivo
 
 - Engine remota recomendada para MVP: **RustDesk self-hosted**.
-- CenÃ¡rio web-first futuro: **Apache Guacamole**.
-- Cofre de credenciais: **HashiCorp Vault**.
+- Integracao operacional inicial: **Zammad + RustDesk**.
+- Cofre de credenciais planejado: **HashiCorp Vault**.
 - Banco legado Firebird:
-  - **`gbak`** como padrÃ£o de backup lÃ³gico.
-  - **`nbackup`** em cenÃ¡rios especÃ­ficos de backup fÃ­sico/incremental.
+  - **`gbak`** como padrao de backup logico.
+  - **`nbackup`** em cenarios especificos de backup fisico/incremental.
 
-<Callout type="info" title="Diretriz prÃ¡tica">
-  ComeÃ§ar com RustDesk reduz tempo e risco de implementaÃ§Ã£o. Guacamole entra como evoluÃ§Ã£o quando houver necessidade de experiÃªncia 100% via navegador.
+<Callout type="info" title="Diretriz pratica">
+  A base atual prioriza operacao e governanca antes de sofisticacao. O objetivo imediato nao e browser access completo, e sim controle de hosts, sessoes, vinculo com ticket e tenant enforcement por empresa.
 </Callout>
 
-## Arquitetura proposta
+## Estado atual da implementacao
+
+Ja existe no codigo:
+
+- modelos persistidos de `RemoteHost` e `RemoteSession`
+- `companyId` explicito em host e sessao
+- `ticketId` e `ticketNumber` explicitos em `RemoteSession`
+- rotas iniciais:
+  - `GET/POST /api/remote/hosts`
+  - `GET/POST /api/remote/sessions`
+  - `POST /api/remote/sessions/:id/start`
+  - `POST /api/remote/sessions/:id/stop`
+- integracao inicial com `Zammad`:
+  - deep-link `rustdesk://`
+  - webhook que cria/encerra `RemoteSession`
+  - nota interna automatica no Zammad ao iniciar/encerrar sessao
+- enforcement de tenant:
+  - `ADMIN`, `SUPORTE`, `DEVELOPER` com visao global
+  - `CLIENTE_ADMIN` com escopo apenas da propria empresa
+
+Tambem ja existe separacao de experiencia:
+
+- `Configuracoes > Acesso Remoto`
+  - cadastro de hosts
+  - solicitacao manual de sessao
+  - configuracao operacional
+- `/app/plataforma-remota`
+  - diretorio operacional dos hosts/clientes ja configurados
+  - acesso ao detalhe do host
+  - ponto de abertura do acesso remoto
+
+## Arquitetura aplicada
 
 ### Camadas
 
 1. **Portal Web (Next.js)**
-2. **API/BFF (tRPC/REST interno)**
-3. **Orquestrador de sessÃ£o remota**
-4. **Cofre de segredos (Vault)**
-5. **MÃ³dulo de backup e restore (Firebird)**
-6. **Auditoria e observabilidade**
+2. **API interna via App Router**
+3. **Orquestracao remota baseada em host + sessao**
+4. **Integracao com Zammad**
+5. **Expansao futura para Vault, backup e auditoria ampliada**
 
-### MÃ³dulos principais do sistema
+### Modulos principais
 
-- GestÃ£o de clientes, ambientes e agentes.
-- Acesso remoto (inÃ­cio, encerramento, trilha de auditoria).
-- GestÃ£o de credenciais e rotaÃ§Ã£o.
-- Rotinas de backup, restauraÃ§Ã£o e validaÃ§Ã£o.
-- Alertas operacionais e health checks.
-- Registro de aÃ§Ãµes por usuÃ¡rio/tÃ©cnico.
+- gestao de hosts remotos por empresa
+- sessao remota com status e historico
+- integracao atendimento -> acesso remoto
+- trilha minima por ticket/sessao
+- segregacao por tenant
 
-## Banco de dados (sugestÃ£o inicial)
+## Modelagem atual
 
-Entidades-base para MVP:
+Entidades ja materializadas:
 
 - `RemoteHost`
 - `RemoteSession`
+
+Campos-chave ja aplicados:
+
+- `RemoteHost.companyId`
+- `RemoteHost.agentExternalId`
+- `RemoteSession.companyId`
+- `RemoteSession.ticketId`
+- `RemoteSession.ticketNumber`
+
+Diretriz atual:
+
+- `agentExternalId` pode operar como `rustdesk_id` no MVP
+- `ticketId` e `ticketNumber` devem ser preservados para auditoria e deduplicacao
+
+Entidades ainda planejadas:
+
 - `CredentialVaultRef`
 - `BackupJob`
 - `BackupArtifact`
@@ -58,39 +103,41 @@ Entidades-base para MVP:
 - `AuditLog`
 - `IntegrationEndpoint`
 
-## Fluxos crÃ­ticos
+## Politica de acesso
 
-### 1) Acesso remoto
+- `ADMIN`, `SUPORTE` e `DEVELOPER` possuem visao global da plataforma remota.
+- `CLIENTE_ADMIN` deve acessar apenas hosts e sessoes da propria empresa.
+- `CLIENTE_USER` nao participa do fluxo remoto no MVP.
 
-1. UsuÃ¡rio seleciona cliente/ambiente.
-2. API valida permissÃ£o e polÃ­tica.
-3. Orquestrador abre sessÃ£o remota.
-4. Sistema registra inÃ­cio/fim e metadados de auditoria.
+<Callout type="warning" title="Regra obrigatoria">
+  Toda query, rota e acao operacional nova da plataforma remota deve preservar a mesma regra de tenant aplicada hoje no shell, na listagem, no detalhe do host e nas rotas de `hosts` e `sessions`.
+</Callout>
 
-### 2) Credenciais
+## Fluxos criticos
 
-1. Portal solicita segredo por referÃªncia.
-2. API consulta Vault por policy.
-3. Segredo Ã© entregue apenas ao contexto autorizado.
-4. Toda leitura/uso Ã© auditada.
+### 1) Cadastro e organizacao de host
 
-### 3) Backup e restauraÃ§Ã£o
+1. operador acessa `Configuracoes > Acesso Remoto`
+2. escolhe a empresa
+3. cadastra host com nome, ambiente e provider
+4. host passa a aparecer no diretorio operacional
 
-1. Scheduler dispara rotina.
-2. MÃ³dulo executa `gbak` (padrÃ£o) ou `nbackup` (casos especÃ­ficos).
-3. Artefatos sÃ£o validados e catalogados.
-4. Restore passa por checklist e confirmaÃ§Ã£o dupla.
+### 2) Operacao remota por host
 
-## Endpoints de API (MVP)
+1. usuario acessa `/app/plataforma-remota`
+2. visualiza apenas hosts no proprio escopo
+3. abre o detalhe do host
+4. dispara o acesso remoto se existir `rustdesk_id`
 
-- `POST /api/remote/session/start`
-- `POST /api/remote/session/stop`
-- `GET /api/remote/session/:id`
-- `POST /api/credentials/request`
-- `POST /api/backup/run`
-- `GET /api/backup/jobs`
-- `POST /api/restore/run`
-- `GET /api/audit/events`
+### 3) Sessao remota vinculada a ticket
+
+1. sessao pode ser aberta manualmente ou por webhook do `Zammad`
+2. `RemoteSession` registra `ticketId` e `ticketNumber`
+3. regra operacional atual:
+   - um mesmo ticket pode ter varias sessoes ao longo do tempo
+   - nao pode existir sessao aberta duplicada para o mesmo ticket/host
+4. ao iniciar e encerrar:
+   - o sistema registra nota interna no Zammad
 
 ## Integracao Zammad + RustDesk
 
@@ -98,107 +145,93 @@ Entidades-base para MVP:
 
 Conectar atendimento e acesso remoto sem depender de plugin proprietario:
 
-- `Zammad` como origem operacional do ticket
-- `RustDesk` como engine remota self-hosted
-- plataforma remota como camada de auditoria, policy e integracao
+- `Zammad` como origem do ticket
+- `RustDesk` como engine remota
+- plataforma remota como camada de policy, trilha e segregacao por empresa
 
-### Padrao inicial
+### O que ja esta implementado
 
-1. Registrar `rustdesk_id` no cadastro do cliente ou no contexto do ticket no `Zammad`.
-2. Expor link rapido no ticket usando esquema `rustdesk://<id>`.
-3. Permitir que o tecnico abra a sessao remota a partir do ticket com um clique.
-4. Registrar o ticket de origem, o host e a sessao na nossa trilha de auditoria.
+- rota de deep-link:
+  - `GET /api/integrations/zammad/rustdesk-link/:ticketId`
+- webhook de integracao:
+  - `POST /api/integrations/zammad/webhook`
+- criacao/encerramento de `RemoteSession` a partir de evento do ticket
+- comentario interno automatico no Zammad ao iniciar/encerrar sessao
 
-### Integracao por objeto externo e link rapido
+### O que ainda falta
 
-- Criar atributo `rustdesk_id` em `User` ou `Ticket` no `Zammad`.
-- Expor link calculado no ticket:
-  - `rustdesk://{{ticket.customer.rustdesk_id}}`
-- Tratar isso no backlog como fluxo de produtividade operacional, nao como acoplamento duro entre produtos.
-- No MVP do portal remoto, `agentExternalId` de `RemoteHost` pode funcionar como `rustdesk_id` operacional ate a extracao de um campo dedicado.
+- validar payload real do `Zammad`
+- configurar custom link real no `Zammad`
+- decidir se o host sera sempre resolvido por `rustdesk_id` ou se havera escolha explicita no atendimento
+- endurecer politicas de deduplicacao e fechamento operacional
 
-### Integracao por webhook e API
+### Padrao recomendado
 
-- `Zammad` envia webhook quando um ticket elegivel para suporte remoto for criado ou atualizado.
-- O payload deve carregar no minimo:
-  - `ticketId`
-  - `ticketNumber`
-  - `customerId`
-  - `customerEmail`
-  - `rustdeskId`
-  - `requestedBy`
-  - `tags`
-- Nosso orquestrador remoto consome esse evento e:
-  - valida policy
-  - vincula ticket a `RemoteSession`
-  - registra auditoria
-  - opcionalmente inicia a sessao ou a deixa pronta para confirmacao manual
+1. armazenar `rustdesk_id` no contexto do cliente/ticket
+2. abrir acesso via `rustdesk://<id>`
+3. vincular o ticket a `RemoteSession`
+4. registrar nota interna automatica no atendimento
 
-### Beneficios
+## Endpoints ativos do MVP
 
-- Menos friccao para o tecnico no atendimento
-- Vinculo direto entre ticket e sessao remota
-- Melhor trilha de auditoria
-- Infraestrutura 100% sob controle proprio
+- `GET /api/remote/hosts`
+- `POST /api/remote/hosts`
+- `GET /api/remote/sessions`
+- `POST /api/remote/sessions`
+- `POST /api/remote/sessions/:id/start`
+- `POST /api/remote/sessions/:id/stop`
+- `GET /api/integrations/zammad/rustdesk-link/:ticketId`
+- `POST /api/integrations/zammad/webhook`
 
-### Limite atual
+## Experiencia atual do produto
 
-Nao existe integracao oficial nativa entre `Zammad` e `RustDesk`.
-O caminho correto aqui e compor:
+### Configuracao
 
-- campo customizado
-- deep-link `rustdesk://`
-- webhook do `Zammad`
-- API/orquestrador da plataforma remota
+- `Configuracoes > Acesso Remoto`
+- usada para:
+  - cadastro de host
+  - solicitacao manual de sessao
+  - preparacao operacional
 
-## Telas (MVP)
+### Operacao
 
-- Painel de ambientes remotos.
-- SessÃµes ativas e histÃ³rico de sessÃ£o.
-- Cofre de credenciais (somente referÃªncia e acesso controlado).
-- Backup/restore com status e logs.
-- Auditoria com filtros por usuÃ¡rio, cliente e perÃ­odo.
+- `/app/plataforma-remota`
+- usada para:
+  - listar hosts/clientes configurados
+  - exibir `id`, empresa e descricao operacional
+  - acessar o detalhe do host
+  - abrir o acesso remoto
 
-
-## Politica de acesso inicial
-
-- `ADMIN`, `SUPORTE` e `DEVELOPER` possuem visao global da plataforma remota.
-- `CLIENTE_ADMIN` deve ter acesso apenas aos registros da propria empresa.
-- `CLIENTE_USER` nao participa do fluxo remoto no MVP.
-- `RemoteHost` e `RemoteSession` precisam carregar `companyId` explicito para enforcement de tenant em queries, auditoria e sessoes.
-
-<Callout type="warning" title="Escopo de tenant">
-  O shell inicial pode ficar visivel para `CLIENTE_ADMIN` desde que a leitura seja estritamente filtrada por `companyId`. As proximas rotas operacionais (`start`, `stop`, `audit`) devem preservar exatamente o mesmo enforcement.
-</Callout>
 ## Roadmap por fases
 
 <Steps>
   <Step>
-    ### Fase 1 â€” FundaÃ§Ã£o (MVP)
-    RustDesk self-hosted, controle de sessÃ£o, auditoria mÃ­nima, backup padrÃ£o com `gbak`.
+    ### Fase 1 - Fundacao operacional
+    Hosts, sessoes, tenant scope, vinculo com ticket, webhook inicial do Zammad e diretorio operacional.
   </Step>
   <Step>
-    ### Fase 2 â€” SeguranÃ§a e governanÃ§a
-    IntegraÃ§Ã£o completa com Vault, polÃ­ticas por role, rotaÃ§Ã£o de credenciais e trilha ampliada.
+    ### Fase 2 - Governanca e seguranca
+    Vault, politicas de credenciais, auditoria dedicada e regras operacionais mais duras.
   </Step>
   <Step>
-    ### Fase 3 â€” Escala e experiÃªncia web-first
-    CenÃ¡rios com Guacamole, gravaÃ§Ã£o/replay no navegador, operaÃ§Ã£o multiambiente e observabilidade avanÃ§ada.
+    ### Fase 3 - Backup, restore e escala
+    Catalogo de artefatos, jobs de backup/restore, observabilidade ampliada e experiencia web-first mais completa.
   </Step>
 </Steps>
 
 ## Stack recomendada
 
 - **Frontend:** Next.js (App Router), React, Tailwind.
-- **Backend:** Node/TypeScript, tRPC/REST interno.
-- **Banco:** PostgreSQL + Prisma.
+- **Persistencia:** PostgreSQL + Prisma.
+- **Acesso remoto:** RustDesk self-hosted.
+- **Atendimento:** Zammad.
 - **Segredos:** HashiCorp Vault.
-- **Acesso remoto:** RustDesk (MVP) e Guacamole (evoluÃ§Ã£o).
-- **Fila/Jobs:** worker assÃ­ncrono para sessÃµes, backup e rotinas.
+- **Backup futuro:** `gbak` e `nbackup`.
 
-## ReferÃªncias
+## Proximos passos tecnicos
 
-- Apache Guacamole â€” gravaÃ§Ã£o e playback no navegador:  
-  https://guacamole.apache.org/doc/gug/recording-playback.html
-- RustDesk â€” opÃ§Ãµes de self-hosted:  
-  https://rustdesk.com/pricing
+1. concluir migration e generate do Prisma no ambiente
+2. validar payload real do webhook do Zammad
+3. decidir politica definitiva de resolucao de host por ticket
+4. materializar `AuditLog`
+5. abrir o modulo de backup/restore

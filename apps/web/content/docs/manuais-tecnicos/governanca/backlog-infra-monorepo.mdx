@@ -1,6 +1,6 @@
 ---
 title: Backlog de Infraestrutura e Estabilizacao
-description: Backlog priorizado com os itens ainda pendentes para estabilizacao do app atual, evolucao do monorepo e continuidade de novos desenvolvimentos.
+description: Backlog priorizado com os itens pendentes para estabilizacao do app, consolidacao arquitetural e evolucao das novas funcionalidades.
 lastUpdated: 2026-03-23
 owner: Engenharia de Plataforma
 status: published
@@ -8,13 +8,11 @@ status: published
 
 ## Objetivo
 
-Concentrar apenas o backlog ainda nao concluido, priorizando:
+Concentrar apenas o backlog ainda pendente, separando:
 
-- escalabilidade da arquitetura
-- reducao de acoplamento
 - estabilizacao do app atual
-- qualidade de entrega
-- preparacao para mobile e backend separado
+- infraestrutura e qualidade
+- novas funcionalidades em construcao
 
 ## Contexto atual
 
@@ -37,13 +35,13 @@ Ja concluido:
 
 Estado atual do codigo:
 
-- boundaries por feature estao bem mais coerentes
+- boundaries por feature estao coerentes
 - `src/core` e `src/hooks` ja nao fazem parte da estrutura ativa
 - `src/lib`, `src/providers` e `src/types` seguem validos como camadas transversais
-- ainda existem residuos de hardcode visual, mojibake e contratos frouxos em alguns fluxos do app
-- `apps/api` e `apps/mobile` existem como shell, mas ainda nao estao conectados aos casos de uso reais
-
-O backlog abaixo comeca do proximo bloco realmente pendente.
+- a feature `remote` ja saiu do shell puro e entrou em fase operacional inicial
+- a experiencia da feature `remote` ja foi separada em:
+  - `Configuracoes > Acesso Remoto`
+  - `/app/plataforma-remota`
 
 ## Diretriz de execucao
 
@@ -52,18 +50,16 @@ Ordem recomendada:
 1. estabilizar o app web atual
 2. reforcar tipagem, tema e consistencia visual
 3. consolidar CI, observabilidade e contratos
-4. conectar shells de multi-app a casos de uso reais
-5. evoluir experiencia de docs
+4. fechar o MVP remoto fim a fim
+5. conectar shells de multi-app a casos de uso reais
 
 ## Estabilizacao do app atual
 
-- [ ] `INFRA-022A` [Alta] Remover hardcodes de tema/cor na area publica e consolidar uso de tokens (`bg-background`, `text-foreground`, `border-border`).
+- [x] `INFRA-022A` [Alta] Remover hardcodes de tema/cor na area publica e consolidar uso de tokens (`bg-background`, `text-foreground`, `border-border`). Superficies, contraste base e fundos da home foram alinhados aos tokens do tema; acentos visuais de marca permanecem intencionais.
 - [ ] `INFRA-022B` [Alta] Limpar mojibake residual em `auth`, `site`, `documentos` e componentes adjacentes.
 - [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes.
 - [ ] `INFRA-022D` [Media] Revisar `src/lib` e mover helpers de dominio que ainda fazem mais sentido dentro de `features/*`.
 - [ ] `INFRA-022E` [Media] Normalizar tipagens e formatos compartilhados de UI para reduzir regressao em deploy por incompatibilidade de retorno.
-
-## Fase D - Multi-App
 
 ## Qualidade, CI e observabilidade
 
@@ -91,53 +87,46 @@ Ordem recomendada:
 
 ## Novas funcionalidades
 
-- [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Shell, queries persistidas e rotas iniciais de `hosts` e `sessions` ja estruturados; falta concluir migration, seed operacional e fluxo fim a fim.
-- [x] `FEAT-001A` [Alta] Definir matriz de acesso da plataforma remota: `ADMIN`, `SUPORTE` e `DEVELOPER` com visao global; `CLIENTE_ADMIN` apenas com visao da propria empresa. Modelagem base com `companyId` em `RemoteHost` e `RemoteSession`, enforcement no shell e abertura controlada no sidebar/route guard concluidos.
-- [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota.
-- [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima.
-- [ ] `FEAT-003A` [Media] Integrar `Zammad + RustDesk` com `rustdesk://<id>` no ticket, objeto externo para `rustdesk_id` e abertura rapida da sessao pelo atendente. Endpoint de deep-link ja implementado; falta configurar o link customizado no Zammad e validar com ticket real.
-- [ ] `FEAT-003B` [Media] Criar fluxo de webhook/API entre `Zammad` e orquestrador remoto para registrar sessao, ticket vinculado e trilha de auditoria. Webhook real ja cria/encerra `RemoteSession`; falta validar payload final do Zammad e endurecer regras operacionais.
+- [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Persistencia, tenant enforcement, rotas de `hosts` e `sessions`, separacao entre configuracao e operacao e detalhe do host ja existem; falta fechar migration, validacao fim a fim e endurecimento operacional.
+- [x] `FEAT-001A` [Alta] Definir matriz de acesso da plataforma remota: `ADMIN`, `SUPORTE` e `DEVELOPER` com visao global; `CLIENTE_ADMIN` apenas com visao da propria empresa.
+- [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host ja existe; falta enriquecer metadata, filtros, descricao persistida e fluxo operacional de administracao.
+- [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima. Start/stop, ticket link, comentario interno no Zammad e regra de deduplicacao inicial ja existem; falta consolidar regras fim a fim e validacao em ambiente real.
+- [ ] `FEAT-003A` [Media] Integrar `Zammad + RustDesk` com `rustdesk://<id>` no ticket e abertura rapida da sessao pelo atendente. Endpoint de deep-link ja implementado; falta configurar custom link no Zammad e validar com ticket real.
+- [ ] `FEAT-003B` [Media] Criar fluxo de webhook/API entre `Zammad` e orquestrador remoto para registrar sessao, ticket vinculado e trilha de auditoria. Webhook ja cria/encerra `RemoteSession`; falta validar payload real do Zammad e endurecer regras operacionais.
 - [ ] `FEAT-004` [Media] Criar shell de credenciais por referencia com controle de acesso e trilha de uso.
 - [ ] `FEAT-005` [Media] Implementar painel inicial de backup e restore com jobs catalogados.
 - [ ] `FEAT-006` [Baixa] Evoluir area publica para aderir integralmente aos tokens de tema e remover hardcodes restantes.
 
 ## Roadmap recomendado
 
-### Sprint 3 - BFF e transporte
+### Sprint 4 - Estabilizacao e confiabilidade
 
-- `INFRA-020` Data fetching e invalidacao concluido
+- `INFRA-022A` a `INFRA-022E` estabilizacao do app atual
+- `INFRA-023` a `INFRA-027` qualidade e observabilidade
+- `INFRA-027A` a `INFRA-027C` integracao progressiva de shells
+- `INFRA-028` a `INFRA-034` evolucao de docs
 
-### Sprint 4 - Confiabilidade e multiplataforma
+### Sprint 5 - Plataforma remota
 
-- `INFRA-022A` a `INFRA-022E` Estabilizacao do app atual
-- `INFRA-021` `apps/mobile` concluido
-- `INFRA-022` `apps/api` concluido
-- `INFRA-023` a `INFRA-027` Qualidade e observabilidade
-- `INFRA-027A` a `INFRA-027C` Integracao progressiva de shells
-- `INFRA-028` a `INFRA-034` Evolucao de docs
-
-### Sprint 5 - Novas capacidades
-
-- `FEAT-001` Plataforma remota MVP
-- `FEAT-001A` Matriz de acesso global vs escopo por empresa
-- `FEAT-002` Gestao de ambientes remotos
-- `FEAT-003` Sessoes remotas com auditoria
-- `FEAT-003A` Link rapido Zammad -> RustDesk
-- `FEAT-003B` Webhook Zammad -> orquestrador remoto
-- `FEAT-004` Credenciais por referencia
-- `FEAT-005` Backup e restore operacional
-- `FEAT-006` Consolidacao visual da area publica
+- `FEAT-001` consolidacao do MVP remoto
+- `FEAT-001A` tenant scope global vs empresa concluido
+- `FEAT-002` enriquecimento de gestao de hosts e ambientes
+- `FEAT-003` consolidacao de sessoes remotas com auditoria
+- `FEAT-003A` link rapido `Zammad -> RustDesk`
+- `FEAT-003B` webhook `Zammad -> remote`
+- `FEAT-004` credenciais por referencia
+- `FEAT-005` backup e restore operacional
 
 ## Proximo passo recomendado
 
 1. executar `INFRA-022A` e `INFRA-022B`
 2. depois fechar `INFRA-022C`
-3. em seguida abrir `INFRA-023`
+3. em seguida validar `FEAT-001` fim a fim com migration, generate e seed
 
 ## Proximos passos de produto
 
-1. iniciar `FEAT-001` com persistencia de `RemoteHost`, `RemoteSession` e `AuditLog`
-2. aplicar o mesmo enforcement de `FEAT-001A` nas rotas operacionais e queries persistidas
-3. depois abrir `FEAT-003` com start/stop de sessao remota
-4. em seguida executar `FEAT-003A` e `FEAT-003B` para integrar `Zammad + RustDesk`
-5. depois conectar `FEAT-005` para jobs de backup e catalogo de artefatos
+1. concluir migration e `prisma generate` da modelagem remota
+2. validar deep-link e webhook do `Zammad` com payload real
+3. endurecer a resolucao de host por ticket
+4. materializar `AuditLog`
+5. abrir `FEAT-004` e `FEAT-005`

@@ -37,7 +37,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
 
       {/* --- Background Elements (Magic UI) --- */}
       <div className="absolute inset-0 -z-10 h-full w-full bg-background">
-        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.1] dark:opacity-[0.05]" />
+        <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--border))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.10]" />
       </div>
 
       {/* Luz Ambiente */}
@@ -76,7 +76,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
                 <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-sm">
                   <LayoutGrid className="h-6 w-6" />
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <h3 className="text-2xl font-bold mb-3 text-foreground group-hover:text-blue-600 transition-colors">
                   Documentação Viva
                 </h3>
                 <p className="text-muted-foreground max-w-md text-base">
@@ -144,7 +144,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20">
                 <Terminal className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-bold mb-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Syspro Tools</h3>
+              <h3 className="text-lg font-bold mb-2 group-hover:text-orange-600 transition-colors">Syspro Tools</h3>
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 flex-1">
                 Validadores XML, scripts SQL e utilitários de automação para facilitar o dia a dia.
               </p>
@@ -161,7 +161,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500 border border-pink-500/20">
                 <HelpCircle className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-bold mb-2 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">FAQ & Dúvidas</h3>
+              <h3 className="text-lg font-bold mb-2 group-hover:text-pink-600 transition-colors">FAQ & Dúvidas</h3>
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 flex-1">
                 Respostas rápidas para as perguntas mais comuns sobre configuração e uso do ERP.
               </p>
@@ -206,11 +206,11 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
                       </div>
 
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-md bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400">
+                        <div className="flex items-center justify-between rounded-md border border-green-500/20 bg-green-500/10 px-2.5 py-1.5 text-xs text-green-600">
                           <span className="flex items-center gap-1.5 font-medium"><Sparkles className="w-3 h-3" /> Melhorias</span>
                           <span className="font-bold font-mono">{summary.melhorias}</span>
                         </div>
-                        <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                        <div className="flex items-center justify-between rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600">
                           <span className="flex items-center gap-1.5 font-medium"><Bug className="w-3 h-3" /> Correções</span>
                           <span className="font-bold font-mono">{summary.bugs}</span>
                         </div>
@@ -239,7 +239,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
 
               <h3 className="text-lg font-bold mb-2">Status do Sistema</h3>
 
-              <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 mb-4">
+              <div className="mb-4 flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>

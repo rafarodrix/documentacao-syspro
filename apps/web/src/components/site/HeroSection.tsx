@@ -36,7 +36,7 @@ export function HeroSection({ currentVersion, releaseLink }: HeroSectionProps) {
           do{" "}
           <span className="relative inline-block pb-1">
             {/* Gradiente de Texto Premium */}
-            <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 dark:from-white dark:to-white/60">
+            <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground">
               Syspro ERP
             </span>
 
@@ -93,14 +93,14 @@ function GridBackground() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
 
       {/* Grid Pattern com Mask Radial (Magic UI Style) */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.16)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.16)_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
     </div>
   );
 }
 
 function Spotlight() {
   return (
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-primary/10 blur-[120px] rounded-full -z-10 pointer-events-none opacity-60 dark:opacity-40 mix-blend-screen" />
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[400px] w-[1000px] rounded-full bg-primary/10 blur-[120px] pointer-events-none -z-10 opacity-50" />
   );
 }
 
