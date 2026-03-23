@@ -1,8 +1,13 @@
 # packages/ui
 
-Pacote reservado para primitives e componentes reutilizáveis.
+Pacote de primitives e componentes reutilizaveis sem dependencia de regra de negocio.
 
-Ativação prevista:
+Escopo inicial:
 
-- `INFRA-014`
-
+- utilitario `cn`
+- button
+- input
+- badge
+- card
+- label
+- textarea

@@ -11,7 +11,13 @@
                                                                   ],
                                           "@dosc-syspro/shared/*":  [
                                                                         "../../packages/shared/src/*"
-                                                                    ]
+                                                                    ],
+                                          "@dosc-syspro/ui":  [
+                                                                  "../../packages/ui/src/index.ts"
+                                                              ],
+                                          "@dosc-syspro/ui/*":  [
+                                                                    "../../packages/ui/src/*"
+                                                                ]
                                       },
                             "plugins":  [
                                             {

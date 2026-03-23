@@ -22,6 +22,7 @@ Ja concluido:
 - Fase A do modular monolith disciplinado
 - EPIC B1 de workspace e shell
 - `INFRA-013` com o primeiro recorte de `packages/shared`
+- `INFRA-014` com o primeiro recorte de `packages/ui`
 
 O backlog abaixo comeca do proximo bloco realmente pendente.
 
@@ -48,10 +49,15 @@ Status de fechamento:
 - `apps/web` passou a resolver `@dosc-syspro/shared` via `tsconfig`, sem depender de regra de negocio, Prisma ou Next.
 - wrappers legados em `apps/web/src/lib/formatters.ts`, `apps/web/src/lib/date.ts` e `apps/web/src/core/shared/utils/currency-utils.ts` foram mantidos como camada de compatibilidade.
 
-- [ ] `INFRA-014` [Alta] Criar `packages/ui`.
+- [x] `INFRA-014` [Alta] Criar `packages/ui`.
 Criterios de aceite:
 - primitives e componentes reutilizaveis extraidos de forma segura.
 - sem dependencia de prisma, auth ou regra de negocio.
+Status de fechamento:
+- `packages/ui` criado com `package.json` proprio e `src/index.ts`.
+- primeiro recorte extraido com `cn`, `Button`, `Input`, `Badge`, `Card`, `Label` e `Textarea`.
+- `apps/web` passou a resolver `@dosc-syspro/ui` via `tsconfig`, sem depender de Prisma, auth ou regra de negocio.
+- wrappers legados em `apps/web/src/lib/utils.ts` e `apps/web/src/components/ui/*` foram mantidos como camada de compatibilidade.
 
 - [ ] `INFRA-015` [Alta] Criar `packages/contracts`.
 Criterios de aceite:
@@ -133,7 +139,6 @@ Criterios de aceite:
 
 ### Sprint 2 - Monorepo estrutural
 
-- `INFRA-014` `packages/ui`
 - `INFRA-015` `packages/contracts`
 
 ### Sprint 3 - Dominio compartilhado
@@ -153,6 +158,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. executar `INFRA-014` com extracao minima de primitives e helpers visuais para `packages/ui`
-2. em seguida executar `INFRA-015`
-3. so depois avancar para `INFRA-016` e `INFRA-017`
+1. executar `INFRA-015` com foco em schemas e DTOs de fronteira realmente reutilizaveis
+2. so depois avancar para `INFRA-016` e `INFRA-017`
+3. deixar `INFRA-018` acoplada ao desenho final de `core` e `database`
