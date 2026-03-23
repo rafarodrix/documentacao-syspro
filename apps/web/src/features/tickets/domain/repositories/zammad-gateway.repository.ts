@@ -12,7 +12,7 @@ export type ZammadCacheOptions = {
   routeKey?: string;
 };
 
-export interface IZammadGateway {
+export interface ZammadGatewayRepository {
   searchOperationalTickets(
     query: string,
     options?: {

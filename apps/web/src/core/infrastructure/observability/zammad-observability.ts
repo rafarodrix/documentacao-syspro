@@ -1,8 +1,8 @@
 import type {
-  IZammadObservabilityGateway,
+  TicketObservabilityGateway,
   RouteHealth,
   RouteSnapshot,
-} from "@/core/domain/interfaces/observability-gateway.interface";
+} from "@/features/tickets/domain/repositories/ticket-observability.gateway";
 
 type ZammadMetricEntry = {
   ts: number;
@@ -103,7 +103,8 @@ export function getZammadMetricsSnapshot(routeKeys: string[], windowMinutes = 60
   });
 }
 
-export const zammadObservabilityGateway: IZammadObservabilityGateway = {
+export const zammadObservabilityGateway: TicketObservabilityGateway = {
   getRouteHealth: getZammadRouteHealth,
   getMetricsSnapshot: getZammadMetricsSnapshot,
 };
+

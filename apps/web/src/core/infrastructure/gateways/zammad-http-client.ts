@@ -3,7 +3,7 @@ import {
   markZammadRouteStale,
   recordZammadMetric,
 } from "@/core/infrastructure/observability/zammad-observability";
-import type { ZammadCacheOptions } from "@/core/domain/interfaces/zammad-gateway.interface";
+import type { ZammadCacheOptions } from "@/features/tickets/domain/repositories/zammad-gateway.repository";
 
 const ZAMMAD_URL = process.env.ZAMMAD_URL;
 const ZAMMAD_TOKEN = process.env.ZAMMAD_TOKEN;

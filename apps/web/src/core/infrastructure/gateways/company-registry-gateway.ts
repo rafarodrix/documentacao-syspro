@@ -1,7 +1,7 @@
 import {
   type CompanyRegistryProfile,
-  type ICompanyRegistryGateway,
-} from "@/core/domain/interfaces/company-registry-gateway.interface";
+  type CompanyRegistryGateway,
+} from "@/features/company/domain/repositories/company-registry.gateway";
 
 const PROVIDER = process.env.COMPANY_REGISTRY_PROVIDER?.toLowerCase() ?? "none";
 const AUTH_URL = process.env.COMPANY_REGISTRY_AUTH_URL;
@@ -94,7 +94,7 @@ async function fetchWithTimeout(url: string, init: RequestInit) {
   }
 }
 
-class DisabledCompanyRegistryGateway implements ICompanyRegistryGateway {
+class DisabledCompanyRegistryGateway implements CompanyRegistryGateway {
   isConfigured() {
     return false;
   }
@@ -108,7 +108,7 @@ class DisabledCompanyRegistryGateway implements ICompanyRegistryGateway {
   }
 }
 
-class CustomOAuth2CompanyRegistryGateway implements ICompanyRegistryGateway {
+class CustomOAuth2CompanyRegistryGateway implements CompanyRegistryGateway {
   isConfigured() {
     return Boolean(AUTH_URL && LOOKUP_URL && CLIENT_ID && CLIENT_SECRET);
   }
@@ -184,7 +184,8 @@ class CustomOAuth2CompanyRegistryGateway implements ICompanyRegistryGateway {
   }
 }
 
-export const CompanyRegistryGateway: ICompanyRegistryGateway =
+export const CompanyRegistryGateway: CompanyRegistryGateway =
   PROVIDER === "custom_oauth2"
     ? new CustomOAuth2CompanyRegistryGateway()
     : new DisabledCompanyRegistryGateway();
+

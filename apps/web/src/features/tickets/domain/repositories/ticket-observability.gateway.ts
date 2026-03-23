@@ -16,7 +16,7 @@ export type RouteSnapshot = {
   timeoutRate: number;
 };
 
-export interface IZammadObservabilityGateway {
+export interface TicketObservabilityGateway {
   getRouteHealth(routeKey: string): RouteHealth;
   getMetricsSnapshot(routeKeys: string[], windowMinutes?: number): RouteSnapshot[];
 }

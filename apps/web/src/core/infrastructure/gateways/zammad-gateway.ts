@@ -13,7 +13,7 @@ import {
 } from "@dosc-syspro/contracts";
 import { OPERATIONAL_STATE_IDS } from "@dosc-syspro/core";
 import { mapTicketPriority, mapTicketStatusFromStateName } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
-import type { IZammadGateway, ZammadCacheOptions } from "@/core/domain/interfaces/zammad-gateway.interface";
+import type { ZammadGatewayRepository, ZammadCacheOptions } from "@/features/tickets/domain/repositories/zammad-gateway.repository";
 import {
   buildAuthorizationHeader,
   fetchWithRetry,
@@ -87,7 +87,7 @@ function buildCustomerEmailsFallbackQuery(emails: string[]): string {
     .join(" OR ")})`;
 }
 
-export const ZammadGateway: IZammadGateway = {
+export const ZammadGateway: ZammadGatewayRepository = {
   async searchOperationalTickets(
     query: string,
     options?: {
