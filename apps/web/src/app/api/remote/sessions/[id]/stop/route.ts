@@ -71,6 +71,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     data: {
       status: "ENDED",
       endedAt: new Date(),
+      expiresAt: null,
     },
   });
 

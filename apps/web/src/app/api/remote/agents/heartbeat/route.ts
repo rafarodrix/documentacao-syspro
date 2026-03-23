@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,20 @@ function normalizeRustdeskId(value?: string | null) {
 }
 
 export async function POST(request: Request) {
+  const ip = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for");
+  const rateLimit = consumeActionRateLimit({
+    action: "remote-agent-heartbeat",
+    ip,
+    max: 30,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Rate limit excedido para heartbeat do agente." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
+  }
+
   const body = (await request.json()) as {
     installToken?: string;
     rustdeskId?: string | null;

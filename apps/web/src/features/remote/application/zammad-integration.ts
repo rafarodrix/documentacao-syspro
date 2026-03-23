@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import {
+  buildRequestedSessionExpiresAt,
+  isSessionExpired,
+} from "@/features/remote/application/session-policy";
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 
 type ZammadRemoteContext = {
@@ -191,34 +195,38 @@ export async function resolveRustdeskDeepLink(input: {
   customerEmail?: string | null;
   rustdeskId?: string | null;
 }) {
-  const fallbackRustdeskId = normalizeRustdeskId(toStringOrNull(input.rustdeskId));
-  const fallbackCustomerEmail = toStringOrNull(input.customerEmail)?.toLowerCase() ?? null;
-
-  if (fallbackRustdeskId) {
-    return {
-      rustdeskId: fallbackRustdeskId,
-      deepLink: `rustdesk://${fallbackRustdeskId}`,
-      companyId: null,
-      hostId: null,
-    };
-  }
-
   const ticket = await ZammadGateway.getTicketById(input.ticketId);
-  const ticketCustomerEmail =
-    fallbackCustomerEmail ??
-    (typeof ticket.customer === "string" && ticket.customer.includes("@") ? ticket.customer.toLowerCase() : null);
+  const ticketNumber =
+    typeof ticket.number === "string" && ticket.number.trim()
+      ? ticket.number.trim()
+      : typeof ticket.number === "number"
+        ? String(ticket.number)
+        : null;
+  const activeSession = await prisma.remoteSession.findFirst({
+    where: {
+      status: "STARTED",
+      OR: [{ ticketId: input.ticketId }, ...(ticketNumber ? [{ ticketNumber }] : [])],
+    },
+    include: {
+      host: {
+        select: {
+          id: true,
+          companyId: true,
+          agentExternalId: true,
+        },
+      },
+    },
+    orderBy: [{ startedAt: "desc" }, { createdAt: "desc" }],
+  });
 
-  const companyId = await resolveCompanyIdByCustomerEmail(ticketCustomerEmail);
-  if (!companyId) return null;
-
-  const host = await resolveRemoteHost(companyId, null);
-  if (!host?.agentExternalId) return null;
+  if (!activeSession || isSessionExpired(activeSession.expiresAt)) return null;
+  if (!activeSession.host.agentExternalId) return null;
 
   return {
-    rustdeskId: host.agentExternalId,
-    deepLink: `rustdesk://${host.agentExternalId}`,
-    companyId,
-    hostId: host.id,
+    rustdeskId: activeSession.host.agentExternalId,
+    deepLink: `rustdesk://${activeSession.host.agentExternalId}`,
+    companyId: activeSession.host.companyId,
+    hostId: activeSession.host.id,
   };
 }
 
@@ -261,6 +269,7 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
       data: {
         status: nextStatus,
         endedAt: new Date(),
+        expiresAt: null,
         metadata: buildSessionMetadata(context, context.rustdeskId ?? host.agentExternalId ?? null),
       },
     });
@@ -296,6 +305,7 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
       requestedByUserId,
       reason,
       status: "REQUESTED",
+      expiresAt: buildRequestedSessionExpiresAt(),
       metadata: buildSessionMetadata(context, context.rustdeskId ?? host.agentExternalId ?? null),
     },
   });

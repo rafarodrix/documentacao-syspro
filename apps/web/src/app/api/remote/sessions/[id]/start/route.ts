@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { buildStartedSessionExpiresAt } from "@/features/remote/application/session-policy";
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       status: true,
       ticketId: true,
       ticketNumber: true,
-      host: { select: { name: true } },
+      host: { select: { id: true, name: true, agentExternalId: true, status: true } },
       company: { select: { nomeFantasia: true, razaoSocial: true } },
     },
   });
@@ -51,11 +52,39 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ success: false, error: "Apenas sessoes REQUESTED podem ser iniciadas." }, { status: 409 });
   }
 
+  if (remoteSession.host.status === "ACTIVE" && !remoteSession.host.agentExternalId) {
+    return NextResponse.json(
+      { success: false, error: "Host ativo sem ID RustDesk configurado." },
+      { status: 409 }
+    );
+  }
+
+  const existingStartedSession = await prisma.remoteSession.findFirst({
+    where: {
+      hostId: remoteSession.host.id,
+      status: "STARTED",
+      id: { not: remoteSession.id },
+    },
+    select: { id: true, ticketNumber: true },
+  });
+
+  if (existingStartedSession) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Ja existe sessao iniciada para este host.",
+        data: existingStartedSession,
+      },
+      { status: 409 }
+    );
+  }
+
   const updated = await prisma.remoteSession.update({
     where: { id },
     data: {
       status: "STARTED",
       startedAt: new Date(),
+      expiresAt: buildStartedSessionExpiresAt(),
       startedByUserId: session.userId,
     },
   });

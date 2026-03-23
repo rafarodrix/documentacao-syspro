@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { buildRequestedSessionExpiresAt } from "@/features/remote/application/session-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -72,11 +73,18 @@ export async function POST(request: Request) {
 
   const host = await prisma.remoteHost.findFirst({
     where: { id: hostId, companyId },
-    select: { id: true, companyId: true },
+    select: { id: true, companyId: true, status: true, agentExternalId: true },
   });
 
   if (!host) {
     return NextResponse.json({ success: false, error: "Host remoto nao encontrado para a empresa." }, { status: 404 });
+  }
+
+  if (host.status === "ACTIVE" && !host.agentExternalId) {
+    return NextResponse.json(
+      { success: false, error: "Host ativo sem ID RustDesk configurado." },
+      { status: 409 }
+    );
   }
 
   const ticketId = body.ticketId?.trim() || null;
@@ -110,6 +118,7 @@ export async function POST(request: Request) {
       requestedByUserId: session.userId,
       reason: body.reason?.trim() || null,
       status: "REQUESTED",
+      expiresAt: buildRequestedSessionExpiresAt(),
     },
   });
 

@@ -400,6 +400,7 @@ model RemoteSession {
   startedByUser   User? @relation("RemoteSessionStartedBy", fields: [startedByUserId], references: [id], onDelete: SetNull)
 
   status RemoteSessionStatus @default(REQUESTED)
+  expiresAt DateTime?
   startedAt DateTime?
   endedAt DateTime?
   reason String?
