@@ -52,8 +52,8 @@ export type TaxAnexoListItem = {
   title: string | null;
   description: string | null;
   category: string | null;
-  publishDate: Date;
-  startDate: Date;
+  publishDate: Date | null;
+  startDate: Date | null;
   endDate: Date | null;
   lastUpdated: Date;
 };
@@ -65,8 +65,8 @@ export type TaxCredPresumidoListItem = {
   title: string | null;
   description: string | null;
   category: string | null;
-  publishDate: Date;
-  startDate: Date;
+  publishDate: Date | null;
+  startDate: Date | null;
   endDate: Date | null;
 };
 
