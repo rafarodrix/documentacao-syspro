@@ -21,6 +21,7 @@ Ja concluido:
 
 - Fase A do modular monolith disciplinado
 - EPIC B1 de workspace e shell
+- `INFRA-013` com o primeiro recorte de `packages/shared`
 
 O backlog abaixo comeca do proximo bloco realmente pendente.
 
@@ -28,7 +29,7 @@ O backlog abaixo comeca do proximo bloco realmente pendente.
 
 Ordem recomendada:
 
-1. extrair os primeiros pacotes estaveis
+1. consolidar os primeiros pacotes estaveis
 2. consolidar dominio e persistencia compartilhada
 3. preparar BFF e transporte
 4. abrir caminho para multi-app
@@ -38,9 +39,14 @@ Ordem recomendada:
 
 ### EPIC B2 - Extracao dos primeiros pacotes
 
-- [ ] `INFRA-013` [Alta] Criar `packages/shared`.
+- [x] `INFRA-013` [Alta] Criar `packages/shared`.
 Criterios de aceite:
 - utilitarios puros, constants e helpers sem dependencia de app.
+Status de fechamento:
+- `packages/shared` criado com `package.json` proprio e `src/index.ts`.
+- primeiro recorte extraido com utilitarios puros de moeda, mascaras/formatadores genericos e data.
+- `apps/web` passou a resolver `@dosc-syspro/shared` via `tsconfig`, sem depender de regra de negocio, Prisma ou Next.
+- wrappers legados em `apps/web/src/lib/formatters.ts`, `apps/web/src/lib/date.ts` e `apps/web/src/core/shared/utils/currency-utils.ts` foram mantidos como camada de compatibilidade.
 
 - [ ] `INFRA-014` [Alta] Criar `packages/ui`.
 Criterios de aceite:
@@ -127,7 +133,6 @@ Criterios de aceite:
 
 ### Sprint 2 - Monorepo estrutural
 
-- `INFRA-013` `packages/shared`
 - `INFRA-014` `packages/ui`
 - `INFRA-015` `packages/contracts`
 
@@ -148,6 +153,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. iniciar `INFRA-013` com recorte minimo e seguro de `packages/shared`
-2. em seguida executar `INFRA-014` e `INFRA-015`
+1. executar `INFRA-014` com extracao minima de primitives e helpers visuais para `packages/ui`
+2. em seguida executar `INFRA-015`
 3. so depois avancar para `INFRA-016` e `INFRA-017`

@@ -1,0 +1,12 @@
+{
+  "name": "@dosc-syspro/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./currency": "./src/currency.ts",
+    "./formatters": "./src/formatters.ts",
+    "./date": "./src/date.ts"
+  }
+}

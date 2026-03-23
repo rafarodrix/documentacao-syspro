@@ -1,8 +1,9 @@
 # packages/shared
 
-Pacote reservado para utilitários puros, constantes e helpers compartilhados.
+Pacote de utilitarios puros, constantes e helpers compartilhados.
 
-Ativação prevista:
+Escopo inicial:
 
-- `INFRA-013`
-
+- formatacao monetaria
+- mascaras e formatadores genericos
+- utilitarios simples de data
