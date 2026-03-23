@@ -6,7 +6,7 @@ import { TrilinkEcosystem } from "@/components/site/TrilinkEcosystem";
 import { FinalCTA } from "@/components/site/FinalCTA";
 
 // 2. Logica de negocio e tipos.
-import { getReleases } from "@/core/application/use-cases/get-releases.use-case";
+import { getReleases } from "@/features/releases/application/queries";
 import { groupReleasesByMonth } from "@/lib/releases-helpers";
 import { Release } from "@dosc-syspro/core";
 
@@ -38,3 +38,4 @@ export default async function LandingPage() {
     </main>
   );
 }
+

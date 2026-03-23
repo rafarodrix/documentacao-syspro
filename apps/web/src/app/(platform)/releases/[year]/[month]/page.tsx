@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getReleases } from "@/core/application/use-cases/get-releases.use-case";
+import { getReleases } from "@/features/releases/application/queries";
 import { ReleasesClientPage } from "@/components/releases/client-page";
 import { monthNames } from "@/core/infrastructure/mappers/zammad-release.mapper";
 

@@ -21,7 +21,7 @@ async function fetchReleases(): Promise<Release[]> {
             summary: t.release_summary?.trim() || t.title,
             link: `${process.env.ZAMMAD_URL}/#ticket/zoom/${t.id}`,
             videoLink: t.video_link || null,
-            tags: [mainModule]
+            tags: [mainModule],
         };
     });
 }

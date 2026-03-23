@@ -4,7 +4,7 @@ import { useState, useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ticketFormSchema, TicketFormInput } from "@dosc-syspro/contracts";
-import { ticketGateway } from "@/core/infrastructure/gateways/ticket-gateway";
+import { createTicketAction } from "@/features/tickets/application/actions";
 import { toast } from "sonner";
 
 export function useTicketSheet(onSuccess: () => void) {
@@ -45,7 +45,17 @@ export function useTicketSheet(onSuccess: () => void) {
     // Submit
     const onSubmit = (data: TicketFormInput) => {
         startTransition(async () => {
-            const result = await ticketGateway.create(data, files);
+            const formData = new FormData();
+            formData.append("subject", data.subject);
+            formData.append("description", data.description);
+            formData.append("priority", data.priority);
+            formData.append("type", data.type);
+
+            files.forEach((file) => {
+                formData.append("attachments", file);
+            });
+
+            const result = await createTicketAction(null, formData);
 
             if (result.success) {
                 toast.success("Chamado aberto com sucesso!");

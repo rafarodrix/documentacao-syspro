@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getReleases } from "@/core/application/use-cases/get-releases.use-case";
+import { getReleases } from "@/features/releases/application/queries";
 import { Calendar, Rocket, Bug, ArrowRight, Sparkles } from "lucide-react";
 
 // Componentes UI
