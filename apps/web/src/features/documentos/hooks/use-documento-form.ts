@@ -34,9 +34,9 @@ export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | 
     comportamentos: initialValues?.comportamentos ?? [],
   };
 
-  return useForm({
+  return useForm<DocumentoFormValues>({
     resolver: zodResolver(documentoSchema),
-    defaultValues: defaultValues as any,
+    defaultValues,
     mode: "onChange"
   });
 }

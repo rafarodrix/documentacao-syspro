@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useRegister } from "@/features/auth/hooks/use-register"
@@ -92,7 +92,7 @@ export function RegisterForm() {
                 id="password"
                 name="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="********"
                 required
                 disabled={loading}
                 className={cn(
@@ -145,3 +145,5 @@ export function RegisterForm() {
     </AuthLayoutWrapper>
   )
 }
+
+

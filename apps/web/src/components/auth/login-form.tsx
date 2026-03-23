@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState } from "react"
 import Link from "next/link"
@@ -129,7 +129,7 @@ export function LoginForm() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder="********"
                 required
                 autoComplete="current-password"
                 value={password}
@@ -216,3 +216,5 @@ export function LoginForm() {
     </AuthLayoutWrapper>
   )
 }
+
+

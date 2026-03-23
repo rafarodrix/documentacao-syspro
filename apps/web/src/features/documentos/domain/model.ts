@@ -25,10 +25,15 @@ export type DocumentoItem = {
     cfopInternacional: string | null;
 };
 
-export type DocumentoActionResponse<T = void> = {
-    success: boolean;
-    error?: string;
-    data?: T;
+export type DocumentoActionSuccess<T = void> = T extends void
+  ? { success: true }
+  : { success: true; data: T };
+
+export type DocumentoActionFailure = {
+  success: false;
+  error: string;
 };
+
+export type DocumentoActionResponse<T = void> = DocumentoActionSuccess<T> | DocumentoActionFailure;
 
 export type DocumentosListResponse = DocumentoActionResponse<DocumentoItem[]>;

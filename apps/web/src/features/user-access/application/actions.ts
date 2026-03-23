@@ -10,14 +10,11 @@ import { z } from "zod";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
-
-// --- Tipagens ---
-export type ActionResponse<T = any> = {
-    success: boolean;
-    message?: string;
-    errors?: Record<string, string[]>;
-    data?: T;
-};
+import type {
+    UserAccessActionResponse,
+    UserAccessListItem,
+    UserAccessValidationErrors,
+} from "@/features/user-access/domain/model";
 
 interface GetUsersParams {
     search?: string;
@@ -102,8 +99,14 @@ function getAdminApi(): AdminApiShape | null {
     return { removeUser: candidate as AdminApiShape["removeUser"] };
 }
 
+function toValidationErrors(
+    fieldErrors: z.inferFlattenedErrors<typeof createUserSchema>["fieldErrors"],
+): UserAccessValidationErrors {
+    return fieldErrors as UserAccessValidationErrors;
+}
+
 // --- Central de Erros ---
-function handleActionError(error: any): ActionResponse {
+function handleActionError(error: unknown): UserAccessActionResponse {
     console.error("[UserAction Error]:", error);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -112,13 +115,16 @@ function handleActionError(error: any): ActionResponse {
             if (target.includes('cpf')) return { success: false, message: "Este CPF ja est? cadastrado." };
         }
     }
-    return { success: false, message: error.message || "Erro interno no servidor." };
+    if (error instanceof Error) {
+        return { success: false, message: error.message || "Erro interno no servidor." };
+    }
+    return { success: false, message: "Erro interno no servidor." };
 }
 
 /**
  * LISTAR USU?RIOS
  */
-export async function getUsersAction(filters?: GetUsersParams): Promise<ActionResponse> {
+export async function getUsersAction(filters?: GetUsersParams): Promise<UserAccessActionResponse<UserAccessListItem[]>> {
     const session = await getProtectedSession();
     if (!session || !READ_ROLES.includes(session.role)) return { success: false, message: "N?o autorizado." };
 
@@ -148,7 +154,7 @@ export async function getUsersAction(filters?: GetUsersParams): Promise<ActionRe
             orderBy: { createdAt: 'desc' }
         });
 
-        const data = users.map(u => ({
+        const data: UserAccessListItem[] = users.map((u) => ({
             ...u,
             companyName: u.memberships[0]?.company?.nomeFantasia || "Sem V?nculo",
             companyId: u.memberships[0]?.companyId || null
@@ -167,7 +173,7 @@ type UserUpsertInput = CreateUserInput & {
     additionalCompanyIds?: string[];
 };
 
-export async function createUserAction(data: UserUpsertInput): Promise<ActionResponse> {
+export async function createUserAction(data: UserUpsertInput): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Permiss?o negada." };
 
@@ -176,7 +182,13 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
     if (!isSystemRole && !isClientManager) return { success: false, message: "Permiss?o negada." };
 
     const validation = createUserSchema.safeParse(data);
-    if (!validation.success) return { success: false, errors: validation.error.flatten().fieldErrors as any, message: "Dados invalidos." };
+    if (!validation.success) {
+        return {
+            success: false,
+            errors: toValidationErrors(validation.error.flatten().fieldErrors),
+            message: "Dados invalidos.",
+        };
+    }
     const ip = await getRequestIp();
     const rateLimit = consumeActionRateLimit({
         action: "createUserAction",
@@ -284,7 +296,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
 /**
  * ATUALIZAR USU?RIO
  */
-export async function updateUserAction(id: string, data: Partial<UserUpsertInput>): Promise<ActionResponse> {
+export async function updateUserAction(id: string, data: Partial<UserUpsertInput>): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Acesso negado." };
 
@@ -295,7 +307,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
     if (!updateValidation.success) {
         return {
             success: false,
-            errors: updateValidation.error.flatten().fieldErrors as any,
+            errors: toValidationErrors(updateValidation.error.flatten().fieldErrors),
             message: "Dados invalidos.",
         };
     }
@@ -387,7 +399,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
 /**
  * SOFT DELETE
  */
-export async function deleteUserAction(id: string): Promise<ActionResponse> {
+export async function deleteUserAction(id: string): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session || id === session.userId) return { success: false, message: "Operacao inv?lida." };
 
@@ -413,7 +425,7 @@ export async function deleteUserAction(id: string): Promise<ActionResponse> {
 /**
  * VINCULAR A EMPRESA
  */
-export async function linkUserToCompanyAction(data: LinkUserInput): Promise<ActionResponse> {
+export async function linkUserToCompanyAction(data: LinkUserInput): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Acesso negado." };
 
@@ -454,7 +466,7 @@ export async function linkUserToCompanyAction(data: LinkUserInput): Promise<Acti
 /**
  * ALTERAR STATUS (Ativo/Inativo)
  */
-export async function toggleUserStatusAction(id: string, active: boolean): Promise<ActionResponse> {
+export async function toggleUserStatusAction(id: string, active: boolean): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Acesso negado." };
 
@@ -480,7 +492,7 @@ export async function toggleUserStatusAction(id: string, active: boolean): Promi
 /**
  * REMOVER USU?RIO DE UMA EMPRESA (Remover Membership)
  */
-export async function removeUserFromCompanyAction(userId: string, companyId: string): Promise<ActionResponse> {
+export async function removeUserFromCompanyAction(userId: string, companyId: string): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Acesso negado." };
 
@@ -513,7 +525,7 @@ export async function removeUserFromCompanyAction(userId: string, companyId: str
 /**
  * ATUALIZAR CARGO NA EMPRESA
  */
-export async function updateMembershipRoleAction(userId: string, companyId: string, role: Role): Promise<ActionResponse> {
+export async function updateMembershipRoleAction(userId: string, companyId: string, role: Role): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Acesso negado." };
 

@@ -63,8 +63,8 @@ Ordem recomendada:
 ## Estabilizacao do app atual
 
 - [x] `INFRA-022A` [Alta] Remover hardcodes de tema/cor na area publica e consolidar uso de tokens (`bg-background`, `text-foreground`, `border-border`). Superficies, contraste base e fundos da home foram alinhados aos tokens do tema; acentos visuais de marca permanecem intencionais.
-- [ ] `INFRA-022B` [Alta] Limpar mojibake residual em `auth`, `site`, `documentos` e componentes adjacentes.
-- [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes.
+- [x] `INFRA-022B` [Alta] Limpar mojibake residual em `auth`, `site`, `documentos` e componentes adjacentes.
+- [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes. Recorte inicial em `auth`, `documentos` e `user-access` ja aplicado com contratos discriminados de retorno, tipagem mais estrita de tabelas/forms e remocao de `as any` em hooks e actions; falta expandir o mesmo endurecimento para `company`, `tickets` e ferramentas legadas.
 - [ ] `INFRA-022D` [Media] Revisar `src/lib` e mover helpers de dominio que ainda fazem mais sentido dentro de `features/*`.
 - [ ] `INFRA-022E` [Media] Normalizar tipagens e formatos compartilhados de UI para reduzir regressao em deploy por incompatibilidade de retorno.
 - [x] `INFRA-022F` [Alta] Aplicar `React cache()` em `getProtectedSession()` para evitar consultas repetidas de sessao/usuario/membership no mesmo render tree SSR.

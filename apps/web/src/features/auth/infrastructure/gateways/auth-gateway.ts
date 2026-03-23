@@ -1,10 +1,13 @@
 import { authClient } from "@/lib/auth-client";
 import { registerUser } from "@/actions/auth/register";
+import type { AuthGatewayResult } from "@/features/auth/domain/model";
 
-type GatewayResult<T = void> = {
-  success: boolean;
-  data?: T;
-  error?: string;
+type AuthClientPasswordApi = {
+  signIn: {
+    email(input: { email: string; password: string; callbackURL: string }): Promise<{ error?: { message?: string } | null }>;
+  };
+  forgetPassword(input: { email: string; redirectTo: string }): Promise<unknown>;
+  resetPassword(input: { newPassword: string; token: string }): Promise<{ error?: { message?: string } | null }>;
 };
 
 // Mapa de erros centralizado e extensivel.
@@ -26,8 +29,12 @@ function translateAuthError(message: string): string {
   return "Ocorreu um erro. Tente novamente ou contate o suporte.";
 }
 
+function getPasswordApiClient(): AuthClientPasswordApi {
+  return authClient as unknown as AuthClientPasswordApi;
+}
+
 export const authGateway = {
-  async register(formData: FormData): Promise<GatewayResult> {
+  async register(formData: FormData): Promise<AuthGatewayResult> {
     try {
       const result = await registerUser(formData);
       if (result?.error) return { success: false, error: result.error };
@@ -38,12 +45,12 @@ export const authGateway = {
     }
   },
 
-  async login(email: string, password: string, callbackURL: string): Promise<GatewayResult> {
+  async login(email: string, password: string, callbackURL: string): Promise<AuthGatewayResult> {
     if (!email?.trim() || !password) {
       return { success: false, error: "Preencha e-mail e senha." };
     }
 
-    const client = authClient as any;
+    const client = getPasswordApiClient();
 
     try {
       const { error } = await client.signIn.email({ email, password, callbackURL });
@@ -59,12 +66,12 @@ export const authGateway = {
     }
   },
 
-  async requestPasswordReset(email: string): Promise<GatewayResult> {
+  async requestPasswordReset(email: string): Promise<AuthGatewayResult> {
     if (!email?.trim()) {
       return { success: false, error: "Informe um e-mail valido." };
     }
 
-    const client = authClient as any;
+    const client = getPasswordApiClient();
 
     try {
       await client.forgetPassword({
@@ -79,13 +86,13 @@ export const authGateway = {
     }
   },
 
-  async resetPassword(newPassword: string, token: string): Promise<GatewayResult> {
+  async resetPassword(newPassword: string, token: string): Promise<AuthGatewayResult> {
     if (!token) return { success: false, error: "Token invalido ou expirado." };
     if (!newPassword || newPassword.length < 6) {
       return { success: false, error: "A senha deve ter no minimo 6 caracteres." };
     }
 
-    const client = authClient as any;
+    const client = getPasswordApiClient();
 
     try {
       const response = await client.resetPassword({ newPassword, token });

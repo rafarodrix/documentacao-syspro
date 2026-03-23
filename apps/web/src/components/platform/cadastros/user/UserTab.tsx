@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Role } from "@prisma/client";
 import { toast } from "sonner";
 import { toggleUserStatusAction } from "@/features/user-access/application/actions";
+import type { UserAccessListItem } from "@/features/user-access/domain/model";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -29,19 +30,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog";
 
-interface UserWithRelations {
-  id: string;
-  name: string | null;
-  email: string;
-  image: string | null;
-  role: Role;
-  isActive: boolean;
-  jobTitle: string | null;
-  cpf: string | null;
-  phone: string | null;
-  memberships: any[];
-  [key: string]: any;
-}
+type UserWithRelations = UserAccessListItem;
 
 interface UserTabProps {
   data: UserWithRelations[];
@@ -372,9 +361,9 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                         <RoleBadge role={user.role} />
                         {user.memberships?.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
-                            {user.memberships.map((m: any) => (
+                            {user.memberships.map((m) => (
                               <span
-                                key={m.company?.id ?? m.companyId}
+                                key={m.companyId}
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] bg-muted border border-border/40 text-muted-foreground"
                               >
                                 <Building className="w-2.5 h-2.5 flex-shrink-0 opacity-60" />

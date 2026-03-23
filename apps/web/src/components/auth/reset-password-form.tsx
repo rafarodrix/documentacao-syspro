@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { useResetPassword } from "@/features/auth/hooks/use-reset-password"
@@ -117,7 +117,7 @@ export function ResetPasswordForm() {
                   )}
                 >
                   {passwordStrength.label}
-                  {!passwordStrength.passes && " — adicione letras maiúsculas, números ou símbolos"}
+                  {!passwordStrength.passes && " - adicione letras maiúsculas, números ou símbolos"}
                 </p>
               </div>
             )}
@@ -181,3 +181,5 @@ export function ResetPasswordForm() {
     </AuthLayoutWrapper>
   )
 }
+
+

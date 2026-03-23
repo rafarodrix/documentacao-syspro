@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Role } from "@prisma/client";
 import { toast } from "sonner";
 import { toggleUserStatusAction } from "@/features/user-access/application/actions";
+import type { UserAccessListItem } from "@/features/user-access/domain/model";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -30,19 +31,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog";
 
-interface SystemUserWithRelations {
-  id: string;
-  name: string | null;
-  email: string;
-  image: string | null;
-  role: Role;
-  isActive: boolean;
-  jobTitle: string | null;
-  cpf: string | null;
-  phone: string | null;
-  memberships: any[];
-  [key: string]: any;
-}
+type SystemUserWithRelations = UserAccessListItem;
 
 interface SystemUserTabProps {
   data: SystemUserWithRelations[];
