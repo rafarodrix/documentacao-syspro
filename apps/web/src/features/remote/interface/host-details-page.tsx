@@ -2,7 +2,19 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { AlertTriangle, Copy, ExternalLink, Signal, WandSparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Copy,
+  ExternalLink,
+  Fingerprint,
+  LifeBuoy,
+  ShieldCheck,
+  Signal,
+  TimerReset,
+  UserRound,
+  Wrench,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -11,16 +23,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
 
+function formatDateTime(value: string | null) {
+  if (!value) return "Sem registro";
+  return new Date(value).toLocaleString("pt-BR");
+}
+
+function formatRelativeHeartbeat(value: string | null) {
+  if (!value) return "Sem heartbeat";
+
+  const diffMinutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000);
+  if (diffMinutes < 1) return "Agora";
+  if (diffMinutes < 60) return `${diffMinutes} min atras`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h atras`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d atras`;
+}
+
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
-  const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutenção" : "Inativo";
+  const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
+
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
       return {
         label: "Sem heartbeat",
-        tone: "border-border/60 bg-background/70 text-foreground",
+        tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
         description: "O agente ainda nao registrou atividade recente no portal.",
       };
     }
@@ -30,24 +62,24 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
     if (diffMinutes <= 5) {
       return {
-        label: "Online recente",
-        tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-        description: "Heartbeat recente. O host tende a estar pronto para operacao.",
+        label: "Heartbeat recente",
+        tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+        description: "Host provavelmente online e apto para acesso imediato.",
       };
     }
 
     if (diffMinutes <= 60) {
       return {
         label: "Heartbeat antigo",
-        tone: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
-        description: "O host respondeu antes, mas vale confirmar se o agente ainda esta online.",
+        tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+        description: "O host respondeu antes, mas vale confirmar a conectividade.",
       };
     }
 
     return {
       label: "Sem resposta recente",
-      tone: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
-      description: "O ultimo heartbeat esta antigo. Validar conectividade antes da sessao.",
+      tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+      description: "Ultimo contato muito antigo. Validar a instalacao do agente.",
     };
   }, [host.lastHeartbeatAt]);
 
@@ -55,16 +87,16 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     if (!normalizedRustdeskId) {
       return {
         label: "Sem RustDesk ID",
-        tone: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
-        description: "O host ainda nao tem identificador RustDesk valido para acesso direto.",
+        tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+        description: "Sem identificador valido para acesso direto.",
       };
     }
 
     if (!host.lastHeartbeatAt) {
       return {
-        label: "Sem heartbeat",
-        tone: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
-        description: "O agente ainda nao reportou atividade. Validar instalacao e conectividade.",
+        label: "Aguardando agente",
+        tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+        description: "O agente ainda nao confirmou conectividade.",
       };
     }
 
@@ -72,15 +104,15 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     if (diffMinutes <= 5) {
       return {
         label: "Pronto para acesso",
-        tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-        description: "Host com RustDesk ID e heartbeat recente. Fluxo pronto para suporte.",
+        tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+        description: "Host pronto para atendimento remoto.",
       };
     }
 
     return {
-      label: "Heartbeat antigo",
-      tone: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
-      description: "O acesso pode funcionar, mas convem confirmar conectividade antes da sessao.",
+      label: "Confirmar conectividade",
+      tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      description: "O acesso pode funcionar, mas convem checar a maquina antes.",
     };
   }, [host.lastHeartbeatAt, normalizedRustdeskId]);
 
@@ -97,7 +129,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     if (!normalizedRustdeskId) {
       alerts.push({
         label: "Sem RustDesk ID",
-        tone: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
+        tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
       });
     }
 
@@ -133,43 +165,93 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
     window.location.assign(rustdeskHref);
     window.setTimeout(() => {
-      toast("Se o RustDesk nao abrir, copie o ID e conecte manualmente no aplicativo.");
+      toast("Se o RustDesk nao abrir, copie o ID e conecte manualmente.");
     }, 600);
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{host.name}</h1>
-          <p className="text-muted-foreground">
-            {host.companyName ?? "Sem empresa"}{host.environment ? ` | ${host.environment}` : ""}{` | ${statusLabel}`}
-          </p>
-        </div>
+      <Card className="border-border/50 overflow-hidden">
+        <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.25fr_0.75fr]">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className={heartbeat.tone}>
+                {heartbeat.label}
+              </Badge>
+              <Badge variant="outline" className={readiness.tone}>
+                {readiness.label}
+              </Badge>
+              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                {statusLabel}
+              </Badge>
+              {host.environment ? (
+                <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
+                  {host.environment}
+                </Badge>
+              ) : null}
+            </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Link href="/app/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }))}>
-            Voltar
-          </Link>
-          {rustdeskHref ? (
-            <Button onClick={handleOpenRustDesk} className="gap-2">
-              <ExternalLink className="h-4 w-4" />
-              Abrir acesso remoto
-            </Button>
-          ) : (
-            <Button disabled>RustDesk nao configurado</Button>
-          )}
-        </div>
-      </div>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <Link href="/app/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "h-8 gap-2 px-3")}>
+                  <ArrowLeft className="h-4 w-4" />
+                  Voltar
+                </Link>
+                {rustdeskHref ? (
+                  <Button onClick={handleOpenRustDesk} className="gap-2 shadow-sm">
+                    <ExternalLink className="h-4 w-4" />
+                    Abrir acesso remoto
+                  </Button>
+                ) : (
+                  <Button disabled>RustDesk nao configurado</Button>
+                )}
+              </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">{host.name}</h1>
+                <p className="mt-1 text-base text-muted-foreground">{host.companyName ?? "Sem empresa"}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{host.description || "Sem descricao operacional."}</p>
+              </div>
+            </div>
+
+            {operationalAlerts.length ? (
+              <div className="flex flex-wrap gap-2">
+                {operationalAlerts.map((alert) => (
+                  <Badge key={alert.label} variant="outline" className={alert.tone}>
+                    <AlertTriangle className="mr-1 h-3.5 w-3.5" />
+                    {alert.label}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
+              <p className="mt-1 font-mono text-base font-semibold text-foreground">{normalizedRustdeskId ?? "Nao configurado"}</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
+              <p className="mt-1 text-base font-semibold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sessao aberta</p>
+              <p className="mt-1 text-base font-semibold text-foreground">{host.openSessionCount ? `${host.openSessionCount} ativa(s)` : "Nenhuma"}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <WandSparkles className="h-5 w-5 text-primary" />
-              Acoes rapidas
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Acoes imediatas
             </CardTitle>
-            <CardDescription>Atalhos para operacao imediata quando o suporte precisar entrar no host.</CardDescription>
+            <CardDescription>Atalhos para reduzir cliques na operacao de suporte.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <Button onClick={handleOpenRustDesk} disabled={!rustdeskHref} className="justify-start gap-2">
@@ -181,7 +263,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               Copiar RustDesk ID
             </Button>
             <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="justify-start gap-2">
-              <Copy className="h-4 w-4" />
+              <Fingerprint className="h-4 w-4" />
               Copiar token
             </Button>
             <Link href="/app/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "justify-start gap-2")}>
@@ -193,50 +275,76 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
         <Card className="border-border/50">
           <CardHeader>
-            <CardTitle className="text-lg">Prontidao operacional</CardTitle>
-            <CardDescription>Leitura rapida para saber se o host esta apto para suporte agora.</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <LifeBuoy className="h-5 w-5 text-primary" />
+              Guia operacional
+            </CardTitle>
+            <CardDescription>Leitura curta para o analista decidir rapido.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <Badge variant="outline" className={heartbeat.tone}>
-              {heartbeat.label}
-            </Badge>
-            <Badge variant="outline" className={readiness.tone}>
-              {readiness.label}
-            </Badge>
-            {operationalAlerts.length ? (
-              <div className="flex flex-wrap gap-2">
-                {operationalAlerts.map((alert) => (
-                  <Badge key={alert.label} variant="outline" className={alert.tone}>
-                    <AlertTriangle className="mr-1 h-3.5 w-3.5" />
-                    {alert.label}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-            <p className="text-sm text-muted-foreground">{readiness.description}</p>
-            <p className="text-sm text-muted-foreground">{heartbeat.description}</p>
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm text-muted-foreground">
-              <p>1. Abra o RustDesk pelo botao acima.</p>
-              <p>2. Se o navegador bloquear, copie o ID e conecte manualmente.</p>
-              <p>3. Se a conexao falhar, valide senha do host e servidor RustDesk.</p>
-              {host.openSessionCount > 0 ? <p>4. Ja existe sessao aberta para este host. Validar antes de iniciar nova operacao.</p> : null}
+          <CardContent className="space-y-3 text-sm">
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+              <p className="font-medium text-foreground">{readiness.description}</p>
+              <p className="mt-1 text-muted-foreground">{heartbeat.description}</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-3 text-muted-foreground">
+              <p>1. Valide o badge de prontidao.</p>
+              <p>2. Use `Abrir RustDesk` como acao principal.</p>
+              <p>3. Se houver bloqueio do navegador, use `Copiar RustDesk ID`.</p>
+              <p>4. Se falhar, valide senha do host e servidor configurado.</p>
+              {host.openSessionCount > 0 ? <p>5. Ja existe sessao aberta. Evite duplicidade de atendimento.</p> : null}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="empresa" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 md:grid-cols-3">
-          <TabsTrigger value="empresa">Dados da empresa</TabsTrigger>
-          <TabsTrigger value="clientes">Clientes vinculados</TabsTrigger>
-          <TabsTrigger value="observacoes">Dados e observacoes</TabsTrigger>
+      <Tabs defaultValue="conexao" className="space-y-4">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-4">
+          <TabsTrigger value="conexao">Conexao</TabsTrigger>
+          <TabsTrigger value="empresa">Empresa</TabsTrigger>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="observacoes">Observacoes</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="conexao">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Resumo de conexao</CardTitle>
+              <CardDescription>Informacoes que normalmente ficam dispersas entre cadastro, agente e sessao.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
+                <p className="mt-1 font-mono text-sm text-foreground">{normalizedRustdeskId ?? "Nao configurado"}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Machine name</p>
+                <p className="mt-1 text-sm text-foreground">{host.machineName ?? "Nao registrada"}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao do agente</p>
+                <p className="mt-1 text-sm text-foreground">{host.agentVersion ?? "Nao registrada"}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Token de instalacao</p>
+                <p className="mt-1 font-mono text-sm text-foreground">{host.installToken ?? "Nao configurado"}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
+                <p className="mt-1 text-sm text-foreground">{host.provider ?? "Nao definido"}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Heartbeat</p>
+                <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="empresa">
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Dados da empresa</CardTitle>
-              <CardDescription>Resumo da empresa vinculada ao host remoto.</CardDescription>
+              <CardDescription>Contexto rapido para confirmar quem esta sendo atendido.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -256,16 +364,23 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         <TabsContent value="clientes">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Clientes vinculados a empresa</CardTitle>
-              <CardDescription>Usuarios ativos vinculados a empresa para contexto operacional.</CardDescription>
+              <CardTitle className="text-lg">Pessoas vinculadas</CardTitle>
+              <CardDescription>Usuarios ativos da empresa para dar contexto ao atendimento.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {details.linkedUsers.length ? (
                 details.linkedUsers.map((user) => (
-                  <div key={user.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                    <p className="text-sm font-medium text-foreground">{user.name ?? user.email}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                    <p className="text-xs text-muted-foreground">Perfil: {user.role}</p>
+                  <div key={user.id} className="flex items-start justify-between gap-3 rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <div className="space-y-1">
+                      <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <UserRound className="h-4 w-4 text-muted-foreground" />
+                        {user.name ?? user.email}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+                    <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                      {user.role}
+                    </Badge>
                   </div>
                 ))
               ) : (
@@ -278,22 +393,29 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         <TabsContent value="observacoes">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Dados e observacoes</CardTitle>
-              <CardDescription>Espaco de referencia operacional do host e da empresa.</CardDescription>
+              <CardTitle className="text-lg">Observacoes operacionais</CardTitle>
+              <CardDescription>Informacao manual para nao depender de memoria do suporte.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p><span className="font-medium text-foreground">Descricao da maquina:</span> {host.description || "Sem descricao operacional."}</p>
-                <p><span className="font-medium text-foreground">Observacoes do host:</span> {host.notes ?? "Sem observacoes manuais do host."}</p>
-                <p><span className="font-medium text-foreground">Token de instalacao:</span> {host.installToken ?? "Nao configurado"}</p>
-                <p><span className="font-medium text-foreground">Provider:</span> {host.provider ?? "Nao definido"}</p>
-                <p><span className="font-medium text-foreground">RustDesk ID:</span> {normalizedRustdeskId ?? "Nao configurado"}</p>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                <p className="flex items-center gap-2 font-medium text-foreground">
+                  <Wrench className="h-4 w-4 text-muted-foreground" />
+                  Host
+                </p>
+                <div className="mt-3 space-y-2">
+                  <p><span className="font-medium text-foreground">Descricao:</span> {host.description || "Sem descricao operacional."}</p>
+                  <p><span className="font-medium text-foreground">Observacoes:</span> {host.notes ?? "Sem observacoes do host."}</p>
+                </div>
               </div>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p><span className="font-medium text-foreground">Maquina:</span> {host.machineName ?? "Nao registrada"}</p>
-                <p><span className="font-medium text-foreground">Versao do agente:</span> {host.agentVersion ?? "Nao registrada"}</p>
-                <p><span className="font-medium text-foreground">Ultimo heartbeat:</span> {host.lastHeartbeatAt ? new Date(host.lastHeartbeatAt).toLocaleString("pt-BR") : "Sem heartbeat"}</p>
-                <p><span className="font-medium text-foreground">Observacoes da empresa:</span> {details.company.observacoes ?? "Sem observacoes cadastradas."}</p>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                <p className="flex items-center gap-2 font-medium text-foreground">
+                  <TimerReset className="h-4 w-4 text-muted-foreground" />
+                  Empresa
+                </p>
+                <div className="mt-3 space-y-2">
+                  <p><span className="font-medium text-foreground">Observacoes da empresa:</span> {details.company.observacoes ?? "Sem observacoes cadastradas."}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -303,21 +425,22 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="text-lg">Sessoes recentes</CardTitle>
-          <CardDescription>Historico recente do host com vinculo explicito ao ticket quando existir.</CardDescription>
+          <CardDescription>Historico recente do host com contexto de ticket e status.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {details.recentSessions.length ? (
             details.recentSessions.map((session) => (
-              <div key={session.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                <div className="flex items-start justify-between gap-3">
+              <div key={session.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">{session.hostName}</p>
                     <p className="text-xs text-muted-foreground">
                       Solicitado por {session.requestedByName ?? session.requestedByUserId}
                     </p>
-                    {session.ticketNumber && (
-                      <p className="text-xs text-muted-foreground">Ticket #{session.ticketNumber}</p>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Ticket: {session.ticketNumber ? `#${session.ticketNumber}` : "Nao informado"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Criada em {formatDateTime(session.createdAt)}</p>
                   </div>
                   <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                     {session.status}
