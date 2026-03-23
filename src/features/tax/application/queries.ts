@@ -40,7 +40,7 @@ export async function getTaxClassificationListViewData(): Promise<TaxClassificat
 }
 
 export async function getTaxRulesViewData(): Promise<TaxRulesGroupItem[]> {
-  return prisma.taxCST.findMany({
+  const rows = await prisma.taxCST.findMany({
     orderBy: { cst: "asc" },
     select: {
       id: true,
@@ -62,6 +62,15 @@ export async function getTaxRulesViewData(): Promise<TaxRulesGroupItem[]> {
       },
     },
   });
+
+  return rows.map((item) => ({
+    ...item,
+    classifications: item.classifications.map((classification) => ({
+      ...classification,
+      pRedIBS: classification.pRedIBS ?? 0,
+      pRedCBS: classification.pRedCBS ?? 0,
+    })),
+  }));
 }
 
 export async function getTaxAnexosViewData(): Promise<TaxAnexoListItem[]> {
