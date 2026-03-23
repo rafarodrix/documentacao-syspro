@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Role } from "@prisma/client";
 import { toast } from "sonner";
 import { toggleUserStatusAction } from "@/features/user-access/application/actions";
-import type { UserAccessListItem } from "@/features/user-access/domain/model";
+import type { SystemUserListItem } from "@/features/user-access/domain/model";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog";
 
-type SystemUserWithRelations = UserAccessListItem;
+type SystemUserWithRelations = SystemUserListItem;
 
 interface SystemUserTabProps {
   data: SystemUserWithRelations[];

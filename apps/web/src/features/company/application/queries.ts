@@ -5,6 +5,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { parseContractBlockReason } from "@dosc-syspro/core";
 import type {
   CompanyAdminListViewData,
+  CompanyContactInput,
   CompanyListItem,
   CompanyEditViewData,
   CompanyOption,
@@ -165,6 +166,19 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
       whatsapp: true,
       website: true,
       observacoes: true,
+      contacts: {
+        orderBy: [{ isPrimary: "desc" }, { name: "asc" }],
+        select: {
+          name: true,
+          email: true,
+          phone: true,
+          whatsapp: true,
+          notes: true,
+          isPrimary: true,
+          source: true,
+          status: true,
+        },
+      },
       addresses: {
         take: 1,
         orderBy: { id: "asc" },
@@ -194,12 +208,23 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
 
   const address = company.addresses[0];
   const initialZammadEmails: CompanyZammadEmailInput[] = zammadEmailsResult;
+  const initialContacts: CompanyContactInput[] = company.contacts.map((contact) => ({
+    name: contact.name,
+    email: contact.email ?? undefined,
+    phone: contact.phone ?? undefined,
+    whatsapp: contact.whatsapp ?? undefined,
+    notes: contact.notes ?? undefined,
+    isPrimary: contact.isPrimary,
+    source: contact.source,
+    status: contact.status,
+  }));
 
   return {
     companyId: company.id,
     companies,
     canEditCnpj: session.role !== Role.CLIENTE_ADMIN,
     initialZammadEmails,
+    initialContacts,
     initialData: {
       cnpj: company.cnpj,
       razaoSocial: company.razaoSocial,

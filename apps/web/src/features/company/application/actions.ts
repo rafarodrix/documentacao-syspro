@@ -11,6 +11,7 @@ import { CompanyRegistryGateway } from "@/features/company/infrastructure/gatewa
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
   CompanyActionResponse as ActionResponse,
+  CompanyContactInput,
   CompanyRegistryLookupResponse,
   CompanyZammadEmailInput,
 } from "@/features/company/domain/model";
@@ -46,6 +47,23 @@ function normalizeZammadEmails(items: CompanyZammadEmailInput[] | undefined): Co
   return Array.from(map.values());
 }
 
+function normalizeCompanyContacts(items: CompanyContactInput[] | undefined): CompanyContactInput[] {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => ({
+      name: typeof item?.name === "string" ? item.name.trim() : "",
+      email: typeof item?.email === "string" ? item.email.trim().toLowerCase() || undefined : undefined,
+      phone: typeof item?.phone === "string" ? item.phone.trim() || undefined : undefined,
+      whatsapp: typeof item?.whatsapp === "string" ? item.whatsapp.trim() || undefined : undefined,
+      notes: typeof item?.notes === "string" ? item.notes.trim() || undefined : undefined,
+      isPrimary: item?.isPrimary ?? false,
+      source: item?.source,
+      status: item?.status,
+    }))
+    .filter((item) => item.name.length > 0);
+}
+
 async function replaceCompanyZammadEmails(companyId: string, items: CompanyZammadEmailInput[] | undefined) {
   const normalized = normalizeZammadEmails(items);
 
@@ -63,6 +81,33 @@ async function replaceCompanyZammadEmails(companyId: string, items: CompanyZamma
       isActive: item.isActive ?? true,
     })),
     skipDuplicates: true,
+  });
+}
+
+async function replaceCompanyContacts(companyId: string, items: CompanyContactInput[] | undefined) {
+  const normalized = normalizeCompanyContacts(items).map((item, index) => ({
+    ...item,
+    isPrimary: index === 0 ? true : Boolean(item.isPrimary),
+  }));
+
+  await prisma.companyContact.deleteMany({
+    where: { companyId },
+  });
+
+  if (normalized.length === 0) return;
+
+  await prisma.companyContact.createMany({
+    data: normalized.map((item) => ({
+      companyId,
+      name: item.name,
+      email: item.email,
+      phone: item.phone,
+      whatsapp: item.whatsapp,
+      notes: item.notes,
+      isPrimary: item.isPrimary ?? false,
+      source: item.source,
+      status: item.status,
+    })),
   });
 }
 
@@ -121,6 +166,7 @@ export async function lookupCompanyProfileByCnpjAction(
 export async function createCompanyAction(
   data: CreateCompanyInput,
   zammadEmails?: CompanyZammadEmailInput[],
+  contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
   const session = await getProtectedSession();
   if (!session || !CREATE_ROLES.includes(session.role)) {
@@ -172,6 +218,9 @@ export async function createCompanyAction(
     if (zammadEmails !== undefined) {
       await replaceCompanyZammadEmails(result.id, zammadEmails);
     }
+    if (contacts !== undefined) {
+      await replaceCompanyContacts(result.id, contacts);
+    }
 
     const segmentTriggers = resolveCompanySegmentTriggers(result.segment);
 
@@ -186,6 +235,7 @@ export async function updateCompanyAction(
   id: string,
   data: CreateCompanyInput,
   zammadEmails?: CompanyZammadEmailInput[],
+  contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
   const session = await getProtectedSession();
   if (!session || !UPDATE_ROLES.includes(session.role)) {
@@ -264,6 +314,9 @@ export async function updateCompanyAction(
 
     if (zammadEmails !== undefined) {
       await replaceCompanyZammadEmails(id, zammadEmails);
+    }
+    if (contacts !== undefined) {
+      await replaceCompanyContacts(id, contacts);
     }
 
     revalidateCadastrosViews();

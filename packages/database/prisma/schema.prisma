@@ -45,6 +45,18 @@ enum CompanySegment {
   ASSISTENCIA
 }
 
+enum CompanyContactSource {
+  MANUAL
+  WHATSAPP
+  IMPORT
+}
+
+enum CompanyContactStatus {
+  PENDING_LINK
+  LINKED
+  ARCHIVED
+}
+
 enum TaxRegime {
   SIMPLES_NACIONAL
   SIMPLES_NACIONAL_EXCESSO
@@ -136,6 +148,7 @@ model Company {
   accountingClients Company[]    @relation("AccountantClient")
   contracts         Contract[]
   memberships       Membership[]
+  contacts          CompanyContact[]
   remoteHosts       RemoteHost[]
   remoteSessions    RemoteSession[]
   zammadEmails      CompanyZammadEmail[]
@@ -149,6 +162,29 @@ model Company {
   @@index([razaoSocial])
   @@index([cnpj])
   @@map("company")
+}
+
+model CompanyContact {
+  id String @id @default(cuid())
+
+  companyId String
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name String
+  email String?
+  phone String?
+  whatsapp String?
+  notes String? @db.Text
+  isPrimary Boolean @default(false)
+  source CompanyContactSource @default(MANUAL)
+  status CompanyContactStatus @default(LINKED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, status])
+  @@index([whatsapp])
+  @@map("company_contact")
 }
 
 model CompanyZammadEmail {

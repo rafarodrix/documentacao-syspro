@@ -1,4 +1,6 @@
 import type {
+  CompanyContactSource,
+  CompanyContactStatus,
   CompanySegment,
   CompanyStatus,
   IndicadorIE,
@@ -16,6 +18,17 @@ export type CompanyZammadEmailInput = {
   email: string;
   label?: string;
   isActive?: boolean;
+};
+
+export type CompanyContactInput = {
+  name: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  notes?: string;
+  isPrimary?: boolean;
+  source?: CompanyContactSource;
+  status?: CompanyContactStatus;
 };
 
 export type CompanyRegistryLookupResponse = {
@@ -132,5 +145,5 @@ export interface CompanyEditViewData {
   canEditCnpj: boolean;
   initialData: CompanyEditInitialData;
   initialZammadEmails: CompanyZammadEmailInput[];
+  initialContacts: CompanyContactInput[];
 }
-

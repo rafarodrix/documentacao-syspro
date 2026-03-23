@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
 import { createCompanySchema, type CreateCompanyInput } from "@/features/company/application/company-schema";
-import type { CompanyOption, CompanyZammadEmailInput } from "@/features/company/domain/model";
+import type { CompanyContactInput, CompanyOption, CompanyZammadEmailInput } from "@/features/company/domain/model";
 import {
   createCompanyAction,
   lookupCompanyProfileByCnpjAction,
@@ -43,6 +43,8 @@ import {
   Sparkles,
   Save,
   Search,
+  Trash2,
+  Users,
 } from "lucide-react";
 
 interface CreateCompanyPageFormProps {
@@ -52,6 +54,7 @@ interface CreateCompanyPageFormProps {
   companyId?: string;
   initialData?: Partial<CreateCompanyInput>;
   initialZammadEmails?: CompanyZammadEmailInput[];
+  initialContacts?: CompanyContactInput[];
   canEditCnpj?: boolean;
 }
 
@@ -122,6 +125,7 @@ export function CreateCompanyPageForm({
   companyId,
   initialData,
   initialZammadEmails = [],
+  initialContacts = [],
   canEditCnpj = true,
 }: CreateCompanyPageFormProps) {
   const router = useRouter();
@@ -142,6 +146,28 @@ export function CreateCompanyPageForm({
   const [zammadEmails, setZammadEmails] = useState<CompanyZammadEmailInput[]>(initialNormalizedZammadEmails);
   const [zammadEmailInput, setZammadEmailInput] = useState("");
   const [zammadEmailLabel, setZammadEmailLabel] = useState("");
+  const initialNormalizedContacts = useMemo(
+    () =>
+      (Array.isArray(initialContacts) ? initialContacts : [])
+        .map((item) => ({
+          name: item.name?.trim() ?? "",
+          email: item.email?.trim().toLowerCase() || "",
+          phone: item.phone?.trim() || "",
+          whatsapp: item.whatsapp?.trim() || "",
+          notes: item.notes?.trim() || "",
+          isPrimary: item.isPrimary ?? false,
+        }))
+        .filter((item) => item.name.length > 0),
+    [initialContacts],
+  );
+  const [contacts, setContacts] = useState(initialNormalizedContacts);
+  const [contactDraft, setContactDraft] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    whatsapp: "",
+    notes: "",
+  });
   const [isImportingCnpj, setIsImportingCnpj] = useState(false);
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
@@ -191,7 +217,8 @@ export function CreateCompanyPageForm({
   const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue);
   const zammadEmailsDirty =
     JSON.stringify(normalizeZammadEmails(zammadEmails)) !== JSON.stringify(initialNormalizedZammadEmails);
-  const canSubmit = isDirty || zammadEmailsDirty;
+  const contactsDirty = JSON.stringify(contacts) !== JSON.stringify(initialNormalizedContacts);
+  const canSubmit = isDirty || zammadEmailsDirty || contactsDirty;
   const currentCnpj = form.watch("cnpj");
 
   function openCnpjLookup() {
@@ -265,11 +292,19 @@ export function CreateCompanyPageForm({
 
   const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
     const normalizedZammadEmails = normalizeZammadEmails(zammadEmails);
+    const normalizedContacts: CompanyContactInput[] = contacts.map((contact, index) => ({
+      name: contact.name.trim(),
+      email: contact.email.trim() || undefined,
+      phone: contact.phone.trim() || undefined,
+      whatsapp: contact.whatsapp.trim() || undefined,
+      notes: contact.notes.trim() || undefined,
+      isPrimary: index === 0 ? true : contact.isPrimary,
+    }));
 
     const result =
       mode === "edit" && companyId
-        ? await updateCompanyAction(companyId, data, normalizedZammadEmails)
-        : await createCompanyAction(data, normalizedZammadEmails);
+        ? await updateCompanyAction(companyId, data, normalizedZammadEmails, normalizedContacts)
+        : await createCompanyAction(data, normalizedZammadEmails, normalizedContacts);
     if (!result.success) {
       toast.error(result.message ?? (mode === "edit" ? "Erro ao atualizar empresa." : "Erro ao cadastrar empresa."));
       return;
@@ -319,6 +354,30 @@ export function CreateCompanyPageForm({
     ]);
     setZammadEmailInput("");
     setZammadEmailLabel("");
+  }
+
+  function addCompanyContact() {
+    const nextContact = {
+      name: contactDraft.name.trim(),
+      email: contactDraft.email.trim().toLowerCase(),
+      phone: contactDraft.phone.trim(),
+      whatsapp: contactDraft.whatsapp.trim(),
+      notes: contactDraft.notes.trim(),
+      isPrimary: contacts.length === 0,
+    };
+
+    if (!nextContact.name) {
+      toast.error("Informe o nome do contato.");
+      return;
+    }
+
+    if (!nextContact.email && !nextContact.phone && !nextContact.whatsapp) {
+      toast.error("Informe ao menos um canal do contato.");
+      return;
+    }
+
+    setContacts((prev) => [...prev, nextContact]);
+    setContactDraft({ name: "", email: "", phone: "", whatsapp: "", notes: "" });
   }
 
   return (
@@ -573,6 +632,106 @@ export function CreateCompanyPageForm({
                     <FormField control={form.control} name="observacoes" render={({ field }) => (
                       <FormItem><FormLabel>Observacoes</FormLabel><FormControl><Textarea rows={4} placeholder="Observacoes internas" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                     )} />
+                    <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-3">
+                      <div className="flex items-start gap-2">
+                        <Users className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Contatos da empresa</p>
+                          <p className="text-xs text-muted-foreground">
+                            Esses contatos sao operacionais. Nao recebem acesso ao portal automaticamente.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <Input
+                          placeholder="Nome do contato"
+                          value={contactDraft.name}
+                          onChange={(event) => setContactDraft((prev) => ({ ...prev, name: event.target.value }))}
+                        />
+                        <Input
+                          type="email"
+                          placeholder="contato@empresa.com.br"
+                          value={contactDraft.email}
+                          onChange={(event) => setContactDraft((prev) => ({ ...prev, email: event.target.value }))}
+                        />
+                        <Input
+                          placeholder="Telefone"
+                          value={contactDraft.phone}
+                          onChange={(event) =>
+                            setContactDraft((prev) => ({ ...prev, phone: formatPhone(event.target.value) }))
+                          }
+                        />
+                        <Input
+                          placeholder="WhatsApp"
+                          value={contactDraft.whatsapp}
+                          onChange={(event) =>
+                            setContactDraft((prev) => ({ ...prev, whatsapp: formatPhone(event.target.value) }))
+                          }
+                        />
+                      </div>
+                      <Textarea
+                        rows={2}
+                        placeholder="Observacoes do contato"
+                        value={contactDraft.notes}
+                        onChange={(event) => setContactDraft((prev) => ({ ...prev, notes: event.target.value }))}
+                      />
+                      <div className="flex justify-end">
+                        <Button type="button" variant="outline" onClick={addCompanyContact}>
+                          Adicionar contato
+                        </Button>
+                      </div>
+                      {contacts.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Nenhum contato operacional configurado.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {contacts.map((contact, index) => (
+                            <div key={`${contact.name}-${contact.email}-${index}`} className="rounded-md border border-border/60 px-3 py-2">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium">{contact.name}</span>
+                                    {index === 0 ? <Badge variant="outline">Principal</Badge> : null}
+                                  </div>
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                    {contact.email ? <span>{contact.email}</span> : null}
+                                    {contact.phone ? <span>{contact.phone}</span> : null}
+                                    {contact.whatsapp ? <span>{contact.whatsapp}</span> : null}
+                                  </div>
+                                  {contact.notes ? <p className="text-xs text-muted-foreground">{contact.notes}</p> : null}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {index !== 0 ? (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        setContacts((prev) => {
+                                          const next = [...prev];
+                                          const [selected] = next.splice(index, 1);
+                                          return [selected, ...next.map((item, itemIndex) => ({ ...item, isPrimary: itemIndex === 0 }))];
+                                        })
+                                      }
+                                    >
+                                      Tornar principal
+                                    </Button>
+                                  ) : null}
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => setContacts((prev) => prev.filter((_, contactIndex) => contactIndex !== index))}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-3">
                       <div>
                         <p className="text-sm font-medium">E-mails vinculados ao Zammad</p>

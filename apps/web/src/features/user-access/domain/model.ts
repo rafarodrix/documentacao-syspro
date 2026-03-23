@@ -57,6 +57,19 @@ export type UserAccessListItem = {
   companyId: string | null;
 };
 
+export type SystemUserListItem = {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: Role;
+  isActive: boolean;
+  jobTitle: string | null;
+  cpf: string | null;
+  phone: string | null;
+  memberships: UserAccessMembershipSummary[];
+};
+
 export type UserAccessValidationErrors = Partial<Record<keyof CreateUserInput | "additionalCompanyIds", string[]>>;
 
 export type UserAccessActionSuccess<T = void> = T extends void

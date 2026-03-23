@@ -1,11 +1,29 @@
 import { z } from "zod";
-import { TaxRegime, CompanyStatus, IndicadorIE, CompanySegment } from "@prisma/client";
+import {
+  TaxRegime,
+  CompanyStatus,
+  IndicadorIE,
+  CompanySegment,
+  CompanyContactSource,
+  CompanyContactStatus,
+} from "@prisma/client";
 import { addressSchema } from "@dosc-syspro/contracts";
 
 const emptyToUndefined = z.preprocess(
   (val) => (val === "" || val === null ? undefined : val),
   z.string().optional()
 );
+
+const companyContactSchema = z.object({
+  name: z.string().min(2, "Nome do contato obrigatorio").trim(),
+  email: emptyToUndefined.pipe(z.string().email("E-mail invalido").optional()),
+  phone: emptyToUndefined,
+  whatsapp: emptyToUndefined,
+  notes: emptyToUndefined,
+  isPrimary: z.boolean().optional().default(false),
+  source: z.nativeEnum(CompanyContactSource).optional().default(CompanyContactSource.MANUAL),
+  status: z.nativeEnum(CompanyContactStatus).optional().default(CompanyContactStatus.LINKED),
+});
 
 export const createCompanySchema = z
   .object({
@@ -37,6 +55,7 @@ export const createCompanySchema = z
     website: emptyToUndefined,
     address: addressSchema.optional().nullable().or(z.literal("")),
     observacoes: emptyToUndefined,
+    contacts: z.array(companyContactSchema).optional().default([]),
   })
   .refine(
     (data) => {

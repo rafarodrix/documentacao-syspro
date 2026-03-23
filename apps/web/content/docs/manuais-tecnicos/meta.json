@@ -1,23 +1,24 @@
 {
-  "title": "Manuais Técnicos",
-  "description": "Conteúdo técnico restrito para administração, suporte e equipe interna.",
+  "title": "Manuais Tecnicos",
+  "description": "Conteudo tecnico restrito para administracao, suporte e equipe interna.",
   "pages": [
     "index",
     "---Arquitetura---",
     "arquitetura/arquitetura-documentacao-fumadocs",
     "arquitetura/arquitetura-aplicacao-monorepo",
     "arquitetura/arquitetura-referencia-por-fluxo",
-    "---Governança---",
+    "---Governanca---",
     "governanca/backlog-infra-monorepo",
-    "---Padrões---",
+    "---Padroes---",
     "padroes/padrao-componentes-mdx",
     "padroes/diff-highlighting-shiki",
     "---Processos---",
     "processos/estrutura-projeto",
     "processos/homologcao-producao",
     "processos/integracao-zammad",
+    "processos/arquitetura-canal-whatsapp",
     "processos/operacao-agente-remoto-oss",
-    "---Estratégia---",
+    "---Estrategia---",
     "estrategia/estrategia-plataforma-remota"
   ]
 }

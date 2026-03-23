@@ -29,6 +29,7 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
       backHref="/app/cadastros/empresa"
       companies={view.companies}
       initialZammadEmails={view.initialZammadEmails}
+      initialContacts={view.initialContacts}
       initialData={view.initialData}
     />
   );
