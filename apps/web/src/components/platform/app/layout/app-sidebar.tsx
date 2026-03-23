@@ -34,6 +34,7 @@ import {
   ShieldCheck,
   HelpCircle,
   BookLock,
+  Monitor,
 } from "lucide-react"
 
 export type UserRole = Role
@@ -66,6 +67,7 @@ const NAV_CADASTROS: NavItemType[] = [
 
 const NAV_SYSTEM: NavItemType[] = [
   { title: "Ferramentas", href: "/app/tools", icon: Wrench },
+  { title: "Plataforma Remota", href: "/app/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES] },
 ]
 
 const NAV_DOCS_USER: NavItemType[] = [
