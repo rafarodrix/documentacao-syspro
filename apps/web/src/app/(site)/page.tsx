@@ -33,7 +33,7 @@ export default async function LandingPage() {
   return (
     <main className="min-h-screen bg-[#050816] text-white">
       <HeroSection currentVersion={currentVersion} releaseLink={releaseLink} />
-      <TrilinkEcosystem monthlySummaries={monthlySummaries} />
+      <TrilinkEcosystem summaries={monthlySummaries} releaseLink={releaseLink} />
       <FinalCTA />
     </main>
   );
