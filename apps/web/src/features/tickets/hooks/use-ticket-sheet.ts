@@ -61,7 +61,7 @@ export function useTicketSheet(onSuccess: () => void) {
                 setFiles([]);
                 onSuccess();
             } else {
-                toast.error(result.error || "Erro ao criar chamado.");
+                toast.error(result.message || "Erro ao criar chamado.");
             }
         });
     };
