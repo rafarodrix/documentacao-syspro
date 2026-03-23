@@ -36,7 +36,7 @@ export function AccessControlTab({ initialEnabled }: AccessControlTabProps) {
             const result = await updateRbacMatrixVisibilityAction(nextValue);
             if (!result.success) {
                 setEnabled(!nextValue);
-                toast.error(result.error ?? "Erro ao alterar visibilidade da matriz.");
+                toast.error(result.error);
                 return;
             }
             toast.success(result.message ?? "Configuracao atualizada.");

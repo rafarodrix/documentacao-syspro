@@ -103,7 +103,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                 setSuspendImpact(result.data);
             } else {
                 setSuspendImpact(null);
-                toast.error(typeof result.error === "string" ? result.error : "Nao foi possivel calcular o impacto.");
+                toast.error(result.error);
             }
             setIsImpactLoading(false);
         };
@@ -139,7 +139,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                 return;
             }
 
-            toast.error(typeof result.error === "string" ? result.error : "Erro ao inativar contrato.");
+            toast.error(result.error);
         });
     };
 
@@ -154,7 +154,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                 return;
             }
 
-            toast.error(typeof result.error === "string" ? result.error : "Erro ao ativar contrato.");
+            toast.error(result.error);
         });
     };
 
@@ -215,7 +215,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                 return;
             }
 
-            toast.error(typeof result.error === "string" ? result.error : "Erro ao atualizar contrato.");
+            toast.error(result.error);
         });
     };
 

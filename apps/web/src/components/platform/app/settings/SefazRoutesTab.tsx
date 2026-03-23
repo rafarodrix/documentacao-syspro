@@ -101,7 +101,7 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
 
       const result = await updateSefazRoutesAction(normalized);
       if (!result.success) {
-        toast.error(result.error ?? "Erro ao salvar rotas.");
+        toast.error(result.error);
         return;
       }
       toast.success(result.message ?? "Rotas salvas.");
@@ -112,7 +112,7 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
     startChecking(async () => {
       const result = await runSefazCheckAction();
       if (!result.success) {
-        toast.error(result.error ?? "Erro ao executar verificacao.");
+        toast.error(result.error);
         return;
       }
       toast.success(result.message ?? "Verificacao concluida.");

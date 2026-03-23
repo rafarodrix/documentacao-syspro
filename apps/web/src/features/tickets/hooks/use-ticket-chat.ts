@@ -30,7 +30,7 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[]) {
                 setMessage("");
                 toast.success("Resposta enviada!");
             } else {
-                toast.error(result.error || "Erro ao enviar mensagem.");
+                toast.error(result.error);
             }
         });
     };

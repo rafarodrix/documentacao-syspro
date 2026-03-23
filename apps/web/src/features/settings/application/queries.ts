@@ -44,7 +44,7 @@ export async function getSettingsAction(): Promise<SettingsActionResponse<Settin
 export async function getSefazRoutesAction(): Promise<SettingsActionResponse<SefazRoutesInput>> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
-    return { success: false, error: "Permissao negada.", data: [] as SefazRoutesInput };
+    return { success: false, error: "Permissao negada." };
   }
 
   try {
@@ -61,13 +61,13 @@ export async function getSefazRoutesAction(): Promise<SettingsActionResponse<Sef
     const parsedJson = JSON.parse(setting.value);
     const validation = sefazRoutesSchema.safeParse(parsedJson);
     if (!validation.success) {
-      return { success: false, error: "Formato invalido das rotas SEFAZ.", data: [] as SefazRoutesInput };
+      return { success: false, error: "Formato invalido das rotas SEFAZ." };
     }
 
     return { success: true, data: validation.data };
   } catch (error) {
     console.error("Erro ao carregar rotas SEFAZ:", error);
-    return { success: false, error: "Erro ao carregar rotas SEFAZ.", data: [] as SefazRoutesInput };
+    return { success: false, error: "Erro ao carregar rotas SEFAZ." };
   }
 }
 

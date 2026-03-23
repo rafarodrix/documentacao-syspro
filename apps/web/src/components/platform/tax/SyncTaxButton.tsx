@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
+import type { TaxSyncChunkResponse } from "@/features/tax/domain/model";
 
 const CLASS_TRIB_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/classTrib";
 const ANEXOS_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/anexos";
@@ -128,9 +129,9 @@ async function sendChunk(
     }),
   });
 
-  const data = (await response.json()) as { success?: boolean; error?: string; message?: string; jobId?: string };
+  const data = (await response.json()) as TaxSyncChunkResponse;
   if (!response.ok || !data.success) {
-    throw new Error(data.error ?? `Falha ao persistir lote (${response.status}).`);
+    throw new Error(data.success ? `Falha ao persistir lote (${response.status}).` : data.error);
   }
 
   return data;
@@ -275,8 +276,9 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
             setLastStatus("idle");
             setStatusMessage("Sincronizar Agora");
           }, 3000);
-        } catch (error: any) {
-          toast.error(error?.message ?? "Falha ao persistir sincronizacao.");
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : "Falha ao persistir sincronizacao.";
+          toast.error(message);
           setLastStatus("error");
           setStatusMessage("Falha na Sincronizacao");
           const last = readProgress(mode);
@@ -289,15 +291,16 @@ function SyncRouteButton({ mode }: { mode: SyncMode }) {
             processedItems: total,
             startedAt: last?.startedAt ?? startedAt,
             updatedAt: Date.now(),
-            lastError: error?.message ?? "Falha ao persistir sincronizacao.",
+            lastError: message,
           });
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro no Sync:", error);
-      const msg = error?.message?.includes("Failed to fetch")
+      const rawMessage = error instanceof Error ? error.message : "Erro inesperado ao sincronizar dados fiscais.";
+      const msg = rawMessage.includes("Failed to fetch")
         ? "Falha na conexao. O certificado foi negado ou houve bloqueio de CORS."
-        : error?.message ?? "Erro inesperado ao sincronizar dados fiscais.";
+        : rawMessage;
 
       toast.error(msg);
       setLastStatus("error");

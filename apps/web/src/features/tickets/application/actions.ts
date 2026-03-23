@@ -11,6 +11,7 @@ import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
 import { getScopedCompanyZammadEmails, isSystemRole } from "@/features/tickets/application/services/ticket-scope.service";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
+import type { TicketDetailsResponse, TicketMutationResponse } from "@/features/tickets/domain/model";
 
 const CREATE_TICKET_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
@@ -92,7 +93,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     }
 }
 
-export async function getTicketDetailsAction(ticketId: string) {
+export async function getTicketDetailsAction(ticketId: string): Promise<TicketDetailsResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, error: "Nao autorizado" };
 
@@ -164,7 +165,7 @@ export async function getTicketDetailsAction(ticketId: string) {
     }
 }
 
-export async function replyTicketAction(ticketId: string, message: string) {
+export async function replyTicketAction(ticketId: string, message: string): Promise<TicketMutationResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, error: "Nao autorizado." };
 
@@ -198,7 +199,7 @@ export async function replyTicketAction(ticketId: string, message: string) {
 export async function ticketQuickAction(input: {
     ticketId: string | number;
     action: "assume" | "priority_high" | "macro_followup";
-}) {
+}): Promise<TicketMutationResponse> {
     const session = await getProtectedSession();
     if (!session || !isSystemRole(session.role)) {
         return { success: false, error: "Nao autorizado." };

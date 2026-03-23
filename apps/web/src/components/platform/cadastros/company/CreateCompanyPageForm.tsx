@@ -6,7 +6,11 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
-import { createCompanySchema, type CreateCompanyInput } from "@/features/company/application/company-schema";
+import {
+  createCompanySchema,
+  type CreateCompanyInput,
+  type CreateCompanyOutput,
+} from "@/features/company/application/company-schema";
 import type { CompanyContactInput, CompanyOption, CompanyZammadEmailInput } from "@/features/company/domain/model";
 import {
   createCompanyAction,
@@ -172,7 +176,7 @@ export function CreateCompanyPageForm({
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
 
-  const form = useForm<CreateCompanyInput>({
+  const form = useForm<CreateCompanyInput, undefined, CreateCompanyOutput>({
     resolver: zodResolver(createCompanySchema),
     defaultValues: {
       cnpj: "",
@@ -290,7 +294,7 @@ export function CreateCompanyPageForm({
     }
   }
 
-  const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
+  const onSubmit: SubmitHandler<CreateCompanyOutput> = async (data) => {
     const normalizedZammadEmails = normalizeZammadEmails(zammadEmails);
     const normalizedContacts: CompanyContactInput[] = contacts.map((contact, index) => ({
       name: contact.name.trim(),

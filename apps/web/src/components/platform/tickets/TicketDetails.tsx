@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { TicketArticleItem, TicketDetailsItem } from "./types";
+import type { TicketMutationResponse } from "@/features/tickets/domain/model";
 
 interface TicketDetailsProps {
     ticket?: TicketDetailsItem;
@@ -46,10 +47,10 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ action }),
                 });
-                const json = (await response.json()) as { success?: boolean; error?: string };
+                const json = (await response.json()) as TicketMutationResponse;
 
                 if (!response.ok || !json.success) {
-                    toast.error(json.error || "Falha ao executar acao rapida.");
+                    toast.error(json.success ? "Falha ao executar acao rapida." : json.error);
                     return;
                 }
 

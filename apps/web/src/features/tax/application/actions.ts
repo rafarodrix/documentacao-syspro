@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { createHash } from "crypto";
 import { revalidateSettingsViews, revalidateTaxViews } from "@/lib/cache-invalidation";
+import type { TaxActionResponse } from "@/features/tax/domain/model";
 
 // ==============================================================================
 // 1. TIPAGEM EXATA DO RETORNO DA API (BASEADA NO SEU JSON)
@@ -334,10 +335,31 @@ const getNcmExternalKey = (item: Record<string, unknown>, index: number): string
 // ==============================================================================
 // 3. SERVER ACTION (PROCESSAMENTO HIERARQUICO)
 // ==============================================================================
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    return "Erro inesperado.";
+}
+
+type SaveResultSuccess = {
+    success: true;
+    message: string;
+    inserted?: number;
+    updated?: number;
+    unchanged?: number;
+    failed?: number;
+};
+
+type SaveResultFailure = {
+    success: false;
+    error: string;
+};
+
+type SaveResult = SaveResultSuccess | SaveResultFailure;
+
 export async function saveTaxDataBatch(
-    data: any[],
+    data: unknown[],
     options?: { revalidate?: boolean },
-) {
+): Promise<TaxActionResponse> {
     // Cast forcado para garantir intelisense aqui dentro, 
     // assumindo que o input vem correto do front
     const cstList = data as TaxCstDTO[];
@@ -503,24 +525,14 @@ export async function saveTaxDataBatch(
             message: `Sucesso! ${result.cst} CSTs e ${result.class} Classificacoes processadas.`,
         };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Erro critico na importacao fiscal:", error);
         return {
             success: false,
-            error: `Erro ao salvar no banco: ${error.message}`,
+            error: `Erro ao salvar no banco: ${getErrorMessage(error)}`,
         };
     }
 }
-
-type SaveResult = {
-    success: boolean;
-    message?: string;
-    error?: string;
-    inserted?: number;
-    updated?: number;
-    unchanged?: number;
-    failed?: number;
-};
 
 export async function saveTaxAnexosBatch(
     data: unknown[],
@@ -728,11 +740,11 @@ export async function saveTaxAnexosBatch(
             unchanged,
             failed: 0,
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Erro critico na importacao de anexos fiscais:", error);
         return {
             success: false,
-            error: `Erro ao salvar anexos no banco: ${error.message}`,
+            error: `Erro ao salvar anexos no banco: ${getErrorMessage(error)}`,
         };
     }
 }
@@ -877,11 +889,11 @@ export async function saveTaxCredPresumidoBatch(
             unchanged,
             failed: 0,
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Erro critico na importacao de credito presumido:", error);
         return {
             success: false,
-            error: `Erro ao salvar credito presumido no banco: ${error.message}`,
+            error: `Erro ao salvar credito presumido no banco: ${getErrorMessage(error)}`,
         };
     }
 }
@@ -1026,11 +1038,11 @@ export async function saveTaxNcmBatch(
             unchanged,
             failed: 0,
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Erro critico na importacao de NCM:", error);
         return {
             success: false,
-            error: `Erro ao salvar NCM no banco: ${error.message}`,
+            error: `Erro ao salvar NCM no banco: ${getErrorMessage(error)}`,
         };
     }
 }

@@ -41,9 +41,9 @@ export default function GeneralSettingsForm() {
         async function load() {
             try {
                 const result = await getSettingsAction();
-                if (isMounted && result.success && result.data) {
+                if (isMounted && result.success) {
                     form.reset(result.data);
-                } else if (result.error) {
+                } else if (isMounted) {
                     toast.error(result.error);
                 }
             } catch (error) {
@@ -63,7 +63,7 @@ export default function GeneralSettingsForm() {
                 toast.success(result.message);
                 form.reset(data); // Reseta com os dados novos para limpar estado 'dirty'
             } else {
-                toast.error(result.error || "Erro ao salvar.");
+                toast.error(result.error);
             }
         });
     }

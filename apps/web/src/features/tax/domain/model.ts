@@ -1,10 +1,25 @@
 import type { Prisma } from "@prisma/client";
 
-export type TaxActionResponse<T = unknown> = {
-  success: boolean;
-  message?: string;
-  error?: string;
-  data?: T;
+export type TaxActionSuccess<T = void> = T extends void
+  ? {
+      success: true;
+      message?: string;
+    }
+  : {
+      success: true;
+      message?: string;
+      data: T;
+    };
+
+export type TaxActionFailure = {
+  success: false;
+  error: string;
+};
+
+export type TaxActionResponse<T = void> = TaxActionSuccess<T> | TaxActionFailure;
+
+export type TaxSyncChunkResponse = TaxActionResponse & {
+  jobId?: string;
 };
 
 export type TaxSyncMode = "classTrib" | "anexos" | "credPresumido" | "ncm";

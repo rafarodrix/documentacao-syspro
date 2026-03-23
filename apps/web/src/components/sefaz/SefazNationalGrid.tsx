@@ -3,9 +3,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SEFAZ_ENDPOINTS } from "@dosc-syspro/contracts";
-import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 
-export function SefazNationalGrid({ data }: { data: any[] }) {
+type SefazStatusItem = {
+  uf: string;
+  service: "NFE" | "NFCE";
+  status?: string | null;
+};
+
+export function SefazNationalGrid({ data }: { data: SefazStatusItem[] }) {
   const getStatusByUf = (uf: string, service: 'NFE' | 'NFCE') => {
     return data?.find(d => d.uf === uf && d.service === service);
   };

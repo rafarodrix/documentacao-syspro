@@ -1,11 +1,22 @@
 import type { ContractStatus } from "@prisma/client";
 
-export interface ContractActionResponse<T = unknown> {
-  success: boolean;
-  message?: string;
-  error?: string;
-  data?: T;
-}
+export type ContractActionSuccess<T = void> = T extends void
+  ? {
+      success: true;
+      message?: string;
+    }
+  : {
+      success: true;
+      message?: string;
+      data: T;
+    };
+
+export type ContractActionFailure = {
+  success: false;
+  error: string;
+};
+
+export type ContractActionResponse<T = void> = ContractActionSuccess<T> | ContractActionFailure;
 
 export interface ContractCompanyOption {
   id: string;

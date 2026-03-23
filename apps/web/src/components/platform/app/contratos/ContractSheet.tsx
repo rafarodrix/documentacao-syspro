@@ -105,7 +105,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                 return;
             }
 
-            toast.error(typeof result.error === "string" ? result.error : "Erro ao salvar contrato.");
+            toast.error(result.error);
         });
     };
 

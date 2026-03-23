@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TicketListItem, TicketPriorityLevel } from "./types";
 import { getTicketStatusGroup } from "@dosc-syspro/core";
+import type { TicketMutationResponse } from "@/features/tickets/domain/model";
 
 interface TicketsTableProps {
     tickets: TicketListItem[];
@@ -32,10 +33,10 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ action }),
                 });
-                const json = (await response.json()) as { success?: boolean; error?: string };
+                const json = (await response.json()) as TicketMutationResponse;
 
                 if (!response.ok || !json.success) {
-                    toast.error(json.error || "Falha ao executar acao rapida.");
+                    toast.error(json.success ? "Falha ao executar acao rapida." : json.error);
                     return;
                 }
 
