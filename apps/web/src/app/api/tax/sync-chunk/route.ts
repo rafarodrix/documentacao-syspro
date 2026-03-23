@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   let body: TaxSyncChunkRequest;
   try {
-    body = (await request.json()) as SyncChunkBody;
+    body = (await request.json()) as TaxSyncChunkRequest;
   } catch {
     return NextResponse.json({ success: false, error: "Payload invalido." }, { status: 400 });
   }
