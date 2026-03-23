@@ -14,6 +14,8 @@ export type { SefazConfig, SefazRoutePreset } from "./sefaz-endpoints";
 
 export { ticketFormSchema } from "./ticket-form";
 export type { TicketFormInput } from "./ticket-form";
+export { addressSchema } from "./address";
+export type { AddressInput } from "./address";
 
 export { documentoSchema } from "./documento";
 export type { DocumentoFormValues } from "./documento";

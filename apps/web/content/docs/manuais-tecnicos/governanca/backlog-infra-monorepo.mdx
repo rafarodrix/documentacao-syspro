@@ -25,6 +25,8 @@ Ja concluido:
 - `INFRA-014` com o primeiro recorte de `packages/ui`
 - `INFRA-015` com o primeiro recorte de `packages/contracts`
 - `INFRA-016` com o primeiro recorte de `packages/core`
+- `INFRA-017` com `packages/database`
+- `INFRA-018` com a estrategia de repositories/adapters para persistencia
 
 O backlog abaixo comeca do proximo bloco realmente pendente.
 
@@ -38,40 +40,6 @@ Ordem recomendada:
 4. reforcar CI, observabilidade e experiencia de docs
 
 ## Fase C - Monorepo de Dominio
-
-### EPIC C1 - Core e persistencia
-
-- [x] `INFRA-016` [Alta] Extrair `packages/core`.
-Criterios de aceite:
-- casos de uso, dominio e politicas sem dependencia de Next.js.
-- features estaveis movidas sem quebrar importacao.
-Status de fechamento:
-- `packages/core` criado com `package.json` proprio e `src/index.ts`.
-- primeiro recorte extraido com entidades de `ticket` e `release`, regras puras de bloqueio de contrato, politicas de acesso por role, matriz/workflow de tickets e calculo de SLA.
-- `apps/web` passou a resolver `@dosc-syspro/core` via `tsconfig`, sem depender de Next.js nas partes extraidas.
-- wrappers legados em `apps/web/src/core/domain/entities/*`, `apps/web/src/core/config/*` e `apps/web/src/core/application/services/zammad-sla.ts` foram mantidos como camada de compatibilidade.
-
-- [x] `INFRA-017` [Alta] Extrair `packages/database`.
-Criterios de aceite:
-- Prisma schema, migrations, client e adapters centralizados.
-- acesso ao banco fora do app web controlado.
-Status de fechamento:
-- `packages/database` criado com `package.json`, `README.md` e `src/index.ts`.
-- `prisma/schema.prisma`, `prisma/migrations/*` e `prisma/seed.ts` foram centralizados em `packages/database/prisma`.
-- o bootstrap compartilhado do `PrismaClient` passou a viver em `packages/database/src/client.ts`.
-- `apps/web/src/lib/prisma.ts` foi reduzido a wrapper de compatibilidade para `@dosc-syspro/database`.
-- scripts de `generate` e `migrate` deixaram de depender de `apps/web/prisma` e passaram a usar o schema centralizado.
-
-- [x] `INFRA-018` [Alta] Definir estrategia de repositories/adapters para persistencia.
-Criterios de aceite:
-- `core` nao depende de Prisma diretamente.
-- contratos de persistencia definidos para features criticas.
-Status de fechamento:
-- regra documentada e consolidada em `arquitetura-aplicacao-monorepo.mdx`.
-- convencao oficial definida para contratos em `src/features/<feature>/domain/repositories`.
-- primeiros contratos criados para `tickets`, `company` e `tax`.
-- estrategia registrada para implementacoes futuras em `core/infrastructure/persistence/prisma`.
-- Prisma direto passou a ser explicitamente aceito apenas em `application/queries` e `application/actions` enquanto o fluxo ainda nao justificar repository concreto.
 
 ### EPIC C2 - BFF e transporte
 
@@ -118,7 +86,7 @@ Criterios de aceite:
 
 ## Roadmap recomendado
 
-### Sprint 3 - Dominio compartilhado
+### Sprint 3 - BFF e transporte
 
 - `INFRA-019` `packages/api`
 - `INFRA-020` Data fetching e invalidacao

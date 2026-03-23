@@ -9,6 +9,7 @@
     "./sefaz-routes": "./src/sefaz-routes.ts",
     "./sefaz-endpoints": "./src/sefaz-endpoints.ts",
     "./ticket-form": "./src/ticket-form.ts",
+    "./address": "./src/address.ts",
     "./documento": "./src/documento.ts",
     "./documento-config": "./src/documento-config.ts",
     "./user": "./src/user.ts",
