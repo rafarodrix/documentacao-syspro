@@ -9,10 +9,18 @@ import {
   saveTaxDataBatch,
   saveTaxNcmBatch,
 } from "@/features/tax/application/actions";
-import type { TaxSyncChunkRequest, TaxSyncMode } from "@/features/tax/domain/model";
+import type { TaxActionResponse, TaxSyncChunkRequest, TaxSyncMode } from "@/features/tax/domain/model";
 
 function isSyncMode(value: unknown): value is TaxSyncMode {
   return value === "classTrib" || value === "anexos" || value === "credPresumido" || value === "ncm";
+}
+
+function getCounterValue(
+  result: TaxActionResponse & Partial<Record<"inserted" | "updated" | "unchanged" | "failed", number>>,
+  key: "inserted" | "updated" | "unchanged" | "failed",
+): number {
+  const value = result[key];
+  return typeof value === "number" ? value : 0;
 }
 
 export async function POST(request: Request) {
@@ -98,10 +106,10 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 500 });
   }
 
-  const insertedCount = "inserted" in result ? (result.inserted ?? 0) : 0;
-  const updatedCount = "updated" in result ? (result.updated ?? 0) : 0;
-  const unchangedCount = "unchanged" in result ? (result.unchanged ?? 0) : 0;
-  const failedCount = "failed" in result ? (result.failed ?? 0) : 0;
+  const insertedCount = getCounterValue(result, "inserted");
+  const updatedCount = getCounterValue(result, "updated");
+  const unchangedCount = getCounterValue(result, "unchanged");
+  const failedCount = getCounterValue(result, "failed");
 
   const chunkHash = createHash("sha1").update(JSON.stringify(body.chunk)).digest("hex");
   const previous = await prisma.taxSyncJob.findUnique({
