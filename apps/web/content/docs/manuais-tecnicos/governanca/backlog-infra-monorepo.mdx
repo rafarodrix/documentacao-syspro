@@ -1,6 +1,6 @@
 ---
-title: Backlog de Infraestrutura Monorepo
-description: Backlog priorizado apenas com os itens ainda pendentes para evolucao do workspace, dominio compartilhado e multi-app.
+title: Backlog de Infraestrutura e Estabilizacao
+description: Backlog priorizado com os itens ainda pendentes para estabilizacao do app atual, evolucao do monorepo e continuidade de novos desenvolvimentos.
 lastUpdated: 2026-03-23
 owner: Engenharia de Plataforma
 status: published
@@ -12,6 +12,7 @@ Concentrar apenas o backlog ainda nao concluido, priorizando:
 
 - escalabilidade da arquitetura
 - reducao de acoplamento
+- estabilizacao do app atual
 - qualidade de entrega
 - preparacao para mobile e backend separado
 
@@ -34,16 +35,33 @@ Ja concluido:
 - drenagem de `apps/web/src/core`
 - drenagem de `apps/web/src/hooks`
 
+Estado atual do codigo:
+
+- boundaries por feature estao bem mais coerentes
+- `src/core` e `src/hooks` ja nao fazem parte da estrutura ativa
+- `src/lib`, `src/providers` e `src/types` seguem validos como camadas transversais
+- ainda existem residuos de hardcode visual, mojibake e contratos frouxos em alguns fluxos do app
+- `apps/api` e `apps/mobile` existem como shell, mas ainda nao estao conectados aos casos de uso reais
+
 O backlog abaixo comeca do proximo bloco realmente pendente.
 
 ## Diretriz de execucao
 
 Ordem recomendada:
 
-1. consolidar persistencia compartilhada
-2. preparar BFF e transporte
-3. abrir caminho para multi-app
-4. reforcar CI, observabilidade e experiencia de docs
+1. estabilizar o app web atual
+2. reforcar tipagem, tema e consistencia visual
+3. consolidar CI, observabilidade e contratos
+4. conectar shells de multi-app a casos de uso reais
+5. evoluir experiencia de docs
+
+## Estabilizacao do app atual
+
+- [ ] `INFRA-022A` [Alta] Remover hardcodes de tema/cor na area publica e consolidar uso de tokens (`bg-background`, `text-foreground`, `border-border`).
+- [ ] `INFRA-022B` [Alta] Limpar mojibake residual em `auth`, `site`, `documentos` e componentes adjacentes.
+- [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes.
+- [ ] `INFRA-022D` [Media] Revisar `src/lib` e mover helpers de dominio que ainda fazem mais sentido dentro de `features/*`.
+- [ ] `INFRA-022E` [Media] Normalizar tipagens e formatos compartilhados de UI para reduzir regressao em deploy por incompatibilidade de retorno.
 
 ## Fase D - Multi-App
 
@@ -54,6 +72,12 @@ Ordem recomendada:
 - [ ] `INFRA-025` [Alta] Logs estruturados e correlation id.
 - [ ] `INFRA-026` [Alta] Metricas minimas por rota critica.
 - [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs.
+
+## Integracao progressiva de shells
+
+- [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`.
+- [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
+- [ ] `INFRA-027C` [Media] Revisar o que ainda deve sair de `apps/web/src/lib` para consumo compartilhado via packages.
 
 ## Experiencia em docs
 
@@ -73,13 +97,15 @@ Ordem recomendada:
 
 ### Sprint 4 - Confiabilidade e multiplataforma
 
+- `INFRA-022A` a `INFRA-022E` Estabilizacao do app atual
 - `INFRA-021` `apps/mobile` concluido
 - `INFRA-022` `apps/api` concluido
 - `INFRA-023` a `INFRA-027` Qualidade e observabilidade
+- `INFRA-027A` a `INFRA-027C` Integracao progressiva de shells
 - `INFRA-028` a `INFRA-034` Evolucao de docs
 
 ## Proximo passo recomendado
 
-1. estruturar `INFRA-023`
-2. depois reforcar `INFRA-024`
-3. em seguida abrir `INFRA-025`
+1. executar `INFRA-022A` e `INFRA-022B`
+2. depois fechar `INFRA-022C`
+3. em seguida abrir `INFRA-023`

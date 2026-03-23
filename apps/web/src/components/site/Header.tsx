@@ -13,7 +13,6 @@ import {
   Menu,
   User,
 } from "lucide-react";
-import { auth } from "@/lib/auth";
 import { SYSTEM_ROLES } from "@dosc-syspro/core";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ModeToggle } from "@/components/ModeToggle";
@@ -29,10 +28,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
+async function getSiteSession() {
+  try {
+    const { auth } = await import("@/lib/auth");
+    return await auth.api.getSession({
+      headers: await headers(),
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function SiteHeader() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSiteSession();
 
   const user = session?.user as any;
   const canViewTechnical = user?.role && SYSTEM_ROLES.includes(user.role);
