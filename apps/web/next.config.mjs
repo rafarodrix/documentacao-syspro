@@ -1,4 +1,4 @@
-﻿import path from 'node:path';
+import path from 'node:path';
 import { createMDX } from 'fumadocs-mdx/next';
 import { z } from 'zod';
 

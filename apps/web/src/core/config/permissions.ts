@@ -1,5 +1,5 @@
 import { Role } from "@prisma/client";
-import { ROLE_LABELS as APP_ROLE_LABELS } from "./role-labels";
+import { ROLE_LABELS as APP_ROLE_LABELS } from "@dosc-syspro/core";
 
 export const ROLE_LABELS: Record<Role, string> = APP_ROLE_LABELS as Record<Role, string>;
 

@@ -19,7 +19,8 @@
                     "test:tickets":  "npm run test:tickets -w @dosc-syspro/web",
                     "postinstall":  "npm run postinstall -w @dosc-syspro/web",
                     "db:generate":  "npm run db:generate -w @dosc-syspro/database",
-                    "db:migrate":  "npm run db:migrate -w @dosc-syspro/database"
+                    "db:migrate":  "npm run db:migrate -w @dosc-syspro/database",
+                    "check:utf8":  "node scripts/check-utf8.mjs"
                 },
     "dependencies":  {
                          "@hookform/resolvers":  "^5.2.2",

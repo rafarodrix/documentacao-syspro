@@ -2,39 +2,35 @@ import { createTicketAction } from "@/features/tickets/application/actions";
 import { TicketFormInput } from "@dosc-syspro/contracts";
 
 type GatewayResult<T = void> = {
-    success: boolean;
-    data?: T;
-    error?: string;
+  success: boolean;
+  data?: T;
+  error?: string;
 };
 
 export const ticketGateway = {
-    // Especificamos <any> para o Result saber que 'data' pode conter algo
-    async create(data: TicketFormInput, files: File[]): Promise<GatewayResult<any>> {
-        try {
-            const formData = new FormData();
+  async create(data: TicketFormInput, files: File[]): Promise<GatewayResult<any>> {
+    try {
+      const formData = new FormData();
 
-            formData.append('subject', data.subject);
-            formData.append('description', data.description);
-            formData.append('priority', data.priority);
-            formData.append('type', data.type);
+      formData.append("subject", data.subject);
+      formData.append("description", data.description);
+      formData.append("priority", data.priority);
+      formData.append("type", data.type);
 
-            files.forEach((file) => {
-                formData.append('attachments', file);
-            });
+      files.forEach((file) => {
+        formData.append("attachments", file);
+      });
 
-            // A Action retorna { success: boolean, data?: any, message?: string }
-            const result = await createTicketAction(null, formData);
+      const result = await createTicketAction(null, formData);
 
-            if (result.success) {
-                // Agora o TypeScript aceita 'result.data'
-                return { success: true, data: result.data };
-            } else {
-                return { success: false, error: result.message };
-            }
+      if (result.success) {
+        return { success: true, data: result.data };
+      }
 
-        } catch (error) {
-            console.error(error);
-            return { success: false, error: "Erro de comunicação ao criar chamado." };
-        }
+      return { success: false, error: result.message };
+    } catch (error) {
+      console.error(error);
+      return { success: false, error: "Erro de comunicacao ao criar chamado." };
     }
+  },
 };
