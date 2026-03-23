@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo } from "react";
+import { Copy, ExternalLink, Signal, WandSparkles } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +14,66 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const { host } = details;
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
+  const heartbeat = useMemo(() => {
+    if (!host.lastHeartbeatAt) {
+      return {
+        label: "Sem heartbeat",
+        tone: "border-border/60 bg-background/70 text-foreground",
+        description: "O agente ainda nao registrou atividade recente no portal.",
+      };
+    }
+
+    const diffMs = Date.now() - new Date(host.lastHeartbeatAt).getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes <= 5) {
+      return {
+        label: "Online recente",
+        tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+        description: "Heartbeat recente. O host tende a estar pronto para operacao.",
+      };
+    }
+
+    if (diffMinutes <= 60) {
+      return {
+        label: "Heartbeat antigo",
+        tone: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
+        description: "O host respondeu antes, mas vale confirmar se o agente ainda esta online.",
+      };
+    }
+
+    return {
+      label: "Sem resposta recente",
+      tone: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
+      description: "O ultimo heartbeat esta antigo. Validar conectividade antes da sessao.",
+    };
+  }, [host.lastHeartbeatAt]);
+
+  async function handleCopy(value: string | null, label: string) {
+    if (!value) {
+      toast.error(`${label} nao configurado.`);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copiado.`);
+    } catch {
+      toast.error(`Falha ao copiar ${label.toLowerCase()}.`);
+    }
+  }
+
+  function handleOpenRustDesk() {
+    if (!rustdeskHref) {
+      toast.error("RustDesk ID nao configurado.");
+      return;
+    }
+
+    window.location.assign(rustdeskHref);
+    window.setTimeout(() => {
+      toast("Se o RustDesk nao abrir, copie o ID e conecte manualmente no aplicativo.");
+    }, 600);
+  }
 
   return (
     <div className="space-y-6">
@@ -25,13 +90,62 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             Voltar
           </Link>
           {rustdeskHref ? (
-            <a href={rustdeskHref} className={cn(buttonVariants({ variant: "default" }))}>
+            <Button onClick={handleOpenRustDesk} className="gap-2">
+              <ExternalLink className="h-4 w-4" />
               Abrir acesso remoto
-            </a>
+            </Button>
           ) : (
             <Button disabled>RustDesk nao configurado</Button>
           )}
         </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <WandSparkles className="h-5 w-5 text-primary" />
+              Acoes rapidas
+            </CardTitle>
+            <CardDescription>Atalhos para operacao imediata quando o suporte precisar entrar no host.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <Button onClick={handleOpenRustDesk} disabled={!rustdeskHref} className="justify-start gap-2">
+              <ExternalLink className="h-4 w-4" />
+              Abrir RustDesk
+            </Button>
+            <Button variant="outline" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")} className="justify-start gap-2">
+              <Copy className="h-4 w-4" />
+              Copiar RustDesk ID
+            </Button>
+            <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="justify-start gap-2">
+              <Copy className="h-4 w-4" />
+              Copiar token
+            </Button>
+            <Link href="/app/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "justify-start gap-2")}>
+              <Signal className="h-4 w-4" />
+              Voltar ao diretorio
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Prontidao operacional</CardTitle>
+            <CardDescription>Leitura rapida para saber se o host esta apto para suporte agora.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Badge variant="outline" className={heartbeat.tone}>
+              {heartbeat.label}
+            </Badge>
+            <p className="text-sm text-muted-foreground">{heartbeat.description}</p>
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm text-muted-foreground">
+              <p>1. Abra o RustDesk pelo botao acima.</p>
+              <p>2. Se o navegador bloquear, copie o ID e conecte manualmente.</p>
+              <p>3. Se a conexao falhar, valide senha do host e servidor RustDesk.</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="border-border/50">

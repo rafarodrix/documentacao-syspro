@@ -138,6 +138,8 @@ export type RemoteConfiguredHostItem = {
   lastHeartbeatAt: string | null;
   openSessionCount: number;
   lastSessionAt: string | null;
+  lastSessionStatus: RemoteSessionStatus | null;
+  lastTicketNumber: string | null;
 };
 
 export type RemotePlatformDirectory = {

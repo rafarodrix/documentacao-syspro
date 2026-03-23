@@ -45,11 +45,13 @@ function mapDirectoryItem(host: {
   status: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
   lastHeartbeatAt: Date | null;
   company: { nomeFantasia: string | null; razaoSocial: string };
-  sessions: Array<{ createdAt: Date; status: string }>;
+  sessions: Array<{ createdAt: Date; status: string; ticketNumber: string | null }>;
 }): RemoteConfiguredHostItem {
   const companyName = host.company.nomeFantasia ?? host.company.razaoSocial;
   const openSessionCount = host.sessions.filter((session) => session.status === "REQUESTED" || session.status === "STARTED").length;
   const lastSessionAt = host.sessions[0]?.createdAt.toISOString() ?? null;
+  const lastSessionStatus = (host.sessions[0]?.status as RemoteConfiguredHostItem["lastSessionStatus"]) ?? null;
+  const lastTicketNumber = host.sessions[0]?.ticketNumber ?? null;
   const description =
     host.description ??
     mapHostDescription({
@@ -77,6 +79,8 @@ function mapDirectoryItem(host: {
     lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
     openSessionCount,
     lastSessionAt,
+    lastSessionStatus,
+    lastTicketNumber,
   };
 }
 
@@ -352,7 +356,7 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       include: {
         company: { select: { nomeFantasia: true, razaoSocial: true } },
         sessions: {
-          select: { createdAt: true, status: true },
+          select: { createdAt: true, status: true, ticketNumber: true },
           orderBy: [{ createdAt: "desc" }],
           take: 10,
         },
@@ -406,7 +410,11 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
   return {
     host: mapDirectoryItem({
       ...host,
-      sessions: host.sessions.map((session) => ({ createdAt: session.createdAt, status: session.status })),
+      sessions: host.sessions.map((session) => ({
+        createdAt: session.createdAt,
+        status: session.status,
+        ticketNumber: session.ticketNumber,
+      })),
     }),
     recentSessions: host.sessions.map((session) => ({
       id: session.id,

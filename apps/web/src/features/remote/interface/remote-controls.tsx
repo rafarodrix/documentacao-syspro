@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { Copy, Pencil, Trash2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,9 @@ export function RemotePlatformControls({ overview }: Props) {
   const [sessionTicketId, setSessionTicketId] = useState("");
   const [sessionTicketNumber, setSessionTicketNumber] = useState("");
   const [sessionReason, setSessionReason] = useState("");
+  const [hostSearchTerm, setHostSearchTerm] = useState("");
+  const [hostStatusFilter, setHostStatusFilter] = useState<"all" | "ACTIVE" | "MAINTENANCE" | "INACTIVE">("all");
+  const [hostHeartbeatFilter, setHostHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
   const [recentHosts, setRecentHosts] = useState(overview.recentHosts);
   const [recentSessions, setRecentSessions] = useState(overview.recentSessions);
   const [hostOptionsState, setHostOptionsState] = useState(overview.hostOptions);
@@ -86,6 +89,76 @@ export function RemotePlatformControls({ overview }: Props) {
   function resolveCompanyLabel(companyId: string) {
     return overview.companyOptions.find((company) => company.id === companyId)?.label ?? "Sem empresa";
   }
+
+  function getHeartbeatMeta(lastHeartbeatAt: string | null) {
+    if (!lastHeartbeatAt) {
+      return {
+        label: "Sem heartbeat",
+        className: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
+        bucket: "missing" as const,
+        icon: WifiOff,
+      };
+    }
+
+    const diffMinutes = Math.floor((Date.now() - new Date(lastHeartbeatAt).getTime()) / 60000);
+    if (diffMinutes <= 5) {
+      return {
+        label: "Recente",
+        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+        bucket: "recent" as const,
+        icon: Wifi,
+      };
+    }
+
+    return {
+      label: "Antigo",
+      className: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
+      bucket: "stale" as const,
+      icon: WifiOff,
+    };
+  }
+
+  async function handleCopy(value: string | null, label: string) {
+    if (!value) {
+      toast.error(`${label} nao configurado.`);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copiado.`);
+    } catch {
+      toast.error(`Falha ao copiar ${label.toLowerCase()}.`);
+    }
+  }
+
+  const filteredRecentHosts = useMemo(() => {
+    const term = hostSearchTerm.trim().toLowerCase();
+    return recentHosts.filter((host) => {
+      const haystack = [
+        host.name,
+        host.companyName,
+        host.environment,
+        host.provider,
+        host.description,
+        host.agentExternalId,
+        host.machineName,
+        host.agentVersion,
+        host.installToken,
+        host.status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const heartbeat = getHeartbeatMeta(host.lastHeartbeatAt);
+      const matchesSearch = !term || haystack.includes(term);
+      const matchesStatus = hostStatusFilter === "all" || host.status === hostStatusFilter;
+      const matchesHeartbeat = hostHeartbeatFilter === "all" || heartbeat.bucket === hostHeartbeatFilter;
+
+      return matchesSearch && matchesStatus && matchesHeartbeat;
+    });
+  }, [hostHeartbeatFilter, hostSearchTerm, hostStatusFilter, recentHosts]);
 
   function resetHostForm() {
     setEditingHostId("");
@@ -393,16 +466,54 @@ export function RemotePlatformControls({ overview }: Props) {
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold">Hosts cadastrados</h3>
                   <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                    {recentHosts.length} recente(s)
+                    {filteredRecentHosts.length} visivel(is)
                   </Badge>
                 </div>
 
-                {recentHosts.length ? (
-                  recentHosts.map((host) => (
+                <div className="flex flex-col gap-2 md:flex-row">
+                  <Input
+                    value={hostSearchTerm}
+                    onChange={(event) => setHostSearchTerm(event.target.value)}
+                    placeholder="Pesquisar host, empresa ou RustDesk ID"
+                  />
+                  <select
+                    value={hostStatusFilter}
+                    onChange={(event) => setHostStatusFilter(event.target.value as typeof hostStatusFilter)}
+                    className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="all">Todos os status</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="MAINTENANCE">MAINTENANCE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                  </select>
+                  <select
+                    value={hostHeartbeatFilter}
+                    onChange={(event) => setHostHeartbeatFilter(event.target.value as typeof hostHeartbeatFilter)}
+                    className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="all">Qualquer heartbeat</option>
+                    <option value="recent">Recente</option>
+                    <option value="stale">Antigo</option>
+                    <option value="missing">Sem heartbeat</option>
+                  </select>
+                </div>
+
+                {filteredRecentHosts.length ? (
+                  filteredRecentHosts.map((host) => {
+                    const heartbeat = getHeartbeatMeta(host.lastHeartbeatAt);
+                    const HeartbeatIcon = heartbeat.icon;
+
+                    return (
                     <div key={host.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                          <p className="text-sm font-medium text-foreground">{host.name}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-medium text-foreground">{host.name}</p>
+                            <Badge variant="outline" className={heartbeat.className}>
+                              <HeartbeatIcon className="mr-1 h-3.5 w-3.5" />
+                              {heartbeat.label}
+                            </Badge>
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {host.companyName ?? "Sem empresa"}
                             {host.environment ? ` | ${host.environment}` : ""}
@@ -415,9 +526,24 @@ export function RemotePlatformControls({ overview }: Props) {
                           <p className="text-xs text-muted-foreground">
                             Token instalacao: {host.installToken ?? "Nao gerado"}
                           </p>
+                          <p className="text-xs text-muted-foreground">
+                            Agente: {host.machineName ?? "maquina indefinida"}
+                            {host.agentVersion ? ` | versao ${host.agentVersion}` : ""}
+                            {host.lastHeartbeatAt ? ` | heartbeat ${new Date(host.lastHeartbeatAt).toLocaleString("pt-BR")}` : ""}
+                          </p>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCopy(host.agentExternalId ?? null, "RustDesk ID")}
+                            disabled={isPending}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copiar ID
+                          </Button>
                           <Button
                             type="button"
                             variant="outline"
@@ -450,9 +576,9 @@ export function RemotePlatformControls({ overview }: Props) {
                         </div>
                       </div>
                     </div>
-                  ))
+                  )})
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhum host recente para editar ou excluir.</p>
+                  <p className="text-sm text-muted-foreground">Nenhum host corresponde aos filtros atuais.</p>
                 )}
               </div>
             </>
