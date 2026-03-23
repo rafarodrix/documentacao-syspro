@@ -5,37 +5,31 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { authGateway } from "@/features/auth/infrastructure/gateways/auth-gateway"
 import { toast } from "sonner"
 
-// ─── Validação de Força de Senha ──────────────────────────────────────────────
-
-// ✅ MELHORIA: Validação de força de senha no cliente
-// Regras alinhadas com o que o Better Auth exige no servidor.
 export interface PasswordStrength {
-  score: number          // 0–4
-  label: "Muito fraca" | "Fraca" | "Razoável" | "Boa" | "Forte"
-  color: string          // classe Tailwind para a barra de progresso
-  passes: boolean        // true = atende os requisitos mínimos
+  score: number
+  label: "Muito fraca" | "Fraca" | "Razoavel" | "Boa" | "Forte"
+  color: string
+  passes: boolean
 }
 
 export function evaluatePasswordStrength(password: string): PasswordStrength {
   let score = 0
-  if (password.length >= 8)  score++
+  if (password.length >= 8) score++
   if (password.length >= 12) score++
   if (/[A-Z]/.test(password)) score++
   if (/[0-9]/.test(password)) score++
   if (/[^A-Za-z0-9]/.test(password)) score++
 
   const levels: PasswordStrength[] = [
-    { score: 0, label: "Muito fraca", color: "bg-red-500",    passes: false },
-    { score: 1, label: "Fraca",       color: "bg-orange-400", passes: false },
-    { score: 2, label: "Razoável",    color: "bg-yellow-400", passes: true  },
-    { score: 3, label: "Boa",         color: "bg-blue-500",   passes: true  },
-    { score: 4, label: "Forte",       color: "bg-green-500",  passes: true  },
+    { score: 0, label: "Muito fraca", color: "bg-red-500", passes: false },
+    { score: 1, label: "Fraca", color: "bg-orange-400", passes: false },
+    { score: 2, label: "Razoavel", color: "bg-yellow-400", passes: true },
+    { score: 3, label: "Boa", color: "bg-blue-500", passes: true },
+    { score: 4, label: "Forte", color: "bg-green-500", passes: true },
   ]
 
   return levels[Math.min(score, 4)]
 }
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useResetPassword() {
   const [password, setPassword] = useState("")
@@ -46,17 +40,14 @@ export function useResetPassword() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
-
-  // ✅ MELHORIA: Expõe avaliação de força para o componente renderizar barra visual
   const passwordStrength = evaluatePasswordStrength(password)
 
   async function submitReset() {
     setLoading(true)
     setError("")
 
-    // ✅ MELHORIA: Validações de UI mais completas antes de chamar o gateway
     if (password.length < 6) {
-      setError("A senha deve ter no mínimo 6 caracteres.")
+      setError("A senha deve ter no minimo 6 caracteres.")
       setLoading(false)
       return
     }
@@ -68,13 +59,13 @@ export function useResetPassword() {
     }
 
     if (password !== confirmPassword) {
-      setError("As senhas não coincidem.")
+      setError("As senhas nao coincidem.")
       setLoading(false)
       return
     }
 
     if (!token) {
-      setError("Token de recuperação inválido ou expirado.")
+      setError("Token de recuperacao invalido ou expirado.")
       setLoading(false)
       return
     }
@@ -85,7 +76,7 @@ export function useResetPassword() {
       toast.success("Senha alterada com sucesso!")
       router.push("/login")
     } else {
-      setError(result.error || "Não foi possível redefinir a senha.")
+      setError(result.error || "Nao foi possivel redefinir a senha.")
       setLoading(false)
     }
   }
@@ -95,6 +86,6 @@ export function useResetPassword() {
     setPassword,
     setConfirmPassword,
     submitReset,
-    passwordStrength, // ✅ novo — usado pelo ResetPasswordForm para a barra visual
+    passwordStrength,
   }
 }

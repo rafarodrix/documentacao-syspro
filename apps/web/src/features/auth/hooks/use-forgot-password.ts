@@ -9,13 +9,11 @@ export function useForgotPassword() {
     const [error, setError] = useState("")
     const [success, setSuccess] = useState(false)
 
-    // A função de submit fica aqui, limpa
     async function submitRequest() {
         setLoading(true)
         setError("")
         setSuccess(false)
 
-        // Chama o Core 
         const result = await authGateway.requestPasswordReset(email)
 
         if (result.success) {
@@ -27,11 +25,10 @@ export function useForgotPassword() {
         setLoading(false)
     }
 
-    // Retorna apenas o necessário para a tela desenhar
     return {
         formState: { email, loading, error, success },
         setEmail,
-        setSuccess, // Para o botão de "Tentar outro"
+        setSuccess,
         submitRequest
     }
 }

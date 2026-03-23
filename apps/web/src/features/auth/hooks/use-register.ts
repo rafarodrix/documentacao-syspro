@@ -15,9 +15,8 @@ export function useRegister() {
 
         if (!result.success) {
             setError(result.error || "Erro desconhecido.")
-            setLoading(false) // Só para loading se der erro. Se der sucesso, o redirect acontece.
+            setLoading(false)
         }
-        // Se sucesso, a Server Action faz o redirect, então não precisamos setar loading false
     }
 
     return {

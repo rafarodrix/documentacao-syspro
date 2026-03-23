@@ -21,13 +21,12 @@ Definir a arquitetura oficial da aplicacao para garantir:
 
 ## Diagnostico da situacao atual
 
-Hoje o projeto ainda e, na pratica, um **modular monolith em Next.js**, com boa parte da regra ja concentrada em `src/core`, mas com estes gaps:
+Hoje o projeto opera como um **modular monolith em Next.js** ja bem mais disciplinado, com a maior parte da regra organizada por feature e com estes pontos ainda relevantes:
 
-- mistura de responsabilidades entre `app`, `actions`, `components` e `core`
-- features ainda parcialmente espalhadas fora de `src/features`
-- contratos ainda nao centralizados em um pacote proprio
-- acesso a infraestrutura ainda acoplado ao app web em varios fluxos
-- monorepo alvo documentado, mas ainda sem fase intermediaria formal
+- ainda existem fluxos com infraestrutura local no app web que podem evoluir para packages compartilhados
+- parte da leitura/escrita ainda depende de adaptadores concretos do proprio app
+- o monorepo estrutural ja existe, mas a consolidacao de CI, observabilidade e contratos ainda esta em andamento
+- mobile e API dedicada ja possuem shell, mas ainda precisam de integracao progressiva com casos de uso reais
 
 ## Avaliacao da arquitetura desejada
 
@@ -95,19 +94,21 @@ Antes de extrair pacotes, a aplicacao deve ficar assim:
   - tipos, enums, regras puras, mapeamentos sem efeito colateral
 - `src/features/<feature>/application`
   - queries, actions, orchestration, facades e mapeamento para view model
+- `src/features/<feature>/infrastructure`
+  - gateways, cache, observabilidade, mappers e adapters concretos da feature
 - `src/features/<feature>/interface`
   - componentes React, containers, tabelas, modais
-
-Camadas complementares:
-
-- `src/core/domain`
-  - entidades e contratos realmente transversais
-- `src/core/infrastructure`
-  - gateways, cache, observabilidade, adapters
-- `src/actions`
-  - apenas ponte de transporte para chamar a camada de application
+- `src/features/<feature>/hooks`
+  - hooks client-side especificos da feature
 - `src/app`
   - roteamento e composicao de tela
+
+Estado atual do app web:
+
+- `src/core` foi drenado
+- `src/hooks` foi drenado
+- contratos e regras transversais ficaram em `packages/core`, `packages/contracts` e `packages/shared`
+- o app web ficou concentrado em `src/features`, `src/app`, `src/components` e `src/lib`
 
 ### Fase B - Arquitetura alvo de monorepo
 

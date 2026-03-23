@@ -22,14 +22,13 @@ export function useTicketSheet(onSuccess: () => void) {
         },
     });
 
-    // L?gica de Arquivos
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files);
             const totalSize = [...files, ...newFiles].reduce((acc, f) => acc + f.size, 0);
 
             if (totalSize > 5 * 1024 * 1024) {
-                toast.error("O tamanho total dos arquivos n?o pode exceder 5MB.");
+                toast.error("O tamanho total dos arquivos nao pode exceder 5MB.");
                 return;
             }
             setFiles((prev) => [...prev, ...newFiles]);
@@ -42,7 +41,6 @@ export function useTicketSheet(onSuccess: () => void) {
 
     const triggerFileInput = () => fileInputRef.current?.click();
 
-    // Submit
     const onSubmit = (data: TicketFormInput) => {
         startTransition(async () => {
             const formData = new FormData();
@@ -61,7 +59,7 @@ export function useTicketSheet(onSuccess: () => void) {
                 toast.success("Chamado aberto com sucesso!");
                 form.reset();
                 setFiles([]);
-                onSuccess(); // Fecha o modal
+                onSuccess();
             } else {
                 toast.error(result.error || "Erro ao criar chamado.");
             }
