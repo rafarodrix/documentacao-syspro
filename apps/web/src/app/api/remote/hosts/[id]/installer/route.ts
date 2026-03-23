@@ -17,6 +17,15 @@ function escapePowerShell(value: string | null | undefined) {
   return (value ?? "").replace(/'/g, "''");
 }
 
+function slugifyFilePart(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+}
+
 function buildInstallerScript(input: {
   portalBaseUrl: string;
   installToken: string;
@@ -125,6 +134,8 @@ export async function GET(
 
   const portalBaseUrl = new URL(request.url).origin;
   const companyName = host.company.nomeFantasia ?? host.company.razaoSocial;
+  const companySlug = slugifyFilePart(companyName || "empresa");
+  const hostSlug = slugifyFilePart(host.name || "host-remoto");
   const script = buildInstallerScript({
     portalBaseUrl,
     installToken: host.installToken,
@@ -139,7 +150,7 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Content-Disposition": `attachment; filename="remote-agent-${host.id}.ps1"`,
+      "Content-Disposition": `attachment; filename="trilink-remote-agent-${companySlug}-${hostSlug}.ps1"`,
       "Cache-Control": "no-store",
     },
   });

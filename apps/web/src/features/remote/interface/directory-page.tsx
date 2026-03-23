@@ -80,6 +80,30 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     }
   }
 
+  async function handleCopyPowerShellCommand(item: RemotePlatformDirectory["items"][number]) {
+    const command = [
+      "powershell -ExecutionPolicy Bypass -File .\\scripts\\remote-agent-oss.ps1",
+      `-PortalBaseUrl "${window.location.origin}"`,
+      `-InstallToken "${item.installToken ?? ""}"`,
+      item.rustdeskId ? `-RustDeskId "${item.rustdeskId}"` : null,
+      `-MachineName "${item.name}"`,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    if (!item.installToken) {
+      toast.error("Host sem token de instalacao.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(command);
+      toast.success("Comando PowerShell copiado.");
+    } catch {
+      toast.error("Falha ao copiar comando PowerShell.");
+    }
+  }
+
   async function handleQuickCreateHost() {
     if (!quickCompanyId || !quickRustdeskId.trim() || !quickDescription.trim()) {
       toast.error("Selecione a empresa, informe o RustDesk ID e a descricao.");
@@ -375,6 +399,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         <Copy className="h-3.5 w-3.5" />
                         Copiar ID
                       </Button>
+                      {canCreateHosts ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyPowerShellCommand(item)}
+                          className="gap-1"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          Copiar comando
+                        </Button>
+                      ) : null}
                       {canCreateHosts ? (
                         <a
                           href={`/api/remote/hosts/${item.id}/installer`}
