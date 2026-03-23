@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { zammadOperationalTicketSchema } from "@dosc-syspro/contracts";
 import { upsertOperationalTicketsToCache } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
+import { handleZammadRemoteWebhook } from "@/features/remote/application/zammad-integration";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { isValidHmacSignature } from "@/lib/security/request-auth";
@@ -46,6 +47,8 @@ export async function POST(request: Request) {
       await upsertOperationalTicketsToCache([parsed.data], eventType);
     }
 
+    const remoteResult = await handleZammadRemoteWebhook(payload);
+
     await prisma.zammadSyncState.upsert({
       where: { key: "default" },
       create: {
@@ -61,7 +64,8 @@ export async function POST(request: Request) {
 
     revalidateTag("tickets-list");
     revalidateTag("tickets-dashboard");
-    return NextResponse.json({ success: true });
+    revalidateTag("remote-platform");
+    return NextResponse.json({ success: true, remote: remoteResult });
   } catch (error) {
     console.error("zammad webhook error:", error);
     return NextResponse.json({ success: false, error: "Erro ao processar webhook." }, { status: 500 });

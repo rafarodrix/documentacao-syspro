@@ -24,6 +24,7 @@ async function main() {
         name: `${baseName} - Producao`,
         environment: "Producao",
         provider: "RustDesk",
+        agentExternalId: `rustdesk-${company.id}-prod`,
         status: "ACTIVE",
       },
       create: {
@@ -32,6 +33,7 @@ async function main() {
         name: `${baseName} - Producao`,
         environment: "Producao",
         provider: "RustDesk",
+        agentExternalId: `rustdesk-${company.id}-prod`,
         status: "ACTIVE",
       },
     });
@@ -42,6 +44,7 @@ async function main() {
         name: `${baseName} - Homologacao`,
         environment: "Homologacao",
         provider: "RustDesk",
+        agentExternalId: `rustdesk-${company.id}-homol`,
         status: "MAINTENANCE",
       },
       create: {
@@ -50,6 +53,7 @@ async function main() {
         name: `${baseName} - Homologacao`,
         environment: "Homologacao",
         provider: "RustDesk",
+        agentExternalId: `rustdesk-${company.id}-homol`,
         status: "MAINTENANCE",
       },
     });

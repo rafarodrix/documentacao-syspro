@@ -28,6 +28,7 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/search") ||
     pathname.startsWith("/api/revalidate") ||
+    pathname.startsWith("/api/integrations/zammad") ||
     pathname.startsWith("/api/platform/zammad")
   );
 }

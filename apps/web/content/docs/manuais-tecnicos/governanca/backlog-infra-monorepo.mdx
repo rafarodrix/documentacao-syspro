@@ -95,8 +95,8 @@ Ordem recomendada:
 - [x] `FEAT-001A` [Alta] Definir matriz de acesso da plataforma remota: `ADMIN`, `SUPORTE` e `DEVELOPER` com visao global; `CLIENTE_ADMIN` apenas com visao da propria empresa. Modelagem base com `companyId` em `RemoteHost` e `RemoteSession`, enforcement no shell e abertura controlada no sidebar/route guard concluidos.
 - [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota.
 - [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima.
-- [ ] `FEAT-003A` [Media] Integrar `Zammad + RustDesk` com `rustdesk://<id>` no ticket, objeto externo para `rustdesk_id` e abertura rapida da sessao pelo atendente.
-- [ ] `FEAT-003B` [Media] Criar fluxo de webhook/API entre `Zammad` e orquestrador remoto para registrar sessao, ticket vinculado e trilha de auditoria.
+- [ ] `FEAT-003A` [Media] Integrar `Zammad + RustDesk` com `rustdesk://<id>` no ticket, objeto externo para `rustdesk_id` e abertura rapida da sessao pelo atendente. Endpoint de deep-link ja implementado; falta configurar o link customizado no Zammad e validar com ticket real.
+- [ ] `FEAT-003B` [Media] Criar fluxo de webhook/API entre `Zammad` e orquestrador remoto para registrar sessao, ticket vinculado e trilha de auditoria. Webhook real ja cria/encerra `RemoteSession`; falta validar payload final do Zammad e endurecer regras operacionais.
 - [ ] `FEAT-004` [Media] Criar shell de credenciais por referencia com controle de acesso e trilha de uso.
 - [ ] `FEAT-005` [Media] Implementar painel inicial de backup e restore com jobs catalogados.
 - [ ] `FEAT-006` [Baixa] Evoluir area publica para aderir integralmente aos tokens de tema e remover hardcodes restantes.
