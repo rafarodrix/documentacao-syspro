@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
+import { getRemoteOperationalStatusMeta } from "@/features/remote/domain/operational-status";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 
@@ -91,39 +92,6 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
     className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     bucket: "stale" as const,
     icon: WifiOff,
-  };
-}
-
-function getReadinessMeta(item: DirectoryItem) {
-  if (!item.rustdeskId) {
-    return {
-      label: "Sem RustDesk ID",
-      className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      description: "Cadastro incompleto para acesso direto.",
-    };
-  }
-
-  const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
-  if (heartbeat.bucket === "recent") {
-    return {
-      label: "Pronto para acesso",
-      className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-      description: "ID valido e agente respondendo recentemente.",
-    };
-  }
-
-  if (heartbeat.bucket === "stale") {
-    return {
-      label: "Confirmar conectividade",
-      className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      description: "Pode funcionar, mas vale confirmar se a maquina ainda esta online.",
-    };
-  }
-
-  return {
-    label: "Aguardando agente",
-    className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-    description: "Sem heartbeat recente do agente.",
   };
 }
 
@@ -278,10 +246,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   }, [directory.items, environmentFilter, heartbeatFilter, searchTerm, statusFilter]);
 
   const directoryStats = useMemo(() => {
-    const ready = directory.items.filter((item) => getReadinessMeta(item).label === "Pronto para acesso").length;
-    const attention = directory.items.filter((item) => getHeartbeatMeta(item.lastHeartbeatAt).bucket === "stale").length;
-    const openSessions = directory.items.filter((item) => item.openSessionCount > 0).length;
-    const pendingSetup = directory.items.filter((item) => !item.rustdeskId || !item.installToken).length;
+    const ready = directory.items.filter((item) => item.operationalStatus === "ONLINE").length;
+    const attention = directory.items.filter((item) => item.operationalStatus === "RECENT").length;
+    const openSessions = directory.items.filter((item) => item.operationalStatus === "SESSION_BUSY").length;
+    const pendingSetup = directory.items.filter((item) => item.operationalStatus === "MISCONFIGURED").length;
 
     return { ready, attention, openSessions, pendingSetup };
   }, [directory.items]);
@@ -495,7 +463,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             <div className="space-y-4">
               {filteredItems.map((item) => {
                 const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
-                const readiness = getReadinessMeta(item);
+                const readiness = getRemoteOperationalStatusMeta(item.operationalStatus);
                 const alerts = getOperationalAlerts(item);
                 const HeartbeatIcon = heartbeat.icon;
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
@@ -513,7 +481,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                             {heartbeat.shortLabel}
                           </Badge>
                           <Badge variant="outline" className={readiness.className}>
-                            {readiness.label}
+                            {readiness.title}
                           </Badge>
                           <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                             {getStatusLabel(item.status)}

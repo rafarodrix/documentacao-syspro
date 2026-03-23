@@ -22,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
+import { getRemoteOperationalStatusMeta } from "@/features/remote/domain/operational-status";
 
 function formatDateTime(value: string | null) {
   if (!value) return "Sem registro";
@@ -83,38 +84,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     };
   }, [host.lastHeartbeatAt]);
 
-  const readiness = useMemo(() => {
-    if (!normalizedRustdeskId) {
-      return {
-        label: "Sem RustDesk ID",
-        tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-        description: "Sem identificador valido para acesso direto.",
-      };
-    }
-
-    if (!host.lastHeartbeatAt) {
-      return {
-        label: "Aguardando agente",
-        tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-        description: "O agente ainda nao confirmou conectividade.",
-      };
-    }
-
-    const diffMinutes = Math.floor((Date.now() - new Date(host.lastHeartbeatAt).getTime()) / 60000);
-    if (diffMinutes <= 5) {
-      return {
-        label: "Pronto para acesso",
-        tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-        description: "Host pronto para atendimento remoto.",
-      };
-    }
-
-    return {
-      label: "Confirmar conectividade",
-      tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      description: "O acesso pode funcionar, mas convem checar a maquina antes.",
-    };
-  }, [host.lastHeartbeatAt, normalizedRustdeskId]);
+  const readiness = useMemo(() => getRemoteOperationalStatusMeta(host.operationalStatus), [host.operationalStatus]);
 
   const operationalAlerts = useMemo(() => {
     const alerts: Array<{ label: string; tone: string }> = [];
@@ -178,8 +148,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <Badge variant="outline" className={heartbeat.tone}>
                 {heartbeat.label}
               </Badge>
-              <Badge variant="outline" className={readiness.tone}>
-                {readiness.label}
+              <Badge variant="outline" className={readiness.className}>
+                {readiness.title}
               </Badge>
               <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                 {statusLabel}

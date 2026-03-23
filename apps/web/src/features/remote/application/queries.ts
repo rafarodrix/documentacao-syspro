@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { resolveRemoteOperationalStatus } from "@/features/remote/domain/operational-status";
 import type {
   RemoteConfiguredHostItem,
   RemoteHostDetails,
@@ -80,6 +81,12 @@ function mapDirectoryItem(host: {
     agentVersion: host.agentVersion,
     lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
     openSessionCount,
+    operationalStatus: resolveRemoteOperationalStatus({
+      rustdeskId: host.agentExternalId,
+      installToken: host.installToken,
+      lastHeartbeatAt: host.lastHeartbeatAt,
+      openSessionCount,
+    }),
     lastSessionAt,
     lastSessionStatus,
     lastTicketNumber,

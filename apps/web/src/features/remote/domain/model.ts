@@ -11,6 +11,7 @@ export type RemoteAccessPolicy = {
 export type RemoteHostStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
 
 export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";
+export type RemoteOperationalStatus = "ONLINE" | "RECENT" | "OFFLINE" | "MISCONFIGURED" | "SESSION_BUSY";
 
 export type RemoteHostSummary = {
   id: string;
@@ -139,6 +140,7 @@ export type RemoteConfiguredHostItem = {
   agentVersion: string | null;
   lastHeartbeatAt: string | null;
   openSessionCount: number;
+  operationalStatus: RemoteOperationalStatus;
   lastSessionAt: string | null;
   lastSessionStatus: RemoteSessionStatus | null;
   lastTicketNumber: string | null;
