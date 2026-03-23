@@ -1,3 +1,5 @@
+import type { Role } from "@prisma/client";
+
 export interface UserAccessCompanyOption {
   id: string;
   razaoSocial: string;
@@ -7,7 +9,7 @@ export interface UserAccessCompanyOption {
 export interface UserAccessEditInitialData {
   name: string;
   email: string;
-  role: string;
+  role: Role;
   companyId?: string;
   additionalCompanyIds?: string[];
   jobTitle: string;
