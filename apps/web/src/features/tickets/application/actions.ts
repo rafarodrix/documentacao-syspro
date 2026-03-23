@@ -4,7 +4,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { ZammadTicketArticle } from "@dosc-syspro/contracts";
 import { computeTicketSla } from "@dosc-syspro/core";
-import { queryTicketsForViewer } from "@/core/application/services/tickets/ticket-query-service";
+import { queryTicketsForViewer } from "@/features/tickets/application/services/ticket-query.service";
 import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
@@ -233,4 +233,5 @@ export async function ticketQuickAction(input: {
 
 export const getMyTicketsAction = getTicketsAction;
 export const getAdminTicketsAction = getTicketsAction;
+
 

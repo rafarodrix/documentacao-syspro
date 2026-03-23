@@ -2,9 +2,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { DocumentoFormValues, documentoSchema } from "@dosc-syspro/contracts";
+import type { DocumentosListResponse, DocumentoActionResponse } from "@/features/documentos/domain/model";
 import { revalidateDocumentosViews } from "@/lib/cache-invalidation";
 
-export async function getDocumentos() {
+export async function getDocumentos(): Promise<DocumentosListResponse> {
     try {
         const docs = await prisma.documentoConfig.findMany({
             orderBy: { updatedAt: "desc" },
@@ -16,7 +17,7 @@ export async function getDocumentos() {
     }
 }
 
-export async function saveDocumento(data: DocumentoFormValues) {
+export async function saveDocumento(data: DocumentoFormValues): Promise<DocumentoActionResponse> {
     const validation = documentoSchema.safeParse(data);
 
     if (!validation.success) {
@@ -63,7 +64,7 @@ export async function saveDocumento(data: DocumentoFormValues) {
     }
 }
 
-export async function deleteDocumento(id: string) {
+export async function deleteDocumento(id: string): Promise<DocumentoActionResponse> {
     try {
         await prisma.documentoConfig.delete({ where: { id } });
         revalidateDocumentosViews();
