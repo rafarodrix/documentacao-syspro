@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Copy, Search, Wifi, WifiOff, X } from "lucide-react";
+import { Copy, ExternalLink, Plus, Search, Wifi, WifiOff, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -20,10 +22,16 @@ import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
 
 export function RemotePlatformDirectoryPanel({ directory }: { directory: RemotePlatformDirectory }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "MAINTENANCE" | "INACTIVE">("all");
   const [environmentFilter, setEnvironmentFilter] = useState("all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
+  const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
+  const [quickRustdeskId, setQuickRustdeskId] = useState("");
+  const [quickDescription, setQuickDescription] = useState("");
+  const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
   const environmentOptions = useMemo(() => {
     const values = Array.from(new Set(directory.items.map((item) => item.environment).filter(Boolean))) as string[];
     return values.sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -68,6 +76,42 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       toast.success("RustDesk ID copiado.");
     } catch {
       toast.error("Falha ao copiar RustDesk ID.");
+    }
+  }
+
+  async function handleQuickCreateHost() {
+    if (!quickCompanyId || !quickRustdeskId.trim() || !quickDescription.trim()) {
+      toast.error("Selecione a empresa, informe o RustDesk ID e a descricao.");
+      return;
+    }
+
+    try {
+      const companyLabel = directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Host remoto";
+      const name = `${companyLabel} - Acesso remoto`;
+      const response = await fetch("/api/remote/hosts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: quickCompanyId,
+          name,
+          provider: "RustDesk",
+          description: quickDescription,
+          agentExternalId: quickRustdeskId,
+          status: "ACTIVE",
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Falha ao cadastrar maquina.");
+      }
+
+      toast.success("Maquina cadastrada.");
+      setQuickRustdeskId("");
+      setQuickDescription("");
+      startTransition(() => router.refresh());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao cadastrar maquina.");
     }
   }
 
@@ -135,12 +179,51 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg">Clientes configurados</CardTitle>
+          <CardTitle className="text-lg">Acesso remoto</CardTitle>
           <CardDescription>
-            Esta tela e operacional. A busca abaixo pesquisa somente os hosts deste modulo. A configuracao de hosts e vinculacoes fica em Configuracoes &gt; Acesso Remoto.
+            Tela operacional simplificada para localizar a empresa, validar o `RustDesk ID` e abrir o acesso com o menor atrito possivel.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {canCreateHosts ? (
+            <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Plus className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold text-foreground">Cadastro rapido de maquina</p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Empresa</Label>
+                  <select
+                    value={quickCompanyId}
+                    onChange={(event) => setQuickCompanyId(event.target.value)}
+                    className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                  >
+                    {directory.companyOptions.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>RustDesk ID</Label>
+                  <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Descricao</Label>
+                  <Input value={quickDescription} onChange={(event) => setQuickDescription(event.target.value)} placeholder="Servidor principal do ERP" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Cadastrar maquina
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <div className="relative flex-1">
@@ -229,57 +312,61 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             filteredItems.map((item) => {
               const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
               const HeartbeatIcon = heartbeat.icon;
+              const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
 
               return (
-              <div key={item.id} className="rounded-lg border border-border/50 bg-muted/20 p-4">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground">{item.name}</p>
-                      <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                        {item.status}
-                      </Badge>
-                      <Badge variant="outline" className={heartbeat.className}>
-                        <HeartbeatIcon className="mr-1 h-3.5 w-3.5" />
-                        {heartbeat.label}
-                      </Badge>
+                <div key={item.id} className="rounded-xl border border-border/50 bg-muted/20 p-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-base font-semibold text-foreground">{item.companyName ?? "Sem empresa"}</p>
+                        <Badge variant="outline" className={heartbeat.className}>
+                          <HeartbeatIcon className="mr-1 h-3.5 w-3.5" />
+                          {heartbeat.label}
+                        </Badge>
+                        <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                          {item.status}
+                        </Badge>
+                        {rustdeskHref ? (
+                          <a href={rustdeskHref} className={cn(buttonVariants({ variant: "outline" }), "h-8 gap-1 px-3")}>
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Acesso direto
+                          </a>
+                        ) : null}
+                      </div>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>RustDesk ID: {item.rustdeskId ?? "Nao configurado"}</p>
+                        <p>Descricao: {item.description || "Sem descricao operacional."}</p>
+                        {item.lastSessionAt ? (
+                          <p>
+                            Ultima sessao: {new Date(item.lastSessionAt).toLocaleString("pt-BR")}
+                            {item.lastTicketNumber ? ` | Ticket #${item.lastTicketNumber}` : ""}
+                          </p>
+                        ) : null}
+                        {item.machineName || item.agentVersion ? (
+                          <p>
+                            {item.machineName ?? "Maquina indefinida"}
+                            {item.agentVersion ? ` | ${item.agentVersion}` : ""}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">ID: {item.id}</p>
-                    <p className="text-sm text-muted-foreground">Empresa: {item.companyName ?? "Sem empresa"}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Descricao: {item.description || "Host sem descricao operacional."}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span>RustDesk ID: {item.rustdeskId ?? "Nao configurado"}</span>
-                      <Button type="button" variant="outline" size="sm" onClick={() => handleCopyRustDeskId(item.rustdeskId)} className="h-7 gap-1 px-2">
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => handleCopyRustDeskId(item.rustdeskId)} className="gap-1">
                         <Copy className="h-3.5 w-3.5" />
                         Copiar ID
                       </Button>
+                      <Link
+                        href={`/app/plataforma-remota/${item.id}`}
+                        className={cn(buttonVariants({ variant: "default" }), "gap-1")}
+                      >
+                        Visualizar
+                      </Link>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Agente: {item.machineName ?? "maquina indefinida"}
-                      {item.agentVersion ? ` | versao ${item.agentVersion}` : ""}
-                      {item.lastHeartbeatAt ? ` | heartbeat ${new Date(item.lastHeartbeatAt).toLocaleString("pt-BR")}` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Sessoes abertas: {item.openSessionCount}
-                      {item.lastSessionAt ? ` | Ultima atividade: ${new Date(item.lastSessionAt).toLocaleString("pt-BR")}` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Ultima sessao: {item.lastSessionStatus ?? "Sem sessoes"}
-                      {item.lastTicketNumber ? ` | Ticket #${item.lastTicketNumber}` : ""}
-                    </p>
                   </div>
-
-                  <Link
-                    href={`/app/plataforma-remota/${item.id}`}
-                    className={cn(buttonVariants({ variant: "default" }), "w-full lg:w-auto")}
-                  >
-                    Acessar
-                  </Link>
                 </div>
-              </div>
-            )})
+              )})
           ) : (
             <p className="text-sm text-muted-foreground">
               {searchTerm

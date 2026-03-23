@@ -16,6 +16,7 @@
     "processos/estrutura-projeto",
     "processos/homologcao-producao",
     "processos/integracao-zammad",
+    "processos/operacao-agente-remoto-oss",
     "---Estratégia---",
     "estrategia/estrategia-plataforma-remota"
   ]

@@ -149,11 +149,30 @@ export type RemotePlatformDirectory = {
     activeHosts: number;
     companies: number;
   };
+  companyOptions: Array<{
+    id: string;
+    label: string;
+  }>;
   items: RemoteConfiguredHostItem[];
 };
 
 export type RemoteHostDetails = {
   host: RemoteConfiguredHostItem;
+  company: {
+    id: string;
+    razaoSocial: string;
+    nomeFantasia: string | null;
+    cnpj: string;
+    emailContato: string | null;
+    telefone: string | null;
+    observacoes: string | null;
+  };
+  linkedUsers: Array<{
+    id: string;
+    name: string | null;
+    email: string;
+    role: "ADMIN" | "SUPORTE" | "DEVELOPER" | "CLIENTE_ADMIN" | "CLIENTE_USER";
+  }>;
   recentSessions: Array<
     RemoteSessionSummary & {
       hostName: string;

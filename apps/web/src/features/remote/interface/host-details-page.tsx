@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
 
@@ -148,33 +149,79 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         </Card>
       </div>
 
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="text-lg">Dados do host</CardTitle>
-          <CardDescription>Ponto operacional do acesso remoto ja configurado para a empresa.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p><span className="font-medium text-foreground">ID:</span> {host.id}</p>
-            <p><span className="font-medium text-foreground">Empresa:</span> {host.companyName ?? "Sem empresa"}</p>
-            <p><span className="font-medium text-foreground">Descricao:</span> {host.description || "Sem descricao operacional."}</p>
-            <p><span className="font-medium text-foreground">Token de instalacao:</span> {host.installToken ?? "Nao configurado"}</p>
-          </div>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p><span className="font-medium text-foreground">Provider:</span> {host.provider ?? "Nao definido"}</p>
-            <p><span className="font-medium text-foreground">RustDesk ID:</span> {normalizedRustdeskId ?? "Nao configurado"}</p>
-            <p><span className="font-medium text-foreground">Maquina:</span> {host.machineName ?? "Nao registrada"}</p>
-            <p><span className="font-medium text-foreground">Versao do agente:</span> {host.agentVersion ?? "Nao registrada"}</p>
-            <p><span className="font-medium text-foreground">Ultimo heartbeat:</span> {host.lastHeartbeatAt ? new Date(host.lastHeartbeatAt).toLocaleString("pt-BR") : "Sem heartbeat"}</p>
-            <p>
-              <span className="font-medium text-foreground">Status:</span>{" "}
-              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                {host.status}
-              </Badge>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="empresa" className="space-y-4">
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 md:grid-cols-3">
+          <TabsTrigger value="empresa">Dados da empresa</TabsTrigger>
+          <TabsTrigger value="clientes">Clientes vinculados</TabsTrigger>
+          <TabsTrigger value="observacoes">Dados e observacoes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="empresa">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Dados da empresa</CardTitle>
+              <CardDescription>Resumo da empresa vinculada ao host remoto.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><span className="font-medium text-foreground">Empresa:</span> {details.company.nomeFantasia ?? details.company.razaoSocial}</p>
+                <p><span className="font-medium text-foreground">Razao social:</span> {details.company.razaoSocial}</p>
+                <p><span className="font-medium text-foreground">CNPJ:</span> {details.company.cnpj}</p>
+              </div>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><span className="font-medium text-foreground">E-mail:</span> {details.company.emailContato ?? "Nao informado"}</p>
+                <p><span className="font-medium text-foreground">Telefone:</span> {details.company.telefone ?? "Nao informado"}</p>
+                <p><span className="font-medium text-foreground">Host ID:</span> {host.id}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="clientes">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Clientes vinculados a empresa</CardTitle>
+              <CardDescription>Usuarios ativos vinculados a empresa para contexto operacional.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {details.linkedUsers.length ? (
+                details.linkedUsers.map((user) => (
+                  <div key={user.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-sm font-medium text-foreground">{user.name ?? user.email}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                    <p className="text-xs text-muted-foreground">Perfil: {user.role}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum usuario ativo vinculado a esta empresa.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="observacoes">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Dados e observacoes</CardTitle>
+              <CardDescription>Espaco de referencia operacional do host e da empresa.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><span className="font-medium text-foreground">Descricao da maquina:</span> {host.description || "Sem descricao operacional."}</p>
+                <p><span className="font-medium text-foreground">Token de instalacao:</span> {host.installToken ?? "Nao configurado"}</p>
+                <p><span className="font-medium text-foreground">Provider:</span> {host.provider ?? "Nao definido"}</p>
+                <p><span className="font-medium text-foreground">RustDesk ID:</span> {normalizedRustdeskId ?? "Nao configurado"}</p>
+              </div>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><span className="font-medium text-foreground">Maquina:</span> {host.machineName ?? "Nao registrada"}</p>
+                <p><span className="font-medium text-foreground">Versao do agente:</span> {host.agentVersion ?? "Nao registrada"}</p>
+                <p><span className="font-medium text-foreground">Ultimo heartbeat:</span> {host.lastHeartbeatAt ? new Date(host.lastHeartbeatAt).toLocaleString("pt-BR") : "Sem heartbeat"}</p>
+                <p><span className="font-medium text-foreground">Observacoes da empresa:</span> {details.company.observacoes ?? "Sem observacoes cadastradas."}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Card className="border-border/50">
         <CardHeader>

@@ -350,7 +350,7 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
   const tenantScope = await getRemoteTenantScope();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
-  const [hosts, totalHosts, activeHosts, companies] = await Promise.all([
+  const [hosts, totalHosts, activeHosts, companies, companyOptions] = await Promise.all([
     prisma.remoteHost.findMany({
       where: scopedWhere,
       include: {
@@ -369,6 +369,14 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       by: ["companyId"],
       where: scopedWhere,
     }),
+    prisma.company.findMany({
+      where: tenantScope.isGlobalView
+        ? { deletedAt: null }
+        : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
+      select: { id: true, nomeFantasia: true, razaoSocial: true },
+      orderBy: [{ razaoSocial: "asc" }],
+      take: 100,
+    }),
   ]);
 
   return {
@@ -378,6 +386,10 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       activeHosts,
       companies: companies.length,
     },
+    companyOptions: companyOptions.map((company) => ({
+      id: company.id,
+      label: company.nomeFantasia ?? company.razaoSocial,
+    })),
     items: hosts.map(mapDirectoryItem),
   };
 }
@@ -392,7 +404,37 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       ...scopedWhere,
     },
     include: {
-      company: { select: { nomeFantasia: true, razaoSocial: true } },
+      company: {
+        select: {
+          id: true,
+          nomeFantasia: true,
+          razaoSocial: true,
+          cnpj: true,
+          emailContato: true,
+          telefone: true,
+          observacoes: true,
+          memberships: {
+            where: {
+              user: {
+                deletedAt: null,
+                isActive: true,
+              },
+            },
+            select: {
+              role: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+            orderBy: [{ createdAt: "asc" }],
+            take: 20,
+          },
+        },
+      },
       sessions: {
         include: {
           company: { select: { nomeFantasia: true, razaoSocial: true } },
@@ -416,6 +458,21 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         ticketNumber: session.ticketNumber,
       })),
     }),
+    company: {
+      id: host.company.id,
+      razaoSocial: host.company.razaoSocial,
+      nomeFantasia: host.company.nomeFantasia,
+      cnpj: host.company.cnpj,
+      emailContato: host.company.emailContato,
+      telefone: host.company.telefone,
+      observacoes: host.company.observacoes,
+    },
+    linkedUsers: host.company.memberships.map((membership) => ({
+      id: membership.user.id,
+      name: membership.user.name,
+      email: membership.user.email,
+      role: membership.role,
+    })),
     recentSessions: host.sessions.map((session) => ({
       id: session.id,
       companyId: session.companyId,
