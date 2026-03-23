@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
@@ -7,33 +7,23 @@ import { FileUpload } from './FileUpload';
 import { StatusDisplay } from './StatusDisplay';
 import { ResultDisplay } from './ResultDisplay';
 
-// Tipos para clareza
 type Status = 'idle' | 'processing' | 'completed' | 'error';
-
-// Novo tipo para o evento de arquivo, compativel com Drag & Drop
 type FileChangeEvent = ChangeEvent<HTMLInputElement> | { target: { files: FileList | null } };
 
 export function AnalisadorXMLTool() {
-  // --- ESTADO DO FORMULARIO ---
   const [files, setFiles] = useState<FileList | null>(null);
   const [numeros, setNumeros] = useState('');
   const [cnpjEmpresa, setCnpjEmpresa] = useState('');
   const [fileInputKey, setFileInputKey] = useState(Date.now());
-
-  // --- ESTADO DA API/PROCESSO ---
   const [status, setStatus] = useState<Status>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
-
-  // --- ESTADO DO RESULTADO ---
   const [summary, setSummary] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
 
-  // OORREOAO AQUI: Atualizada a tipagem do evento 'e'
   const handleFileChange = (e: FileChangeEvent) => {
     setStatus('idle');
     setStatusMessage('');
-    // O TypeScript agora aceita isso porque ambos os tipos possuem .target.files
     setFiles(e.target.files);
   };
 
@@ -97,8 +87,7 @@ export function AnalisadorXMLTool() {
       setSummary(response.data.summary);
       setDownloadUrl(response.data.downloadUrl);
       setStatus('completed');
-      setStatusMessage('An?lise conclu?da!');
-
+      setStatusMessage('Análise concluída!');
     } catch (err: any) {
       setStatus('error');
       if (err.response && err.response.data && err.response.data.error) {
@@ -119,7 +108,7 @@ export function AnalisadorXMLTool() {
             Analisador de XML Fiscal
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Uma ferramenta r?pida para validar sequ?ncias e extrair documentos.
+            Uma ferramenta rápida para validar sequências e extrair documentos.
           </p>
         </div>
 

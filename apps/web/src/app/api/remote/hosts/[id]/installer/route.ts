@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
@@ -15,6 +16,10 @@ function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
 
 function escapePowerShell(value: string | null | undefined) {
   return (value ?? "").replace(/'/g, "''");
+}
+
+function buildInstallToken() {
+  return `rhost_${randomBytes(12).toString("hex")}`;
 }
 
 function slugifyFilePart(value: string) {
@@ -128,8 +133,22 @@ export async function GET(
     return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
   }
 
-  if (!host.installToken) {
-    return NextResponse.json({ success: false, error: "Host sem installToken configurado." }, { status: 409 });
+  let installToken = host.installToken;
+  if (!installToken) {
+    const updatedHost = await prisma.remoteHost.update({
+      where: { id: host.id },
+      data: {
+        installToken: buildInstallToken(),
+      },
+      select: {
+        installToken: true,
+      },
+    });
+    installToken = updatedHost.installToken;
+  }
+
+  if (!installToken) {
+    return NextResponse.json({ success: false, error: "Nao foi possivel gerar installToken para o host." }, { status: 500 });
   }
 
   const portalBaseUrl = new URL(request.url).origin;
@@ -138,7 +157,7 @@ export async function GET(
   const hostSlug = slugifyFilePart(host.name || "host-remoto");
   const script = buildInstallerScript({
     portalBaseUrl,
-    installToken: host.installToken,
+    installToken,
     companyName,
     hostName: host.name,
     description: host.description,

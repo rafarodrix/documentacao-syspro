@@ -16,27 +16,25 @@ export function ResetPasswordForm() {
     setPassword,
     setConfirmPassword,
     submitReset,
-    passwordStrength,  // âœ… do hook melhorado
+    passwordStrength,
   } = useResetPassword()
 
-  // Toggle de visibilidade local para cada campo
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm]   = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     submitReset()
   }
 
-  // Token ausente = link quebrado ou expirado
   if (!token) {
     return (
-      <AuthLayoutWrapper title="Link InvÃ¡lido" description="SolicitaÃ§Ã£o nÃ£o encontrada." backButton>
+      <AuthLayoutWrapper title="Link Inválido" description="Solicitação não encontrada." backButton>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro</AlertTitle>
           <AlertDescription>
-            O link de recuperaÃ§Ã£o Ã© invÃ¡lido ou expirou. Links sÃ£o vÃ¡lidos por 1 hora.
+            O link de recuperação é inválido ou expirou. Links são válidos por 1 hora.
           </AlertDescription>
         </Alert>
         <Button className="w-full mt-4" asChild>
@@ -53,7 +51,6 @@ export function ResetPasswordForm() {
       backButton={false}
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-
         {error && (
           <Alert
             variant="destructive"
@@ -68,8 +65,6 @@ export function ResetPasswordForm() {
         )}
 
         <div className="space-y-4">
-
-          {/* Nova Senha */}
           <div className="space-y-2">
             <Label htmlFor="password" className={cn("text-xs uppercase font-semibold", error ? "text-red-500" : "text-muted-foreground")}>
               Nova Senha
@@ -82,7 +77,7 @@ export function ResetPasswordForm() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="MÃ­nimo 8 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 required
                 autoComplete="new-password"
                 value={password}
@@ -102,7 +97,6 @@ export function ResetPasswordForm() {
               </button>
             </div>
 
-            {/* âœ… Barra de forÃ§a de senha */}
             {password.length > 0 && (
               <div className="space-y-1 animate-in fade-in duration-200">
                 <div className="flex gap-1 h-1.5">
@@ -116,18 +110,19 @@ export function ResetPasswordForm() {
                     />
                   ))}
                 </div>
-                <p className={cn(
-                  "text-[11px] font-medium transition-colors",
-                  passwordStrength.passes ? "text-green-600" : "text-orange-500"
-                )}>
+                <p
+                  className={cn(
+                    "text-[11px] font-medium transition-colors",
+                    passwordStrength.passes ? "text-green-600" : "text-orange-500"
+                  )}
+                >
                   {passwordStrength.label}
-                  {!passwordStrength.passes && " â€” adicione letras maiÃºsculas, nÃºmeros ou sÃ­mbolos"}
+                  {!passwordStrength.passes && " — adicione letras maiúsculas, números ou símbolos"}
                 </p>
               </div>
             )}
           </div>
 
-          {/* Confirmar Senha */}
           <div className="space-y-2">
             <Label htmlFor="confirmPassword" className={cn("text-xs uppercase font-semibold", error ? "text-red-500" : "text-muted-foreground")}>
               Confirmar Senha
@@ -150,14 +145,13 @@ export function ResetPasswordForm() {
                 className={cn(
                   "pl-10 pr-10 h-11 bg-muted/30 border-muted-foreground/20 transition-all",
                   error && "border-red-500 bg-red-50",
-                  // âœ… Feedback visual imediato se as senhas nÃ£o coincidem
                   confirmPassword.length > 0 && password !== confirmPassword && "border-orange-400",
                   confirmPassword.length > 0 && password === confirmPassword && "border-green-400",
                 )}
               />
               <button
                 type="button"
-                aria-label={showConfirm ? "Ocultar confirmaÃ§Ã£o" : "Mostrar confirmaÃ§Ã£o"}
+                aria-label={showConfirm ? "Ocultar confirmação" : "Mostrar confirmação"}
                 onClick={() => setShowConfirm((p) => !p)}
                 disabled={loading}
                 className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
@@ -165,10 +159,9 @@ export function ResetPasswordForm() {
                 {showConfirm ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
               </button>
             </div>
-            {/* Hint de match */}
             {confirmPassword.length > 0 && password !== confirmPassword && (
               <p className="text-[11px] text-orange-500 animate-in fade-in duration-200">
-                As senhas nÃ£o coincidem ainda
+                As senhas não coincidem ainda
               </p>
             )}
           </div>
@@ -182,8 +175,7 @@ export function ResetPasswordForm() {
         >
           {loading
             ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Salvando...</span>
-            : "Alterar Senha"
-          }
+            : "Alterar Senha"}
         </Button>
       </form>
     </AuthLayoutWrapper>

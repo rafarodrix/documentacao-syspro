@@ -19,13 +19,12 @@ export function LoginForm() {
   } = useLogin()
 
   const [showPassword, setShowPassword] = useState(false)
+  const hasError = !!error
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     submitLogin()
   }
-
-  const hasError = !!error
 
   return (
     <AuthLayoutWrapper
@@ -34,8 +33,6 @@ export function LoginForm() {
       backButton={true}
     >
       <div className="space-y-5">
-
-        {/* â”€â”€ Alerta de Erro â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {hasError && (
           <Alert
             variant="destructive"
@@ -49,14 +46,12 @@ export function LoginForm() {
           </Alert>
         )}
 
-        {/* â”€â”€ FormulÃ¡rio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
           noValidate
-          aria-label="FormulÃ¡rio de login"
+          aria-label="Formulário de login"
         >
-          {/* E-mail */}
           <div className="space-y-2">
             <Label
               htmlFor="email"
@@ -101,7 +96,6 @@ export function LoginForm() {
             </div>
           </div>
 
-          {/* Senha */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label
@@ -135,7 +129,7 @@ export function LoginForm() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="••••••••"
                 required
                 autoComplete="current-password"
                 value={password}
@@ -160,13 +154,11 @@ export function LoginForm() {
               >
                 {showPassword
                   ? <EyeOff className="h-4 w-4" aria-hidden="true" />
-                  : <Eye className="h-4 w-4" aria-hidden="true" />
-                }
+                  : <Eye className="h-4 w-4" aria-hidden="true" />}
               </button>
             </div>
           </div>
 
-          {/* Submit */}
           <Button
             type="submit"
             disabled={isLoading}
@@ -188,7 +180,6 @@ export function LoginForm() {
           </Button>
         </form>
 
-        {/* â”€â”€ RodapÃ© â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="space-y-4 pt-1">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -204,7 +195,7 @@ export function LoginForm() {
           <p className="text-center text-sm text-muted-foreground">
             Entre em contato pelo{" "}
             <Link
-              href="https://wa.me/5534997713731?text=OlÃ¡"
+              href="https://wa.me/5534997713731?text=Olá"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
@@ -216,12 +207,11 @@ export function LoginForm() {
               href="/docs/suporte"
               className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
             >
-              suporte tÃ©cnico
+              suporte técnico
             </Link>
             .
           </p>
         </div>
-
       </div>
     </AuthLayoutWrapper>
   )

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { ChangeEvent, FormEvent, DragEvent, useState } from 'react';
 import { X, FileArchive, FolderUp, UploadCloud } from 'lucide-react';
@@ -153,7 +153,7 @@ export function FileUpload({
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
                 <UploadCloud size={16} className="text-primary" />
-                Arquivos Prontos para An?lise:
+                Arquivos Prontos para Análise:
               </h3>
               <button
                 type="button"
@@ -223,7 +223,7 @@ export function FileUpload({
           disabled={isProcessing || !files || files.length === 0 || cnpjEmpresa.length < 14}
           className="w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-muted disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md active:scale-[0.99]"
         >
-          {isProcessing ? 'Processando Arquivos...' : 'Iniciar An?lise Fiscal'}
+          {isProcessing ? 'Processando Arquivos...' : 'Iniciar Análise Fiscal'}
         </button>
       </form>
     </div>
