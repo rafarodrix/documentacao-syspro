@@ -1,8 +1,11 @@
 # packages/contracts
 
-Pacote reservado para contratos, DTOs e schemas de fronteira.
+Pacote de DTOs e schemas de fronteira reutilizaveis entre web, API e futuros consumers.
 
-Ativação prevista:
+Escopo inicial:
 
-- `INFRA-015`
-
+- settings
+- sefaz routes
+- ticket form
+- user
+- zammad api

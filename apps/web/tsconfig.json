@@ -17,7 +17,13 @@
                                                               ],
                                           "@dosc-syspro/ui/*":  [
                                                                     "../../packages/ui/src/*"
-                                                                ]
+                                                                ],
+                                          "@dosc-syspro/contracts":  [
+                                                                         "../../packages/contracts/src/index.ts"
+                                                                     ],
+                                          "@dosc-syspro/contracts/*":  [
+                                                                           "../../packages/contracts/src/*"
+                                                                       ]
                                       },
                             "plugins":  [
                                             {

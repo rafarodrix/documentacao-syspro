@@ -23,6 +23,7 @@ Ja concluido:
 - EPIC B1 de workspace e shell
 - `INFRA-013` com o primeiro recorte de `packages/shared`
 - `INFRA-014` com o primeiro recorte de `packages/ui`
+- `INFRA-015` com o primeiro recorte de `packages/contracts`
 
 O backlog abaixo comeca do proximo bloco realmente pendente.
 
@@ -30,39 +31,10 @@ O backlog abaixo comeca do proximo bloco realmente pendente.
 
 Ordem recomendada:
 
-1. consolidar os primeiros pacotes estaveis
-2. consolidar dominio e persistencia compartilhada
-3. preparar BFF e transporte
-4. abrir caminho para multi-app
-5. reforcar CI, observabilidade e experiencia de docs
-
-## Fase B - Monorepo Estrutural
-
-### EPIC B2 - Extracao dos primeiros pacotes
-
-- [x] `INFRA-013` [Alta] Criar `packages/shared`.
-Criterios de aceite:
-- utilitarios puros, constants e helpers sem dependencia de app.
-Status de fechamento:
-- `packages/shared` criado com `package.json` proprio e `src/index.ts`.
-- primeiro recorte extraido com utilitarios puros de moeda, mascaras/formatadores genericos e data.
-- `apps/web` passou a resolver `@dosc-syspro/shared` via `tsconfig`, sem depender de regra de negocio, Prisma ou Next.
-- wrappers legados em `apps/web/src/lib/formatters.ts`, `apps/web/src/lib/date.ts` e `apps/web/src/core/shared/utils/currency-utils.ts` foram mantidos como camada de compatibilidade.
-
-- [x] `INFRA-014` [Alta] Criar `packages/ui`.
-Criterios de aceite:
-- primitives e componentes reutilizaveis extraidos de forma segura.
-- sem dependencia de prisma, auth ou regra de negocio.
-Status de fechamento:
-- `packages/ui` criado com `package.json` proprio e `src/index.ts`.
-- primeiro recorte extraido com `cn`, `Button`, `Input`, `Badge`, `Card`, `Label` e `Textarea`.
-- `apps/web` passou a resolver `@dosc-syspro/ui` via `tsconfig`, sem depender de Prisma, auth ou regra de negocio.
-- wrappers legados em `apps/web/src/lib/utils.ts` e `apps/web/src/components/ui/*` foram mantidos como camada de compatibilidade.
-
-- [ ] `INFRA-015` [Alta] Criar `packages/contracts`.
-Criterios de aceite:
-- DTOs e schemas de fronteira consolidados.
-- web e futuros consumers usando a mesma fonte.
+1. consolidar dominio e persistencia compartilhada
+2. preparar BFF e transporte
+3. abrir caminho para multi-app
+4. reforcar CI, observabilidade e experiencia de docs
 
 ## Fase C - Monorepo de Dominio
 
@@ -137,10 +109,6 @@ Criterios de aceite:
 
 ## Roadmap recomendado
 
-### Sprint 2 - Monorepo estrutural
-
-- `INFRA-015` `packages/contracts`
-
 ### Sprint 3 - Dominio compartilhado
 
 - `INFRA-016` `packages/core`
@@ -156,8 +124,20 @@ Criterios de aceite:
 - `INFRA-023` a `INFRA-027` Qualidade e observabilidade
 - `INFRA-028` a `INFRA-034` Evolucao de docs
 
+## Observacao sobre `INFRA-015`
+
+O primeiro recorte de `packages/contracts` foi fechado com contratos puros e reutilizaveis:
+
+- `settings`
+- `sefaz-routes`
+- `ticket-form`
+- `user`
+- `zammad-api`
+
+Os schemas de `company` e `contract` continuam locais neste momento porque ainda dependem de enums do Prisma. A extracao deles fica mais segura depois de `INFRA-016` e `INFRA-017`.
+
 ## Proximo passo recomendado
 
-1. executar `INFRA-015` com foco em schemas e DTOs de fronteira realmente reutilizaveis
-2. so depois avancar para `INFRA-016` e `INFRA-017`
-3. deixar `INFRA-018` acoplada ao desenho final de `core` e `database`
+1. executar `INFRA-016`
+2. em seguida executar `INFRA-017`
+3. depois consolidar `INFRA-018` em cima da estrutura final de `core` e `database`

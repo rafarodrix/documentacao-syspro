@@ -1,0 +1,14 @@
+{
+  "name": "@dosc-syspro/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./settings": "./src/settings.ts",
+    "./sefaz-routes": "./src/sefaz-routes.ts",
+    "./ticket-form": "./src/ticket-form.ts",
+    "./user": "./src/user.ts",
+    "./zammad-api": "./src/zammad-api.ts"
+  }
+}
