@@ -145,7 +145,7 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid gap-6 lg:grid-cols-3">
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-lg">Hosts persistidos</CardTitle>
@@ -313,6 +313,45 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
             </p>
             <p>
               <span className="font-medium text-foreground">status:</span> {overview.sessionModel.status}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Recorte tecnico de auditoria</CardTitle>
+            <CardDescription>Contrato-base para registrar solicitacao, inicio, encerramento e origem da sessao.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              <span className="font-medium text-foreground">id:</span> {overview.sessionAuditModel.id}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">sessionId:</span> {overview.sessionAuditModel.sessionId}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">action:</span> {overview.sessionAuditModel.action}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">source:</span> {overview.sessionAuditModel.source}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">actorUserId:</span> {overview.sessionAuditModel.actorUserId ?? "null"}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">hostId:</span> {overview.sessionAuditModel.hostId ?? "null"}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">ticketNumber:</span> {overview.sessionAuditModel.ticketNumber ?? "null"}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">occurredAt:</span> {overview.sessionAuditModel.occurredAt}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">summary:</span> {overview.sessionAuditModel.summary}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">metadata:</span> {overview.sessionAuditModel.metadata}
             </p>
           </CardContent>
         </Card>

@@ -99,11 +99,18 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
             const result = await getContractSuspendImpactAction(suspendTarget.id);
             if (!isMounted) return;
 
-            if (result.success && result.data) {
+            if (!result.success) {
+                setSuspendImpact(null);
+                toast.error(result.error);
+                setIsImpactLoading(false);
+                return;
+            }
+
+            if (result.data) {
                 setSuspendImpact(result.data);
             } else {
                 setSuspendImpact(null);
-                toast.error(result.error);
+                toast.error("Nao foi possivel calcular o impacto da suspensao.");
             }
             setIsImpactLoading(false);
         };

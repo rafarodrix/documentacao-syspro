@@ -12,6 +12,16 @@ export type RemoteHostStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
 
 export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";
 export type RemoteOperationalStatus = "ONLINE" | "RECENT" | "OFFLINE" | "MISCONFIGURED" | "SESSION_BUSY";
+export type RemoteSessionAuditSource = "UI" | "WEBHOOK" | "JOB" | "AGENT" | "API";
+export type RemoteSessionAuditAction =
+  | "REQUESTED"
+  | "STARTED"
+  | "ENDED"
+  | "FAILED"
+  | "CANCELLED"
+  | "EXPIRED"
+  | "HOST_RESOLVED"
+  | "COMMENT_POSTED";
 
 export type RemoteHostSummary = {
   id: string;
@@ -37,6 +47,35 @@ export type RemoteSessionSummary = {
   requestedByUserId: string;
   startedByUserId: string | null;
   status: RemoteSessionStatus;
+};
+
+export type RemoteSessionAuditModel = {
+  id: string;
+  sessionId: string;
+  action: RemoteSessionAuditAction;
+  source: RemoteSessionAuditSource;
+  actorUserId: string | null;
+  hostId: string | null;
+  ticketNumber: string | null;
+  occurredAt: string;
+  summary: string;
+  metadata: string;
+};
+
+export type RemoteSessionAuditEvent = {
+  id: string;
+  sessionId: string;
+  companyId: string;
+  hostId: string | null;
+  ticketId: string | null;
+  ticketNumber: string | null;
+  action: RemoteSessionAuditAction;
+  source: RemoteSessionAuditSource;
+  actorUserId: string | null;
+  actorName: string | null;
+  summary: string;
+  metadata: Record<string, unknown> | null;
+  occurredAt: string;
 };
 
 export type RemoteTenantScope = {
@@ -79,6 +118,7 @@ export type RemotePlatformOverview = {
   tenantScope: RemoteTenantScope;
   hostModel: RemoteHostSummary;
   sessionModel: RemoteSessionSummary;
+  sessionAuditModel: RemoteSessionAuditModel;
   modules: RemotePlatformModule[];
   endpoints: RemotePlatformEndpoint[];
   roadmap: RemotePlatformRoadmapPhase[];

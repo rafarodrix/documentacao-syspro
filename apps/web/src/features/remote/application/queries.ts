@@ -228,6 +228,18 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       startedByUserId: "remote_session.startedByUserId",
       status: "REQUESTED",
     },
+    sessionAuditModel: {
+      id: "remote_session_audit.id",
+      sessionId: "remote_session_audit.sessionId",
+      action: "REQUESTED",
+      source: "UI",
+      actorUserId: "remote_session_audit.actorUserId",
+      hostId: "remote_session_audit.hostId",
+      ticketNumber: "remote_session_audit.ticketNumber",
+      occurredAt: "remote_session_audit.occurredAt",
+      summary: "Sessao solicitada por operador autenticado",
+      metadata: "json com origem, motivo, expiracao, payload externo e diagnostico",
+    },
     modules: [
       {
         id: "remote-hosts",
@@ -241,7 +253,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
         title: "Sessoes remotas",
         description: "Inicio, encerramento e rastreabilidade minima de sessoes tecnicas com companyId proprio para auditoria e filtro.",
         status: "foundation",
-        nextStep: "Criar session orchestrator e filtros por membership para CLIENTE_ADMIN.",
+        nextStep: "Materializar trilha de auditoria por sessao, job de expiracao e resolucao de host por ticket.",
       },
       {
         id: "zammad-rustdesk",
@@ -269,7 +281,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
         title: "Auditoria e observabilidade",
         description: "Registro de acoes tecnicas, health checks e alertas operacionais por ambiente.",
         status: "planned",
-        nextStep: "Estruturar AuditLog e eventos criticos do fluxo remoto.",
+        nextStep: "Persistir eventos por sessao com action, source, actor, summary e metadata.",
       },
     ],
     endpoints: [
