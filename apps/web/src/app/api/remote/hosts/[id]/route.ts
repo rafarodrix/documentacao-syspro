@@ -13,6 +13,12 @@ function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
   return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
 }
 
+function normalizeRustdeskId(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/\s+/g, "");
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -75,7 +81,7 @@ export async function PATCH(
       environment: body.environment?.trim() || null,
       provider: body.provider?.trim() || null,
       description: body.description?.trim() || null,
-      agentExternalId: body.agentExternalId?.trim() || null,
+      agentExternalId: normalizeRustdeskId(body.agentExternalId),
       status: body.status ?? "ACTIVE",
     },
   });

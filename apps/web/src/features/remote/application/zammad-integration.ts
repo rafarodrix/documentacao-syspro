@@ -17,6 +17,11 @@ function toStringOrNull(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function normalizeRustdeskId(value: string | null): string | null {
+  if (!value) return null;
+  return value.replace(/\s+/g, "");
+}
+
 function normalizeTags(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
@@ -70,9 +75,11 @@ function parseZammadRemoteContext(payload: Record<string, unknown>): ZammadRemot
     toStringOrNull(ticket.customer_email) ??
     getCustomerEmailFromTicket(ticket);
   const rustdeskId =
-    toStringOrNull(payload.rustdeskId) ??
-    toStringOrNull(ticket.rustdesk_id) ??
-    toStringOrNull(ticket.rustdeskId);
+    normalizeRustdeskId(
+      toStringOrNull(payload.rustdeskId) ??
+      toStringOrNull(ticket.rustdesk_id) ??
+      toStringOrNull(ticket.rustdeskId)
+    );
   const tags = normalizeTags(ticket.tags ?? payload.tags);
   const eventType = typeof payload.event === "string" ? payload.event : "webhook";
 
@@ -184,7 +191,7 @@ export async function resolveRustdeskDeepLink(input: {
   customerEmail?: string | null;
   rustdeskId?: string | null;
 }) {
-  const fallbackRustdeskId = toStringOrNull(input.rustdeskId);
+  const fallbackRustdeskId = normalizeRustdeskId(toStringOrNull(input.rustdeskId));
   const fallbackCustomerEmail = toStringOrNull(input.customerEmail)?.toLowerCase() ?? null;
 
   if (fallbackRustdeskId) {

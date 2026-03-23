@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+function normalizeRustdeskId(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  return trimmed.replace(/\s+/g, "");
+}
+
 export async function POST(request: Request) {
   const body = (await request.json()) as {
     installToken?: string;
@@ -28,7 +34,7 @@ export async function POST(request: Request) {
   const updated = await prisma.remoteHost.update({
     where: { id: host.id },
     data: {
-      agentExternalId: body.rustdeskId?.trim() || undefined,
+      agentExternalId: normalizeRustdeskId(body.rustdeskId),
       machineName: body.machineName?.trim() || undefined,
       agentVersion: body.agentVersion?.trim() || undefined,
       lastHeartbeatAt: new Date(),

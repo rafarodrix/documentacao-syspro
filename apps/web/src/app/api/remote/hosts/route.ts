@@ -14,6 +14,12 @@ function buildInstallToken() {
   return `rhost_${randomBytes(12).toString("hex")}`;
 }
 
+function normalizeRustdeskId(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/\s+/g, "");
+}
+
 export async function GET() {
   const session = await getProtectedSession();
   if (!session) {
@@ -79,7 +85,7 @@ export async function POST(request: Request) {
       environment: body.environment?.trim() || null,
       provider: body.provider?.trim() || null,
       description: body.description?.trim() || null,
-      agentExternalId: body.agentExternalId?.trim() || null,
+      agentExternalId: normalizeRustdeskId(body.agentExternalId),
       installToken: buildInstallToken(),
       status: body.status ?? "ACTIVE",
     },

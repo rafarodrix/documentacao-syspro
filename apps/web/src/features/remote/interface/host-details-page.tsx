@@ -7,7 +7,8 @@ import type { RemoteHostDetails } from "@/features/remote/domain/model";
 
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
-  const rustdeskHref = host.rustdeskId ? `rustdesk://${host.rustdeskId}` : null;
+  const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
+  const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
 
   return (
     <div className="space-y-6">
@@ -47,7 +48,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           </div>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p><span className="font-medium text-foreground">Provider:</span> {host.provider ?? "Nao definido"}</p>
-            <p><span className="font-medium text-foreground">RustDesk ID:</span> {host.rustdeskId ?? "Nao configurado"}</p>
+            <p><span className="font-medium text-foreground">RustDesk ID:</span> {normalizedRustdeskId ?? "Nao configurado"}</p>
             <p><span className="font-medium text-foreground">Maquina:</span> {host.machineName ?? "Nao registrada"}</p>
             <p><span className="font-medium text-foreground">Versao do agente:</span> {host.agentVersion ?? "Nao registrada"}</p>
             <p><span className="font-medium text-foreground">Ultimo heartbeat:</span> {host.lastHeartbeatAt ? new Date(host.lastHeartbeatAt).toLocaleString("pt-BR") : "Sem heartbeat"}</p>
