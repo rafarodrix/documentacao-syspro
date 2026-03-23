@@ -12,6 +12,7 @@ Estado atual:
 - procedimentos com authz/log/error mapping
 - roteadores modulares por dominio
 - composicao central do `appRouter`
+- shell HTTP em `apps/api` consumindo este pacote
 
-Este pacote ainda nao esta plugado em runtime no `apps/web`.
-A decisao foi manter o rollout seguro: primeiro a estrutura modular, depois a ligacao do transporte.
+Este pacote continua isolado do runtime do `apps/web`.
+A decisao foi manter o rollout seguro: primeiro o nucleo modular, depois o shell HTTP dedicado, e so entao a ligacao dos casos de uso reais.

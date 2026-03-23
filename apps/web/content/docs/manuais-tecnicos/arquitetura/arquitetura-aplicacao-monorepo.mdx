@@ -82,7 +82,7 @@ Para escalar com menos risco, a arquitetura correta precisa ter **4 estagios**:
 
 4. **Fase D - Multi-app**
    - adicionar `apps/mobile`
-   - adicionar `apps/api` ou `apps/bff`
+   - materializar `apps/api`
    - mover casos de uso compartilhados para consumo externo
 
 ## Arquitetura recomendada para escala
@@ -125,7 +125,9 @@ Camadas complementares:
 - `packages/database`
   - Prisma schema, migrations, client e repositories/adapters
 - `packages/api`
-  - tRPC ou BFF, authz, context, middlewares e roteadores
+  - roteadores, procedures, authz, context e contrato do BFF
+- `apps/api`
+  - shell HTTP dedicado que consome `packages/api`
 
 ### Fase C - Arquitetura para mobile e servidor separado
 
@@ -133,7 +135,7 @@ Quando houver `apps/mobile` ou `apps/api`, o consumo ideal fica:
 
 - `apps/web` -> `packages/contracts`, `packages/ui`, `packages/core`
 - `apps/mobile` -> `packages/contracts`, `packages/core`, `packages/shared`
-- `apps/api` -> `packages/contracts`, `packages/core`, `packages/database`
+- `apps/api` -> `packages/api`, `packages/contracts`, `packages/core`, `packages/database`
 
 ## Regras de dependencia
 
@@ -376,20 +378,18 @@ O movimento correto sera:
 4. deixar `page.tsx` montar query complexa de banco
 5. misturar gateway externo e persistencia local no mesmo arquivo sem contrato claro
 
-## O que e melhor nao extrair agora
+## Estado atual da extracao multi-app
 
-Para escalar com menos risco, **nao vale extrair imediatamente**:
+Ja materializado:
 
-- `packages/api`
-- `packages/database`
-- `apps/mobile`
-- `apps/api`
+- `packages/api` como nucleo modular do BFF
+- `apps/api` como shell HTTP dedicado
 
-Esses itens devem vir **depois** que:
+Ainda pendente antes de mover runtime real para backend dedicado:
 
-- features criticas estiverem em `src/features`
-- contratos tiverem estabilizado
-- a aplicacao parar de depender de varios atalhos internos
+- ligar procedures aos casos de uso reais
+- mover auth/session para contexto compartilhado do backend
+- separar deploy e observabilidade do web
 
 ## Prioridade arquitetural recomendada
 
@@ -410,7 +410,7 @@ Esses itens devem vir **depois** que:
 
 - extrair `packages/core`
 - extrair `packages/database`
-- introduzir camada `packages/api`
+- materializar `packages/api` e `apps/api`
 
 ### Prioridade 4
 

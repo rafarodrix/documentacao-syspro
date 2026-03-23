@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": ["esnext"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "es2022",
+    "allowJs": false,
+    "jsx": "preserve",
+    "paths": {
+      "@dosc-syspro/api": [
+        "../../packages/api/src/index.ts"
+      ],
+      "@dosc-syspro/api/*": [
+        "../../packages/api/src/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
