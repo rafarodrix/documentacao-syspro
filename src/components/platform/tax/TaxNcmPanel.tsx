@@ -13,19 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-type Item = {
-  id: string;
-  code: string;
-  description: string;
-  startDate: Date | null;
-  endDate: Date | null;
-  replacedByCode: string | null;
-  actType: string | null;
-  actNumber: string | null;
-  actYear: string | null;
-  lastUpdated: Date;
-};
+import type { TaxNcmListItem } from "@/features/tax/domain/model";
 
 type VigenciaFilter = "all" | "active" | "future" | "expired";
 
@@ -41,7 +29,7 @@ function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<Vige
   return "active";
 }
 
-function TaxNcmPanelComponent({ items }: { items: Item[] }) {
+function TaxNcmPanelComponent({ items }: { items: TaxNcmListItem[] }) {
   const INITIAL_ROWS = 80;
   const [query, setQuery] = useState("");
   const [vigencia, setVigencia] = useState<VigenciaFilter>("all");
@@ -313,4 +301,3 @@ function TaxNcmPanelComponent({ items }: { items: Item[] }) {
 }
 
 export const TaxNcmPanel = memo(TaxNcmPanelComponent);
-

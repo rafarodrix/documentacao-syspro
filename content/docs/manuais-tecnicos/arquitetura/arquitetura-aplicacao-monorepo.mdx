@@ -152,6 +152,140 @@ Quando houver `apps/mobile` ou `apps/api`, o consumo ideal fica:
 - `packages/database` nao depende de UI
 - `packages/ui` nao depende de Prisma nem auth
 
+## Estrategia de repositories e adapters para persistencia
+
+O objetivo nao e criar repositories por formalismo. O objetivo e impedir que o dominio e os casos de uso fiquem acoplados a Prisma quando a aplicacao evoluir para `packages/core`, `packages/database` e consumo por API/mobile.
+
+### Regra principal
+
+Enquanto estivermos no **modular monolith**, a regra recomendada e:
+
+- `application` pode usar um **adapter Prisma local** quando o caso for simples
+- `application` deve passar a usar um **repository contract** quando a regra de negocio:
+  - agrega mais de uma tabela
+  - possui filtro/tenant/authz reutilizavel
+  - precisa de teste mais isolado
+  - sera reaproveitada por web, API, worker ou mobile
+
+Ou seja:
+
+- nem tudo vira repository agora
+- mas toda feature critica deve nascer pronta para migrar para repository sem retrabalho estrutural
+
+### Padrao recomendado por camada
+
+- `domain`
+  - define tipos de entidade, regras puras e contratos de persistencia quando necessario
+- `application`
+  - orquestra casos de uso
+  - depende de interfaces de persistencia para fluxos criticos
+- `infrastructure`
+  - implementa adapters concretos com Prisma, cache, gateway externo ou storage
+
+### Contrato recomendado
+
+Para cada feature critica, o contrato deve ficar proximo do dominio da feature, por exemplo:
+
+- `src/features/tickets/domain/repositories/ticket-read.repository.ts`
+- `src/features/company/domain/repositories/company.repository.ts`
+
+As implementacoes concretas ficam em infraestrutura, por exemplo:
+
+- `src/core/infrastructure/persistence/prisma/tickets/prisma-ticket-read.repository.ts`
+- `src/core/infrastructure/persistence/prisma/company/prisma-company.repository.ts`
+
+### Quando usar query direta com Prisma
+
+Pode continuar usando Prisma direto em `application` quando:
+
+- a leitura e simples e local
+- nao existe reutilizacao relevante
+- o fluxo ainda esta mudando rapido
+- o custo de abstracao e maior que o beneficio
+
+Exemplos tipicos:
+
+- combo de opcoes para select
+- leitura administrativa simples
+- consulta temporaria de tela sem reuso
+
+### Quando extrair repository obrigatoriamente
+
+Deve virar repository quando houver:
+
+1. regra de escopo por tenant/empresa/role reutilizada
+2. agregacao entre varias tabelas
+3. composicao com cache
+4. fallback entre banco e provider externo
+5. uso pelo dashboard e pela listagem ao mesmo tempo
+6. necessidade de mover o caso de uso para `packages/core`
+
+### Estrategia concreta por modulo
+
+#### Tickets
+
+`tickets` deve ser o primeiro modulo a formalizar repositories, porque ja possui:
+
+- query service compartilhado
+- cache
+- gateway externo
+- dashboard e listagem consumindo o mesmo dominio
+
+Padrao sugerido:
+
+- `TicketReadRepository`
+- `TicketCacheRepository`
+- `TicketGatewayAdapter`
+
+#### Company
+
+`company` pode continuar com Prisma em `queries` simples, mas deve extrair repository para:
+
+- carregamento da empresa com memberships e escopo
+- e-mails Zammad da empresa
+- operacoes que misturam empresa, endereco e vinculos
+
+#### Tax
+
+`tax` deve separar:
+
+- repositorio de leitura local
+- adapter de sincronizacao externa
+- writer de persistencia por lote
+
+Porque o modulo mistura:
+
+- consulta local
+- sync externo
+- regras de normalizacao
+- carga incremental
+
+#### Settings e contracts
+
+`settings/contracts` podem ficar sem repository formal no curto prazo, desde que:
+
+- `queries` e `actions` permaneçam finas
+- tipos fiquem centralizados
+- nao voltem a acessar infraestrutura fora da feature
+
+### Regra de migracao para Fase C
+
+Ao entrar em `INFRA-016` e `INFRA-017`, o objetivo nao sera reescrever tudo.
+
+O movimento correto sera:
+
+1. promover contratos de persistencia criticos para `packages/core`
+2. mover implementacoes Prisma para `packages/database`
+3. manter queries simples no app web enquanto nao justificarem extracao
+
+### Anti-padroes de persistencia
+
+1. criar repository generico CRUD sem semantica de dominio
+2. esconder Prisma atras de interface inutil
+3. colocar authz, tenant e regra de negocio dentro do componente
+4. deixar `page.tsx` montar query complexa de banco
+5. misturar gateway externo e persistencia local no mesmo arquivo sem contrato claro
+
 ## O que e melhor nao extrair agora
 
 Para escalar com menos risco, **nao vale extrair imediatamente**:

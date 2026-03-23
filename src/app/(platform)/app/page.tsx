@@ -16,7 +16,7 @@ import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad
 import { TicketsSummary } from "@/features/tickets/interface";
 import { buildTicketKpis, toTicketSummaryItems } from "@/features/tickets/application/dashboard";
 import { queryTicketsForViewer } from "@/features/tickets/application/queries";
-import type { TicketSummaryItem } from "@/features/tickets/domain/model";
+import type { AdminDashboardViewData, ClientDashboardViewData } from "@/features/tickets/domain/model";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
@@ -80,40 +80,6 @@ async function getScopedCompanyZammadEmailsByUserId(userId: string): Promise<str
   return Array.from(new Set(configured.map((item) => item.email.trim().toLowerCase()).filter(Boolean)));
 }
 
-type AdminDashboardData = {
-  mode: "admin";
-  companiesCount: number;
-  companiesGrowth: number;
-  usersCount: number;
-  activeUsersCount: number;
-  companies: Array<{
-    id: string;
-    razaoSocial: string;
-    nomeFantasia: string | null;
-    cnpj: string;
-    status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_DOCS";
-    createdAt: Date;
-    _count: { memberships: number };
-    cidade: string | null;
-    estado: string | null;
-  }>;
-  sefazNfe: { uf: string; service: "NFE"; status: "ONLINE" | "UNSTABLE" | "OFFLINE"; latency: number };
-  sefazNfce: { uf: string; service: "NFCE"; status: "ONLINE" | "UNSTABLE" | "OFFLINE"; latency: number };
-  tickets: TicketSummaryItem[];
-  totalOpen: number;
-  activity: ActivityPoint[];
-};
-
-type ClientDashboardData = {
-  mode: "client";
-  companyName: string;
-  companyUsers: number;
-  tickets: TicketSummaryItem[];
-  totalOpen: number;
-  kpis: { open: number; pending: number; resolved: number };
-  activity: ActivityPoint[];
-};
-
 async function getUserDashboardUF(userId: string): Promise<string> {
   const membership = await prisma.membership.findFirst({
     where: {
@@ -137,7 +103,7 @@ async function getUserDashboardUF(userId: string): Promise<string> {
   return state && state.length === 2 ? state : "MG";
 }
 
-async function getDashboardData(userId: string, email: string, role: Role): Promise<AdminDashboardData | ClientDashboardData> {
+async function getDashboardData(userId: string, email: string, role: Role): Promise<AdminDashboardViewData | ClientDashboardViewData> {
   const isSystemUser = SYSTEM_ROLES.includes(role);
   const dashboardUF = await getUserDashboardUF(userId);
 
@@ -210,14 +176,14 @@ async function getDashboardData(userId: string, email: string, role: Role): Prom
     const latestNfe = sefazRecords.find((s) => s.service === "NFE");
     const latestNfce = sefazRecords.find((s) => s.service === "NFCE");
 
-    const sefazNfe: AdminDashboardData["sefazNfe"] = {
+    const sefazNfe: AdminDashboardViewData["sefazNfe"] = {
       uf: dashboardUF,
       service: "NFE",
       status: latestNfe?.status ?? "OFFLINE",
       latency: latestNfe?.latency ?? 0,
     };
 
-    const sefazNfce: AdminDashboardData["sefazNfce"] = {
+    const sefazNfce: AdminDashboardViewData["sefazNfce"] = {
       uf: dashboardUF,
       service: "NFCE",
       status: latestNfce?.status ?? "OFFLINE",
@@ -442,8 +408,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
-
-
-
-

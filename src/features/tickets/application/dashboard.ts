@@ -1,10 +1,10 @@
-import { mapTicketPriority } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
+﻿import { mapTicketPriority } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { getTicketStatusGroup } from "@/core/config/tickets-workflow";
-import type { TicketListItem } from "@/components/platform/tickets/types";
 import type {
     TicketDashboardPriority,
     TicketDashboardStatus,
     TicketKpis,
+    TicketListItem,
     TicketSummaryItem,
 } from "@/features/tickets/domain/model";
 

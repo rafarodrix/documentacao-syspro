@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
@@ -13,19 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-type TaxAnexoItem = {
-  id: string;
-  externalKey: string;
-  code: string | null;
-  title: string | null;
-  description: string | null;
-  category: string | null;
-  publishDate: Date | null;
-  startDate: Date | null;
-  endDate: Date | null;
-  lastUpdated: Date;
-};
+import type { TaxAnexoListItem } from "@/features/tax/domain/model";
 
 type VigenciaFilter = "all" | "active" | "future" | "expired";
 
@@ -41,7 +29,7 @@ function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<Vige
   return "active";
 }
 
-function TaxAnexosPanelComponent({ items }: { items: TaxAnexoItem[] }) {
+function TaxAnexosPanelComponent({ items }: { items: TaxAnexoListItem[] }) {
   const PAGE_SIZE = 120;
   const [query, setQuery] = useState("");
   const [vigencia, setVigencia] = useState<VigenciaFilter>("all");

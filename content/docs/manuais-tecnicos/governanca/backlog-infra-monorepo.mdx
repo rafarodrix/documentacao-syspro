@@ -31,10 +31,15 @@ Nao vamos tratar workspaces, mobile e API separada como primeiros passos.
 
 ### EPIC A2 - Actions finas e contratos internos
 
-- [ ] `INFRA-006` [Alta] Criar view models e contratos por feature dentro do app atual.
+- [x] `INFRA-006` [Alta] Criar view models e contratos por feature dentro do app atual.
 Criterios de aceite:
 - dashboard, listagem e detalhes usam o mesmo contrato.
 - nenhum componente forte depende de shape improvisado local.
+Status de fechamento:
+- `tickets` passou a centralizar contratos de listagem, detalhe, paginação, status e dashboard em `src/features/tickets/domain/model.ts`.
+- `src/components/platform/tickets/types.ts` virou apenas reexport do dominio da feature, eliminando duplicacao de contratos.
+- dashboard e listagem de chamados passaram a consumir o mesmo contrato do modulo.
+- painéis fiscais de anexos, crédito presumido e NCM passaram a consumir diretamente os tipos do dominio fiscal, sem tipos locais duplicados.
 
 - [ ] `INFRA-007` [Alta] Padronizar gateways/adapters tecnicos em `core/infrastructure`.
 Criterios de aceite:
@@ -105,6 +110,15 @@ Criterios de aceite:
 Criterios de aceite:
 - `core` nao depende de Prisma diretamente.
 - contratos de persistencia definidos para features criticas.
+Escopo recomendado:
+- formalizar quando usar `query` direta vs `repository contract`
+- definir pasta padrao para contratos de persistencia por feature
+- definir pasta padrao para implementacoes Prisma/adapters tecnicos
+- escolher os primeiros modulos obrigatorios: `tickets`, `company` e `tax`
+Entregaveis minimos:
+- regra documentada na arquitetura principal
+- convencao de nomes e pastas
+- lista dos fluxos que ainda podem usar Prisma direto sem violar a arquitetura
 
 ### EPIC C2 - BFF e transporte
 
@@ -153,7 +167,6 @@ Criterios de aceite:
 
 ### Sprint 1 - Fechamento da Fase A
 
-- `INFRA-006` Contratos internos por feature
 - `INFRA-007` Gateways/adapters
 - `INFRA-008` Checklist de PR
 - `INFRA-009` Lint arquitetural
@@ -184,6 +197,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. executar `INFRA-006` para unificar contratos entre dashboard, listagens e detalhes
-2. executar `INFRA-007` para padronizar gateways e adapters tecnicos
-3. adicionar os guardrails de arquitetura (`INFRA-008` e `INFRA-009`) antes da Fase B
+1. executar `INFRA-007` para padronizar gateways e adapters tecnicos
+2. adicionar os guardrails de arquitetura (`INFRA-008` e `INFRA-009`) antes da Fase B
+3. depois iniciar a Fase B com `INFRA-010` e `INFRA-011`
