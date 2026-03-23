@@ -183,7 +183,7 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
       })),
     };
   } catch (error) {
-    return handleActionError(error);
+    return handleActionError(error) as ActionResponse<CompanyListItem[]>;
   }
 }
 
