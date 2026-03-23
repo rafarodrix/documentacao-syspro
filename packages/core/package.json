@@ -1,0 +1,17 @@
+{
+  "name": "@dosc-syspro/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./entities/ticket": "./src/entities/ticket.ts",
+    "./entities/release": "./src/entities/release.ts",
+    "./config/contract-blocking": "./src/config/contract-blocking.ts",
+    "./config/route-access": "./src/config/route-access.ts",
+    "./config/role-labels": "./src/config/role-labels.ts",
+    "./config/zammad-state-matrix": "./src/config/zammad-state-matrix.ts",
+    "./config/tickets-workflow": "./src/config/tickets-workflow.ts",
+    "./services/zammad-sla": "./src/services/zammad-sla.ts"
+  }
+}

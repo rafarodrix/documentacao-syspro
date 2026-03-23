@@ -1,7 +1,7 @@
 ---
 title: Backlog de Infraestrutura Monorepo
 description: Backlog priorizado apenas com os itens ainda pendentes para evolucao do workspace, dominio compartilhado e multi-app.
-lastUpdated: 2026-03-22
+lastUpdated: 2026-03-23
 owner: Engenharia de Plataforma
 status: published
 ---
@@ -24,6 +24,7 @@ Ja concluido:
 - `INFRA-013` com o primeiro recorte de `packages/shared`
 - `INFRA-014` com o primeiro recorte de `packages/ui`
 - `INFRA-015` com o primeiro recorte de `packages/contracts`
+- `INFRA-016` com o primeiro recorte de `packages/core`
 
 O backlog abaixo comeca do proximo bloco realmente pendente.
 
@@ -31,7 +32,7 @@ O backlog abaixo comeca do proximo bloco realmente pendente.
 
 Ordem recomendada:
 
-1. consolidar dominio e persistencia compartilhada
+1. consolidar persistencia compartilhada
 2. preparar BFF e transporte
 3. abrir caminho para multi-app
 4. reforcar CI, observabilidade e experiencia de docs
@@ -40,10 +41,15 @@ Ordem recomendada:
 
 ### EPIC C1 - Core e persistencia
 
-- [ ] `INFRA-016` [Alta] Extrair `packages/core`.
+- [x] `INFRA-016` [Alta] Extrair `packages/core`.
 Criterios de aceite:
 - casos de uso, dominio e politicas sem dependencia de Next.js.
 - features estaveis movidas sem quebrar importacao.
+Status de fechamento:
+- `packages/core` criado com `package.json` proprio e `src/index.ts`.
+- primeiro recorte extraido com entidades de `ticket` e `release`, regras puras de bloqueio de contrato, politicas de acesso por role, matriz/workflow de tickets e calculo de SLA.
+- `apps/web` passou a resolver `@dosc-syspro/core` via `tsconfig`, sem depender de Next.js nas partes extraidas.
+- wrappers legados em `apps/web/src/core/domain/entities/*`, `apps/web/src/core/config/*` e `apps/web/src/core/application/services/zammad-sla.ts` foram mantidos como camada de compatibilidade.
 
 - [ ] `INFRA-017` [Alta] Extrair `packages/database`.
 Criterios de aceite:
@@ -111,7 +117,6 @@ Criterios de aceite:
 
 ### Sprint 3 - Dominio compartilhado
 
-- `INFRA-016` `packages/core`
 - `INFRA-017` `packages/database`
 - `INFRA-018` Repositories/adapters
 - `INFRA-019` `packages/api`
@@ -124,20 +129,8 @@ Criterios de aceite:
 - `INFRA-023` a `INFRA-027` Qualidade e observabilidade
 - `INFRA-028` a `INFRA-034` Evolucao de docs
 
-## Observacao sobre `INFRA-015`
-
-O primeiro recorte de `packages/contracts` foi fechado com contratos puros e reutilizaveis:
-
-- `settings`
-- `sefaz-routes`
-- `ticket-form`
-- `user`
-- `zammad-api`
-
-Os schemas de `company` e `contract` continuam locais neste momento porque ainda dependem de enums do Prisma. A extracao deles fica mais segura depois de `INFRA-016` e `INFRA-017`.
-
 ## Proximo passo recomendado
 
-1. executar `INFRA-016`
-2. em seguida executar `INFRA-017`
-3. depois consolidar `INFRA-018` em cima da estrutura final de `core` e `database`
+1. executar `INFRA-017`
+2. em seguida consolidar `INFRA-018`
+3. depois preparar `INFRA-019`

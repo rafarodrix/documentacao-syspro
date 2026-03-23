@@ -23,7 +23,13 @@
                                                                      ],
                                           "@dosc-syspro/contracts/*":  [
                                                                            "../../packages/contracts/src/*"
-                                                                       ]
+                                                                       ],
+                                          "@dosc-syspro/core":  [
+                                                                    "../../packages/core/src/index.ts"
+                                                                ],
+                                          "@dosc-syspro/core/*":  [
+                                                                      "../../packages/core/src/*"
+                                                                  ]
                                       },
                             "plugins":  [
                                             {
