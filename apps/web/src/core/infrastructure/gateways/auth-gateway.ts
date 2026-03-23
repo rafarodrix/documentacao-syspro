@@ -1,6 +1,11 @@
 import { authClient } from "@/lib/auth-client";
-import { Result } from "@/core/application/dto/result.dto";
 import { registerUser } from "@/actions/auth/register";
+
+type GatewayResult<T = void> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
 
 // ✅ MELHORIA 11: Mapa de erros centralizado e extensível
 // Evita strings espalhadas em múltiplos lugares. Adicione novos casos aqui.
@@ -28,7 +33,7 @@ export const authGateway = {
   /**
    * Registra um novo usuário (via convite/admin).
    */
-  async register(formData: FormData): Promise<Result> {
+  async register(formData: FormData): Promise<GatewayResult> {
     try {
       const result = await registerUser(formData)
       if (result?.error) return { success: false, error: result.error }
@@ -44,7 +49,7 @@ export const authGateway = {
    * ✅ MELHORIA 11: Usa mapa centralizado de erros.
    * ✅ MELHORIA 12: Validação de entrada antes de chamar a API.
    */
-  async login(email: string, password: string, callbackURL: string): Promise<Result> {
+  async login(email: string, password: string, callbackURL: string): Promise<GatewayResult> {
     if (!email?.trim() || !password) {
       return { success: false, error: "Preencha e-mail e senha." }
     }
@@ -71,7 +76,7 @@ export const authGateway = {
    * Sempre retorna sucesso — o e-mail não é enviado se não existir, mas o usuário
    * não sabe disso. Evita que atacantes descubram quais emails estão cadastrados.
    */
-  async requestPasswordReset(email: string): Promise<Result> {
+  async requestPasswordReset(email: string): Promise<GatewayResult> {
     if (!email?.trim()) {
       return { success: false, error: "Informe um e-mail válido." }
     }
@@ -96,7 +101,7 @@ export const authGateway = {
   /**
    * Define a nova senha usando o token recebido no e-mail.
    */
-  async resetPassword(newPassword: string, token: string): Promise<Result> {
+  async resetPassword(newPassword: string, token: string): Promise<GatewayResult> {
     if (!token) return { success: false, error: "Token inválido ou expirado." }
     if (!newPassword || newPassword.length < 6) {
       return { success: false, error: "A senha deve ter no mínimo 6 caracteres." }

@@ -1,10 +1,15 @@
 import { createTicketAction } from "@/features/tickets/application/actions";
-import { TicketFormInput } from "@/core/application/schema/ticket-form.schema";
-import { Result } from "@/core/application/dto/result.dto";
+import { TicketFormInput } from "@dosc-syspro/contracts";
+
+type GatewayResult<T = void> = {
+    success: boolean;
+    data?: T;
+    error?: string;
+};
 
 export const ticketGateway = {
     // Especificamos <any> para o Result saber que 'data' pode conter algo
-    async create(data: TicketFormInput, files: File[]): Promise<Result<any>> {
+    async create(data: TicketFormInput, files: File[]): Promise<GatewayResult<any>> {
         try {
             const formData = new FormData();
 
