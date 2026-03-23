@@ -98,6 +98,30 @@ function buildReason(context: ZammadRemoteContext): string {
   return `Zammad ticket #${context.ticketNumber} - ${context.title}`;
 }
 
+function buildSessionMetadata(context: ZammadRemoteContext, rustdeskId: string | null) {
+  return {
+    source: "zammad",
+    eventType: context.eventType,
+    ticketId: context.ticketId,
+    ticketNumber: context.ticketNumber,
+    customerEmail: context.customerEmail,
+    rustdeskId,
+    tags: context.tags,
+  };
+}
+
+function buildTicketLocator(context: ZammadRemoteContext) {
+  if (context.ticketId) {
+    return { ticketId: context.ticketId };
+  }
+
+  if (context.ticketNumber) {
+    return { ticketNumber: context.ticketNumber };
+  }
+
+  return {};
+}
+
 function isClosedLike(context: ZammadRemoteContext): boolean {
   const state = context.state?.toLowerCase() ?? "";
   return Boolean(context.closeAt) || state.includes("close") || state.includes("fech");
@@ -214,8 +238,8 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
       where: {
         companyId,
         hostId: host.id,
+        ...buildTicketLocator(context),
         status: { in: ["REQUESTED", "STARTED"] },
-        reason: { contains: `#${context.ticketNumber}` },
       },
       orderBy: [{ createdAt: "desc" }],
     });
@@ -230,13 +254,7 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
       data: {
         status: nextStatus,
         endedAt: new Date(),
-        metadata: {
-          source: "zammad",
-          eventType: context.eventType,
-          ticketId: context.ticketId,
-          ticketNumber: context.ticketNumber,
-          rustdeskId: context.rustdeskId ?? host.agentExternalId ?? null,
-        },
+        metadata: buildSessionMetadata(context, context.rustdeskId ?? host.agentExternalId ?? null),
       },
     });
 
@@ -247,8 +265,8 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
     where: {
       companyId,
       hostId: host.id,
+      ...buildTicketLocator(context),
       status: { in: ["REQUESTED", "STARTED"] },
-      reason: { contains: `#${context.ticketNumber}` },
     },
     orderBy: [{ createdAt: "desc" }],
   });
@@ -265,19 +283,13 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
   const created = await prisma.remoteSession.create({
     data: {
       companyId,
+      ticketId: context.ticketId,
+      ticketNumber: context.ticketNumber,
       hostId: host.id,
       requestedByUserId,
       reason,
       status: "REQUESTED",
-      metadata: {
-        source: "zammad",
-        eventType: context.eventType,
-        ticketId: context.ticketId,
-        ticketNumber: context.ticketNumber,
-        customerEmail: context.customerEmail,
-        rustdeskId: context.rustdeskId ?? host.agentExternalId ?? null,
-        tags: context.tags,
-      },
+      metadata: buildSessionMetadata(context, context.rustdeskId ?? host.agentExternalId ?? null),
     },
   });
 

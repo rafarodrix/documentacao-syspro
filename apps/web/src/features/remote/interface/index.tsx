@@ -193,6 +193,9 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
                       <p className="text-xs text-muted-foreground">
                         {session.companyName ?? "Sem empresa"} | Solicitado por {session.requestedByName ?? session.requestedByUserId}
                       </p>
+                      {session.ticketNumber && (
+                        <p className="text-xs text-muted-foreground">Ticket #{session.ticketNumber}</p>
+                      )}
                     </div>
                     <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                       {session.status}
@@ -295,6 +298,12 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
             </p>
             <p>
               <span className="font-medium text-foreground">hostId:</span> {overview.sessionModel.hostId}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">ticketId:</span> {overview.sessionModel.ticketId ?? "null"}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">ticketNumber:</span> {overview.sessionModel.ticketNumber ?? "null"}
             </p>
             <p>
               <span className="font-medium text-foreground">requestedByUserId:</span> {overview.sessionModel.requestedByUserId}

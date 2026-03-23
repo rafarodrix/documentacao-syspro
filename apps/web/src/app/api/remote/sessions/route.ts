@@ -9,6 +9,12 @@ function canCreateSession(role: string): boolean {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER" || role === "CLIENTE_ADMIN";
 }
 
+function buildTicketFilter(ticketId: string | null, ticketNumber: string | null) {
+  if (ticketId) return { ticketId };
+  if (ticketNumber) return { ticketNumber };
+  return {};
+}
+
 export async function GET() {
   const session = await getProtectedSession();
   if (!session) {
@@ -48,6 +54,8 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     companyId?: string;
     hostId?: string;
+    ticketId?: string | null;
+    ticketNumber?: string | null;
     reason?: string | null;
   };
 
@@ -71,9 +79,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Host remoto nao encontrado para a empresa." }, { status: 404 });
   }
 
+  const ticketId = body.ticketId?.trim() || null;
+  const ticketNumber = body.ticketNumber?.trim() || null;
+
+  if (ticketId || ticketNumber) {
+    const existingOpenSession = await prisma.remoteSession.findFirst({
+      where: {
+        companyId,
+        hostId,
+        ...buildTicketFilter(ticketId, ticketNumber),
+        status: { in: ["REQUESTED", "STARTED"] },
+      },
+      orderBy: [{ createdAt: "desc" }],
+    });
+
+    if (existingOpenSession) {
+      return NextResponse.json(
+        { success: false, error: "Ja existe sessao aberta para este ticket e host.", data: existingOpenSession },
+        { status: 409 }
+      );
+    }
+  }
+
   const remoteSession = await prisma.remoteSession.create({
     data: {
       companyId,
+      ticketId,
+      ticketNumber,
       hostId,
       requestedByUserId: session.userId,
       reason: body.reason?.trim() || null,

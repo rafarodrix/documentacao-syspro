@@ -81,6 +81,7 @@ export interface ZammadGatewayRepository {
     };
   }): Promise<unknown>;
   addTicketReply(ticketId: string | number, body: string): Promise<unknown>;
+  addInternalTicketNote(ticketId: string | number, body: string): Promise<unknown>;
   updateTicket(
     ticketId: string | number,
     payload: {

@@ -445,6 +445,21 @@ export const ZammadGateway: ZammadGatewayRepository = {
     });
   },
 
+  async addInternalTicketNote(ticketId: string | number, body: string): Promise<unknown> {
+    return fetchZammad("ticket_articles", {
+      method: "POST",
+      body: JSON.stringify({
+        ticket_id: ticketId,
+        body,
+        type: "note",
+        content_type: "text/html",
+        internal: true,
+      }),
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+    });
+  },
+
   async updateTicket(ticketId: string | number, payload: { owner_id?: number | null; priority_id?: number; state_id?: number; }): Promise<unknown> {
     return fetchZammad(`tickets/${ticketId}`, {
       method: "PUT",

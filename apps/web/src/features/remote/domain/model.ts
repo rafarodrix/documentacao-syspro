@@ -24,6 +24,8 @@ export type RemoteHostSummary = {
 export type RemoteSessionSummary = {
   id: string;
   companyId: string;
+  ticketId: string | null;
+  ticketNumber: string | null;
   hostId: string;
   requestedByUserId: string;
   startedByUserId: string | null;

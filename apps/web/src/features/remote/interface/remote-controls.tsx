@@ -38,6 +38,8 @@ export function RemotePlatformControls({ overview }: Props) {
   const [provider, setProvider] = useState("RustDesk");
   const [selectedHostId, setSelectedHostId] = useState("");
   const [sessionCompanyId, setSessionCompanyId] = useState(overview.companyOptions[0]?.id ?? "");
+  const [sessionTicketId, setSessionTicketId] = useState("");
+  const [sessionTicketNumber, setSessionTicketNumber] = useState("");
   const [sessionReason, setSessionReason] = useState("");
 
   const canCreateHosts = overview.tenantScope.role !== "CLIENTE_ADMIN";
@@ -92,12 +94,16 @@ export function RemotePlatformControls({ overview }: Props) {
           body: JSON.stringify({
             companyId: sessionCompanyId,
             hostId: selectedHostId,
+            ticketId: sessionTicketId,
+            ticketNumber: sessionTicketNumber,
             reason: sessionReason,
           }),
         })
       );
 
       toast.success("Sessao remota solicitada.");
+      setSessionTicketId("");
+      setSessionTicketNumber("");
       setSessionReason("");
       refresh();
     } catch (error) {
@@ -233,6 +239,26 @@ export function RemotePlatformControls({ overview }: Props) {
             />
           </div>
 
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Ticket ID</Label>
+              <Input
+                value={sessionTicketId}
+                onChange={(event) => setSessionTicketId(event.target.value)}
+                placeholder="12345"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Numero do ticket</Label>
+              <Input
+                value={sessionTicketNumber}
+                onChange={(event) => setSessionTicketNumber(event.target.value)}
+                placeholder="2026001234"
+              />
+            </div>
+          </div>
+
           <Button onClick={handleCreateSession} disabled={isPending}>
             Solicitar sessao
           </Button>
@@ -254,6 +280,9 @@ export function RemotePlatformControls({ overview }: Props) {
                       <p className="text-xs text-muted-foreground">
                         {session.companyName ?? "Sem empresa"} | {session.status}
                       </p>
+                      {session.ticketNumber && (
+                        <p className="text-xs text-muted-foreground">Ticket #{session.ticketNumber}</p>
+                      )}
                     </div>
                     <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                       {session.status}

@@ -124,6 +124,8 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
     sessionModel: {
       id: "remote_session.id",
       companyId: "remote_session.companyId",
+      ticketId: "remote_session.ticketId",
+      ticketNumber: "remote_session.ticketNumber",
       hostId: "remote_session.hostId",
       requestedByUserId: "remote_session.requestedByUserId",
       startedByUserId: "remote_session.startedByUserId",
@@ -224,6 +226,8 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
     recentSessions: recentSessions.map((session) => ({
       id: session.id,
       companyId: session.companyId,
+      ticketId: session.ticketId,
+      ticketNumber: session.ticketNumber,
       hostId: session.hostId,
       requestedByUserId: session.requestedByUserId,
       startedByUserId: session.startedByUserId,
