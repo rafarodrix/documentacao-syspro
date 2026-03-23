@@ -5,7 +5,65 @@ import { sendResetPasswordEmail } from "./email";
 import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins";
 
+const betterAuthSecret = process.env.BETTER_AUTH_SECRET;
+const isProduction = process.env.NODE_ENV === "production";
+
+function normalizeOrigin(value: string | undefined | null): string | null {
+  const normalized = value?.trim();
+  if (!normalized) return null;
+
+  if (/^https?:\/\//i.test(normalized)) {
+    return normalized.replace(/\/$/, "");
+  }
+
+  return `https://${normalized.replace(/\/$/, "")}`;
+}
+
+function resolveBetterAuthBaseUrl(): string | undefined {
+  return (
+    normalizeOrigin(process.env.BETTER_AUTH_URL) ??
+    normalizeOrigin(process.env.NEXT_PUBLIC_BETTER_AUTH_URL) ??
+    normalizeOrigin(process.env.VERCEL_URL) ??
+    (isProduction ? undefined : "http://localhost:3000")
+  );
+}
+
+function resolveTrustedOrigins(baseURL?: string): string[] {
+  const origins = new Set<string>([
+    "http://localhost:3000",
+    "https://ajuda.trilinksoftware.com.br",
+  ]);
+
+  if (baseURL) {
+    origins.add(baseURL);
+  }
+
+  const vercelOrigin = normalizeOrigin(process.env.VERCEL_URL);
+  if (vercelOrigin) {
+    origins.add(vercelOrigin);
+  }
+
+  for (const value of process.env.EXTRA_TRUSTED_ORIGINS?.split(",") ?? []) {
+    const origin = normalizeOrigin(value);
+    if (origin) origins.add(origin);
+  }
+
+  return Array.from(origins);
+}
+
+const betterAuthBaseUrl = resolveBetterAuthBaseUrl();
+const trustedOrigins = resolveTrustedOrigins(betterAuthBaseUrl);
+
+if (!betterAuthSecret && isProduction) {
+  throw new Error("Missing BETTER_AUTH_SECRET in production environment.");
+}
+
+if (!betterAuthBaseUrl && isProduction) {
+  throw new Error("Missing Better Auth base URL in production environment.");
+}
+
 export const auth = betterAuth({
+  secret: betterAuthSecret ?? "dev-only-better-auth-secret-change-me",
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
@@ -49,15 +107,8 @@ export const auth = betterAuth({
     },
   },
 
-  baseURL: process.env.BETTER_AUTH_URL,
-
-  // trustedOrigins dinamico via variavel de ambiente
-  // Permite configurar origens adicionais sem alterar codigo.
-  trustedOrigins: [
-    "http://localhost:3000",
-    "https://ajuda.trilinksoftware.com.br",
-    ...(process.env.EXTRA_TRUSTED_ORIGINS?.split(",").map((o) => o.trim()) ?? []),
-  ],
+  baseURL: betterAuthBaseUrl,
+  trustedOrigins,
 
   plugins: [admin(), nextCookies()],
 });

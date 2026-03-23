@@ -1,7 +1,5 @@
 "use server";
 
-import { Role } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { ZammadTicketArticle } from "@dosc-syspro/contracts";
@@ -11,36 +9,10 @@ import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
+import { getScopedCompanyZammadEmails, isSystemRole } from "@/features/tickets/application/services/ticket-scope.service";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
 
-const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
 const CREATE_TICKET_RATE_LIMIT = { max: 10, windowMs: 60_000 };
-
-function isSystemRole(role: Role): boolean {
-    return SYSTEM_ROLES.has(role);
-}
-
-async function getScopedCompanyZammadEmails(userId: string): Promise<string[]> {
-    const memberships = await prisma.membership.findMany({
-        where: { userId },
-        select: { companyId: true },
-    });
-
-    const companyIds = memberships.map((membership) => membership.companyId);
-    if (!companyIds.length) return [];
-
-    const configured = await prisma.companyZammadEmail.findMany({
-        where: {
-            companyId: { in: companyIds },
-            isActive: true,
-        },
-        select: { email: true },
-    });
-
-    return Array.from(
-        new Set(configured.map((item) => item.email.trim().toLowerCase()).filter(Boolean))
-    );
-}
 
 export async function getTicketsAction(params: TicketQueryParams = {}): Promise<TicketsDataResponse> {
     const session = await getProtectedSession();

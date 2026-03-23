@@ -67,9 +67,12 @@ function isAppRole(value: string): value is AppRole {
 }
 
 async function getRoleFromCookieCache(request: NextRequest): Promise<AppRole | null> {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) return null;
+
   try {
     const payload = (await getCookieCache(request.headers, {
-      secret: process.env.BETTER_AUTH_SECRET,
+      secret,
       strategy: "jwt",
       cookiePrefix: "better-auth",
     })) as SessionCachePayload | null;
