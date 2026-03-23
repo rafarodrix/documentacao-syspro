@@ -126,6 +126,8 @@ Camadas complementares:
   - Prisma schema, migrations, client e repositories/adapters
 - `packages/api`
   - roteadores, procedures, authz, context e contrato do BFF
+- `apps/mobile`
+  - shell estrutural mobile consumindo `packages/contracts`, `packages/core` e `packages/shared`
 - `apps/api`
   - shell HTTP dedicado que consome `packages/api`
 
@@ -382,11 +384,14 @@ O movimento correto sera:
 
 Ja materializado:
 
+- `apps/mobile` como shell estrutural sem dependencia de `Next.js`
 - `packages/api` como nucleo modular do BFF
 - `apps/api` como shell HTTP dedicado
 
-Ainda pendente antes de mover runtime real para backend dedicado:
+Ainda pendente antes de mover runtime real para mobile e backend dedicados:
 
+- conectar runtime mobile com Expo ou React Native
+- definir auth mobile e sessao fora do web
 - ligar procedures aos casos de uso reais
 - mover auth/session para contexto compartilhado do backend
 - separar deploy e observabilidade do web
@@ -414,8 +419,8 @@ Ainda pendente antes de mover runtime real para backend dedicado:
 
 ### Prioridade 4
 
-- mobile
-- backend dedicado
+- runtime mobile
+- backend dedicado com casos de uso reais ligados
 - workers/filas
 
 ## Guardrails de implementacao

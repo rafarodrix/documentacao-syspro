@@ -1,0 +1,17 @@
+{
+  "name": "@dosc-syspro/app-mobile",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node -e \"console.log('apps/mobile shell: no build step')\"",
+    "dev": "node -e \"console.log('apps/mobile shell ready: add Expo or React Native runtime when product scope is approved')\"",
+    "start": "node -e \"console.log('apps/mobile shell ready: add Expo or React Native runtime when product scope is approved')\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@dosc-syspro/contracts": "0.0.0",
+    "@dosc-syspro/core": "0.0.0",
+    "@dosc-syspro/shared": "0.0.0"
+  }
+}
