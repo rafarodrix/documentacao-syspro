@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -122,7 +122,7 @@ export function RemotePlatformControls({ overview }: Props) {
 
   function getStatusLabel(status: "ACTIVE" | "INACTIVE" | "MAINTENANCE") {
     if (status === "ACTIVE") return "Ativo";
-    if (status === "MAINTENANCE") return "Manutenção";
+    if (status === "MAINTENANCE") return "Manutencao";
     return "Inativo";
   }
 
@@ -132,6 +132,69 @@ export function RemotePlatformControls({ overview }: Props) {
     if (heartbeat.bucket === "recent") return "Pronto para acesso";
     if (heartbeat.bucket === "stale") return "Heartbeat antigo";
     return "Sem heartbeat";
+  }
+
+  function getSessionStatusMeta(status: (typeof recentSessions)[number]["status"]) {
+    if (status === "REQUESTED") {
+      return {
+        label: "Solicitada",
+        className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      };
+    }
+    if (status === "STARTED") {
+      return {
+        label: "Em andamento",
+        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      };
+    }
+    if (status === "ENDED") {
+      return {
+        label: "Encerrada",
+        className: "border-slate-500/20 bg-slate-500/10 text-slate-700 dark:text-slate-300",
+      };
+    }
+    if (status === "FAILED") {
+      return {
+        label: "Falhou",
+        className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+      };
+    }
+    return {
+      label: "Cancelada",
+      className: "border-zinc-500/20 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300",
+    };
+  }
+
+  function getSessionNextStep(session: (typeof recentSessions)[number]) {
+    if (session.status === "REQUESTED") {
+      return "Iniciar a sessao quando o acesso remoto estiver liberado no atendimento.";
+    }
+    if (session.status === "STARTED") {
+      return "Encerrar a sessao assim que concluir a validacao ou suporte tecnico.";
+    }
+    if (session.status === "ENDED") {
+      return "Sessao concluida. Validar comentario interno e encerramento operacional.";
+    }
+    if (session.status === "FAILED") {
+      return "Revisar ticket, host e conectividade antes de abrir uma nova solicitacao.";
+    }
+    return "Sessao cancelada. Abra uma nova solicitacao se ainda houver necessidade de acesso.";
+  }
+
+  function getSessionOperationalAlerts(session: (typeof recentSessions)[number]) {
+    const alerts: string[] = [];
+
+    if (!session.ticketNumber && !session.ticketId) {
+      alerts.push("Sem ticket vinculado");
+    }
+    if (session.status === "REQUESTED") {
+      alerts.push("Aguardando inicio");
+    }
+    if (session.status === "STARTED") {
+      alerts.push("Sessao em andamento");
+    }
+
+    return alerts;
   }
 
   async function handleCopy(value: string | null, label: string) {
@@ -482,7 +545,7 @@ export function RemotePlatformControls({ overview }: Props) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ACTIVE">Ativo</SelectItem>
-                      <SelectItem value="MAINTENANCE">Manutenção</SelectItem>
+                      <SelectItem value="MAINTENANCE">Manutencao</SelectItem>
                       <SelectItem value="INACTIVE">Inativo</SelectItem>
                     </SelectContent>
                   </Select>
@@ -514,7 +577,7 @@ export function RemotePlatformControls({ overview }: Props) {
                   >
                     <option value="all">Todos os status</option>
                     <option value="ACTIVE">Ativo</option>
-                    <option value="MAINTENANCE">Manutenção</option>
+                    <option value="MAINTENANCE">Manutencao</option>
                     <option value="INACTIVE">Inativo</option>
                   </select>
                   <select
@@ -722,37 +785,94 @@ export function RemotePlatformControls({ overview }: Props) {
             </div>
 
             {recentSessions.length ? (
-              recentSessions.map((session) => (
-                <div key={session.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{session.hostName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {session.companyName ?? "Sem empresa"} | {session.status}
-                      </p>
-                      {session.ticketNumber && (
-                        <p className="text-xs text-muted-foreground">Ticket #{session.ticketNumber}</p>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                      {session.status}
-                    </Badge>
-                  </div>
+              recentSessions.map((session) => {
+                const statusMeta = getSessionStatusMeta(session.status);
+                const alerts = getSessionOperationalAlerts(session);
+                const nextStep = getSessionNextStep(session);
 
-                  <div className="flex flex-wrap gap-2">
-                    {session.status === "REQUESTED" && (
-                      <Button size="sm" onClick={() => handleSessionTransition(session.id, "start")} disabled={isPending}>
-                        Iniciar
-                      </Button>
-                    )}
-                    {session.status === "STARTED" && (
-                      <Button size="sm" variant="secondary" onClick={() => handleSessionTransition(session.id, "stop")} disabled={isPending}>
-                        Encerrar
-                      </Button>
-                    )}
+                return (
+                  <div key={session.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">{session.hostName}</p>
+                          <Badge variant="outline" className={statusMeta.className}>
+                            {statusMeta.label}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {session.companyName ?? "Sem empresa"}
+                          {session.requestedByName ? ` | solicitado por ${session.requestedByName}` : ""}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary" className="bg-background/80 text-foreground">
+                            Ultimo ticket: {session.ticketNumber ? `#${session.ticketNumber}` : "Nao informado"}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Solicitada em {new Date(session.createdAt).toLocaleString("pt-BR")}
+                          </span>
+                          {session.startedAt ? (
+                            <span className="text-xs text-muted-foreground">
+                              Inicio {new Date(session.startedAt).toLocaleString("pt-BR")}
+                            </span>
+                          ) : null}
+                          {session.endedAt ? (
+                            <span className="text-xs text-muted-foreground">
+                              Encerrada em {new Date(session.endedAt).toLocaleString("pt-BR")}
+                            </span>
+                          ) : null}
+                        </div>
+                        {alerts.length ? (
+                          <div className="flex flex-wrap gap-2">
+                            {alerts.map((alert) => (
+                              <Badge
+                                key={alert}
+                                variant="outline"
+                                className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                              >
+                                {alert}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="rounded-md border border-border/50 bg-background/70 px-3 py-2 text-right">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Proximo passo</p>
+                        <p className="max-w-xs text-sm text-foreground">{nextStep}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {session.status === "REQUESTED" ? (
+                        <>
+                          <Button size="sm" onClick={() => handleSessionTransition(session.id, "start")} disabled={isPending}>
+                            Iniciar sessao
+                          </Button>
+                          <span className="text-xs text-muted-foreground">
+                            Bloqueio: apenas sessoes solicitadas podem ser iniciadas.
+                          </span>
+                        </>
+                      ) : null}
+                      {session.status === "STARTED" ? (
+                        <>
+                          <Button size="sm" variant="secondary" onClick={() => handleSessionTransition(session.id, "stop")} disabled={isPending}>
+                            Encerrar sessao
+                          </Button>
+                          <span className="text-xs text-muted-foreground">
+                            Bloqueio: apenas sessoes em andamento podem ser encerradas.
+                          </span>
+                        </>
+                      ) : null}
+                      {session.status !== "REQUESTED" && session.status !== "STARTED" ? (
+                        <span className="text-xs text-muted-foreground">
+                          Esta sessao nao permite nova transicao manual no fluxo atual.
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <p className="text-sm text-muted-foreground">Nenhuma sessao disponivel para operacao ainda.</p>
             )}
@@ -762,3 +882,4 @@ export function RemotePlatformControls({ overview }: Props) {
     </section>
   );
 }
+

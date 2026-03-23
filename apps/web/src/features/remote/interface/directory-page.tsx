@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, Copy, Download, ExternalLink, Plus, Search, Wifi, WifiOff, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Copy, Download, ExternalLink, Plus, Search, Wifi, WifiOff, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +71,33 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       label: "Sem heartbeat",
       className: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
     };
+  }
+
+  function getOperationalAlerts(item: RemotePlatformDirectory["items"][number]) {
+    const alerts: Array<{ label: string; className: string }> = [];
+
+    if (!item.installToken) {
+      alerts.push({
+        label: "Sem token",
+        className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      });
+    }
+
+    if (!item.rustdeskId) {
+      alerts.push({
+        label: "Sem RustDesk ID",
+        className: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
+      });
+    }
+
+    if (item.openSessionCount > 0) {
+      alerts.push({
+        label: item.openSessionCount > 1 ? `${item.openSessionCount} sessoes abertas` : "Sessao aberta",
+        className: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+      });
+    }
+
+    return alerts;
   }
 
   function getHeartbeatMeta(lastHeartbeatAt: string | null) {
@@ -389,6 +416,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             filteredItems.map((item) => {
               const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
               const readiness = getReadinessMeta(item);
+              const alerts = getOperationalAlerts(item);
               const HeartbeatIcon = heartbeat.icon;
               const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
 
@@ -415,6 +443,16 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           </a>
                         ) : null}
                       </div>
+                      {alerts.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {alerts.map((alert) => (
+                            <Badge key={alert.label} variant="outline" className={alert.className}>
+                              <AlertTriangle className="mr-1 h-3.5 w-3.5" />
+                              {alert.label}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : null}
                       <div className="space-y-1 text-sm text-muted-foreground">
                         <p>RustDesk ID: {item.rustdeskId ?? "Não configurado"}</p>
                         <p>Descricao: {item.description || "Sem descricao operacional."}</p>
@@ -445,6 +483,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           size="sm"
                           onClick={() => handleCopyPowerShellCommand(item)}
                           className="gap-1"
+                          disabled={!item.installToken}
                         >
                           <Copy className="h-3.5 w-3.5" />
                           Copiar comando

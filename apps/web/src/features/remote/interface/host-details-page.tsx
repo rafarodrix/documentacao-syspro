@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { Copy, ExternalLink, Signal, WandSparkles } from "lucide-react";
+import { AlertTriangle, Copy, ExternalLink, Signal, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -83,6 +83,33 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       description: "O acesso pode funcionar, mas convem confirmar conectividade antes da sessao.",
     };
   }, [host.lastHeartbeatAt, normalizedRustdeskId]);
+
+  const operationalAlerts = useMemo(() => {
+    const alerts: Array<{ label: string; tone: string }> = [];
+
+    if (!host.installToken) {
+      alerts.push({
+        label: "Sem token de instalacao",
+        tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      });
+    }
+
+    if (!normalizedRustdeskId) {
+      alerts.push({
+        label: "Sem RustDesk ID",
+        tone: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300",
+      });
+    }
+
+    if (host.openSessionCount > 0) {
+      alerts.push({
+        label: host.openSessionCount > 1 ? `${host.openSessionCount} sessoes abertas` : "Sessao aberta",
+        tone: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+      });
+    }
+
+    return alerts;
+  }, [host.installToken, host.openSessionCount, normalizedRustdeskId]);
 
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
@@ -176,12 +203,23 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             <Badge variant="outline" className={readiness.tone}>
               {readiness.label}
             </Badge>
+            {operationalAlerts.length ? (
+              <div className="flex flex-wrap gap-2">
+                {operationalAlerts.map((alert) => (
+                  <Badge key={alert.label} variant="outline" className={alert.tone}>
+                    <AlertTriangle className="mr-1 h-3.5 w-3.5" />
+                    {alert.label}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
             <p className="text-sm text-muted-foreground">{readiness.description}</p>
             <p className="text-sm text-muted-foreground">{heartbeat.description}</p>
             <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm text-muted-foreground">
               <p>1. Abra o RustDesk pelo botao acima.</p>
               <p>2. Se o navegador bloquear, copie o ID e conecte manualmente.</p>
               <p>3. Se a conexao falhar, valide senha do host e servidor RustDesk.</p>
+              {host.openSessionCount > 0 ? <p>4. Ja existe sessao aberta para este host. Validar antes de iniciar nova operacao.</p> : null}
             </div>
           </CardContent>
         </Card>
