@@ -43,7 +43,7 @@ type TaxClassificationDTO = {
     MonofasiaDiferimento?: boolean;
     MonofasiaPadrao?: boolean;
     Anexo?: string | null;
-    // Outros campos ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºteis
+    // Outros campos uteis
     TipoAliquota: string;
     Link: string | null;
 
@@ -77,7 +77,7 @@ type TaxCstDTO = {
 };
 
 // ==============================================================================
-// 2. FUNÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ES AUXILIARES
+// 2. FUNCOES AUXILIARES
 // ==============================================================================
 const parseDate = (dateStr?: string | null) => {
     if (!dateStr) return new Date();
@@ -332,13 +332,13 @@ const getNcmExternalKey = (item: Record<string, unknown>, index: number): string
 };
 
 // ==============================================================================
-// 3. SERVER ACTION (PROCESSAMENTO HIERÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂRQUICO)
+// 3. SERVER ACTION (PROCESSAMENTO HIERARQUICO)
 // ==============================================================================
 export async function saveTaxDataBatch(
     data: any[],
     options?: { revalidate?: boolean },
 ) {
-    // Cast forÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ado para garantir intelisense aqui dentro, 
+    // Cast forcado para garantir intelisense aqui dentro, 
     // assumindo que o input vem correto do front
     const cstList = data as TaxCstDTO[];
 
@@ -391,7 +391,7 @@ export async function saveTaxDataBatch(
                 countCST++;
 
                 // -------------------------------------------------------
-                // 2. SALVAR AS CLASSIFICAÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ES (FILHAS) DESTE CST
+                // 2. SALVAR AS CLASSIFICACOES (FILHAS) DESTE CST
                 // -------------------------------------------------------
                 if (item.classificacoesTributarias && item.classificacoesTributarias.length > 0) {
                     for (const subItem of item.classificacoesTributarias) {
@@ -401,7 +401,7 @@ export async function saveTaxDataBatch(
 
                             update: {
                                 description: subItem.DescricaoClassTrib,
-                                cstId: cstRecord.id, // Atualiza vÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­nculo se mudar
+                                cstId: cstRecord.id, // Atualiza vinculo se mudar
 
                                 pRedIBS: parseDecimal(subItem.pRedIBS),
                                 pRedCBS: parseDecimal(subItem.pRedCBS),
@@ -443,7 +443,7 @@ export async function saveTaxDataBatch(
                             create: {
                                 code: subItem.cClassTrib,
                                 description: subItem.DescricaoClassTrib,
-                                cstId: cstRecord.id, // VÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂNCULO FK
+                                cstId: cstRecord.id, // VINCULO FK
 
                                 pRedIBS: parseDecimal(subItem.pRedIBS),
                                 pRedCBS: parseDecimal(subItem.pRedCBS),
@@ -500,11 +500,11 @@ export async function saveTaxDataBatch(
 
         return {
             success: true,
-            message: `Sucesso! ${result.cst} CSTs e ${result.class} ClassificaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµes processadas.`,
+            message: `Sucesso! ${result.cst} CSTs e ${result.class} Classificacoes processadas.`,
         };
 
     } catch (error: any) {
-        console.error("Erro crÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­tico na importaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o fiscal:", error);
+        console.error("Erro critico na importacao fiscal:", error);
         return {
             success: false,
             error: `Erro ao salvar no banco: ${error.message}`,
@@ -729,7 +729,7 @@ export async function saveTaxAnexosBatch(
             failed: 0,
         };
     } catch (error: any) {
-        console.error("Erro crÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­tico na importaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de anexos fiscais:", error);
+        console.error("Erro critico na importacao de anexos fiscais:", error);
         return {
             success: false,
             error: `Erro ao salvar anexos no banco: ${error.message}`,

@@ -77,7 +77,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 className="gap-2"
                             >
                                 {showTechnicalPanel ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
-                                <span className="hidden sm:inline">Info Técnica</span>
+                                <span className="hidden sm:inline">Info T?cnica</span>
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handlePrint()} className="gap-2 border-dashed">
                                 <Printer size={16} /> <span className="hidden sm:inline">Ficha</span>
@@ -95,7 +95,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 </TabsList>
 
                                 <TabsContent value="geral" className="mt-6 space-y-6">
-                                    {/* === SEÇÃO 1: IDENTIFICAÇÃO === */}
+                                    {/* === SE??O 1: IDENTIFICA??O === */}
                                     <div className="grid grid-cols-12 gap-6">
                                         <div className="col-span-12">
                                             <FormField
@@ -103,7 +103,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                 name="grupoDocumento"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="text-base font-semibold text-primary">1. Grupo de Negócio</FormLabel>
+                                                        <FormLabel className="text-base font-semibold text-primary">1. Grupo de Neg?cio</FormLabel>
                                                         <FormControl>
                                                             <Select onValueChange={field.onChange} defaultValue={field.value} onOpenChange={(isOpen) => isOpen && setFocusedField("grupoDocumento")}>
                                                                 <SelectTrigger className="h-12 bg-background text-lg" onFocus={handleFocus("grupoDocumento")}>
@@ -130,7 +130,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                 name="descricao"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Descrição do Modelo *</FormLabel>
+                                                        <FormLabel>Descri??o do Modelo *</FormLabel>
                                                         <FormControl>
                                                             <Input placeholder="Ex: Venda de Mercadorias" className="bg-background" {...field} onFocus={handleFocus("descricao")} />
                                                         </FormControl>
@@ -161,7 +161,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                 name="serie"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Série</FormLabel>
+                                                        <FormLabel>S?rie</FormLabel>
                                                         <FormControl>
                                                             <Input className="text-center font-mono bg-background" maxLength={3} {...field} onFocus={handleFocus("serie")} />
                                                         </FormControl>
@@ -181,9 +181,9 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                                 <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="SAIDA">Sim (Saída)</SelectItem>
+                                                                    <SelectItem value="SAIDA">Sim (Sa?da)</SelectItem>
                                                                     <SelectItem value="ENTRADA">Sim (Entrada)</SelectItem>
-                                                                    <SelectItem value="NAO">Não movimenta</SelectItem>
+                                                                    <SelectItem value="NAO">N?o movimenta</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </FormControl>
@@ -196,24 +196,24 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
 
                                     <Separator />
 
-                                    {/* === SEÇÃO 2: MATRIZ DE CFOPs (GRID) === */}
+                                    {/* === SE??O 2: MATRIZ DE CFOPs (GRID) === */}
                                     <div>
                                         <h3 className="text-lg font-semibold text-primary mb-1">Matriz de CFOPs Sugeridos</h3>
-                                        <p className="text-sm text-muted-foreground mb-4">Defina os códigos fiscais padrão para cada cenário de operação. O sistema usará esta matriz para preencher a nota automaticamente.</p>
+                                        <p className="text-sm text-muted-foreground mb-4">Defina os c?digos fiscais padr?o para cada cen?rio de opera??o. O sistema usar? esta matriz para preencher a nota automaticamente.</p>
 
                                         <div className="border rounded-lg overflow-hidden">
-                                            {/* Cabeçalho da Tabela */}
+                                            {/* Cabe?alho da Tabela */}
                                             <div className="grid grid-cols-12 bg-muted/50 p-3 border-b text-sm font-bold text-muted-foreground">
-                                                <div className="col-span-4 flex items-center gap-2"><Box size={16} /> Cenário Fiscal</div>
+                                                <div className="col-span-4 flex items-center gap-2"><Box size={16} /> Cen?rio Fiscal</div>
                                                 <div className="col-span-4 flex items-center gap-2 text-center justify-center"><Truck size={16} /> Estadual (Interno)</div>
                                                 <div className="col-span-4 flex items-center gap-2 text-center justify-center"><Truck size={16} /> Interestadual (Externo)</div>
                                             </div>
 
-                                            {/* LINHA 1: TRIBUTADO (PADRÃO) */}
+                                            {/* LINHA 1: TRIBUTADO (PADR?O) */}
                                             <div className="grid grid-cols-12 p-4 gap-4 items-center border-b hover:bg-muted/10">
                                                 <div className="col-span-12 md:col-span-4">
-                                                    <span className="font-medium text-sm">1. Tributação Normal</span>
-                                                    <p className="text-xs text-muted-foreground">Regra geral (Revenda, Indústria)</p>
+                                                    <span className="font-medium text-sm">1. Tributa??o Normal</span>
+                                                    <p className="text-xs text-muted-foreground">Regra geral (Revenda, Ind?stria)</p>
                                                 </div>
                                                 <div className="col-span-6 md:col-span-4">
                                                     <FormField
@@ -235,11 +235,11 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                 </div>
                                             </div>
 
-                                            {/* LINHA 2: SUBSTITUIÇÃO TRIBUTÁRIA */}
+                                            {/* LINHA 2: SUBSTITUI??O TRIBUT?RIA */}
                                             <div className="grid grid-cols-12 p-4 gap-4 items-center border-b hover:bg-muted/10">
                                                 <div className="col-span-12 md:col-span-4">
-                                                    <span className="font-medium text-sm">2. Substituição Tributária (ST)</span>
-                                                    <p className="text-xs text-muted-foreground">Quando o produto tem retenção (CST 10, 60, 70)</p>
+                                                    <span className="font-medium text-sm">2. Substitui??o Tribut?ria (ST)</span>
+                                                    <p className="text-xs text-muted-foreground">Quando o produto tem reten??o (CST 10, 60, 70)</p>
                                                 </div>
                                                 <div className="col-span-6 md:col-span-4">
                                                     <FormField
@@ -268,7 +268,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                         <span className="font-medium text-sm">3. Consumidor Final</span>
                                                         <Users size={14} className="text-blue-500" />
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground">Venda para não contribuintes (PF/PJ)</p>
+                                                    <p className="text-xs text-muted-foreground">Venda para n?o contribuintes (PF/PJ)</p>
                                                 </div>
                                                 <div className="col-span-6 md:col-span-4">
                                                     <FormField
@@ -293,7 +293,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                             {/* LINHA 4: EXTERIOR */}
                                             <div className="grid grid-cols-12 p-4 gap-4 items-center hover:bg-muted/10">
                                                 <div className="col-span-12 md:col-span-4">
-                                                    <span className="font-medium text-sm">4. Exterior (Exportação)</span>
+                                                    <span className="font-medium text-sm">4. Exterior (Exporta??o)</span>
                                                 </div>
                                                 <div className="col-span-12 md:col-span-8">
                                                     <FormField
@@ -308,7 +308,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                         </div>
                                     </div>
 
-                                    {/* === SEÇÃO 3: FINALIDADE NFE === */}
+                                    {/* === SE??O 3: FINALIDADE NFE === */}
                                     <div className="p-4 border border-border rounded-lg bg-muted/20">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <FormField
@@ -324,9 +324,9 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                                     <SelectItem value="1">1 - NF-e normal</SelectItem>
                                                                     <SelectItem value="2">2 - NF-e complementar</SelectItem>
                                                                     <SelectItem value="3">3 - NF-e de ajuste</SelectItem>
-                                                                    <SelectItem value="4">4 - Devolução</SelectItem>
-                                                                    <SelectItem value="5">5 - Nota de Crédito (IBS/CBS)</SelectItem>
-                                                                    <SelectItem value="6">6 - Nota de Débito (IBS/CBS)</SelectItem>
+                                                                    <SelectItem value="4">4 - Devolu??o</SelectItem>
+                                                                    <SelectItem value="5">5 - Nota de Cr?dito (IBS/CBS)</SelectItem>
+                                                                    <SelectItem value="6">6 - Nota de D?bito (IBS/CBS)</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </FormControl>
@@ -340,7 +340,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                     name="tpNFCredito"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>Motivo (Crédito)</FormLabel>
+                                                            <FormLabel>Motivo (Cr?dito)</FormLabel>
                                                             <FormControl>
                                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                                     <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -360,7 +360,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                     name="tpNFDebito"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>Motivo (Débito)</FormLabel>
+                                                            <FormLabel>Motivo (D?bito)</FormLabel>
                                                             <FormControl>
                                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                                     <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -381,8 +381,8 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                 <TabsContent value="comportamentos" className="mt-6">
                                     <div className="bg-muted/30 border border-border rounded-lg p-4" onClick={() => setFocusedField("comportamentos")}>
                                         <div className="mb-4">
-                                            <h3 className="text-sm font-medium">Regras de Negócio</h3>
-                                            <p className="text-xs text-muted-foreground">Selecione os comportamentos automáticos.</p>
+                                            <h3 className="text-sm font-medium">Regras de Neg?cio</h3>
+                                            <p className="text-xs text-muted-foreground">Selecione os comportamentos autom?ticos.</p>
                                         </div>
                                         <ScrollArea className="h-[400px] pr-4">
                                             <FormField
@@ -427,7 +427,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                             <div className="flex justify-end gap-3 pt-4 border-t border-border">
                                 <Button variant="outline" type="button" onClick={onCancel}>Cancelar</Button>
                                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                                    <Save size={16} /> Salvar Configuração
+                                    <Save size={16} /> Salvar Configura??o
                                 </Button>
                             </div>
                         </form>

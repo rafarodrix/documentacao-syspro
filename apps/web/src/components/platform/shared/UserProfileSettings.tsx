@@ -28,18 +28,18 @@ import {
     UploadCloud
 } from "lucide-react";
 
-// --- Schemas de Validação ---
+// --- Schemas de Valida??o ---
 const profileSchema = z.object({
     name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
     email: z.string().email().optional(),
 });
 
 const passwordSchema = z.object({
-    currentPassword: z.string().min(1, "Senha atual é obrigatória"),
-    newPassword: z.string().min(8, "A nova senha deve ter no mínimo 8 caracteres"),
+    currentPassword: z.string().min(1, "Senha atual ? obrigat?ria"),
+    newPassword: z.string().min(8, "A nova senha deve ter no m?nimo 8 caracteres"),
     confirmPassword: z.string().min(8, "Confirme a nova senha"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-    message: "As senhas não coincidem",
+    message: "As senhas n?o coincidem",
     path: ["confirmPassword"],
 });
 
@@ -98,11 +98,11 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
         setIsUploading(true);
 
         try {
-            // TODO: Aqui você deve implementar o upload real para S3/R2/Uploadthing
+            // TODO: Aqui voc? deve implementar o upload real para S3/R2/Uploadthing
             // Exemplo: const url = await uploadFile(file);
             // await authClient.updateUser({ image: url });
 
-            // Simulação para feedback visual
+            // Simula??o para feedback visual
             await new Promise(resolve => setTimeout(resolve, 1500));
             toast.success("Foto de perfil atualizada!");
             router.refresh();
@@ -117,7 +117,7 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
     const onProfileSubmit = async (data: z.infer<typeof profileSchema>) => {
         setIsSavingProfile(true);
         try {
-            // Chamada REAL ao Better Auth para atualizar o usuário
+            // Chamada REAL ao Better Auth para atualizar o usu?rio
             const { error } = await authClient.updateUser({
                 name: data.name,
                 // image: avatarPreview // Se tiver upload real, passaria a URL aqui
@@ -127,10 +127,10 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                 toast.error(error.message || "Erro ao atualizar perfil.");
             } else {
                 toast.success("Perfil atualizado com sucesso!");
-                router.refresh(); // Atualiza os dados da sessão na interface (Header/Sidebar)
+                router.refresh(); // Atualiza os dados da sess?o na interface (Header/Sidebar)
             }
         } catch (err) {
-            toast.error("Erro de conexão.");
+            toast.error("Erro de conex?o.");
         } finally {
             setIsSavingProfile(false);
         }
@@ -147,9 +147,9 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
             });
 
             if (error) {
-                toast.error(error.message || "A senha atual está incorreta.");
+                toast.error(error.message || "A senha atual est? incorreta.");
             } else {
-                toast.success("Senha alterada com sucesso! Por favor, faça login novamente.");
+                toast.success("Senha alterada com sucesso! Por favor, fa?a login novamente.");
                 passwordForm.reset();
                 // Opcional: router.push('/login');
             }
@@ -163,13 +163,13 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto">
 
-            {/* Cabeçalho */}
+            {/* Cabe?alho */}
             <div className="flex flex-col gap-1">
                 <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 w-fit">
                     Minha Conta
                 </h1>
                 <p className="text-muted-foreground text-lg">
-                    Gerencie suas informações pessoais e preferências de segurança.
+                    Gerencie suas informa??es pessoais e prefer?ncias de seguran?a.
                 </p>
             </div>
 
@@ -184,14 +184,14 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                         <CardContent className="flex flex-col items-center gap-6 pt-4">
                             <div className="relative group">
                                 <Avatar className="h-32 w-32 border-4 border-background shadow-xl ring-1 ring-border/20 transition-all group-hover:scale-105">
-                                    {/* CORREÇÃO AQUI: substituído objectFit="cover" por className="object-cover" */}
+                                    {/* CORRE??O AQUI: substitu?do objectFit="cover" por className="object-cover" */}
                                     <AvatarImage src={avatarPreview || ""} className="object-cover" />
                                     <AvatarFallback className="text-4xl bg-primary/10 text-primary font-bold">
                                         {user.name ? user.name[0].toUpperCase() : "U"}
                                     </AvatarFallback>
                                 </Avatar>
 
-                                {/* Overlay de Loading ou Botão */}
+                                {/* Overlay de Loading ou Bot?o */}
                                 {isUploading ? (
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full backdrop-blur-sm">
                                         <Loader2 className="h-8 w-8 text-white animate-spin" />
@@ -217,7 +217,7 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
 
                             <div className="text-center space-y-1.5">
                                 <Badge variant="outline" className="font-normal text-xs bg-background/50 backdrop-blur-sm">
-                                    {user.role || "Usuário"}
+                                    {user.role || "Usu?rio"}
                                 </Badge>
                                 <p className="text-xs text-muted-foreground/70 px-4">
                                     Recomendado: JPG ou PNG, min 400x400px.
@@ -234,16 +234,16 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                         </Button>
                         <Button variant="ghost" className="justify-start gap-3 hover:bg-muted/50" asChild>
                             <a href="#security">
-                                <ShieldCheck className="h-4 w-4" /> Segurança & Senha
+                                <ShieldCheck className="h-4 w-4" /> Seguran?a & Senha
                             </a>
                         </Button>
                     </nav>
                 </div>
 
-                {/* COLUNA DIREITA: Formulários */}
+                {/* COLUNA DIREITA: Formul?rios */}
                 <div className="space-y-8">
 
-                    {/* SEÇÃO 1: Informações Pessoais */}
+                    {/* SE??O 1: Informa??es Pessoais */}
                     <Card id="personal-info" className="border-border/50 shadow-sm bg-background/60 backdrop-blur-sm">
                         <CardHeader>
                             <div className="flex items-center gap-3">
@@ -251,8 +251,8 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                                     <User className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-lg">Informações Pessoais</CardTitle>
-                                    <CardDescription>Atualize como você é identificado na plataforma.</CardDescription>
+                                    <CardTitle className="text-lg">Informa??es Pessoais</CardTitle>
+                                    <CardDescription>Atualize como voc? ? identificado na plataforma.</CardDescription>
                                 </div>
                             </div>
                         </CardHeader>
@@ -288,14 +288,14 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                                 <div className="flex justify-end pt-2">
                                     <Button type="submit" disabled={isSavingProfile} className="shadow-md shadow-blue-500/10 transition-all hover:shadow-blue-500/20">
                                         {isSavingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                        Salvar Alterações
+                                        Salvar Altera??es
                                     </Button>
                                 </div>
                             </form>
                         </CardContent>
                     </Card>
 
-                    {/* SEÇÃO 2: Segurança */}
+                    {/* SE??O 2: Seguran?a */}
                     <Card id="security" className="border-border/50 shadow-sm bg-background/60 backdrop-blur-sm">
                         <CardHeader>
                             <div className="flex items-center gap-3">
@@ -303,7 +303,7 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                                     <Lock className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-lg">Segurança</CardTitle>
+                                    <CardTitle className="text-lg">Seguran?a</CardTitle>
                                     <CardDescription>Mantenha sua conta protegida.</CardDescription>
                                 </div>
                             </div>
@@ -314,21 +314,21 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                             <div className="flex flex-row items-center justify-between rounded-xl border border-border/60 p-4 bg-muted/10">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <Label className="text-base font-medium">Autenticação em Dois Fatores (2FA)</Label>
+                                        <Label className="text-base font-medium">Autentica??o em Dois Fatores (2FA)</Label>
                                         <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-200 dark:border-green-900">
                                             RECOMENDADO
                                         </Badge>
                                     </div>
                                     <p className="text-sm text-muted-foreground max-w-md">
-                                        Proteja sua conta exigindo um código extra ao fazer login.
+                                        Proteja sua conta exigindo um c?digo extra ao fazer login.
                                     </p>
                                 </div>
-                                <Switch checked={user.twoFactorEnabled} onCheckedChange={() => toast.info("Funcionalidade será ativada em breve!")} />
+                                <Switch checked={user.twoFactorEnabled} onCheckedChange={() => toast.info("Funcionalidade ser? ativada em breve!")} />
                             </div>
 
                             <Separator className="bg-border/50" />
 
-                            {/* Alteração de Senha */}
+                            {/* Altera??o de Senha */}
                             <div className="space-y-5">
                                 <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                     <CheckCircle2 className="h-4 w-4" /> Alterar Senha
@@ -343,7 +343,7 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                                                 type="password"
                                                 {...passwordForm.register("currentPassword")}
                                                 className="bg-muted/30 focus:bg-background transition-all"
-                                                placeholder="••••••••"
+                                                placeholder="????????"
                                             />
                                             {passwordForm.formState.errors.currentPassword && (
                                                 <span className="text-xs text-red-500">{passwordForm.formState.errors.currentPassword.message}</span>
@@ -358,7 +358,7 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                                                 type="password"
                                                 {...passwordForm.register("newPassword")}
                                                 className="bg-muted/30 focus:bg-background transition-all"
-                                                placeholder="••••••••"
+                                                placeholder="????????"
                                             />
                                             {passwordForm.formState.errors.newPassword && (
                                                 <span className="text-xs text-red-500">{passwordForm.formState.errors.newPassword.message}</span>
@@ -371,7 +371,7 @@ export function UserProfileSettings({ user }: UserProfileSettingsProps) {
                                                 type="password"
                                                 {...passwordForm.register("confirmPassword")}
                                                 className="bg-muted/30 focus:bg-background transition-all"
-                                                placeholder="••••••••"
+                                                placeholder="????????"
                                             />
                                             {passwordForm.formState.errors.confirmPassword && (
                                                 <span className="text-xs text-red-500">{passwordForm.formState.errors.confirmPassword.message}</span>

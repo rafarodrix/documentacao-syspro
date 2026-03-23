@@ -47,7 +47,7 @@ export default function GeneralSettingsForm() {
                     toast.error(result.error);
                 }
             } catch (error) {
-                toast.error("Erro de conexÃƒÂ£o ao carregar dados.");
+                toast.error("Erro de conexao ao carregar dados.");
             } finally {
                 if (isMounted) setIsLoading(false);
             }
@@ -73,7 +73,7 @@ export default function GeneralSettingsForm() {
             <div className="flex h-64 items-center justify-center border border-dashed rounded-xl bg-muted/10">
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm">Carregando parÃƒÂ¢metros...</p>
+                    <p className="text-sm">Carregando parametros...</p>
                 </div>
             </div>
         );
@@ -82,7 +82,7 @@ export default function GeneralSettingsForm() {
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in duration-500">
 
-            {/* --- SEÃƒâ€¡ÃƒÆ’O FINANCEIRA --- */}
+            {/* --- SECAO FINANCEIRA --- */}
             <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
                 <CardHeader className="pb-4">
                     <div className="flex items-center gap-3">
@@ -90,8 +90,8 @@ export default function GeneralSettingsForm() {
                             <Banknote className="h-5 w-5" />
                         </div>
                         <div>
-                            <CardTitle className="text-lg">ParÃƒÂ¢metros Financeiros</CardTitle>
-                            <CardDescription>Defina os valores base para cÃƒÂ¡lculo de novos contratos.</CardDescription>
+                            <CardTitle className="text-lg">Parametros Financeiros</CardTitle>
+                            <CardDescalculo de novos contratos.</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
@@ -99,7 +99,7 @@ export default function GeneralSettingsForm() {
                 <CardContent className="pt-6">
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="minimumWage">SalÃƒÂ¡rio MÃƒÂ­nimo Nacional (Base)</Label>
+                            <Label htmlFor="minimumWage">Salario Minimo Nacional (Base)</Label>
                             <div className="relative group">
                                 <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-emerald-600 transition-colors" />
                                 <Input
@@ -117,14 +117,14 @@ export default function GeneralSettingsForm() {
                                 </p>
                             )}
                             <p className="text-[11px] text-muted-foreground pt-1">
-                                Alterar este valor afetarÃƒÂ¡ a simulaÃƒÂ§ÃƒÂ£o de <strong>novos</strong> contratos. Contratos antigos devem ser reajustados manualmente.
+                                Alterar este valor afetara a simulacao de <strong>novos</strong> contratos. Contratos antigos devem ser reajustados manualmente.
                             </p>
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* --- SEÃƒâ€¡ÃƒÆ’O SUPORTE --- */}
+            {/* --- SECAO SUPORTE --- */}
             <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
                 <CardHeader className="pb-4">
                     <div className="flex items-center gap-3">
@@ -133,7 +133,7 @@ export default function GeneralSettingsForm() {
                         </div>
                         <div>
                             <CardTitle className="text-lg">Canais de Atendimento</CardTitle>
-                            <CardDescription>InformaÃƒÂ§ÃƒÂµes de contato exibidas no portal do cliente.</CardDescription>
+                            <CardDescription>Informacoes de contato exibidas no portal do cliente.</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
@@ -174,7 +174,7 @@ export default function GeneralSettingsForm() {
                 </CardContent>
             </Card>
 
-            {/* --- SEÃƒâ€¡ÃƒÆ’O SISTEMA / PERIGO --- */}
+            {/* --- SECAO SISTEMA / PERIGO --- */}
             <Card className="border-rose-200 dark:border-rose-900/50 shadow-sm bg-rose-50/30 dark:bg-rose-950/10">
                 <CardHeader className="pb-4">
                     <div className="flex items-center gap-3">
@@ -183,7 +183,7 @@ export default function GeneralSettingsForm() {
                         </div>
                         <div>
                             <CardTitle className="text-lg text-rose-700 dark:text-rose-400">Controle de Disponibilidade</CardTitle>
-                            <CardDescription className="text-rose-600/70 dark:text-rose-400/60">AÃƒÂ§ÃƒÂµes que afetam o acesso global ÃƒÂ  plataforma.</CardDescription>
+                            <CardDescription className="text-rose-600/70 dark:text-rose-400/60">Acoes que afetam o acesso global a plataforma.</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
@@ -192,7 +192,7 @@ export default function GeneralSettingsForm() {
                         <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
                                 <Lock className="h-4 w-4 text-rose-500" />
-                                <Label className="text-base font-medium">Modo de ManutenÃƒÂ§ÃƒÂ£o</Label>
+                                <Label className="text-base font-medium">Modo de Manutencao</Label>
                             </div>
                             <p className="text-sm text-muted-foreground">
                                 Se ativado, <strong>bloqueia o login</strong> de todos os clientes. Apenas Admins continuam com acesso.
@@ -222,7 +222,7 @@ export default function GeneralSettingsForm() {
                         </>
                     ) : (
                         <>
-                            <Save className="mr-2 h-4 w-4" /> Salvar AlteraÃƒÂ§ÃƒÂµes
+                            <Save className="mr-2 h-4 w-4" /> Salvar Alteracoes
                         </>
                     )}
                 </Button>

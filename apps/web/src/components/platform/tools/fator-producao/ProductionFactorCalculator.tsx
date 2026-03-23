@@ -70,7 +70,7 @@ export function ProductionFactorCalculator() {
     const calculateFactor = (weight: number) => weight > 0 ? (1 / weight) : 0
     const calculateDraw = (qty: number, factor: number) => qty * factor
 
-    // Cálculo do Fator de Produção Unitário
+    // C?lculo do Fator de Produ??o Unit?rio
     const calculateProductionFactor = (qty: number, factor: number) => {
         if (recipeYield === 0) return 0;
         return (qty / recipeYield) * factor;
@@ -79,9 +79,9 @@ export function ProductionFactorCalculator() {
     const handleExportPDF = () => {
         const doc = new jsPDF()
         doc.setFontSize(18)
-        doc.text("Ficha Técnica de Produção", 14, 20)
+        doc.text("Ficha T?cnica de Produ??o", 14, 20)
 
-        // Cabeçalho do Produto Principal
+        // Cabe?alho do Produto Principal
         doc.setFontSize(12)
         doc.text(`Produto: ${mainProductCode} - ${mainProductDesc}`, 14, 30)
         doc.text(`Rendimento Base: ${recipeYield} unidades`, 14, 36)
@@ -104,7 +104,7 @@ export function ProductionFactorCalculator() {
 
         autoTable(doc, {
             startY: 45,
-            head: [['Cód.', 'Insumo', 'Peso Emb.', 'Fator', 'Qtd. Total', 'Fator Prod.', 'Baixa Total']],
+            head: [['C?d.', 'Insumo', 'Peso Emb.', 'Fator', 'Qtd. Total', 'Fator Prod.', 'Baixa Total']],
             body: tableData,
             headStyles: { fillColor: [40, 40, 40] },
             styles: { fontSize: 9, cellPadding: 2 },
@@ -117,14 +117,14 @@ export function ProductionFactorCalculator() {
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
 
-            {/* --- CABEÇALHO DO PRODUTO PRINCIPAL --- */}
+            {/* --- CABE?ALHO DO PRODUTO PRINCIPAL --- */}
             <div className="bg-card p-5 rounded-xl border shadow-sm space-y-4">
                 <div className="flex justify-between items-start">
                     <div>
                         <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
                             <Package className="w-5 h-5 text-primary" /> Dados da Receita
                         </h2>
-                        <p className="text-sm text-muted-foreground">Identificação do produto acabado e rendimento.</p>
+                        <p className="text-sm text-muted-foreground">Identifica??o do produto acabado e rendimento.</p>
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={clearAll} title="Limpar">
@@ -138,7 +138,7 @@ export function ProductionFactorCalculator() {
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
                     <div className="space-y-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground">Código</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">C?digo</Label>
                         <Input
                             placeholder="Ex: 1001"
                             value={mainProductCode}
@@ -147,7 +147,7 @@ export function ProductionFactorCalculator() {
                         />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                        <Label className="text-xs font-medium text-muted-foreground">Descrição do Produto</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">Descri??o do Produto</Label>
                         <Input
                             placeholder="Ex: Produto Acabado 1001"
                             value={mainProductDesc}
@@ -170,14 +170,14 @@ export function ProductionFactorCalculator() {
                 </div>
             </div>
 
-            {/* --- TABELA DE COMPOSIÇÃO --- */}
+            {/* --- TABELA DE COMPOSI??O --- */}
             <Card className="border-border/60 shadow-sm overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader className="bg-muted/40">
                                 <TableRow>
-                                    <TableHead className="w-[80px] pl-4">Cód.</TableHead>
+                                    <TableHead className="w-[80px] pl-4">C?d.</TableHead>
                                     <TableHead className="min-w-[200px]">Insumo</TableHead>
                                     <TableHead className="text-center w-[100px]">Peso Emb.</TableHead>
                                     <TableHead className="text-center w-[100px] text-muted-foreground">Fator (1/P)</TableHead>
@@ -212,7 +212,7 @@ export function ProductionFactorCalculator() {
                                             </TableCell>
                                             <TableCell className="py-2">
                                                 <Input
-                                                    placeholder="Descrição do insumo"
+                                                    placeholder="Descri??o do insumo"
                                                     value={item.productName}
                                                     onChange={(e) => updateItem(item.id, "productName", e.target.value)}
                                                     className="h-8 border-transparent bg-transparent hover:bg-background hover:border-input focus:bg-background focus:border-primary"
@@ -270,19 +270,19 @@ export function ProductionFactorCalculator() {
 
                     <div className="p-3 border-t bg-muted/10">
                         <Button onClick={addItem} variant="outline" size="sm" className="w-full border-dashed border-2 hover:border-primary hover:text-primary hover:bg-primary/5 h-9 text-xs uppercase tracking-wide">
-                            <Plus className="w-3.5 h-3.5 mr-2" /> Adicionar Composição
+                            <Plus className="w-3.5 h-3.5 mr-2" /> Adicionar Composi??o
                         </Button>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* --- ÁREA EXPLICATIVA --- */}
+            {/* --- ?REA EXPLICATIVA --- */}
             <Accordion type="single" collapsible className="w-full bg-card border rounded-lg px-4 shadow-sm">
                 <AccordionItem value="explanation" className="border-none">
                     <AccordionTrigger className="hover:no-underline py-3">
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <HelpCircle className="w-4 h-4" />
-                            <span className="text-xs font-medium uppercase tracking-wider">Entenda a fórmula</span>
+                            <span className="text-xs font-medium uppercase tracking-wider">Entenda a f?rmula</span>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent>
@@ -290,19 +290,19 @@ export function ProductionFactorCalculator() {
 
                             <div className="p-3 rounded-md border bg-muted/20 flex flex-col gap-1">
                                 <div className="flex items-center gap-2 font-medium text-foreground">
-                                    <Box className="w-4 h-4 text-primary" /> 1. Fator Unitário
+                                    <Box className="w-4 h-4 text-primary" /> 1. Fator Unit?rio
                                 </div>
                                 <div className="text-xs text-muted-foreground font-mono mt-1 bg-background p-1.5 rounded border">
-                                    1 ÷ Peso Embalagem = Fator
+                                    1 ? Peso Embalagem = Fator
                                 </div>
                             </div>
 
                             <div className="p-3 rounded-md border bg-orange-50/40 dark:bg-orange-950/20 border-orange-200/50 flex flex-col gap-1">
                                 <div className="flex items-center gap-2 font-medium text-orange-700 dark:text-orange-400">
-                                    <Settings className="w-4 h-4" /> 2. Fator Produção
+                                    <Settings className="w-4 h-4" /> 2. Fator Produ??o
                                 </div>
                                 <div className="text-xs text-orange-800/80 dark:text-orange-300/80 font-mono mt-1 bg-background/50 p-1.5 rounded border border-orange-200/30">
-                                    (Qtd Total ÷ Rendimento) × Fator
+                                    (Qtd Total ? Rendimento) ? Fator
                                 </div>
                             </div>
 
@@ -311,7 +311,7 @@ export function ProductionFactorCalculator() {
                                     <Scale className="w-4 h-4" /> 3. Baixa Total
                                 </div>
                                 <div className="text-xs text-emerald-800/80 dark:text-emerald-300/80 font-mono mt-1 bg-background/50 p-1.5 rounded border border-emerald-200/30">
-                                    Qtd Total × Fator = UN
+                                    Qtd Total ? Fator = UN
                                 </div>
                             </div>
 

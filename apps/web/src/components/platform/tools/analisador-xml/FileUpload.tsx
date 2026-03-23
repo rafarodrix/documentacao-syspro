@@ -34,7 +34,7 @@ export function FileUpload({
   // Estado para efeito visual de "Arrastar por cima"
   const [isDragging, setIsDragging] = useState(false);
 
-  // --- Lógica de Drag & Drop ---
+  // --- L?gica de Drag & Drop ---
   const handleDragOver = (e: DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(true);
@@ -50,7 +50,7 @@ export function FileUpload({
     setIsDragging(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      // Pequena validação para garantir que ZIP seja único se for a opção ZIP
+      // Pequena valida??o para garantir que ZIP seja ?nico se for a op??o ZIP
       if (type === 'zip' && !e.dataTransfer.files[0].name.endsWith('.zip')) {
         alert('Por favor, arraste um arquivo .zip'); // Idealmente usar um Toast aqui
         return;
@@ -61,21 +61,21 @@ export function FileUpload({
     }
   };
 
-  // --- Lógica de Máscara de CNPJ ---
+  // --- L?gica de M?scara de CNPJ ---
   const handleCnpjChangeLocal = (e: ChangeEvent<HTMLInputElement>) => {
-    // Remove tudo que não é dígito
+    // Remove tudo que n?o ? d?gito
     let value = e.target.value.replace(/\D/g, '');
 
-    // Limita a 14 dígitos
+    // Limita a 14 d?gitos
     if (value.length > 14) value = value.slice(0, 14);
 
-    // Atualiza o valor no input (hack simples para manter o cursor ok em edições simples)
+    // Atualiza o valor no input (hack simples para manter o cursor ok em edi??es simples)
     e.target.value = value;
 
     onCnpjChange(e);
   };
 
-  // Classes dinâmicas para o Drag & Drop
+  // Classes din?micas para o Drag & Drop
   const dropZoneClasses = `
     flex flex-col items-center justify-center p-6 rounded-lg border-2 border-dashed 
     text-center cursor-pointer transition-colors duration-200
@@ -89,14 +89,14 @@ export function FileUpload({
     <div className="bg-card p-8 rounded-xl shadow-sm border">
       <form onSubmit={onSubmit} className="space-y-6">
 
-        {/* SEÇÃO 1: UPLOAD */}
+        {/* SE??O 1: UPLOAD */}
         <div>
           <label className="block text-lg font-semibold text-foreground mb-4">
             1. Escolha ou Arraste os Arquivos
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* Botão Pasta (Drop Zone) */}
+            {/* Bot?o Pasta (Drop Zone) */}
             <label
               htmlFor="folder-upload"
               className={dropZoneClasses}
@@ -122,7 +122,7 @@ export function FileUpload({
               />
             </label>
 
-            {/* Botão ZIP (Drop Zone) */}
+            {/* Bot?o ZIP (Drop Zone) */}
             <label
               htmlFor="zip-upload"
               className={dropZoneClasses}
@@ -147,13 +147,13 @@ export function FileUpload({
           </div>
         </div>
 
-        {/* FEEDBACK DE SELEÇÃO */}
+        {/* FEEDBACK DE SELE??O */}
         {files && files.length > 0 && (
           <div className="border-t border-b border-border py-4 animate-fade-in bg-secondary/30 px-4 rounded-md">
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
                 <UploadCloud size={16} className="text-primary" />
-                Arquivos Prontos para Análise:
+                Arquivos Prontos para An?lise:
               </h3>
               <button
                 type="button"
@@ -172,7 +172,7 @@ export function FileUpload({
           </div>
         )}
 
-        {/* SEÇÃO 2: CNPJ */}
+        {/* SE??O 2: CNPJ */}
         <div>
           <label htmlFor="cnpj" className="block text-lg font-semibold text-foreground mb-2">
             2. CNPJ da Empresa
@@ -182,7 +182,7 @@ export function FileUpload({
               id="cnpj"
               type="text"
               value={cnpjEmpresa}
-              onChange={handleCnpjChangeLocal} // Usa o handler local com máscara
+              onChange={handleCnpjChangeLocal} // Usa o handler local com m?scara
               maxLength={14}
               placeholder="00000000000191"
               required
@@ -198,14 +198,14 @@ export function FileUpload({
             </div>
           </div>
           {cnpjEmpresa && cnpjEmpresa.length < 14 && (
-            <p className="text-xs text-red-500 mt-1">O CNPJ deve conter 14 dígitos.</p>
+            <p className="text-xs text-red-500 mt-1">O CNPJ deve conter 14 d?gitos.</p>
           )}
         </div>
 
-        {/* SEÇÃO 3: NÚMEROS */}
+        {/* SE??O 3: N?MEROS */}
         <div>
           <label htmlFor="numeros" className="block text-lg font-semibold text-foreground mb-2">
-            3. Filtro de Numeração (Opcional)
+            3. Filtro de Numera??o (Opcional)
           </label>
           <input
             id="numeros"
@@ -219,11 +219,11 @@ export function FileUpload({
 
         <button
           type="submit"
-          // Bloqueia se CNPJ for inválido (menor que 14)
+          // Bloqueia se CNPJ for inv?lido (menor que 14)
           disabled={isProcessing || !files || files.length === 0 || cnpjEmpresa.length < 14}
           className="w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-muted disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md active:scale-[0.99]"
         >
-          {isProcessing ? 'Processando Arquivos...' : 'Iniciar Análise Fiscal'}
+          {isProcessing ? 'Processando Arquivos...' : 'Iniciar An?lise Fiscal'}
         </button>
       </form>
     </div>

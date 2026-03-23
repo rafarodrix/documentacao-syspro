@@ -10,11 +10,11 @@ import { ResultDisplay } from './ResultDisplay';
 // Tipos para clareza
 type Status = 'idle' | 'processing' | 'completed' | 'error';
 
-// ✅ Novo tipo para o evento de arquivo, compatível com Drag & Drop
+// ? Novo tipo para o evento de arquivo, compat?vel com Drag & Drop
 type FileChangeEvent = ChangeEvent<HTMLInputElement> | { target: { files: FileList | null } };
 
 export function AnalisadorXMLTool() {
-  // --- ESTADO DO FORMULÁRIO ---
+  // --- ESTADO DO FORMUL?RIO ---
   const [files, setFiles] = useState<FileList | null>(null);
   const [numeros, setNumeros] = useState('');
   const [cnpjEmpresa, setCnpjEmpresa] = useState('');
@@ -29,7 +29,7 @@ export function AnalisadorXMLTool() {
   const [summary, setSummary] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
 
-  // ✅ CORREÇÃO AQUI: Atualizada a tipagem do evento 'e'
+  // ? CORRE??O AQUI: Atualizada a tipagem do evento 'e'
   const handleFileChange = (e: FileChangeEvent) => {
     setStatus('idle');
     setStatusMessage('');
@@ -79,7 +79,7 @@ export function AnalisadorXMLTool() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) throw new Error("URL da API não configurada.");
+      if (!apiUrl) throw new Error("URL da API n?o configurada.");
 
       const response = await axios.post(`${apiUrl}/api/analyze`, formData, {
         onUploadProgress: (progressEvent) => {
@@ -89,7 +89,7 @@ export function AnalisadorXMLTool() {
           if (percentCompleted < 100) {
             setStatusMessage('Enviando arquivos...');
           } else {
-            setStatusMessage('Arquivos enviados. Aguardando análise do servidor...');
+            setStatusMessage('Arquivos enviados. Aguardando an?lise do servidor...');
           }
         },
       });
@@ -97,14 +97,14 @@ export function AnalisadorXMLTool() {
       setSummary(response.data.summary);
       setDownloadUrl(response.data.downloadUrl);
       setStatus('completed');
-      setStatusMessage('Análise concluída!');
+      setStatusMessage('An?lise conclu?da!');
 
     } catch (err: any) {
       setStatus('error');
       if (err.response && err.response.data && err.response.data.error) {
         setStatusMessage(err.response.data.error);
       } else if (err.request) {
-        setStatusMessage('Erro de Conexão: O servidor não respondeu. Verifique se o backend está rodando.');
+        setStatusMessage('Erro de Conex?o: O servidor n?o respondeu. Verifique se o backend est? rodando.');
       } else {
         setStatusMessage(err.message);
       }
@@ -119,7 +119,7 @@ export function AnalisadorXMLTool() {
             Analisador de XML Fiscal
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Uma ferramenta rápida para validar sequências e extrair documentos.
+            Uma ferramenta r?pida para validar sequ?ncias e extrair documentos.
           </p>
         </div>
 
@@ -129,7 +129,7 @@ export function AnalisadorXMLTool() {
           numeros={numeros}
           cnpjEmpresa={cnpjEmpresa}
           status={status}
-          onFileChange={handleFileChange} // ✅ Agora compatível
+          onFileChange={handleFileChange} // ? Agora compat?vel
           onNumerosChange={(e) => setNumeros(e.target.value)}
           onCnpjChange={(e) => setCnpjEmpresa(e.target.value)}
           onSubmit={handleSubmit}

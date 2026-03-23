@@ -9,9 +9,9 @@ export type MonthSummary = {
   melhorias: number;
 };
 
-// LÃ³gica de agrupamento que vocÃª jÃ¡ criou, agora em uma funÃ§Ã£o reutilizÃ¡vel
+// L?gica de agrupamento que voc? j? criou, agora em uma fun??o reutiliz?vel
 export function groupReleasesByMonth(releases: Release[]): MonthSummary[] {
-  const monthNames = ["Janeiro", "Fevereiro", "MarÃ§o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const monthNames = ["Janeiro", "Fevereiro", "Mar?o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   const grouped = releases.reduce((acc, release) => {
     if (!release.isoDate || !release.type) return acc;

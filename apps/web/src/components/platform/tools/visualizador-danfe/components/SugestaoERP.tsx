@@ -8,11 +8,11 @@ import {
   Clock, Truck, Coins, FileText
 } from 'lucide-react';
 
-// 2?? IMPORTAÇÃO DO ARQUIVO DE TYPES CENTRALIZADO
-import { DanfeData, ItemData, SugestaoTributaria } from '../types'; // Ajuste o caminho conforme necessário
+// 2?? IMPORTA??O DO ARQUIVO DE TYPES CENTRALIZADO
+import { DanfeData, ItemData, SugestaoTributaria } from '../types'; // Ajuste o caminho conforme necess?rio
 
 // =============================================================
-// 3?? FUNÇÕES AUXILIARES (formatadores centralizados)
+// 3?? FUN??ES AUXILIARES (formatadores centralizados)
 // =============================================================
 const formatCurrency = (v?: number | null) =>
   v != null ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
@@ -27,7 +27,7 @@ const formatDate = (iso?: string) => {
 };
 
 // =============================================================
-// 4?? COMPONENTE DE SUGESTÃO DE TRIBUTAÇÃO 
+// 4?? COMPONENTE DE SUGEST?O DE TRIBUTA??O 
 // =============================================================
 export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDest }) => {
   const [sugestao, setSugestao] = useState<SugestaoTributaria | null>(null);
@@ -37,7 +37,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
   const handleSuggest = useCallback(async () => {
     const { ICMS, PIS, COFINS } = item.impostos;
     if (!ICMS?.CST || !PIS?.CST || !COFINS?.CST) {
-      setError('Dados fiscais insuficientes para gerar sugestão.');
+      setError('Dados fiscais insuficientes para gerar sugest?o.');
       return;
     }
 
@@ -61,14 +61,14 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Erro ao sugerir tributação (${res.status})`);
+        throw new Error(err.error || `Erro ao sugerir tributa??o (${res.status})`);
       }
 
       const data: SugestaoTributaria = await res.json();
       setSugestao(data);
     } catch (err: any) {
-      console.error('Erro ao sugerir tributação:', err);
-      setError(err.message || 'Falha inesperada na análise.');
+      console.error('Erro ao sugerir tributa??o:', err);
+      setError(err.message || 'Falha inesperada na an?lise.');
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +79,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
         return (
           <div className="text-sm text-muted-foreground animate-fade-in text-center">
             <Loader className="animate-spin mx-auto mb-2" size={24} />
-            Analisando tributação...
+            Analisando tributa??o...
           </div>
         );
   
@@ -101,7 +101,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
       if (sugestao)
         return (
           <div className="text-center animate-fade-in w-full">
-            <p className="text-xs text-muted-foreground">Sugestão para cadastro:</p>
+            <p className="text-xs text-muted-foreground">Sugest?o para cadastro:</p>
             <p className="font-mono text-xl font-bold text-primary bg-primary/10 px-3 py-1 rounded-md my-1">
               {sugestao.sugestao}
             </p>
@@ -120,7 +120,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
           onClick={handleSuggest}
           className="font-semibold text-primary hover:text-primary/80 transition-colors"
         >
-          Gerar Sugestão de Entrada
+          Gerar Sugest?o de Entrada
         </button>
       );
 
@@ -129,7 +129,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
   return (
     <div className="mt-4 border-t border-border/60 pt-4">
       <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-        <Sparkles size={16} className="text-primary" /> Assistente de Tributação ERP
+        <Sparkles size={16} className="text-primary" /> Assistente de Tributa??o ERP
       </h4>
       <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border/60 min-h-[8rem] flex flex-col justify-center items-center">
         {content}
@@ -139,10 +139,10 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
 };
 
 // =============================================================
-// 5?? UI — COMPONENTES DE APOIO E VISUALIZAÇÃO
+// 5?? UI ? COMPONENTES DE APOIO E VISUALIZA??O
 // =============================================================
 
-/** Card de Detalhes Tributários de um Item */
+/** Card de Detalhes Tribut?rios de um Item */
 const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDest }) => {
   const { ICMS, IPI, PIS, COFINS, vTotTrib } = item.impostos;
 
@@ -161,35 +161,35 @@ const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDest })
         <span className="font-bold text-foreground"><Calculator size={12} className="inline mr-1" /> **Total:** {formatCurrency(item.vProd)}</span>
       </div>
 
-      {/* Detalhamento tributário (ICMS, IPI, PIS, COFINS) */}
+      {/* Detalhamento tribut?rio (ICMS, IPI, PIS, COFINS) */}
       <details className="mt-3 group text-sm border-t border-border/50 pt-3">
         <summary className="cursor-pointer text-xs font-semibold text-primary flex items-center gap-1 list-none">
-          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /> Ver Detalhamento Tributário ({formatCurrency(vTotTrib)} Total Estimado)
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /> Ver Detalhamento Tribut?rio ({formatCurrency(vTotTrib)} Total Estimado)
         </summary>
         
         <div className="mt-3 space-y-3 p-3 bg-white/50 dark:bg-black/50 rounded-lg shadow-inner">
           {/* ICMS */}
           <div className="border-l-4 border-amber-500 pl-3">
             <p className="font-bold text-sm flex items-center gap-1"><Percent size={14} /> ICMS</p>
-            <p className="text-xs text-muted-foreground">CST: {ICMS.CST} | Orig: {ICMS.orig} | Base: {formatCurrency(ICMS.vBC)} | Alíq: {formatPercent(ICMS.pICMS)} | **Valor:** {formatCurrency(ICMS.vICMS)}</p>
+            <p className="text-xs text-muted-foreground">CST: {ICMS.CST} | Orig: {ICMS.orig} | Base: {formatCurrency(ICMS.vBC)} | Al?q: {formatPercent(ICMS.pICMS)} | **Valor:** {formatCurrency(ICMS.vICMS)}</p>
             {ICMS.vICMSST && <p className="text-xs text-muted-foreground font-mono">ST: Base {formatCurrency(ICMS.vBCST)} / Valor {formatCurrency(ICMS.vICMSST)}</p>}
           </div>
 
           {/* IPI */}
           <div className="border-l-4 border-blue-500 pl-3">
             <p className="font-bold text-sm flex items-center gap-1"><Package size={14} /> IPI</p>
-            <p className="text-xs text-muted-foreground">CST: {IPI.CST} | Alíq: {formatPercent(IPI.pIPI)} | **Valor:** {formatCurrency(IPI.vIPI)}</p>
+            <p className="text-xs text-muted-foreground">CST: {IPI.CST} | Al?q: {formatPercent(IPI.pIPI)} | **Valor:** {formatCurrency(IPI.vIPI)}</p>
           </div>
 
           {/* PIS/COFINS */}
           <div className="grid grid-cols-2 gap-3">
             <div className="border-l-4 border-green-500 pl-3">
               <p className="font-bold text-sm flex items-center gap-1"><Landmark size={14} /> PIS</p>
-              <p className="text-xs text-muted-foreground">CST: {PIS.CST} | Base: {formatCurrency(PIS.vBC)} | Alíq: {formatPercent(PIS.pPIS)} | **Valor:** {formatCurrency(PIS.vPIS)}</p>
+              <p className="text-xs text-muted-foreground">CST: {PIS.CST} | Base: {formatCurrency(PIS.vBC)} | Al?q: {formatPercent(PIS.pPIS)} | **Valor:** {formatCurrency(PIS.vPIS)}</p>
             </div>
             <div className="border-l-4 border-purple-500 pl-3">
               <p className="font-bold text-sm flex items-center gap-1"><Landmark size={14} /> COFINS</p>
-              <p className="text-xs text-muted-foreground">CST: {COFINS.CST} | Base: {formatCurrency(COFINS.vBC)} | Alíq: {formatPercent(COFINS.pCOFINS)} | **Valor:** {formatCurrency(COFINS.vCOFINS)}</p>
+              <p className="text-xs text-muted-foreground">CST: {COFINS.CST} | Base: {formatCurrency(COFINS.vBC)} | Al?q: {formatPercent(COFINS.pCOFINS)} | **Valor:** {formatCurrency(COFINS.vCOFINS)}</p>
             </div>
           </div>
         </div>
@@ -200,14 +200,14 @@ const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDest })
   );
 };
 
-/** Card de Informações da Nota (Emitente, Destinatário, Meta) */
+/** Card de Informa??es da Nota (Emitente, Destinat?rio, Meta) */
 const DanfeHeaderCard: FC<{ danfe: DanfeData }> = ({ danfe }) => (
   <div className="grid md:grid-cols-3 gap-6">
     <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-800 border">
       <h3 className="font-bold text-base text-primary flex items-center gap-2 mb-2"><FileText size={16} /> Nota Fiscal</h3>
       <p className="text-sm">**Chave:** <span className="font-mono text-xs break-all">{danfe.meta.chave}</span></p>
-      <p className="text-sm">**Número/Série:** {danfe.ide.nNF}/{danfe.ide.serie}</p>
-      <p className="text-sm">**Emissão:** {formatDate(danfe.ide.dhEmi)}</p>
+      <p className="text-sm">**N?mero/S?rie:** {danfe.ide.nNF}/{danfe.ide.serie}</p>
+      <p className="text-sm">**Emiss?o:** {formatDate(danfe.ide.dhEmi)}</p>
       <p className="text-sm">**Natureza Op.:** {danfe.ide.natOp}</p>
     </div>
     
@@ -216,15 +216,15 @@ const DanfeHeaderCard: FC<{ danfe: DanfeData }> = ({ danfe }) => (
       <p className="text-sm">**Nome:** {danfe.emit.xNome}</p>
       <p className="text-sm">**CNPJ:** {danfe.emit.CNPJ}</p>
       <p className="text-sm">**IE:** {danfe.emit.IE}</p>
-      <p className="text-sm truncate">**Endereço:** {danfe.emit.enderEmit}</p>
+      <p className="text-sm truncate">**Endere?o:** {danfe.emit.enderEmit}</p>
     </div>
     
     <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-800 border">
-      <h3 className="font-bold text-base text-green-600 flex items-center gap-2 mb-2"><UserCircle size={16} /> Destinatário</h3>
+      <h3 className="font-bold text-base text-green-600 flex items-center gap-2 mb-2"><UserCircle size={16} /> Destinat?rio</h3>
       <p className="text-sm">**Nome:** {danfe.dest.xNome}</p>
       <p className="text-sm">**CNPJ/CPF:** {danfe.dest.CNPJ || danfe.dest.CPF}</p>
       <p className="text-sm">**IE:** {danfe.dest.IE}</p>
-      <p className="text-sm truncate">**Endereço:** {danfe.dest.enderDest} - **UF:** {danfe.dest.raw.UF}</p>
+      <p className="text-sm truncate">**Endere?o:** {danfe.dest.enderDest} - **UF:** {danfe.dest.raw.UF}</p>
     </div>
   </div>
 );
@@ -279,7 +279,7 @@ export function DanfeVisualizerTool() {
       const formData = new FormData();
       formData.append('file', file);
 
-      // NOTE: Endpoint que receberá o XML e retornará o JSON da DANFE
+      // NOTE: Endpoint que receber? o XML e retornar? o JSON da DANFE
       const res = await fetch('/api/parse-nfe', { method: 'POST', body: formData });
       if (!res.ok) {
         const text = await res.text();
@@ -301,7 +301,7 @@ export function DanfeVisualizerTool() {
     }
   }, []);
 
-  const ufDest = danfeData?.dest.raw.UF || 'SP'; // Default ou buscar de um campo de seleção
+  const ufDest = danfeData?.dest.raw.UF || 'SP'; // Default ou buscar de um campo de sele??o
 
   return (
     <div className="space-y-8">

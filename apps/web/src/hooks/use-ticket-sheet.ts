@@ -22,14 +22,14 @@ export function useTicketSheet(onSuccess: () => void) {
         },
     });
 
-    // LÃ³gica de Arquivos
+    // L?gica de Arquivos
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files);
             const totalSize = [...files, ...newFiles].reduce((acc, f) => acc + f.size, 0);
 
             if (totalSize > 5 * 1024 * 1024) {
-                toast.error("O tamanho total dos arquivos nÃ£o pode exceder 5MB.");
+                toast.error("O tamanho total dos arquivos n?o pode exceder 5MB.");
                 return;
             }
             setFiles((prev) => [...prev, ...newFiles]);
