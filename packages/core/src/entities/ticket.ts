@@ -1,5 +1,5 @@
-export type TicketStatus = "Aberto" | "Em An·lise" | "Pendente" | "Resolvido";
-export type TicketPriority = "Alta" | "MÈdia" | "Baixa";
+export type TicketStatus = "Aberto" | "Em An√°lise" | "Pendente" | "Resolvido";
+export type TicketPriority = "Alta" | "M√©dia" | "Baixa";
 
 export interface Ticket {
   id: string;

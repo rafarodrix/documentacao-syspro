@@ -15,21 +15,21 @@ const DEFAULT_MATRIX: ParsedStateMatrix = {
   activeWorkflowStateIds: [2, 3],
   statusByStateId: {
     1: "Aberto",
-    2: "Em Análise",
-    3: "Em Análise",
+    2: "Em AnÃ¡lise",
+    3: "Em AnÃ¡lise",
     4: "Pendente",
     5: "Pendente",
   },
   statusRules: [
     { status: "Resolvido", keywords: ["closed", "fechado", "resolvido", "merged", "mesclado"] },
     { status: "Pendente", keywords: ["pendente", "pending", "aguardando", "teste", "testes", "reminder"] },
-    { status: "Em Análise", keywords: ["analise", "análise", "desenvolvimento", "development"] },
+    { status: "Em AnÃ¡lise", keywords: ["analise", "anÃ¡lise", "desenvolvimento", "development"] },
     { status: "Aberto", keywords: ["novo", "new", "open", "aberto"] },
   ],
 };
 
 function isTicketStatus(value: unknown): value is TicketStatus {
-  return value === "Aberto" || value === "Em Análise" || value === "Pendente" || value === "Resolvido";
+  return value === "Aberto" || value === "Em AnÃ¡lise" || value === "Pendente" || value === "Resolvido";
 }
 
 function parseStateMatrixFromEnv(): ParsedStateMatrix | null {
