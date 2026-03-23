@@ -18,6 +18,7 @@ export type RemoteHostSummary = {
   name: string;
   environment: string | null;
   provider: string | null;
+  agentExternalId?: string | null;
   status: RemoteHostStatus;
 };
 

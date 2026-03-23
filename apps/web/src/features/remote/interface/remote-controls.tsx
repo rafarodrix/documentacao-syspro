@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,9 @@ export function RemotePlatformControls({ overview }: Props) {
   const [hostName, setHostName] = useState("");
   const [environment, setEnvironment] = useState("");
   const [provider, setProvider] = useState("RustDesk");
+  const [agentExternalId, setAgentExternalId] = useState("");
+  const [hostStatus, setHostStatus] = useState<"ACTIVE" | "INACTIVE" | "MAINTENANCE">("ACTIVE");
+  const [editingHostId, setEditingHostId] = useState("");
   const [selectedHostId, setSelectedHostId] = useState("");
   const [sessionCompanyId, setSessionCompanyId] = useState(overview.companyOptions[0]?.id ?? "");
   const [sessionTicketId, setSessionTicketId] = useState("");
@@ -43,12 +47,23 @@ export function RemotePlatformControls({ overview }: Props) {
   const [sessionReason, setSessionReason] = useState("");
 
   const canCreateHosts = overview.tenantScope.role !== "CLIENTE_ADMIN";
+  const isEditing = Boolean(editingHostId);
   const hostOptions = useMemo(() => {
     if (!sessionCompanyId) return overview.hostOptions;
     return overview.hostOptions.filter((host) => host.companyId === sessionCompanyId);
   }, [overview.hostOptions, sessionCompanyId]);
 
   const refresh = () => startTransition(() => router.refresh());
+
+  function resetHostForm() {
+    setEditingHostId("");
+    setSelectedCompanyId(overview.companyOptions[0]?.id ?? "");
+    setHostName("");
+    setEnvironment("");
+    setProvider("RustDesk");
+    setAgentExternalId("");
+    setHostStatus("ACTIVE");
+  }
 
   async function handleCreateHost() {
     if (!selectedCompanyId || !hostName.trim()) {
@@ -58,25 +73,47 @@ export function RemotePlatformControls({ overview }: Props) {
 
     try {
       await parseJson(
-        await fetch("/api/remote/hosts", {
-          method: "POST",
+        await fetch(isEditing ? `/api/remote/hosts/${editingHostId}` : "/api/remote/hosts", {
+          method: isEditing ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             companyId: selectedCompanyId,
             name: hostName,
             environment,
             provider,
+            agentExternalId,
+            status: hostStatus,
           }),
         })
       );
 
-      toast.success("Host remoto criado.");
-      setHostName("");
-      setEnvironment("");
-      setProvider("RustDesk");
+      toast.success(isEditing ? "Host remoto atualizado." : "Host remoto criado.");
+      resetHostForm();
       refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao criar host.");
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar host.");
+    }
+  }
+
+  async function handleDeleteHost(hostId: string, hostNameValue: string) {
+    if (!window.confirm(`Excluir o host "${hostNameValue}"?`)) {
+      return;
+    }
+
+    try {
+      await parseJson(
+        await fetch(`/api/remote/hosts/${hostId}`, {
+          method: "DELETE",
+        })
+      );
+
+      if (editingHostId === hostId) {
+        resetHostForm();
+      }
+      toast.success("Host remoto excluido.");
+      refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao excluir host.");
     }
   }
 
@@ -138,6 +175,22 @@ export function RemotePlatformControls({ overview }: Props) {
         <CardContent className="space-y-4">
           {canCreateHosts ? (
             <>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {isEditing ? "Edicao de host" : "Novo host"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    O campo `RustDesk ID` e onde fica o identificador usado no link de acesso remoto.
+                  </p>
+                </div>
+                {isEditing ? (
+                  <Button type="button" variant="outline" onClick={resetHostForm} disabled={isPending}>
+                    Cancelar
+                  </Button>
+                ) : null}
+              </div>
+
               <div className="space-y-2">
                 <Label>Empresa</Label>
                 <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
@@ -170,9 +223,95 @@ export function RemotePlatformControls({ overview }: Props) {
                 </div>
               </div>
 
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>RustDesk ID</Label>
+                  <Input
+                    value={agentExternalId}
+                    onChange={(event) => setAgentExternalId(event.target.value)}
+                    placeholder="123 456 789"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={hostStatus} onValueChange={(value) => setHostStatus(value as "ACTIVE" | "INACTIVE" | "MAINTENANCE")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                      <SelectItem value="MAINTENANCE">MAINTENANCE</SelectItem>
+                      <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <Button onClick={handleCreateHost} disabled={isPending}>
-                Criar host
+                {isEditing ? "Salvar host" : "Criar host"}
               </Button>
+
+              <div className="space-y-3 border-t border-border/50 pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold">Hosts cadastrados</h3>
+                  <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                    {overview.recentHosts.length} recente(s)
+                  </Badge>
+                </div>
+
+                {overview.recentHosts.length ? (
+                  overview.recentHosts.map((host) => (
+                    <div key={host.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{host.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {host.companyName ?? "Sem empresa"}
+                            {host.environment ? ` | ${host.environment}` : ""}
+                            {host.provider ? ` | ${host.provider}` : ""}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            RustDesk ID: {host.agentExternalId ?? "Nao configurado"}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingHostId(host.id);
+                              setSelectedCompanyId(host.companyId);
+                              setHostName(host.name);
+                              setEnvironment(host.environment ?? "");
+                              setProvider(host.provider ?? "RustDesk");
+                              setAgentExternalId(host.agentExternalId ?? "");
+                              setHostStatus(host.status);
+                            }}
+                            disabled={isPending}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteHost(host.id, host.name)}
+                            disabled={isPending}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Nenhum host recente para editar ou excluir.</p>
+                )}
+              </div>
             </>
           ) : (
             <p className="text-sm text-muted-foreground">

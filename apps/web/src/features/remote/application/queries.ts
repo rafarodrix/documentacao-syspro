@@ -271,6 +271,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       name: host.name,
       environment: host.environment,
       provider: host.provider,
+      agentExternalId: host.agentExternalId,
       status: host.status,
       companyName: host.company.nomeFantasia ?? host.company.razaoSocial,
       createdAt: host.createdAt.toISOString(),
