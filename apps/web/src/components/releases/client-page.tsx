@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { ReleasesFilter, type FilterType } from "./ReleasesFilter";
 import { MonthlyReleasesClient } from "./MonthlyReleasesClient";
 import { monthNames } from "@/core/infrastructure/mappers/zammad-release.mapper";
-import type { Release } from "@/core/domain/entities/release.entity";
+import type { Release } from "@dosc-syspro/core";
 
 interface ReleasesClientPageProps {
     initialReleases: Release[];
@@ -23,7 +23,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
-    // Lógica de Filtragem Otimizada (useMemo)
+    // LÃ³gica de Filtragem Otimizada (useMemo)
     const { filteredBugs, filteredMelhorias } = useMemo(() => {
         // 1. Filtrar por Termo de Busca
         const searchLower = searchTerm.toLowerCase();
@@ -54,12 +54,12 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
 
     return (
         <div className="container max-w-5xl py-10 mx-auto space-y-8">
-            {/* Header de Navegação */}
+            {/* Header de NavegaÃ§Ã£o */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-in slide-in-from-top-4 duration-500">
                 <div className="space-y-1">
                     <Link href="/releases">
                         <Button variant="ghost" className="pl-0 gap-2 text-muted-foreground hover:text-foreground mb-2">
-                            <ArrowLeft className="w-4 h-4" /> Voltar para o Índice
+                            <ArrowLeft className="w-4 h-4" /> Voltar para o Ãndice
                         </Button>
                     </Link>
                     <div className="flex items-center gap-3">
@@ -72,14 +72,14 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
                         </Badge>
                     </div>
                     <p className="text-muted-foreground">
-                        Confira as últimas melhorias e correções aplicadas no sistema.
+                        Confira as Ãºltimas melhorias e correÃ§Ãµes aplicadas no sistema.
                     </p>
                 </div>
             </div>
 
             <Separator />
 
-            {/* Área de Controle (Busca e Filtros) */}
+            {/* Ãrea de Controle (Busca e Filtros) */}
             <ReleasesFilter
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}

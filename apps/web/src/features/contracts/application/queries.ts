@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
+import { SETTING_KEYS } from "@dosc-syspro/contracts";
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
 import type {
   ContractActionResponse,

@@ -9,7 +9,7 @@ import { UserProfile } from "./user-profile"
 import { NotificationsMenu } from "./NotificationsMenu"
 import Link from "next/link"
 import type { Role } from "@prisma/client"
-import { SYSTEM_ROLES } from "@/core/config/route-access"
+import { SYSTEM_ROLES } from "@dosc-syspro/core"
 
 interface ClientHeaderProps {
   user: {

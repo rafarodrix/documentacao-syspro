@@ -1,1 +1,0 @@
-export { getZammadStateMatrix } from "@dosc-syspro/core";

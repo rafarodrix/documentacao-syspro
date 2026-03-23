@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { isTicketStatusGroup, type TicketStatusGroup } from "@/core/config/tickets-workflow";
+import { isTicketStatusGroup, type TicketStatusGroup } from "@dosc-syspro/core";
 import type { TicketStatusCounts } from "./types";
 
 interface TicketsFiltersProps {

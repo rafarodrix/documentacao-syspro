@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TicketListItem, TicketPriorityLevel } from "./types";
-import { getTicketStatusGroup } from "@/core/config/tickets-workflow";
+import { getTicketStatusGroup } from "@dosc-syspro/core";
 
 interface TicketsTableProps {
     tickets: TicketListItem[];

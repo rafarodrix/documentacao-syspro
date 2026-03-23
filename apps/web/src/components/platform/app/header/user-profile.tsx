@@ -1,10 +1,10 @@
-﻿"use client"
+"use client"
 
 import type { Role } from "@prisma/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
-import { getRoleLabel } from "@/core/config/role-labels"
+import { getRoleLabel } from "@dosc-syspro/core"
 import { LogOut, User, Settings, HelpCircle } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"

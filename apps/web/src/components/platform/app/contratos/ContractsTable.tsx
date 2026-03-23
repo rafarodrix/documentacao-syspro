@@ -40,7 +40,7 @@ import {
     ContractBlockReason,
     CONTRACT_BLOCK_REASONS,
     CONTRACT_BLOCK_REASON_LABEL,
-} from "@/core/config/contract-blocking";
+} from "@dosc-syspro/core";
 import { DEFAULT_CONTRACT_TAX_RATE } from "@/core/application/schema/contract-schema";
 
 interface ContractsTableProps {

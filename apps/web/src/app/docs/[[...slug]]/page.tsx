@@ -11,7 +11,7 @@ import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
 import { Role } from '@prisma/client';
 import { requireSession, canAccessByCompanySegment } from '@/lib/auth-helpers';
 import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/core/config/docs-access';
-import { SYSTEM_ROLES } from '@/core/config/route-access';
+import { SYSTEM_ROLES } from '@dosc-syspro/core';
 import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 import { DocsHomePage } from '@/components/docs/DocsHomePage';
 import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';

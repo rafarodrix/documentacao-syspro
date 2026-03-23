@@ -1,7 +1,7 @@
-import { Release } from '@/core/domain/entities/release.entity';
+import { Release } from '@dosc-syspro/core';
 
 export const monthNames = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Janeiro", "Fevereiro", "MarÃ§o", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
@@ -27,7 +27,7 @@ export function groupReleasesByDate(releases: Release[]) {
         .map(([year, monthsData]) => ({
             year,
             months: Object.entries(monthsData)
-                .sort(([monthA], [monthB]) => Number(monthB) - Number(monthA)) // Mês desc
+                .sort(([monthA], [monthB]) => Number(monthB) - Number(monthA)) // MÃªs desc
                 .map(([month, counts]) => ({ month, ...counts })),
         }));
 }

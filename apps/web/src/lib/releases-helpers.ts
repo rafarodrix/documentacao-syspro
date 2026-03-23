@@ -1,4 +1,4 @@
-import type { Release } from "@/core/domain/entities/release.entity";
+import type { Release } from "@dosc-syspro/core";
 
 // Tipo para a estrutura de dados que vamos criar
 export type MonthSummary = {
@@ -9,9 +9,9 @@ export type MonthSummary = {
   melhorias: number;
 };
 
-// Lógica de agrupamento que você já criou, agora em uma função reutilizável
+// LÃ³gica de agrupamento que vocÃª jÃ¡ criou, agora em uma funÃ§Ã£o reutilizÃ¡vel
 export function groupReleasesByMonth(releases: Release[]): MonthSummary[] {
-  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const monthNames = ["Janeiro", "Fevereiro", "MarÃ§o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   const grouped = releases.reduce((acc, release) => {
     if (!release.isoDate || !release.type) return acc;

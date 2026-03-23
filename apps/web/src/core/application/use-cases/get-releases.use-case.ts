@@ -1,4 +1,4 @@
-import { Release } from "@/core/domain/entities/release.entity";
+import { Release } from "@dosc-syspro/core";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { unstable_cache } from "next/cache";
 

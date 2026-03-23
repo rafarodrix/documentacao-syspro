@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Bug, Rocket } from "lucide-react";
 import { ReleaseCard } from "./ReleaseCard";
-import type { Release } from "@/core/domain/entities/release.entity";
+import type { Release } from "@dosc-syspro/core";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,

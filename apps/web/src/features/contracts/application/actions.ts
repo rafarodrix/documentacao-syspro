@@ -10,12 +10,12 @@ import {
 } from "@/core/application/schema/contract-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
-import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
+import { SETTING_KEYS } from "@dosc-syspro/contracts";
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
 import {
   serializeContractBlockReason,
-} from "@/core/config/contract-blocking";
-import type { ContractBlockReason } from "@/core/config/contract-blocking";
+} from "@dosc-syspro/core";
+import type { ContractBlockReason } from "@dosc-syspro/core";
 import { getSystemParamsAction } from "@/features/contracts/application/queries";
 import type { ContractActionResponse } from "@/features/contracts/domain/model";
 

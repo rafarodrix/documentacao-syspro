@@ -1,5 +1,5 @@
 import { TicketPriority, TicketStatus } from "@/core/domain/entities/ticket.entity";
-import { getZammadStateMatrix } from "@/core/config/zammad-state-matrix";
+import { getZammadStateMatrix } from "@dosc-syspro/core";
 
 const matrix = getZammadStateMatrix();
 const ACTIVE_WORKFLOW_STATE_IDS = new Set(matrix.activeWorkflowStateIds);
@@ -22,7 +22,7 @@ export function mapTicketStatusFromStateName(stateName: string): TicketStatus {
     }
   }
 
-  return "Em Análise";
+  return "Em AnÃ¡lise";
 }
 
 export function mapTicketStatusFromStateId(stateId: number): TicketStatus {
@@ -35,7 +35,7 @@ export function mapTicketPriority(priorityId: number, name?: string): TicketPrio
   if (lower.includes("high") || lower.includes("alta")) return "Alta";
   if (lower.includes("low") || lower.includes("baixa")) return "Baixa";
   if (priorityId === 1) return "Baixa";
-  return "Média";
+  return "MÃ©dia";
 }
 
 export function mapTicketStateLabel(rawState: string): string {
@@ -60,7 +60,7 @@ export function isAnalysisOrDevelopmentStateName(stateName?: string | null): boo
   const normalized = normalizeStateName(stateName);
   if (!normalized) return false;
   return matrix.statusRules
-    .filter((rule) => rule.status === "Em Análise")
+    .filter((rule) => rule.status === "Em AnÃ¡lise")
     .some((rule) => rule.keywords.some((word) => normalized.includes(normalizeStateName(word))));
 }
 

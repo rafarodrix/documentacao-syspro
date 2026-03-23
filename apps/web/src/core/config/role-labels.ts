@@ -1,1 +1,0 @@
-export { ROLE_LABELS, getRoleLabel } from "@dosc-syspro/core";

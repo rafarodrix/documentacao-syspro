@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { zammadOperationalTicketSchema } from "@/core/application/schema/zammad-api.schema";
+import { zammadOperationalTicketSchema } from "@dosc-syspro/contracts";
 import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";

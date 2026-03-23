@@ -1,5 +1,5 @@
-import type { SettingsInput } from "@/core/application/schema/settings-schema";
-import type { SefazRoutesInput } from "@/core/application/schema/sefaz-routes-schema";
+import type { SettingsInput } from "@dosc-syspro/contracts";
+import type { SefazRoutesInput } from "@dosc-syspro/contracts";
 
 export type SettingsSnapshot = SettingsInput;
 export type SefazRoutesSnapshot = SefazRoutesInput;

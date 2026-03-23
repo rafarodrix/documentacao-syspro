@@ -1,5 +1,5 @@
 import { CompanySegment, Role } from "@prisma/client";
-import { SYSTEM_ROLES } from "@/core/config/route-access";
+import { SYSTEM_ROLES } from "@dosc-syspro/core";
 
 export const DOCS_TECHNICAL_PATH_PREFIX = "/docs/manuais-tecnicos";
 export const DOCS_TECHNICAL_ROLES: Role[] = SYSTEM_ROLES;

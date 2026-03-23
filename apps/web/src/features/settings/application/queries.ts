@@ -2,9 +2,9 @@
 
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { settingsSchema, type SettingsInput, SETTING_KEYS } from "@/core/application/schema/settings-schema";
+import { settingsSchema, type SettingsInput, SETTING_KEYS } from "@dosc-syspro/contracts";
 import { Role } from "@prisma/client";
-import { sefazRoutesSchema, type SefazRoutesInput } from "@/core/application/schema/sefaz-routes-schema";
+import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
 import { buildDefaultSefazRoutes } from "@/core/constants/sefaz-endpoints";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
 

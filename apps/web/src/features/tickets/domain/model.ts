@@ -1,4 +1,4 @@
-﻿import type { QueueKey, TicketStatusGroup } from "@/core/config/tickets-workflow";
+import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 import type { ActivityPoint } from "@/components/platform/app/dashboard/ActivityChart";
 
 export type TicketPriorityLevel = number;

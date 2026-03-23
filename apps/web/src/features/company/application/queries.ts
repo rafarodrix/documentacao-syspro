@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { Prisma, Role, CompanyStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { parseContractBlockReason } from "@/core/config/contract-blocking";
+import { parseContractBlockReason } from "@dosc-syspro/core";
 import type {
   CompanyAdminListViewData,
   CompanyListItem,

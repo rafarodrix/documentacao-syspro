@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { analyzeSefazResponse, buildDefaultSefazRoutes } from "@/core/constants/sefaz-endpoints";
-import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
-import { sefazRoutesSchema } from "@/core/application/schema/sefaz-routes-schema";
+import { SETTING_KEYS } from "@dosc-syspro/contracts";
+import { sefazRoutesSchema } from "@dosc-syspro/contracts";
 
 export class SefazService {
     private async loadConfiguredEndpoints() {

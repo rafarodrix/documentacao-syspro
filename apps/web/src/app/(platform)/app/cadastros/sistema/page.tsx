@@ -1,7 +1,7 @@
 import { Role } from "@prisma/client";
 import { hasPermission } from "@/lib/rbac";
 import { requireRole } from "@/lib/auth-helpers";
-import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
+import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
 import { getSystemUsersAdminViewData } from "@/features/user-access/application/queries";
 import { SystemUserTab } from "@/features/user-access/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";

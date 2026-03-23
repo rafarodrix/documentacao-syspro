@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { AppSidebar, SidebarUser } from "./app-sidebar"
 import { cn } from "@/lib/utils"
-import { SYSTEM_ROLES } from "@/core/config/route-access"
+import { SYSTEM_ROLES } from "@dosc-syspro/core"
 
 interface MobileHeaderProps {
   user: SidebarUser

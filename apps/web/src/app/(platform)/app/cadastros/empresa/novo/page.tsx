@@ -1,7 +1,7 @@
 import { Role } from "@prisma/client";
 import { hasPermission } from "@/lib/rbac";
 import { requireRole } from "@/lib/auth-helpers";
-import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
+import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
 import { getCompanyOptionsAction } from "@/features/company/application/queries";
 import { CreateCompanyPageForm } from "@/features/company/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";

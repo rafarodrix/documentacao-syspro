@@ -1,7 +1,7 @@
 "use server";
 
 import { Role } from "@prisma/client";
-import type { CreateUserInput } from "@/core/application/schema/user-schema";
+import type { CreateUserInput } from "@dosc-syspro/contracts";
 import {
   createUserAction as createUserActionImpl,
   updateUserAction as updateUserActionImpl,

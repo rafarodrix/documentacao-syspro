@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { createUserSchema, CreateUserInput } from "@/core/application/schema/user-schema";
+import { createUserSchema, CreateUserInput } from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";
@@ -25,14 +25,14 @@ interface GetUsersParams {
 }
 
 const linkUserSchema = z.object({
-    email: z.string().email("E-mail inválido"),
+    email: z.string().email("E-mail invÃ¡lido"),
     role: z.nativeEnum(Role),
     companyId: z.string().min(1, "Selecione uma empresa"),
 });
 
 export type LinkUserInput = z.infer<typeof linkUserSchema>;
 
-// --- Permissões ---
+// --- PermissÃµes ---
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
@@ -115,19 +115,19 @@ function handleActionError(error: any): ActionResponse {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
             const target = (error.meta?.target as string[]) || [];
-            if (target.includes('email')) return { success: false, message: "Este e-mail já está em uso." };
-            if (target.includes('cpf')) return { success: false, message: "Este CPF já está cadastrado." };
+            if (target.includes('email')) return { success: false, message: "Este e-mail jÃ¡ estÃ¡ em uso." };
+            if (target.includes('cpf')) return { success: false, message: "Este CPF jÃ¡ estÃ¡ cadastrado." };
         }
     }
     return { success: false, message: error.message || "Erro interno no servidor." };
 }
 
 /**
- * LISTAR USUÁRIOS
+ * LISTAR USUÃRIOS
  */
 export async function getUsersAction(filters?: GetUsersParams): Promise<ActionResponse> {
     const session = await getProtectedSession();
-    if (!session || !READ_ROLES.includes(session.role)) return { success: false, message: "Não autorizado." };
+    if (!session || !READ_ROLES.includes(session.role)) return { success: false, message: "NÃ£o autorizado." };
 
     try {
         const where: Prisma.UserWhereInput = { deletedAt: null };
@@ -157,18 +157,18 @@ export async function getUsersAction(filters?: GetUsersParams): Promise<ActionRe
 
         const data = users.map(u => ({
             ...u,
-            companyName: u.memberships[0]?.company?.nomeFantasia || "Sem Vínculo",
+            companyName: u.memberships[0]?.company?.nomeFantasia || "Sem VÃ­nculo",
             companyId: u.memberships[0]?.companyId || null
         }));
 
         return { success: true, data };
     } catch (error) {
-        return { success: false, message: "Erro ao carregar usuários." };
+        return { success: false, message: "Erro ao carregar usuÃ¡rios." };
     }
 }
 
 /**
- * CRIAR USUÁRIO (Com Rollback Corrigido)
+ * CRIAR USUÃRIO (Com Rollback Corrigido)
  */
 type UserUpsertInput = CreateUserInput & {
     additionalCompanyIds?: string[];
@@ -176,14 +176,14 @@ type UserUpsertInput = CreateUserInput & {
 
 export async function createUserAction(data: UserUpsertInput): Promise<ActionResponse> {
     const session = await getProtectedSession();
-    if (!session) return { success: false, message: "Permissão negada." };
+    if (!session) return { success: false, message: "PermissÃ£o negada." };
 
     const isSystemRole = SYSTEM_ROLES.includes(session.role);
     const isClientManager = session.role === Role.CLIENTE_ADMIN;
-    if (!isSystemRole && !isClientManager) return { success: false, message: "Permissão negada." };
+    if (!isSystemRole && !isClientManager) return { success: false, message: "PermissÃ£o negada." };
 
     const validation = createUserSchema.safeParse(data);
-    if (!validation.success) return { success: false, errors: validation.error.flatten().fieldErrors as any, message: "Dados inválidos." };
+    if (!validation.success) return { success: false, errors: validation.error.flatten().fieldErrors as any, message: "Dados invÃ¡lidos." };
     const ip = await getRequestIp();
     const rateLimit = consumeActionRateLimit({
         action: "createUserAction",
@@ -207,14 +207,14 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
     if (isClientManager) {
         const managedCompanyIds = await getSessionCompanyIds(session.userId);
         if (!data.companyId || !managedCompanyIds.includes(data.companyId)) {
-            return { success: false, message: "Empresa inválida para este gestor." };
+            return { success: false, message: "Empresa invÃ¡lida para este gestor." };
         }
         if (desiredCompanyIds.some((companyId) => !managedCompanyIds.includes(companyId))) {
             return { success: false, message: "Uma ou mais empresas informadas sao invalidas para este gestor." };
         }
 
         if (data.role !== Role.CLIENTE_USER && data.role !== Role.CLIENTE_ADMIN) {
-            return { success: false, message: "Gestor pode cadastrar apenas usuários da unidade." };
+            return { success: false, message: "Gestor pode cadastrar apenas usuÃ¡rios da unidade." };
         }
     }
 
@@ -238,10 +238,10 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
             headers: await headers()
         });
 
-        if (!authResponse?.user) return { success: false, message: "Falha na criação da conta." };
+        if (!authResponse?.user) return { success: false, message: "Falha na criaÃ§Ã£o da conta." };
         createdAuthUserId = authResponse.user.id;
 
-        // 2. Transação Prisma
+        // 2. TransaÃ§Ã£o Prisma
         await prisma.$transaction(async (tx) => {
             await tx.user.update({
                 where: { id: createdAuthUserId },
@@ -268,7 +268,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
         });
 
         revalidateCadastrosPaths();
-        return { success: true, message: "Usuário criado com sucesso!" };
+        return { success: true, message: "UsuÃ¡rio criado com sucesso!" };
 
     } catch (error) {
         // ROLLBACK: Remove do Auth se o banco falhar
@@ -281,7 +281,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
                     headers: await headers()
                 });
             } catch (rollbackError) {
-                console.error("Erro crítico no Rollback:", rollbackError);
+                console.error("Erro crÃ­tico no Rollback:", rollbackError);
             }
         }
         return handleActionError(error);
@@ -289,7 +289,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
 }
 
 /**
- * ATUALIZAR USUÁRIO
+ * ATUALIZAR USUÃRIO
  */
 export async function updateUserAction(id: string, data: Partial<UserUpsertInput>): Promise<ActionResponse> {
     const session = await getProtectedSession();
@@ -303,7 +303,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
         return {
             success: false,
             errors: updateValidation.error.flatten().fieldErrors as any,
-            message: "Dados inválidos.",
+            message: "Dados invÃ¡lidos.",
         };
     }
 
@@ -318,10 +318,10 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
 
     if (isClientManager) {
         const canManage = await canManageTargetUser(session, id);
-        if (!canManage) return { success: false, message: "Você não pode editar este usuário." };
+        if (!canManage) return { success: false, message: "VocÃª nÃ£o pode editar este usuÃ¡rio." };
 
         if (data.role && data.role !== Role.CLIENTE_USER && data.role !== Role.CLIENTE_ADMIN) {
-            return { success: false, message: "Gestor não pode atribuir perfil interno." };
+            return { success: false, message: "Gestor nÃ£o pode atribuir perfil interno." };
         }
 
         if (desiredCompanyIds?.length) {
@@ -385,7 +385,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
         });
 
         revalidateCadastrosPaths();
-        return { success: true, message: "Usuário atualizado com sucesso." };
+        return { success: true, message: "UsuÃ¡rio atualizado com sucesso." };
     } catch (error) {
         return handleActionError(error);
     }
@@ -396,13 +396,13 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
  */
 export async function deleteUserAction(id: string): Promise<ActionResponse> {
     const session = await getProtectedSession();
-    if (!session || id === session.userId) return { success: false, message: "Operação inválida." };
+    if (!session || id === session.userId) return { success: false, message: "OperaÃ§Ã£o invÃ¡lida." };
 
     const isSystemRole = SYSTEM_ROLES.includes(session.role);
     const isClientManager = session.role === Role.CLIENTE_ADMIN;
     if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
     if (isClientManager && !(await canManageTargetUser(session, id))) {
-        return { success: false, message: "Você não pode remover este usuário." };
+        return { success: false, message: "VocÃª nÃ£o pode remover este usuÃ¡rio." };
     }
 
     try {
@@ -432,17 +432,17 @@ export async function linkUserToCompanyAction(data: LinkUserInput): Promise<Acti
         if (isClientManager) {
             const managedCompanyIds = await getSessionCompanyIds(session.userId);
             if (!managedCompanyIds.includes(data.companyId)) {
-                return { success: false, message: "Empresa inválida para este gestor." };
+                return { success: false, message: "Empresa invÃ¡lida para este gestor." };
             }
             if (data.role !== Role.CLIENTE_ADMIN && data.role !== Role.CLIENTE_USER) {
-                return { success: false, message: "Perfil inválido para contexto de cliente." };
+                return { success: false, message: "Perfil invÃ¡lido para contexto de cliente." };
             }
         }
 
         const user = await prisma.user.findUnique({ where: { email: data.email } });
-        if (!user) return { success: false, message: "Usuário não encontrado." };
+        if (!user) return { success: false, message: "UsuÃ¡rio nÃ£o encontrado." };
         if (isClientManager && !CLIENT_ROLES.includes(user.role)) {
-            return { success: false, message: "Não é permitido vincular usuário interno." };
+            return { success: false, message: "NÃ£o Ã© permitido vincular usuÃ¡rio interno." };
         }
 
         await prisma.membership.upsert({
@@ -452,7 +452,7 @@ export async function linkUserToCompanyAction(data: LinkUserInput): Promise<Acti
         });
 
         revalidateCadastrosPaths();
-        return { success: true, message: "Vínculo atualizado." };
+        return { success: true, message: "VÃ­nculo atualizado." };
     } catch (error) {
         return handleActionError(error);
     }
@@ -469,7 +469,7 @@ export async function toggleUserStatusAction(id: string, active: boolean): Promi
     const isClientManager = session.role === Role.CLIENTE_ADMIN;
     if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
     if (isClientManager && !(await canManageTargetUser(session, id))) {
-        return { success: false, message: "Você não pode alterar este usuário." };
+        return { success: false, message: "VocÃª nÃ£o pode alterar este usuÃ¡rio." };
     }
 
     try {
@@ -478,14 +478,14 @@ export async function toggleUserStatusAction(id: string, active: boolean): Promi
             data: { isActive: active }
         });
         revalidateCadastrosPaths();
-        return { success: true, message: `Usuário ${active ? 'ativado' : 'desativado'} com sucesso.` };
+        return { success: true, message: `UsuÃ¡rio ${active ? 'ativado' : 'desativado'} com sucesso.` };
     } catch (error) {
         return handleActionError(error);
     }
 }
 
 /**
- * REMOVER USUÁRIO DE UMA EMPRESA (Remover Membership)
+ * REMOVER USUÃRIO DE UMA EMPRESA (Remover Membership)
  */
 export async function removeUserFromCompanyAction(userId: string, companyId: string): Promise<ActionResponse> {
     const session = await getProtectedSession();
@@ -496,11 +496,11 @@ export async function removeUserFromCompanyAction(userId: string, companyId: str
     if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
     if (isClientManager) {
         if (!(await canManageTargetUser(session, userId))) {
-            return { success: false, message: "Você não pode alterar este usuário." };
+            return { success: false, message: "VocÃª nÃ£o pode alterar este usuÃ¡rio." };
         }
         const managedCompanyIds = await getSessionCompanyIds(session.userId);
         if (!managedCompanyIds.includes(companyId)) {
-            return { success: false, message: "Empresa inválida para este gestor." };
+            return { success: false, message: "Empresa invÃ¡lida para este gestor." };
         }
     }
 
@@ -511,7 +511,7 @@ export async function removeUserFromCompanyAction(userId: string, companyId: str
             }
         });
         revalidateCadastrosPaths();
-        return { success: true, message: "Vínculo removido com sucesso." };
+        return { success: true, message: "VÃ­nculo removido com sucesso." };
     } catch (error) {
         return handleActionError(error);
     }
@@ -529,14 +529,14 @@ export async function updateMembershipRoleAction(userId: string, companyId: stri
     if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
     if (isClientManager) {
         if (!(await canManageTargetUser(session, userId))) {
-            return { success: false, message: "Você não pode alterar este usuário." };
+            return { success: false, message: "VocÃª nÃ£o pode alterar este usuÃ¡rio." };
         }
         const managedCompanyIds = await getSessionCompanyIds(session.userId);
         if (!managedCompanyIds.includes(companyId)) {
-            return { success: false, message: "Empresa inválida para este gestor." };
+            return { success: false, message: "Empresa invÃ¡lida para este gestor." };
         }
         if (role !== Role.CLIENTE_ADMIN && role !== Role.CLIENTE_USER) {
-            return { success: false, message: "Perfil inválido para contexto de cliente." };
+            return { success: false, message: "Perfil invÃ¡lido para contexto de cliente." };
         }
     }
 

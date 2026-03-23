@@ -10,9 +10,9 @@ import {
     ZammadTicketArticle,
     ZammadTicketDetails,
     ZammadUserSearch,
-} from "@/core/application/schema/zammad-api.schema";
+} from "@dosc-syspro/contracts";
 import { mapTicketPriority, mapTicketStatusFromStateName } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
-import { OPERATIONAL_STATE_IDS } from "@/core/config/tickets-workflow";
+import { OPERATIONAL_STATE_IDS } from "@dosc-syspro/core";
 import {
     markZammadRouteFresh,
     markZammadRouteStale,

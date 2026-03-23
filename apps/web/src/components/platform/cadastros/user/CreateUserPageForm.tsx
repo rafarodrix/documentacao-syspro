@@ -5,7 +5,7 @@ import type { ElementType } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { createUserSchema, type CreateUserInput } from "@/core/application/schema/user-schema";
+import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
 import { createUserAction, updateUserAction } from "@/features/user-access/application/actions";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

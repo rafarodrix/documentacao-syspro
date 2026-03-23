@@ -1,7 +1,7 @@
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
-import { ZammadOperationalTicket } from "@/core/application/schema/zammad-api.schema";
+import { ZammadOperationalTicket } from "@dosc-syspro/contracts";
 import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
 import { listCachedTickets, upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
@@ -13,7 +13,7 @@ import {
     getStateIdsForStatusGroup,
     type QueueKey,
     type TicketStatusGroup,
-} from "@/core/config/tickets-workflow";
+} from "@dosc-syspro/core";
 import type {
     TicketListItem,
     TicketQueryParams,

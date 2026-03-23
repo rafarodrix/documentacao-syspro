@@ -10,7 +10,7 @@ import { TicketsTable } from "./TicketsTable";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { TicketListItem, TicketStatusCounts, TicketsPagination } from "./types";
-import type { QueueKey, TicketStatusGroup } from "@/core/config/tickets-workflow";
+import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 
 interface TicketsContainerProps {
     tickets: TicketListItem[];

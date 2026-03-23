@@ -10,16 +10,16 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
 // Tipos
-import type { Release } from "@/core/domain/entities/release.entity";
+import type { Release } from "@dosc-syspro/core";
 
 export const metadata: Metadata = {
-    title: "Changelog e Atualizações",
-    description: "Acompanhe a evolução do sistema, novas funcionalidades e correções.",
+    title: "Changelog e AtualizaÃ§Ãµes",
+    description: "Acompanhe a evoluÃ§Ã£o do sistema, novas funcionalidades e correÃ§Ãµes.",
 };
 
-// --- Utilitários de Transformação de Dados (Pode extrair para utils se preferir) ---
+// --- UtilitÃ¡rios de TransformaÃ§Ã£o de Dados (Pode extrair para utils se preferir) ---
 const monthNames = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Janeiro", "Fevereiro", "MarÃ§o", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
@@ -49,7 +49,7 @@ function groupReleases(releases: Release[]) {
         }));
 }
 
-// --- Componente da Página ---
+// --- Componente da PÃ¡gina ---
 export default async function ReleasesIndexPage() {
     const releases = await getReleases();
     const timeline = groupReleases(releases);
@@ -65,7 +65,7 @@ export default async function ReleasesIndexPage() {
                     Novidades
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                    Fique por dentro da evolução do sistema. Acompanhe abaixo o histórico completo de melhorias e correções.
+                    Fique por dentro da evoluÃ§Ã£o do sistema. Acompanhe abaixo o histÃ³rico completo de melhorias e correÃ§Ãµes.
                 </p>
             </div>
 
@@ -74,7 +74,7 @@ export default async function ReleasesIndexPage() {
             {/* 2. Timeline */}
             {timeline.length === 0 ? (
                 <div className="text-center py-20 bg-muted/30 rounded-xl border border-dashed">
-                    <p className="text-muted-foreground">Nenhuma atualização publicada ainda.</p>
+                    <p className="text-muted-foreground">Nenhuma atualizaÃ§Ã£o publicada ainda.</p>
                 </div>
             ) : (
                 <div className="space-y-20">
@@ -114,7 +114,7 @@ export default async function ReleasesIndexPage() {
 
                                                 <CardContent className="p-6 flex flex-col h-full">
 
-                                                    {/* Cabeçalho do Card */}
+                                                    {/* CabeÃ§alho do Card */}
                                                     <div className="flex justify-between items-start mb-4">
                                                         <div className="flex items-center gap-2">
                                                             <div className={`p-2 rounded-lg ${isLatest ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
@@ -130,7 +130,7 @@ export default async function ReleasesIndexPage() {
                                                         )}
                                                     </div>
 
-                                                    {/* Estatísticas */}
+                                                    {/* EstatÃ­sticas */}
                                                     <div className="grid gap-3 mb-6 mt-auto">
                                                         <div className="flex items-center justify-between text-sm p-2 rounded bg-emerald-500/5 border border-emerald-500/10">
                                                             <span className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
@@ -140,13 +140,13 @@ export default async function ReleasesIndexPage() {
                                                         </div>
                                                         <div className="flex items-center justify-between text-sm p-2 rounded bg-amber-500/5 border border-amber-500/10">
                                                             <span className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                                                                <Bug className="w-4 h-4" /> Correções
+                                                                <Bug className="w-4 h-4" /> CorreÃ§Ãµes
                                                             </span>
                                                             <span className="font-mono font-bold">{bugs}</span>
                                                         </div>
                                                     </div>
 
-                                                    {/* Botão de Ação (Fake) */}
+                                                    {/* BotÃ£o de AÃ§Ã£o (Fake) */}
                                                     <Button variant="ghost" className="w-full justify-between group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                                                         Ver detalhes
                                                         <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

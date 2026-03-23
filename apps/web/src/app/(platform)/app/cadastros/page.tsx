@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { getProtectedSession } from "@/lib/auth-helpers"
-import { CADASTROS_ROUTE_RULES, hasAllowedRole } from "@/core/config/route-access"
+import { CADASTROS_ROUTE_RULES, hasAllowedRole } from "@dosc-syspro/core"
 
 export default async function CadastrosRootPage() {
   const session = await getProtectedSession()

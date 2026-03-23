@@ -3,7 +3,7 @@ import type {
   ZammadTicketAPI,
   ZammadTicketArticle,
   ZammadTicketDetails,
-} from "@/core/application/schema/zammad-api.schema";
+} from "@dosc-syspro/contracts";
 import type { Ticket } from "@/core/domain/entities/ticket.entity";
 
 export type ZammadCacheOptions = {

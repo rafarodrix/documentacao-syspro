@@ -1,5 +1,5 @@
 import type { Role } from "@prisma/client";
-import type { QueueKey, TicketStatusGroup } from "@/core/config/tickets-workflow";
+import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 import type {
   TicketListItem,
   TicketStatusCounts,
