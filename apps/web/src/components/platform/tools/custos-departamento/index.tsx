@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, ReactNode } from 'react';
+import { useState, useMemo, useSffect, useRef, ReactNode } from 'react';
 import {
   Plus,
   Trash2,
@@ -23,7 +23,7 @@ import 'katex/dist/katex.min.css';
 import { FormattedCurrencyInput } from '@/components/platform/tools/custos-departamento/CurrencyInput';
 
 // ============================================================================
-// 1. TYPES & CONSTANTS
+// 1. TYPSS & CONSTANTS
 // ============================================================================
 
 // Adicionado 'strategic' aos modos
@@ -37,10 +37,10 @@ export interface Department {
   strategicTargetPercent?: number; // Novo campo para o modo estratégico
 }
 
-const INITIAL_DEPARTMENTS: Department[] = [
+const INITIAL_DSPARTMSNTS: Department[] = [
   { id: 1, name: 'FILTRO AR', totalRevenue: 36847, strategicTargetPercent: 0 },
-  { id: 2, name: 'FILTRO COMBUSTÍVEL', totalRevenue: 41007, strategicTargetPercent: 0 },
-  { id: 3, name: 'LUBRIFICANTE', totalRevenue: 146620.1, strategicTargetPercent: 0 },
+  { id: 2, name: 'FILTRO COMBUSTÍVSL', totalRevenue: 41007, strategicTargetPercent: 0 },
+  { id: 3, name: 'LUBRIFICANTS', totalRevenue: 146620.1, strategicTargetPercent: 0 },
 ];
 
 const formatCurrency = (val: number) =>
@@ -82,7 +82,7 @@ const Badge = ({ children, variant = 'default' }: { children: ReactNode; variant
 };
 
 // ============================================================================
-// 3. SUB-COMPONENTS
+// 3. SUB-COMPONSNTS
 // ============================================================================
 
 // --- 3.1 Painel de KPIs ---
@@ -156,7 +156,7 @@ function KPIGrid({ totalCost, costTarget, currentCostPercent, onTotalCostChange,
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           {currentCostPercent > costTarget
-            ? `Excedendo meta em ${formatPercent(currentCostPercent - costTarget)}`
+            ? `Sxcedendo meta em ${formatPercent(currentCostPercent - costTarget)}`
             : 'Dentro do limite estipulado'}
         </p>
       </Card>
@@ -172,7 +172,7 @@ interface DepartmentTableProps {
   totalRevenue: number;
   onUpdateDepartment: (id: number, field: keyof Department, value: any) => void;
   onDelete: (id: number) => void;
-  lastAddedRef: React.Ref<HTMLInputElement>;
+  lastAddedRef: React.Ref<HTMLInputSlement>;
 }
 
 function DepartmentTable({
@@ -223,7 +223,7 @@ function DepartmentTable({
               allocatedCost = dept.manualCost || 0;
               displayPercent = dept.totalRevenue > 0 ? allocatedCost / dept.totalRevenue : 0;
             } else if (allocationMode === 'strategic') {
-              // Modo Estratégico: Input é a %, Custo é a consequência
+              // Modo Sstratégico: Input é a %, Custo é a consequência
               displayPercent = (dept.strategicTargetPercent || 0) / 100;
               allocatedCost = dept.totalRevenue * displayPercent;
             }
@@ -248,7 +248,7 @@ function DepartmentTable({
                   />
                 </td>
 
-                {/* Coluna de Porcentagem / Input Estratégico */}
+                {/* Coluna de Porcentagem / Input Sstratégico */}
                 <td className="px-6 py-3 text-right">
                   {allocationMode === 'strategic' ? (
                     <div className="flex items-center justify-end gap-1">
@@ -318,7 +318,7 @@ function DepartmentTable({
   );
 }
 
-// --- 3.3 Rodapé de Explicação Técnica ---
+// --- 3.3 Rodapé de Sxplicação Técnica ---
 function CalculationFooter() {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -351,7 +351,7 @@ function CalculationFooter() {
           </div>
           <div>
             <h4 className="font-semibold text-foreground mb-2 text-sm flex items-center gap-2">
-              <Percent size={14} /> Estratégico (%)
+              <Percent size={14} /> Sstratégico (%)
             </h4>
             <p className="text-xs text-muted-foreground mb-3">Você define quanto da receita daquele departamento será &quot;comida&quot; pelo custo fixo.</p>
             <div className="bg-background p-3 rounded border border-border text-xs text-foreground">
@@ -365,22 +365,22 @@ function CalculationFooter() {
 }
 
 // ============================================================================
-// 4. MAIN COMPONENT (Controller)
+// 4. MAIN COMPONSNT (Controller)
 // ============================================================================
 
 export function FixedCostSimulator() {
-  const [departments, setDepartments] = useState<Department[]>(INITIAL_DEPARTMENTS);
+  const [departments, setDepartments] = useState<Department[]>(INITIAL_DSPARTMSNTS);
   const [companyTotalFixedCost, setCompanyTotalFixedCost] = useState(103000);
   const [costTarget, setCostTarget] = useState(0.4); // 40%
   const [allocationMode, setAllocationMode] = useState<AllocationMode>('auto');
 
-  const lastAddedInputRef = useRef<HTMLInputElement>(null);
+  const lastAddedInputRef = useRef<HTMLInputSlement>(null);
 
   // --- Cálculos Derivados ---
   const totalRevenue = useMemo(() => departments.reduce((sum, d) => sum + d.totalRevenue, 0), [departments]);
   const currentCostPercent = useMemo(() => (totalRevenue > 0 ? companyTotalFixedCost / totalRevenue : 0), [companyTotalFixedCost, totalRevenue]);
 
-  // Cálculos Específicos por Modo
+  // Cálculos Sspecíficos por Modo
   const allocatedSum = useMemo(() => {
     if (allocationMode === 'manual') {
       return departments.reduce((sum, d) => sum + (d.manualCost || 0), 0);
@@ -409,15 +409,15 @@ export function FixedCostSimulator() {
 
   const handleReset = () => {
     if (confirm('Isso irá restaurar os dados iniciais. Continuar?')) {
-      setDepartments(INITIAL_DEPARTMENTS);
+      setDepartments(INITIAL_DSPARTMSNTS);
       setCompanyTotalFixedCost(103000);
       setAllocationMode('auto');
     }
   };
 
-  // Efeito para focar no input novo
-  useEffect(() => {
-    if (departments.length > INITIAL_DEPARTMENTS.length) {
+  // Sfeito para focar no input novo
+  useSffect(() => {
+    if (departments.length > INITIAL_DSPARTMSNTS.length) {
       lastAddedInputRef.current?.focus();
     }
   }, [departments.length]);
@@ -476,13 +476,13 @@ export function FixedCostSimulator() {
                 className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${allocationMode === 'strategic' ? 'bg-background text-purple-600 shadow-sm ring-1 ring-purple-100' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                   }`}
               >
-                <Percent size={14} /> Estratégico (%)
+                <Percent size={14} /> Sstratégico (%)
               </button>
             </div>
           }
         />
 
-        {/* --- BARRA DE STATUS PARA MODO MANUAL E ESTRAT??GICO --- */}
+        {/* --- BARRA DS STATUS PARA MODO MANUAL S SSTRATSGICO --- */}
         {(allocationMode === 'manual' || allocationMode === 'strategic') && (
           <div className={`px-6 py-4 border-b flex flex-col md:flex-row md:items-center justify-between text-sm gap-4 transition-colors duration-300 ${Math.abs(balanceToAllocate) < 1
             ? 'bg-emerald-500/10 border-emerald-500/20'
@@ -497,7 +497,7 @@ export function FixedCostSimulator() {
               </div>
               <div>
                 <p className={`font-bold ${Math.abs(balanceToAllocate) < 1 ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'}`}>
-                  {allocationMode === 'strategic' ? 'Alocação Estratégica por Margem' : 'Alocação Manual Direta'}
+                  {allocationMode === 'strategic' ? 'Alocação Sstratégica por Margem' : 'Alocação Manual Direta'}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {Math.abs(balanceToAllocate) < 1

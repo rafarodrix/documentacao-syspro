@@ -1,6 +1,6 @@
 'use client';
 
-// 1?? IMPORTS OTIMIZADOS
+// 1. IMPORTS OTIMIZADOS
 import { useState, useCallback, useMemo, ChangeEvent, FC } from 'react';
 import {
   UploadCloud, Loader, AlertTriangle, Package, Building, UserCircle, Hash,
@@ -8,11 +8,11 @@ import {
   Clock, Truck, Coins, FileText
 } from 'lucide-react';
 
-// 2?? IMPORTA??O DO ARQUIVO DE TYPES CENTRALIZADO
+// 2. IMPORTACAO DO ARQUIVO DE TYPES CENTRALIZADO
 import { DanfeData, ItemData, SugestaoTributaria } from '../types'; // Ajuste o caminho conforme necess?rio
 
 // =============================================================
-// 3?? FUN??ES AUXILIARES (formatadores centralizados)
+// 3. FUNCOES AUXILIARES (formatadores centralizados)
 // =============================================================
 const formatCurrency = (v?: number | null) =>
   v != null ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
@@ -27,7 +27,7 @@ const formatDate = (iso?: string) => {
 };
 
 // =============================================================
-// 4?? COMPONENTE DE SUGEST?O DE TRIBUTA??O 
+// 4. COMPONENTE DE SUGESTAO DE TRIBUTACAO 
 // =============================================================
 export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDest }) => {
   const [sugestao, setSugestao] = useState<SugestaoTributaria | null>(null);
@@ -37,7 +37,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
   const handleSuggest = useCallback(async () => {
     const { ICMS, PIS, COFINS } = item.impostos;
     if (!ICMS?.CST || !PIS?.CST || !COFINS?.CST) {
-      setError('Dados fiscais insuficientes para gerar sugest?o.');
+      setError('Dados fiscais insuficientes para gerar sugestao.');
       return;
     }
 
@@ -61,13 +61,13 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Erro ao sugerir tributa??o (${res.status})`);
+        throw new Error(err.error || `Erro ao sugerir tributacao (${res.status})`);
       }
 
       const data: SugestaoTributaria = await res.json();
       setSugestao(data);
     } catch (err: any) {
-      console.error('Erro ao sugerir tributa??o:', err);
+      console.error('Erro ao sugerir tributacao:', err);
       setError(err.message || 'Falha inesperada na an?lise.');
     } finally {
       setIsLoading(false);
@@ -79,7 +79,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
         return (
           <div className="text-sm text-muted-foreground animate-fade-in text-center">
             <Loader className="animate-spin mx-auto mb-2" size={24} />
-            Analisando tributa??o...
+            Analisando tributacao...
           </div>
         );
   
@@ -129,7 +129,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
   return (
     <div className="mt-4 border-t border-border/60 pt-4">
       <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-        <Sparkles size={16} className="text-primary" /> Assistente de Tributa??o ERP
+        <Sparkles size={16} className="text-primary" /> Assistente de Tributacao ERP
       </h4>
       <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border/60 min-h-[8rem] flex flex-col justify-center items-center">
         {content}
@@ -139,7 +139,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
 };
 
 // =============================================================
-// 5?? UI ? COMPONENTES DE APOIO E VISUALIZA??O
+// 5. UI ? COMPONENTES DE APOIO E VISUALIZACAO
 // =============================================================
 
 /** Card de Detalhes Tribut?rios de um Item */
@@ -200,7 +200,7 @@ const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDest })
   );
 };
 
-/** Card de Informa??es da Nota (Emitente, Destinat?rio, Meta) */
+/** Card de Informacoes da Nota (Emitente, Destinat?rio, Meta) */
 const DanfeHeaderCard: FC<{ danfe: DanfeData }> = ({ danfe }) => (
   <div className="grid md:grid-cols-3 gap-6">
     <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-800 border">
@@ -260,7 +260,7 @@ const DanfeTotalsCard: FC<{ danfe: DanfeData }> = ({ danfe }) => (
 
 
 // =============================================================
-// 6?? COMPONENTE PRINCIPAL
+// 6. COMPONENTE PRINCIPAL
 // =============================================================
 export function DanfeVisualizerTool() {
   const [danfeData, setDanfeData] = useState<DanfeData | null>(null);
@@ -301,7 +301,7 @@ export function DanfeVisualizerTool() {
     }
   }, []);
 
-  const ufDest = danfeData?.dest.raw.UF || 'SP'; // Default ou buscar de um campo de sele??o
+  const ufDest = danfeData?.dest.raw.UF || 'SP'; // Default ou buscar de um campo de selecao
 
   return (
     <div className="space-y-8">

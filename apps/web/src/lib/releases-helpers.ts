@@ -9,7 +9,7 @@ export type MonthSummary = {
   melhorias: number;
 };
 
-// L?gica de agrupamento que voc? j? criou, agora em uma fun??o reutiliz?vel
+// Logica de agrupamento que voce ja criou, agora em uma funcao reutilizavel
 export function groupReleasesByMonth(releases: Release[]): MonthSummary[] {
   const monthNames = ["Janeiro", "Fevereiro", "Mar?o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 

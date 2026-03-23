@@ -19,15 +19,15 @@ export async function getDocumentos() {
 
 // --- SALVAR (CRIAR ou EDITAR) ---
 export async function saveDocumento(data: DocumentoFormValues) {
-    // 1. Valida??o no Servidor (Seguran?a extra)
+    // 1. Validacao no Servidor (Seguranca extra)
     const validation = documentoSchema.safeParse(data)
 
     if (!validation.success) {
-        return { success: false, error: "Dados inv?lidos." }
+        return { success: false, error: "Dados invalidos." }
     }
 
-    // 2. Sanitiza??o (A CORRECAO DO ERRO ESTA AQUI)
-    // Separamos o ID e os campos que N?O existem no banco para n?o envi?-los ao Prisma
+    // 2. Sanitizacao (A CORRECAO DO ERRO ESTA AQUI)
+    // Separamos o ID e os campos que NAO existem no banco para nao envia-los ao Prisma
     const {
         id,
         emitente,           // Removido do payload
@@ -38,7 +38,7 @@ export async function saveDocumento(data: DocumentoFormValues) {
     } = validation.data
 
     try {
-        // Verifica se ? Edi??o (ID existe e ? v?lido)
+        // Verifica se ? Edicao (ID existe e ? valido)
         if (id && id.length > 10) {
             // --- ATUALIZAR (UPDATE) ---
             await prisma.documentoConfig.update({
@@ -64,7 +64,7 @@ export async function saveDocumento(data: DocumentoFormValues) {
         return { success: true }
 
     } catch (error) {
-        console.error("Erro cr?tico ao salvar no Prisma:", error)
+        console.error("Erro critico ao salvar no Prisma:", error)
         return { success: false, error: "Erro interno ao persistir dados." }
     }
 }

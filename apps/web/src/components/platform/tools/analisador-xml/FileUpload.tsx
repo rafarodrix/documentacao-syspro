@@ -34,7 +34,7 @@ export function FileUpload({
   // Estado para efeito visual de "Arrastar por cima"
   const [isDragging, setIsDragging] = useState(false);
 
-  // --- L?gica de Drag & Drop ---
+  // --- Logica de Drag & Drop ---
   const handleDragOver = (e: DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(true);
@@ -50,7 +50,7 @@ export function FileUpload({
     setIsDragging(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      // Pequena valida??o para garantir que ZIP seja ?nico se for a op??o ZIP
+      // Pequena validacao para garantir que ZIP seja unico se for a opcao ZIP
       if (type === 'zip' && !e.dataTransfer.files[0].name.endsWith('.zip')) {
         alert('Por favor, arraste um arquivo .zip'); // Idealmente usar um Toast aqui
         return;
@@ -61,15 +61,15 @@ export function FileUpload({
     }
   };
 
-  // --- L?gica de M?scara de CNPJ ---
+  // --- Logica de M?scara de CNPJ ---
   const handleCnpjChangeLocal = (e: ChangeEvent<HTMLInputElement>) => {
-    // Remove tudo que n?o ? d?gito
+    // Remove tudo que nao ? d?gito
     let value = e.target.value.replace(/\D/g, '');
 
     // Limita a 14 d?gitos
     if (value.length > 14) value = value.slice(0, 14);
 
-    // Atualiza o valor no input (hack simples para manter o cursor ok em edi??es simples)
+    // Atualiza o valor no input (hack simples para manter o cursor ok em edicoes simples)
     e.target.value = value;
 
     onCnpjChange(e);
@@ -89,14 +89,14 @@ export function FileUpload({
     <div className="bg-card p-8 rounded-xl shadow-sm border">
       <form onSubmit={onSubmit} className="space-y-6">
 
-        {/* SE??O 1: UPLOAD */}
+        {/* SECAO 1: UPLOAD */}
         <div>
           <label className="block text-lg font-semibold text-foreground mb-4">
             1. Escolha ou Arraste os Arquivos
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* Bot?o Pasta (Drop Zone) */}
+            {/* Botao Pasta (Drop Zone) */}
             <label
               htmlFor="folder-upload"
               className={dropZoneClasses}
@@ -122,7 +122,7 @@ export function FileUpload({
               />
             </label>
 
-            {/* Bot?o ZIP (Drop Zone) */}
+            {/* Botao ZIP (Drop Zone) */}
             <label
               htmlFor="zip-upload"
               className={dropZoneClasses}
@@ -147,7 +147,7 @@ export function FileUpload({
           </div>
         </div>
 
-        {/* FEEDBACK DE SELE??O */}
+        {/* FEEDBACK DE SELECAO */}
         {files && files.length > 0 && (
           <div className="border-t border-b border-border py-4 animate-fade-in bg-secondary/30 px-4 rounded-md">
             <div className="flex justify-between items-center">
@@ -172,7 +172,7 @@ export function FileUpload({
           </div>
         )}
 
-        {/* SE??O 2: CNPJ */}
+        {/* SECAO 2: CNPJ */}
         <div>
           <label htmlFor="cnpj" className="block text-lg font-semibold text-foreground mb-2">
             2. CNPJ da Empresa
@@ -202,10 +202,10 @@ export function FileUpload({
           )}
         </div>
 
-        {/* SE??O 3: N?MEROS */}
+        {/* SECAO 3: NUMEROS */}
         <div>
           <label htmlFor="numeros" className="block text-lg font-semibold text-foreground mb-2">
-            3. Filtro de Numera??o (Opcional)
+            3. Filtro de Numeracao (Opcional)
           </label>
           <input
             id="numeros"
@@ -219,7 +219,7 @@ export function FileUpload({
 
         <button
           type="submit"
-          // Bloqueia se CNPJ for inv?lido (menor que 14)
+          // Bloqueia se CNPJ for invalido (menor que 14)
           disabled={isProcessing || !files || files.length === 0 || cnpjEmpresa.length < 14}
           className="w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-muted disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md active:scale-[0.99]"
         >

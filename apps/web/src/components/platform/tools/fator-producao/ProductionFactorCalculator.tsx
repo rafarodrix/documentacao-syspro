@@ -70,7 +70,7 @@ export function ProductionFactorCalculator() {
     const calculateFactor = (weight: number) => weight > 0 ? (1 / weight) : 0
     const calculateDraw = (qty: number, factor: number) => qty * factor
 
-    // C?lculo do Fator de Produ??o Unit?rio
+    // Calculo do Fator de Producao Unit?rio
     const calculateProductionFactor = (qty: number, factor: number) => {
         if (recipeYield === 0) return 0;
         return (qty / recipeYield) * factor;
@@ -79,7 +79,7 @@ export function ProductionFactorCalculator() {
     const handleExportPDF = () => {
         const doc = new jsPDF()
         doc.setFontSize(18)
-        doc.text("Ficha T?cnica de Produ??o", 14, 20)
+        doc.text("Ficha Tecnica de Producao", 14, 20)
 
         // Cabe?alho do Produto Principal
         doc.setFontSize(12)
@@ -124,7 +124,7 @@ export function ProductionFactorCalculator() {
                         <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
                             <Package className="w-5 h-5 text-primary" /> Dados da Receita
                         </h2>
-                        <p className="text-sm text-muted-foreground">Identifica??o do produto acabado e rendimento.</p>
+                        <p className="text-sm text-muted-foreground">Identificacao do produto acabado e rendimento.</p>
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={clearAll} title="Limpar">
@@ -147,7 +147,7 @@ export function ProductionFactorCalculator() {
                         />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                        <Label className="text-xs font-medium text-muted-foreground">Descri??o do Produto</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">Descricao do Produto</Label>
                         <Input
                             placeholder="Ex: Produto Acabado 1001"
                             value={mainProductDesc}
@@ -170,7 +170,7 @@ export function ProductionFactorCalculator() {
                 </div>
             </div>
 
-            {/* --- TABELA DE COMPOSI??O --- */}
+            {/* --- TABELA DE COMPOSICAO --- */}
             <Card className="border-border/60 shadow-sm overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
@@ -212,7 +212,7 @@ export function ProductionFactorCalculator() {
                                             </TableCell>
                                             <TableCell className="py-2">
                                                 <Input
-                                                    placeholder="Descri??o do insumo"
+                                                    placeholder="Descricao do insumo"
                                                     value={item.productName}
                                                     onChange={(e) => updateItem(item.id, "productName", e.target.value)}
                                                     className="h-8 border-transparent bg-transparent hover:bg-background hover:border-input focus:bg-background focus:border-primary"
@@ -270,7 +270,7 @@ export function ProductionFactorCalculator() {
 
                     <div className="p-3 border-t bg-muted/10">
                         <Button onClick={addItem} variant="outline" size="sm" className="w-full border-dashed border-2 hover:border-primary hover:text-primary hover:bg-primary/5 h-9 text-xs uppercase tracking-wide">
-                            <Plus className="w-3.5 h-3.5 mr-2" /> Adicionar Composi??o
+                            <Plus className="w-3.5 h-3.5 mr-2" /> Adicionar Composicao
                         </Button>
                     </div>
                 </CardContent>
@@ -299,7 +299,7 @@ export function ProductionFactorCalculator() {
 
                             <div className="p-3 rounded-md border bg-orange-50/40 dark:bg-orange-950/20 border-orange-200/50 flex flex-col gap-1">
                                 <div className="flex items-center gap-2 font-medium text-orange-700 dark:text-orange-400">
-                                    <Settings className="w-4 h-4" /> 2. Fator Produ??o
+                                    <Settings className="w-4 h-4" /> 2. Fator Producao
                                 </div>
                                 <div className="text-xs text-orange-800/80 dark:text-orange-300/80 font-mono mt-1 bg-background/50 p-1.5 rounded border border-orange-200/30">
                                     (Qtd Total ? Rendimento) ? Fator

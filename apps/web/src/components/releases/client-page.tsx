@@ -23,7 +23,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
-    // L?gica de Filtragem Otimizada (useMemo)
+    // Logica de Filtragem Otimizada (useMemo)
     const { filteredBugs, filteredMelhorias } = useMemo(() => {
         // 1. Filtrar por Termo de Busca
         const searchLower = searchTerm.toLowerCase();
@@ -54,7 +54,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
 
     return (
         <div className="container max-w-5xl py-10 mx-auto space-y-8">
-            {/* Header de Navega??o */}
+            {/* Header de Navegacao */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-in slide-in-from-top-4 duration-500">
                 <div className="space-y-1">
                     <Link href="/releases">
@@ -72,7 +72,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
                         </Badge>
                     </div>
                     <p className="text-muted-foreground">
-                        Confira as ?ltimas melhorias e corre??es aplicadas no sistema.
+                        Confira as ultimas melhorias e correcoes aplicadas no sistema.
                     </p>
                 </div>
             </div>

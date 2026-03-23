@@ -1,7 +1,7 @@
 ---
 id: "SCR-006"
 title: "Cancelar Pedidos Antigos com Status 'Lan?ando'"
-description: "Atualiza o status para 'CANCELADO' e inativa pedidos antigos que ficaram travados no status 'LANCANDO', com n?mero 0 e data de venda anterior ? data atual. ATEN??O: ? obrigat?rio realizar um backup completo da base de dados antes da execu??o e validar o impacto em um ambiente de homologa??o."
+description: "Atualiza o status para 'CANCELADO' e inativa pedidos antigos que ficaram travados no status 'LANCANDO', com numero 0 e data de venda anterior a data atual. ATENCAO: a obrigatorio realizar um backup completo da base de dados antes da execucao e validar o impacto em um ambiente de homologacao."
 category: "Vendas"
 author: "Analista do Sistema"
 createdAt: "2025-10-16"
@@ -14,12 +14,12 @@ tags:
 
 ```sql
 -- Script: Cancelamento de Pedidos Antigos em Lan?amento
--- Objetivo: Inativar e cancelar pedidos que n?o foram finalizados (n?mero 0, status 'LANCANDO') 
+-- Objetivo: Inativar e cancelar pedidos que nao foram finalizados (numero 0, status 'LANCANDO') 
 --           e que s?o anteriores a 16/10/2025, visando a limpeza da base de dados.
 -- Par?metros: N?o h? par?metros. O script utiliza uma data de corte fixa ('2025-10-16'). 
 --             Se necess?rio, ajuste a data no final da cl?usula WHERE.
--- Recomenda??o: Execute backup completo antes de rodar este script. Teste previamente 
---               em um ambiente de homologa??o para garantir o resultado esperado.
+-- Recomendacao: Execute backup completo antes de rodar este script. Teste previamente 
+--               em um ambiente de homologacao para garantir o resultado esperado.
 
 UPDATE pedido AS ped
 SET ped.status = 'CANCELADO',

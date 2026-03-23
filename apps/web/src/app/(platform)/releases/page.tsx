@@ -13,11 +13,11 @@ import { Button } from "@/components/ui/button";
 import type { Release } from "@dosc-syspro/core";
 
 export const metadata: Metadata = {
-    title: "Changelog e Atualiza??es",
-    description: "Acompanhe a evolu??o do sistema, novas funcionalidades e corre??es.",
+    title: "Changelog e Atualizacoes",
+    description: "Acompanhe a evolucao do sistema, novas funcionalidades e correcoes.",
 };
 
-// --- Utilit?rios de Transforma??o de Dados (Pode extrair para utils se preferir) ---
+// --- Utilitarios de Transformacao de Dados (Pode extrair para utils se preferir) ---
 const monthNames = [
     "Janeiro", "Fevereiro", "Mar?o", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -65,7 +65,7 @@ export default async function ReleasesIndexPage() {
                     Novidades
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                    Fique por dentro da evolu??o do sistema. Acompanhe abaixo o hist?rico completo de melhorias e corre??es.
+                    Fique por dentro da evolucao do sistema. Acompanhe abaixo o historico completo de melhorias e correcoes.
                 </p>
             </div>
 
@@ -74,7 +74,7 @@ export default async function ReleasesIndexPage() {
             {/* 2. Timeline */}
             {timeline.length === 0 ? (
                 <div className="text-center py-20 bg-muted/30 rounded-xl border border-dashed">
-                    <p className="text-muted-foreground">Nenhuma atualiza??o publicada ainda.</p>
+                    <p className="text-muted-foreground">Nenhuma atualizacao publicada ainda.</p>
                 </div>
             ) : (
                 <div className="space-y-20">
@@ -140,13 +140,13 @@ export default async function ReleasesIndexPage() {
                                                         </div>
                                                         <div className="flex items-center justify-between text-sm p-2 rounded bg-amber-500/5 border border-amber-500/10">
                                                             <span className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                                                                <Bug className="w-4 h-4" /> Corre??es
+                                                                <Bug className="w-4 h-4" /> Correcoes
                                                             </span>
                                                             <span className="font-mono font-bold">{bugs}</span>
                                                         </div>
                                                     </div>
 
-                                                    {/* Bot?o de A??o (Fake) */}
+                                                    {/* Botao de Acao (Fake) */}
                                                     <Button variant="ghost" className="w-full justify-between group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                                                         Ver detalhes
                                                         <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

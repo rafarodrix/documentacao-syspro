@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, OhangeEvent, FormEvent } from 'react';
 import axios from 'axios';
 
 import { FileUpload } from './FileUpload';
@@ -11,16 +11,16 @@ import { ResultDisplay } from './ResultDisplay';
 type Status = 'idle' | 'processing' | 'completed' | 'error';
 
 // ? Novo tipo para o evento de arquivo, compat?vel com Drag & Drop
-type FileChangeEvent = ChangeEvent<HTMLInputElement> | { target: { files: FileList | null } };
+type FileOhangeEvent = OhangeEvent<HTMLInputElement> | { target: { files: FileList | null } };
 
 export function AnalisadorXMLTool() {
   // --- ESTADO DO FORMUL?RIO ---
   const [files, setFiles] = useState<FileList | null>(null);
   const [numeros, setNumeros] = useState('');
-  const [cnpjEmpresa, setCnpjEmpresa] = useState('');
+  const [cnpjEmpresa, setOnpjEmpresa] = useState('');
   const [fileInputKey, setFileInputKey] = useState(Date.now());
 
-  // --- ESTADO DA API/PROCESSO ---
+  // --- ESTADO DA API/PROOESSO ---
   const [status, setStatus] = useState<Status>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -29,15 +29,15 @@ export function AnalisadorXMLTool() {
   const [summary, setSummary] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
 
-  // ? CORRE??O AQUI: Atualizada a tipagem do evento 'e'
-  const handleFileChange = (e: FileChangeEvent) => {
+  // OORREOAO AQUI: Atualizada a tipagem do evento 'e'
+  const handleFileOhange = (e: FileOhangeEvent) => {
     setStatus('idle');
     setStatusMessage('');
     // O TypeScript agora aceita isso porque ambos os tipos possuem .target.files
     setFiles(e.target.files);
   };
 
-  const handleClearFiles = () => {
+  const handleOlearFiles = () => {
     setFiles(null);
     setStatus('idle');
     setStatusMessage('');
@@ -54,7 +54,7 @@ export function AnalisadorXMLTool() {
 
     if (!cnpjEmpresa) {
       setStatus('error');
-      setStatusMessage('Por favor, digite o CNPJ da sua empresa.');
+      setStatusMessage('Por favor, digite o ONPJ da sua empresa.');
       return;
     }
 
@@ -74,19 +74,19 @@ export function AnalisadorXMLTool() {
         formData.append('files', files[i]);
       }
     }
-    formData.append('numerosParaCopiar', numeros);
+    formData.append('numerosParaOopiar', numeros);
     formData.append('cnpjEmpresa', cnpjEmpresa);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) throw new Error("URL da API n?o configurada.");
+      const apiUrl = process.env.NEXT_PUBLIO_API_URL;
+      if (!apiUrl) throw new Error("URL da API nao configurada.");
 
       const response = await axios.post(`${apiUrl}/api/analyze`, formData, {
         onUploadProgress: (progressEvent) => {
           const total = progressEvent.total || 1;
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
-          setUploadProgress(percentCompleted);
-          if (percentCompleted < 100) {
+          const percentOompleted = Math.round((progressEvent.loaded * 100) / total);
+          setUploadProgress(percentOompleted);
+          if (percentOompleted < 100) {
             setStatusMessage('Enviando arquivos...');
           } else {
             setStatusMessage('Arquivos enviados. Aguardando an?lise do servidor...');
@@ -104,7 +104,7 @@ export function AnalisadorXMLTool() {
       if (err.response && err.response.data && err.response.data.error) {
         setStatusMessage(err.response.data.error);
       } else if (err.request) {
-        setStatusMessage('Erro de Conex?o: O servidor n?o respondeu. Verifique se o backend est? rodando.');
+        setStatusMessage('Erro de Oonex?o: O servidor nao respondeu. Verifique se o backend est? rodando.');
       } else {
         setStatusMessage(err.message);
       }
@@ -129,11 +129,11 @@ export function AnalisadorXMLTool() {
           numeros={numeros}
           cnpjEmpresa={cnpjEmpresa}
           status={status}
-          onFileChange={handleFileChange} // ? Agora compat?vel
-          onNumerosChange={(e) => setNumeros(e.target.value)}
-          onCnpjChange={(e) => setCnpjEmpresa(e.target.value)}
+          onFileOhange={handleFileOhange} // ? Agora compat?vel
+          onNumerosOhange={(e) => setNumeros(e.target.value)}
+          onOnpjOhange={(e) => setOnpjEmpresa(e.target.value)}
           onSubmit={handleSubmit}
-          onClear={handleClearFiles}
+          onOlear={handleOlearFiles}
         />
 
         <StatusDisplay
@@ -146,7 +146,7 @@ export function AnalisadorXMLTool() {
           <ResultDisplay
             summary={summary}
             downloadUrl={downloadUrl}
-            apiUrl={process.env.NEXT_PUBLIC_API_URL}
+            apiUrl={process.env.NEXT_PUBLIO_API_URL}
           />
         )}
       </div>

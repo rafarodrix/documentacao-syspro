@@ -7,7 +7,7 @@ const emptyToUndefined = z.preprocess(
 );
 
 /**
- * Schema do Endere?o
+ * Schema do Endereco
  */
 export const addressSchema = z.object({
   description: emptyToUndefined.default("Sede"),
@@ -15,11 +15,11 @@ export const addressSchema = z.object({
     .string()
     .min(8, "CEP incompleto")
     .transform((v) => v.replace(/\D/g, "")),
-  logradouro: z.string().min(1, "Logradouro ? obrigat?rio"),
-  numero: z.string().min(1, "N?mero ? obrigat?rio"),
+  logradouro: z.string().min(1, "Logradouro ? obrigatorio"),
+  numero: z.string().min(1, "N?mero ? obrigatorio"),
   complemento: emptyToUndefined,
-  bairro: z.string().min(1, "Bairro ? obrigat?rio"),
-  cidade: z.string().min(1, "Cidade ? obrigat?ria"),
+  bairro: z.string().min(1, "Bairro ? obrigatorio"),
+  cidade: z.string().min(1, "Cidade ? obrigatoria"),
   estado: z.string().length(2, "UF deve ter 2 letras").toUpperCase(),
   pais: z.string().default("BR"),
   codigoIbgeCidade: emptyToUndefined,
@@ -36,13 +36,13 @@ export const createCompanySchema = z
       .string()
       .min(14, "CNPJ incompleto")
       .transform((val) => val.replace(/\D/g, "")),
-    razaoSocial: z.string().min(3, "Raz?o Social ? obrigat?ria").trim(),
+    razaoSocial: z.string().min(3, "Raz?o Social ? obrigatoria").trim(),
     nomeFantasia: emptyToUndefined,
     segment: z.nativeEnum(CompanySegment).nullable().optional(),
     status: z.nativeEnum(CompanyStatus).default(CompanyStatus.ACTIVE),
     logoUrl: emptyToUndefined.pipe(z.string().url("URL inv?lida").optional()),
 
-    // HIERARQUIA E RELA??ES
+    // HIERARQUIA E RELACOES
     parentCompanyId: emptyToUndefined,
     accountingFirmId: emptyToUndefined,
 
@@ -59,17 +59,17 @@ export const createCompanySchema = z
     ),
 
     // CONTATO
-    emailContato: emptyToUndefined.pipe(z.string().email("E-mail inv?lido").optional()),
-    emailFinanceiro: emptyToUndefined.pipe(z.string().email("E-mail inv?lido").optional()),
+    emailContato: emptyToUndefined.pipe(z.string().email("E-mail invalido").optional()),
+    emailFinanceiro: emptyToUndefined.pipe(z.string().email("E-mail invalido").optional()),
     telefone: emptyToUndefined,
     whatsapp: emptyToUndefined,
     website: emptyToUndefined,
 
-    // RELA??O ANINHADA (Objeto de endere?o para cria??o)
+    // RELACAO ANINHADA (Objeto de endereco para criacao)
     address: addressSchema.optional().nullable().or(z.literal("")),
     observacoes: emptyToUndefined,
   })
-  // 1? VALIDA??O: Regra do Endere?o
+  // 1a VALIDACAO: Regra do Endereco
   .refine(
     (data) => {
       if (data.address && typeof data.address === "object" && data.address.cep) {
@@ -78,11 +78,11 @@ export const createCompanySchema = z
       return true;
     },
     {
-      message: "Endere?o incompleto. Preencha Logradouro e N?mero.",
+      message: "Endereco incompleto. Preencha Logradouro e N?mero.",
       path: ["address"],
     }
   )
-  // 2? VALIDA??O: Regra da Inscri??o Estadual
+  // 2a VALIDACAO: Regra da Inscricao Estadual
   .refine(
     (data) => {
       if (data.indicadorIE === IndicadorIE.CONTRIBUINTE && !data.inscricaoEstadual) {
@@ -91,7 +91,7 @@ export const createCompanySchema = z
       return true;
     },
     {
-      message: "Inscri??o Estadual obrigat?ria para Contribuintes",
+      message: "Inscricao Estadual obrigatoria para Contribuintes",
       path: ["inscricaoEstadual"],
     }
   );
