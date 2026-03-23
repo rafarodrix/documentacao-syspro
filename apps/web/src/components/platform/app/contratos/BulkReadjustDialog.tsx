@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RefreshCw, AlertTriangle, Loader2, DollarSign, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { formatCurrencyBRL } from "@/core/shared/utils/currency-utils"
+import { formatCurrencyBRL } from "@dosc-syspro/shared"
 
 export function BulkReadjustDialog() {
   const [open, setOpen] = useState(false)

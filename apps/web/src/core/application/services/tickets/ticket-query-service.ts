@@ -5,7 +5,7 @@ import { ZammadOperationalTicket } from "@dosc-syspro/contracts";
 import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
 import { listCachedTickets, upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
-import { computeTicketSla } from "@/core/application/services/zammad-sla";
+import { computeTicketSla } from "@dosc-syspro/core";
 import {
     CLOSED_STATE_IDS,
     OPERATIONAL_STATE_IDS,

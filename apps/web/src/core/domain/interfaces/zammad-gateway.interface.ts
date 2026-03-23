@@ -4,7 +4,7 @@ import type {
   ZammadTicketArticle,
   ZammadTicketDetails,
 } from "@dosc-syspro/contracts";
-import type { Ticket } from "@/core/domain/entities/ticket.entity";
+import type { Ticket } from "@dosc-syspro/core";
 
 export type ZammadCacheOptions = {
   cacheTtlSeconds?: number;

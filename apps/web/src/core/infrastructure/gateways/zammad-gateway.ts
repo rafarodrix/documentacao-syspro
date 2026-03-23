@@ -1,4 +1,4 @@
-import { Ticket } from "@/core/domain/entities/ticket.entity";
+import { Ticket } from "@dosc-syspro/core";
 import {
     zammadOperationalTicketSchema,
     zammadTicketAPISchema,

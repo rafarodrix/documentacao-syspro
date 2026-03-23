@@ -1,14 +1,14 @@
 import { Info, FileCode, Database, AlertTriangle, X, LucideIcon } from "lucide-react";
-import { FIELD_METADATA } from "@/core/constants/field-metadata";
+import { FIELD_METADATA } from "@dosc-syspro/contracts";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils"; // Utilitário padrão do Shadcn para classes
+import { cn } from "@/lib/utils"; // UtilitÃ¡rio padrÃ£o do Shadcn para classes
 
 interface TechnicalPanelProps {
     focusedField: string | null;
     onClose: () => void;
 }
 
-// 1. Componente Auxiliar para as Caixas Coloridas (reduz repetição)
+// 1. Componente Auxiliar para as Caixas Coloridas (reduz repetiÃ§Ã£o)
 interface InfoBoxProps {
     icon: LucideIcon;
     title: string;
@@ -17,7 +17,7 @@ interface InfoBoxProps {
 }
 
 function InfoBox({ icon: Icon, title, children, variant }: InfoBoxProps) {
-    // Configuração centralizada de cores
+    // ConfiguraÃ§Ã£o centralizada de cores
     const styles = {
         warning: {
             container: "bg-amber-50 border-amber-200 dark:bg-muted/50 dark:border-border", // Ajustei para combinar com seu original
@@ -65,17 +65,17 @@ export function TechnicalPanel({ focusedField, onClose }: TechnicalPanelProps) {
                 <div className="flex items-center justify-between mb-4 border-b border-border pb-3">
                     <div className="flex items-center gap-2">
                         <Info className="text-blue-600 dark:text-blue-400" size={20} />
-                        <h3 className="font-bold text-lg tracking-wide">Raio-X Técnico</h3>
+                        <h3 className="font-bold text-lg tracking-wide">Raio-X TÃ©cnico</h3>
                     </div>
                     <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full" aria-label="Fechar painel">
                         <X size={16} />
                     </Button>
                 </div>
 
-                {/* Conteúdo Dinâmico */}
+                {/* ConteÃºdo DinÃ¢mico */}
                 <div className="space-y-5 animate-in fade-in slide-in-from-right-2 duration-300" key={focusedField}>
 
-                    {/* Título do Campo */}
+                    {/* TÃ­tulo do Campo */}
                     <div>
                         <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider font-bold">
                             Campo Selecionado
@@ -92,7 +92,7 @@ export function TechnicalPanel({ focusedField, onClose }: TechnicalPanelProps) {
                         </code>
                     </InfoBox>
 
-                    {/* Descrição */}
+                    {/* DescriÃ§Ã£o */}
                     <div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
                             {data.description}
@@ -100,7 +100,7 @@ export function TechnicalPanel({ focusedField, onClose }: TechnicalPanelProps) {
                     </div>
 
                     {/* Box 2: Impacto */}
-                    <InfoBox icon={AlertTriangle} title="Impacto e Validação" variant="danger">
+                    <InfoBox icon={AlertTriangle} title="Impacto e ValidaÃ§Ã£o" variant="danger">
                         {data.impact}
                     </InfoBox>
 

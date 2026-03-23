@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { analyzeSefazResponse, buildDefaultSefazRoutes } from "@/core/constants/sefaz-endpoints";
+import { analyzeSefazResponse, buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
 import { SETTING_KEYS } from "@dosc-syspro/contracts";
 import { sefazRoutesSchema } from "@dosc-syspro/contracts";
 

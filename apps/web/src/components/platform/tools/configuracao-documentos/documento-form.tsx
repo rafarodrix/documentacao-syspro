@@ -3,10 +3,10 @@
 import { useState, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { useDocumentoForm } from "@/hooks/use-documento-form";
-import { DocumentoFormValues } from "@/core/application/schema/documento-schema";
-import { GRUPOS_DOCUMENTO } from "@/core/constants/grupos-documento";
-import { COMPORTAMENTOS_DOCUMENTO } from "@/core/constants/comportamentos-documento";
-import { TIPOS_NOTA_CREDITO, TIPOS_NOTA_DEBITO } from "@/core/constants/tipos-notas";
+import { DocumentoFormValues } from "@dosc-syspro/contracts";
+import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
+import { COMPORTAMENTOS_DOCUMENTO } from "@dosc-syspro/contracts";
+import { TIPOS_NOTA_CREDITO, TIPOS_NOTA_DEBITO } from "@dosc-syspro/contracts";
 import { useWatch } from "react-hook-form";
 import { Printer, Save, PanelRightOpen, PanelRightClose, Info, Truck, Users, Box } from "lucide-react";
 

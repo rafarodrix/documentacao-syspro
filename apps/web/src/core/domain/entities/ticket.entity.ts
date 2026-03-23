@@ -1,1 +1,0 @@
-export type { Ticket, TicketPriority, TicketStatus } from "@dosc-syspro/core";

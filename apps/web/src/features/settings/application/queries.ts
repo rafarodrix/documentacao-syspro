@@ -5,7 +5,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { settingsSchema, type SettingsInput, SETTING_KEYS } from "@dosc-syspro/contracts";
 import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
-import { buildDefaultSefazRoutes } from "@/core/constants/sefaz-endpoints";
+import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];

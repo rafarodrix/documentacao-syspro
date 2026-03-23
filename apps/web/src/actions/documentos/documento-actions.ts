@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
-import { DocumentoFormValues, documentoSchema } from "@/core/application/schema/documento-schema"
+import { DocumentoFormValues, documentoSchema } from "@dosc-syspro/contracts"
 import { revalidatePath } from "next/cache"
 
 // --- LISTAR ---

@@ -1,7 +1,7 @@
 import { Prisma, Role, ZammadTicketCache } from "@prisma/client";
 import { ZammadOperationalTicket } from "@dosc-syspro/contracts";
 import { prisma } from "@/lib/prisma";
-import { computeTicketSla } from "@/core/application/services/zammad-sla";
+import { computeTicketSla } from "@dosc-syspro/core";
 import { CLOSED_STATE_IDS, OPERATIONAL_STATE_IDS, getStateIdsForStatusGroup, type QueueKey, type TicketStatusGroup } from "@dosc-syspro/core";
 
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);

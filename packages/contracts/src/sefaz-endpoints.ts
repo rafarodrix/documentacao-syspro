@@ -6,8 +6,6 @@ export interface SefazRoutePreset {
   url: string;
 }
 
-// Catalogo padrao para carga inicial e bootstrap de novos ambientes.
-// Inclui autorizadores principais e compartilhados (ex.: SVRS/SVAN).
 export const SEFAZ_ROUTE_PRESETS: readonly SefazRoutePreset[] = [
   { uf: "MG", service: "NFE", url: "https://nfe.fazenda.mg.gov.br/nfe2/services/NfeAutorizacao" },
   { uf: "MG", service: "NFCE", url: "https://nfce.fazenda.mg.gov.br/w32/services/NfeAutorizacao4" },
@@ -44,28 +42,16 @@ export type SefazConfig = (typeof SEFAZ_ENDPOINTS)[number];
 
 export function buildDefaultSefazRoutes() {
   const seen = new Set<string>();
-
   return SEFAZ_ROUTE_PRESETS.filter((route) => {
     const key = `${route.uf}-${route.service}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).map((route) => ({
-    uf: route.uf,
-    service: route.service,
-    url: route.url,
-    active: true,
-  }));
+  }).map((route) => ({ uf: route.uf, service: route.service, url: route.url, active: true }));
 }
 
-/**
- * Analisa tempo de resposta e status HTTP para determinar a saude do servico.
- */
 export function analyzeSefazResponse(latency: number, statusCode: number): "ONLINE" | "UNSTABLE" | "OFFLINE" {
   if (statusCode >= 500) return "OFFLINE";
-
-  // Latencia acima de 2.5s geralmente indica degradacao.
   if (latency > 2500) return "UNSTABLE";
-
   return "ONLINE";
 }

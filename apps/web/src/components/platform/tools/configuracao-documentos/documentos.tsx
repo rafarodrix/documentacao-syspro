@@ -6,10 +6,10 @@ import {
     PackageCheck, PackageX, ScrollText, AlertCircle
 } from 'lucide-react';
 import { DocumentoForm } from './documento-form';
-import { DocumentoFormValues } from '@/core/application/schema/documento-schema';
+import { DocumentoFormValues } from '@dosc-syspro/contracts';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge"; // Certifique-se de ter este componente ou use classes Tailwind
-import { GRUPOS_DOCUMENTO } from "@/core/constants/grupos-documento";
+import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
 
 // Import das Actions Reais
 import { getDocumentos, saveDocumento, deleteDocumento } from '@/actions/documentos/documento-actions';
@@ -86,7 +86,7 @@ export default function DocumentosContainer() {
         setEditingDoc(null);
     };
 
-    // --- Helpers de Renderização ---
+    // --- Helpers de RenderizaÃ§Ã£o ---
 
     // Renderiza badge de estoque
     const renderEstoqueBadge = (status: string) => {
@@ -101,12 +101,12 @@ export default function DocumentosContainer() {
         return (
             <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border ${color}`}>
                 <PackageCheck size={14} />
-                <span className="font-semibold">{status === "ENTRADA" ? "Entrada" : "Saída"}</span>
+                <span className="font-semibold">{status === "ENTRADA" ? "Entrada" : "SaÃ­da"}</span>
             </div>
         );
     };
 
-    // --- Renderização Principal ---
+    // --- RenderizaÃ§Ã£o Principal ---
 
     if (viewState === 'form') {
         return (
@@ -129,7 +129,7 @@ export default function DocumentosContainer() {
                         Modelos Configurados
                         {(isLoading || isPending) && <Loader2 className="animate-spin text-primary" size={20} />}
                     </h2>
-                    <p className="text-sm text-muted-foreground mt-1">Gerencie a parametrização fiscal e regras de negócio.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Gerencie a parametrizaÃ§Ã£o fiscal e regras de negÃ³cio.</p>
                 </div>
                 <Button onClick={handleAddNew} className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
                     <Plus size={18} />
@@ -162,10 +162,10 @@ export default function DocumentosContainer() {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-muted/30 text-muted-foreground border-b border-border">
                                 <tr>
-                                    <th className="p-4 font-semibold w-[35%] pl-6">Identificação do Modelo</th>
-                                    <th className="p-4 font-semibold w-[20%]">Configuração</th>
+                                    <th className="p-4 font-semibold w-[35%] pl-6">IdentificaÃ§Ã£o do Modelo</th>
+                                    <th className="p-4 font-semibold w-[20%]">ConfiguraÃ§Ã£o</th>
                                     <th className="p-4 font-semibold w-[30%]">Resumo Fiscal (CFOP)</th>
-                                    <th className="p-4 font-semibold text-right pr-6">Ações</th>
+                                    <th className="p-4 font-semibold text-right pr-6">AÃ§Ãµes</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -179,7 +179,7 @@ export default function DocumentosContainer() {
 
                                     return (
                                         <tr key={doc.id} className="hover:bg-muted/20 transition-colors group">
-                                            {/* Coluna 1: Descrição e Grupo */}
+                                            {/* Coluna 1: DescriÃ§Ã£o e Grupo */}
                                             <td className="p-4 pl-6 align-top">
                                                 <div className="flex gap-4">
                                                     <div className="mt-1 p-2.5 h-fit bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-900/50">
@@ -195,22 +195,22 @@ export default function DocumentosContainer() {
                                                                 {doc.grupoDocumento}
                                                             </span>
                                                             <span className="text-xs text-muted-foreground truncate max-w-[280px]" title={grupoLabel}>
-                                                                {grupoLabel || "Grupo não identificado"}
+                                                                {grupoLabel || "Grupo nÃ£o identificado"}
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </td>
 
-                                            {/* Coluna 2: Série, Modelo e Estoque */}
+                                            {/* Coluna 2: SÃ©rie, Modelo e Estoque */}
                                             <td className="p-4 align-top">
                                                 <div className="flex flex-col gap-2 items-start">
                                                     <div className="flex items-center gap-2">
                                                         <span className="px-2.5 py-0.5 bg-muted rounded border border-border text-xs font-mono font-medium text-muted-foreground" title="Modelo">
                                                             Mod. {doc.modelo}
                                                         </span>
-                                                        <span className="px-2.5 py-0.5 bg-muted rounded border border-border text-xs font-mono font-medium text-muted-foreground" title="Série">
-                                                            Sér. {doc.serie}
+                                                        <span className="px-2.5 py-0.5 bg-muted rounded border border-border text-xs font-mono font-medium text-muted-foreground" title="SÃ©rie">
+                                                            SÃ©r. {doc.serie}
                                                         </span>
                                                     </div>
                                                     {renderEstoqueBadge(doc.movimentaEstoque)}
@@ -233,7 +233,7 @@ export default function DocumentosContainer() {
                                                         </div>
                                                     </div>
 
-                                                    {/* Flags de Variações */}
+                                                    {/* Flags de VariaÃ§Ãµes */}
                                                     <div className="flex gap-1.5 flex-wrap">
                                                         {hasST && (
                                                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-900">
@@ -254,7 +254,7 @@ export default function DocumentosContainer() {
                                                 </div>
                                             </td>
 
-                                            {/* Coluna 4: Ações */}
+                                            {/* Coluna 4: AÃ§Ãµes */}
                                             <td className="p-4 pr-6 align-middle text-right">
                                                 <div className="flex justify-end gap-1">
                                                     <Button
@@ -262,7 +262,7 @@ export default function DocumentosContainer() {
                                                         size="sm"
                                                         onClick={() => handleEdit(doc)}
                                                         className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                                                        title="Editar Parametrização"
+                                                        title="Editar ParametrizaÃ§Ã£o"
                                                     >
                                                         <Edit size={16} />
                                                     </Button>

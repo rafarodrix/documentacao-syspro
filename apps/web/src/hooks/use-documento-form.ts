@@ -2,12 +2,12 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { documentoSchema, DocumentoFormValues } from "@/core/application/schema/documento-schema";
+import { documentoSchema, DocumentoFormValues } from "@dosc-syspro/contracts";
 
 export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | null) {
 
-    // 1. Sanitização Manual: Garante que null vire valor válido
-    // Isso é CRÍTICO para o React Hook Form controlar os inputs corretamente
+    // 1. SanitizaÃ§Ã£o Manual: Garante que null vire valor vÃ¡lido
+    // Isso Ã© CRÃTICO para o React Hook Form controlar os inputs corretamente
     const defaultValues: DocumentoFormValues = {
         id: initialValues?.id,
 
@@ -18,13 +18,13 @@ export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | 
         modelo: initialValues?.modelo || "55",
         serie: initialValues?.serie || "1",
 
-        // Campos que não estão na tela mas o banco/zod espera (Defaults seguros)
+        // Campos que nÃ£o estÃ£o na tela mas o banco/zod espera (Defaults seguros)
         emitente: initialValues?.emitente || "PROPRIO",
         maximoItens: Number(initialValues?.maximoItens ?? 999),
         atualizaComercial: initialValues?.atualizaComercial ?? true,
         processamentoEtapa: initialValues?.processamentoEtapa ?? false,
 
-        // Garante que o Enum seja válido (fallback para SAIDA)
+        // Garante que o Enum seja vÃ¡lido (fallback para SAIDA)
         movimentaEstoque: (["SAIDA", "ENTRADA", "NAO"].includes(initialValues?.movimentaEstoque as string)
             ? initialValues?.movimentaEstoque
             : "SAIDA") as "SAIDA" | "ENTRADA" | "NAO",
@@ -35,11 +35,11 @@ export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | 
         tpNFDebito: initialValues?.tpNFDebito ?? "",
 
         // === MATRIZ DE CFOPs (Atualizado) ===
-        // 1. Padrão (Tributado)
+        // 1. PadrÃ£o (Tributado)
         cfopEstadual: initialValues?.cfopEstadual ?? "",
         cfopInterestadual: initialValues?.cfopInterestadual ?? "",
 
-        // 2. ST (Substituição Tributária)
+        // 2. ST (SubstituiÃ§Ã£o TributÃ¡ria)
         cfopEstadualST: initialValues?.cfopEstadualST ?? "",
         cfopInterestadualST: initialValues?.cfopInterestadualST ?? "",
 
@@ -54,7 +54,7 @@ export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | 
         comportamentos: initialValues?.comportamentos ?? [],
     };
 
-    // 2. Inicialização do Form
+    // 2. InicializaÃ§Ã£o do Form
     return useForm({
         resolver: zodResolver(documentoSchema),
         defaultValues: defaultValues as any,

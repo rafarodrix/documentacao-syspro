@@ -5,7 +5,7 @@ import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
 import { isAnalysisOrDevelopmentStateId, isAnalysisOrDevelopmentStateName } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { Role } from "@prisma/client";
 import { upsertOperationalTicketsToCache } from "@/core/infrastructure/cache/zammad-ticket-cache";
-import { computeTicketSla } from "@/core/application/services/zammad-sla";
+import { computeTicketSla } from "@dosc-syspro/core";
 
 export const dynamic = "force-dynamic";
 

@@ -1,1 +1,0 @@
-export { formatCurrencyBRL, parseCurrencyBRL } from "@dosc-syspro/shared";
