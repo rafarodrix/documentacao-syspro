@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { DocumentoForm } from './documento-form';
 import { DocumentoFormValues } from '@dosc-syspro/contracts';
+import type { DocumentoItem } from '@/features/documentos/domain/model';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge"; // Certifique-se de ter este componente ou use classes Tailwind
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
@@ -16,7 +17,7 @@ import { getDocumentos, saveDocumento, deleteDocumento } from '@/features/docume
 
 export default function DocumentosContainer() {
     const [viewState, setViewState] = useState<'list' | 'form'>('list');
-    const [documents, setDocuments] = useState<DocumentoFormValues[]>([]);
+    const [documents, setDocuments] = useState<DocumentoItem[]>([]);
     const [editingDoc, setEditingDoc] = useState<DocumentoFormValues | null>(null);
 
     // Estados de carregamento
@@ -29,7 +30,7 @@ export default function DocumentosContainer() {
         try {
             const result = await getDocumentos();
             if (result.success && result.data) {
-                setDocuments(result.data as unknown as DocumentoFormValues[]);
+                setDocuments(result.data);
             }
         } catch (error) {
             console.error("Erro ao carregar:", error);
@@ -49,7 +50,7 @@ export default function DocumentosContainer() {
         setViewState('form');
     };
 
-    const handleEdit = (doc: DocumentoFormValues) => {
+    const handleEdit = (doc: DocumentoItem) => {
         setEditingDoc(doc);
         setViewState('form');
     };
