@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createCompanySchema, CreateCompanyInput } from "@/features/company/application/company-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { Prisma, CompanyStatus, Role } from "@prisma/client";
+import { z } from "zod";
 import { resolveCompanySegmentTriggers } from "@/features/company/domain/company-segments";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
@@ -13,6 +14,7 @@ import type {
   CompanyActionResponse as ActionResponse,
   CompanyContactInput,
   CompanyRegistryLookupResponse,
+  CompanyValidationErrors,
   CompanyZammadEmailInput,
 } from "@/features/company/domain/model";
 
@@ -45,6 +47,12 @@ function normalizeZammadEmails(items: CompanyZammadEmailInput[] | undefined): Co
     });
   }
   return Array.from(map.values());
+}
+
+function toValidationErrors(
+  fieldErrors: z.inferFlattenedErrors<typeof createCompanySchema>["fieldErrors"],
+): CompanyValidationErrors {
+  return fieldErrors as CompanyValidationErrors;
 }
 
 function normalizeCompanyContacts(items: CompanyContactInput[] | undefined): CompanyContactInput[] {
@@ -159,7 +167,8 @@ export async function lookupCompanyProfileByCnpjAction(
       } satisfies CompanyRegistryLookupResponse,
     };
   } catch (error) {
-    return handleActionError(error) as ActionResponse<CompanyRegistryLookupResponse>;
+    const handled = handleActionError(error);
+    return { success: false, message: handled.message, errors: handled.errors };
   }
 }
 
@@ -189,7 +198,7 @@ export async function createCompanyAction(
   if (!validation.success) {
     return {
       success: false,
-      errors: validation.error.flatten().fieldErrors as any,
+      errors: toValidationErrors(validation.error.flatten().fieldErrors),
       message: "Verifique os campos destacados.",
     };
   }
@@ -246,7 +255,7 @@ export async function updateCompanyAction(
   if (!validation.success) {
     return {
       success: false,
-      errors: validation.error.flatten().fieldErrors as any,
+      errors: toValidationErrors(validation.error.flatten().fieldErrors),
       message: "Verifique os campos destacados.",
     };
   }

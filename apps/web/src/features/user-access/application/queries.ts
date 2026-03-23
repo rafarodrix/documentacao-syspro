@@ -4,8 +4,10 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import type {
   ClientUserEditViewData,
+  SystemUserListItem,
   SystemUserEditViewData,
   UserAccessCompanyOption,
+  UserAccessListItem,
 } from "@/features/user-access/domain/model";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
@@ -67,6 +69,58 @@ function hasError(value: unknown): value is ActionError {
   return Boolean(value && typeof value === "object" && "error" in (value as Record<string, unknown>));
 }
 
+function mapClientUserListItem(user: {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: Role;
+  isActive: boolean;
+  jobTitle: string | null;
+  cpf: string | null;
+  phone: string | null;
+  memberships: {
+    companyId: string;
+    role: Role;
+    company: {
+      id: string;
+      razaoSocial: string;
+      nomeFantasia: string | null;
+    };
+  }[];
+}): UserAccessListItem {
+  return {
+    ...user,
+    companyName: user.memberships[0]?.company?.nomeFantasia || user.memberships[0]?.company?.razaoSocial || "Sem Vinculo",
+    companyId: user.memberships[0]?.companyId || null,
+  };
+}
+
+function mapSystemUserListItem(user: {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: Role;
+  isActive: boolean;
+  jobTitle: string | null;
+  cpf: string | null;
+  phone: string | null;
+  memberships: {
+    companyId: string;
+    role: Role;
+    company: {
+      id: string;
+      razaoSocial: string;
+      nomeFantasia: string | null;
+    };
+  }[];
+}): SystemUserListItem {
+  return {
+    ...user,
+  };
+}
+
 export async function getClientUsersAdminViewData() {
   const ctx = await getSessionContext();
   if (hasError(ctx)) return ctx;
@@ -86,11 +140,11 @@ export async function getClientUsersAdminViewData() {
         }),
       ]);
 
-      return { companies, users, isGlobalView: true };
+      return { companies, users: users.map(mapClientUserListItem), isGlobalView: true };
     }
 
     const companyIds = await getScopedCompanyIds(ctx.session.userId);
-    if (!companyIds.length) return { companies: [], users: [], isGlobalView: false };
+    if (!companyIds.length) return { companies: [], users: [] as UserAccessListItem[], isGlobalView: false };
 
     const [companies, users] = await Promise.all([
       prisma.company.findMany({
@@ -115,7 +169,7 @@ export async function getClientUsersAdminViewData() {
       }),
     ]);
 
-    return { companies, users, isGlobalView: false };
+    return { companies, users: users.map(mapClientUserListItem), isGlobalView: false };
   } catch (error) {
     console.error(error);
     return { error: "Erro ao buscar usuarios." };
@@ -128,7 +182,7 @@ export async function getSystemUsersAdminViewData() {
 
   try {
     if (!ctx.isSystemRole) {
-      return { users: [], isGlobalView: false };
+      return { users: [] as SystemUserListItem[], isGlobalView: false };
     }
 
     const users = await prisma.user.findMany({
@@ -137,7 +191,7 @@ export async function getSystemUsersAdminViewData() {
       select: userListSelect,
     });
 
-    return { users, isGlobalView: true };
+    return { users: users.map(mapSystemUserListItem), isGlobalView: true };
   } catch (error) {
     console.error(error);
     return { error: "Erro ao buscar equipe interna." };

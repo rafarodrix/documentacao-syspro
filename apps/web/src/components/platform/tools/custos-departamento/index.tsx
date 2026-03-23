@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, ReactNode } from 'react';
+import { useState, useMemo, useEffect, useRef, ReactNode, type ElementType } from 'react';
 import {
   Plus,
   Trash2,
@@ -59,7 +59,7 @@ const Card = ({ children, className = '' }: { children: ReactNode; className?: s
   </div>
 );
 
-const CardHeader = ({ title, icon: Icon, action }: { title: string; icon?: any; action?: ReactNode }) => (
+const CardHeader = ({ title, icon: Icon, action }: { title: string; icon?: ElementType; action?: ReactNode }) => (
   <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/40 rounded-t-xl">
     <div className="flex items-center gap-2 text-foreground font-semibold">
       {Icon && <Icon className="w-5 h-5 text-muted-foreground" />}
@@ -170,7 +170,7 @@ interface DepartmentTableProps {
   allocationMode: AllocationMode;
   companyTotalFixedCost: number;
   totalRevenue: number;
-  onUpdateDepartment: (id: number, field: keyof Department, value: any) => void;
+  onUpdateDepartment: (id: number, field: keyof Department, value: string | number | undefined) => void;
   onDelete: (id: number) => void;
   lastAddedRef: React.Ref<HTMLInputElement>;
 }
@@ -394,7 +394,7 @@ export function FixedCostSimulator() {
   const balanceToAllocate = companyTotalFixedCost - allocatedSum;
 
   // --- Actions ---
-  const handleUpdateDepartment = (id: number, field: keyof Department, value: any) => {
+  const handleUpdateDepartment = (id: number, field: keyof Department, value: string | number | undefined) => {
     setDepartments(prev => prev.map(d => d.id === id ? { ...d, [field]: value } : d));
   };
 

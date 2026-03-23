@@ -6,6 +6,13 @@ interface PricingResultsProps {
     resultados: PricingResult | null;
 }
 
+type KpiCardProps = {
+    label: string;
+    value: string;
+    color?: string;
+    tooltip?: string;
+};
+
 export function PricingResults({ resultados }: PricingResultsProps) {
     if (!resultados) {
         return (
@@ -116,7 +123,7 @@ export function PricingResults({ resultados }: PricingResultsProps) {
 }
 
 // Helper para os Cards de KPI
-const KpiCard = ({ label, value, color = "text-foreground", tooltip }: any) => (
+const KpiCard = ({ label, value, color = "text-foreground", tooltip }: KpiCardProps) => (
     <div className="text-center p-3 bg-secondary/50 rounded-lg flex flex-col justify-center h-full" title={tooltip}>
         <p className="text-xs text-muted-foreground mb-1">{label}</p>
         <p className={`text-lg font-bold ${color}`}>{value}</p>

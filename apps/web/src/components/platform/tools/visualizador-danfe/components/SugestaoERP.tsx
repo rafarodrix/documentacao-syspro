@@ -26,6 +26,10 @@ const formatDate = (iso?: string) => {
   return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 };
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Falha inesperada na analise.';
+}
+
 // =============================================================
 // 4. COMPONENTE DE SUGESTAO DE TRIBUTACAO 
 // =============================================================
@@ -66,9 +70,9 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
 
       const data: SugestaoTributaria = await res.json();
       setSugestao(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao sugerir tributacao:', err);
-      setError(err.message || 'Falha inesperada na an?lise.');
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -293,8 +297,8 @@ export function DanfeVisualizerTool() {
 
       const data: DanfeData = await res.json();
       setDanfeData(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
       console.error('Erro no processamento XML:', err);
     } finally {
       setIsLoading(false);

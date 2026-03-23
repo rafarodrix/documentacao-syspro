@@ -10,6 +10,9 @@ import { DanfeGeneralInfo } from './components/DanfeGeneralInfo';
 import { DanfeItemCard } from './components/DanfeItemCard';
 import { DanfeTotals } from './components/DanfeTotals';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Falha ao processar XML.';
+}
 
 export function DanfeVisualizerTool() {
   const [danfeData, setDanfeData] = useState<DanfeData | null>(null);
@@ -40,8 +43,8 @@ export function DanfeVisualizerTool() {
       }
       const data: DanfeData = await res.json();
       setDanfeData(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
       console.error('Erro no processamento XML:', err);
     } finally {
       setIsLoading(false);

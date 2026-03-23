@@ -6,13 +6,21 @@ import type {
   IndicadorIE,
   TaxRegime,
 } from "@prisma/client";
+import type { CreateCompanyInput } from "@/features/company/application/company-schema";
 
-export type CompanyActionResponse<T = unknown> = {
-  success: boolean;
-  message?: string;
-  errors?: Record<string, string[]>;
-  data?: T;
+export type CompanyValidationErrors = Partial<Record<keyof CreateCompanyInput, string[]>>;
+
+export type CompanyActionSuccess<T = void> = T extends void
+  ? { success: true; message?: string }
+  : { success: true; message?: string; data: T };
+
+export type CompanyActionFailure = {
+  success: false;
+  message: string;
+  errors?: CompanyValidationErrors;
 };
+
+export type CompanyActionResponse<T = void> = CompanyActionSuccess<T> | CompanyActionFailure;
 
 export type CompanyZammadEmailInput = {
   email: string;

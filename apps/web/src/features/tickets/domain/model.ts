@@ -44,15 +44,29 @@ export interface TicketQueryParams {
     statusGroup?: TicketStatusGroup | "all";
 }
 
-export interface TicketsDataResponse {
-    success: boolean;
-    error?: string;
+export type TicketActionFailure = {
+    success: false;
+    error: string;
+};
+
+export type TicketsDataSuccess = {
+    success: true;
     data: TicketListItem[];
     pagination: TicketsPagination;
     staleWarning?: string;
     queueCounts: Record<QueueKey, number>;
     statusCounts: TicketStatusCounts;
-}
+};
+
+export type TicketsDataFailure = TicketActionFailure & {
+    data: TicketListItem[];
+    pagination: TicketsPagination;
+    queueCounts: Record<QueueKey, number>;
+    statusCounts: TicketStatusCounts;
+    staleWarning?: string;
+};
+
+export type TicketsDataResponse = TicketsDataSuccess | TicketsDataFailure;
 
 export interface TicketDetailsItem {
     id: number;
@@ -78,6 +92,20 @@ export interface TicketArticleItem {
     sender: string;
     isInternal: boolean;
 }
+
+export type TicketDetailsResponse =
+    | {
+        success: true;
+        ticket: TicketDetailsItem;
+        articles: TicketArticleItem[];
+      }
+    | TicketActionFailure;
+
+export type TicketMutationSuccess<T = void> = T extends void
+    ? { success: true; message?: string }
+    : { success: true; message?: string; data: T };
+
+export type TicketMutationResponse<T = void> = TicketMutationSuccess<T> | TicketActionFailure;
 
 export type TicketDashboardStatus = "Aberto" | "Em Análise" | "Pendente" | "Resolvido";
 export type TicketDashboardPriority = "Alta" | "Média" | "Baixa";

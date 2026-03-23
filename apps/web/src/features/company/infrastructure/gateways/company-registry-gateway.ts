@@ -34,53 +34,64 @@ function normalizeDate(value: unknown) {
   return undefined;
 }
 
-function normalizeRegistryPayload(payload: any, fallbackCnpj: string): CompanyRegistryProfile {
-  const addressSource = payload?.address ?? payload?.endereco ?? payload?.estabelecimento ?? payload;
-  const cnaeSource = payload?.primaryCnae ?? payload?.cnaePrincipal ?? payload?.atividade_principal ?? payload;
+type RegistryPayload = Record<string, unknown>;
+
+function asRecord(value: unknown): RegistryPayload {
+  return value && typeof value === "object" ? (value as RegistryPayload) : {};
+}
+
+function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string): CompanyRegistryProfile {
+  const payloadRecord = asRecord(payload);
+  const addressSource = asRecord(
+    payloadRecord.address ?? payloadRecord.endereco ?? payloadRecord.estabelecimento ?? payloadRecord,
+  );
+  const cnaeSource = asRecord(
+    payloadRecord.primaryCnae ?? payloadRecord.cnaePrincipal ?? payloadRecord.atividade_principal ?? payloadRecord,
+  );
 
   return {
-    cnpj: onlyDigits(firstString(payload?.cnpj, payload?.documento, fallbackCnpj) ?? fallbackCnpj),
+    cnpj: onlyDigits(firstString(payloadRecord.cnpj, payloadRecord.documento, fallbackCnpj) ?? fallbackCnpj),
     legalName: firstString(
-      payload?.legalName,
-      payload?.razaoSocial,
-      payload?.razao_social,
-      payload?.nomeEmpresarial,
-      payload?.nome_empresarial,
-      payload?.name,
+      payloadRecord.legalName,
+      payloadRecord.razaoSocial,
+      payloadRecord.razao_social,
+      payloadRecord.nomeEmpresarial,
+      payloadRecord.nome_empresarial,
+      payloadRecord.name,
     ) ?? "",
-    tradeName: firstString(payload?.tradeName, payload?.nomeFantasia, payload?.nome_fantasia, payload?.fantasia),
-    status: firstString(payload?.status, payload?.situacaoCadastral, payload?.situacao_cadastral),
+    tradeName: firstString(payloadRecord.tradeName, payloadRecord.nomeFantasia, payloadRecord.nome_fantasia, payloadRecord.fantasia),
+    status: firstString(payloadRecord.status, payloadRecord.situacaoCadastral, payloadRecord.situacao_cadastral),
     openingDate: normalizeDate(
-      firstString(payload?.openingDate, payload?.dataAbertura, payload?.data_abertura),
+      firstString(payloadRecord.openingDate, payloadRecord.dataAbertura, payloadRecord.data_abertura),
     ),
     primaryCnae: firstString(
-      cnaeSource?.code,
-      cnaeSource?.codigo,
-      payload?.cnae,
-      payload?.cnaePrincipalCodigo,
-      payload?.cnae_principal_codigo,
+      cnaeSource.code,
+      cnaeSource.codigo,
+      payloadRecord.cnae,
+      payloadRecord.cnaePrincipalCodigo,
+      payloadRecord.cnae_principal_codigo,
     ),
     primaryCnaeDescription: firstString(
-      cnaeSource?.description,
-      cnaeSource?.descricao,
-      payload?.cnaeDescricao,
-      payload?.cnae_descricao,
-      payload?.cnaePrincipalDescricao,
-      payload?.cnae_principal_descricao,
+      cnaeSource.description,
+      cnaeSource.descricao,
+      payloadRecord.cnaeDescricao,
+      payloadRecord.cnae_descricao,
+      payloadRecord.cnaePrincipalDescricao,
+      payloadRecord.cnae_principal_descricao,
     ),
-    email: firstString(payload?.email, payload?.contato?.email),
-    phone: firstString(payload?.phone, payload?.telefone, payload?.contato?.telefone),
+    email: firstString(payloadRecord.email, asRecord(payloadRecord.contato).email),
+    phone: firstString(payloadRecord.phone, payloadRecord.telefone, asRecord(payloadRecord.contato).telefone),
     address: {
-      cep: onlyDigits(firstString(addressSource?.cep, payload?.cep) ?? ""),
-      street: firstString(addressSource?.street, addressSource?.logradouro),
-      number: firstString(addressSource?.number, addressSource?.numero),
-      complement: firstString(addressSource?.complement, addressSource?.complemento),
-      district: firstString(addressSource?.district, addressSource?.bairro),
-      city: firstString(addressSource?.city, addressSource?.cidade, addressSource?.municipio),
-      state: firstString(addressSource?.state, addressSource?.estado, addressSource?.uf)?.toUpperCase(),
-      country: firstString(addressSource?.country, addressSource?.pais) ?? "BR",
+      cep: onlyDigits(firstString(addressSource.cep, payloadRecord.cep) ?? ""),
+      street: firstString(addressSource.street, addressSource.logradouro),
+      number: firstString(addressSource.number, addressSource.numero),
+      complement: firstString(addressSource.complement, addressSource.complemento),
+      district: firstString(addressSource.district, addressSource.bairro),
+      city: firstString(addressSource.city, addressSource.cidade, addressSource.municipio),
+      state: firstString(addressSource.state, addressSource.estado, addressSource.uf)?.toUpperCase(),
+      country: firstString(addressSource.country, addressSource.pais) ?? "BR",
     },
-    raw: payload,
+    raw: payloadRecord,
   };
 }
 

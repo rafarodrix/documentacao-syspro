@@ -12,7 +12,7 @@ export function useTicketSheet(onSuccess: () => void) {
     const [isPending, startTransition] = useTransition();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const form = useForm<any>({
+    const form = useForm<TicketFormInput>({
         resolver: zodResolver(ticketFormSchema),
         defaultValues: {
             subject: "",

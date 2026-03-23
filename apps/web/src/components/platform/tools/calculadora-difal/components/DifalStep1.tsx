@@ -10,6 +10,13 @@ interface DifalStep1Props {
     baseDeCalculo: { valor: number; formula: string };
 }
 
+type InputGroupProps = {
+    label: string;
+    value: string;
+    onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+    placeholder: string;
+};
+
 export function DifalStep1({ valores, finalidade, setFinalidade, handleCurrencyChange, baseDeCalculo }: DifalStep1Props) {
     return (
         <div className="bg-card border rounded-lg p-6 shadow-sm">
@@ -75,7 +82,7 @@ export function DifalStep1({ valores, finalidade, setFinalidade, handleCurrencyC
 }
 
 // Pequeno Helper Local para limpar o JSX
-const InputGroup = ({ label, value, onChange, placeholder }: any) => (
+const InputGroup = ({ label, value, onChange, placeholder }: InputGroupProps) => (
     <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-muted-foreground">{label}</label>
         <input

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { UseFormSetValue } from "react-hook-form";
+import { FieldValues, UseFormSetValue } from "react-hook-form";
 
 interface BrasilApiCepResponse {
   state?: string;
@@ -50,7 +50,7 @@ const UF_IBGE_CODE: Record<string, string> = {
   DF: "53",
 };
 
-export function useAddressLookup(setValue: UseFormSetValue<any>) {
+export function useAddressLookup<TFieldValues extends FieldValues>(setValue: UseFormSetValue<TFieldValues>) {
   const [isLoadingCep, setIsLoadingCep] = useState(false);
 
   const handleCepChange = async (value: string) => {

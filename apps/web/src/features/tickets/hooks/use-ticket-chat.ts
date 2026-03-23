@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import { toast } from "sonner";
 import { replyTicketAction } from "@/features/tickets/application/actions";
+import type { TicketArticleItem } from "@/features/tickets/domain/model";
 import { useSession } from "@/lib/auth-client";
 
-export function useTicketChat(ticketId: string, articles: any[]) {
+export function useTicketChat(ticketId: string, articles: TicketArticleItem[]) {
     const [message, setMessage] = useState("");
     const [isPending, startTransition] = useTransition();
     const scrollRef = useRef<HTMLDivElement>(null);

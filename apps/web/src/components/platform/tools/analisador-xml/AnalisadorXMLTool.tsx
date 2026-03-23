@@ -9,6 +9,21 @@ import { ResultDisplay } from './ResultDisplay';
 
 type Status = 'idle' | 'processing' | 'completed' | 'error';
 type FileChangeEvent = ChangeEvent<HTMLInputElement> | { target: { files: FileList | null } };
+type AnalyzeApiResponse = {
+  summary: string;
+  downloadUrl: string;
+};
+
+function getErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    if (typeof error.response?.data?.error === "string") return error.response.data.error;
+    if (error.request) return "Erro de conexao: o servidor nao respondeu. Verifique se o backend esta rodando.";
+    return error.message;
+  }
+
+  if (error instanceof Error) return error.message;
+  return "Falha inesperada ao processar os arquivos.";
+}
 
 export function AnalisadorXMLTool() {
   const [files, setFiles] = useState<FileList | null>(null);
@@ -71,7 +86,7 @@ export function AnalisadorXMLTool() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) throw new Error("URL da API nao configurada.");
 
-      const response = await axios.post(`${apiUrl}/api/analyze`, formData, {
+      const response = await axios.post<AnalyzeApiResponse>(`${apiUrl}/api/analyze`, formData, {
         onUploadProgress: (progressEvent) => {
           const total = progressEvent.total || 1;
           const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
@@ -88,15 +103,9 @@ export function AnalisadorXMLTool() {
       setDownloadUrl(response.data.downloadUrl);
       setStatus('completed');
       setStatusMessage('Análise concluída!');
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus('error');
-      if (err.response && err.response.data && err.response.data.error) {
-        setStatusMessage(err.response.data.error);
-      } else if (err.request) {
-        setStatusMessage('Erro de conexao: o servidor nao respondeu. Verifique se o backend esta rodando.');
-      } else {
-        setStatusMessage(err.message);
-      }
+      setStatusMessage(getErrorMessage(err));
     }
   };
 

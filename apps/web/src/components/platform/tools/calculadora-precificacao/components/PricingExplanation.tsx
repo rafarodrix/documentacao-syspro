@@ -1,6 +1,7 @@
 import { HelpCircle, ChevronDown, ShieldAlert, Percent, DollarSign, TrendingDown, Target } from 'lucide-react';
 import { BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
+import type { LucideIcon } from 'lucide-react';
 
 export function PricingExplanation() {
     return (
@@ -51,7 +52,14 @@ export function PricingExplanation() {
 }
 
 // Helper local para os itens de explicação
-const ExplanationItem = ({ icon: Icon, title, description, formula }: any) => (
+type ExplanationItemProps = {
+    icon: LucideIcon;
+    title: string;
+    description: string;
+    formula: string;
+};
+
+const ExplanationItem = ({ icon: Icon, title, description, formula }: ExplanationItemProps) => (
     <div className="border rounded-lg p-4 bg-secondary/30 flex flex-col">
         <h4 className="font-semibold text-foreground flex items-center gap-2 mb-2 text-sm">
             <Icon size={16} className="text-primary" /> {title}

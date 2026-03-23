@@ -1,3 +1,4 @@
+import type { ChangeEvent } from 'react';
 import { Briefcase, HelpCircle } from 'lucide-react';
 import { PricingState, Segmento } from '../types';
 import { BENCHMARKS } from '../constants';
@@ -7,7 +8,7 @@ interface Step1Props {
     valores: PricingState;
     segmento: Segmento;
     setSegmento: (v: Segmento) => void;
-    handleCurrencyChange: any; // Tipar corretamente se preferir
+    handleCurrencyChange: (field: keyof PricingState) => (event: ChangeEvent<HTMLInputElement>) => void;
     percentualCustoFixo: number;
 }
 
