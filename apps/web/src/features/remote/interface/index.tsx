@@ -142,6 +142,68 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
         </div>
       </section>
 
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Hosts persistidos</CardTitle>
+            <CardDescription>
+              Total: {overview.hostStats.total} | Ativos: {overview.hostStats.active} | Manutencao: {overview.hostStats.maintenance} | Inativos: {overview.hostStats.inactive}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {overview.recentHosts.length ? (
+              overview.recentHosts.map((host) => (
+                <div key={host.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{host.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {host.companyName ?? "Sem empresa"}{host.environment ? ` | ${host.environment}` : ""}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                      {host.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum host remoto persistido ainda.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Sessoes persistidas</CardTitle>
+            <CardDescription>
+              Total: {overview.sessionStats.total} | Requested: {overview.sessionStats.requested} | Started: {overview.sessionStats.started} | Ended: {overview.sessionStats.ended} | Failed: {overview.sessionStats.failed}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {overview.recentSessions.length ? (
+              overview.recentSessions.map((session) => (
+                <div key={session.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{session.hostName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {session.companyName ?? "Sem empresa"} | Solicitado por {session.requestedByName ?? session.requestedByUserId}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                      {session.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhuma sessao remota persistida ainda.</p>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <Card className="border-border/50">
           <CardHeader>

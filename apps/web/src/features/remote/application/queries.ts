@@ -1,56 +1,46 @@
-import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getProtectedSession } from "@/lib/auth-helpers";
-import type { RemotePlatformOverview, RemoteTenantScope } from "@/features/remote/domain/model";
-
-async function getRemoteTenantScope(): Promise<RemoteTenantScope> {
-  const session = await getProtectedSession();
-
-  if (!session) {
-    return {
-      role: "CLIENTE_ADMIN",
-      isGlobalView: false,
-      companyIds: [],
-      companyCount: 0,
-      summary: "Sessao ausente. Escopo remoto indisponivel.",
-    };
-  }
-
-  if (session.role === Role.ADMIN || session.role === Role.SUPORTE || session.role === Role.DEVELOPER) {
-    return {
-      role:
-        session.role === Role.ADMIN
-          ? "ADMIN"
-          : session.role === Role.SUPORTE
-            ? "SUPORTE"
-            : "DEVELOPER",
-      isGlobalView: true,
-      companyIds: [],
-      companyCount: 0,
-      summary: "Visao global liberada para operacao tecnica.",
-    };
-  }
-
-  const memberships = await prisma.membership.findMany({
-    where: { userId: session.userId },
-    select: { companyId: true },
-  });
-
-  const companyIds = [...new Set(memberships.map((membership) => membership.companyId))];
-
-  return {
-    role: "CLIENTE_ADMIN",
-    isGlobalView: false,
-    companyIds,
-    companyCount: companyIds.length,
-    summary: companyIds.length
-      ? `Escopo restrito a ${companyIds.length} empresa(s) vinculada(s) ao usuario.`
-      : "Nenhuma empresa vinculada para escopo remoto.",
-  };
-}
+import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import type { RemotePlatformOverview } from "@/features/remote/domain/model";
 
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
   const tenantScope = await getRemoteTenantScope();
+  const scopedWhere = tenantScope.isGlobalView ? {} : { companyId: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } };
+
+  const [hosts, sessions] = await Promise.all([
+    prisma.remoteHost.findMany({
+      where: scopedWhere,
+      include: {
+        company: { select: { nomeFantasia: true, razaoSocial: true } },
+      },
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      take: 6,
+    }),
+    prisma.remoteSession.findMany({
+      where: scopedWhere,
+      include: {
+        company: { select: { nomeFantasia: true, razaoSocial: true } },
+        host: { select: { name: true } },
+        requestedByUser: { select: { name: true } },
+      },
+      orderBy: [{ createdAt: "desc" }],
+      take: 6,
+    }),
+  ]);
+
+  const hostStats = {
+    total: hosts.length,
+    active: hosts.filter((item) => item.status === "ACTIVE").length,
+    maintenance: hosts.filter((item) => item.status === "MAINTENANCE").length,
+    inactive: hosts.filter((item) => item.status === "INACTIVE").length,
+  };
+
+  const sessionStats = {
+    total: sessions.length,
+    requested: sessions.filter((item) => item.status === "REQUESTED").length,
+    started: sessions.filter((item) => item.status === "STARTED").length,
+    ended: sessions.filter((item) => item.status === "ENDED").length,
+    failed: sessions.filter((item) => item.status === "FAILED").length,
+  };
 
   return {
     title: "Plataforma Remota",
@@ -116,6 +106,13 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
         nextStep: "Criar session orchestrator e filtros por membership para CLIENTE_ADMIN.",
       },
       {
+        id: "zammad-rustdesk",
+        title: "Integracao Zammad + RustDesk",
+        description: "Link rapido no ticket com rustdesk://<id>, vinculo do ticket com sessao remota e webhook para auditoria.",
+        status: "planned",
+        nextStep: "Criar rustdesk_id no contexto do Zammad e payload webhook para o orquestrador remoto.",
+      },
+      {
         id: "credential-vault",
         title: "Credenciais e cofres",
         description: "Referencias seguras para segredos, acesso controlado e auditoria de leitura.",
@@ -141,6 +138,8 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       { method: "POST", path: "/api/remote/session/start", purpose: "Abrir sessao remota" },
       { method: "POST", path: "/api/remote/session/stop", purpose: "Encerrar sessao remota" },
       { method: "GET", path: "/api/remote/session/:id", purpose: "Consultar sessao e auditoria" },
+      { method: "POST", path: "/api/integrations/zammad/webhook", purpose: "Receber evento do ticket remoto e vincular sessao" },
+      { method: "GET", path: "/api/integrations/zammad/rustdesk-link/:ticketId", purpose: "Resolver deep-link rustdesk:// para o ticket" },
       { method: "POST", path: "/api/credentials/request", purpose: "Solicitar segredo por referencia" },
       { method: "POST", path: "/api/backup/run", purpose: "Disparar backup" },
       { method: "GET", path: "/api/backup/jobs", purpose: "Listar jobs e artefatos" },
@@ -151,7 +150,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       {
         id: "phase-1",
         title: "Fase 1 - Fundacao",
-        summary: "RustDesk self-hosted, companyId em host/sessao, controle de sessao, auditoria minima e backup padrao com gbak.",
+        summary: "RustDesk self-hosted, companyId em host/sessao, integracao inicial com Zammad, controle de sessao, auditoria minima e backup padrao com gbak.",
         status: "foundation",
       },
       {
@@ -167,5 +166,32 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
         status: "planned",
       },
     ],
+    hostStats,
+    sessionStats,
+    recentHosts: hosts.map((host) => ({
+      id: host.id,
+      companyId: host.companyId,
+      name: host.name,
+      environment: host.environment,
+      provider: host.provider,
+      status: host.status,
+      companyName: host.company.nomeFantasia ?? host.company.razaoSocial,
+      createdAt: host.createdAt.toISOString(),
+      lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
+    })),
+    recentSessions: sessions.map((session) => ({
+      id: session.id,
+      companyId: session.companyId,
+      hostId: session.hostId,
+      requestedByUserId: session.requestedByUserId,
+      startedByUserId: session.startedByUserId,
+      status: session.status,
+      hostName: session.host.name,
+      companyName: session.company.nomeFantasia ?? session.company.razaoSocial,
+      requestedByName: session.requestedByUser.name,
+      createdAt: session.createdAt.toISOString(),
+      startedAt: session.startedAt?.toISOString() ?? null,
+      endedAt: session.endedAt?.toISOString() ?? null,
+    })),
   };
 }

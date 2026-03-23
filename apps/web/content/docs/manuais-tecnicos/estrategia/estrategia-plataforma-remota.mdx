@@ -92,6 +92,64 @@ Entidades-base para MVP:
 - `POST /api/restore/run`
 - `GET /api/audit/events`
 
+## Integracao Zammad + RustDesk
+
+### Objetivo
+
+Conectar atendimento e acesso remoto sem depender de plugin proprietario:
+
+- `Zammad` como origem operacional do ticket
+- `RustDesk` como engine remota self-hosted
+- plataforma remota como camada de auditoria, policy e integracao
+
+### Padrao inicial
+
+1. Registrar `rustdesk_id` no cadastro do cliente ou no contexto do ticket no `Zammad`.
+2. Expor link rapido no ticket usando esquema `rustdesk://<id>`.
+3. Permitir que o tecnico abra a sessao remota a partir do ticket com um clique.
+4. Registrar o ticket de origem, o host e a sessao na nossa trilha de auditoria.
+
+### Integracao por objeto externo e link rapido
+
+- Criar atributo `rustdesk_id` em `User` ou `Ticket` no `Zammad`.
+- Expor link calculado no ticket:
+  - `rustdesk://{{ticket.customer.rustdesk_id}}`
+- Tratar isso no backlog como fluxo de produtividade operacional, nao como acoplamento duro entre produtos.
+
+### Integracao por webhook e API
+
+- `Zammad` envia webhook quando um ticket elegivel para suporte remoto for criado ou atualizado.
+- O payload deve carregar no minimo:
+  - `ticketId`
+  - `ticketNumber`
+  - `customerId`
+  - `customerEmail`
+  - `rustdeskId`
+  - `requestedBy`
+  - `tags`
+- Nosso orquestrador remoto consome esse evento e:
+  - valida policy
+  - vincula ticket a `RemoteSession`
+  - registra auditoria
+  - opcionalmente inicia a sessao ou a deixa pronta para confirmacao manual
+
+### Beneficios
+
+- Menos friccao para o tecnico no atendimento
+- Vinculo direto entre ticket e sessao remota
+- Melhor trilha de auditoria
+- Infraestrutura 100% sob controle proprio
+
+### Limite atual
+
+Nao existe integracao oficial nativa entre `Zammad` e `RustDesk`.
+O caminho correto aqui e compor:
+
+- campo customizado
+- deep-link `rustdesk://`
+- webhook do `Zammad`
+- API/orquestrador da plataforma remota
+
 ## Telas (MVP)
 
 - Painel de ambientes remotos.

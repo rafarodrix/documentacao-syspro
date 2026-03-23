@@ -73,4 +73,34 @@ export type RemotePlatformOverview = {
   modules: RemotePlatformModule[];
   endpoints: RemotePlatformEndpoint[];
   roadmap: RemotePlatformRoadmapPhase[];
+  hostStats: {
+    total: number;
+    active: number;
+    maintenance: number;
+    inactive: number;
+  };
+  sessionStats: {
+    total: number;
+    requested: number;
+    started: number;
+    ended: number;
+    failed: number;
+  };
+  recentHosts: Array<
+    RemoteHostSummary & {
+      companyName: string | null;
+      createdAt: string;
+      lastHeartbeatAt: string | null;
+    }
+  >;
+  recentSessions: Array<
+    RemoteSessionSummary & {
+      hostName: string;
+      companyName: string | null;
+      requestedByName: string | null;
+      createdAt: string;
+      startedAt: string | null;
+      endedAt: string | null;
+    }
+  >;
 };

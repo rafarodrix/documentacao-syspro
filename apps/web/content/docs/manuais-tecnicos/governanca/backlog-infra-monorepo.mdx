@@ -91,10 +91,12 @@ Ordem recomendada:
 
 ## Novas funcionalidades
 
-- [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais.
+- [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Shell, queries persistidas e rotas iniciais de `hosts` e `sessions` ja estruturados; falta concluir migration, seed operacional e fluxo fim a fim.
 - [x] `FEAT-001A` [Alta] Definir matriz de acesso da plataforma remota: `ADMIN`, `SUPORTE` e `DEVELOPER` com visao global; `CLIENTE_ADMIN` apenas com visao da propria empresa. Modelagem base com `companyId` em `RemoteHost` e `RemoteSession`, enforcement no shell e abertura controlada no sidebar/route guard concluidos.
 - [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota.
 - [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima.
+- [ ] `FEAT-003A` [Media] Integrar `Zammad + RustDesk` com `rustdesk://<id>` no ticket, objeto externo para `rustdesk_id` e abertura rapida da sessao pelo atendente.
+- [ ] `FEAT-003B` [Media] Criar fluxo de webhook/API entre `Zammad` e orquestrador remoto para registrar sessao, ticket vinculado e trilha de auditoria.
 - [ ] `FEAT-004` [Media] Criar shell de credenciais por referencia com controle de acesso e trilha de uso.
 - [ ] `FEAT-005` [Media] Implementar painel inicial de backup e restore com jobs catalogados.
 - [ ] `FEAT-006` [Baixa] Evoluir area publica para aderir integralmente aos tokens de tema e remover hardcodes restantes.
@@ -120,6 +122,8 @@ Ordem recomendada:
 - `FEAT-001A` Matriz de acesso global vs escopo por empresa
 - `FEAT-002` Gestao de ambientes remotos
 - `FEAT-003` Sessoes remotas com auditoria
+- `FEAT-003A` Link rapido Zammad -> RustDesk
+- `FEAT-003B` Webhook Zammad -> orquestrador remoto
 - `FEAT-004` Credenciais por referencia
 - `FEAT-005` Backup e restore operacional
 - `FEAT-006` Consolidacao visual da area publica
@@ -135,4 +139,5 @@ Ordem recomendada:
 1. iniciar `FEAT-001` com persistencia de `RemoteHost`, `RemoteSession` e `AuditLog`
 2. aplicar o mesmo enforcement de `FEAT-001A` nas rotas operacionais e queries persistidas
 3. depois abrir `FEAT-003` com start/stop de sessao remota
-4. em seguida conectar `FEAT-005` para jobs de backup e catalogo de artefatos
+4. em seguida executar `FEAT-003A` e `FEAT-003B` para integrar `Zammad + RustDesk`
+5. depois conectar `FEAT-005` para jobs de backup e catalogo de artefatos
