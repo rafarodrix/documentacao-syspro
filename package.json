@@ -1,17 +1,20 @@
-{
-  "name": "dosc-syspro",
+﻿{
+  "name": "dosc-syspro-workspace",
   "version": "0.0.0",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
-    "start": "next start",
-    "docs:check": "node scripts/docs-check.mjs",
-    "test:authz": "vitest run tests/authz --reporter=verbose",
-    "test:tickets": "vitest run tests/tickets --reporter=verbose",
-    "postinstall": "fumadocs-mdx && prisma generate",
-    "db:generate": "dotenv -e .env npx prisma generate",
-    "db:migrate": "dotenv -e .env npx prisma migrate dev"
+    "build": "npm run build -w @dosc-syspro/web",
+    "dev": "npm run dev -w @dosc-syspro/web",
+    "start": "npm run start -w @dosc-syspro/web",
+    "docs:check": "npm run docs:check -w @dosc-syspro/web",
+    "test:authz": "npm run test:authz -w @dosc-syspro/web",
+    "test:tickets": "npm run test:tickets -w @dosc-syspro/web",
+    "postinstall": "npm run postinstall -w @dosc-syspro/web",
+    "db:generate": "npm run db:generate -w @dosc-syspro/web",
+    "db:migrate": "npm run db:migrate -w @dosc-syspro/web"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

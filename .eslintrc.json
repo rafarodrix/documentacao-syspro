@@ -1,0 +1,57 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "overrides": [
+    {
+      "files": [
+        "src/features/*/interface/**/*.{ts,tsx}",
+        "src/components/platform/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@/lib/prisma",
+                "message": "Interface/componente nao deve acessar Prisma diretamente. Use application/queries da feature."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["@/core/infrastructure/**"],
+                "message": "Interface/componente nao deve importar infraestrutura tecnica diretamente. Use a feature ou application correspondente."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/app/(platform)/app/cadastros/**/*.{ts,tsx}",
+        "src/app/(platform)/app/configuracoes/**/*.{ts,tsx}",
+        "src/app/(platform)/app/chamados/**/*.{ts,tsx}",
+        "src/app/(platform)/app/reforma-tributaria/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@/lib/prisma",
+                "message": "Page/route de modulo com feature nao deve acessar Prisma diretamente. Use queries/actions da feature."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["@/core/infrastructure/**"],
+                "message": "Page/route de modulo com feature nao deve importar infraestrutura tecnica diretamente."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

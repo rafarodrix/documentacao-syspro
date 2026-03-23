@@ -54,28 +54,47 @@ Status de fechamento:
 
 ### EPIC A3 - Guardrails e governanca
 
-- [ ] `INFRA-008` [Alta] Criar checklist de PR para arquitetura por feature.
+- [x] `INFRA-008` [Alta] Criar checklist de PR para arquitetura por feature.
 Criterios de aceite:
 - revisar camada, acoplamento, contrato e regra duplicada.
+Status de fechamento:
+- checklist operacional criado em `content/docs/manuais-tecnicos/governanca/checklist-pr-arquitetura-feature.mdx`.
+- cobrindo revisao de camada, acoplamento, contratos, persistencia, authz/tenant e duplicacao de regra.
+- inclui criterios de bloqueio para PR e perguntas rapidas de revisao arquitetural.
 
-- [ ] `INFRA-009` [Alta] Adicionar lint arquitetural basico por convencao.
+- [x] `INFRA-009` [Alta] Adicionar lint arquitetural basico por convencao.
 Criterios de aceite:
 - impedir import proibido de `interface -> prisma/lib`.
 - impedir page/component chamando infraestrutura diretamente onde ja houver feature.
+Status de fechamento:
+- `.eslintrc.json` criado com `no-restricted-imports` por escopo.
+- `features/*/interface` e `components/platform` passam a bloquear `@/lib/prisma` e `@/core/infrastructure/**`.
+- pages de modulos ja modularizados (`cadastros`, `configuracoes`, `chamados`, `reforma-tributaria`) passam a bloquear acesso direto a Prisma e infraestrutura tecnica.
+- a regra foi aplicada de forma incremental, sem bloquear areas ainda nao migradas para feature.
 
 ## Fase B - Monorepo Estrutural
 
 ### EPIC B1 - Workspace e shell
 
-- [ ] `INFRA-010` [Alta] Estruturar raiz do monorepo com `apps/web` e `packages/*`.
+- [x] `INFRA-010` [Alta] Estruturar raiz do monorepo com `apps/web` e `packages/*`.
 Criterios de aceite:
 - `pnpm-workspace.yaml` e `turbo.json` configurados.
 - `apps/web` criado sem regressao funcional.
+Status de fechamento:
+- `pnpm-workspace.yaml` criado na raiz com `apps/*` e `packages/*`.
+- `turbo.json` criado com tasks base (`build`, `dev`, `lint`, `typecheck`, `test`).
+- `apps/web` criado como shell seguro para a futura migração física da aplicação em `INFRA-011`.
+- `packages/shared`, `packages/ui` e `packages/contracts` criados como pontos de extração incremental, sem impactar o build atual na raiz.
 
-- [ ] `INFRA-011` [Alta] Mover a aplicacao Next.js para `apps/web`.
+- [x] `INFRA-011` [Alta] Mover a aplicacao Next.js para `apps/web`.
 Criterios de aceite:
 - build, docs, auth e app funcionando a partir de `apps/web`.
 - imports ajustados sem alias quebrado.
+Status de fechamento:
+- artefatos do app foram movidos da raiz para `apps/web` (`src`, `content`, `public`, `prisma`, `scripts`, `tests` e configs do Next).
+- `package.json` da raiz passou a atuar como workspace shell e delegar scripts para `@dosc-syspro/web`.
+- `apps/web/package.json` assumiu os scripts reais da aplicação Next.js.
+- `apps/web` ficou como nova raiz funcional do app, preservando o alias `@/*` via `apps/web/tsconfig.json`.
 
 - [ ] `INFRA-012` [Alta] Padronizar qualidade compartilhada.
 Criterios de aceite:
@@ -173,13 +192,8 @@ Criterios de aceite:
 
 ### Sprint 1 - Fechamento da Fase A
 
-- `INFRA-008` Checklist de PR
-- `INFRA-009` Lint arquitetural
-
 ### Sprint 2 - Monorepo estrutural
 
-- `INFRA-010` Raiz do monorepo
-- `INFRA-011` `apps/web`
 - `INFRA-012` Qualidade compartilhada
 - `INFRA-013` `packages/shared`
 - `INFRA-014` `packages/ui`
@@ -202,6 +216,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. adicionar os guardrails de arquitetura (`INFRA-008` e `INFRA-009`) antes da Fase B
-2. depois iniciar a Fase B com `INFRA-010` e `INFRA-011`
-3. manter novos gateways/adapters seguindo os contratos definidos em `core/domain/interfaces`
+1. executar `INFRA-012` para padronizar qualidade compartilhada no workspace
+2. iniciar a extração segura dos primeiros pacotes (`INFRA-013` a `INFRA-015`)
+3. validar e ajustar o fluxo de build/deploy do workspace após a migração física
