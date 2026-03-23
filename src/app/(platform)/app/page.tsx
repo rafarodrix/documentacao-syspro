@@ -12,10 +12,9 @@ import { MagicCard } from "@/components/magicui/magic-card";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { ArrowUpRight, BookOpen, Headset, Sparkles, Users } from "lucide-react";
-import { getZammadRouteHealth } from "@/core/infrastructure/observability/zammad-observability";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { buildTicketKpis, toTicketSummaryItems } from "@/features/tickets/application/dashboard";
-import { queryTicketsForViewer } from "@/features/tickets/application/queries";
+import { queryTicketsForViewer, zammadObservabilityGateway } from "@/features/tickets/application/queries";
 import type { AdminDashboardViewData, ClientDashboardViewData } from "@/features/tickets/domain/model";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
@@ -251,7 +250,7 @@ export default async function DashboardPage() {
   const session = await requireSession();
   const data = await getDashboardData(session.userId, session.email, session.role);
   const isSystemUser = data.mode === "admin";
-  const zammadHealth = getZammadRouteHealth("app-chamados");
+  const zammadHealth = zammadObservabilityGateway.getRouteHealth("app-chamados");
 
   return (
     <div className="flex-1 space-y-4 sm:space-y-5 p-4 sm:p-6">

@@ -9,21 +9,9 @@ import {
   saveTaxDataBatch,
   saveTaxNcmBatch,
 } from "@/features/tax/application/actions";
+import type { TaxSyncChunkRequest, TaxSyncMode } from "@/features/tax/domain/model";
 
-type SyncMode = "classTrib" | "anexos" | "credPresumido" | "ncm";
-
-type SyncChunkBody = {
-  mode?: SyncMode;
-  chunk?: unknown[];
-  chunkIndex?: number;
-  totalChunks?: number;
-  totalItems?: number;
-  source?: string;
-  fetchedAt?: number;
-  jobId?: string;
-};
-
-function isSyncMode(value: unknown): value is SyncMode {
+function isSyncMode(value: unknown): value is TaxSyncMode {
   return value === "classTrib" || value === "anexos" || value === "credPresumido" || value === "ncm";
 }
 
@@ -37,7 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Sem permissao para sincronizar dados fiscais." }, { status: 403 });
   }
 
-  let body: SyncChunkBody;
+  let body: TaxSyncChunkRequest;
   try {
     body = (await request.json()) as SyncChunkBody;
   } catch {

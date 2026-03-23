@@ -18,6 +18,7 @@ import {
     markZammadRouteStale,
     recordZammadMetric,
 } from "@/core/infrastructure/observability/zammad-observability";
+import type { IZammadGateway, ZammadCacheOptions } from "@/core/domain/interfaces/zammad-gateway.interface";
 
 const ZAMMAD_URL = process.env.ZAMMAD_URL;
 const ZAMMAD_TOKEN = process.env.ZAMMAD_TOKEN;
@@ -39,12 +40,6 @@ type ResponseCacheEntry = {
 const responseCache = new Map<string, ResponseCacheEntry>();
 const circuitOpenUntilByRoute = new Map<string, number>();
 const userIdCache = new Map<string, { value: number | null; expiresAt: number }>();
-
-type ZammadCacheOptions = {
-    cacheTtlSeconds?: number;
-    tags?: string[];
-    routeKey?: string;
-};
 
 type NextFetchOptions = RequestInit & {
     next?: {
@@ -321,7 +316,7 @@ function buildCustomerEmailsFallbackQuery(emails: string[]): string {
         .join(" OR ")})`;
 }
 
-export const ZammadGateway = {
+export const ZammadGateway: IZammadGateway = {
     async searchOperationalTickets(
         query: string,
         options?: {

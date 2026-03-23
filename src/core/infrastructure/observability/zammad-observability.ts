@@ -1,3 +1,9 @@
+import type {
+  IZammadObservabilityGateway,
+  RouteHealth,
+  RouteSnapshot,
+} from "@/core/domain/interfaces/observability-gateway.interface";
+
 type ZammadMetricEntry = {
   ts: number;
   routeKey: string;
@@ -7,24 +13,6 @@ type ZammadMetricEntry = {
   timeout: boolean;
   attempts: number;
   latencyMs: number;
-};
-
-type RouteSnapshot = {
-  routeKey: string;
-  total: number;
-  errors: number;
-  timeouts: number;
-  avgLatencyMs: number;
-  errorRate: number;
-  timeoutRate: number;
-};
-
-type RouteHealth = {
-  routeKey: string;
-  stale: boolean;
-  staleMinutes: number;
-  staleSince: string | null;
-  updatedAt: string;
 };
 
 const MAX_METRICS = 2000;
@@ -114,3 +102,8 @@ export function getZammadMetricsSnapshot(routeKeys: string[], windowMinutes = 60
     };
   });
 }
+
+export const zammadObservabilityGateway: IZammadObservabilityGateway = {
+  getRouteHealth: getZammadRouteHealth,
+  getMetricsSnapshot: getZammadMetricsSnapshot,
+};

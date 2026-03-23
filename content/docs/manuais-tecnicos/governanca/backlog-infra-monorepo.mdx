@@ -41,10 +41,16 @@ Status de fechamento:
 - dashboard e listagem de chamados passaram a consumir o mesmo contrato do modulo.
 - painéis fiscais de anexos, crédito presumido e NCM passaram a consumir diretamente os tipos do dominio fiscal, sem tipos locais duplicados.
 
-- [ ] `INFRA-007` [Alta] Padronizar gateways/adapters tecnicos em `core/infrastructure`.
+- [x] `INFRA-007` [Alta] Padronizar gateways/adapters tecnicos em `core/infrastructure`.
 Criterios de aceite:
 - Zammad, company registry, tax sync e observabilidade seguem contrato explicito.
 - pagina nao fala com client tecnico direto.
+Status de fechamento:
+- `company-registry` ja operava com contrato explicito em `src/core/domain/interfaces/company-registry-gateway.interface.ts`.
+- `Zammad` passou a expor contrato em `src/core/domain/interfaces/zammad-gateway.interface.ts`, com adapter tipado em `src/core/infrastructure/gateways/zammad-gateway.ts`.
+- observabilidade Zammad passou a expor gateway tipado em `src/core/domain/interfaces/observability-gateway.interface.ts` e `src/core/infrastructure/observability/zammad-observability.ts`.
+- `tax sync` passou a usar contrato explicito de payload em `src/features/tax/domain/model.ts`.
+- a dashboard page deixou de importar observabilidade tecnica direto de infraestrutura e passou a consumir a feature de tickets.
 
 ### EPIC A3 - Guardrails e governanca
 
@@ -167,7 +173,6 @@ Criterios de aceite:
 
 ### Sprint 1 - Fechamento da Fase A
 
-- `INFRA-007` Gateways/adapters
 - `INFRA-008` Checklist de PR
 - `INFRA-009` Lint arquitetural
 
@@ -197,6 +202,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. executar `INFRA-007` para padronizar gateways e adapters tecnicos
-2. adicionar os guardrails de arquitetura (`INFRA-008` e `INFRA-009`) antes da Fase B
-3. depois iniciar a Fase B com `INFRA-010` e `INFRA-011`
+1. adicionar os guardrails de arquitetura (`INFRA-008` e `INFRA-009`) antes da Fase B
+2. depois iniciar a Fase B com `INFRA-010` e `INFRA-011`
+3. manter novos gateways/adapters seguindo os contratos definidos em `core/domain/interfaces`

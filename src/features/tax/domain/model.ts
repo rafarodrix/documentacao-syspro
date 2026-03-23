@@ -7,6 +7,19 @@ export type TaxActionResponse<T = unknown> = {
   data?: T;
 };
 
+export type TaxSyncMode = "classTrib" | "anexos" | "credPresumido" | "ncm";
+
+export type TaxSyncChunkRequest = {
+  mode?: TaxSyncMode;
+  chunk?: unknown[];
+  chunkIndex?: number;
+  totalChunks?: number;
+  totalItems?: number;
+  source?: string;
+  fetchedAt?: number;
+  jobId?: string;
+};
+
 export type TaxDecimalLike = Prisma.Decimal | number | string;
 
 export type TaxClassificationListItem = {
