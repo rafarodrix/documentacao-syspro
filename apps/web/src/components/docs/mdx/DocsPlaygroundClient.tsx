@@ -49,7 +49,7 @@ export function DocsPlaygroundClient({
   const [editorValue, setEditorValue] = useState(code);
   const [runVersion, setRunVersion] = useState(0);
 
-  const srcDoc = useMemo(() => buildSrcDoc(editorValue), [editorValue, runVersion]);
+  const srcDoc = useMemo(() => buildSrcDoc(editorValue), [editorValue]);
 
   return (
     <section className="my-4 overflow-hidden rounded-xl border border-border/70">

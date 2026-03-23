@@ -353,7 +353,7 @@ function CalculationFooter() {
             <h4 className="font-semibold text-foreground mb-2 text-sm flex items-center gap-2">
               <Percent size={14} /> Estratégico (%)
             </h4>
-            <p className="text-xs text-muted-foreground mb-3">Você define quanto da receita daquele departamento será "comida" pelo custo fixo.</p>
+            <p className="text-xs text-muted-foreground mb-3">Você define quanto da receita daquele departamento será &quot;comida&quot; pelo custo fixo.</p>
             <div className="bg-background p-3 rounded border border-border text-xs text-foreground">
               <BlockMath math={`Custo = Fat_{Dept} \\times Meta\\%`} />
             </div>
@@ -482,7 +482,7 @@ export function FixedCostSimulator() {
           }
         />
 
-        {/* --- BARRA DE STATUS PARA MODO MANUAL E ESTRATÉGICO --- */}
+        {/* --- BARRA DE STATUS PARA MODO MANUAL E ESTRAT??GICO --- */}
         {(allocationMode === 'manual' || allocationMode === 'strategic') && (
           <div className={`px-6 py-4 border-b flex flex-col md:flex-row md:items-center justify-between text-sm gap-4 transition-colors duration-300 ${Math.abs(balanceToAllocate) < 1
             ? 'bg-emerald-500/10 border-emerald-500/20'

@@ -64,7 +64,7 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
             <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                    placeholder="Buscar por codigo CST, classificacao ou descricao..."
+                    placeholder="Buscar por codigo CST, classificação ou descrição..."
                     className="bg-card pl-9"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -75,7 +75,7 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
                 <ScrollArea className="h-[600px]">
                     {filteredData.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">
-                            Nenhum registro fiscal encontrado para "{searchTerm}".
+                            Nenhum registro fiscal encontrado para &quot;{searchTerm}&quot;.
                         </div>
                     ) : (
                         <Accordion type="multiple" className="w-full">
@@ -95,11 +95,11 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
                                                 <div className="mt-1 flex items-center gap-2">
                                                     {cst.indIBSCBS && (
                                                         <span className="flex w-fit items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-700">
-                                                            <Percent className="h-3 w-3" /> Tributavel
+                                                            <Percent className="h-3 w-3" /> Tributável
                                                         </span>
                                                     )}
                                                     <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                                        <FileText className="h-3 w-3" /> {cst.classifications.length} Classificacoes
+                                                        <FileText className="h-3 w-3" /> {cst.classifications.length} Classificações
                                                     </span>
                                                 </div>
                                             </div>
@@ -112,7 +112,7 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
                                                 <TableHeader className="bg-muted/30">
                                                     <TableRow>
                                                         <TableHead className="w-[100px] pl-6">Cod. Class</TableHead>
-                                                        <TableHead>Detalhe da Classificacao</TableHead>
+                                                        <TableHead>Detalhe da Classificação</TableHead>
                                                         <TableHead className="w-[100px] text-center">NFe</TableHead>
                                                         <TableHead className="w-[120px] text-right">Red. IBS</TableHead>
                                                         <TableHead className="w-[120px] pr-6 text-right">Red. CBS</TableHead>
@@ -129,7 +129,7 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
                                                                 <div className="mt-1 flex gap-2 text-[10px] text-muted-foreground/60">
                                                                     <span className="flex items-center gap-1">
                                                                         <Calendar className="h-3 w-3" />
-                                                                        Vigencia: {new Date(cls.startDate).toLocaleDateString("pt-BR")}
+                                                                        Vigência: {new Date(cls.startDate).toLocaleDateString("pt-BR")}
                                                                     </span>
                                                                 </div>
                                                             </TableCell>

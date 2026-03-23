@@ -10,21 +10,19 @@ type ResultDisplayProps = {
 }
 
 export function ResultDisplay({ summary, downloadUrl, apiUrl }: ResultDisplayProps) {
-    // 1. Correção: Só não renderiza se NÃO tiver nem resumo E nem download
-    if (!summary && !downloadUrl) return null;
-
     const [copied, setCopied] = useState(false);
+
+    if (!summary && !downloadUrl) return null;
 
     const safeApiUrl = apiUrl?.replace(/\/+$/, '') || '';
     const safeDownloadUrl = downloadUrl.startsWith('/') ? downloadUrl : `/${downloadUrl}`;
     const fullUrl = safeApiUrl + safeDownloadUrl;
 
-    // 2. Funcionalidade de Copiar Texto
     const handleCopy = async () => {
         try {
             await navigator.clipboard.writeText(summary);
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000); // Reseta após 2s
+            setTimeout(() => setCopied(false), 2000);
         } catch (err) {
             console.error('Falha ao copiar:', err);
         }
@@ -32,8 +30,6 @@ export function ResultDisplay({ summary, downloadUrl, apiUrl }: ResultDisplayPro
 
     return (
         <div className="mt-10 bg-card rounded-xl shadow-lg border border-border animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden">
-
-            {/* Cabeçalho de Sucesso */}
             <div className="bg-green-500/10 border-b border-green-500/20 p-6 flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
                     <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -45,7 +41,6 @@ export function ResultDisplay({ summary, downloadUrl, apiUrl }: ResultDisplayPro
             </div>
 
             <div className="p-6 space-y-6">
-                {/* 3. Área de Download (Destaque Principal) */}
                 {downloadUrl && (
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-secondary/50 p-4 rounded-lg border border-border">
                         <div className="flex items-center gap-3">
@@ -69,7 +64,6 @@ export function ResultDisplay({ summary, downloadUrl, apiUrl }: ResultDisplayPro
                     </div>
                 )}
 
-                {/* 4. Área de Log / Resumo (Estilo Terminal) */}
                 {summary && (
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">

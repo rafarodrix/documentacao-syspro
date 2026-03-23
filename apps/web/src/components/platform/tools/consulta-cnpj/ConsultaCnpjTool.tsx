@@ -53,7 +53,7 @@ export function ConsultaCnpjTool() {
     if (!cnpjReady) return { label: "CNPJ incompleto", tone: "secondary" as const };
     if (!cnpjValid) return { label: "CNPJ inválido", tone: "destructive" as const };
     return { label: "CNPJ válido para consulta", tone: "default" as const };
-  }, [digits.length, cnpjReady, cnpjValid, cnpj]);
+  }, [digits.length, cnpjReady, cnpjValid]);
 
   async function handleCopy() {
     if (!cnpjReady) {

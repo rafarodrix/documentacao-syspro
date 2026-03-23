@@ -17,8 +17,8 @@ export async function TaxClassificationList() {
     return (
       <div className="mt-4 flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 p-8 text-muted-foreground">
         <Database className="mb-2 h-10 w-10 opacity-20" />
-        <p className="text-sm">Nenhuma classificacao encontrada.</p>
-        <p className="text-xs">Clique em "Sincronizar" para popular a base.</p>
+        <p className="text-sm">Nenhuma classificação encontrada.</p>
+        <p className="text-xs">Clique em &quot;Sincronizar&quot; para popular a base.</p>
       </div>
     );
   }
@@ -41,10 +41,10 @@ export async function TaxClassificationList() {
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
             <TableRow>
-              <TableHead className="w-[180px]">Vinculo CST</TableHead>
+              <TableHead className="w-[180px]">Vínculo CST</TableHead>
               <TableHead className="w-[100px]">Cod. Class.</TableHead>
-              <TableHead>Descricao detalhada</TableHead>
-              <TableHead className="w-[120px] text-right">Reducoes</TableHead>
+              <TableHead>Descrição detalhada</TableHead>
+              <TableHead className="w-[120px] text-right">Reduções</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,7 +57,7 @@ export async function TaxClassificationList() {
                       <ArrowRight className="h-3 w-3" />
                     </div>
                   ) : (
-                    <span className="text-xs text-destructive">Sem vinculo</span>
+                    <span className="text-xs text-destructive">Sem vínculo</span>
                   )}
                 </TableCell>
 

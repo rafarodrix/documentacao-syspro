@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -49,11 +49,10 @@ function TaxNcmPanelComponent({ items }: { items: TaxNcmListItem[] }) {
     setVisibleCount(INITIAL_ROWS);
   }, [deferredQuery, vigencia, groupCode, subgroupCode, itemCode]);
 
-  const sourceItems = ready ? items : [];
-
   const validNcms = useMemo(() => {
+    const sourceItems = ready ? items : [];
     return sourceItems.filter((entry) => /^\d{8}$/.test(entry.code));
-  }, [sourceItems]);
+  }, [items, ready]);
 
   const baseFiltered = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase();
@@ -245,7 +244,7 @@ function TaxNcmPanelComponent({ items }: { items: TaxNcmListItem[] }) {
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead className="w-[140px]">NCM</TableHead>
-                <TableHead>Descrição</TableHead>
+                <TableHead>Descri?f??f?o</TableHead>
                 <TableHead className="w-[150px]">Substitui por</TableHead>
                 <TableHead className="w-[120px]">Início</TableHead>
                 <TableHead className="w-[120px]">Fim</TableHead>
