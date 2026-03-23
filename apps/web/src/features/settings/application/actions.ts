@@ -2,11 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { revalidatePath } from "next/cache";
 import { settingsSchema, SettingsInput, SETTING_KEYS } from "@dosc-syspro/contracts";
 import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
 import { SefazService } from "@/app/api/sefaz/sefaz.service";
+import { revalidateSettingsViews } from "@/lib/cache-invalidation";
 import type { SettingsActionResponse } from "@/features/settings/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
@@ -51,7 +51,7 @@ export async function updateSettingsAction(data: SettingsInput): Promise<Setting
       }),
     ]);
 
-    revalidatePath("/app/configuracoes");
+    revalidateSettingsViews();
     return { success: true, message: "Configuracoes salvas." };
   } catch (error) {
     console.error("Erro ao salvar configuracoes:", error);
@@ -76,7 +76,7 @@ export async function updateRbacMatrixVisibilityAction(enabled: boolean): Promis
       },
     });
 
-    revalidatePath("/app/configuracoes");
+    revalidateSettingsViews();
     return { success: true, message: enabled ? "Matriz RBAC ativada." : "Matriz RBAC desativada." };
   } catch (error) {
     console.error("Erro ao atualizar visibilidade da matriz RBAC:", error);
@@ -107,7 +107,7 @@ export async function updateSefazRoutesAction(routes: SefazRoutesInput): Promise
       },
     });
 
-    revalidatePath("/app/configuracoes");
+    revalidateSettingsViews();
     return { success: true, message: "Rotas SEFAZ salvas com sucesso." };
   } catch (error) {
     console.error("Erro ao salvar rotas SEFAZ:", error);
@@ -124,8 +124,7 @@ export async function runSefazCheckAction(): Promise<SettingsActionResponse> {
   try {
     const service = new SefazService();
     const result = await service.runFullCheck();
-    revalidatePath("/app");
-    revalidatePath("/app/configuracoes");
+    revalidateSettingsViews(true);
     return { success: true, message: `Verificacao concluida (${result.count} rotas).` };
   } catch (error) {
     console.error("Erro ao executar verificacao SEFAZ:", error);

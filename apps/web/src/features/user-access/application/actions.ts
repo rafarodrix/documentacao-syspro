@@ -5,11 +5,11 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { createUserSchema, CreateUserInput } from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";
 import { z } from "zod";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
+import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 
 // --- Tipagens ---
 export type ActionResponse<T = any> = {
@@ -100,13 +100,6 @@ function getAdminApi(): AdminApiShape | null {
     const candidate = auth.api.removeUser;
     if (typeof candidate !== "function") return null;
     return { removeUser: candidate as AdminApiShape["removeUser"] };
-}
-
-function revalidateCadastrosPaths() {
-    revalidatePath("/app/cadastros");
-    revalidatePath("/app/cadastros/empresa");
-    revalidatePath("/app/cadastros/usuarios");
-    revalidatePath("/app/cadastros/sistema");
 }
 
 // --- Central de Erros ---
@@ -267,7 +260,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<ActionRes
             }
         });
 
-        revalidateCadastrosPaths();
+        revalidateCadastrosViews();
         return { success: true, message: "Usuario criado com sucesso!" };
 
     } catch (error) {
@@ -384,7 +377,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
             }
         });
 
-        revalidateCadastrosPaths();
+        revalidateCadastrosViews();
         return { success: true, message: "Usuario atualizado com sucesso." };
     } catch (error) {
         return handleActionError(error);
@@ -410,7 +403,7 @@ export async function deleteUserAction(id: string): Promise<ActionResponse> {
             where: { id },
             data: { deletedAt: new Date(), isActive: false }
         });
-        revalidateCadastrosPaths();
+        revalidateCadastrosViews();
         return { success: true, message: "Removido com sucesso." };
     } catch (error) {
         return handleActionError(error);
@@ -451,7 +444,7 @@ export async function linkUserToCompanyAction(data: LinkUserInput): Promise<Acti
             update: { role: data.role }
         });
 
-        revalidateCadastrosPaths();
+        revalidateCadastrosViews();
         return { success: true, message: "V?nculo atualizado." };
     } catch (error) {
         return handleActionError(error);
@@ -477,7 +470,7 @@ export async function toggleUserStatusAction(id: string, active: boolean): Promi
             where: { id },
             data: { isActive: active }
         });
-        revalidateCadastrosPaths();
+        revalidateCadastrosViews();
         return { success: true, message: `Usuario ${active ? 'ativado' : 'desativado'} com sucesso.` };
     } catch (error) {
         return handleActionError(error);
@@ -510,7 +503,7 @@ export async function removeUserFromCompanyAction(userId: string, companyId: str
                 userId_companyId: { userId, companyId }
             }
         });
-        revalidateCadastrosPaths();
+        revalidateCadastrosViews();
         return { success: true, message: "V?nculo removido com sucesso." };
     } catch (error) {
         return handleActionError(error);
@@ -547,7 +540,7 @@ export async function updateMembershipRoleAction(userId: string, companyId: stri
             },
             data: { role }
         });
-        revalidateCadastrosPaths();
+        revalidateCadastrosViews();
         return { success: true, message: "Cargo atualizado com sucesso." };
     } catch (error) {
         return handleActionError(error);

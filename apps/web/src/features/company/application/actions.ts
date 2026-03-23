@@ -3,12 +3,12 @@
 import { prisma } from "@/lib/prisma";
 import { createCompanySchema, CreateCompanyInput } from "@/core/application/schema/company-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { revalidatePath } from "next/cache";
 import { Prisma, CompanyStatus, Role } from "@prisma/client";
 import { resolveCompanySegmentTriggers } from "@/core/config/company-segments";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { CompanyRegistryGateway } from "@/core/infrastructure/gateways/company-registry-gateway";
+import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
   CompanyActionResponse as ActionResponse,
   CompanyRegistryLookupResponse,
@@ -27,13 +27,6 @@ async function getSessionCompanyIds(userId: string): Promise<string[]> {
     select: { companyId: true },
   });
   return memberships.map((m) => m.companyId);
-}
-
-function revalidateCadastrosPaths() {
-  revalidatePath("/app/cadastros");
-  revalidatePath("/app/cadastros/empresa");
-  revalidatePath("/app/cadastros/usuarios");
-  revalidatePath("/app/cadastros/sistema");
 }
 
 function normalizeZammadEmails(items: CompanyZammadEmailInput[] | undefined): CompanyZammadEmailInput[] {
@@ -182,7 +175,7 @@ export async function createCompanyAction(
 
     const segmentTriggers = resolveCompanySegmentTriggers(result.segment);
 
-    revalidateCadastrosPaths();
+    revalidateCadastrosViews();
     return { success: true, message: "Empresa criada com sucesso!", data: { ...result, segmentTriggers } };
   } catch (error) {
     return handleActionError(error);
@@ -273,7 +266,7 @@ export async function updateCompanyAction(
       await replaceCompanyZammadEmails(id, zammadEmails);
     }
 
-    revalidateCadastrosPaths();
+    revalidateCadastrosViews();
     return { success: true, message: "Empresa atualizada com sucesso!" };
   } catch (error) {
     return handleActionError(error);
@@ -295,7 +288,7 @@ export async function updateCompanyStatusAction(id: string, status: CompanyStatu
       },
     });
 
-    revalidateCadastrosPaths();
+    revalidateCadastrosViews();
     return {
       success: true,
       message: status === CompanyStatus.INACTIVE ? "Empresa inativada com sucesso." : "Empresa reativada com sucesso.",
@@ -346,7 +339,7 @@ export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
 
     await prisma.company.delete({ where: { id } });
 
-    revalidateCadastrosPaths();
+    revalidateCadastrosViews();
     return { success: true, message: "Empresa excluida com sucesso." };
   } catch (error) {
     return handleActionError(error);

@@ -9,9 +9,9 @@ import {
   DEFAULT_CONTRACT_TAX_RATE,
 } from "@/core/application/schema/contract-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { revalidatePath } from "next/cache";
 import { SETTING_KEYS } from "@dosc-syspro/contracts";
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
+import { revalidateContractsViews } from "@/lib/cache-invalidation";
 import {
   serializeContractBlockReason,
 } from "@dosc-syspro/core";
@@ -86,10 +86,7 @@ export async function createContractAction(data: CreateContractInput): Promise<C
       data: { isActive: true },
     });
 
-    revalidatePath("/app/contratos");
-    revalidatePath("/app/configuracoes");
-    revalidatePath("/app/cadastros/empresa");
-    revalidatePath("/app/cadastros/usuarios");
+    revalidateContractsViews();
 
     return { success: true, message: "Contrato criado com sucesso!" };
   } catch (error) {
@@ -136,10 +133,7 @@ export async function updateContractAction(data: UpdateContractInput): Promise<C
       },
     });
 
-    revalidatePath("/app/contratos");
-    revalidatePath("/app/configuracoes");
-    revalidatePath("/app/cadastros/empresa");
-    revalidatePath("/app/cadastros/usuarios");
+    revalidateContractsViews();
 
     return { success: true, message: "Contrato atualizado com sucesso." };
   } catch (error) {
@@ -201,8 +195,7 @@ export async function batchReadjustContractsAction(newMinimumWage: number): Prom
       create: { key: SETTING_KEYS.MIN_WAGE, value: String(newMinimumWage), description: "Salario minimo base" },
     });
 
-    revalidatePath("/app/contratos");
-    revalidatePath("/app/configuracoes");
+    revalidateContractsViews(false);
 
     return { success: true, data: { affected } };
   } catch (error) {
@@ -292,10 +285,7 @@ export async function updateContractStatusAction(
       }
     });
 
-    revalidatePath("/app/contratos");
-    revalidatePath("/app/configuracoes");
-    revalidatePath("/app/cadastros/empresa");
-    revalidatePath("/app/cadastros/usuarios");
+    revalidateContractsViews();
 
     return { success: true, message: "Status do contrato atualizado." };
   } catch (error) {

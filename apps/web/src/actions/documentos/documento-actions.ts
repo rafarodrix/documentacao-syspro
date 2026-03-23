@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { DocumentoFormValues, documentoSchema } from "@dosc-syspro/contracts"
-import { revalidatePath } from "next/cache"
+import { revalidateDocumentosViews } from "@/lib/cache-invalidation"
 
 // --- LISTAR ---
 export async function getDocumentos() {
@@ -60,7 +60,7 @@ export async function saveDocumento(data: DocumentoFormValues) {
         }
 
         // Atualiza o cache da listagem
-        revalidatePath("/app/tools/configuracao-documentos")
+        revalidateDocumentosViews()
         return { success: true }
 
     } catch (error) {
@@ -73,7 +73,7 @@ export async function saveDocumento(data: DocumentoFormValues) {
 export async function deleteDocumento(id: string) {
     try {
         await prisma.documentoConfig.delete({ where: { id } })
-        revalidatePath("/app/tools/configuracao-documentos")
+        revalidateDocumentosViews()
         return { success: true }
     } catch (error) {
         console.error("Erro ao excluir:", error)

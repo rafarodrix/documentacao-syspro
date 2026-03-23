@@ -1,7 +1,6 @@
 "use server";
 
 import { Role } from "@prisma/client";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { ZammadGateway } from "@/core/infrastructure/gateways/zammad-gateway";
@@ -11,6 +10,7 @@ import { queryTicketsForViewer } from "@/core/application/services/tickets/ticke
 import { mapTicketStateLabel } from "@/core/infrastructure/mappers/zammad-ticket.mapper";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
+import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
 
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
@@ -112,9 +112,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
             },
         });
 
-        revalidatePath("/app/chamados");
-        revalidateTag("tickets-list");
-        revalidateTag("tickets-dashboard");
+        revalidateTicketCollections();
         return { success: true, message: "Chamado aberto com sucesso!", data: newTicket };
     } catch (error) {
         console.error("Erro ao criar chamado:", error);
@@ -217,9 +215,7 @@ export async function replyTicketAction(ticketId: string, message: string) {
         }
 
         await ZammadGateway.addTicketReply(ticketId, body);
-        revalidatePath(`/app/chamados/${ticketId}`);
-        revalidateTag("tickets-list");
-        revalidateTag("tickets-dashboard");
+        revalidateTicketViews(ticketId);
         return { success: true };
     } catch (error) {
         console.error("Erro ao responder chamado:", error);
@@ -255,9 +251,7 @@ export async function ticketQuickAction(input: {
             );
         }
 
-        revalidateTag("tickets-list");
-        revalidateTag("tickets-dashboard");
-        revalidatePath("/app/chamados");
+        revalidateTicketCollections();
         return { success: true };
     } catch (error) {
         console.error("Erro em ticketQuickAction:", error);

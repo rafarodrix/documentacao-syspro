@@ -152,6 +152,52 @@ Quando houver `apps/mobile` ou `apps/api`, o consumo ideal fica:
 - `packages/database` nao depende de UI
 - `packages/ui` nao depende de Prisma nem auth
 
+## Padrao oficial de data fetching e invalidacao
+
+O padrao oficial do projeto passa a ser:
+
+### Leitura inicial de tela
+
+- `page.tsx` e containers server-side devem buscar dados via `src/features/<feature>/application/queries.ts`
+- a query monta o view model da tela e pode usar Prisma direto apenas quando a leitura ainda for local e simples
+- a tela nao deve duplicar filtro, agregacao ou mapeamento ja existente em `application`
+
+### Mutacao
+
+- componente client chama `src/features/<feature>/application/actions.ts`
+- `actions` concentram escrita, authz e invalidacao
+- `page.tsx` e componente React nao executam `revalidatePath` nem `revalidateTag`
+
+### Widgets dinamicos, polling e observabilidade
+
+- `fetch('/api/...')` permanece valido para:
+  - polling
+  - barra de status
+  - observabilidade
+  - integracoes que exigem refresh em tempo real
+- nesses casos, o padrao recomendado e `cache: 'no-store'` ou controle explicito de `revalidate`
+
+### Invalidacao
+
+- invalidacao de cache/path deve ser centralizada em helper unico
+- o helper oficial atual fica em `src/lib/cache-invalidation.ts`
+- cada dominio invalida apenas seu conjunto minimo de telas:
+  - `revalidateCadastrosViews`
+  - `revalidateContractsViews`
+  - `revalidateSettingsViews`
+  - `revalidateTaxViews`
+  - `revalidateTicketCollections`
+  - `revalidateTicketViews`
+  - `revalidateDocumentosViews`
+
+### Anti-padroes de fetching
+
+1. `page.tsx` chamar action de escrita para ler dados
+2. componente client duplicar query existente em `application/queries`
+3. cada action declarar sua propria lista de `revalidatePath`
+4. usar `fetch('/api/...')` para leitura inicial de pagina quando a query ja pode rodar no server
+5. misturar invalidacao de contratos, cadastros e settings sem helper central
+
 ## Estrategia de repositories e adapters para persistencia
 
 O objetivo nao e criar repositories por formalismo. O objetivo e impedir que o dominio e os casos de uso fiquem acoplados a Prisma quando a aplicacao evoluir para `packages/core`, `packages/database` e consumo por API/mobile.

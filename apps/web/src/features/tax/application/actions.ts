@@ -1,9 +1,9 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { createHash } from "crypto";
+import { revalidateSettingsViews, revalidateTaxViews } from "@/lib/cache-invalidation";
 
 // ==============================================================================
 // 1. TIPAGEM EXATA DO RETORNO DA API (BASEADA NO SEU JSON)
@@ -495,7 +495,7 @@ export async function saveTaxDataBatch(
         });
 
         if (options?.revalidate ?? true) {
-            revalidatePath("/app/configuracoes");
+            revalidateSettingsViews();
         }
 
         return {
@@ -717,7 +717,7 @@ export async function saveTaxAnexosBatch(
         }
 
         if (options?.revalidate ?? true) {
-            revalidatePath("/app/configuracoes");
+            revalidateSettingsViews();
         }
 
         return {
@@ -866,7 +866,7 @@ export async function saveTaxCredPresumidoBatch(
         }
 
         if (options?.revalidate ?? true) {
-            revalidatePath("/app/configuracoes");
+            revalidateSettingsViews();
         }
 
         return {
@@ -1015,8 +1015,7 @@ export async function saveTaxNcmBatch(
         }
 
         if (options?.revalidate ?? true) {
-            revalidatePath("/app/configuracoes");
-            revalidatePath("/app/reforma-tributaria");
+            revalidateTaxViews();
         }
 
         return {
