@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { useDocumentoForm } from "@/hooks/use-documento-form";
+import { useDocumentoForm } from "@/features/documentos/hooks/use-documento-form";
 import { DocumentoFormValues } from "@dosc-syspro/contracts";
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
 import { COMPORTAMENTOS_DOCUMENTO } from "@dosc-syspro/contracts";

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
-import { useLogin } from "@/hooks/use-login"
+import { useLogin } from "@/features/auth/hooks/use-login"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -35,7 +35,7 @@ export function LoginForm() {
     >
       <div className="space-y-5">
 
-        {/* ── Alerta de Erro ──────────────────────────────────── */}
+        {/* â”€â”€ Alerta de Erro â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {hasError && (
           <Alert
             variant="destructive"
@@ -49,12 +49,12 @@ export function LoginForm() {
           </Alert>
         )}
 
-        {/* ── Formulário ──────────────────────────────────────── */}
+        {/* â”€â”€ FormulÃ¡rio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
           noValidate
-          aria-label="Formulário de login"
+          aria-label="FormulÃ¡rio de login"
         >
           {/* E-mail */}
           <div className="space-y-2">
@@ -135,7 +135,7 @@ export function LoginForm() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 required
                 autoComplete="current-password"
                 value={password}
@@ -188,7 +188,7 @@ export function LoginForm() {
           </Button>
         </form>
 
-        {/* ── Rodapé ──────────────────────────────────────────── */}
+        {/* â”€â”€ RodapÃ© â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="space-y-4 pt-1">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -204,7 +204,7 @@ export function LoginForm() {
           <p className="text-center text-sm text-muted-foreground">
             Entre em contato pelo{" "}
             <Link
-              href="https://wa.me/5534997713731?text=Olá"
+              href="https://wa.me/5534997713731?text=OlÃ¡"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
@@ -216,7 +216,7 @@ export function LoginForm() {
               href="/docs/suporte"
               className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
             >
-              suporte técnico
+              suporte tÃ©cnico
             </Link>
             .
           </p>

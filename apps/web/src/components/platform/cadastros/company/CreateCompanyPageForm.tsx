@@ -14,7 +14,7 @@ import {
   updateCompanyAction,
 } from "@/features/company/application/actions";
 import { COMPANY_SEGMENT_LABELS } from "@/features/company/domain/company-segments";
-import { useAddressLookup } from "@/hooks/use-address-lookup";
+import { useAddressLookup } from "@/features/company/hooks/use-address-lookup";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -302,11 +302,11 @@ export function CreateCompanyPageForm({
     if (!email) return;
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!valid) {
-      toast.error("Informe um e-mail válido para integração Zammad.");
+      toast.error("Informe um e-mail vÃ¡lido para integraÃ§Ã£o Zammad.");
       return;
     }
     if (zammadEmails.some((item) => item.email === email)) {
-      toast.error("Este e-mail já foi adicionado.");
+      toast.error("Este e-mail jÃ¡ foi adicionado.");
       return;
     }
     setZammadEmails((prev) => [

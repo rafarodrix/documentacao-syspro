@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useResetPassword } from "@/hooks/use-reset-password"
+import { useResetPassword } from "@/features/auth/hooks/use-reset-password"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,7 +16,7 @@ export function ResetPasswordForm() {
     setPassword,
     setConfirmPassword,
     submitReset,
-    passwordStrength,  // ✅ do hook melhorado
+    passwordStrength,  // âœ… do hook melhorado
   } = useResetPassword()
 
   // Toggle de visibilidade local para cada campo
@@ -31,12 +31,12 @@ export function ResetPasswordForm() {
   // Token ausente = link quebrado ou expirado
   if (!token) {
     return (
-      <AuthLayoutWrapper title="Link Inválido" description="Solicitação não encontrada." backButton>
+      <AuthLayoutWrapper title="Link InvÃ¡lido" description="SolicitaÃ§Ã£o nÃ£o encontrada." backButton>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro</AlertTitle>
           <AlertDescription>
-            O link de recuperação é inválido ou expirou. Links são válidos por 1 hora.
+            O link de recuperaÃ§Ã£o Ã© invÃ¡lido ou expirou. Links sÃ£o vÃ¡lidos por 1 hora.
           </AlertDescription>
         </Alert>
         <Button className="w-full mt-4" asChild>
@@ -82,7 +82,7 @@ export function ResetPasswordForm() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Mínimo 8 caracteres"
+                placeholder="MÃ­nimo 8 caracteres"
                 required
                 autoComplete="new-password"
                 value={password}
@@ -102,7 +102,7 @@ export function ResetPasswordForm() {
               </button>
             </div>
 
-            {/* ✅ Barra de força de senha */}
+            {/* âœ… Barra de forÃ§a de senha */}
             {password.length > 0 && (
               <div className="space-y-1 animate-in fade-in duration-200">
                 <div className="flex gap-1 h-1.5">
@@ -121,7 +121,7 @@ export function ResetPasswordForm() {
                   passwordStrength.passes ? "text-green-600" : "text-orange-500"
                 )}>
                   {passwordStrength.label}
-                  {!passwordStrength.passes && " — adicione letras maiúsculas, números ou símbolos"}
+                  {!passwordStrength.passes && " â€” adicione letras maiÃºsculas, nÃºmeros ou sÃ­mbolos"}
                 </p>
               </div>
             )}
@@ -150,14 +150,14 @@ export function ResetPasswordForm() {
                 className={cn(
                   "pl-10 pr-10 h-11 bg-muted/30 border-muted-foreground/20 transition-all",
                   error && "border-red-500 bg-red-50",
-                  // ✅ Feedback visual imediato se as senhas não coincidem
+                  // âœ… Feedback visual imediato se as senhas nÃ£o coincidem
                   confirmPassword.length > 0 && password !== confirmPassword && "border-orange-400",
                   confirmPassword.length > 0 && password === confirmPassword && "border-green-400",
                 )}
               />
               <button
                 type="button"
-                aria-label={showConfirm ? "Ocultar confirmação" : "Mostrar confirmação"}
+                aria-label={showConfirm ? "Ocultar confirmaÃ§Ã£o" : "Mostrar confirmaÃ§Ã£o"}
                 onClick={() => setShowConfirm((p) => !p)}
                 disabled={loading}
                 className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
@@ -168,7 +168,7 @@ export function ResetPasswordForm() {
             {/* Hint de match */}
             {confirmPassword.length > 0 && password !== confirmPassword && (
               <p className="text-[11px] text-orange-500 animate-in fade-in duration-200">
-                As senhas não coincidem ainda
+                As senhas nÃ£o coincidem ainda
               </p>
             )}
           </div>

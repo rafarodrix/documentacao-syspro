@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CADASTROS_ROUTE_RULES, hasAllowedRole, type AppRole } from "@/core/config/route-access";
+import { CADASTROS_ROUTE_RULES, hasAllowedRole, type AppRole } from "@dosc-syspro/core";
 
 const ALL_ROLES: AppRole[] = ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN", "CLIENTE_USER"];
 
@@ -20,7 +20,7 @@ describe("authorization integration: /app/cadastros route matrix", () => {
     }
   });
 
-  it("empresa e usuarios compartilham mesma política de acesso", () => {
+  it("empresa e usuarios compartilham mesma polÃ­tica de acesso", () => {
     for (const role of ALL_ROLES) {
       expect(hasAllowedRole(role, CADASTROS_ROUTE_RULES.empresa.allowed)).toBe(
         hasAllowedRole(role, CADASTROS_ROUTE_RULES.usuarios.allowed),

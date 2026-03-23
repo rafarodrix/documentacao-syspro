@@ -43,7 +43,7 @@ export default function DocumentosContainer() {
         loadData();
     }, []);
 
-    const toFormValues = (doc: DocumentoItem): DocumentoFormValues => ({
+const toFormValues = (doc: DocumentoItem): DocumentoFormValues => ({
         id: doc.id,
         empresa: doc.empresa ?? "",
         descricao: doc.descricao,
@@ -54,7 +54,9 @@ export default function DocumentosContainer() {
         maximoItens: doc.maximoItens ?? 999,
         atualizaComercial: doc.atualizaComercial ?? true,
         processamentoEtapa: doc.processamentoEtapa ?? false,
-        movimentaEstoque: doc.movimentaEstoque,
+        movimentaEstoque: (["SAIDA", "ENTRADA", "NAO"].includes(doc.movimentaEstoque)
+            ? doc.movimentaEstoque
+            : "SAIDA") as "SAIDA" | "ENTRADA" | "NAO",
         finalidadeNFe: doc.finalidadeNFe,
         tpNFCredito: doc.tpNFCredito ?? "",
         tpNFDebito: doc.tpNFDebito ?? "",

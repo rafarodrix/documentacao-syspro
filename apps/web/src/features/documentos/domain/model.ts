@@ -9,7 +9,7 @@ export type DocumentoItem = {
     serie: string;
     emitente: string | null;
     maximoItens: number | null;
-    movimentaEstoque: "SAIDA" | "ENTRADA" | "NAO";
+    movimentaEstoque: string;
     atualizaComercial: boolean | null;
     processamentoEtapa: boolean | null;
     finalidadeNFe: string;

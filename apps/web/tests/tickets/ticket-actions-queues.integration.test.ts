@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Role } from "@prisma/client";
-import { type QueueKey } from "@/core/config/tickets-workflow";
+import { type QueueKey } from "@dosc-syspro/core";
 
 const getProtectedSessionMock = vi.fn();
 const getUserIdByEmailMock = vi.fn();

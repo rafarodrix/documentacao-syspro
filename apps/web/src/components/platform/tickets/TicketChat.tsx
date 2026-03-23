@@ -1,6 +1,6 @@
 "use client";
 
-import { useTicketChat } from "@/hooks/use-ticket-chat";
+import { useTicketChat } from "@/features/tickets/hooks/use-ticket-chat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -78,7 +78,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                     <div className={cn("flex flex-col min-w-0", messageIsMe && "items-end")}>
                                         <div className="flex items-center gap-2 mb-1 px-1">
                                             <span className="text-xs font-medium truncate max-w-[220px]">
-                                                {messageIsMe ? "Você" : article.from.split("<")[0]}
+                                                {messageIsMe ? "VocÃª" : article.from.split("<")[0]}
                                             </span>
                                             <span className="text-[10px] text-muted-foreground">{article.createdAt}</span>
                                         </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useForgotPassword } from "@/hooks/use-forgot-password"
+import { useForgotPassword } from "@/features/auth/hooks/use-forgot-password"
 import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,21 +22,21 @@ export function ForgotPasswordForm() {
   return (
     <AuthLayoutWrapper
       title="Recuperar Senha"
-      description="Digite seu e-mail para receber as instruções."
+      description="Digite seu e-mail para receber as instruÃ§Ãµes."
       backButton
     >
       {success ? (
-        // ─── Estado de Sucesso ──────────────────────────────────────────────
+        // â”€â”€â”€ Estado de Sucesso â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         <div className="space-y-6 text-center animate-in fade-in zoom-in-95 duration-500 py-4">
           <div className="mx-auto h-16 w-16 bg-green-100 rounded-full flex items-center justify-center border-4 border-green-50">
             <CheckCircle2 className="h-8 w-8 text-green-600" />
           </div>
           <div className="space-y-2">
             <h3 className="text-xl font-semibold">Verifique seu e-mail</h3>
-            {/* ✅ MELHORIA: Mensagem neutra que não confirma se o email existe */}
+            {/* âœ… MELHORIA: Mensagem neutra que nÃ£o confirma se o email existe */}
             <p className="text-sm text-muted-foreground">
-              Se houver uma conta cadastrada para <strong>{email}</strong>, você receberá
-              um link de recuperação em breve. Verifique também a pasta de spam.
+              Se houver uma conta cadastrada para <strong>{email}</strong>, vocÃª receberÃ¡
+              um link de recuperaÃ§Ã£o em breve. Verifique tambÃ©m a pasta de spam.
             </p>
           </div>
           <Button variant="outline" className="w-full" onClick={() => setSuccess(false)}>
@@ -44,7 +44,7 @@ export function ForgotPasswordForm() {
           </Button>
         </div>
       ) : (
-        // ─── Formulário ─────────────────────────────────────────────────────
+        // â”€â”€â”€ FormulÃ¡rio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
 
           {hasError && (
@@ -103,7 +103,7 @@ export function ForgotPasswordForm() {
           >
             {loading
               ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Enviando...</span>
-              : "Enviar Link de Recuperação"
+              : "Enviar Link de RecuperaÃ§Ã£o"
             }
           </Button>
         </form>

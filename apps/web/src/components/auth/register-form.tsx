@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRegister } from "@/hooks/use-register"
+import { useRegister } from "@/features/auth/hooks/use-register"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +11,7 @@ import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { cn } from "@/lib/utils"
 
 export function RegisterForm() {
-    // 1. Lógica extraída
+    // 1. LÃ³gica extraÃ­da
     const { loading, error, submitRegister } = useRegister()
 
     // 2. Handler simplificado
@@ -24,7 +24,7 @@ export function RegisterForm() {
     return (
         <AuthLayoutWrapper
             title="Crie sua conta"
-            description="Junte-se à equipe da sua empresa no Syspro ERP."
+            description="Junte-se Ã  equipe da sua empresa no Syspro ERP."
         >
             {/* Alerta de Erro */}
             {error && (
@@ -35,7 +35,7 @@ export function RegisterForm() {
                 </Alert>
             )}
 
-            {/* Formulário */}
+            {/* FormulÃ¡rio */}
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-4">
 
@@ -100,7 +100,7 @@ export function RegisterForm() {
                                 id="password"
                                 name="password"
                                 type="password"
-                                placeholder="••••••••"
+                                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                                 required
                                 disabled={loading}
                                 className={cn(
@@ -109,13 +109,13 @@ export function RegisterForm() {
                                 )}
                             />
                         </div>
-                        <p className="text-[11px] text-muted-foreground ml-1">Mínimo de 6 caracteres</p>
+                        <p className="text-[11px] text-muted-foreground ml-1">MÃ­nimo de 6 caracteres</p>
                     </div>
                 </div>
 
                 {/* Nota Informativa */}
                 <div className="bg-primary/5 border border-primary/10 p-3 rounded-md text-xs text-primary/80">
-                    <strong>Nota:</strong> Se você deseja <strong>contratar o Syspro</strong> para sua empresa, entre em contato com nosso setor comercial.
+                    <strong>Nota:</strong> Se vocÃª deseja <strong>contratar o Syspro</strong> para sua empresa, entre em contato com nosso setor comercial.
                 </div>
 
                 <Button
@@ -132,14 +132,14 @@ export function RegisterForm() {
                 </Button>
             </form>
 
-            {/* Rodapé */}
+            {/* RodapÃ© */}
             <div className="space-y-4">
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t border-border/50" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Já tem acesso?</span>
+                        <span className="bg-background px-2 text-muted-foreground">JÃ¡ tem acesso?</span>
                     </div>
                 </div>
 
