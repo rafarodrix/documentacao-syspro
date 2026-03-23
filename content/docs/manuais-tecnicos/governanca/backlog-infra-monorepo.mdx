@@ -83,11 +83,15 @@ Status de fechamento:
 - `src/actions/platform/settings-actions.ts` e `src/actions/platform/contract-actions.ts` atuam como ponte fina.
 - `src/app/(platform)/app/configuracoes/page.tsx` passou a consumir a feature, sem leitura direta de infraestrutura para esses modulos.
 
-- [ ] `INFRA-003A` [Media] Consolidar acabamento arquitetural de `settings/contracts`.
+- [x] `INFRA-003A` [Media] Consolidar acabamento arquitetural de `settings/contracts`.
 Criterios de aceite:
 - tipos e view models administrativos ficam centralizados na feature
 - leituras e escritas seguem padrao consistente entre `settings` e `contracts`
 - fronteira pronta para futura extracao para `packages/contracts` e `packages/core`
+Status de fechamento:
+- `settings` e `contracts` passaram a expor contratos de retorno tipados na camada `domain`.
+- `queries` e `actions` usam o mesmo shape de retorno (`success/error/message/data`) nos fluxos administrativos.
+- componentes de contratos deixaram de manter tipos duplicados locais e passaram a consumir os modelos da feature.
 
 - [x] `INFRA-004` [Alta] Migrar `users/authz` para `src/features/user-access`.
 Criterios de aceite:
@@ -272,4 +276,3 @@ Criterios de aceite:
 1. consolidar `domain` e `queries` de `company` e `tax`
 2. consolidar o acabamento arquitetural de `settings/contracts`
 3. depois iniciar `user-access`
-

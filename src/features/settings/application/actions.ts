@@ -7,10 +7,11 @@ import { settingsSchema, SettingsInput, SETTING_KEYS } from "@/core/application/
 import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@/core/application/schema/sefaz-routes-schema";
 import { SefazService } from "@/app/api/sefaz/sefaz.service";
+import type { SettingsActionResponse } from "@/features/settings/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
-export async function updateSettingsAction(data: SettingsInput) {
+export async function updateSettingsAction(data: SettingsInput): Promise<SettingsActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };
@@ -58,7 +59,7 @@ export async function updateSettingsAction(data: SettingsInput) {
   }
 }
 
-export async function updateRbacMatrixVisibilityAction(enabled: boolean) {
+export async function updateRbacMatrixVisibilityAction(enabled: boolean): Promise<SettingsActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };
@@ -83,7 +84,7 @@ export async function updateRbacMatrixVisibilityAction(enabled: boolean) {
   }
 }
 
-export async function updateSefazRoutesAction(routes: SefazRoutesInput) {
+export async function updateSefazRoutesAction(routes: SefazRoutesInput): Promise<SettingsActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };
@@ -114,7 +115,7 @@ export async function updateSefazRoutesAction(routes: SefazRoutesInput) {
   }
 }
 
-export async function runSefazCheckAction() {
+export async function runSefazCheckAction(): Promise<SettingsActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };

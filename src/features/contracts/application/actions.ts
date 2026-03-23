@@ -17,13 +17,14 @@ import {
 } from "@/core/config/contract-blocking";
 import type { ContractBlockReason } from "@/core/config/contract-blocking";
 import { getSystemParamsAction } from "@/features/contracts/application/queries";
+import type { ContractActionResponse } from "@/features/contracts/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 const BATCH_CHUNK_SIZE = 50;
 const BATCH_CHUNK_MAX_RETRIES = 3;
 
-export async function createContractAction(data: CreateContractInput) {
+export async function createContractAction(data: CreateContractInput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
 
   if (!session || !WRITE_ROLES.includes(session.role)) {
@@ -40,8 +41,8 @@ export async function createContractAction(data: CreateContractInput) {
 
     if (!finalMinimumWage || finalMinimumWage <= 0) {
       const systemParams = await getSystemParamsAction();
-      if (systemParams.success && systemParams.minimumWage) {
-        finalMinimumWage = systemParams.minimumWage;
+      if (systemParams.success && systemParams.data?.minimumWage) {
+        finalMinimumWage = systemParams.data.minimumWage;
       } else {
         finalMinimumWage = 1412;
       }
@@ -97,7 +98,7 @@ export async function createContractAction(data: CreateContractInput) {
   }
 }
 
-export async function updateContractAction(data: UpdateContractInput) {
+export async function updateContractAction(data: UpdateContractInput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };
@@ -147,7 +148,7 @@ export async function updateContractAction(data: UpdateContractInput) {
   }
 }
 
-export async function batchReadjustContractsAction(newMinimumWage: number) {
+export async function batchReadjustContractsAction(newMinimumWage: number): Promise<ContractActionResponse<{ affected: number }>> {
   const session = await getProtectedSession();
 
   if (!session || !WRITE_ROLES.includes(session.role)) {
@@ -203,7 +204,7 @@ export async function batchReadjustContractsAction(newMinimumWage: number) {
     revalidatePath("/app/contratos");
     revalidatePath("/app/configuracoes");
 
-    return { success: true, affected };
+    return { success: true, data: { affected } };
   } catch (error) {
     console.error("Erro ao reajustar contratos:", error);
     return { success: false, error: "Erro ao aplicar reajuste em massa." };
@@ -215,7 +216,7 @@ export async function updateContractStatusAction(
   status: ContractStatus,
   reason?: ContractBlockReason | null,
   details?: string | null,
-) {
+): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };

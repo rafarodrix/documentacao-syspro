@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ContractStatus } from "@prisma/client";
-import type { Prisma } from "@prisma/client";
+import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/model";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -43,35 +43,9 @@ import {
 } from "@/core/config/contract-blocking";
 import { DEFAULT_CONTRACT_TAX_RATE } from "@/core/application/schema/contract-schema";
 
-type ContractRow = {
-    id: string;
-    companyId: string;
-    percentage: number | Prisma.Decimal | string;
-    minimumWage: number | Prisma.Decimal | string;
-    taxRate: number | Prisma.Decimal | string;
-    programmerRate: number | Prisma.Decimal | string;
-    status: ContractStatus;
-    startDate: string | Date;
-    endDate?: string | Date | null;
-    contractNumber?: string | null;
-    notes?: string | null;
-    company: {
-        id: string;
-        razaoSocial: string;
-        cnpj: string;
-    };
-};
-
 interface ContractsTableProps {
-    contracts: ContractRow[];
+    contracts: ContractListItem[];
 }
-
-type SuspendImpact = {
-    companyName: string;
-    willBlockCompany: boolean;
-    blockedUsersCount: number;
-    totalLinkedUsers: number;
-};
 
 const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
@@ -79,21 +53,20 @@ const formatCurrency = (val: number) =>
 const formatDate = (dateStr: string | Date) =>
     new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(dateStr));
 
-const toNumber = (value: number | Prisma.Decimal | string) => {
+const toNumber = (value: number | string) => {
     if (typeof value === "number") return value;
-    if (typeof value === "string") return Number(value);
-    return value.toNumber();
+    return Number(value);
 };
 
 export function ContractsTable({ contracts }: ContractsTableProps) {
-    const [items, setItems] = useState<ContractRow[]>(contracts);
+    const [items, setItems] = useState<ContractListItem[]>(contracts);
     const [isPending, startTransition] = useTransition();
-    const [suspendTarget, setSuspendTarget] = useState<ContractRow | null>(null);
+    const [suspendTarget, setSuspendTarget] = useState<ContractListItem | null>(null);
     const [blockReason, setBlockReason] = useState<ContractBlockReason>("EMPRESA_FECHOU");
     const [blockReasonDetails, setBlockReasonDetails] = useState("");
-    const [suspendImpact, setSuspendImpact] = useState<SuspendImpact | null>(null);
+    const [suspendImpact, setSuspendImpact] = useState<ContractSuspendImpact | null>(null);
     const [isImpactLoading, setIsImpactLoading] = useState(false);
-    const [editTarget, setEditTarget] = useState<ContractRow | null>(null);
+    const [editTarget, setEditTarget] = useState<ContractListItem | null>(null);
     const [allowTaxOverride, setAllowTaxOverride] = useState(false);
     const [editForm, setEditForm] = useState({
         contractNumber: "",
@@ -185,7 +158,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
         });
     };
 
-    const openEditDialog = (contract: ContractRow) => {
+    const openEditDialog = (contract: ContractListItem) => {
         const currentTax = toNumber(contract.taxRate);
         setAllowTaxOverride(currentTax !== DEFAULT_CONTRACT_TAX_RATE);
         setEditTarget(contract);

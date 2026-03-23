@@ -4,12 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { SETTING_KEYS } from "@/core/application/schema/settings-schema";
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
-import type { ContractListItem, ContractsAdminViewData } from "@/features/contracts/domain/model";
+import type {
+  ContractActionResponse,
+  ContractListItem,
+  ContractsAdminViewData,
+  ContractSuspendImpact,
+  ContractSystemParams,
+} from "@/features/contracts/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 
-export async function getSystemParamsAction() {
+export async function getSystemParamsAction(): Promise<ContractActionResponse<ContractSystemParams>> {
   const session = await getProtectedSession();
   if (!session) return { success: false, error: "Nao autorizado." };
 
@@ -19,14 +25,14 @@ export async function getSystemParamsAction() {
     });
 
     const currentWage = setting ? Number(setting.value) : 1412;
-    return { success: true, minimumWage: currentWage };
+    return { success: true, data: { minimumWage: currentWage } };
   } catch (error) {
     console.error("Erro ao buscar parametros do sistema:", error);
     return { success: false, error: "Erro ao carregar parametros." };
   }
 }
 
-export async function getContractsAction() {
+export async function getContractsAction(): Promise<ContractActionResponse<ContractListItem[]>> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) return { success: false, error: "Nao autorizado." };
 
@@ -73,7 +79,7 @@ export async function getContractsAction() {
   }
 }
 
-export async function getContractSuspendImpactAction(contractId: string) {
+export async function getContractSuspendImpactAction(contractId: string): Promise<ContractActionResponse<ContractSuspendImpact>> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };

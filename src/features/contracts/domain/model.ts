@@ -1,5 +1,12 @@
 import type { ContractStatus } from "@prisma/client";
 
+export interface ContractActionResponse<T = unknown> {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: T;
+}
+
 export interface ContractCompanyOption {
   id: string;
   razaoSocial: string;
@@ -37,4 +44,8 @@ export interface ContractListItem {
 export interface ContractsAdminViewData {
   contracts: ContractListItem[];
   companies: ContractCompanyOption[];
+}
+
+export interface ContractSystemParams {
+  minimumWage: number;
 }

@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createContractSchema, CreateContractInput } from "@/core/application/schema/contract-schema";
 import { createContractAction } from "@/features/contracts/application/actions";
 import { getSystemParamsAction } from "@/features/contracts/application/queries";
+import type { ContractCompanyOption } from "@/features/contracts/domain/model";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 
 interface ContractSheetProps {
-    companies: { id: string; razaoSocial: string; cnpj: string }[];
+    companies: ContractCompanyOption[];
     mode?: "button" | "full";
 }
 
@@ -58,8 +59,8 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
         if (mode !== "full") return;
         startTransition(async () => {
             const result = await getSystemParamsAction();
-            if (result.success && result.minimumWage) {
-                form.setValue("minimumWage", result.minimumWage);
+            if (result.success && result.data?.minimumWage) {
+                form.setValue("minimumWage", result.data.minimumWage);
             }
         });
     }, [mode, form]);

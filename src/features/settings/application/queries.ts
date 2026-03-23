@@ -6,11 +6,11 @@ import { settingsSchema, type SettingsInput, SETTING_KEYS } from "@/core/applica
 import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@/core/application/schema/sefaz-routes-schema";
 import { buildDefaultSefazRoutes } from "@/core/constants/sefaz-endpoints";
-import type { SettingsAdminViewData } from "@/features/settings/domain/model";
+import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
-export async function getSettingsAction() {
+export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsInput>> {
   const session = await getProtectedSession();
   if (!session) return { success: false, error: "Nao autorizado." };
 
@@ -41,7 +41,7 @@ export async function getSettingsAction() {
   }
 }
 
-export async function getSefazRoutesAction() {
+export async function getSefazRoutesAction(): Promise<SettingsActionResponse<SefazRoutesInput>> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada.", data: [] as SefazRoutesInput };
