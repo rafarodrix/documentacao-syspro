@@ -17,7 +17,7 @@ import {
 
 export async function lookupCompanyProfileByCnpjAction(
   ...args: Parameters<typeof lookupCompanyProfileByCnpjActionImpl>
-) {
+): Promise<ReturnType<typeof lookupCompanyProfileByCnpjActionImpl> extends Promise<infer T> ? T : never> {
   return lookupCompanyProfileByCnpjActionImpl(...args);
 }
 

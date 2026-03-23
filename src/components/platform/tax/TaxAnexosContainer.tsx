@@ -1,23 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTaxAnexosViewData } from "@/features/tax/application/queries";
 import { TaxAnexosPanel } from "./TaxAnexosPanel";
 
 export async function TaxAnexosContainer() {
-  const anexos = await prisma.taxAnexo.findMany({
-    orderBy: [{ code: "asc" }, { title: "asc" }],
-    take: 300,
-    select: {
-      id: true,
-      externalKey: true,
-      code: true,
-      title: true,
-      description: true,
-      category: true,
-      publishDate: true,
-      startDate: true,
-      endDate: true,
-      lastUpdated: true,
-    },
-  });
+  const anexos = await getTaxAnexosViewData();
 
   return <TaxAnexosPanel items={anexos} />;
 }

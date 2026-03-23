@@ -1,23 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { getTaxCredPresumidoViewData } from "@/features/tax/application/queries";
 import { TaxCredPresumidoPanel } from "./TaxCredPresumidoPanel";
 
 export async function TaxCredPresumidoContainer() {
   try {
-    const items = await prisma.taxCredPresumido.findMany({
-      orderBy: [{ code: "asc" }, { title: "asc" }],
-      take: 300,
-      select: {
-        id: true,
-        externalKey: true,
-        code: true,
-        title: true,
-        description: true,
-        category: true,
-        publishDate: true,
-        startDate: true,
-        endDate: true,
-      },
-    });
+    const items = await getTaxCredPresumidoViewData();
 
     return <TaxCredPresumidoPanel items={items} />;
   } catch (error) {

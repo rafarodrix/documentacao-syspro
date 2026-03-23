@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTaxClassificationListViewData } from "@/features/tax/application/queries";
 import {
   Table,
   TableBody,
@@ -11,20 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, Database, ArrowRight } from "lucide-react";
 
 export async function TaxClassificationList() {
-  const PREVIEW_LIMIT = 300;
-
-  const [totalCount, items] = await Promise.all([
-    prisma.taxClassification.count(),
-    prisma.taxClassification.findMany({
-      orderBy: { code: "asc" },
-      take: PREVIEW_LIMIT,
-      include: {
-        cst: {
-          select: { cst: true },
-        },
-      },
-    }),
-  ]);
+  const { totalCount, items, previewLimit } = await getTaxClassificationListViewData();
 
   if (totalCount === 0) {
     return (
@@ -43,9 +30,9 @@ export async function TaxClassificationList() {
           <FileText className="h-4 w-4" />
           Registros no banco ({totalCount})
         </h3>
-        {totalCount > PREVIEW_LIMIT ? (
+        {totalCount > previewLimit ? (
           <p className="mt-1 text-xs text-muted-foreground">
-            Mostrando os primeiros {PREVIEW_LIMIT} registros para melhor performance.
+            Mostrando os primeiros {previewLimit} registros para melhor performance.
           </p>
         ) : null}
       </div>
@@ -98,4 +85,3 @@ export async function TaxClassificationList() {
     </div>
   );
 }
-

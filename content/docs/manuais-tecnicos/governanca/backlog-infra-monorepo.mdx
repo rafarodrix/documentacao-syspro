@@ -64,11 +64,15 @@ Status de fechamento:
 Observacao:
 - o acabamento restante foi desdobrado em item proprio.
 
-- [ ] `INFRA-002A` [Media] Consolidar `domain` e separar consultas fiscais em `tax`.
+- [x] `INFRA-002A` [Media] Consolidar `domain` e separar consultas fiscais em `tax`.
 Criterios de aceite:
 - `src/features/tax/domain` criado com tipos e regras fiscais do modulo.
 - `queries` e `writes` separados.
 - modelos e contratos de resposta deixam de ficar espalhados fora da feature.
+Status de fechamento:
+- `src/features/tax/domain/model.ts` centraliza os tipos do modulo fiscal.
+- `src/features/tax/application/queries.ts` concentra as leituras de classTrib, anexos, credito presumido e NCM.
+- containers e listagens fiscais passaram a consumir queries da feature, sem `prisma` direto fora do modulo.
 
 - [x] `INFRA-003` [Alta] Migrar `settings/contracts` para `src/features`.
 Criterios de aceite:
@@ -268,3 +272,4 @@ Criterios de aceite:
 1. consolidar `domain` e `queries` de `company` e `tax`
 2. consolidar o acabamento arquitetural de `settings/contracts`
 3. depois iniciar `user-access`
+

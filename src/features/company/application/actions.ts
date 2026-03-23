@@ -88,7 +88,9 @@ function handleActionError(error: unknown): ActionResponse {
   };
 }
 
-export async function lookupCompanyProfileByCnpjAction(cnpj: string): Promise<ActionResponse> {
+export async function lookupCompanyProfileByCnpjAction(
+  cnpj: string,
+): Promise<ActionResponse<CompanyRegistryLookupResponse>> {
   const session = await getProtectedSession();
   if (!session || !UPDATE_ROLES.includes(session.role)) {
     return { success: false, message: "Permissao negada." };
@@ -121,7 +123,7 @@ export async function lookupCompanyProfileByCnpjAction(cnpj: string): Promise<Ac
       } satisfies CompanyRegistryLookupResponse,
     };
   } catch (error) {
-    return handleActionError(error);
+    return handleActionError(error) as ActionResponse<CompanyRegistryLookupResponse>;
   }
 }
 

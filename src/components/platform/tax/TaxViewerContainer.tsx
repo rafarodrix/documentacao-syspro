@@ -1,16 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTaxRulesViewData } from "@/features/tax/application/queries";
 import { TaxRulesViewer } from "./TaxRulesViewer";
 
 export async function TaxViewerContainer() {
-    // Busca CSTs ordenados, INCLUINDO as classificações filhas
-    const data = await prisma.taxCST.findMany({
-        orderBy: { cst: "asc" },
-        include: {
-            classifications: {
-                orderBy: { code: "asc" }
-            }
-        }
-    });
+    const data = await getTaxRulesViewData();
 
     return <TaxRulesViewer data={data} />;
 }
