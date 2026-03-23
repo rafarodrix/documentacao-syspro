@@ -73,12 +73,12 @@ export type TaxCredPresumidoListItem = {
 export type TaxNcmListItem = {
   id: string;
   code: string;
-  description: string | null;
+  description: string;
   startDate: Date | null;
   endDate: Date | null;
   replacedByCode: string | null;
   actType: string | null;
   actNumber: string | null;
-  actYear: number | null;
+  actYear: string | null;
   lastUpdated: Date;
 };

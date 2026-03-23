@@ -98,7 +98,7 @@ export async function getTaxCredPresumidoViewData(): Promise<TaxCredPresumidoLis
 }
 
 export async function getTaxNcmViewData(): Promise<TaxNcmListItem[]> {
-  return prisma.taxNcm.findMany({
+  const rows = await prisma.taxNcm.findMany({
     orderBy: [{ code: "asc" }],
     take: 400,
     select: {
@@ -114,4 +114,10 @@ export async function getTaxNcmViewData(): Promise<TaxNcmListItem[]> {
       lastUpdated: true,
     },
   });
+
+  return rows.map((item) => ({
+    ...item,
+    description: item.description ?? "",
+    actYear: item.actYear != null ? String(item.actYear) : null,
+  }));
 }
