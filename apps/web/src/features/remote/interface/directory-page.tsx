@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Copy, ExternalLink, Plus, Search, Wifi, WifiOff, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Download, ExternalLink, Plus, Search, Wifi, WifiOff, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
   const [quickDescription, setQuickDescription] = useState("");
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
   const environmentOptions = useMemo(() => {
     const values = Array.from(new Set(directory.items.map((item) => item.environment).filter(Boolean))) as string[];
@@ -109,6 +110,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       toast.success("Maquina cadastrada.");
       setQuickRustdeskId("");
       setQuickDescription("");
+      setShowQuickCreate(false);
       startTransition(() => router.refresh());
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao cadastrar maquina.");
@@ -187,40 +189,56 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         <CardContent className="space-y-4">
           {canCreateHosts ? (
             <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Plus className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold text-foreground">Cadastro rapido de maquina</p>
-              </div>
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label>Empresa</Label>
-                  <select
-                    value={quickCompanyId}
-                    onChange={(event) => setQuickCompanyId(event.target.value)}
-                    className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                  >
-                    {directory.companyOptions.map((company) => (
-                      <option key={company.id} value={company.id}>
-                        {company.label}
-                      </option>
-                    ))}
-                  </select>
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Cadastro rapido de maquina</p>
+                    <p className="text-xs text-muted-foreground">
+                      Empresa, RustDesk ID e descricao minima para registrar uma nova maquina.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>RustDesk ID</Label>
-                  <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descricao</Label>
-                  <Input value={quickDescription} onChange={(event) => setQuickDescription(event.target.value)} placeholder="Servidor principal do ERP" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Cadastrar maquina
+                <Button type="button" variant="outline" onClick={() => setShowQuickCreate((current) => !current)} className="gap-2">
+                  {showQuickCreate ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  {showQuickCreate ? "Fechar cadastro" : "Cadastrar maquina"}
                 </Button>
               </div>
+
+              {showQuickCreate ? (
+                <div className="mt-4 space-y-3">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Empresa</Label>
+                      <select
+                        value={quickCompanyId}
+                        onChange={(event) => setQuickCompanyId(event.target.value)}
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                      >
+                        {directory.companyOptions.map((company) => (
+                          <option key={company.id} value={company.id}>
+                            {company.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>RustDesk ID</Label>
+                      <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Descricao</Label>
+                      <Input value={quickDescription} onChange={(event) => setQuickDescription(event.target.value)} placeholder="Servidor principal do ERP" />
+                    </div>
+                  </div>
+                  <div>
+                    <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Confirmar cadastro
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -357,6 +375,15 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         <Copy className="h-3.5 w-3.5" />
                         Copiar ID
                       </Button>
+                      {canCreateHosts ? (
+                        <a
+                          href={`/api/remote/hosts/${item.id}/installer`}
+                          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1")}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Baixar script
+                        </a>
+                      ) : null}
                       <Link
                         href={`/app/plataforma-remota/${item.id}`}
                         className={cn(buttonVariants({ variant: "default" }), "gap-1")}

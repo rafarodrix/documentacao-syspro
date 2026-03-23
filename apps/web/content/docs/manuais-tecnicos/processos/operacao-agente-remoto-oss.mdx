@@ -1,4 +1,4 @@
----
+﻿---
 title: Operacao do Agente Remoto OSS
 description: Fluxo tecnico para instalacao, auto-registro, heartbeat e validacao operacional do agente remoto no modelo RustDesk self-hosted com portal proprio.
 lastUpdated: 2026-03-23
@@ -127,7 +127,19 @@ Resultado esperado:
 
 ## Script base do agente
 
-Exemplo de script PowerShell para registro e heartbeat:
+Script operacional disponivel em:
+
+```text
+scripts/remote-agent-oss.ps1
+```
+
+Ele suporta:
+
+- registro inicial do agente
+- heartbeat sob demanda
+- instalacao opcional de tarefa agendada para heartbeat periodico
+
+Trecho principal do fluxo:
 
 ```powershell
 param(
@@ -139,7 +151,10 @@ param(
   [string]$MachineName = $env:COMPUTERNAME,
   [string]$AgentVersion = "rustdesk-oss-local",
   [string]$Environment,
-  [switch]$HeartbeatOnly
+  [switch]$HeartbeatOnly,
+  [switch]$InstallScheduledTask,
+  [string]$TaskName = "TrilinkRemoteAgentHeartbeat",
+  [int]$HeartbeatIntervalMinutes = 5
 )
 
 $ErrorActionPreference = "Stop"
@@ -184,13 +199,27 @@ Invoke-RemotePortalEndpoint -Url "$normalizedPortalBaseUrl/api/remote/agents/hea
 Exemplo de uso:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\remote-agent-oss.ps1 `
+powershell -ExecutionPolicy Bypass -File .\scripts\remote-agent-oss.ps1 `
   -PortalBaseUrl "https://ajuda.trilinksoftware.com.br" `
   -InstallToken "seed-token-<companyId>-prod" `
   -RustDeskId "21187620068" `
   -MachineName "ERP-MATRIZ-01" `
   -AgentVersion "1.4.0" `
   -Environment "Producao"
+```
+
+Exemplo com instalacao de tarefa agendada:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\remote-agent-oss.ps1 `
+  -PortalBaseUrl "https://ajuda.trilinksoftware.com.br" `
+  -InstallToken "seed-token-<companyId>-prod" `
+  -RustDeskId "21187620068" `
+  -MachineName "ERP-MATRIZ-01" `
+  -AgentVersion "1.4.0" `
+  -Environment "Producao" `
+  -InstallScheduledTask `
+  -HeartbeatIntervalMinutes 5
 ```
 
 ## Checklist de validacao
@@ -259,3 +288,4 @@ Este manual cobre principalmente:
 - `FEAT-002`
 - `FEAT-002B`
 - parte operacional de `FEAT-003`
+

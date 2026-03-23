@@ -1,4 +1,4 @@
----
+﻿---
 title: Backlog de Infraestrutura e Estabilizacao
 description: Backlog priorizado com os itens pendentes para estabilizacao do app, consolidacao arquitetural e evolucao das novas funcionalidades.
 lastUpdated: 2026-03-23
@@ -89,9 +89,9 @@ Ordem recomendada:
 
 - [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Persistencia, tenant enforcement, rotas de `hosts` e `sessions`, separacao entre configuracao e operacao, detalhe do host, CRUD basico de host com `RustDesk ID` e busca operacional do modulo ja existem; falta aplicar migration/generate/seed no ambiente, validar fluxo fim a fim por perfil e endurecer regras operacionais e mensagens de erro.
 - [x] `FEAT-001A` [Alta] Definir matriz de acesso da plataforma remota: `ADMIN`, `SUPORTE` e `DEVELOPER` com visao global; `CLIENTE_ADMIN` apenas com visao da propria empresa.
-- [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, token de instalacao, heartbeat e metadata basica do agente ja existem; falta validar auto-registro/heartbeat em ambiente real, ampliar filtros operacionais, criar fluxo de instalacao do agente e separar entidade de agente quando o recorte OSS-first estabilizar.
-- [ ] `FEAT-002A` [Media] Consolidar UX operacional de hosts e agentes. Grid operacional simplificada, cadastro rapido de maquina, filtros por status/ambiente/heartbeat, copia rapida de `RustDesk ID`, indicadores de prontidao, acesso direto e modal curto de conexao ja existem; falta padronizar labels amigaveis, separar observacoes do host vs empresa, melhorar feedback de bloqueios/estados e reduzir atrito no fluxo diario do suporte.
-- [ ] `FEAT-002B` [Media] Fechar fluxo OSS-first de agente. Endpoints de `register` e `heartbeat` ja existem; falta materializar script/instalador de agente, auto-vinculo guiado ao host e validacao real no ambiente.
+- [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, observacoes manuais do host, token de instalacao, heartbeat e metadata basica do agente ja existem; falta validar auto-registro/heartbeat em ambiente real, materializar fluxo de instalacao do agente, ampliar filtros operacionais e separar entidade de agente quando o recorte OSS-first estabilizar.
+- [ ] `FEAT-002A` [Media] Consolidar UX operacional de hosts e agentes. Grid operacional simplificada, cadastro rapido de maquina, filtros por status/ambiente/heartbeat, copia rapida de `RustDesk ID`, indicadores de prontidao, acesso direto, modal curto de conexao e separacao entre observacoes do host vs empresa ja existem; falta padronizar labels amigaveis, melhorar feedback de bloqueios/estados e reduzir atrito no fluxo diario do suporte.
+- [ ] `FEAT-002B` [Media] Fechar fluxo OSS-first de agente. Endpoints de `register` e `heartbeat`, script PowerShell base do agente e manual tecnico OSS ja existem; falta materializar auto-vinculo guiado ao host, instalar heartbeat periodico em ambiente real e validar o fluxo completo no ambiente.
 - [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima. Start/stop, ticket link, comentario interno no Zammad e regra de deduplicacao inicial ja existem; falta validar o fluxo completo em ambiente real, consolidar regras de transicao de status, fechar resolucao de host por ticket e materializar auditoria mais explicita por sessao.
 - [ ] `FEAT-003C` [Media] Refinar UX da operacao de sessoes remotas. Fluxo manual de solicitar/iniciar/encerrar ja existe; falta expor melhor estados, bloqueios, ultimo ticket associado e feedback operacional para o atendente.
 - [ ] `FEAT-003A` [Media] Integrar `Zammad + RustDesk` com `rustdesk://<id>` no ticket e abertura rapida da sessao pelo atendente. Endpoint de deep-link ja implementado; falta configurar custom link no Zammad e validar com ticket real.
@@ -131,8 +131,10 @@ Ordem recomendada:
 
 ## Proximos passos de produto
 
-1. concluir migration, `prisma generate` e seed da modelagem remota, garantindo consistencia de `RustDesk ID`, `installToken` e metadata do agente entre schema e ambiente
-2. validar fim a fim o CRUD de hosts e o fluxo OSS-first do agente, incluindo auto-registro, heartbeat e abertura por `rustdesk://<id>`
-3. validar o fluxo completo de sessao remota com `REQUESTED -> STARTED -> ENDED`, incluindo perfis, bloqueios e comentario interno no `Zammad`
-4. validar deep-link e webhook do `Zammad` com payload real e endurecer a resolucao de host por ticket
-5. materializar `AuditLog` e depois abrir `FEAT-004` e `FEAT-005`
+1. aplicar a migration mais recente, rodar `prisma generate` e validar o schema remoto no ambiente, incluindo `description`, `notes`, `installToken` e metadata do agente
+2. validar fim a fim o CRUD de hosts no ambiente real, incluindo cadastro rapido, edicao, exclusao, `RustDesk ID`, observacoes do host e abertura por `rustdesk://<id>`
+3. validar `FEAT-002B` em ambiente real com o script OSS-first do agente, auto-vinculo guiado por `installToken` e heartbeat periodico
+4. validar o fluxo completo de sessao remota com `REQUESTED -> STARTED -> ENDED`, incluindo perfis, bloqueios, ultimo ticket associado e comentario interno no `Zammad`
+5. padronizar labels amigaveis e feedback visual de estados em `FEAT-002A`, depois endurecer deep-link/webhook do `Zammad` e abrir `AuditLog`, `FEAT-004` e `FEAT-005`
+
+
