@@ -31,6 +31,19 @@ export interface IZammadGateway {
   ): Promise<ZammadOperationalTicket[]>;
   getTicketById(ticketId: string | number): Promise<ZammadTicketDetails>;
   getTicketArticles(ticketId: string | number): Promise<ZammadTicketArticle[]>;
+  canAccessTicketForCustomerEmails(ticketId: string | number, emails: string[]): Promise<boolean>;
+  createTicket(payload: {
+    title: string;
+    group: string;
+    customer: string;
+    priority_id: number;
+    article: {
+      subject: string;
+      body: string;
+      type: string;
+      internal: boolean;
+    };
+  }): Promise<unknown>;
   addTicketReply(ticketId: string | number, body: string): Promise<unknown>;
   updateTicket(
     ticketId: string | number,
