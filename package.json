@@ -8,7 +8,7 @@
                        "packages/*"
                    ],
     "scripts":  {
-                    "build":  "npm run build -w @dosc-syspro/web && node scripts/sync-next-output.mjs",
+                    "build":  "npm run build -w @dosc-syspro/web",
                     "dev":  "npm run dev -w @dosc-syspro/web",
                     "lint":  "npm run lint -w @dosc-syspro/web",
                     "start":  "npm run start -w @dosc-syspro/web",
