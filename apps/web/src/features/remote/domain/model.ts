@@ -1,5 +1,35 @@
 export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
 
+export type RemoteAccessScope = "global" | "company";
+
+export type RemoteAccessPolicy = {
+  role: "ADMIN" | "SUPORTE" | "DEVELOPER" | "CLIENTE_ADMIN";
+  scope: RemoteAccessScope;
+  description: string;
+};
+
+export type RemoteHostStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
+
+export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";
+
+export type RemoteHostSummary = {
+  id: string;
+  companyId: string;
+  name: string;
+  environment: string | null;
+  provider: string | null;
+  status: RemoteHostStatus;
+};
+
+export type RemoteSessionSummary = {
+  id: string;
+  companyId: string;
+  hostId: string;
+  requestedByUserId: string;
+  startedByUserId: string | null;
+  status: RemoteSessionStatus;
+};
+
 export type RemotePlatformModule = {
   id: string;
   title: string;
@@ -27,6 +57,10 @@ export type RemotePlatformOverview = {
   recommendedEngine: string;
   secretVault: string;
   backupStrategy: string;
+  companyFilterRule: string;
+  accessPolicies: RemoteAccessPolicy[];
+  hostModel: RemoteHostSummary;
+  sessionModel: RemoteSessionSummary;
   modules: RemotePlatformModule[];
   endpoints: RemotePlatformEndpoint[];
   roadmap: RemotePlatformRoadmapPhase[];

@@ -77,6 +77,20 @@ enum TaxSyncStatus {
   FAILED
 }
 
+enum RemoteHostStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum RemoteSessionStatus {
+  REQUESTED
+  STARTED
+  ENDED
+  FAILED
+  CANCELLED
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -122,6 +136,8 @@ model Company {
   accountingClients Company[]    @relation("AccountantClient")
   contracts         Contract[]
   memberships       Membership[]
+  remoteHosts       RemoteHost[]
+  remoteSessions    RemoteSession[]
   zammadEmails      CompanyZammadEmail[]
 
   // AUDITORIA
@@ -219,6 +235,8 @@ model User {
   memberships Membership[]
   sessions    Session[]
   accounts    Account[]
+  requestedRemoteSessions RemoteSession[] @relation("RemoteSessionRequestedBy")
+  startedRemoteSessions   RemoteSession[] @relation("RemoteSessionStartedBy")
 
   // ÃƒÂNDICES PARA PERFORMANCE
   @@index([name])
@@ -332,6 +350,59 @@ model Contract {
   updatedAt DateTime @updatedAt
 
   @@map("contract")
+}
+
+model RemoteHost {
+  id String @id @default(cuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name String
+  environment String?
+  provider String?
+  agentExternalId String?
+  status RemoteHostStatus @default(ACTIVE)
+  lastHeartbeatAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions RemoteSession[]
+
+  @@index([companyId, status])
+  @@index([agentExternalId])
+  @@map("remote_host")
+}
+
+model RemoteSession {
+  id String @id @default(cuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  hostId String
+  host   RemoteHost @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  requestedByUserId String
+  requestedByUser   User @relation("RemoteSessionRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  startedByUserId String?
+  startedByUser   User? @relation("RemoteSessionStartedBy", fields: [startedByUserId], references: [id], onDelete: SetNull)
+
+  status RemoteSessionStatus @default(REQUESTED)
+  startedAt DateTime?
+  endedAt DateTime?
+  reason String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, status])
+  @@index([hostId, status])
+  @@index([requestedByUserId])
+  @@map("remote_session")
 }
 
 model SystemSetting {

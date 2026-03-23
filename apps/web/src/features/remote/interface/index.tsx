@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RemotePlatformOverview, RemotePlatformStatus } from "@/features/remote/domain/model";
-import { Database, KeyRound, LaptopMinimal, ShieldCheck, Waypoints } from "lucide-react";
+import { Building2, Database, KeyRound, LaptopMinimal, ShieldCheck, Waypoints } from "lucide-react";
 
 const statusLabel: Record<RemotePlatformStatus, string> = {
   planned: "Planejado",
@@ -71,6 +71,29 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">{overview.backupStrategy}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-3 border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Building2 className="h-5 w-5 text-primary" />
+              Escopo por empresa
+            </CardTitle>
+            <CardDescription>{overview.companyFilterRule}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {overview.accessPolicies.map((policy) => (
+              <div key={policy.role} className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">{policy.role}</h3>
+                  <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                    {policy.scope === "global" ? "Global" : "Por empresa"}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{policy.description}</p>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </section>
@@ -144,6 +167,62 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
                 <p className="text-sm text-muted-foreground">{phase.summary}</p>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Modelo inicial de RemoteHost</CardTitle>
+            <CardDescription>`companyId` e obrigatorio para filtrar hosts por tenant.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              <span className="font-medium text-foreground">id:</span> {overview.hostModel.id}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">companyId:</span> {overview.hostModel.companyId}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">name:</span> {overview.hostModel.name}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">environment:</span> {overview.hostModel.environment}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">provider:</span> {overview.hostModel.provider}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">status:</span> {overview.hostModel.status}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Modelo inicial de RemoteSession</CardTitle>
+            <CardDescription>`companyId` e proprio para auditar e filtrar sessoes sem depender so do host.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              <span className="font-medium text-foreground">id:</span> {overview.sessionModel.id}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">companyId:</span> {overview.sessionModel.companyId}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">hostId:</span> {overview.sessionModel.hostId}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">requestedByUserId:</span> {overview.sessionModel.requestedByUserId}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">startedByUserId:</span> {overview.sessionModel.startedByUserId}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">status:</span> {overview.sessionModel.status}
+            </p>
           </CardContent>
         </Card>
       </section>

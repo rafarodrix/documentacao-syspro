@@ -106,6 +106,7 @@ Entidades-base para MVP:
 - `ADMIN`, `SUPORTE` e `DEVELOPER` possuem visao global da plataforma remota.
 - `CLIENTE_ADMIN` deve ter acesso apenas aos registros da propria empresa.
 - `CLIENTE_USER` nao participa do fluxo remoto no MVP.
+- `RemoteHost` e `RemoteSession` precisam carregar `companyId` explicito para enforcement de tenant em queries, auditoria e sessoes.
 
 <Callout type="warning" title="Escopo de tenant">
   O primeiro shell da plataforma remota pode ficar visivel apenas para perfis tecnicos. A abertura para `CLIENTE_ADMIN` so deve acontecer quando a filtragem por empresa estiver implementada de ponta a ponta.
@@ -142,4 +143,3 @@ Entidades-base para MVP:
   https://guacamole.apache.org/doc/gug/recording-playback.html
 - RustDesk â€” opÃ§Ãµes de self-hosted:  
   https://rustdesk.com/pricing
-

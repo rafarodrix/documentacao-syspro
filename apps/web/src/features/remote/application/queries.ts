@@ -8,20 +8,60 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
     recommendedEngine: "RustDesk self-hosted",
     secretVault: "HashiCorp Vault",
     backupStrategy: "Firebird com gbak como padrao e nbackup para cenarios especificos",
+    companyFilterRule:
+      "ADMIN, SUPORTE e DEVELOPER enxergam todos os hosts e sessoes. CLIENTE_ADMIN deve enxergar apenas registros cujo companyId coincide com sua membership ativa.",
+    accessPolicies: [
+      {
+        role: "ADMIN",
+        scope: "global",
+        description: "Visao global para operacao, suporte e governanca da plataforma remota.",
+      },
+      {
+        role: "SUPORTE",
+        scope: "global",
+        description: "Visao global para atendimento tecnico, diagnostico e abertura de sessao.",
+      },
+      {
+        role: "DEVELOPER",
+        scope: "global",
+        description: "Visao global para integracoes, observabilidade e manutencao de agentes.",
+      },
+      {
+        role: "CLIENTE_ADMIN",
+        scope: "company",
+        description: "Escopo estrito a hosts e sessoes da propria empresa, nunca visao global.",
+      },
+    ],
+    hostModel: {
+      id: "remote_host.id",
+      companyId: "remote_host.companyId",
+      name: "remote_host.name",
+      environment: "remote_host.environment",
+      provider: "remote_host.provider",
+      status: "ACTIVE",
+    },
+    sessionModel: {
+      id: "remote_session.id",
+      companyId: "remote_session.companyId",
+      hostId: "remote_session.hostId",
+      requestedByUserId: "remote_session.requestedByUserId",
+      startedByUserId: "remote_session.startedByUserId",
+      status: "REQUESTED",
+    },
     modules: [
       {
         id: "remote-hosts",
         title: "Ambientes e agentes",
-        description: "Cadastro de clientes, ambientes, hosts e agentes responsaveis por sessao remota.",
+        description: "Cadastro de clientes, ambientes, hosts e agentes com companyId explicito para escopo por empresa.",
         status: "foundation",
-        nextStep: "Persistir RemoteHost e IntegrationEndpoint no banco.",
+        nextStep: "Persistir RemoteHost, companyId e IntegrationEndpoint no banco.",
       },
       {
         id: "remote-sessions",
         title: "Sessoes remotas",
-        description: "Inicio, encerramento e rastreabilidade minima de sessoes tecnicas.",
-        status: "planned",
-        nextStep: "Criar session orchestrator e endpoints start/stop.",
+        description: "Inicio, encerramento e rastreabilidade minima de sessoes tecnicas com companyId proprio para auditoria e filtro.",
+        status: "foundation",
+        nextStep: "Criar session orchestrator e filtros por membership para CLIENTE_ADMIN.",
       },
       {
         id: "credential-vault",
@@ -59,7 +99,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       {
         id: "phase-1",
         title: "Fase 1 - Fundacao",
-        summary: "RustDesk self-hosted, controle de sessao, auditoria minima e backup padrao com gbak.",
+        summary: "RustDesk self-hosted, companyId em host/sessao, controle de sessao, auditoria minima e backup padrao com gbak.",
         status: "foundation",
       },
       {
