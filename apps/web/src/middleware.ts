@@ -11,6 +11,7 @@ type SessionCachePayload = {
 
 const ROLE_CACHE_TTL_MS = 30 * 1000;
 const ROLE_CACHE_MAX_ITEMS = 1000;
+const REMOTE_PLATFORM_ROLES: AppRole[] = [...SYSTEM_ROLES, "CLIENTE_ADMIN"];
 
 const globalForRoleCache = globalThis as unknown as { __sessionRoleCache?: Map<string, CachedRole> };
 const sessionRoleCache = globalForRoleCache.__sessionRoleCache ?? new Map<string, CachedRole>();
@@ -120,7 +121,11 @@ export async function middleware(request: NextRequest) {
 
   if (
     isAuthenticated &&
-    (pathname.startsWith("/app/cadastros") || pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix))
+    (
+      pathname.startsWith("/app/cadastros") ||
+      pathname.startsWith("/app/plataforma-remota") ||
+      pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix)
+    )
   ) {
     const role = await resolveRequestRole(request, sessionToken);
 
@@ -142,6 +147,10 @@ export async function middleware(request: NextRequest) {
 
     if (pathname.startsWith(CADASTROS_ROUTE_RULES.usuarios.pathPrefix) && !hasAllowedRole(role, CADASTROS_ROUTE_RULES.usuarios.allowed)) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked);
+    }
+
+    if (pathname.startsWith("/app/plataforma-remota") && !hasAllowedRole(role, REMOTE_PLATFORM_ROLES)) {
+      return redirectTo(request, "/app");
     }
 
     if (

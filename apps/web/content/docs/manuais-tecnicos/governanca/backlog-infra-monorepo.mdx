@@ -92,7 +92,7 @@ Ordem recomendada:
 ## Novas funcionalidades
 
 - [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais.
-- [ ] `FEAT-001A` [Alta] Definir matriz de acesso da plataforma remota: `ADMIN`, `SUPORTE` e `DEVELOPER` com visao global; `CLIENTE_ADMIN` apenas com visao da propria empresa. Modelagem base com `companyId` em `RemoteHost` e `RemoteSession` concluida; falta aplicar enforcement em queries, guards e rotas.
+- [x] `FEAT-001A` [Alta] Definir matriz de acesso da plataforma remota: `ADMIN`, `SUPORTE` e `DEVELOPER` com visao global; `CLIENTE_ADMIN` apenas com visao da propria empresa. Modelagem base com `companyId` em `RemoteHost` e `RemoteSession`, enforcement no shell e abertura controlada no sidebar/route guard concluidos.
 - [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota.
 - [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima.
 - [ ] `FEAT-004` [Media] Criar shell de credenciais por referencia com controle de acesso e trilha de uso.
@@ -133,6 +133,6 @@ Ordem recomendada:
 ## Proximos passos de produto
 
 1. iniciar `FEAT-001` com persistencia de `RemoteHost`, `RemoteSession` e `AuditLog`
-2. fechar `FEAT-001A` antes de expor visao para `CLIENTE_ADMIN`
+2. aplicar o mesmo enforcement de `FEAT-001A` nas rotas operacionais e queries persistidas
 3. depois abrir `FEAT-003` com start/stop de sessao remota
 4. em seguida conectar `FEAT-005` para jobs de backup e catalogo de artefatos

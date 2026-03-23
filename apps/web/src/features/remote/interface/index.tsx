@@ -82,7 +82,23 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
             </CardTitle>
             <CardDescription>{overview.companyFilterRule}</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2">
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold">Escopo efetivo da sessao</h3>
+                <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                  {overview.tenantScope.isGlobalView ? "Global" : "Por empresa"}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{overview.tenantScope.summary}</p>
+              {!overview.tenantScope.isGlobalView && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Empresas no escopo: {overview.tenantScope.companyCount}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
             {overview.accessPolicies.map((policy) => (
               <div key={policy.role} className="rounded-lg border border-border/50 bg-muted/20 p-4">
                 <div className="mb-2 flex items-center justify-between gap-2">
@@ -94,6 +110,7 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
                 <p className="text-sm text-muted-foreground">{policy.description}</p>
               </div>
             ))}
+            </div>
           </CardContent>
         </Card>
       </section>

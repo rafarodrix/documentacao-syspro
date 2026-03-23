@@ -4,7 +4,7 @@ import { getRemotePlatformOverview } from "@/features/remote/application/queries
 import { RemotePlatformOverviewPanel } from "@/features/remote/interface";
 import { Monitor } from "lucide-react";
 
-const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 
 export default async function RemotePlatformPage() {
   await requireRole(ALLOWED_ROLES, "/app");

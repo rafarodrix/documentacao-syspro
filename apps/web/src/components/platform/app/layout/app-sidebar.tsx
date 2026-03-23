@@ -67,7 +67,7 @@ const NAV_CADASTROS: NavItemType[] = [
 
 const NAV_SYSTEM: NavItemType[] = [
   { title: "Ferramentas", href: "/app/tools", icon: Wrench },
-  { title: "Plataforma Remota", href: "/app/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES] },
+  { title: "Plataforma Remota", href: "/app/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
 ]
 
 const NAV_DOCS_USER: NavItemType[] = [

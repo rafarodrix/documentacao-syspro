@@ -30,6 +30,14 @@ export type RemoteSessionSummary = {
   status: RemoteSessionStatus;
 };
 
+export type RemoteTenantScope = {
+  role: "ADMIN" | "SUPORTE" | "DEVELOPER" | "CLIENTE_ADMIN";
+  isGlobalView: boolean;
+  companyIds: string[];
+  companyCount: number;
+  summary: string;
+};
+
 export type RemotePlatformModule = {
   id: string;
   title: string;
@@ -59,6 +67,7 @@ export type RemotePlatformOverview = {
   backupStrategy: string;
   companyFilterRule: string;
   accessPolicies: RemoteAccessPolicy[];
+  tenantScope: RemoteTenantScope;
   hostModel: RemoteHostSummary;
   sessionModel: RemoteSessionSummary;
   modules: RemotePlatformModule[];

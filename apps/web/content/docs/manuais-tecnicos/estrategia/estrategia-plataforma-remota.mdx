@@ -109,7 +109,7 @@ Entidades-base para MVP:
 - `RemoteHost` e `RemoteSession` precisam carregar `companyId` explicito para enforcement de tenant em queries, auditoria e sessoes.
 
 <Callout type="warning" title="Escopo de tenant">
-  O primeiro shell da plataforma remota pode ficar visivel apenas para perfis tecnicos. A abertura para `CLIENTE_ADMIN` so deve acontecer quando a filtragem por empresa estiver implementada de ponta a ponta.
+  O shell inicial pode ficar visivel para `CLIENTE_ADMIN` desde que a leitura seja estritamente filtrada por `companyId`. As proximas rotas operacionais (`start`, `stop`, `audit`) devem preservar exatamente o mesmo enforcement.
 </Callout>
 ## Roadmap por fases
 
