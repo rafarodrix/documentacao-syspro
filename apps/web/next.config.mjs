@@ -1,3 +1,4 @@
+﻿import path from 'node:path';
 import { createMDX } from 'fumadocs-mdx/next';
 import { z } from 'zod';
 
@@ -24,6 +25,7 @@ const withMDX = createMDX({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  outputFileTracingRoot: path.join(process.cwd(), '../../'),
   async redirects() {
     return [
       {
