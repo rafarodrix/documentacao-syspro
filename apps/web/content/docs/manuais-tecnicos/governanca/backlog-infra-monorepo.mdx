@@ -81,7 +81,6 @@ Criterios de aceite:
 - `pnpm-workspace.yaml` e `turbo.json` configurados.
 - `apps/web` criado sem regressao funcional.
 Status de fechamento:
-- `pnpm-workspace.yaml` criado na raiz com `apps/*` e `packages/*`.
 - `turbo.json` criado com tasks base (`build`, `dev`, `lint`, `typecheck`, `test`).
 - `apps/web` criado como shell seguro para a futura migração física da aplicação em `INFRA-011`.
 - `packages/shared`, `packages/ui` e `packages/contracts` criados como pontos de extração incremental, sem impactar o build atual na raiz.
@@ -106,6 +105,19 @@ Status de fechamento:
 - `apps/web/.eslintrc.json` criado para consumir a configuracao arquitetural compartilhada da raiz.
 - scripts de qualidade `lint`, `typecheck` e `test` foram padronizados em `apps/web/package.json` e delegados pela raiz.
 - `turbo.json` ja encontra tasks correspondentes para a fase de workspace.
+
+- [x] `INFRA-012A` [Alta] Alinhar operacao do workspace (package manager, lockfile e deploy).
+Criterios de aceite:
+- definir oficialmente `npm` ou `pnpm` como gerenciador do workspace
+- eliminar inconsistência entre `pnpm-workspace.yaml`, `package-lock.json` e scripts de install/build
+- validar install/build/deploy no novo layout com `apps/web`
+Status de fechamento:
+- `npm` definido como gerenciador oficial do workspace em `package.json`.
+- `pnpm-workspace.yaml` removido para eliminar a ambiguidade operacional.
+- raiz mantida com `npm workspaces` e `package-lock.json`, alinhando install e scripts ao mesmo ecossistema.
+- scripts da raiz seguem delegando para `@dosc-syspro/web` via `npm -w`, mantendo consistência com o fluxo escolhido.
+Observacao:
+- a validação final de install/build/deploy depende de execução real no ambiente com `npm`, que não está disponível neste runtime local.
 
 ### EPIC B2 - Extracao dos primeiros pacotes
 
@@ -220,5 +232,5 @@ Criterios de aceite:
 ## Proximo passo recomendado
 
 1. iniciar a extração segura dos primeiros pacotes (`INFRA-013` a `INFRA-015`)
-2. validar e ajustar o fluxo de build/deploy do workspace após a migração física
+2. validar o fluxo de install/build/deploy do workspace com `npm` no próximo ciclo de build
 3. depois avançar para `INFRA-016` e `INFRA-017` com base já estabilizada
