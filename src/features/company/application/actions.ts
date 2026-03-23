@@ -9,45 +9,12 @@ import { resolveCompanySegmentTriggers } from "@/core/config/company-segments";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { CompanyRegistryGateway } from "@/core/infrastructure/gateways/company-registry-gateway";
-
-export type ActionResponse = {
-  success: boolean;
-  message?: string;
-  errors?: Record<string, string[]>;
-  data?: any;
-};
-
-export type CompanyZammadEmailInput = {
-  email: string;
-  label?: string;
-  isActive?: boolean;
-};
-
-export type CompanyRegistryLookupResponse = {
-  configured: boolean;
-  provider: string;
-  profile?: {
-    cnpj: string;
-    legalName: string;
-    tradeName?: string;
-    status?: string;
-    openingDate?: string;
-    primaryCnae?: string;
-    primaryCnaeDescription?: string;
-    email?: string;
-    phone?: string;
-    address?: {
-      cep?: string;
-      street?: string;
-      number?: string;
-      complement?: string;
-      district?: string;
-      city?: string;
-      state?: string;
-      country?: string;
-    };
-  };
-};
+import type {
+  CompanyActionResponse as ActionResponse,
+  CompanyRegistryLookupResponse,
+  CompanyZammadEmailInput,
+  CompanyListItem,
+} from "@/features/company/domain/model";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
@@ -158,7 +125,7 @@ export async function lookupCompanyProfileByCnpjAction(cnpj: string): Promise<Ac
   }
 }
 
-export async function getCompaniesAction(filters?: { search?: string; status?: string }) {
+export async function getCompaniesAction(filters?: { search?: string; status?: string }): Promise<ActionResponse<CompanyListItem[]>> {
   const session = await getProtectedSession();
   if (!session || !READ_ROLES.includes(session.role)) {
     return { success: false, message: "Nao autorizado." };
@@ -207,7 +174,7 @@ export async function getCompaniesAction(filters?: { search?: string; status?: s
 
     return {
       success: true,
-      data: companies.map((c: any) => ({
+      data: companies.map((c: any): CompanyListItem => ({
         ...c,
         usersCount: c._count?.memberships ?? 0,
         address: c.addresses?.[0] || null,

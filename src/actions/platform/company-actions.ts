@@ -1,5 +1,10 @@
 "use server";
 
+import type {
+  CompanyActionResponse,
+  CompanyRegistryLookupResponse,
+  CompanyZammadEmailInput,
+} from "@/features/company/domain/model";
 import {
   createCompanyAction as createCompanyActionImpl,
   deleteCompanyAction as deleteCompanyActionImpl,
@@ -52,8 +57,5 @@ export async function deleteCompanyAction(
   return deleteCompanyActionImpl(...args);
 }
 
-export type {
-  ActionResponse,
-  CompanyRegistryLookupResponse,
-  CompanyZammadEmailInput,
-} from "@/features/company/application/actions";
+export type ActionResponse = CompanyActionResponse;
+export type { CompanyRegistryLookupResponse, CompanyZammadEmailInput };

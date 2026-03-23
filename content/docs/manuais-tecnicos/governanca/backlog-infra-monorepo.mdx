@@ -43,11 +43,15 @@ Status de fechamento:
 Observacao:
 - o acabamento restante foi desdobrado em item proprio.
 
-- [ ] `INFRA-001A` [Media] Consolidar `domain` e `queries` de `company`.
+- [x] `INFRA-001A` [Media] Consolidar `domain` e `queries` de `company`.
 Criterios de aceite:
 - `src/features/company/domain` criado com tipos e regras do modulo.
 - `queries` separadas de `writes`.
 - tipos e view models da empresa deixam de ficar espalhados fora da feature.
+Status de fechamento:
+- `src/features/company/domain/model.ts` criado como fonte de tipos e view models do modulo.
+- `src/features/company/application/queries.ts` agora concentra listagem, opcoes e dados de edicao.
+- paginas de empresa (`page`, `novo`, `editar`) deixaram de falar direto com `prisma` ou com helper legado.
 
 - [x] `INFRA-002` [Alta] Migrar `tax` para `src/features/tax`.
 Criterios de aceite:

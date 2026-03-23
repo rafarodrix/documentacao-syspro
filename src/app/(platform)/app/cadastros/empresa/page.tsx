@@ -2,7 +2,7 @@ import { Role } from "@prisma/client";
 import { hasPermission } from "@/lib/rbac";
 import { requireRole } from "@/lib/auth-helpers";
 import { CADASTROS_ROUTE_RULES } from "@/core/config/route-access";
-import { getCadastrosCompaniesData } from "@/actions/platform/get-cadastros-data";
+import { getCadastrosCompaniesAdminViewData } from "@/features/company/application/queries";
 import { CompanyTab } from "@/features/company/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
@@ -12,7 +12,7 @@ export default async function CadastrosEmpresaPage() {
     [...CADASTROS_ROUTE_RULES.empresa.allowed] as Role[],
     CADASTROS_ROUTE_RULES.empresa.redirectIfBlocked,
   );
-  const result = await getCadastrosCompaniesData();
+  const result = await getCadastrosCompaniesAdminViewData();
 
   if ("error" in result) return <div>Erro: {result.error}</div>;
 

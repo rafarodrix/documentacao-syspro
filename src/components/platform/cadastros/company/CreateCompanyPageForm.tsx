@@ -7,11 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
 import { createCompanySchema, type CreateCompanyInput } from "@/core/application/schema/company-schema";
+import type { CompanyOption, CompanyZammadEmailInput } from "@/features/company/domain/model";
 import {
   createCompanyAction,
   lookupCompanyProfileByCnpjAction,
   updateCompanyAction,
-  type CompanyZammadEmailInput,
 } from "@/features/company/application/actions";
 import { COMPANY_SEGMENT_LABELS } from "@/core/config/company-segments";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
@@ -44,12 +44,6 @@ import {
   Save,
   Search,
 } from "lucide-react";
-
-interface CompanyOption {
-  id: string;
-  razaoSocial: string;
-  nomeFantasia: string | null;
-}
 
 interface CreateCompanyPageFormProps {
   backHref: string;
