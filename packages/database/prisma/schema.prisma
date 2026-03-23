@@ -361,7 +361,11 @@ model RemoteHost {
   name String
   environment String?
   provider String?
+  description String? @db.Text
   agentExternalId String?
+  installToken String? @unique
+  machineName String?
+  agentVersion String?
   status RemoteHostStatus @default(ACTIVE)
   lastHeartbeatAt DateTime?
 
@@ -372,6 +376,7 @@ model RemoteHost {
 
   @@index([companyId, status])
   @@index([agentExternalId])
+  @@index([installToken])
   @@map("remote_host")
 }
 

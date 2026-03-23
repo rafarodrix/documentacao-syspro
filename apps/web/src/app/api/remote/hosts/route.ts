@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
@@ -7,6 +8,10 @@ export const dynamic = "force-dynamic";
 
 function canCreateHost(role: string): boolean {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
+}
+
+function buildInstallToken() {
+  return `rhost_${randomBytes(12).toString("hex")}`;
 }
 
 export async function GET() {
@@ -46,6 +51,7 @@ export async function POST(request: Request) {
     name?: string;
     environment?: string | null;
     provider?: string | null;
+    description?: string | null;
     agentExternalId?: string | null;
     status?: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
   };
@@ -72,7 +78,9 @@ export async function POST(request: Request) {
       name,
       environment: body.environment?.trim() || null,
       provider: body.provider?.trim() || null,
+      description: body.description?.trim() || null,
       agentExternalId: body.agentExternalId?.trim() || null,
+      installToken: buildInstallToken(),
       status: body.status ?? "ACTIVE",
     },
   });

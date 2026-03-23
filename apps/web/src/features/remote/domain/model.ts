@@ -18,7 +18,11 @@ export type RemoteHostSummary = {
   name: string;
   environment: string | null;
   provider: string | null;
+  description?: string | null;
   agentExternalId?: string | null;
+  installToken?: string | null;
+  machineName?: string | null;
+  agentVersion?: string | null;
   status: RemoteHostStatus;
 };
 
@@ -128,6 +132,10 @@ export type RemoteConfiguredHostItem = {
   rustdeskId: string | null;
   status: RemoteHostStatus;
   description: string;
+  installToken: string | null;
+  machineName: string | null;
+  agentVersion: string | null;
+  lastHeartbeatAt: string | null;
   openSessionCount: number;
   lastSessionAt: string | null;
 };

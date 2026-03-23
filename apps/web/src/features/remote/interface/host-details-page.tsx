@@ -43,10 +43,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             <p><span className="font-medium text-foreground">ID:</span> {host.id}</p>
             <p><span className="font-medium text-foreground">Empresa:</span> {host.companyName ?? "Sem empresa"}</p>
             <p><span className="font-medium text-foreground">Descricao:</span> {host.description || "Sem descricao operacional."}</p>
+            <p><span className="font-medium text-foreground">Token de instalacao:</span> {host.installToken ?? "Nao configurado"}</p>
           </div>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p><span className="font-medium text-foreground">Provider:</span> {host.provider ?? "Nao definido"}</p>
             <p><span className="font-medium text-foreground">RustDesk ID:</span> {host.rustdeskId ?? "Nao configurado"}</p>
+            <p><span className="font-medium text-foreground">Maquina:</span> {host.machineName ?? "Nao registrada"}</p>
+            <p><span className="font-medium text-foreground">Versao do agente:</span> {host.agentVersion ?? "Nao registrada"}</p>
+            <p><span className="font-medium text-foreground">Ultimo heartbeat:</span> {host.lastHeartbeatAt ? new Date(host.lastHeartbeatAt).toLocaleString("pt-BR") : "Sem heartbeat"}</p>
             <p>
               <span className="font-medium text-foreground">Status:</span>{" "}
               <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">

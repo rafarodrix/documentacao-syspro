@@ -24,6 +24,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         item.provider,
         item.rustdeskId,
         item.description,
+        item.machineName,
+        item.agentVersion,
         item.status,
       ]
         .filter(Boolean)
@@ -109,6 +111,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       Descricao: {item.description || "Host sem descricao operacional."}
                     </p>
                     <p className="text-xs text-muted-foreground">RustDesk ID: {item.rustdeskId ?? "Nao configurado"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Agente: {item.machineName ?? "maquina indefinida"}
+                      {item.agentVersion ? ` | versao ${item.agentVersion}` : ""}
+                      {item.lastHeartbeatAt ? ` | heartbeat ${new Date(item.lastHeartbeatAt).toLocaleString("pt-BR")}` : ""}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       Sessoes abertas: {item.openSessionCount}
                       {item.lastSessionAt ? ` | Ultima atividade: ${new Date(item.lastSessionAt).toLocaleString("pt-BR")}` : ""}

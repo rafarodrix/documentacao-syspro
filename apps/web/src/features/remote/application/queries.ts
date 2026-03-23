@@ -11,11 +11,21 @@ function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
   return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
 }
 
-function mapHostDescription(input: { environment: string | null; provider: string | null; rustdeskId: string | null }) {
+function mapHostDescription(input: {
+  description: string | null;
+  environment: string | null;
+  provider: string | null;
+  rustdeskId: string | null;
+  machineName: string | null;
+  agentVersion: string | null;
+}) {
   return [
+    input.description ? input.description : null,
     input.environment ? `Ambiente: ${input.environment}` : null,
     input.provider ? `Provider: ${input.provider}` : null,
     input.rustdeskId ? `RustDesk ID: ${input.rustdeskId}` : null,
+    input.machineName ? `Maquina: ${input.machineName}` : null,
+    input.agentVersion ? `Agente: ${input.agentVersion}` : null,
   ]
     .filter(Boolean)
     .join(" | ");
@@ -27,14 +37,29 @@ function mapDirectoryItem(host: {
   name: string;
   environment: string | null;
   provider: string | null;
+  description: string | null;
   agentExternalId: string | null;
+  installToken: string | null;
+  machineName: string | null;
+  agentVersion: string | null;
   status: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
+  lastHeartbeatAt: Date | null;
   company: { nomeFantasia: string | null; razaoSocial: string };
   sessions: Array<{ createdAt: Date; status: string }>;
 }): RemoteConfiguredHostItem {
   const companyName = host.company.nomeFantasia ?? host.company.razaoSocial;
   const openSessionCount = host.sessions.filter((session) => session.status === "REQUESTED" || session.status === "STARTED").length;
   const lastSessionAt = host.sessions[0]?.createdAt.toISOString() ?? null;
+  const description =
+    host.description ??
+    mapHostDescription({
+      description: null,
+      environment: host.environment,
+      provider: host.provider,
+      rustdeskId: host.agentExternalId,
+      machineName: host.machineName,
+      agentVersion: host.agentVersion,
+    });
 
   return {
     id: host.id,
@@ -45,11 +70,11 @@ function mapDirectoryItem(host: {
     provider: host.provider,
     rustdeskId: host.agentExternalId,
     status: host.status,
-    description: mapHostDescription({
-      environment: host.environment,
-      provider: host.provider,
-      rustdeskId: host.agentExternalId,
-    }),
+    description,
+    installToken: host.installToken,
+    machineName: host.machineName,
+    agentVersion: host.agentVersion,
+    lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
     openSessionCount,
     lastSessionAt,
   };
@@ -172,6 +197,11 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       name: "remote_host.name",
       environment: "remote_host.environment",
       provider: "remote_host.provider",
+      description: "remote_host.description",
+      agentExternalId: "remote_host.agentExternalId",
+      installToken: "remote_host.installToken",
+      machineName: "remote_host.machineName",
+      agentVersion: "remote_host.agentVersion",
       status: "ACTIVE",
     },
     sessionModel: {
@@ -188,9 +218,9 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       {
         id: "remote-hosts",
         title: "Ambientes e agentes",
-        description: "Cadastro de clientes, ambientes, hosts e agentes com companyId explicito para escopo por empresa.",
+        description: "Cadastro de clientes, ambientes, hosts e agentes com companyId explicito, token de instalacao e heartbeat OSS-first.",
         status: "foundation",
-        nextStep: "Persistir RemoteHost, companyId e IntegrationEndpoint no banco.",
+        nextStep: "Validar auto-registro do agente, heartbeat e enriquecimento operacional do host.",
       },
       {
         id: "remote-sessions",
@@ -231,6 +261,8 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
     endpoints: [
       { method: "GET", path: "/api/remote/hosts", purpose: "Listar hosts remotos no escopo do usuario" },
       { method: "POST", path: "/api/remote/hosts", purpose: "Cadastrar host remoto" },
+      { method: "POST", path: "/api/remote/agents/register", purpose: "Registrar agente OSS no host via installToken" },
+      { method: "POST", path: "/api/remote/agents/heartbeat", purpose: "Atualizar heartbeat e metadata minima do agente" },
       { method: "GET", path: "/api/remote/sessions", purpose: "Listar sessoes remotas no escopo do usuario" },
       { method: "POST", path: "/api/remote/sessions", purpose: "Solicitar sessao remota" },
       { method: "POST", path: "/api/remote/sessions/:id/start", purpose: "Iniciar sessao remota solicitada" },
@@ -271,7 +303,11 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       name: host.name,
       environment: host.environment,
       provider: host.provider,
+      description: host.description,
       agentExternalId: host.agentExternalId,
+      installToken: host.installToken,
+      machineName: host.machineName,
+      agentVersion: host.agentVersion,
       status: host.status,
       companyName: host.company.nomeFantasia ?? host.company.razaoSocial,
       createdAt: host.createdAt.toISOString(),

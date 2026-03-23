@@ -33,6 +33,7 @@ export async function PATCH(
     name?: string;
     environment?: string | null;
     provider?: string | null;
+    description?: string | null;
     agentExternalId?: string | null;
     status?: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
   };
@@ -73,6 +74,7 @@ export async function PATCH(
       name,
       environment: body.environment?.trim() || null,
       provider: body.provider?.trim() || null,
+      description: body.description?.trim() || null,
       agentExternalId: body.agentExternalId?.trim() || null,
       status: body.status ?? "ACTIVE",
     },

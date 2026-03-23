@@ -37,6 +37,7 @@ export function RemotePlatformControls({ overview }: Props) {
   const [hostName, setHostName] = useState("");
   const [environment, setEnvironment] = useState("");
   const [provider, setProvider] = useState("RustDesk");
+  const [description, setDescription] = useState("");
   const [agentExternalId, setAgentExternalId] = useState("");
   const [hostStatus, setHostStatus] = useState<"ACTIVE" | "INACTIVE" | "MAINTENANCE">("ACTIVE");
   const [editingHostId, setEditingHostId] = useState("");
@@ -61,6 +62,7 @@ export function RemotePlatformControls({ overview }: Props) {
     setHostName("");
     setEnvironment("");
     setProvider("RustDesk");
+    setDescription("");
     setAgentExternalId("");
     setHostStatus("ACTIVE");
   }
@@ -81,6 +83,7 @@ export function RemotePlatformControls({ overview }: Props) {
             name: hostName,
             environment,
             provider,
+            description,
             agentExternalId,
             status: hostStatus,
           }),
@@ -223,6 +226,15 @@ export function RemotePlatformControls({ overview }: Props) {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label>Descricao operacional</Label>
+                <Input
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Servidor principal do ERP na matriz"
+                />
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>RustDesk ID</Label>
@@ -271,7 +283,11 @@ export function RemotePlatformControls({ overview }: Props) {
                             {host.provider ? ` | ${host.provider}` : ""}
                           </p>
                           <p className="text-xs text-muted-foreground">
+                            {host.description ? `${host.description} | ` : ""}
                             RustDesk ID: {host.agentExternalId ?? "Nao configurado"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Token instalacao: {host.installToken ?? "Nao gerado"}
                           </p>
                         </div>
 
@@ -286,6 +302,7 @@ export function RemotePlatformControls({ overview }: Props) {
                               setHostName(host.name);
                               setEnvironment(host.environment ?? "");
                               setProvider(host.provider ?? "RustDesk");
+                              setDescription(host.description ?? "");
                               setAgentExternalId(host.agentExternalId ?? "");
                               setHostStatus(host.status);
                             }}
