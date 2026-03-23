@@ -187,12 +187,14 @@ Ou seja:
 Para cada feature critica, o contrato deve ficar proximo do dominio da feature, por exemplo:
 
 - `src/features/tickets/domain/repositories/ticket-read.repository.ts`
-- `src/features/company/domain/repositories/company.repository.ts`
+- `src/features/company/domain/repositories/company-read.repository.ts`
+- `src/features/company/domain/repositories/company-write.repository.ts`
 
 As implementacoes concretas ficam em infraestrutura, por exemplo:
 
 - `src/core/infrastructure/persistence/prisma/tickets/prisma-ticket-read.repository.ts`
-- `src/core/infrastructure/persistence/prisma/company/prisma-company.repository.ts`
+- `src/core/infrastructure/persistence/prisma/company/prisma-company-read.repository.ts`
+- `src/core/infrastructure/persistence/prisma/company/prisma-company-write.repository.ts`
 
 ### Quando usar query direta com Prisma
 
@@ -237,6 +239,12 @@ Padrao sugerido:
 - `TicketCacheRepository`
 - `TicketGatewayAdapter`
 
+Status atual do recorte:
+
+- contratos criados em `src/features/tickets/domain/repositories`
+- `IZammadGateway` segue como adapter tecnico em `core/infrastructure`
+- `ticket-query-service` continua como orquestrador, agora com contrato-alvo explicito para a proxima extracao
+
 #### Company
 
 `company` pode continuar com Prisma em `queries` simples, mas deve extrair repository para:
@@ -244,6 +252,12 @@ Padrao sugerido:
 - carregamento da empresa com memberships e escopo
 - e-mails Zammad da empresa
 - operacoes que misturam empresa, endereco e vinculos
+
+Status atual do recorte:
+
+- contratos criados em `src/features/company/domain/repositories`
+- leituras simples continuam podendo usar Prisma direto em `application/queries`
+- escritas e lookup externo ficam candidatas a adapter/repository concreto quando forem movidos para `packages/core`
 
 #### Tax
 
@@ -258,6 +272,36 @@ Porque o modulo mistura:
 - consulta local
 - sync externo
 - regras de normalizacao
+
+Status atual do recorte:
+
+- contratos criados em `src/features/tax/domain/repositories`
+- `queries` locais continuam aceitas com Prisma direto
+- batches de sync ficam mapeados como responsabilidade de `TaxWriteRepository`
+
+### Convencao oficial de pastas
+
+Contratos por feature:
+
+- `src/features/<feature>/domain/repositories/*.repository.ts`
+
+Implementacoes concretas enquanto o app ainda estiver em `apps/web`:
+
+- `src/core/infrastructure/persistence/prisma/<feature>/*.repository.ts`
+- `src/core/infrastructure/cache/<feature>/*.repository.ts`
+- `src/core/infrastructure/gateways/*` para providers externos
+
+Quando um fluxo ainda nao justificar repository, o uso direto de Prisma fica restrito a:
+
+- `src/features/<feature>/application/queries.ts`
+- `src/features/<feature>/application/actions.ts`
+
+e nunca em:
+
+- `interface`
+- `app`
+- `components`
+- `packages/core`
 - carga incremental
 
 #### Settings e contracts

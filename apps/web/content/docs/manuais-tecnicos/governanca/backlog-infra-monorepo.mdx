@@ -62,19 +62,16 @@ Status de fechamento:
 - `apps/web/src/lib/prisma.ts` foi reduzido a wrapper de compatibilidade para `@dosc-syspro/database`.
 - scripts de `generate` e `migrate` deixaram de depender de `apps/web/prisma` e passaram a usar o schema centralizado.
 
-- [ ] `INFRA-018` [Alta] Definir estrategia de repositories/adapters para persistencia.
+- [x] `INFRA-018` [Alta] Definir estrategia de repositories/adapters para persistencia.
 Criterios de aceite:
 - `core` nao depende de Prisma diretamente.
 - contratos de persistencia definidos para features criticas.
-Escopo recomendado:
-- formalizar quando usar `query` direta vs `repository contract`
-- definir pasta padrao para contratos de persistencia por feature
-- definir pasta padrao para implementacoes Prisma/adapters tecnicos
-- escolher os primeiros modulos obrigatorios: `tickets`, `company` e `tax`
-Entregaveis minimos:
-- regra documentada na arquitetura principal
-- convencao de nomes e pastas
-- lista dos fluxos que ainda podem usar Prisma direto sem violar a arquitetura
+Status de fechamento:
+- regra documentada e consolidada em `arquitetura-aplicacao-monorepo.mdx`.
+- convencao oficial definida para contratos em `src/features/<feature>/domain/repositories`.
+- primeiros contratos criados para `tickets`, `company` e `tax`.
+- estrategia registrada para implementacoes futuras em `core/infrastructure/persistence/prisma`.
+- Prisma direto passou a ser explicitamente aceito apenas em `application/queries` e `application/actions` enquanto o fluxo ainda nao justificar repository concreto.
 
 ### EPIC C2 - BFF e transporte
 
@@ -123,7 +120,6 @@ Criterios de aceite:
 
 ### Sprint 3 - Dominio compartilhado
 
-- `INFRA-018` Repositories/adapters
 - `INFRA-019` `packages/api`
 - `INFRA-020` Data fetching e invalidacao
 
@@ -136,6 +132,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. consolidar `INFRA-018`
-2. depois preparar `INFRA-019`
-3. em seguida definir `INFRA-020`
+1. preparar `INFRA-019`
+2. em seguida definir `INFRA-020`
+3. depois abrir `INFRA-021`
