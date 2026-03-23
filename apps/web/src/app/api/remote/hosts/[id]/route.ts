@@ -40,6 +40,7 @@ export async function PATCH(
     environment?: string | null;
     provider?: string | null;
     description?: string | null;
+    notes?: string | null;
     agentExternalId?: string | null;
     status?: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
   };
@@ -81,6 +82,7 @@ export async function PATCH(
       environment: body.environment?.trim() || null,
       provider: body.provider?.trim() || null,
       description: body.description?.trim() || null,
+      notes: body.notes?.trim() || null,
       agentExternalId: normalizeRustdeskId(body.agentExternalId),
       status: body.status ?? "ACTIVE",
     },

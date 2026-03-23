@@ -362,6 +362,7 @@ model RemoteHost {
   environment String?
   provider String?
   description String? @db.Text
+  notes String? @db.Text
   agentExternalId String?
   installToken String? @unique
   machineName String?

@@ -38,6 +38,7 @@ function mapDirectoryItem(host: {
   environment: string | null;
   provider: string | null;
   description: string | null;
+  notes: string | null;
   agentExternalId: string | null;
   installToken: string | null;
   machineName: string | null;
@@ -73,6 +74,7 @@ function mapDirectoryItem(host: {
     rustdeskId: host.agentExternalId,
     status: host.status,
     description,
+    notes: host.notes,
     installToken: host.installToken,
     machineName: host.machineName,
     agentVersion: host.agentVersion,
@@ -202,6 +204,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       environment: "remote_host.environment",
       provider: "remote_host.provider",
       description: "remote_host.description",
+      notes: "remote_host.notes",
       agentExternalId: "remote_host.agentExternalId",
       installToken: "remote_host.installToken",
       machineName: "remote_host.machineName",
@@ -309,6 +312,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       provider: host.provider,
       description: host.description,
       agentExternalId: host.agentExternalId,
+      notes: host.notes,
       installToken: host.installToken,
       machineName: host.machineName,
       agentVersion: host.agentVersion,

@@ -208,6 +208,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p><span className="font-medium text-foreground">Descricao da maquina:</span> {host.description || "Sem descricao operacional."}</p>
+                <p><span className="font-medium text-foreground">Observacoes do host:</span> {host.notes ?? "Sem observacoes manuais do host."}</p>
                 <p><span className="font-medium text-foreground">Token de instalacao:</span> {host.installToken ?? "Nao configurado"}</p>
                 <p><span className="font-medium text-foreground">Provider:</span> {host.provider ?? "Nao definido"}</p>
                 <p><span className="font-medium text-foreground">RustDesk ID:</span> {normalizedRustdeskId ?? "Nao configurado"}</p>

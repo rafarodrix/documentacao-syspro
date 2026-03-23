@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -39,6 +40,7 @@ export function RemotePlatformControls({ overview }: Props) {
   const [environment, setEnvironment] = useState("");
   const [provider, setProvider] = useState("RustDesk");
   const [description, setDescription] = useState("");
+  const [notes, setNotes] = useState("");
   const [agentExternalId, setAgentExternalId] = useState("");
   const [hostStatus, setHostStatus] = useState<"ACTIVE" | "INACTIVE" | "MAINTENANCE">("ACTIVE");
   const [editingHostId, setEditingHostId] = useState("");
@@ -141,6 +143,7 @@ export function RemotePlatformControls({ overview }: Props) {
         host.environment,
         host.provider,
         host.description,
+        host.notes,
         host.agentExternalId,
         host.machineName,
         host.agentVersion,
@@ -167,6 +170,7 @@ export function RemotePlatformControls({ overview }: Props) {
     setEnvironment("");
     setProvider("RustDesk");
     setDescription("");
+    setNotes("");
     setAgentExternalId("");
     setHostStatus("ACTIVE");
   }
@@ -188,6 +192,7 @@ export function RemotePlatformControls({ overview }: Props) {
             environment,
             provider,
             description,
+            notes,
             agentExternalId,
             status: hostStatus,
           }),
@@ -200,6 +205,7 @@ export function RemotePlatformControls({ overview }: Props) {
         environment: string | null;
         provider: string | null;
         description: string | null;
+        notes: string | null;
         agentExternalId: string | null;
         installToken: string | null;
         machineName: string | null;
@@ -217,6 +223,7 @@ export function RemotePlatformControls({ overview }: Props) {
         environment: savedHost.environment,
         provider: savedHost.provider,
         description: savedHost.description,
+        notes: savedHost.notes,
         agentExternalId: savedHost.agentExternalId,
         installToken: savedHost.installToken,
         machineName: savedHost.machineName,
@@ -434,6 +441,16 @@ export function RemotePlatformControls({ overview }: Props) {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label>Observacoes do host</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Senha atendida pelo cliente, janela ideal de acesso, alerta operacional ou anotacoes manuais."
+                  rows={4}
+                />
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>RustDesk ID</Label>
@@ -523,6 +540,9 @@ export function RemotePlatformControls({ overview }: Props) {
                             {host.description ? `${host.description} | ` : ""}
                             RustDesk ID: {host.agentExternalId ?? "Nao configurado"}
                           </p>
+                          {host.notes ? (
+                            <p className="text-xs text-muted-foreground">Observacoes do host: {host.notes}</p>
+                          ) : null}
                           <p className="text-xs text-muted-foreground">
                             Token instalacao: {host.installToken ?? "Nao gerado"}
                           </p>
@@ -555,6 +575,7 @@ export function RemotePlatformControls({ overview }: Props) {
                               setEnvironment(host.environment ?? "");
                               setProvider(host.provider ?? "RustDesk");
                               setDescription(host.description ?? "");
+                              setNotes(host.notes ?? "");
                               setAgentExternalId(host.agentExternalId ?? "");
                               setHostStatus(host.status);
                             }}
