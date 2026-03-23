@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RemotePlatformOverview, RemotePlatformStatus } from "@/features/remote/domain/model";
+import { RemotePlatformControls } from "@/features/remote/interface/remote-controls";
 import { Building2, Database, KeyRound, LaptopMinimal, ShieldCheck, Waypoints } from "lucide-react";
 
 const statusLabel: Record<RemotePlatformStatus, string> = {
@@ -20,6 +21,8 @@ const statusVariant: Record<RemotePlatformStatus, string> = {
 export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlatformOverview }) {
   return (
     <div className="space-y-8">
+      <RemotePlatformControls overview={overview} />
+
       <section className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-3 border-border/50 bg-background/70 backdrop-blur-sm">
           <CardHeader className="space-y-3">

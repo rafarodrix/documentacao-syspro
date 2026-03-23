@@ -6,7 +6,21 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
   const tenantScope = await getRemoteTenantScope();
   const scopedWhere = tenantScope.isGlobalView ? {} : { companyId: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } };
 
-  const [hosts, sessions] = await Promise.all([
+  const [
+    recentHosts,
+    recentSessions,
+    hostOptionsRows,
+    companies,
+    totalHosts,
+    activeHosts,
+    maintenanceHosts,
+    inactiveHosts,
+    totalSessions,
+    requestedSessions,
+    startedSessions,
+    endedSessions,
+    failedSessions,
+  ] = await Promise.all([
     prisma.remoteHost.findMany({
       where: scopedWhere,
       include: {
@@ -25,21 +39,46 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       orderBy: [{ createdAt: "desc" }],
       take: 6,
     }),
+    prisma.remoteHost.findMany({
+      where: scopedWhere,
+      include: {
+        company: { select: { nomeFantasia: true, razaoSocial: true } },
+      },
+      orderBy: [{ name: "asc" }],
+      take: 100,
+    }),
+    prisma.company.findMany({
+      where: tenantScope.isGlobalView
+        ? { deletedAt: null }
+        : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
+      select: { id: true, nomeFantasia: true, razaoSocial: true },
+      orderBy: [{ razaoSocial: "asc" }],
+      take: 100,
+    }),
+    prisma.remoteHost.count({ where: scopedWhere }),
+    prisma.remoteHost.count({ where: { ...scopedWhere, status: "ACTIVE" } }),
+    prisma.remoteHost.count({ where: { ...scopedWhere, status: "MAINTENANCE" } }),
+    prisma.remoteHost.count({ where: { ...scopedWhere, status: "INACTIVE" } }),
+    prisma.remoteSession.count({ where: scopedWhere }),
+    prisma.remoteSession.count({ where: { ...scopedWhere, status: "REQUESTED" } }),
+    prisma.remoteSession.count({ where: { ...scopedWhere, status: "STARTED" } }),
+    prisma.remoteSession.count({ where: { ...scopedWhere, status: "ENDED" } }),
+    prisma.remoteSession.count({ where: { ...scopedWhere, status: "FAILED" } }),
   ]);
 
   const hostStats = {
-    total: hosts.length,
-    active: hosts.filter((item) => item.status === "ACTIVE").length,
-    maintenance: hosts.filter((item) => item.status === "MAINTENANCE").length,
-    inactive: hosts.filter((item) => item.status === "INACTIVE").length,
+    total: totalHosts,
+    active: activeHosts,
+    maintenance: maintenanceHosts,
+    inactive: inactiveHosts,
   };
 
   const sessionStats = {
-    total: sessions.length,
-    requested: sessions.filter((item) => item.status === "REQUESTED").length,
-    started: sessions.filter((item) => item.status === "STARTED").length,
-    ended: sessions.filter((item) => item.status === "ENDED").length,
-    failed: sessions.filter((item) => item.status === "FAILED").length,
+    total: totalSessions,
+    requested: requestedSessions,
+    started: startedSessions,
+    ended: endedSessions,
+    failed: failedSessions,
   };
 
   return {
@@ -135,9 +174,12 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       },
     ],
     endpoints: [
-      { method: "POST", path: "/api/remote/session/start", purpose: "Abrir sessao remota" },
-      { method: "POST", path: "/api/remote/session/stop", purpose: "Encerrar sessao remota" },
-      { method: "GET", path: "/api/remote/session/:id", purpose: "Consultar sessao e auditoria" },
+      { method: "GET", path: "/api/remote/hosts", purpose: "Listar hosts remotos no escopo do usuario" },
+      { method: "POST", path: "/api/remote/hosts", purpose: "Cadastrar host remoto" },
+      { method: "GET", path: "/api/remote/sessions", purpose: "Listar sessoes remotas no escopo do usuario" },
+      { method: "POST", path: "/api/remote/sessions", purpose: "Solicitar sessao remota" },
+      { method: "POST", path: "/api/remote/sessions/:id/start", purpose: "Iniciar sessao remota solicitada" },
+      { method: "POST", path: "/api/remote/sessions/:id/stop", purpose: "Encerrar sessao remota iniciada" },
       { method: "POST", path: "/api/integrations/zammad/webhook", purpose: "Receber evento do ticket remoto e vincular sessao" },
       { method: "GET", path: "/api/integrations/zammad/rustdesk-link/:ticketId", purpose: "Resolver deep-link rustdesk:// para o ticket" },
       { method: "POST", path: "/api/credentials/request", purpose: "Solicitar segredo por referencia" },
@@ -168,7 +210,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
     ],
     hostStats,
     sessionStats,
-    recentHosts: hosts.map((host) => ({
+    recentHosts: recentHosts.map((host) => ({
       id: host.id,
       companyId: host.companyId,
       name: host.name,
@@ -179,7 +221,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       createdAt: host.createdAt.toISOString(),
       lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
     })),
-    recentSessions: sessions.map((session) => ({
+    recentSessions: recentSessions.map((session) => ({
       id: session.id,
       companyId: session.companyId,
       hostId: session.hostId,
@@ -192,6 +234,16 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       createdAt: session.createdAt.toISOString(),
       startedAt: session.startedAt?.toISOString() ?? null,
       endedAt: session.endedAt?.toISOString() ?? null,
+    })),
+    companyOptions: companies.map((company) => ({
+      id: company.id,
+      label: company.nomeFantasia ?? company.razaoSocial,
+    })),
+    hostOptions: hostOptionsRows.map((host) => ({
+      id: host.id,
+      companyId: host.companyId,
+      label: `${host.name} (${host.company.nomeFantasia ?? host.company.razaoSocial})`,
+      status: host.status,
     })),
   };
 }

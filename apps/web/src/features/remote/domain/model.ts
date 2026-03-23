@@ -103,4 +103,14 @@ export type RemotePlatformOverview = {
       endedAt: string | null;
     }
   >;
+  companyOptions: Array<{
+    id: string;
+    label: string;
+  }>;
+  hostOptions: Array<{
+    id: string;
+    companyId: string;
+    label: string;
+    status: RemoteHostStatus;
+  }>;
 };
