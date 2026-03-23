@@ -60,7 +60,7 @@ describe("authorization integration: user actions hardening", () => {
     prismaMock.membership.findMany.mockResolvedValue([{ companyId: "company-a" }]);
     prismaMock.membership.findFirst.mockResolvedValue(null);
 
-    const { deleteUserAction } = await import("@/actions/platform/user-actions");
+    const { deleteUserAction } = await import("@/features/user-access/application/actions");
     const result = await deleteUserAction("target-user");
 
     expect(result.success).toBe(false);
@@ -82,7 +82,7 @@ describe("authorization integration: user actions hardening", () => {
       deletedAt: null,
     });
 
-    const { linkUserToCompanyAction } = await import("@/actions/platform/user-actions");
+    const { linkUserToCompanyAction } = await import("@/features/user-access/application/actions");
     const result = await linkUserToCompanyAction({
       email: "admin@sistema.com",
       role: Role.CLIENTE_USER,
@@ -94,4 +94,5 @@ describe("authorization integration: user actions hardening", () => {
     expect(prismaMock.membership.upsert).not.toHaveBeenCalled();
   });
 });
+
 

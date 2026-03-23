@@ -7,6 +7,9 @@ import { admin } from "better-auth/plugins";
 
 const betterAuthSecret = process.env.BETTER_AUTH_SECRET;
 const isProduction = process.env.NODE_ENV === "production";
+const isBuildTime =
+  process.env.NEXT_PHASE === "phase-production-build" ||
+  process.env.npm_lifecycle_event === "build";
 
 function normalizeOrigin(value: string | undefined | null): string | null {
   const normalized = value?.trim();
@@ -54,7 +57,7 @@ function resolveTrustedOrigins(baseURL?: string): string[] {
 const betterAuthBaseUrl = resolveBetterAuthBaseUrl();
 const trustedOrigins = resolveTrustedOrigins(betterAuthBaseUrl);
 
-if (!betterAuthSecret && isProduction) {
+if (!betterAuthSecret && isProduction && !isBuildTime) {
   throw new Error("Missing BETTER_AUTH_SECRET in production environment.");
 }
 
@@ -63,7 +66,7 @@ if (!betterAuthBaseUrl && isProduction) {
 }
 
 export const auth = betterAuth({
-  secret: betterAuthSecret ?? "dev-only-better-auth-secret-change-me",
+  secret: betterAuthSecret ?? (isBuildTime ? "build-only-better-auth-secret" : "dev-only-better-auth-secret-change-me"),
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
