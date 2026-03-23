@@ -87,10 +87,10 @@ Ordem recomendada:
 
 ## Novas funcionalidades
 
-- [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Persistencia, tenant enforcement, rotas de `hosts` e `sessions`, separacao entre configuracao e operacao, detalhe do host, CRUD basico de host com `RustDesk ID` e busca operacional do modulo ja existem; falta fechar migration, validacao fim a fim e endurecimento operacional.
+- [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Persistencia, tenant enforcement, rotas de `hosts` e `sessions`, separacao entre configuracao e operacao, detalhe do host, CRUD basico de host com `RustDesk ID` e busca operacional do modulo ja existem; falta aplicar migration/generate/seed no ambiente, validar fluxo fim a fim por perfil e endurecer regras operacionais e mensagens de erro.
 - [x] `FEAT-001A` [Alta] Definir matriz de acesso da plataforma remota: `ADMIN`, `SUPORTE` e `DEVELOPER` com visao global; `CLIENTE_ADMIN` apenas com visao da propria empresa.
-- [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, token de instalacao, heartbeat e metadata basica do agente ja existem; falta validar auto-registro em ambiente real, ampliar filtros e separar entidade de agente quando o fluxo OSS-first estabilizar.
-- [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima. Start/stop, ticket link, comentario interno no Zammad e regra de deduplicacao inicial ja existem; falta consolidar regras fim a fim e validacao em ambiente real.
+- [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, token de instalacao, heartbeat e metadata basica do agente ja existem; falta validar auto-registro/heartbeat em ambiente real, ampliar filtros operacionais, criar fluxo de instalacao do agente e separar entidade de agente quando o recorte OSS-first estabilizar.
+- [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima. Start/stop, ticket link, comentario interno no Zammad e regra de deduplicacao inicial ja existem; falta validar o fluxo completo em ambiente real, consolidar regras de transicao de status, fechar resolucao de host por ticket e materializar auditoria mais explicita por sessao.
 - [ ] `FEAT-003A` [Media] Integrar `Zammad + RustDesk` com `rustdesk://<id>` no ticket e abertura rapida da sessao pelo atendente. Endpoint de deep-link ja implementado; falta configurar custom link no Zammad e validar com ticket real.
 - [ ] `FEAT-003B` [Media] Criar fluxo de webhook/API entre `Zammad` e orquestrador remoto para registrar sessao, ticket vinculado e trilha de auditoria. Webhook ja cria/encerra `RemoteSession`; falta validar payload real do Zammad e endurecer regras operacionais.
 - [ ] `FEAT-004` [Media] Criar shell de credenciais por referencia com controle de acesso e trilha de uso.
@@ -125,8 +125,8 @@ Ordem recomendada:
 
 ## Proximos passos de produto
 
-1. concluir migration e `prisma generate` da modelagem remota, garantindo que `agentExternalId`/`RustDesk ID` esteja consistente entre schema, seed e ambiente
-2. validar fim a fim o CRUD de hosts, incluindo edicao, exclusao bloqueada com sessao aberta e abertura por `rustdesk://<id>`
-3. validar deep-link e webhook do `Zammad` com payload real
-4. endurecer a resolucao de host por ticket e materializar `AuditLog`
-5. abrir `FEAT-004` e `FEAT-005`
+1. concluir migration, `prisma generate` e seed da modelagem remota, garantindo consistencia de `RustDesk ID`, `installToken` e metadata do agente entre schema e ambiente
+2. validar fim a fim o CRUD de hosts e o fluxo OSS-first do agente, incluindo auto-registro, heartbeat e abertura por `rustdesk://<id>`
+3. validar o fluxo completo de sessao remota com `REQUESTED -> STARTED -> ENDED`, incluindo perfis, bloqueios e comentario interno no `Zammad`
+4. validar deep-link e webhook do `Zammad` com payload real e endurecer a resolucao de host por ticket
+5. materializar `AuditLog` e depois abrir `FEAT-004` e `FEAT-005`

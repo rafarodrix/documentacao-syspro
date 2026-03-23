@@ -2,6 +2,10 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+function buildInstallToken(companyId, environmentKey) {
+  return `seed-token-${companyId}-${environmentKey}`;
+}
+
 async function main() {
   const companies = await prisma.company.findMany({
     where: { deletedAt: null },
@@ -24,8 +28,13 @@ async function main() {
         name: `${baseName} - Producao`,
         environment: "Producao",
         provider: "RustDesk",
+        description: `Host principal de producao da empresa ${baseName}.`,
         agentExternalId: `rustdesk-${company.id}-prod`,
+        installToken: buildInstallToken(company.id, "prod"),
+        machineName: `${baseName.replace(/\s+/g, "-").toUpperCase()}-PROD`,
+        agentVersion: "rustdesk-oss-seed-1.0.0",
         status: "ACTIVE",
+        lastHeartbeatAt: new Date(),
       },
       create: {
         id: `seed-${company.id}-prod`,
@@ -33,8 +42,13 @@ async function main() {
         name: `${baseName} - Producao`,
         environment: "Producao",
         provider: "RustDesk",
+        description: `Host principal de producao da empresa ${baseName}.`,
         agentExternalId: `rustdesk-${company.id}-prod`,
+        installToken: buildInstallToken(company.id, "prod"),
+        machineName: `${baseName.replace(/\s+/g, "-").toUpperCase()}-PROD`,
+        agentVersion: "rustdesk-oss-seed-1.0.0",
         status: "ACTIVE",
+        lastHeartbeatAt: new Date(),
       },
     });
 
@@ -44,8 +58,13 @@ async function main() {
         name: `${baseName} - Homologacao`,
         environment: "Homologacao",
         provider: "RustDesk",
+        description: `Host de homologacao da empresa ${baseName} para testes e validacoes.`,
         agentExternalId: `rustdesk-${company.id}-homol`,
+        installToken: buildInstallToken(company.id, "homol"),
+        machineName: `${baseName.replace(/\s+/g, "-").toUpperCase()}-HML`,
+        agentVersion: "rustdesk-oss-seed-1.0.0",
         status: "MAINTENANCE",
+        lastHeartbeatAt: null,
       },
       create: {
         id: `seed-${company.id}-homol`,
@@ -53,8 +72,13 @@ async function main() {
         name: `${baseName} - Homologacao`,
         environment: "Homologacao",
         provider: "RustDesk",
+        description: `Host de homologacao da empresa ${baseName} para testes e validacoes.`,
         agentExternalId: `rustdesk-${company.id}-homol`,
+        installToken: buildInstallToken(company.id, "homol"),
+        machineName: `${baseName.replace(/\s+/g, "-").toUpperCase()}-HML`,
+        agentVersion: "rustdesk-oss-seed-1.0.0",
         status: "MAINTENANCE",
+        lastHeartbeatAt: null,
       },
     });
   }

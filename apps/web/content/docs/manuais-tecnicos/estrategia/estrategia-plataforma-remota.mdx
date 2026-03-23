@@ -85,6 +85,11 @@ Campos-chave ja aplicados:
 
 - `RemoteHost.companyId`
 - `RemoteHost.agentExternalId`
+- `RemoteHost.installToken`
+- `RemoteHost.description`
+- `RemoteHost.machineName`
+- `RemoteHost.agentVersion`
+- `RemoteHost.lastHeartbeatAt`
 - `RemoteSession.companyId`
 - `RemoteSession.ticketId`
 - `RemoteSession.ticketNumber`
@@ -176,12 +181,79 @@ Conectar atendimento e acesso remoto sem depender de plugin proprietario:
 
 - `GET /api/remote/hosts`
 - `POST /api/remote/hosts`
+- `POST /api/remote/agents/register`
+- `POST /api/remote/agents/heartbeat`
 - `GET /api/remote/sessions`
 - `POST /api/remote/sessions`
 - `POST /api/remote/sessions/:id/start`
 - `POST /api/remote/sessions/:id/stop`
 - `GET /api/integrations/zammad/rustdesk-link/:ticketId`
 - `POST /api/integrations/zammad/webhook`
+
+## Validacao OSS-first recomendada
+
+### 1) Validar cadastro e host operacional
+
+1. criar host em `Configuracoes > Acesso Remoto`
+2. confirmar presenca de:
+   - `RustDesk ID`
+   - `installToken`
+   - descricao operacional
+3. abrir `/app/plataforma-remota`
+4. confirmar listagem, busca e detalhe do host
+5. validar abertura via `rustdesk://<id>`
+
+### 2) Validar auto-registro do agente
+
+Exemplo de payload para `POST /api/remote/agents/register`:
+
+```json
+{
+  "installToken": "seed-token-<companyId>-prod",
+  "rustdeskId": "123456789",
+  "machineName": "ERP-MATRIZ-01",
+  "agentVersion": "1.4.0",
+  "environment": "Producao"
+}
+```
+
+Resultado esperado:
+
+- `agentExternalId` preenchido
+- `machineName` preenchido
+- `agentVersion` preenchido
+- `lastHeartbeatAt` atualizado
+- `status` ajustado para `ACTIVE`
+
+### 3) Validar heartbeat
+
+Exemplo de payload para `POST /api/remote/agents/heartbeat`:
+
+```json
+{
+  "installToken": "seed-token-<companyId>-prod",
+  "rustdeskId": "123456789",
+  "machineName": "ERP-MATRIZ-01",
+  "agentVersion": "1.4.0"
+}
+```
+
+Resultado esperado:
+
+- `lastHeartbeatAt` atualizado a cada chamada
+- metadata do agente refletida no detalhe do host
+- diretorio operacional mostrando heartbeat recente
+
+### 4) Validar sessao remota
+
+1. criar sessao manual
+2. iniciar sessao
+3. encerrar sessao
+4. confirmar transicao:
+   - `REQUESTED -> STARTED -> ENDED`
+5. confirmar bloqueios:
+   - host nao deve ser excluido com sessao aberta
+   - sessao duplicada para mesmo ticket/host deve ser recusada
 
 ## Experiencia atual do produto
 

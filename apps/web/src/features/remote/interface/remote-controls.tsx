@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ async function parseJson(response: Response) {
 export function RemotePlatformControls({ overview }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const refreshTimerRef = useRef<number | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState(overview.companyOptions[0]?.id ?? "");
   const [hostName, setHostName] = useState("");
   const [environment, setEnvironment] = useState("");
@@ -46,15 +47,45 @@ export function RemotePlatformControls({ overview }: Props) {
   const [sessionTicketId, setSessionTicketId] = useState("");
   const [sessionTicketNumber, setSessionTicketNumber] = useState("");
   const [sessionReason, setSessionReason] = useState("");
+  const [recentHosts, setRecentHosts] = useState(overview.recentHosts);
+  const [recentSessions, setRecentSessions] = useState(overview.recentSessions);
+  const [hostOptionsState, setHostOptionsState] = useState(overview.hostOptions);
 
   const canCreateHosts = overview.tenantScope.role !== "CLIENTE_ADMIN";
   const isEditing = Boolean(editingHostId);
   const hostOptions = useMemo(() => {
-    if (!sessionCompanyId) return overview.hostOptions;
-    return overview.hostOptions.filter((host) => host.companyId === sessionCompanyId);
-  }, [overview.hostOptions, sessionCompanyId]);
+    if (!sessionCompanyId) return hostOptionsState;
+    return hostOptionsState.filter((host) => host.companyId === sessionCompanyId);
+  }, [hostOptionsState, sessionCompanyId]);
 
-  const refresh = () => startTransition(() => router.refresh());
+  useEffect(() => {
+    setRecentHosts(overview.recentHosts);
+    setRecentSessions(overview.recentSessions);
+    setHostOptionsState(overview.hostOptions);
+  }, [overview.recentHosts, overview.recentSessions, overview.hostOptions]);
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, []);
+
+  function queueBackgroundRefresh() {
+    if (refreshTimerRef.current) {
+      window.clearTimeout(refreshTimerRef.current);
+    }
+
+    refreshTimerRef.current = window.setTimeout(() => {
+      startTransition(() => router.refresh());
+      refreshTimerRef.current = null;
+    }, 250);
+  }
+
+  function resolveCompanyLabel(companyId: string) {
+    return overview.companyOptions.find((company) => company.id === companyId)?.label ?? "Sem empresa";
+  }
 
   function resetHostForm() {
     setEditingHostId("");
@@ -74,7 +105,7 @@ export function RemotePlatformControls({ overview }: Props) {
     }
 
     try {
-      await parseJson(
+      const payload = await parseJson(
         await fetch(isEditing ? `/api/remote/hosts/${editingHostId}` : "/api/remote/hosts", {
           method: isEditing ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -89,10 +120,54 @@ export function RemotePlatformControls({ overview }: Props) {
           }),
         })
       );
+      const savedHost = payload.data as {
+        id: string;
+        companyId: string;
+        name: string;
+        environment: string | null;
+        provider: string | null;
+        description: string | null;
+        agentExternalId: string | null;
+        installToken: string | null;
+        machineName: string | null;
+        agentVersion: string | null;
+        status: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
+        createdAt: string;
+        updatedAt: string;
+        lastHeartbeatAt: string | null;
+      };
+      const hostLabel = `${savedHost.name} (${resolveCompanyLabel(savedHost.companyId)})`;
+      const mappedHost = {
+        id: savedHost.id,
+        companyId: savedHost.companyId,
+        name: savedHost.name,
+        environment: savedHost.environment,
+        provider: savedHost.provider,
+        description: savedHost.description,
+        agentExternalId: savedHost.agentExternalId,
+        installToken: savedHost.installToken,
+        machineName: savedHost.machineName,
+        agentVersion: savedHost.agentVersion,
+        status: savedHost.status,
+        companyName: resolveCompanyLabel(savedHost.companyId),
+        createdAt: savedHost.createdAt,
+        lastHeartbeatAt: savedHost.lastHeartbeatAt,
+      };
 
       toast.success(isEditing ? "Host remoto atualizado." : "Host remoto criado.");
+      setRecentHosts((current) => {
+        const next = [mappedHost, ...current.filter((host) => host.id !== mappedHost.id)];
+        return next.slice(0, 6);
+      });
+      setHostOptionsState((current) => {
+        const next = [
+          { id: savedHost.id, companyId: savedHost.companyId, label: hostLabel, status: savedHost.status },
+          ...current.filter((host) => host.id !== savedHost.id),
+        ];
+        return next.sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+      });
       resetHostForm();
-      refresh();
+      queueBackgroundRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao salvar host.");
     }
@@ -113,8 +188,13 @@ export function RemotePlatformControls({ overview }: Props) {
       if (editingHostId === hostId) {
         resetHostForm();
       }
+      setRecentHosts((current) => current.filter((host) => host.id !== hostId));
+      setHostOptionsState((current) => current.filter((host) => host.id !== hostId));
+      if (selectedHostId === hostId) {
+        setSelectedHostId("");
+      }
       toast.success("Host remoto excluido.");
-      refresh();
+      queueBackgroundRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao excluir host.");
     }
@@ -127,7 +207,7 @@ export function RemotePlatformControls({ overview }: Props) {
     }
 
     try {
-      await parseJson(
+      const payload = await parseJson(
         await fetch("/api/remote/sessions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -140,12 +220,38 @@ export function RemotePlatformControls({ overview }: Props) {
           }),
         })
       );
+      const createdSession = payload.data as {
+        id: string;
+        companyId: string;
+        ticketId: string | null;
+        ticketNumber: string | null;
+        hostId: string;
+        requestedByUserId: string;
+        startedByUserId: string | null;
+        status: "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";
+        createdAt: string;
+        startedAt: string | null;
+        endedAt: string | null;
+      };
+      const selectedHost = hostOptionsState.find((host) => host.id === createdSession.hostId);
 
       toast.success("Sessao remota solicitada.");
+      setRecentSessions((current) => {
+        const next = [
+          {
+            ...createdSession,
+            hostName: selectedHost?.label.split(" (")[0] ?? "Host",
+            companyName: resolveCompanyLabel(createdSession.companyId),
+            requestedByName: null,
+          },
+          ...current.filter((session) => session.id !== createdSession.id),
+        ];
+        return next.slice(0, 6);
+      });
       setSessionTicketId("");
       setSessionTicketNumber("");
       setSessionReason("");
-      refresh();
+      queueBackgroundRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao solicitar sessao.");
     }
@@ -153,14 +259,34 @@ export function RemotePlatformControls({ overview }: Props) {
 
   async function handleSessionTransition(sessionId: string, action: "start" | "stop") {
     try {
-      await parseJson(
+      const payload = await parseJson(
         await fetch(`/api/remote/sessions/${sessionId}/${action}`, {
           method: "POST",
         })
       );
+      const updatedSession = payload.data as {
+        id: string;
+        status: "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";
+        startedByUserId: string | null;
+        startedAt: string | null;
+        endedAt: string | null;
+      };
 
       toast.success(action === "start" ? "Sessao iniciada." : "Sessao encerrada.");
-      refresh();
+      setRecentSessions((current) =>
+        current.map((session) =>
+          session.id === sessionId
+            ? {
+                ...session,
+                status: updatedSession.status,
+                startedByUserId: updatedSession.startedByUserId,
+                startedAt: updatedSession.startedAt,
+                endedAt: updatedSession.endedAt,
+              }
+            : session
+        )
+      );
+      queueBackgroundRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao atualizar sessao.");
     }
@@ -267,12 +393,12 @@ export function RemotePlatformControls({ overview }: Props) {
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold">Hosts cadastrados</h3>
                   <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                    {overview.recentHosts.length} recente(s)
+                    {recentHosts.length} recente(s)
                   </Badge>
                 </div>
 
-                {overview.recentHosts.length ? (
-                  overview.recentHosts.map((host) => (
+                {recentHosts.length ? (
+                  recentHosts.map((host) => (
                     <div key={host.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div>
@@ -423,12 +549,12 @@ export function RemotePlatformControls({ overview }: Props) {
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold">Ultimas sessoes</h3>
               <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                {overview.recentSessions.length} registro(s)
+                {recentSessions.length} registro(s)
               </Badge>
             </div>
 
-            {overview.recentSessions.length ? (
-              overview.recentSessions.map((session) => (
+            {recentSessions.length ? (
+              recentSessions.map((session) => (
                 <div key={session.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
