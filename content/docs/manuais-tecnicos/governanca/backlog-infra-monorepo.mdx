@@ -29,89 +29,7 @@ Nao vamos tratar workspaces, mobile e API separada como primeiros passos.
 
 ## Fase A - Modular Monolith Disciplinado
 
-### EPIC A1 - Migracao por feature para `src/features`
-
-- [x] `INFRA-001` [Alta] Migrar `company` para `src/features/company`.
-Criterios de aceite:
-- `application` e `interface` criados.
-- `page.tsx` e `actions` consumindo a feature, nao regra espalhada.
-Status de fechamento:
-- `application` e `interface` consolidados em `src/features/company`.
-- pages e componentes principais de empresa ja consomem a feature.
-- implementacao principal migrada para `src/features/company/application/actions.ts`.
-- `src/actions/platform/company-actions.ts` atua como ponte fina.
-Observacao:
-- o acabamento restante foi desdobrado em item proprio.
-
-- [x] `INFRA-001A` [Media] Consolidar `domain` e `queries` de `company`.
-Criterios de aceite:
-- `src/features/company/domain` criado com tipos e regras do modulo.
-- `queries` separadas de `writes`.
-- tipos e view models da empresa deixam de ficar espalhados fora da feature.
-Status de fechamento:
-- `src/features/company/domain/model.ts` criado como fonte de tipos e view models do modulo.
-- `src/features/company/application/queries.ts` agora concentra listagem, opcoes e dados de edicao.
-- paginas de empresa (`page`, `novo`, `editar`) deixaram de falar direto com `prisma` ou com helper legado.
-
-- [x] `INFRA-002` [Alta] Migrar `tax` para `src/features/tax`.
-Criterios de aceite:
-- `application` e `interface` criados.
-- pages e sync consumindo a feature.
-Status de fechamento:
-- implementacao principal migrada para `src/features/tax/application/actions.ts`.
-- `src/actions/tax/tax-actions.ts` atua como ponte fina.
-- pages e rota de sync ja consomem a feature.
-Observacao:
-- o acabamento restante foi desdobrado em item proprio.
-
-- [x] `INFRA-002A` [Media] Consolidar `domain` e separar consultas fiscais em `tax`.
-Criterios de aceite:
-- `src/features/tax/domain` criado com tipos e regras fiscais do modulo.
-- `queries` e `writes` separados.
-- modelos e contratos de resposta deixam de ficar espalhados fora da feature.
-Status de fechamento:
-- `src/features/tax/domain/model.ts` centraliza os tipos do modulo fiscal.
-- `src/features/tax/application/queries.ts` concentra as leituras de classTrib, anexos, credito presumido e NCM.
-- containers e listagens fiscais passaram a consumir queries da feature, sem `prisma` direto fora do modulo.
-
-- [x] `INFRA-003` [Alta] Migrar `settings/contracts` para `src/features`.
-Criterios de aceite:
-- boundaries claros por modulo.
-- sem acesso direto a infraestrutura na interface.
-Status de fechamento:
-- `settings` e `contracts` possuem `application`, `queries`, `domain` e `interface`.
-- `src/actions/platform/settings-actions.ts` e `src/actions/platform/contract-actions.ts` atuam como ponte fina.
-- `src/app/(platform)/app/configuracoes/page.tsx` passou a consumir a feature, sem leitura direta de infraestrutura para esses modulos.
-
-- [x] `INFRA-003A` [Media] Consolidar acabamento arquitetural de `settings/contracts`.
-Criterios de aceite:
-- tipos e view models administrativos ficam centralizados na feature
-- leituras e escritas seguem padrao consistente entre `settings` e `contracts`
-- fronteira pronta para futura extracao para `packages/contracts` e `packages/core`
-Status de fechamento:
-- `settings` e `contracts` passaram a expor contratos de retorno tipados na camada `domain`.
-- `queries` e `actions` usam o mesmo shape de retorno (`success/error/message/data`) nos fluxos administrativos.
-- componentes de contratos deixaram de manter tipos duplicados locais e passaram a consumir os modelos da feature.
-
-- [x] `INFRA-004` [Alta] Migrar `users/authz` para `src/features/user-access`.
-Criterios de aceite:
-- fluxo de cadastro, memberships e roles separados por feature.
-- sem regra critica de permissao espalhada em page/component.
-Status de fechamento:
-- `src/features/user-access` criado com `domain`, `application` e `interface`.
-- implementacao principal de usuarios/memberships migrada para `src/features/user-access/application/actions.ts`.
-- listagens e telas de edicao passaram a consumir `src/features/user-access/application/queries.ts`.
-- `src/actions/platform/user-actions.ts` atua como ponte fina.
-
 ### EPIC A2 - Actions finas e contratos internos
-
-- [x] `INFRA-005` [Alta] Transformar `src/actions/*` em camada fina de transporte.
-Criterios de aceite:
-- `actions` delegam para `application`.
-- sem duplicacao de query, filtro ou regra em action.
-Status de fechamento:
-- concluido para `company`, `tax`, `tickets`, `settings` e `contracts`.
-- pendente apenas expandir o padrao para proximas features novas.
 
 - [ ] `INFRA-006` [Alta] Criar view models e contratos por feature dentro do app atual.
 Criterios de aceite:
@@ -233,21 +151,14 @@ Criterios de aceite:
 
 ## Roadmap recomendado
 
-### Sprint 1 - Consolidacao do monolito modular
+### Sprint 1 - Fechamento da Fase A
 
-- `INFRA-001A` Consolidar `company`
-- `INFRA-002A` Consolidar `tax`
-- `INFRA-003A` Consolidar `settings/contracts`
 - `INFRA-006` Contratos internos por feature
-
-### Sprint 2 - Features administrativas e guardrails
-
-- `INFRA-004` Migrar `user-access`
 - `INFRA-007` Gateways/adapters
 - `INFRA-008` Checklist de PR
 - `INFRA-009` Lint arquitetural
 
-### Sprint 3 - Monorepo estrutural
+### Sprint 2 - Monorepo estrutural
 
 - `INFRA-010` Raiz do monorepo
 - `INFRA-011` `apps/web`
@@ -256,7 +167,7 @@ Criterios de aceite:
 - `INFRA-014` `packages/ui`
 - `INFRA-015` `packages/contracts`
 
-### Sprint 4 - Dominio compartilhado
+### Sprint 3 - Dominio compartilhado
 
 - `INFRA-016` `packages/core`
 - `INFRA-017` `packages/database`
@@ -264,7 +175,7 @@ Criterios de aceite:
 - `INFRA-019` `packages/api`
 - `INFRA-020` Data fetching e invalidacao
 
-### Sprint 5 - Confiabilidade e multiplataforma
+### Sprint 4 - Confiabilidade e multiplataforma
 
 - `INFRA-021` `apps/mobile`
 - `INFRA-022` `apps/api`
@@ -273,6 +184,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. consolidar `domain` e `queries` de `company` e `tax`
-2. consolidar o acabamento arquitetural de `settings/contracts`
-3. depois iniciar `user-access`
+1. executar `INFRA-006` para unificar contratos entre dashboard, listagens e detalhes
+2. executar `INFRA-007` para padronizar gateways e adapters tecnicos
+3. adicionar os guardrails de arquitetura (`INFRA-008` e `INFRA-009`) antes da Fase B

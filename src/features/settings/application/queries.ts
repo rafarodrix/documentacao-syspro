@@ -82,6 +82,6 @@ export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData>
 
   return {
     rbacMatrixEnabled: rbacSetting?.value !== "false",
-    sefazRoutes: sefazRoutesRes.success ? sefazRoutesRes.data : buildDefaultSefazRoutes(),
+    sefazRoutes: sefazRoutesRes.success ? (sefazRoutesRes.data ?? buildDefaultSefazRoutes()) : buildDefaultSefazRoutes(),
   };
 }
