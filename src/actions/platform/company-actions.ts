@@ -8,8 +8,6 @@ import type {
 import {
   createCompanyAction as createCompanyActionImpl,
   deleteCompanyAction as deleteCompanyActionImpl,
-  getCompaniesAction as getCompaniesActionImpl,
-  getCompanyZammadEmailsAction as getCompanyZammadEmailsActionImpl,
   lookupCompanyProfileByCnpjAction as lookupCompanyProfileByCnpjActionImpl,
   updateCompanyAction as updateCompanyActionImpl,
   updateCompanyStatusAction as updateCompanyStatusActionImpl,
@@ -19,12 +17,6 @@ export async function lookupCompanyProfileByCnpjAction(
   ...args: Parameters<typeof lookupCompanyProfileByCnpjActionImpl>
 ): Promise<ReturnType<typeof lookupCompanyProfileByCnpjActionImpl> extends Promise<infer T> ? T : never> {
   return lookupCompanyProfileByCnpjActionImpl(...args);
-}
-
-export async function getCompaniesAction(
-  ...args: Parameters<typeof getCompaniesActionImpl>
-) {
-  return getCompaniesActionImpl(...args);
 }
 
 export async function createCompanyAction(
@@ -37,12 +29,6 @@ export async function updateCompanyAction(
   ...args: Parameters<typeof updateCompanyActionImpl>
 ) {
   return updateCompanyActionImpl(...args);
-}
-
-export async function getCompanyZammadEmailsAction(
-  ...args: Parameters<typeof getCompanyZammadEmailsActionImpl>
-) {
-  return getCompanyZammadEmailsActionImpl(...args);
 }
 
 export async function updateCompanyStatusAction(

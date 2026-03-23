@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
-import { Role } from "@prisma/client";
+import { Prisma, Role, CompanyStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { parseContractBlockReason } from "@/core/config/contract-blocking";
-import { getCompaniesAction, getCompanyZammadEmailsAction } from "@/features/company/application/actions";
 import type {
   CompanyAdminListViewData,
-  CompanyEditViewData,
   CompanyListItem,
+  CompanyEditViewData,
   CompanyOption,
   CompanyZammadEmailInput,
 } from "@/features/company/domain/model";
@@ -18,6 +17,88 @@ async function getSessionCompanyIds(userId: string): Promise<string[]> {
     select: { companyId: true },
   });
   return memberships.map((m) => m.companyId);
+}
+
+export async function getCompaniesQuery(filters?: {
+  search?: string;
+  status?: string;
+}): Promise<CompanyListItem[]> {
+  const session = await getProtectedSession();
+  if (!session) return [];
+
+  const whereClause: Prisma.CompanyWhereInput = { deletedAt: null };
+
+  if (filters?.search) {
+    const search = filters.search.trim();
+    whereClause.OR = [
+      { razaoSocial: { contains: search, mode: "insensitive" } },
+      { nomeFantasia: { contains: search, mode: "insensitive" } },
+      { cnpj: { contains: search.replace(/\D/g, "") } },
+    ];
+  }
+
+  if (filters?.status && filters.status !== "ALL") {
+    whereClause.status = filters.status as CompanyStatus;
+  }
+
+  const companyIds = session.role === Role.CLIENTE_ADMIN ? await getSessionCompanyIds(session.userId) : [];
+  if (session.role === Role.CLIENTE_ADMIN) {
+    whereClause.id = { in: companyIds.length ? companyIds : ["__none__"] };
+  }
+
+  const companies = await prisma.company.findMany({
+    where: whereClause,
+    include: {
+      _count: {
+        select: {
+          memberships: true,
+          contracts: true,
+          branches: true,
+          accountingClients: true,
+        },
+      },
+      addresses: {
+        take: 1,
+        orderBy: { id: "asc" },
+      },
+      accountingFirm: { select: { id: true, nomeFantasia: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return companies.map((company) => {
+    const block = parseContractBlockReason(company.observacoes);
+    return {
+      ...company,
+      usersCount: company._count?.memberships ?? 0,
+      address: company.addresses?.[0] || null,
+      isBlockedByContract: Boolean(block),
+      contractBlockReasonLabel: block?.label ?? null,
+    } satisfies CompanyListItem;
+  });
+}
+
+export async function getCompanyZammadEmailsQuery(companyId: string): Promise<CompanyZammadEmailInput[]> {
+  const session = await getProtectedSession();
+  if (!session) return [];
+
+  const companyScopeIds =
+    session.role === Role.CLIENTE_ADMIN ? await getSessionCompanyIds(session.userId) : null;
+  if (session.role === Role.CLIENTE_ADMIN && (!companyScopeIds?.length || !companyScopeIds.includes(companyId))) {
+    return [];
+  }
+
+  const rows = await prisma.companyZammadEmail.findMany({
+    where: { companyId },
+    orderBy: [{ isActive: "desc" }, { email: "asc" }],
+    select: { email: true, label: true, isActive: true },
+  });
+
+  return rows.map((item) => ({
+    email: item.email,
+    label: item.label ?? undefined,
+    isActive: item.isActive,
+  }));
 }
 
 export async function getCompanyOptionsAction(): Promise<CompanyOption[]> {
@@ -38,20 +119,10 @@ export async function getCadastrosCompaniesAdminViewData(): Promise<CompanyAdmin
   const session = await getProtectedSession();
   if (!session) return { error: "Nao autorizado" };
 
-  const result = await getCompaniesAction();
-  if (!result.success || !result.data) {
-    return { error: result.message ?? "Erro ao buscar empresas." };
-  }
+  const companies = await getCompaniesQuery();
 
   return {
-    companies: result.data.map((company: CompanyListItem) => {
-      const block = parseContractBlockReason((company as any).observacoes);
-      return {
-        ...company,
-        isBlockedByContract: company.isBlockedByContract ?? Boolean(block),
-        contractBlockReasonLabel: company.contractBlockReasonLabel ?? block?.label ?? null,
-      };
-    }),
+    companies,
     isGlobalView: session.role !== Role.CLIENTE_ADMIN,
   };
 }
@@ -118,18 +189,11 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
 
   const [companies, zammadEmailsResult] = await Promise.all([
     getCompanyOptionsAction(),
-    getCompanyZammadEmailsAction(company.id),
+    getCompanyZammadEmailsQuery(company.id),
   ]);
 
   const address = company.addresses[0];
-  const initialZammadEmails: CompanyZammadEmailInput[] =
-    zammadEmailsResult.success && Array.isArray(zammadEmailsResult.data)
-      ? zammadEmailsResult.data.map((item: any) => ({
-          email: item.email,
-          label: item.label ?? undefined,
-          isActive: item.isActive,
-        }))
-      : [];
+  const initialZammadEmails: CompanyZammadEmailInput[] = zammadEmailsResult;
 
   return {
     companyId: company.id,
@@ -188,4 +252,3 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
     },
   };
 }
-

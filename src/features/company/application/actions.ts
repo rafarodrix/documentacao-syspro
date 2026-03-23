@@ -13,11 +13,9 @@ import type {
   CompanyActionResponse as ActionResponse,
   CompanyRegistryLookupResponse,
   CompanyZammadEmailInput,
-  CompanyListItem,
 } from "@/features/company/domain/model";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 const CREATE_ROLES: Role[] = SYSTEM_ROLES;
 const UPDATE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 const DELETE_ROLES: Role[] = [Role.ADMIN];
@@ -124,66 +122,6 @@ export async function lookupCompanyProfileByCnpjAction(
     };
   } catch (error) {
     return handleActionError(error) as ActionResponse<CompanyRegistryLookupResponse>;
-  }
-}
-
-export async function getCompaniesAction(filters?: { search?: string; status?: string }): Promise<ActionResponse<CompanyListItem[]>> {
-  const session = await getProtectedSession();
-  if (!session || !READ_ROLES.includes(session.role)) {
-    return { success: false, message: "Nao autorizado." };
-  }
-
-  try {
-    const whereClause: Prisma.CompanyWhereInput = { deletedAt: null };
-
-    if (filters?.search) {
-      const search = filters.search.trim();
-      whereClause.OR = [
-        { razaoSocial: { contains: search, mode: "insensitive" } },
-        { nomeFantasia: { contains: search, mode: "insensitive" } },
-        { cnpj: { contains: search.replace(/\D/g, "") } },
-      ];
-    }
-
-    if (filters?.status && filters.status !== "ALL") {
-      whereClause.status = filters.status as CompanyStatus;
-    }
-
-    const companyIds = session.role === Role.CLIENTE_ADMIN ? await getSessionCompanyIds(session.userId) : [];
-    if (session.role === Role.CLIENTE_ADMIN) {
-      whereClause.id = { in: companyIds.length ? companyIds : ["__none__"] };
-    }
-
-    const companies = await prisma.company.findMany({
-      where: whereClause,
-      include: {
-        _count: {
-          select: {
-            memberships: true,
-            contracts: true,
-            branches: true,
-            accountingClients: true,
-          },
-        },
-        addresses: {
-          take: 1,
-          orderBy: { id: "asc" },
-        },
-        accountingFirm: { select: { id: true, nomeFantasia: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return {
-      success: true,
-      data: companies.map((c: any): CompanyListItem => ({
-        ...c,
-        usersCount: c._count?.memberships ?? 0,
-        address: c.addresses?.[0] || null,
-      })),
-    };
-  } catch (error) {
-    return handleActionError(error) as ActionResponse<CompanyListItem[]>;
   }
 }
 
@@ -340,26 +278,6 @@ export async function updateCompanyAction(
   } catch (error) {
     return handleActionError(error);
   }
-}
-
-export async function getCompanyZammadEmailsAction(companyId: string): Promise<ActionResponse> {
-  const session = await getProtectedSession();
-  if (!session || !READ_ROLES.includes(session.role)) {
-    return { success: false, message: "Nao autorizado." };
-  }
-
-  const companyScopeIds = session.role === Role.CLIENTE_ADMIN ? await getSessionCompanyIds(session.userId) : null;
-  if (session.role === Role.CLIENTE_ADMIN && (!companyScopeIds?.length || !companyScopeIds.includes(companyId))) {
-    return { success: false, message: "Sem permissao para esta empresa." };
-  }
-
-  const rows = await prisma.companyZammadEmail.findMany({
-    where: { companyId },
-    orderBy: [{ isActive: "desc" }, { email: "asc" }],
-    select: { id: true, email: true, label: true, isActive: true },
-  });
-
-  return { success: true, data: rows };
 }
 
 export async function updateCompanyStatusAction(id: string, status: CompanyStatus): Promise<ActionResponse> {
