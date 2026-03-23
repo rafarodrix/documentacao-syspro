@@ -1,4 +1,4 @@
----
+﻿---
 title: Backlog de Infraestrutura Monorepo
 description: Backlog priorizado para sair do monolito modular atual e chegar ao monorepo alvo com risco controlado.
 lastUpdated: 2026-03-22
@@ -96,10 +96,16 @@ Status de fechamento:
 - `apps/web/package.json` assumiu os scripts reais da aplicação Next.js.
 - `apps/web` ficou como nova raiz funcional do app, preservando o alias `@/*` via `apps/web/tsconfig.json`.
 
-- [ ] `INFRA-012` [Alta] Padronizar qualidade compartilhada.
+- [x] `INFRA-012` [Alta] Padronizar qualidade compartilhada.
 Criterios de aceite:
 - ESLint, tsconfig base e convencoes compartilhadas.
 - pipeline pronta para workspace.
+Status de fechamento:
+- `tsconfig.base.json` criado na raiz como base compartilhada do workspace.
+- `apps/web/tsconfig.json` passou a estender a base compartilhada.
+- `apps/web/.eslintrc.json` criado para consumir a configuracao arquitetural compartilhada da raiz.
+- scripts de qualidade `lint`, `typecheck` e `test` foram padronizados em `apps/web/package.json` e delegados pela raiz.
+- `turbo.json` ja encontra tasks correspondentes para a fase de workspace.
 
 ### EPIC B2 - Extracao dos primeiros pacotes
 
@@ -190,11 +196,8 @@ Criterios de aceite:
 
 ## Roadmap recomendado
 
-### Sprint 1 - Fechamento da Fase A
-
 ### Sprint 2 - Monorepo estrutural
 
-- `INFRA-012` Qualidade compartilhada
 - `INFRA-013` `packages/shared`
 - `INFRA-014` `packages/ui`
 - `INFRA-015` `packages/contracts`
@@ -216,6 +219,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. executar `INFRA-012` para padronizar qualidade compartilhada no workspace
-2. iniciar a extração segura dos primeiros pacotes (`INFRA-013` a `INFRA-015`)
-3. validar e ajustar o fluxo de build/deploy do workspace após a migração física
+1. iniciar a extração segura dos primeiros pacotes (`INFRA-013` a `INFRA-015`)
+2. validar e ajustar o fluxo de build/deploy do workspace após a migração física
+3. depois avançar para `INFRA-016` e `INFRA-017` com base já estabilizada

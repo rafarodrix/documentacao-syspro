@@ -8,7 +8,10 @@
   "scripts": {
     "build": "npm run build -w @dosc-syspro/web",
     "dev": "npm run dev -w @dosc-syspro/web",
+    "lint": "npm run lint -w @dosc-syspro/web",
     "start": "npm run start -w @dosc-syspro/web",
+    "typecheck": "npm run typecheck -w @dosc-syspro/web",
+    "test": "npm run test -w @dosc-syspro/web",
     "docs:check": "npm run docs:check -w @dosc-syspro/web",
     "test:authz": "npm run test:authz -w @dosc-syspro/web",
     "test:tickets": "npm run test:tickets -w @dosc-syspro/web",
