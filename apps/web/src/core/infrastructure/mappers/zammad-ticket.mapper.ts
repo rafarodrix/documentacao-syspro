@@ -22,7 +22,7 @@ export function mapTicketStatusFromStateName(stateName: string): TicketStatus {
     }
   }
 
-  return "Em AnÃ¡lise";
+  return "Em Análise";
 }
 
 export function mapTicketStatusFromStateId(stateId: number): TicketStatus {
@@ -35,7 +35,7 @@ export function mapTicketPriority(priorityId: number, name?: string): TicketPrio
   if (lower.includes("high") || lower.includes("alta")) return "Alta";
   if (lower.includes("low") || lower.includes("baixa")) return "Baixa";
   if (priorityId === 1) return "Baixa";
-  return "MÃ©dia";
+  return "Média";
 }
 
 export function mapTicketStateLabel(rawState: string): string {
@@ -60,7 +60,7 @@ export function isAnalysisOrDevelopmentStateName(stateName?: string | null): boo
   const normalized = normalizeStateName(stateName);
   if (!normalized) return false;
   return matrix.statusRules
-    .filter((rule) => rule.status === "Em AnÃ¡lise")
+    .filter((rule) => rule.status === "Em Análise")
     .some((rule) => rule.keywords.some((word) => normalized.includes(normalizeStateName(word))));
 }
 
