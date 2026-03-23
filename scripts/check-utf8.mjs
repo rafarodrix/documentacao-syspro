@@ -1,4 +1,4 @@
-﻿import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 
 const root = process.cwd();
@@ -19,7 +19,8 @@ const textExtensions = new Set([
 ]);
 
 const ignoredDirs = new Set([".git", ".next", "node_modules", "coverage", "dist", "build"]);
-const suspiciousPatterns = [/Ã./, /â€./, /âœ./, /�/];
+const wholeContentPatterns = [/Ã./, /â€./, /âœ./, /�/];
+const brokenQuestionPattern = /[A-Za-z\u00C0-\u017F]\?\?[A-Za-z\u00C0-\u017F]/;
 const violations = [];
 
 function walk(dir) {
@@ -45,6 +46,28 @@ function statSafe(path) {
   }
 }
 
+function getTextSegments(content, extension) {
+  if ([".md", ".mdx", ".json", ".yml", ".yaml", ".html", ".css", ".scss"].includes(extension)) {
+    return [content];
+  }
+
+  const segments = [];
+  const patterns = [
+    /\/\*[\s\S]*?\*\//g,
+    /\/\/.*$/gm,
+    /"(?:\\.|[^"\\])*"/g,
+    /'(?:\\.|[^'\\])*'/g,
+    /`(?:\\.|[^`\\])*`/g,
+  ];
+
+  for (const pattern of patterns) {
+    const matches = content.match(pattern);
+    if (matches) segments.push(...matches);
+  }
+
+  return segments;
+}
+
 function inspect(filePath) {
   const buffer = readFileSync(filePath);
 
@@ -58,11 +81,17 @@ function inspect(filePath) {
     return;
   }
 
-  for (const pattern of suspiciousPatterns) {
+  for (const pattern of wholeContentPatterns) {
     if (pattern.test(content)) {
       violations.push({ filePath, issue: `Possivel mojibake: ${pattern}` });
-      break;
+      return;
     }
+  }
+
+  const extension = extname(filePath);
+  const segments = getTextSegments(content, extension);
+  if (segments.some((segment) => brokenQuestionPattern.test(segment))) {
+    violations.push({ filePath, issue: "Possivel texto corrompido com ? no meio da palavra" });
   }
 }
 

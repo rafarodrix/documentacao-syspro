@@ -91,7 +91,7 @@ export default function GeneralSettingsForm() {
                         </div>
                         <div>
                             <CardTitle className="text-lg">Parametros Financeiros</CardTitle>
-                            <CardDescalculo de novos contratos.</CardDescription>
+                            <CardDescription>Defina os valores base para calculo de novos contratos.</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
