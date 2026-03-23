@@ -17,7 +17,7 @@ export function FinalCTA() {
 
       <div className="container px-4 relative z-10">
         {/* Card Centralizado com efeito Glass */}
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-background/40 backdrop-blur-md px-6 py-16 sm:px-16 sm:py-24 text-center shadow-2xl ring-1 ring-white/5">
+        <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-background/60 backdrop-blur-md px-6 py-16 sm:px-16 sm:py-24 text-center shadow-2xl ring-1 ring-border/30">
 
           {/* Efeito de Luz Interna no Card */}
           <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 via-transparent to-transparent opacity-50" />

@@ -31,7 +31,7 @@ export default async function LandingPage() {
   const monthlySummaries = groupReleasesByMonth(allReleases).slice(0, 3);
 
   return (
-    <main className="min-h-screen bg-[#050816] text-white">
+    <main className="min-h-screen bg-background text-foreground">
       <HeroSection currentVersion={currentVersion} releaseLink={releaseLink} />
       <TrilinkEcosystem summaries={monthlySummaries} releaseLink={releaseLink} />
       <FinalCTA />

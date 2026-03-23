@@ -4,8 +4,6 @@ import { prisma } from "@/lib/prisma"
 import { CompanySegment, CompanyStatus, ContractStatus, Role } from "@prisma/client"
 import { redirect } from "next/navigation"
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-
 export type UserRole = Role
 
 export type ProtectedSession = {
@@ -16,14 +14,12 @@ export type ProtectedSession = {
   image: string | null
 }
 
-// ─── Session Principal ────────────────────────────────────────────────────────
-
 /**
- * Valida a sessão e retorna os dados do usuário direto do banco.
- * Retorna null se: não autenticado, usuário não encontrado ou conta inativa.
+ * Valida a sessao e retorna os dados do usuario direto do banco.
+ * Retorna null se: nao autenticado, usuario nao encontrado ou conta inativa.
  *
- * Verificação de `lockoutUntil` — bloqueia usuários em lockout
- * mesmo que o token de sessão seja válido (ex: sessão aberta antes do lockout).
+ * A verificacao de `lockoutUntil` bloqueia usuarios em lockout
+ * mesmo que o token de sessao ainda esteja valido.
  */
 export async function getProtectedSession(): Promise<ProtectedSession | null> {
   try {
@@ -42,18 +38,16 @@ export async function getProtectedSession(): Promise<ProtectedSession | null> {
         image: true,
         role: true,
         isActive: true,
-        deletedAt: true,      // Rejeita usuários soft-deleted
-        lockoutUntil: true,   // Rejeita usuários em lockout
+        deletedAt: true,
+        lockoutUntil: true,
       },
     })
 
-    // Conta não existe, foi deletada, está inativa ou em lockout
     if (!dbUser) return null
     if (dbUser.deletedAt) return null
     if (!dbUser.isActive) return null
     if (dbUser.lockoutUntil && dbUser.lockoutUntil > new Date()) return null
 
-    // Bloqueio de acesso para perfis de cliente sem empresa/contrato ativo.
     if (dbUser.role === Role.CLIENTE_ADMIN || dbUser.role === Role.CLIENTE_USER) {
       const activeMembership = await prisma.membership.findFirst({
         where: {
@@ -87,17 +81,9 @@ export async function getProtectedSession(): Promise<ProtectedSession | null> {
   }
 }
 
-// ─── Helpers com Redirect ────────────────────────────────────────────────────
-
 /**
  * Variante que redireciona automaticamente para /login.
- * Use em layouts e pages que SEMPRE exigem autenticação.
- * Elimina o padrão repetitivo `if (!session) redirect("/login")` em todo page.tsx.
- *
- * @example
- * // Em um layout de área protegida:
- * const session = await requireSession()
- * // Se chegou aqui, session está garantida e tipada sem null
+ * Use em layouts e pages que sempre exigem autenticacao.
  */
 export async function requireSession(): Promise<ProtectedSession> {
   const session = await getProtectedSession()
@@ -106,12 +92,8 @@ export async function requireSession(): Promise<ProtectedSession> {
 }
 
 /**
- * Variante que exige role específica.
- * Redireciona para /login se não autenticado, ou para /app se sem permissão.
- *
- * @example
- * // Em um page.tsx do painel admin:
- * const session = await requireRole(["ADMIN", "DEVELOPER"])
+ * Variante que exige role especifica.
+ * Redireciona para /login se nao autenticado, ou para /app se sem permissao.
  */
 export async function requireRole(
   allowedRoles: Role[],
@@ -147,7 +129,6 @@ export async function canAccessByCompanySegment(
 
   const membershipSegments = memberships.map((membership) => membership.company.segment)
 
-  // Regra solicitada: se nao houver segmento definido, todos os usuarios acessam.
   if (!membershipSegments.length || membershipSegments.some((segment) => segment == null)) {
     return true
   }

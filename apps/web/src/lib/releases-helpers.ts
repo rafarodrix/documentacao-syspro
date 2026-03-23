@@ -1,6 +1,5 @@
 import type { Release } from "@dosc-syspro/core";
 
-// Tipo para a estrutura de dados que vamos criar
 export type MonthSummary = {
   year: string;
   month: string;
@@ -9,9 +8,8 @@ export type MonthSummary = {
   melhorias: number;
 };
 
-// Logica de agrupamento que voce ja criou, agora em uma funcao reutilizavel
 export function groupReleasesByMonth(releases: Release[]): MonthSummary[] {
-  const monthNames = ["Janeiro", "Fevereiro", "Mar?o", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const monthNames = ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   const grouped = releases.reduce((acc, release) => {
     if (!release.isoDate || !release.type) return acc;
@@ -32,6 +30,5 @@ export function groupReleasesByMonth(releases: Release[]): MonthSummary[] {
     return acc;
   }, {} as Record<string, MonthSummary>);
 
-  // Converte o objeto em um array e ordena do mais recente para o mais antigo
   return Object.values(grouped).sort((a, b) => b.year.localeCompare(a.year) || b.month.localeCompare(a.month));
 }
