@@ -1,15 +1,21 @@
-import type { DocumentoFormValues } from "@dosc-syspro/contracts";
-
-export type DocumentoItem = DocumentoFormValues & {
+export type DocumentoItem = {
+    id: string;
     createdAt: Date;
     updatedAt: Date;
     empresa: string | null;
+    descricao: string;
+    grupoDocumento: string;
+    modelo: string;
+    serie: string;
     emitente: string | null;
     maximoItens: number | null;
+    movimentaEstoque: "SAIDA" | "ENTRADA" | "NAO";
     atualizaComercial: boolean | null;
     processamentoEtapa: boolean | null;
+    finalidadeNFe: string;
     tpNFCredito: string | null;
     tpNFDebito: string | null;
+    comportamentos: string[];
     cfopEstadual: string | null;
     cfopInterestadual: string | null;
     cfopEstadualST: string | null;

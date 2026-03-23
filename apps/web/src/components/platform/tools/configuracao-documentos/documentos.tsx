@@ -43,6 +43,31 @@ export default function DocumentosContainer() {
         loadData();
     }, []);
 
+    const toFormValues = (doc: DocumentoItem): DocumentoFormValues => ({
+        id: doc.id,
+        empresa: doc.empresa ?? "",
+        descricao: doc.descricao,
+        grupoDocumento: doc.grupoDocumento,
+        modelo: doc.modelo,
+        serie: doc.serie,
+        emitente: doc.emitente ?? "PROPRIO",
+        maximoItens: doc.maximoItens ?? 999,
+        atualizaComercial: doc.atualizaComercial ?? true,
+        processamentoEtapa: doc.processamentoEtapa ?? false,
+        movimentaEstoque: doc.movimentaEstoque,
+        finalidadeNFe: doc.finalidadeNFe,
+        tpNFCredito: doc.tpNFCredito ?? "",
+        tpNFDebito: doc.tpNFDebito ?? "",
+        cfopEstadual: doc.cfopEstadual ?? "",
+        cfopInterestadual: doc.cfopInterestadual ?? "",
+        cfopEstadualST: doc.cfopEstadualST ?? "",
+        cfopInterestadualST: doc.cfopInterestadualST ?? "",
+        cfopEstadualConsumidor: doc.cfopEstadualConsumidor ?? "",
+        cfopInterestadualConsumidor: doc.cfopInterestadualConsumidor ?? "",
+        cfopInternacional: doc.cfopInternacional ?? "",
+        comportamentos: doc.comportamentos ?? [],
+    });
+
     // --- Handlers ---
 
     const handleAddNew = () => {
@@ -51,7 +76,7 @@ export default function DocumentosContainer() {
     };
 
     const handleEdit = (doc: DocumentoItem) => {
-        setEditingDoc(doc);
+        setEditingDoc(toFormValues(doc));
         setViewState('form');
     };
 
