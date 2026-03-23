@@ -10,7 +10,7 @@ import type {
 export async function getTaxClassificationListViewData(): Promise<TaxClassificationListViewData> {
   const previewLimit = 300;
 
-  const [totalCount, items] = await Promise.all([
+  const [totalCount, rows] = await Promise.all([
     prisma.taxClassification.count(),
     prisma.taxClassification.findMany({
       orderBy: { code: "asc" },
@@ -30,7 +30,11 @@ export async function getTaxClassificationListViewData(): Promise<TaxClassificat
 
   return {
     totalCount,
-    items,
+    items: rows.map((item) => ({
+      ...item,
+      pRedIBS: item.pRedIBS ?? 0,
+      pRedCBS: item.pRedCBS ?? 0,
+    })),
     previewLimit,
   };
 }
