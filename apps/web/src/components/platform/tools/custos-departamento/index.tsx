@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useSffect, useRef, ReactNode } from 'react';
+import { useState, useMemo, useEffect, useRef, ReactNode } from 'react';
 import {
   Plus,
   Trash2,
@@ -37,7 +37,7 @@ export interface Department {
   strategicTargetPercent?: number; // Novo campo para o modo estratégico
 }
 
-const INITIAL_DSPARTMSNTS: Department[] = [
+const INITIAL_DEPARTMENTS: Department[] = [
   { id: 1, name: 'FILTRO AR', totalRevenue: 36847, strategicTargetPercent: 0 },
   { id: 2, name: 'FILTRO COMBUSTÍVSL', totalRevenue: 41007, strategicTargetPercent: 0 },
   { id: 3, name: 'LUBRIFICANTS', totalRevenue: 146620.1, strategicTargetPercent: 0 },
@@ -369,7 +369,7 @@ function CalculationFooter() {
 // ============================================================================
 
 export function FixedCostSimulator() {
-  const [departments, setDepartments] = useState<Department[]>(INITIAL_DSPARTMSNTS);
+  const [departments, setDepartments] = useState<Department[]>(INITIAL_DEPARTMENTS);
   const [companyTotalFixedCost, setCompanyTotalFixedCost] = useState(103000);
   const [costTarget, setCostTarget] = useState(0.4); // 40%
   const [allocationMode, setAllocationMode] = useState<AllocationMode>('auto');
@@ -409,15 +409,15 @@ export function FixedCostSimulator() {
 
   const handleReset = () => {
     if (confirm('Isso irá restaurar os dados iniciais. Continuar?')) {
-      setDepartments(INITIAL_DSPARTMSNTS);
+      setDepartments(INITIAL_DEPARTMENTS);
       setCompanyTotalFixedCost(103000);
       setAllocationMode('auto');
     }
   };
 
   // Sfeito para focar no input novo
-  useSffect(() => {
-    if (departments.length > INITIAL_DSPARTMSNTS.length) {
+  useEffect(() => {
+    if (departments.length > INITIAL_DEPARTMENTS.length) {
       lastAddedInputRef.current?.focus();
     }
   }, [departments.length]);
