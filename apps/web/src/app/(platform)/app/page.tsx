@@ -1,9 +1,7 @@
-import { requireSession } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
+﻿import { requireSession } from "@/lib/auth-helpers";
 import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
-import { ActivityChart, ActivityPoint } from "@/components/platform/app/dashboard/ActivityChart";
+import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,260 +11,26 @@ import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { ArrowUpRight, BookOpen, Headset, Sparkles, Users } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
-import { buildTicketKpis, toTicketSummaryItems } from "@/features/tickets/application/dashboard";
-import { queryTicketsForViewer, zammadObservabilityGateway } from "@/features/tickets/application/queries";
-import type { AdminDashboardViewData, ClientDashboardViewData } from "@/features/tickets/domain/model";
-
-const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-
-function getLast7DaysRange() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - 6);
-
-  const days: Date[] = [];
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(start);
-    day.setDate(start.getDate() + i);
-    days.push(day);
-  }
-
-  return { start, days };
-}
-
-function toSeries(events: Date[]): ActivityPoint[] {
-  const { days } = getLast7DaysRange();
-  const map = new Map<string, number>();
-
-  for (const d of days) {
-    const key = d.toISOString().slice(0, 10);
-    map.set(key, 0);
-  }
-
-  for (const event of events) {
-    const key = new Date(event).toISOString().slice(0, 10);
-    if (map.has(key)) map.set(key, (map.get(key) || 0) + 1);
-  }
-
-  return days.map((d) => {
-    const key = d.toISOString().slice(0, 10);
-    return {
-      label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-      value: map.get(key) || 0,
-    };
-  });
-}
-
-async function getScopedCompanyZammadEmailsByUserId(userId: string): Promise<string[]> {
-  const memberships = await prisma.membership.findMany({
-    where: {
-      userId,
-    },
-    select: { companyId: true },
-  });
-
-  const companyIds = memberships.map((membership) => membership.companyId);
-  if (!companyIds.length) return [];
-
-  const configured = await prisma.companyZammadEmail.findMany({
-    where: {
-      companyId: { in: companyIds },
-      isActive: true,
-    },
-    select: { email: true },
-  });
-
-  return Array.from(new Set(configured.map((item) => item.email.trim().toLowerCase()).filter(Boolean)));
-}
-
-async function getUserDashboardUF(userId: string): Promise<string> {
-  const membership = await prisma.membership.findFirst({
-    where: {
-      userId,
-      company: { deletedAt: null },
-    },
-    select: {
-      company: {
-        select: {
-          addresses: {
-            take: 1,
-            orderBy: { id: "asc" },
-            select: { estado: true },
-          },
-        },
-      },
-    },
-  });
-
-  const state = membership?.company?.addresses?.[0]?.estado?.trim().toUpperCase();
-  return state && state.length === 2 ? state : "MG";
-}
-
-async function getDashboardData(userId: string, email: string, role: Role): Promise<AdminDashboardViewData | ClientDashboardViewData> {
-  const isSystemUser = SYSTEM_ROLES.includes(role);
-  const dashboardUF = await getUserDashboardUF(userId);
-
-  if (isSystemUser) {
-    const { start } = getLast7DaysRange();
-
-    const [
-      companiesCount,
-      companiesThisMonth,
-      companiesLastMonth,
-      usersCount,
-      activeUsersCount,
-      recentCompanies,
-      sefazRecords,
-      companyActivity,
-    ] = await Promise.all([
-      prisma.company.count({ where: { status: "ACTIVE", deletedAt: null } }),
-      prisma.company.count({
-        where: { deletedAt: null, createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } },
-      }),
-      prisma.company.count({
-        where: {
-          deletedAt: null,
-          createdAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
-            lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          },
-        },
-      }),
-      prisma.user.count({ where: { deletedAt: null } }),
-      prisma.user.count({ where: { isActive: true, deletedAt: null } }),
-      prisma.company.findMany({
-        where: { deletedAt: null },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        select: {
-          id: true,
-          razaoSocial: true,
-          nomeFantasia: true,
-          cnpj: true,
-          status: true,
-          createdAt: true,
-          _count: { select: { memberships: true } },
-          addresses: { take: 1, select: { cidade: true, estado: true } },
-        },
-      }),
-      prisma.sefazStatus.findMany({
-        where: { uf: dashboardUF },
-        orderBy: { createdAt: "desc" },
-        distinct: ["service"],
-        take: 2,
-      }),
-      prisma.company.findMany({ where: { deletedAt: null, createdAt: { gte: start } }, select: { createdAt: true } }),
-    ]);
-    const ticketsResponse = await queryTicketsForViewer({ userId, email, role }, { page: 1, pageSize: 50, queue: "all", statusGroup: "all" });
-    const normalizedTickets = ticketsResponse.success
-      ? toTicketSummaryItems(ticketsResponse.data)
-      : [];
-    const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 5);
-    const totalOpen = ticketsResponse.success
-      ? ticketsResponse.statusCounts.open + ticketsResponse.statusCounts.pending
-      : normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").length;
-
-    const companies = recentCompanies.map((c) => ({
-      ...c,
-      cidade: c.addresses[0]?.cidade ?? null,
-      estado: c.addresses[0]?.estado ?? null,
-    }));
-
-    const latestNfe = sefazRecords.find((s) => s.service === "NFE");
-    const latestNfce = sefazRecords.find((s) => s.service === "NFCE");
-
-    const sefazNfe: AdminDashboardViewData["sefazNfe"] = {
-      uf: dashboardUF,
-      service: "NFE",
-      status: latestNfe?.status ?? "OFFLINE",
-      latency: latestNfe?.latency ?? 0,
-    };
-
-    const sefazNfce: AdminDashboardViewData["sefazNfce"] = {
-      uf: dashboardUF,
-      service: "NFCE",
-      status: latestNfce?.status ?? "OFFLINE",
-      latency: latestNfce?.latency ?? 0,
-    };
-
-    return {
-      mode: "admin",
-      companiesCount,
-      companiesGrowth: companiesThisMonth - companiesLastMonth,
-      usersCount,
-      activeUsersCount,
-      companies,
-      sefazNfe,
-      sefazNfce,
-      tickets,
-      totalOpen,
-      activity: toSeries(companyActivity.map((c) => c.createdAt)),
-    };
-  }
-
-  const [membership, scopedEmails] = await Promise.all([
-    prisma.membership.findFirst({
-      where: { userId, company: { deletedAt: null } },
-      include: {
-        company: {
-          select: {
-            nomeFantasia: true,
-            razaoSocial: true,
-            _count: { select: { memberships: true } },
-          },
-        },
-      },
-    }),
-    getScopedCompanyZammadEmailsByUserId(userId),
-  ]);
-
-  const ticketsResponse = scopedEmails.length
-    ? await queryTicketsForViewer({ userId, email, role }, { page: 1, pageSize: 20, queue: "all", statusGroup: "all" })
-    : null;
-  const normalizedTickets = ticketsResponse?.success
-    ? toTicketSummaryItems(ticketsResponse.data)
-    : [];
-  const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 10);
-  const kpis = ticketsResponse?.success
-    ? {
-        open: ticketsResponse.statusCounts.open,
-        pending: ticketsResponse.statusCounts.pending,
-        resolved: ticketsResponse.statusCounts.closed,
-      }
-    : buildTicketKpis(normalizedTickets);
-
-  return {
-    mode: "client",
-    companyName: membership?.company?.nomeFantasia || membership?.company?.razaoSocial || "Sem empresa vinculada",
-    companyUsers: membership?.company?._count?.memberships || 0,
-    tickets,
-    totalOpen: kpis.open + kpis.pending,
-    kpis,
-    activity: toSeries(normalizedTickets.map((t) => new Date(t.lastUpdate))),
-  };
-}
+import { getDashboardData } from "@/features/dashboard/application/queries";
 
 export default async function DashboardPage() {
   const session = await requireSession();
   const data = await getDashboardData(session.userId, session.email, session.role);
   const isSystemUser = data.mode === "admin";
-  const zammadHealth = zammadObservabilityGateway.getRouteHealth("app-chamados");
 
   return (
     <div className="flex-1 space-y-4 sm:space-y-5 p-4 sm:p-6">
       <div>
-        <h1 className="text-lg sm:text-xl font-semibold tracking-tight">Bom dia, {session.name?.split(" ")[0] ?? "usuário"}</h1>
+        <h1 className="text-lg sm:text-xl font-semibold tracking-tight">Bom dia, {session.name?.split(" ")[0] ?? "usuÃ¡rio"}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {isSystemUser ? "Visão operacional do sistema em tempo real." : "Resumo da sua conta e chamados recentes."}
+          {isSystemUser ? "VisÃ£o operacional do sistema em tempo real." : "Resumo da sua conta e chamados recentes."}
         </p>
       </div>
 
-      {zammadHealth.stale && (
+      {data.zammadWarning && (
         <Alert className="border-amber-500/40 bg-amber-500/10">
-          <AlertTitle>Dados em modo contingência</AlertTitle>
-          <AlertDescription>
-            Integração Zammad instável. Exibindo último cache válido de {zammadHealth.staleMinutes} min atrás.
-          </AlertDescription>
+          <AlertTitle>Dados em modo contingencia</AlertTitle>
+          <AlertDescription>{data.zammadWarning}</AlertDescription>
         </Alert>
       )}
 
@@ -288,7 +52,7 @@ export default async function DashboardPage() {
           <div className="grid gap-4 grid-cols-1 xl:grid-cols-7">
             <ActivityChart
               title="Novos cadastros por dia"
-              description="Empresas criadas nos últimos 7 dias"
+              description="Empresas criadas nos Ãºltimos 7 dias"
               points={data.activity}
               badgeLabel="Atualizado agora"
             />
@@ -305,9 +69,9 @@ export default async function DashboardPage() {
                   <Sparkles className="h-3.5 w-3.5" />
                   Painel do cliente
                 </div>
-                <h2 className="text-xl font-semibold tracking-tight">Sua operação em um só lugar</h2>
+                <h2 className="text-xl font-semibold tracking-tight">Sua operaÃ§Ã£o em um sÃ³ lugar</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Acompanhe chamados, histórico e movimentações recentes da sua conta.
+                  Acompanhe chamados, histÃ³rico e movimentaÃ§Ãµes recentes da sua conta.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -320,7 +84,7 @@ export default async function DashboardPage() {
                 <Button asChild variant="outline" className="gap-2">
                   <Link href="/docs">
                     <BookOpen className="h-4 w-4" />
-                    Abrir documentação
+                    Abrir documentaÃ§Ã£o
                   </Link>
                 </Button>
               </div>
@@ -338,8 +102,8 @@ export default async function DashboardPage() {
                   <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Users className="h-3.5 w-3.5" />
                     {data.companyName === "Sem empresa vinculada"
-                      ? "Solicite vínculo de empresa ao administrador."
-                      : `${data.companyUsers} usuário(s) vinculado(s)`}
+                      ? "Solicite vÃ­nculo de empresa ao administrador."
+                      : `${data.companyUsers} usuÃ¡rio(s) vinculado(s)`}
                   </p>
                 </CardContent>
               </Card>
@@ -354,7 +118,7 @@ export default async function DashboardPage() {
                   <p className="text-3xl font-bold">
                     <NumberTicker value={data.totalOpen} />
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">{data.kpis.pending} em análise/pendentes</p>
+                  <p className="text-xs text-muted-foreground mt-1">{data.kpis.pending} em anÃ¡lise/pendentes</p>
                 </CardContent>
               </Card>
             </MagicCard>
@@ -368,7 +132,7 @@ export default async function DashboardPage() {
                   <p className="text-3xl font-bold">
                     <NumberTicker value={data.kpis.resolved} />
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">Histórico dos tickets recentes</p>
+                  <p className="text-xs text-muted-foreground mt-1">HistÃ³rico dos tickets recentes</p>
                 </CardContent>
               </Card>
             </MagicCard>
@@ -385,11 +149,11 @@ export default async function DashboardPage() {
             <ShineBorder borderWidth={1} duration={18} shineColor={["#22d3ee40", "#a78bfa44"]} className="opacity-60" />
             <div className="relative z-10 grid gap-4 grid-cols-1 xl:grid-cols-4">
               <ActivityChart
-                title="Atualizações de chamados"
-                description="Movimento dos seus chamados nos últimos 7 dias"
+                title="AtualizaÃ§Ãµes de chamados"
+                description="Movimento dos seus chamados nos Ãºltimos 7 dias"
                 points={data.activity}
-                badgeLabel="Meu histórico"
-                emptyLabel="Nenhuma atualização recente"
+                badgeLabel="Meu histÃ³rico"
+                emptyLabel="Nenhuma atualizaÃ§Ã£o recente"
               />
             </div>
           </div>
@@ -407,3 +171,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

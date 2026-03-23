@@ -174,3 +174,25 @@ export async function listCachedTickets(input: {
 
   return { rows, total };
 }
+
+export async function getLatestOperationalTicketCacheFreshness(): Promise<{
+  hasCache: boolean;
+  staleMinutes: number | null;
+}> {
+  const latest = await prisma.zammadTicketCache.findFirst({
+    orderBy: [{ lastSyncedAt: "desc" }, { updatedAtZammad: "desc" }],
+    select: { lastSyncedAt: true, updatedAtZammad: true },
+  });
+
+  if (!latest) {
+    return { hasCache: false, staleMinutes: null };
+  }
+
+  const referenceDate = latest.lastSyncedAt ?? latest.updatedAtZammad;
+  const staleMinutes = Math.max(0, Math.floor((Date.now() - referenceDate.getTime()) / 60000));
+
+  return {
+    hasCache: true,
+    staleMinutes,
+  };
+}

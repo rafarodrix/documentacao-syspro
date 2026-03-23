@@ -1,3 +1,4 @@
+import { cache } from "react"
 import { auth } from "./auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
@@ -21,7 +22,7 @@ export type ProtectedSession = {
  * A verificacao de `lockoutUntil` bloqueia usuarios em lockout
  * mesmo que o token de sessao ainda esteja valido.
  */
-export async function getProtectedSession(): Promise<ProtectedSession | null> {
+export const getProtectedSession = cache(async (): Promise<ProtectedSession | null> => {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -79,7 +80,7 @@ export async function getProtectedSession(): Promise<ProtectedSession | null> {
   } catch {
     return null
   }
-}
+})
 
 /**
  * Variante que redireciona automaticamente para /login.

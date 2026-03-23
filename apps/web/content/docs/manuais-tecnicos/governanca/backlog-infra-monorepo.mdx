@@ -67,6 +67,10 @@ Ordem recomendada:
 - [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes.
 - [ ] `INFRA-022D` [Media] Revisar `src/lib` e mover helpers de dominio que ainda fazem mais sentido dentro de `features/*`.
 - [ ] `INFRA-022E` [Media] Normalizar tipagens e formatos compartilhados de UI para reduzir regressao em deploy por incompatibilidade de retorno.
+- [x] `INFRA-022F` [Alta] Aplicar `React cache()` em `getProtectedSession()` para evitar consultas repetidas de sessao/usuario/membership no mesmo render tree SSR.
+- [x] `INFRA-022G` [Alta] Extrair queries do dashboard em `apps/web/src/app/(platform)/app/page.tsx` para `features/dashboard/application/queries.ts`, removendo acesso direto a Prisma da camada de UI.
+- [x] `INFRA-022H` [Media] Aplicar `unstable_cache` em queries frequentes de contagem, settings e status operacionais com invalidacao por tags.
+- [x] `INFRA-022I` [Alta] Tornar o fallback do Zammad transparente usando `ZammadTicketCache`, reduzindo SPOF e evitando alerta ruidoso quando o cache recente estiver valido.
 
 ## Qualidade, CI e observabilidade
 
@@ -143,6 +147,23 @@ Ordem recomendada:
 3. validar `FEAT-002B` em ambiente real com o script OSS-first do agente, auto-vinculo por `installToken`, atualizacao de `RustDesk ID`, heartbeat periodico e resposta de rate limit
 4. consolidar o mesmo padrao visual de `FEAT-002A` entre configuracao, diretorio e detalhe, reforcando feedback de bloqueios por host e prontidao operacional
 5. validar o fluxo completo de sessao remota com `REQUESTED -> STARTED -> ENDED`, incluindo perfis, bloqueios, ultimo ticket associado, recomendacao operacional, `expiresAt`, deep-link condicionado a sessao ativa e comentario interno no `Zammad`, depois materializar job de expiracao e abrir `AuditLog`, `FEAT-004` e `FEAT-005`
+
+## Proximos passos imediatos do remoto
+
+1. aplicar a migration de `expiresAt` no ambiente
+2. validar `429` em `register/heartbeat`
+3. validar `REQUESTED -> STARTED -> ENDED` com TTL
+4. criar o job de expiracao automatica das sessoes
+5. endurecer `installToken` como segredo real, sem depender de token cru na UI/script
+
+## Prioridade sugerida de execucao
+
+1. `FEAT-002B`: rate limit consolidado e endurecimento de `installToken`
+2. `INFRA-022F`: `React cache()` em `getProtectedSession()`
+3. `INFRA-022G`: extracao das queries do dashboard para `features`
+4. `FEAT-003`: TTL e expiracao automatica das sessoes remotas
+5. `INFRA-022H`: `unstable_cache` para contagens, settings e status raramente mutaveis
+6. `FEAT-001`: validacao operacional de `agentExternalId` em hosts ativos e demais regras de confiabilidade
 
 
 

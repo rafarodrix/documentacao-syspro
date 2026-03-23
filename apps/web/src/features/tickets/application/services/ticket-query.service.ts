@@ -1,11 +1,33 @@
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import { getZammadRouteHealth } from "@/features/tickets/infrastructure/observability/zammad-observability";
-import { listCachedTickets, upsertOperationalTicketsToCache } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
+import {
+  getLatestOperationalTicketCacheFreshness,
+  listCachedTickets,
+  upsertOperationalTicketsToCache,
+} from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { buildEmailScopeQuery, buildOperationalStatusQuery, buildQueueQuery, buildSearchQuery, buildStatusQuery, buildTrackedStatusQuery, combineQueryParts } from "@/features/tickets/application/services/ticket-query-builders";
 import { getQueueCountsFromCache, getQueueCountsFromZammad, getStatusCountsFromCache, getStatusCountsFromZammad } from "@/features/tickets/application/services/ticket-query-counts.service";
 import { buildPagination, formatCachedTickets, formatTickets } from "@/features/tickets/application/services/ticket-query-formatters";
 import { getScopedCompanyZammadEmails, isSystemRole, type TicketViewer } from "@/features/tickets/application/services/ticket-scope.service";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
+
+const TRANSPARENT_CACHE_THRESHOLD_MINUTES = 15;
+
+function buildCacheFallbackWarning(input: { hasCache: boolean; staleMinutes: number | null }): string | undefined {
+  if (!input.hasCache) {
+    return "Zammad indisponivel e cache local ainda nao possui dados sincronizados.";
+  }
+
+  if (input.staleMinutes !== null && input.staleMinutes <= TRANSPARENT_CACHE_THRESHOLD_MINUTES) {
+    return undefined;
+  }
+
+  if (input.staleMinutes !== null) {
+    return `Dados carregados do cache local (${input.staleMinutes} min sem sincronizacao).`;
+  }
+
+  return "Dados carregados do cache local por indisponibilidade do Zammad.";
+}
 
 export async function queryTicketsForViewer(
   viewer: TicketViewer,
@@ -84,24 +106,27 @@ export async function queryTicketsForViewer(
       search,
     };
 
-    const cached = await listCachedTickets({
-      role: viewer.role,
-      email: viewer.email,
-      scopedEmails,
-      page,
-      pageSize,
-      queue,
-      zammadUserId,
-      search,
-      statusGroup,
-    });
+    const [cached, cacheFreshness] = await Promise.all([
+      listCachedTickets({
+        role: viewer.role,
+        email: viewer.email,
+        scopedEmails,
+        page,
+        pageSize,
+        queue,
+        zammadUserId,
+        search,
+        statusGroup,
+      }),
+      getLatestOperationalTicketCacheFreshness(),
+    ]);
 
     return {
       success: true,
       error: "Exibindo cache local por indisponibilidade do Zammad.",
       data: formatCachedTickets(cached.rows),
       pagination: buildPagination(page, pageSize, cached.total, cached.rows.length),
-      staleWarning: "Dados carregados do cache local (sync incremental).",
+      staleWarning: buildCacheFallbackWarning(cacheFreshness),
       queueCounts: await getQueueCountsFromCache(cacheInput),
       statusCounts: await getStatusCountsFromCache({ ...cacheInput, queue }),
     };
