@@ -1,4 +1,4 @@
-﻿export type {
+export type {
   TicketPriorityLevel,
   TicketListItem,
   TicketsPagination,

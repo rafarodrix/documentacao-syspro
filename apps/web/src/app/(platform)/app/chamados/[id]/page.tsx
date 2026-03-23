@@ -1,4 +1,4 @@
-﻿import { Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { getTicketDetailsAction } from "@/actions/tickets/ticket-actions";
 import { TicketDetails } from "@/components/platform/tickets/TicketDetails";
 import { requireSession } from "@/lib/auth-helpers";

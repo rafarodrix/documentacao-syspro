@@ -1,4 +1,4 @@
-﻿import { requireSession } from "@/lib/auth-helpers";
+import { requireSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";

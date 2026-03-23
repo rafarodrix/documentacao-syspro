@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
