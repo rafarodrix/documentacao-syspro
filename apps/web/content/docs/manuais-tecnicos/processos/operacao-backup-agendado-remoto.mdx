@@ -1,0 +1,376 @@
+---
+title: Operacao de Backup Agendado Remoto
+description: Diretriz futura para execucao automatica de backup por agente, catalogo no portal e envio para storage proprio ou externo.
+lastUpdated: 2026-03-23
+owner: Engenharia de Plataforma
+status: draft
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+Este manual descreve como a Trilink pode evoluir o modulo remoto para executar **backup automatizado** nas maquinas dos clientes, manter o **controle dentro do portal** e permitir **download rapido dos artefatos** quando necessario.
+
+## Objetivo
+
+Permitir que o mesmo ecossistema hoje usado para:
+
+- cadastro de host
+- heartbeat do agente
+- acesso remoto via RustDesk
+- sessao vinculada a ticket
+
+tambem passe a controlar:
+
+- agendamento de backup
+- execucao local no host
+- envio do artefato para storage
+- catalogo centralizado no portal
+- download e auditoria
+
+## Diretriz principal
+
+O backup **nao deve rodar dentro da request HTTP do portal**.
+
+O desenho recomendado e:
+
+- o **portal** cria e cataloga o job
+- o **agente local** executa o `gbak` ou `nbackup`
+- o **storage** guarda o arquivo
+- o **portal** exibe status, tamanho, horario e link de download
+
+<Callout type="info" title="Decisao recomendada">
+  Para a base atual, o melhor caminho e usar o portal como camada de controle e catalogo, e o agente local como camada de execucao. Isso reaproveita o que ja existe no modulo remoto e evita travar o `apps/web` com jobs pesados.
+</Callout>
+
+## Pergunta pratica: pode agendar as 14h e as 18h?
+
+Sim.
+
+O agente pode receber um cronograma como:
+
+- `14:00` backup operacional do meio do dia
+- `18:00` backup de fechamento
+
+Esse cronograma pode ser configurado:
+
+- por host
+- por empresa
+- por perfil de ambiente
+
+Exemplo:
+
+- matriz: `14:00` e `18:00`
+- filial pequena: `18:00`
+- servidor critico: `12:00`, `14:00`, `18:00`
+
+## Onde o arquivo deve ser enviado
+
+### Opcao recomendada: storage proprio
+
+Melhor padrao para o produto:
+
+- servidor proprio Trilink
+- `MinIO`
+- `S3` ou storage compativel
+- compartilhamento controlado em servidor interno
+
+Vantagens:
+
+- controle total
+- melhor auditoria
+- padrao mais profissional
+- mais facil de integrar com catalogo e expiracao
+- menos dependencia de conta pessoal ou credencial externa
+
+### Opcao aceitavel como excecao: Dropbox
+
+Dropbox pode existir como destino complementar, mas nao deve ser o padrao principal.
+
+Problemas:
+
+- dependencia externa
+- governanca pior
+- credenciais e compartilhamento mais sensiveis
+- menor previsibilidade para escala e auditoria
+
+### Recomendacao objetiva
+
+- **padrao principal:** servidor proprio / MinIO / S3
+- **fallback pontual:** Dropbox
+
+## Como o agente funciona nesse fluxo
+
+O agente e uma aplicacao local instalada na maquina do cliente ou no servidor onde o Firebird esta rodando.
+
+Responsabilidades do agente:
+
+- enviar heartbeat
+- consultar jobs pendentes
+- executar backup
+- enviar artefatos
+- reportar sucesso ou falha
+
+### Modelo de execucao recomendado
+
+`pull`
+
+O portal cria um `BackupJob`, e o agente pergunta periodicamente:
+
+> existe job para mim?
+
+Esse modelo e o mais simples para redes corporativas com firewall e NAT.
+
+## Fluxo futuro de implementacao
+
+<Steps>
+  <Step>
+    ### 1. Cadastro e configuracao do host
+    O host ja existe no modulo remoto com `installToken`, `machineName`, `agentVersion` e `lastHeartbeatAt`.
+  </Step>
+  <Step>
+    ### 2. Definicao da politica de backup
+    O operador define no portal a frequencia do backup, por exemplo `14:00` e `18:00`.
+  </Step>
+  <Step>
+    ### 3. O agente recebe a agenda
+    O agente consulta sua configuracao e sabe em quais horarios deve executar o backup automaticamente.
+  </Step>
+  <Step>
+    ### 4. Execucao local
+    O agente roda `gbak` ou `nbackup` na propria maquina/servidor do cliente.
+  </Step>
+  <Step>
+    ### 5. Upload do artefato
+    O arquivo vai para storage proprio ou externo, com checksum e metadata.
+  </Step>
+  <Step>
+    ### 6. Catalogo no portal
+    O portal registra o `BackupJob`, o `BackupArtifact`, horario, tamanho, status e origem.
+  </Step>
+</Steps>
+
+## Exemplo de agenda operacional
+
+```json
+{
+  "hostId": "remote-host-001",
+  "policy": {
+    "enabled": true,
+    "engine": "GBAK",
+    "schedule": ["14:00", "18:00"],
+    "retentionDays": 15,
+    "destination": {
+      "type": "MINIO",
+      "bucket": "trilink-backups"
+    }
+  }
+}
+```
+
+## Entidades recomendadas
+
+### `BackupJob`
+
+- `id`
+- `companyId`
+- `hostId`
+- `requestedByUserId?`
+- `trigger`
+  - `MANUAL`
+  - `SCHEDULED`
+  - `POLICY`
+- `engine`
+  - `GBAK`
+  - `NBACKUP`
+- `status`
+  - `REQUESTED`
+  - `RUNNING`
+  - `SUCCESS`
+  - `FAILED`
+  - `EXPIRED`
+- `scheduledFor`
+- `startedAt`
+- `finishedAt`
+- `errorMessage`
+- `metadata`
+
+### `BackupArtifact`
+
+- `id`
+- `backupJobId`
+- `companyId`
+- `hostId`
+- `fileName`
+- `fileSize`
+- `checksum`
+- `storageProvider`
+- `storagePath`
+- `downloadUrl?`
+- `createdAt`
+- `expiresAt`
+
+### `RestoreJob`
+
+- separado do fluxo normal
+- permissao mais alta
+- dupla confirmacao
+- trilha auditavel
+
+## Politica de destino dos arquivos
+
+### Destino 1: servidor proprio
+
+Uso recomendado quando a Trilink controla a infraestrutura:
+
+- agente envia para um endpoint de upload
+- backend salva no storage configurado
+- portal mostra o artefato para download
+
+### Destino 2: HD/NAS do cliente ou da Trilink
+
+Uso valido quando existe estrutura local:
+
+- caminho UNC ou pasta montada
+- ex.: `\\\\servidor-backup\\empresa-x\\2026-03-23\\`
+
+### Destino 3: Dropbox
+
+Uso apenas quando houver necessidade operacional especifica.
+
+O portal ainda deve catalogar:
+
+- nome do arquivo
+- horario
+- checksum
+- destino
+- status
+
+## Como a UI deve aparecer no modulo remoto
+
+### Na grid `/app/plataforma-remota`
+
+Cada card do host deve poder mostrar:
+
+- `Ultimo backup`
+- `Status backup`
+- `Destino`
+- `Backup agora`
+- `Ver artefatos`
+
+### No detalhe do host
+
+Abas recomendadas:
+
+- `Conexao`
+- `Backups`
+- `Artefatos`
+- `Observacoes`
+
+### Na aba `Backups`
+
+- politicas agendadas
+- horario das proximas execucoes
+- ultimo job
+- ultima falha
+- ultimo sucesso
+
+### Na aba `Artefatos`
+
+- lista de arquivos
+- tamanho
+- data
+- checksum
+- botao `Baixar`
+
+## Ferramenta recomendada por tipo de banco
+
+### Firebird
+
+Padrao:
+
+- `gbak`
+
+Uso complementar:
+
+- `nbackup`
+
+Diretriz:
+
+- usar `gbak` como primeira implementacao do produto
+- abrir `nbackup` apenas quando houver caso operacional claro
+
+## Seguranca e controle
+
+O agente nao deve operar apenas com `installToken` para sempre.
+
+Fluxo recomendado:
+
+1. `installToken` no bootstrap
+2. agente recebe ou gera `agentToken`
+3. operacoes futuras usam `agentToken`
+4. o portal pode revogar esse token
+
+Tambem deve existir:
+
+- rate limit
+- auditoria do job
+- checksum do artefato
+- retencao
+- bloqueio de restore por perfil
+
+## Exemplo de fluxo manual
+
+1. analista abre o host no portal
+2. clica em `Backup agora`
+3. portal cria `BackupJob`
+4. agente executa o backup
+5. agente envia o arquivo
+6. portal mostra `SUCCESS`
+7. analista pode baixar o artefato
+
+## Exemplo de fluxo agendado
+
+1. host possui agenda `14:00` e `18:00`
+2. o agente verifica horario local
+3. ao chegar `14:00`, executa o backup
+4. envia para storage
+5. cria artefato no catalogo
+6. repete o mesmo fluxo `18:00`
+
+## Implementacao futura no codigo
+
+Primeiro recorte recomendado:
+
+1. modelar `BackupJob`
+2. modelar `BackupArtifact`
+3. criar `POST /api/backup/run`
+4. criar `GET /api/backup/jobs`
+5. criar `GET /api/backup/artifacts`
+6. criar o polling do agente para jobs
+7. expor os cards de backup no detalhe do host
+
+Segundo recorte:
+
+1. agenda por host
+2. destino configuravel
+3. upload para storage proprio
+4. retenção automatica
+
+Terceiro recorte:
+
+1. restore controlado
+2. dupla confirmacao
+3. integracao com auditoria
+
+## Relacao com o backlog
+
+Este manual orienta principalmente:
+
+- `FEAT-005`
+- parte futura de `FEAT-002B`
+- expansao operacional do modulo remoto
+
+<Callout type="warning" title="Decisao de produto">
+  A experiencia de backup deve nascer dentro do mesmo modulo remoto ja existente, para que host, heartbeat, RustDesk, artefatos e jobs compartilhem contexto operacional unico.
+</Callout>

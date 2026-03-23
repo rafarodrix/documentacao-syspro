@@ -10,9 +10,13 @@ interface PageProps {
 export default async function ClientTicketPage({ params }: PageProps) {
     const session = await requireSession();
     const { id } = await params;
-    const { ticket, articles, error } = await getTicketDetailsAction(id);
+    const result = await getTicketDetailsAction(id);
     const isAdmin = session.role === Role.ADMIN || session.role === Role.DEVELOPER || session.role === Role.SUPORTE;
 
-    return <TicketDetails ticket={ticket} articles={articles || []} error={error} isAdmin={isAdmin} />;
+    if (!result.success) {
+        return <TicketDetails articles={[]} error={result.error} isAdmin={isAdmin} />;
+    }
+
+    return <TicketDetails ticket={result.ticket} articles={result.articles} isAdmin={isAdmin} />;
 }
 

@@ -18,6 +18,7 @@
     "processos/integracao-zammad",
     "processos/arquitetura-canal-whatsapp",
     "processos/operacao-agente-remoto-oss",
+    "processos/operacao-backup-agendado-remoto",
     "---Estrategia---",
     "estrategia/estrategia-plataforma-remota"
   ]
