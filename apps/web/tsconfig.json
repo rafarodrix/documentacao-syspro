@@ -29,7 +29,13 @@
                                                                 ],
                                           "@dosc-syspro/core/*":  [
                                                                       "../../packages/core/src/*"
-                                                                  ]
+                                                                  ],
+                                          "@dosc-syspro/database":  [
+                                                                        "../../packages/database/src/index.ts"
+                                                                    ],
+                                          "@dosc-syspro/database/*":  [
+                                                                          "../../packages/database/src/*"
+                                                                      ]
                                       },
                             "plugins":  [
                                             {

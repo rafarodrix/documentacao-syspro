@@ -51,10 +51,16 @@ Status de fechamento:
 - `apps/web` passou a resolver `@dosc-syspro/core` via `tsconfig`, sem depender de Next.js nas partes extraidas.
 - wrappers legados em `apps/web/src/core/domain/entities/*`, `apps/web/src/core/config/*` e `apps/web/src/core/application/services/zammad-sla.ts` foram mantidos como camada de compatibilidade.
 
-- [ ] `INFRA-017` [Alta] Extrair `packages/database`.
+- [x] `INFRA-017` [Alta] Extrair `packages/database`.
 Criterios de aceite:
 - Prisma schema, migrations, client e adapters centralizados.
 - acesso ao banco fora do app web controlado.
+Status de fechamento:
+- `packages/database` criado com `package.json`, `README.md` e `src/index.ts`.
+- `prisma/schema.prisma`, `prisma/migrations/*` e `prisma/seed.ts` foram centralizados em `packages/database/prisma`.
+- o bootstrap compartilhado do `PrismaClient` passou a viver em `packages/database/src/client.ts`.
+- `apps/web/src/lib/prisma.ts` foi reduzido a wrapper de compatibilidade para `@dosc-syspro/database`.
+- scripts de `generate` e `migrate` deixaram de depender de `apps/web/prisma` e passaram a usar o schema centralizado.
 
 - [ ] `INFRA-018` [Alta] Definir estrategia de repositories/adapters para persistencia.
 Criterios de aceite:
@@ -117,7 +123,6 @@ Criterios de aceite:
 
 ### Sprint 3 - Dominio compartilhado
 
-- `INFRA-017` `packages/database`
 - `INFRA-018` Repositories/adapters
 - `INFRA-019` `packages/api`
 - `INFRA-020` Data fetching e invalidacao
@@ -131,6 +136,6 @@ Criterios de aceite:
 
 ## Proximo passo recomendado
 
-1. executar `INFRA-017`
-2. em seguida consolidar `INFRA-018`
-3. depois preparar `INFRA-019`
+1. consolidar `INFRA-018`
+2. depois preparar `INFRA-019`
+3. em seguida definir `INFRA-020`

@@ -1,0 +1,13 @@
+{
+  "name": "@dosc-syspro/database",
+  "private": true,
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "db:generate": "dotenv -e ../../.env prisma generate --schema ./prisma/schema.prisma",
+    "db:migrate": "dotenv -e ../../.env prisma migrate dev --schema ./prisma/schema.prisma",
+    "db:deploy": "dotenv -e ../../.env prisma migrate deploy --schema ./prisma/schema.prisma"
+  }
+}
