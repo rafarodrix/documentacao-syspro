@@ -14,13 +14,13 @@ export type CompanyActionSuccess<T = void> = T extends void
   ? { success: true; message?: string }
   : { success: true; message?: string; data: T };
 
-export type CompanyActionFailure = {
+export type CompanyActionFailure<T = void> = {
   success: false;
   message: string;
   errors?: CompanyValidationErrors;
-};
+} & (T extends void ? {} : { data?: T });
 
-export type CompanyActionResponse<T = void> = CompanyActionSuccess<T> | CompanyActionFailure;
+export type CompanyActionResponse<T = void> = CompanyActionSuccess<T> | CompanyActionFailure<T>;
 
 export type CompanyZammadEmailInput = {
   email: string;
