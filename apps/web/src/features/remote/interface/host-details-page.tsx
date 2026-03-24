@@ -41,11 +41,48 @@ function formatRelativeHeartbeat(value: string | null) {
   return `${diffDays}d atras`;
 }
 
+function getServiceStatusMeta(value: string | null) {
+  if (!value) {
+    return {
+      label: "Sem leitura",
+      tone: "border-border/60 bg-background/70 text-muted-foreground",
+    };
+  }
+
+  const normalized = value.toLowerCase();
+  if (normalized === "running") {
+    return {
+      label: "Servico em execucao",
+      tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  if (normalized === "restarted_by_agent") {
+    return {
+      label: "Servico reiniciado pelo agente",
+      tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    };
+  }
+
+  if (normalized === "not_found") {
+    return {
+      label: "Servico RustDesk nao encontrado",
+      tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+    };
+  }
+
+  return {
+    label: value,
+    tone: "border-border/60 bg-background/70 text-foreground",
+  };
+}
+
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
+  const serviceStatus = getServiceStatusMeta(host.serviceStatus);
 
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
@@ -117,6 +154,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <Badge variant="outline" className={heartbeat.tone}>
                 {heartbeat.label}
               </Badge>
+              <Badge variant="outline" className={serviceStatus.tone}>
+                {serviceStatus.label}
+              </Badge>
               <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                 {statusLabel}
               </Badge>
@@ -161,6 +201,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
               <p className="mt-1 text-base font-semibold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
               <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servico do agente</p>
+              <p className="mt-1 text-base font-semibold text-foreground">{serviceStatus.label}</p>
             </div>
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sessao aberta</p>
@@ -284,6 +328,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       <div>
                         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
                         <p className="mt-1 text-sm font-medium text-foreground">{entry.companyLabel}</p>
+                        {entry.resolvedCompanyName && entry.resolvedCompanyName !== entry.companyLabel ? (
+                          <p className="mt-1 text-xs text-muted-foreground">Vinculada a: {entry.resolvedCompanyName}</p>
+                        ) : null}
                       </div>
                       <div>
                         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>

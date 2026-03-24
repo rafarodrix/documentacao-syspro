@@ -494,6 +494,7 @@ model RemoteHost {
   installToken String? @unique
   machineName String?
   agentVersion String?
+  serviceStatus String?
   status RemoteHostStatus @default(ACTIVE)
   lastHeartbeatAt DateTime?
 

@@ -191,6 +191,7 @@ export type RemoteConfiguredHostItem = {
   installToken: string | null;
   machineName: string | null;
   agentVersion: string | null;
+  serviceStatus: string | null;
   lastHeartbeatAt: string | null;
   openSessionCount: number;
   operationalStatus: RemoteOperationalStatus;
@@ -230,6 +231,7 @@ export type RemoteHostSysproUpdateItem = {
   id: string;
   companyId: string | null;
   companyLabel: string;
+  resolvedCompanyName: string | null;
   path: string;
   lastFileWriteAt: string | null;
   lastHeartbeatAt: string;

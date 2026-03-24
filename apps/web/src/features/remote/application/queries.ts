@@ -80,6 +80,7 @@ function mapDirectoryItem(host: {
   installToken: string | null;
   machineName: string | null;
   agentVersion: string | null;
+  serviceStatus?: string | null;
   status: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
   lastHeartbeatAt: Date | null;
   company: { nomeFantasia: string | null; razaoSocial: string };
@@ -125,6 +126,7 @@ function mapDirectoryItem(host: {
     installToken: host.installToken,
     machineName: host.machineName,
     agentVersion: host.agentVersion,
+    serviceStatus: host.serviceStatus ?? null,
     lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
     openSessionCount,
     operationalStatus: resolveRemoteOperationalStatus({
@@ -565,26 +567,37 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       id: string;
       companyId: string | null;
       companyLabel: string;
+      resolvedCompanyName: string | null;
       path: string;
       lastFileWriteAt: Date | null;
       lastHeartbeatAt: Date;
     }>
   >`
     SELECT
-      "id",
-      "companyId",
-      "companyLabel",
-      "path",
-      "lastFileWriteAt",
-      "lastHeartbeatAt"
-    FROM "remote_host_syspro_update"
-    WHERE "hostId" = ${host.id}
-    ORDER BY "companyLabel" ASC, "path" ASC
+      u."id",
+      u."companyId",
+      u."companyLabel",
+      COALESCE(c."nomeFantasia", c."razaoSocial") AS "resolvedCompanyName",
+      u."path",
+      u."lastFileWriteAt",
+      u."lastHeartbeatAt"
+    FROM "remote_host_syspro_update" u
+    LEFT JOIN "company" c ON c."id" = u."companyId"
+    WHERE u."hostId" = ${host.id}
+    ORDER BY u."companyLabel" ASC, u."path" ASC
   `;
+
+  const hostServiceStatus = await prisma.$queryRaw<Array<{ serviceStatus: string | null }>>`
+    SELECT "serviceStatus"
+    FROM "remote_host"
+    WHERE "id" = ${host.id}
+  `;
+  const serviceStatus = hostServiceStatus[0]?.serviceStatus ?? null;
 
   return {
     host: mapDirectoryItem({
       ...host,
+      serviceStatus,
       sessions: host.sessions.map((session) => ({
         createdAt: session.createdAt,
         status: session.status,
@@ -594,6 +607,7 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     installGuide: buildInstallGuide(
       mapDirectoryItem({
         ...host,
+        serviceStatus,
         sessions: host.sessions.map((session) => ({
           createdAt: session.createdAt,
           status: session.status,
@@ -636,6 +650,7 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       id: entry.id,
       companyId: entry.companyId,
       companyLabel: entry.companyLabel,
+      resolvedCompanyName: entry.resolvedCompanyName,
       path: entry.path,
       lastFileWriteAt: entry.lastFileWriteAt?.toISOString() ?? null,
       lastHeartbeatAt: entry.lastHeartbeatAt.toISOString(),

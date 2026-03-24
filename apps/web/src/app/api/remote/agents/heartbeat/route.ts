@@ -66,6 +66,16 @@ type ExistingSysproRow = {
   path: string;
 };
 
+function normalizeCompareValue(value?: string | null) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function POST(request: Request) {
   const { logger, responseHeaders } = createRequestLogger(request, {
     area: "api",
@@ -99,6 +109,7 @@ export async function POST(request: Request) {
     rustdeskId?: string | null;
     machineName?: string | null;
     agentVersion?: string | null;
+    serviceStatus?: string | null;
     sysproUpdates?: unknown;
   };
 
@@ -110,7 +121,16 @@ export async function POST(request: Request) {
 
   const host = await prisma.remoteHost.findFirst({
     where: { installToken },
-    select: { id: true },
+    select: {
+      id: true,
+      companyId: true,
+      company: {
+        select: {
+          nomeFantasia: true,
+          razaoSocial: true,
+        },
+      },
+    },
   });
 
   if (!host) {
@@ -120,6 +140,24 @@ export async function POST(request: Request) {
 
   const heartbeatAt = new Date();
   const sysproUpdates = normalizeSysproUpdates(body.sysproUpdates);
+  const hasServiceStatus = Object.prototype.hasOwnProperty.call(body, "serviceStatus");
+  const normalizedServiceStatus = body.serviceStatus?.trim() || null;
+  const normalizedPrimaryNames = [
+    normalizeCompareValue(host.company.nomeFantasia),
+    normalizeCompareValue(host.company.razaoSocial),
+  ].filter(Boolean);
+  const candidateCompanies = sysproUpdates.length
+    ? await prisma.company.findMany({
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          nomeFantasia: true,
+          razaoSocial: true,
+        },
+      })
+    : [];
 
   const updated = await prisma.$transaction(async (tx) => {
     const remoteHost = await tx.remoteHost.update({
@@ -141,6 +179,14 @@ export async function POST(request: Request) {
       },
     });
 
+    if (hasServiceStatus) {
+      await tx.$executeRaw`
+        UPDATE "remote_host"
+        SET "serviceStatus" = ${normalizedServiceStatus}
+        WHERE "id" = ${host.id}
+      `;
+    }
+
     if (sysproUpdates.length) {
       const existingUpdates = await tx.$queryRaw<ExistingSysproRow[]>`
         SELECT
@@ -160,11 +206,22 @@ export async function POST(request: Request) {
         const compositeKey = `${entry.companyLabel}::${entry.path}`.toLowerCase();
         incomingKeys.add(compositeKey);
         const existingId = existingKeyMap.get(compositeKey);
+        const normalizedLabel = normalizeCompareValue(entry.companyLabel);
+        const resolvedCompanyId =
+          normalizedPrimaryNames.includes(normalizedLabel)
+            ? host.companyId
+            : candidateCompanies.find((company) => {
+                return (
+                  normalizeCompareValue(company.nomeFantasia) === normalizedLabel ||
+                  normalizeCompareValue(company.razaoSocial) === normalizedLabel
+                );
+              })?.id ?? null;
 
         if (existingId) {
           await tx.$executeRaw`
             UPDATE "remote_host_syspro_update"
             SET
+              "companyId" = ${resolvedCompanyId},
               "companyLabel" = ${entry.companyLabel},
               "path" = ${entry.path},
               "lastFileWriteAt" = ${entry.lastFileWriteAt},
@@ -179,6 +236,7 @@ export async function POST(request: Request) {
           INSERT INTO "remote_host_syspro_update" (
             "id",
             "hostId",
+            "companyId",
             "companyLabel",
             "path",
             "lastFileWriteAt",
@@ -188,6 +246,7 @@ export async function POST(request: Request) {
           ) VALUES (
             ${crypto.randomUUID()},
             ${host.id},
+            ${resolvedCompanyId},
             ${entry.companyLabel},
             ${entry.path},
             ${entry.lastFileWriteAt},
@@ -218,6 +277,7 @@ export async function POST(request: Request) {
   logger.info("remote.agent.heartbeat.succeeded", {
     hostId: updated.id,
     machineName: updated.machineName,
+    serviceStatus: hasServiceStatus ? normalizedServiceStatus : undefined,
     sysproUpdateCount: sysproUpdates.length,
   });
 

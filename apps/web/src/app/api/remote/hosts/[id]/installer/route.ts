@@ -43,59 +43,327 @@ function buildInstallerScript(input: {
   const description = input.description?.trim() || "Sem descricao operacional cadastrada.";
   const rustdeskId = input.rustdeskId?.trim() || "";
   const environment = input.environment?.trim() || "";
+  const escapedPortalBaseUrl = escapePowerShell(input.portalBaseUrl);
+  const escapedInstallToken = escapePowerShell(input.installToken);
+  const escapedCompanyName = escapePowerShell(input.companyName);
+  const escapedHostName = escapePowerShell(input.hostName);
+  const escapedDescription = escapePowerShell(description);
+  const escapedEnvironment = escapePowerShell(environment);
+  const escapedRustDeskId = escapePowerShell(rustdeskId);
 
-  return [
-    "# Trilink Remote Agent OSS",
-    `# Empresa: ${input.companyName}`,
-    `# Host: ${input.hostName}`,
-    `# Descricao da maquina: ${description}`,
-    "",
-    "$portalBaseUrl = '" + escapePowerShell(input.portalBaseUrl) + "'",
-    "$installToken = '" + escapePowerShell(input.installToken) + "'",
-    "$companyName = '" + escapePowerShell(input.companyName) + "'",
-    "$hostName = '" + escapePowerShell(input.hostName) + "'",
-    "$hostDescription = '" + escapePowerShell(description) + "'",
-    "$machineName = $env:COMPUTERNAME",
-    "$agentVersion = 'rustdesk-oss-local'",
-    "$environment = '" + escapePowerShell(environment) + "'",
-    "$rustDeskId = '" + escapePowerShell(rustdeskId) + "'",
-    "",
-    "if ([string]::IsNullOrWhiteSpace($rustDeskId)) {",
-    "  Write-Host 'Informe o RustDesk ID da maquina antes de executar o registro.' -ForegroundColor Yellow",
-    "  $rustDeskId = Read-Host 'RustDesk ID'",
-    "}",
-    "",
-    "if ([string]::IsNullOrWhiteSpace($machineName)) {",
-    "  $machineName = Read-Host 'Nome da maquina'",
-    "}",
-    "",
-    "$payloadRegister = @{",
-    "  installToken = $installToken",
-    "  rustdeskId = (($rustDeskId -replace '\\s+', '').Trim())",
-    "  machineName = $machineName",
-    "  agentVersion = $agentVersion",
-    "  environment = $environment",
-    "}",
-    "",
-    "$payloadHeartbeat = @{",
-    "  installToken = $installToken",
-    "  rustdeskId = (($rustDeskId -replace '\\s+', '').Trim())",
-    "  machineName = $machineName",
-    "  agentVersion = $agentVersion",
-    "}",
-    "",
-    "Write-Host \"Empresa: $companyName\"",
-    "Write-Host \"Host: $hostName\"",
-    "Write-Host \"Descricao: $hostDescription\"",
-    "Write-Host \"Registrando agente no portal...\"",
-    "Invoke-RestMethod -Method Post -Uri \"$portalBaseUrl/api/remote/agents/register\" -ContentType 'application/json' -Body ($payloadRegister | ConvertTo-Json -Depth 5)",
-    "",
-    "Write-Host 'Enviando heartbeat inicial...'",
-    "Invoke-RestMethod -Method Post -Uri \"$portalBaseUrl/api/remote/agents/heartbeat\" -ContentType 'application/json' -Body ($payloadHeartbeat | ConvertTo-Json -Depth 5)",
-    "",
-    "Write-Host 'Registro concluido. Se quiser heartbeat continuo, use o script base em scripts/remote-agent-oss.ps1.' -ForegroundColor Green",
-    "",
-  ].join("\r\n");
+  return `# Trilink Remote Agent OSS - Agente Completo
+# Empresa: ${input.companyName}
+# Host: ${input.hostName}
+# Descricao da maquina: ${description}
+
+# ==========================================
+# 0. VERIFICACAO DE PRIVILEGIOS DE ADMINISTRADOR
+# ==========================================
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {
+    Write-Host "=========================================================" -ForegroundColor Red
+    Write-Host " ERRO: PRIVILEGIOS DE ADMINISTRADOR NECESSARIOS" -ForegroundColor Red
+    Write-Host "=========================================================" -ForegroundColor Red
+    Write-Host "Feche esta janela, clique com o botao direito no PowerShell e escolha 'Executar como administrador'." -ForegroundColor Yellow
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    exit
+}
+
+$ErrorActionPreference = 'Stop'
+
+# ==========================================
+# 1. CONFIGURACOES DO SERVIDOR RUSTDESK
+# ==========================================
+$rustDeskDownloadUrl = 'https://github.com/rustdesk/rustdesk/releases/download/1.3.1/rustdesk-1.3.1-x86_64.exe'
+$customRendezvousServer = 'rustdesk.trilinksoftware.com.br'
+$customServerKey = 'SUA_CHAVE_PUBLICA_AQUI'
+$rustDeskPassword = 'Trilink098'
+
+# ==========================================
+# 2. CONFIGURACAO DO HOST E PORTAL
+# ==========================================
+$portalBaseUrl = '${escapedPortalBaseUrl}'
+$installToken = '${escapedInstallToken}'
+$companyName = '${escapedCompanyName}'
+$hostName = '${escapedHostName}'
+$hostDescription = '${escapedDescription}'
+$environment = '${escapedEnvironment}'
+$agentVersion = 'rustdesk-oss-local'
+$machineName = $env:COMPUTERNAME
+$rustDeskId = '${escapedRustDeskId}'
+$aliasMaquina = "$machineName - ${escapedCompanyName}"
+
+# ==========================================
+# 3. CONFIGURACAO DE MULTI-SERVIDORES (EDITE SE NECESSARIO)
+# ==========================================
+$servidoresSyspro = @(
+    @{ Empresa = '${escapedCompanyName}'; Caminho = 'C:\\syspro\\sysptoserver.exe' }
+    # @{ Empresa = 'Empresa Y'; Caminho = 'D:\\syspro_clienteY\\sysptoserver.exe' }
+)
+
+function Normalize-RustDeskId {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
+    return (($Value -replace '\\s+', '').Trim())
+}
+
+function Find-RustDeskExecutable {
+    $paths = @(
+        'C:\\Program Files\\RustDesk\\rustdesk.exe',
+        'C:\\Program Files (x86)\\RustDesk\\rustdesk.exe'
+    )
+
+    foreach ($path in $paths) {
+        if (Test-Path $path) { return $path }
+    }
+
+    return $null
+}
+
+function Resolve-RustDeskId {
+    param([string]$FallbackValue)
+
+    $configPaths = @(
+        'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk.toml',
+        'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk2.toml',
+        "$env:APPDATA\\RustDesk\\config\\RustDesk.toml",
+        "$env:APPDATA\\RustDesk\\config\\RustDesk2.toml"
+    )
+
+    foreach ($configPath in $configPaths) {
+        if (Test-Path $configPath) {
+            $content = Get-Content $configPath -Raw
+            if ($content -match "id\\s*=\\s*'([^']+)'") {
+                return Normalize-RustDeskId -Value $matches[1]
+            }
+        }
+    }
+
+    return Normalize-RustDeskId -Value $FallbackValue
+}
+
+function Invoke-PortalJsonPost {
+    param(
+        [string]$Url,
+        [hashtable]$Body
+    )
+
+    Invoke-RestMethod -Method Post -Uri $Url -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Depth 6) -ErrorAction Stop
+}
+
+Write-Host "Empresa: $companyName"
+Write-Host "Host: $hostName"
+Write-Host "Descricao: $hostDescription"
+Write-Host "Senha padrao RustDesk: $rustDeskPassword"
+
+# ==========================================
+# 4. VERIFICACAO E INSTALACAO DO RUSTDESK
+# ==========================================
+$rustdeskExe = Find-RustDeskExecutable
+
+if (-not $rustdeskExe) {
+    Write-Host 'RustDesk nao encontrado. Fazendo download e instalacao silenciosa...' -ForegroundColor Cyan
+    $tempInstaller = "$env:TEMP\\rustdesk_installer.exe"
+
+    try {
+        Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing
+        Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden
+        Start-Sleep -Seconds 10
+        $rustdeskExe = Find-RustDeskExecutable
+    } catch {
+        Write-Host "Falha ao instalar RustDesk: $($_.Exception.Message)" -ForegroundColor Red
+        exit
+    }
+}
+
+if (-not $rustdeskExe) {
+    Write-Host 'RustDesk nao foi localizado apos a instalacao.' -ForegroundColor Red
+    exit
+}
+
+# ==========================================
+# 5. CONFIGURACAO DO RUSTDESK
+# ==========================================
+Write-Host 'Aplicando configuracoes do RustDesk...' -ForegroundColor Cyan
+
+try {
+    Start-Process -FilePath $rustdeskExe -ArgumentList "--password $rustDeskPassword" -Wait -WindowStyle Hidden
+
+    if (-not [string]::IsNullOrWhiteSpace($customRendezvousServer)) {
+        Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-rendezvous-server $customRendezvousServer" -Wait -WindowStyle Hidden
+    }
+
+    if ($customServerKey -and $customServerKey -ne 'SUA_CHAVE_PUBLICA_AQUI') {
+        Start-Process -FilePath $rustdeskExe -ArgumentList "--option key $customServerKey" -Wait -WindowStyle Hidden
+    } else {
+        Write-Host 'Chave publica do servidor RustDesk nao configurada no script. Ajuste $customServerKey se necessario.' -ForegroundColor Yellow
+    }
+
+    Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-alias \`"$aliasMaquina\`"" -Wait -WindowStyle Hidden
+    Start-Process -FilePath $rustdeskExe -ArgumentList "--option direct-access-port \`"\`"" -Wait -WindowStyle Hidden
+
+    Restart-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 5
+} catch {
+    Write-Host "Falha ao configurar RustDesk: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# ==========================================
+# 6. DESCOBERTA DO RUSTDESK ID E AUTO-REGISTRO
+# ==========================================
+$normalizedRustDeskId = Resolve-RustDeskId -FallbackValue $rustDeskId
+
+if ([string]::IsNullOrWhiteSpace($normalizedRustDeskId)) {
+    Write-Host 'Nao foi possivel descobrir o RustDesk ID automaticamente.' -ForegroundColor Yellow
+    $normalizedRustDeskId = Normalize-RustDeskId -Value (Read-Host 'Informe o RustDesk ID manualmente')
+}
+
+if ([string]::IsNullOrWhiteSpace($normalizedRustDeskId)) {
+    Write-Host 'RustDesk ID obrigatorio para registrar o agente.' -ForegroundColor Red
+    exit
+}
+
+$payloadRegister = @{
+    installToken = $installToken
+    rustdeskId = $normalizedRustDeskId
+    machineName = $machineName
+    agentVersion = $agentVersion
+    environment = $environment
+}
+
+Write-Host 'Registrando agente no portal...' -ForegroundColor Cyan
+
+try {
+    Invoke-PortalJsonPost -Url "$portalBaseUrl/api/remote/agents/register" -Body $payloadRegister
+    Write-Host 'Registro concluido com sucesso.' -ForegroundColor Green
+} catch {
+    Write-Host "Falha ao registrar o agente: $($_.Exception.Message)" -ForegroundColor Red
+    exit
+}
+
+# ==========================================
+# 7. HEARTBEAT CONTINUO
+# ==========================================
+$taskName = 'Trilink_RemoteAgent_Heartbeat'
+$agentDir = 'C:\\Trilink\\Agent'
+$heartbeatScriptPath = "$agentDir\\heartbeat.ps1"
+$servidoresJson = $servidoresSyspro | ConvertTo-Json -Compress -Depth 5
+
+try {
+    if (-not (Test-Path $agentDir)) {
+        New-Item -ItemType Directory -Path $agentDir -Force | Out-Null
+    }
+
+    $heartbeatScriptContent = @"
+\$portalBaseUrl = '${escapedPortalBaseUrl}'
+\$installToken = '${escapedInstallToken}'
+\$machineName = '$machineName'
+\$agentVersion = '$agentVersion'
+\$rustDeskIdFallback = '$normalizedRustDeskId'
+\$listaServidores = ConvertFrom-Json @'
+$servidoresJson
+'@
+
+function Normalize-RustDeskId {
+    param([string]\$Value)
+    if ([string]::IsNullOrWhiteSpace(\$Value)) { return \$null }
+    return ((\$Value -replace '\s+', '').Trim())
+}
+
+function Resolve-RustDeskId {
+    param([string]\$FallbackValue)
+
+    \$configPaths = @(
+        'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk.toml',
+        'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk2.toml',
+        "\$env:APPDATA\\RustDesk\\config\\RustDesk.toml",
+        "\$env:APPDATA\\RustDesk\\config\\RustDesk2.toml"
+    )
+
+    foreach (\$configPath in \$configPaths) {
+        if (Test-Path \$configPath) {
+            \$content = Get-Content \$configPath -Raw
+            if (\$content -match "id\s*=\s*'([^']+)'") {
+                return Normalize-RustDeskId -Value \$matches[1]
+            }
+        }
+    }
+
+    return Normalize-RustDeskId -Value \$FallbackValue
+}
+
+\$normalizedRustDeskId = Resolve-RustDeskId -FallbackValue \$rustDeskIdFallback
+\$serviceStatus = 'not_found'
+\$svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
+if (\$svc) {
+    if (\$svc.Status -ne 'Running') {
+        try {
+            Start-Service -Name 'RustDesk' -ErrorAction Stop
+            \$serviceStatus = 'restarted_by_agent'
+        } catch {
+            \$serviceStatus = \$svc.Status.ToString().ToLower()
+        }
+    } else {
+        \$serviceStatus = 'running'
+    }
+}
+\$resultadosUpdates = @()
+
+foreach (\$srv in \$listaServidores) {
+    \$dataAtualizacao = \$null
+    if (Test-Path \$srv.Caminho) {
+        \$dataAtualizacao = (Get-Item \$srv.Caminho).LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')
+    }
+
+    \$resultadosUpdates += @{
+        empresa = \$srv.Empresa
+        caminho = \$srv.Caminho
+        ultimaAtualizacao = \$dataAtualizacao
+    }
+}
+
+\$payloadHeartbeat = @{
+    installToken = \$installToken
+    rustdeskId = \$normalizedRustDeskId
+    machineName = \$machineName
+    agentVersion = \$agentVersion
+    serviceStatus = \$serviceStatus
+    sysproUpdates = \$resultadosUpdates
+}
+
+try {
+    Invoke-RestMethod -Method Post -Uri "\$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body (\$payloadHeartbeat | ConvertTo-Json -Depth 6) -ErrorAction Stop
+} catch {
+    \$errorMsg = "[\$((Get-Date).ToString('s'))] Erro no heartbeat: \$($_.Exception.Message)"
+    Out-File -FilePath "C:\\Trilink\\Agent\\heartbeat_error.log" -InputObject \$errorMsg -Append -Encoding utf8
+}
+"@
+
+    Set-Content -Path $heartbeatScriptPath -Value $heartbeatScriptContent -Force -Encoding UTF8
+
+    if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
+        Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+    }
+
+    $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File \`"$heartbeatScriptPath\`""
+    $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+    $principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\\SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd
+
+    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+
+    Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File \`"$heartbeatScriptPath\`"" -WindowStyle Hidden
+    Write-Host 'Heartbeat continuo configurado com sucesso.' -ForegroundColor Green
+} catch {
+    Write-Host "Falha ao configurar heartbeat continuo: $($_.Exception.Message)" -ForegroundColor Red
+    exit
+}
+
+Write-Host '========================================================='
+Write-Host 'Instalacao e configuracao do agente Trilink concluidas.' -ForegroundColor Green
+Write-Host '========================================================='
+`;
 }
 
 export async function GET(
