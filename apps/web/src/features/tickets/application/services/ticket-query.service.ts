@@ -123,7 +123,6 @@ export async function queryTicketsForViewer(
 
     return {
       success: true,
-      error: "Exibindo cache local por indisponibilidade do Zammad.",
       data: formatCachedTickets(cached.rows),
       pagination: buildPagination(page, pageSize, cached.total, cached.rows.length),
       staleWarning: buildCacheFallbackWarning(cacheFreshness),
