@@ -216,7 +216,7 @@ export function CreateCompanyPageForm({
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
 
   const form = useForm<CreateCompanyInput>({
-    resolver: zodResolver(createCompanySchema) as any,
+    resolver: zodResolver(createCompanySchema, undefined, { raw: true }),
     defaultValues: {
       cnpj: "",
       razaoSocial: "",

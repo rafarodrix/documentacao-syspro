@@ -64,7 +64,7 @@ Ordem recomendada:
 
 ### Estabilizacao e contratos
 
-- [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes. Recortes em `auth`, `documentos`, `user-access`, `company`, `tickets`, `contracts`, `settings`, `site` e parte das ferramentas legadas ja aplicados com contratos discriminados, hooks tipados e remocao dos `as any` mais criticos; no recorte atual de `components + features`, o unico `as any` residual relevante esta em `CreateCompanyPageForm`, por causa do ajuste fino ainda pendente entre `zodResolver` e os generics transformados do `react-hook-form`. Depois disso, faltara apenas revisar ferramentas legadas fora do fluxo principal.
+- [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes. Recortes em `auth`, `documentos`, `user-access`, `company`, `tickets`, `contracts`, `settings`, `site` e fluxo principal de `components + features` ja estao aplicados com contratos discriminados, hooks tipados e remocao dos `as any` mais criticos; o que resta agora e revisar ferramentas legadas fora do fluxo principal e confirmar o fechamento do item com build/typecheck limpos no ambiente.
 - [ ] `INFRA-023` [Alta] Pipeline CI com `lint`, `typecheck`, `test` e `build` por PR.
 - [ ] `INFRA-024` [Alta] Verificacao de contrato/schema em PR, cobrindo Prisma, contratos compartilhados e surfaces criticas do app.
 - [ ] `INFRA-025` [Alta] Logs estruturados e `correlationId` para rotas criticas, integracoes e jobs.
