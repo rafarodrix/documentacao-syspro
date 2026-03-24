@@ -89,14 +89,30 @@ type RemoveUserInput = {
     headers: Awaited<ReturnType<typeof headers>>;
 };
 
+type CreateAuthUserInput = {
+    body: {
+        email: string;
+        password: string;
+        name: string;
+        role?: string;
+        data?: Record<string, unknown>;
+    };
+    headers: Awaited<ReturnType<typeof headers>>;
+};
+
 type AdminApiShape = {
+    createUser: (input: CreateAuthUserInput) => Promise<{ user?: { id: string } } | null | undefined>;
     removeUser: (input: RemoveUserInput) => Promise<unknown>;
 };
 
 function getAdminApi(): AdminApiShape | null {
-    const candidate = auth.api.removeUser;
-    if (typeof candidate !== "function") return null;
-    return { removeUser: candidate as AdminApiShape["removeUser"] };
+    const createCandidate = auth.api.createUser;
+    const removeCandidate = auth.api.removeUser;
+    if (typeof createCandidate !== "function" || typeof removeCandidate !== "function") return null;
+    return {
+        createUser: createCandidate as AdminApiShape["createUser"],
+        removeUser: removeCandidate as AdminApiShape["removeUser"],
+    };
 }
 
 function toValidationErrors(
@@ -228,17 +244,18 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
     if (!adminApi) {
         return {
             success: false,
-            message: "Configuracao incompleta do auth: plugin admin.removeUser indisponivel.",
+            message: "Configuracao incompleta do auth: plugin admin.createUser/removeUser indisponivel.",
         };
     }
 
     try {
-        // 1. Registro no Auth
-        const authResponse = await auth.api.signUpEmail({
+        // 1. Registro administrativo no Auth para nao depender do signup publico.
+        const authResponse = await adminApi.createUser({
             body: {
                 email: validation.data.email,
                 password: validation.data.password || data.password || "",
                 name: validation.data.name,
+                role: "user",
             },
             headers: await headers()
         });
