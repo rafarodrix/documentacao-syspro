@@ -5,6 +5,7 @@ import { handleZammadRemoteWebhook } from "@/features/remote/application/zammad-
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { isValidHmacSignature } from "@/lib/security/request-auth";
+import { createRequestLogger } from "@/lib/observability/logger";
 
 function isAuthorized(request: Request, rawBody: string): boolean {
   const hmacSecret = process.env.ZAMMAD_WEBHOOK_HMAC_SECRET ?? process.env.ZAMMAD_WEBHOOK_SECRET;
@@ -32,9 +33,14 @@ function extractTicketFromPayload(payload: unknown): unknown {
 }
 
 export async function POST(request: Request) {
+  const { logger, responseHeaders } = createRequestLogger(request, {
+    area: "api",
+    feature: "zammad-webhook",
+  });
   const rawBody = await request.text();
   if (!isAuthorized(request, rawBody)) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    logger.warn("zammad.webhook.unauthorized");
+    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401, headers: responseHeaders });
   }
 
   try {
@@ -65,9 +71,14 @@ export async function POST(request: Request) {
     revalidateTag("tickets-list");
     revalidateTag("tickets-dashboard");
     revalidateTag("remote-platform");
-    return NextResponse.json({ success: true, remote: remoteResult });
+    logger.info("zammad.webhook.processed", {
+      eventType,
+      ticketNumber: parsed.success ? parsed.data.number : null,
+      remoteResult,
+    });
+    return NextResponse.json({ success: true, remote: remoteResult }, { headers: responseHeaders });
   } catch (error) {
-    console.error("zammad webhook error:", error);
-    return NextResponse.json({ success: false, error: "Erro ao processar webhook." }, { status: 500 });
+    logger.error("zammad.webhook.failed", error);
+    return NextResponse.json({ success: false, error: "Erro ao processar webhook." }, { status: 500, headers: responseHeaders });
   }
 }

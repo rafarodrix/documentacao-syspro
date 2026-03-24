@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { analyzeSefazResponse, buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
 import { SETTING_KEYS } from "@dosc-syspro/contracts";
 import { sefazRoutesSchema } from "@dosc-syspro/contracts";
+import { createLogger } from "@/lib/observability/logger";
 
 type SefazCheckResult = {
     uf: string;
@@ -11,6 +12,16 @@ type SefazCheckResult = {
 };
 
 export class SefazService {
+    private readonly logger;
+
+    constructor(correlationId?: string) {
+        this.logger = createLogger({
+            area: "service",
+            feature: "sefaz",
+            correlationId: correlationId ?? null,
+        });
+    }
+
     private async loadConfiguredEndpoints() {
         const setting = await prisma.systemSetting.findUnique({
             where: { key: SETTING_KEYS.SEFAZ_ROUTES },
@@ -27,13 +38,13 @@ export class SefazService {
             if (!validation.success) throw new Error("Rotas SEFAZ invalidas.");
             return validation.data.filter((route) => route.active);
         } catch (error) {
-            console.error("Erro ao ler rotas SEFAZ configuradas, usando padrao:", error);
+            this.logger.error("sefaz.routes.load_failed", error);
             return buildDefaultSefazRoutes();
         }
     }
 
     async runFullCheck() {
-        console.log("Iniciando monitoramento nacional SEFAZ...");
+        this.logger.info("sefaz.check.started");
         const endpoints = await this.loadConfiguredEndpoints();
 
         const results = await Promise.allSettled(
@@ -77,6 +88,11 @@ export class SefazService {
                 data: dataToSave,
             });
         }
+
+        this.logger.info("sefaz.check.finished", {
+            checkedRoutes: endpoints.length,
+            persistedResults: dataToSave.length,
+        });
 
         return { count: dataToSave.length };
     }

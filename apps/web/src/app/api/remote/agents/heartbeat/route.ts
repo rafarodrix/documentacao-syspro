@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import { createRequestLogger } from "@/lib/observability/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,10 @@ function normalizeRustdeskId(value?: string | null) {
 }
 
 export async function POST(request: Request) {
+  const { logger, responseHeaders } = createRequestLogger(request, {
+    area: "api",
+    feature: "remote-agent-heartbeat",
+  });
   const ip = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for");
   const rateLimit = consumeActionRateLimit({
     action: "remote-agent-heartbeat",
@@ -19,9 +24,18 @@ export async function POST(request: Request) {
     windowMs: 60_000,
   });
   if (!rateLimit.allowed) {
+    logger.warn("remote.agent.heartbeat.rate_limited", {
+      retryAfterSeconds: rateLimit.retryAfterSeconds,
+    });
     return NextResponse.json(
       { success: false, error: "Rate limit excedido para heartbeat do agente." },
-      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+      {
+        status: 429,
+        headers: {
+          ...responseHeaders,
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+        },
+      }
     );
   }
 
@@ -34,7 +48,8 @@ export async function POST(request: Request) {
 
   const installToken = body.installToken?.trim();
   if (!installToken) {
-    return NextResponse.json({ success: false, error: "installToken e obrigatorio." }, { status: 400 });
+    logger.warn("remote.agent.heartbeat.missing_install_token");
+    return NextResponse.json({ success: false, error: "installToken e obrigatorio." }, { status: 400, headers: responseHeaders });
   }
 
   const host = await prisma.remoteHost.findFirst({
@@ -43,7 +58,8 @@ export async function POST(request: Request) {
   });
 
   if (!host) {
-    return NextResponse.json({ success: false, error: "Token de instalacao invalido." }, { status: 404 });
+    logger.warn("remote.agent.heartbeat.invalid_install_token");
+    return NextResponse.json({ success: false, error: "Token de instalacao invalido." }, { status: 404, headers: responseHeaders });
   }
 
   const updated = await prisma.remoteHost.update({
@@ -65,5 +81,10 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ success: true, data: updated });
+  logger.info("remote.agent.heartbeat.succeeded", {
+    hostId: updated.id,
+    machineName: updated.machineName,
+  });
+
+  return NextResponse.json({ success: true, data: updated }, { headers: responseHeaders });
 }

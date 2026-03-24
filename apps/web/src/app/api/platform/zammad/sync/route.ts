@@ -4,6 +4,7 @@ import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad
 import { upsertOperationalTicketsToCache } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { prisma } from "@/lib/prisma";
 import { isValidSecretToken } from "@/lib/security/request-auth";
+import { createRequestLogger } from "@/lib/observability/logger";
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.ZAMMAD_SYNC_SECRET;
@@ -16,8 +17,13 @@ function isAuthorized(request: Request): boolean {
 }
 
 export async function POST(request: Request) {
+  const { logger, responseHeaders } = createRequestLogger(request, {
+    area: "api",
+    feature: "zammad-sync",
+  });
   if (!isAuthorized(request)) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    logger.warn("zammad.sync.unauthorized");
+    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401, headers: responseHeaders });
   }
 
   try {
@@ -53,10 +59,16 @@ export async function POST(request: Request) {
     revalidateTag("tickets-list");
     revalidateTag("tickets-dashboard");
 
-    return NextResponse.json({ success: true, synced: collected.length });
+    logger.info("zammad.sync.succeeded", {
+      synced: collected.length,
+      pages,
+      perPage,
+    });
+
+    return NextResponse.json({ success: true, synced: collected.length }, { headers: responseHeaders });
   } catch (error) {
-    console.error("zammad sync worker error:", error);
-    return NextResponse.json({ success: false, error: "Erro no sync incremental." }, { status: 500 });
+    logger.error("zammad.sync.failed", error);
+    return NextResponse.json({ success: false, error: "Erro no sync incremental." }, { status: 500, headers: responseHeaders });
   }
 }
 

@@ -67,7 +67,7 @@ Ordem recomendada:
 - [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes. Recortes em `auth`, `documentos`, `user-access`, `company`, `tickets`, `contracts`, `settings`, `site` e fluxo principal de `components + features` ja estao aplicados com contratos discriminados, hooks tipados e remocao dos `as any` mais criticos; o residuo relevante agora ficou concentrado no parser legado de DANFE em `app/api/visualizar-danfe/route.ts`, que ainda usa `any` extensivamente e precisa de um recorte proprio antes de o item ser marcado como concluido.
 - [x] `INFRA-023` [Alta] Pipeline CI com `lint`, `typecheck`, `test` e `build` por PR. O workflow em `.github/workflows/ci.yml` agora executa `check:utf8`, `docs:check`, `lint`, `typecheck` do `web`, `app-api` e `app-mobile`, bateria de testes do `web` e etapa separada de `build` para `web`, `app-api` e `app-mobile`.
 - [x] `INFRA-024` [Alta] Verificacao de contrato/schema em PR, cobrindo Prisma, contratos compartilhados e surfaces criticas do app. O CI agora valida `prisma/schema.prisma`, executa `prisma generate` como smoke check e roda `typecheck` dedicado de `packages/contracts` antes das etapas de build.
-- [ ] `INFRA-025` [Alta] Logs estruturados e `correlationId` para rotas criticas, integracoes e jobs.
+- [x] `INFRA-025` [Alta] Logs estruturados e `correlationId` para rotas criticas, integracoes e jobs. O app agora tem logger estruturado compartilhado em `src/lib/observability/logger.ts`, com `correlationId` extraido ou gerado por request e propagado em `x-correlation-id`; o padrao ja foi aplicado nas rotas criticas de `remote` (registro, heartbeat, listagem/criacao/inicio/encerramento de sessao), nas integracoes de `Zammad` (webhook e sync), na verificacao `SEFAZ` e no job de `tax sync chunk`.
 - [ ] `INFRA-026` [Media] Metricas minimas por rota critica, jobs e integracoes externas.
 - [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs.
 
@@ -121,9 +121,7 @@ Ordem recomendada:
 
 1. `INFRA-022C`
    confirmar fechamento no ambiente e encerrar a varredura residual
-2. `INFRA-025`
-   logs estruturados com `correlationId`
-3. `INFRA-027`
+2. `INFRA-027`
    E2E dos fluxos criticos do portal e docs
 
 ### Sprint 3 - Experiencia operacional e backup

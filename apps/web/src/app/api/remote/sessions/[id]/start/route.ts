@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { buildStartedSessionExpiresAt } from "@/features/remote/application/session-policy";
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+import { createRequestLogger } from "@/lib/observability/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,15 @@ function buildStartNote(input: {
   ].join("");
 }
 
-export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { logger, responseHeaders } = createRequestLogger(request, {
+    area: "api",
+    feature: "remote-session-start",
+  });
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    logger.warn("remote.sessions.start.unauthorized");
+    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401, headers: responseHeaders });
   }
 
   const { id } = await context.params;
@@ -45,17 +51,26 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   });
 
   if (!remoteSession) {
-    return NextResponse.json({ success: false, error: "Sessao nao encontrada." }, { status: 404 });
+    logger.warn("remote.sessions.start.not_found", { sessionId: id });
+    return NextResponse.json({ success: false, error: "Sessao nao encontrada." }, { status: 404, headers: responseHeaders });
   }
 
   if (remoteSession.status !== "REQUESTED") {
-    return NextResponse.json({ success: false, error: "Apenas sessoes REQUESTED podem ser iniciadas." }, { status: 409 });
+    logger.warn("remote.sessions.start.invalid_status", {
+      sessionId: id,
+      status: remoteSession.status,
+    });
+    return NextResponse.json({ success: false, error: "Apenas sessoes REQUESTED podem ser iniciadas." }, { status: 409, headers: responseHeaders });
   }
 
   if (remoteSession.host.status === "ACTIVE" && !remoteSession.host.agentExternalId) {
+    logger.warn("remote.sessions.start.host_misconfigured", {
+      sessionId: id,
+      hostId: remoteSession.host.id,
+    });
     return NextResponse.json(
       { success: false, error: "Host ativo sem ID RustDesk configurado." },
-      { status: 409 }
+      { status: 409, headers: responseHeaders }
     );
   }
 
@@ -69,13 +84,18 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   });
 
   if (existingStartedSession) {
+    logger.warn("remote.sessions.start.concurrent_blocked", {
+      sessionId: id,
+      hostId: remoteSession.host.id,
+      existingSessionId: existingStartedSession.id,
+    });
     return NextResponse.json(
       {
         success: false,
         error: "Ja existe sessao iniciada para este host.",
         data: existingStartedSession,
       },
-      { status: 409 }
+      { status: 409, headers: responseHeaders }
     );
   }
 
@@ -102,9 +122,20 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         })
       );
     } catch (error) {
-      console.error("Falha ao registrar nota interna no Zammad ao iniciar sessao remota:", error);
+      logger.error("remote.sessions.start.zammad_note_failed", error, {
+        sessionId: updated.id,
+        ticketId: remoteSession.ticketId,
+      });
     }
   }
 
-  return NextResponse.json({ success: true, data: updated });
+  logger.info("remote.sessions.start.succeeded", {
+    sessionId: updated.id,
+    actorUserId: session.userId,
+    hostId: remoteSession.host.id,
+    ticketId: remoteSession.ticketId,
+    ticketNumber: remoteSession.ticketNumber,
+  });
+
+  return NextResponse.json({ success: true, data: updated }, { headers: responseHeaders });
 }

@@ -10,6 +10,7 @@ import {
   saveTaxNcmBatch,
 } from "@/features/tax/application/actions";
 import type { TaxActionResponse, TaxSyncChunkRequest, TaxSyncMode } from "@/features/tax/domain/model";
+import { createRequestLogger } from "@/lib/observability/logger";
 
 function isSyncMode(value: unknown): value is TaxSyncMode {
   return value === "classTrib" || value === "anexos" || value === "credPresumido" || value === "ncm";
@@ -24,28 +25,40 @@ function getCounterValue(
 }
 
 export async function POST(request: Request) {
+  const { logger, responseHeaders } = createRequestLogger(request, {
+    area: "api",
+    feature: "tax-sync-chunk",
+  });
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autenticado." }, { status: 401 });
+    logger.warn("tax.sync_chunk.unauthorized");
+    return NextResponse.json({ success: false, error: "Nao autenticado." }, { status: 401, headers: responseHeaders });
   }
 
   if (session.role !== Role.ADMIN) {
-    return NextResponse.json({ success: false, error: "Sem permissao para sincronizar dados fiscais." }, { status: 403 });
+    logger.warn("tax.sync_chunk.forbidden", {
+      actorUserId: session.userId,
+      actorRole: session.role,
+    });
+    return NextResponse.json({ success: false, error: "Sem permissao para sincronizar dados fiscais." }, { status: 403, headers: responseHeaders });
   }
 
   let body: TaxSyncChunkRequest;
   try {
     body = (await request.json()) as TaxSyncChunkRequest;
   } catch {
-    return NextResponse.json({ success: false, error: "Payload invalido." }, { status: 400 });
+    logger.warn("tax.sync_chunk.invalid_payload");
+    return NextResponse.json({ success: false, error: "Payload invalido." }, { status: 400, headers: responseHeaders });
   }
 
   if (!isSyncMode(body.mode)) {
-    return NextResponse.json({ success: false, error: "Modo de sincronizacao invalido." }, { status: 400 });
+    logger.warn("tax.sync_chunk.invalid_mode", { mode: body.mode });
+    return NextResponse.json({ success: false, error: "Modo de sincronizacao invalido." }, { status: 400, headers: responseHeaders });
   }
 
   if (!Array.isArray(body.chunk) || body.chunk.length === 0) {
-    return NextResponse.json({ success: false, error: "Chunk vazio." }, { status: 400 });
+    logger.warn("tax.sync_chunk.empty_chunk", { mode: body.mode });
+    return NextResponse.json({ success: false, error: "Chunk vazio." }, { status: 400, headers: responseHeaders });
   }
 
   const chunkIndex = typeof body.chunkIndex === "number" ? body.chunkIndex : 0;
@@ -92,6 +105,12 @@ export async function POST(request: Request) {
             });
 
   if (!result.success) {
+    logger.error("tax.sync_chunk.failed", result.error, {
+      jobId,
+      mode: body.mode,
+      chunkIndex,
+      chunkSize: body.chunk.length,
+    });
     if (jobId) {
       await prisma.taxSyncJob.update({
         where: { id: jobId },
@@ -103,7 +122,7 @@ export async function POST(request: Request) {
         },
       });
     }
-    return NextResponse.json(result, { status: 500 });
+    return NextResponse.json(result, { status: 500, headers: responseHeaders });
   }
 
   const insertedCount = getCounterValue(result, "inserted");
@@ -139,8 +158,24 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({
-    ...result,
+  logger.info("tax.sync_chunk.succeeded", {
     jobId,
+    mode: body.mode,
+    chunkIndex,
+    totalChunks,
+    chunkSize: body.chunk.length,
+    insertedCount,
+    updatedCount,
+    unchangedCount,
+    failedCount,
+    isLastChunk,
   });
+
+  return NextResponse.json(
+    {
+      ...result,
+      jobId,
+    },
+    { headers: responseHeaders }
+  );
 }
