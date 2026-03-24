@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Role } from "@prisma/client";
 
 const getProtectedSessionMock = vi.fn();
@@ -64,11 +64,11 @@ describe("authorization integration: user actions hardening", () => {
     const result = await deleteUserAction("target-user");
 
     expect(result.success).toBe(false);
-    expect(result.message?.toLowerCase()).toContain("não pode remover");
+    expect(result.message?.toLowerCase()).toContain("n\u00E3o pode remover");
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
-  it("bloqueia vínculo de usuário interno por CLIENTE_ADMIN", async () => {
+  it("bloqueia vinculo de usuario interno por CLIENTE_ADMIN", async () => {
     getProtectedSessionMock.mockResolvedValue({
       role: Role.CLIENTE_ADMIN,
       userId: "manager-1",
@@ -90,9 +90,26 @@ describe("authorization integration: user actions hardening", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.message?.toLowerCase()).toContain("não é permitido vincular usuário interno");
+    expect(result.message?.toLowerCase()).toContain("n\u00E3o \u00E9 permitido vincular usu\u00E1rio interno");
     expect(prismaMock.membership.upsert).not.toHaveBeenCalled();
   });
+
+  it("permite deleteUserAction para role interna", async () => {
+    getProtectedSessionMock.mockResolvedValue({
+      role: Role.ADMIN,
+      userId: "admin-1",
+      email: "admin@syspro.com",
+    });
+
+    prismaMock.user.update.mockResolvedValue({ id: "target-user" });
+
+    const { deleteUserAction } = await import("@/features/user-access/application/actions");
+    const result = await deleteUserAction("target-user");
+
+    expect(result.success).toBe(true);
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: "target-user" },
+      data: expect.objectContaining({ isActive: false }),
+    });
+  });
 });
-
-
