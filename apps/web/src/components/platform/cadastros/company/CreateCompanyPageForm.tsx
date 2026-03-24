@@ -5,7 +5,14 @@ import type { ElementType } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
+import {
+  CompanyContactSource,
+  CompanyContactStatus,
+  CompanySegment,
+  CompanyStatus,
+  IndicadorIE,
+  TaxRegime,
+} from "@prisma/client";
 import {
   createCompanySchema,
   type CreateCompanyInput,
@@ -35,6 +42,7 @@ import { toast } from "sonner";
 import {
   AlertCircle,
   ArrowLeft,
+  BadgeHelp,
   Building2,
   ChevronRight,
   ExternalLink,
@@ -50,6 +58,24 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
+
+const CONTACT_SOURCE_LABEL: Record<CompanyContactSource, string> = {
+  MANUAL: "Manual",
+  WHATSAPP: "WhatsApp",
+  IMPORT: "Importado",
+};
+
+const CONTACT_STATUS_LABEL: Record<CompanyContactStatus, string> = {
+  PENDING_LINK: "Pendente de vinculo",
+  LINKED: "Vinculado",
+  ARCHIVED: "Arquivado",
+};
+
+const CONTACT_STATUS_BADGE: Record<CompanyContactStatus, string> = {
+  PENDING_LINK: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  LINKED: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  ARCHIVED: "border-zinc-500/20 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300",
+};
 
 interface CreateCompanyPageFormProps {
   backHref: string;
@@ -160,6 +186,8 @@ export function CreateCompanyPageForm({
           whatsapp: item.whatsapp?.trim() || "",
           notes: item.notes?.trim() || "",
           isPrimary: item.isPrimary ?? false,
+          source: item.source ?? CompanyContactSource.MANUAL,
+          status: item.status ?? CompanyContactStatus.LINKED,
         }))
         .filter((item) => item.name.length > 0),
     [initialContacts],
@@ -171,6 +199,8 @@ export function CreateCompanyPageForm({
     phone: "",
     whatsapp: "",
     notes: "",
+    source: CompanyContactSource.MANUAL,
+    status: CompanyContactStatus.LINKED,
   });
   const [isImportingCnpj, setIsImportingCnpj] = useState(false);
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -303,6 +333,8 @@ export function CreateCompanyPageForm({
       whatsapp: contact.whatsapp.trim() || undefined,
       notes: contact.notes.trim() || undefined,
       isPrimary: index === 0 ? true : contact.isPrimary,
+      source: contact.source,
+      status: contact.status,
     }));
 
     const result =
@@ -368,6 +400,8 @@ export function CreateCompanyPageForm({
       whatsapp: contactDraft.whatsapp.trim(),
       notes: contactDraft.notes.trim(),
       isPrimary: contacts.length === 0,
+      source: contactDraft.source,
+      status: contactDraft.status,
     };
 
     if (!nextContact.name) {
@@ -381,7 +415,15 @@ export function CreateCompanyPageForm({
     }
 
     setContacts((prev) => [...prev, nextContact]);
-    setContactDraft({ name: "", email: "", phone: "", whatsapp: "", notes: "" });
+    setContactDraft({
+      name: "",
+      email: "",
+      phone: "",
+      whatsapp: "",
+      notes: "",
+      source: CompanyContactSource.MANUAL,
+      status: CompanyContactStatus.LINKED,
+    });
   }
 
   return (
@@ -642,9 +684,15 @@ export function CreateCompanyPageForm({
                         <div>
                           <p className="text-sm font-medium">Contatos da empresa</p>
                           <p className="text-xs text-muted-foreground">
-                            Esses contatos sao operacionais. Nao recebem acesso ao portal automaticamente.
+                            Esses contatos sao operacionais e servem como base para atendimento por conversa. Nao recebem acesso ao portal automaticamente.
                           </p>
                         </div>
+                      </div>
+                      <div className="flex items-start gap-2 rounded-md border border-primary/15 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+                        <BadgeHelp className="mt-0.5 h-3.5 w-3.5 text-primary" />
+                        <p>
+                          `User` e autenticavel. `Contato` e identidade operacional de conversa. Quando um contato precisar entrar na plataforma, ele podera ser promovido depois para usuario.
+                        </p>
                       </div>
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                         <Input
@@ -672,6 +720,36 @@ export function CreateCompanyPageForm({
                             setContactDraft((prev) => ({ ...prev, whatsapp: formatPhone(event.target.value) }))
                           }
                         />
+                        <Select
+                          value={contactDraft.source}
+                          onValueChange={(value) =>
+                            setContactDraft((prev) => ({ ...prev, source: value as CompanyContactSource }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Origem do contato" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={CompanyContactSource.MANUAL}>Manual</SelectItem>
+                            <SelectItem value={CompanyContactSource.WHATSAPP}>WhatsApp</SelectItem>
+                            <SelectItem value={CompanyContactSource.IMPORT}>Importado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={contactDraft.status}
+                          onValueChange={(value) =>
+                            setContactDraft((prev) => ({ ...prev, status: value as CompanyContactStatus }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Status do contato" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={CompanyContactStatus.LINKED}>Vinculado</SelectItem>
+                            <SelectItem value={CompanyContactStatus.PENDING_LINK}>Pendente de vinculo</SelectItem>
+                            <SelectItem value={CompanyContactStatus.ARCHIVED}>Arquivado</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <Textarea
                         rows={2}
@@ -695,6 +773,12 @@ export function CreateCompanyPageForm({
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium">{contact.name}</span>
                                     {index === 0 ? <Badge variant="outline">Principal</Badge> : null}
+                                    <Badge variant="outline" className={cn("border-border/60 bg-background/70", CONTACT_STATUS_BADGE[contact.status])}>
+                                      {CONTACT_STATUS_LABEL[contact.status]}
+                                    </Badge>
+                                    <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
+                                      {CONTACT_SOURCE_LABEL[contact.source]}
+                                    </Badge>
                                   </div>
                                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                     {contact.email ? <span>{contact.email}</span> : null}
@@ -720,6 +804,28 @@ export function CreateCompanyPageForm({
                                       Tornar principal
                                     </Button>
                                   ) : null}
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      setContacts((prev) =>
+                                        prev.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? {
+                                                ...item,
+                                                status:
+                                                  item.status === CompanyContactStatus.ARCHIVED
+                                                    ? CompanyContactStatus.LINKED
+                                                    : CompanyContactStatus.ARCHIVED,
+                                              }
+                                            : item,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    {contact.status === CompanyContactStatus.ARCHIVED ? "Reativar" : "Arquivar"}
+                                  </Button>
                                   <Button
                                     type="button"
                                     size="sm"

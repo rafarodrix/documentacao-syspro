@@ -41,9 +41,11 @@ export default function GeneralSettingsForm() {
         async function load() {
             try {
                 const result = await getSettingsAction();
-                if (isMounted && result.success) {
+                if (!isMounted) return;
+
+                if (result.success) {
                     form.reset(result.data);
-                } else if (isMounted) {
+                } else {
                     toast.error(result.error);
                 }
             } catch (error) {
