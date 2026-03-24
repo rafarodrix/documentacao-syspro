@@ -33,5 +33,7 @@ export const updateContractSchema = createContractSchema.safeExtend({
   id: z.string().min(1, "ID do contrato obrigatorio."),
 });
 
-export type CreateContractInput = z.infer<typeof createContractSchema>;
-export type UpdateContractInput = z.infer<typeof updateContractSchema>;
+export type CreateContractInput = z.input<typeof createContractSchema>;
+export type CreateContractOutput = z.output<typeof createContractSchema>;
+export type UpdateContractInput = z.input<typeof updateContractSchema>;
+export type UpdateContractOutput = z.output<typeof updateContractSchema>;

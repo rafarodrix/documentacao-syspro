@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createContractSchema, CreateContractInput } from "@/features/contracts/application/contract-schema";
+import {
+    createContractSchema,
+    CreateContractInput,
+    CreateContractOutput,
+} from "@/features/contracts/application/contract-schema";
 import { createContractAction } from "@/features/contracts/application/actions";
 import { getSystemParamsAction } from "@/features/contracts/application/queries";
 import type { ContractCompanyOption } from "@/features/contracts/domain/model";
@@ -52,8 +56,8 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
     const [calcMode, setCalcMode] = useState<"PERCENT" | "VALUE">("PERCENT");
     const [negotiatedValueInput, setNegotiatedValueInput] = useState("0");
 
-    const form = useForm<CreateContractInput>({
-        resolver: zodResolver(createContractSchema, undefined, { raw: true }),
+    const form = useForm<CreateContractInput, undefined, CreateContractOutput>({
+        resolver: zodResolver(createContractSchema),
         defaultValues,
     });
 
@@ -98,7 +102,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
         form.setValue("contractNumber", selectedCompany.cnpj, { shouldDirty: true, shouldValidate: true });
     }, [selectedCompany, form]);
 
-    const onSubmit: SubmitHandler<CreateContractInput> = async (data) => {
+    const onSubmit: SubmitHandler<CreateContractOutput> = async (data) => {
         startTransition(async () => {
             const result = await createContractAction(data);
             if (result.success) {

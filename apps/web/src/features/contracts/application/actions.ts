@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import {
   createContractSchema,
   updateContractSchema,
-  CreateContractInput,
-  UpdateContractInput,
+  CreateContractOutput,
+  UpdateContractOutput,
   DEFAULT_CONTRACT_TAX_RATE,
 } from "@/features/contracts/application/contract-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
@@ -24,7 +24,7 @@ const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 const BATCH_CHUNK_SIZE = 50;
 const BATCH_CHUNK_MAX_RETRIES = 3;
 
-export async function createContractAction(data: CreateContractInput): Promise<ContractActionResponse> {
+export async function createContractAction(data: CreateContractOutput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
 
   if (!session || !WRITE_ROLES.includes(session.role)) {
@@ -95,7 +95,7 @@ export async function createContractAction(data: CreateContractInput): Promise<C
   }
 }
 
-export async function updateContractAction(data: UpdateContractInput): Promise<ContractActionResponse> {
+export async function updateContractAction(data: UpdateContractOutput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };
