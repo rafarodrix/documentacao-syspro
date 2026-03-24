@@ -498,8 +498,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                     key={item.id}
                     className="rounded-2xl border border-border/50 bg-linear-to-r from-background via-background to-muted/20 p-5 shadow-sm transition-colors hover:border-primary/20"
                   >
-                    <div className="grid gap-5 xl:grid-cols-[1.2fr_0.9fr_0.8fr]">
-                      <div className="space-y-4">
+                    <div className="grid gap-5 xl:grid-cols-[1.35fr_1fr_0.82fr]">
+                      <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className={heartbeat.className}>
                             <HeartbeatIcon className="mr-1 h-3.5 w-3.5" />
@@ -518,9 +518,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           ) : null}
                         </div>
 
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-xl font-semibold text-foreground">{item.companyName ?? "Sem empresa"}</p>
+                            <p className="text-lg font-semibold text-foreground">{item.companyName ?? "Sem empresa"}</p>
                             {rustdeskHref ? (
                               <a href={rustdeskHref} className={cn(buttonVariants({ variant: "default" }), "h-8 gap-1 px-3 shadow-sm")}>
                                 <ExternalLink className="h-3.5 w-3.5" />
@@ -528,15 +528,29 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                               </a>
                             ) : null}
                           </div>
-                          <p className="text-sm font-medium text-foreground/90">{item.description || "Sem descricao operacional."}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Host: {item.name}
-                            {item.provider ? ` | ${item.provider}` : ""}
-                            {item.machineName ? ` | ${item.machineName}` : ""}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Agente: {item.agent.lifecycleStatus.replace(/_/g, " ").toLowerCase()} | etapas {item.agent.installStages.length}/4
-                          </p>
+                          <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
+                            <div className="grid grid-cols-[118px_1fr] gap-x-3 border-b border-border/40 px-3 py-2 text-sm">
+                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Descricao</span>
+                              <span className="font-medium text-foreground">{item.description || "Sem descricao operacional."}</span>
+                            </div>
+                            <div className="grid grid-cols-[118px_1fr] gap-x-3 border-b border-border/40 px-3 py-2 text-sm">
+                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Host</span>
+                              <span className="text-foreground">
+                                {item.name}
+                                {item.machineName ? ` | ${item.machineName}` : ""}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-[118px_1fr] gap-x-3 border-b border-border/40 px-3 py-2 text-sm">
+                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Motor</span>
+                              <span className="text-foreground">{item.provider || "Nao informado"}</span>
+                            </div>
+                            <div className="grid grid-cols-[118px_1fr] gap-x-3 px-3 py-2 text-sm">
+                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Agente</span>
+                              <span className="text-foreground">
+                                {item.agent.lifecycleStatus.replace(/_/g, " ")} | etapas {item.agent.installStages.length}/4
+                              </span>
+                            </div>
+                          </div>
                         </div>
 
                         {alerts.length ? (
@@ -557,26 +571,26 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         ) : null}
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                      <div className="space-y-2">
+                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
                           <p className="mt-1 font-mono text-sm text-foreground">{item.rustdeskId ?? "Nao configurado"}</p>
                         </div>
-                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
                           <p className="mt-1 text-sm font-medium text-foreground">{formatRelativeHeartbeat(item.lastHeartbeatAt)}</p>
                           <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.lastHeartbeatAt)}</p>
                         </div>
-                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fluxo do agente</p>
                           <p className="mt-1 text-sm font-medium text-foreground">{item.agent.lifecycleStatus.replace(/_/g, " ")}</p>
                           <p className="mt-1 text-xs text-muted-foreground">{item.agent.installStages.join(" | ") || "Sem etapas concluÃ­das"}</p>
                         </div>
-                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo ticket</p>
                           <p className="mt-1 text-sm font-medium text-foreground">{item.lastTicketNumber ? `#${item.lastTicketNumber}` : "Sem ticket recente"}</p>
                         </div>
-                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima sessao</p>
                           <p className="mt-1 text-sm font-medium text-foreground">{item.lastSessionStatus ?? "Sem historico"}</p>
                           <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.lastSessionAt)}</p>
@@ -588,40 +602,56 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Leitura rapida</p>
                           <p className="mt-1 text-sm font-medium text-foreground">{readiness.description}</p>
                         </div>
-
-                        <Button type="button" variant="outline" size="sm" onClick={() => handleCopyRustDeskId(item.rustdeskId)} className="justify-start gap-2">
-                          <Copy className="h-3.5 w-3.5" />
-                          Copiar ID
-                        </Button>
-                        {canCreateHosts ? (
+                        <div className="space-y-1 rounded-xl border border-border/50 bg-muted/10 p-1">
+                          {rustdeskHref ? (
+                            <a
+                              href={rustdeskHref}
+                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              Acesso rapido
+                            </a>
+                          ) : null}
+                          <Link
+                            href={`/portal/plataforma-remota/${item.id}`}
+                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+                          >
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                            Visualizar detalhes
+                          </Link>
                           <Button
                             type="button"
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            onClick={() => handleCopyPowerShellCommand(item)}
-                            className="justify-start gap-2"
-                            disabled={!item.installToken}
+                            onClick={() => handleCopyRustDeskId(item.rustdeskId)}
+                            className="justify-start gap-2 rounded-lg px-3 py-2"
                           >
                             <Copy className="h-3.5 w-3.5" />
-                            Copiar comando
+                            Copiar RustDesk ID
                           </Button>
-                        ) : null}
-                        {canCreateHosts ? (
-                          <a
-                            href={item.agent.installerPath}
-                            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "justify-start gap-2")}
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            Baixar script
-                          </a>
-                        ) : null}
-                        <Link
-                          href={`/portal/plataforma-remota/${item.id}`}
-                          className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "justify-start gap-2")}
-                        >
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                          Visualizar detalhes
-                        </Link>
+                          {canCreateHosts ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyPowerShellCommand(item)}
+                              className="justify-start gap-2 rounded-lg px-3 py-2"
+                              disabled={!item.installToken}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              Copiar comando
+                            </Button>
+                          ) : null}
+                          {canCreateHosts ? (
+                            <a
+                              href={item.agent.installerPath}
+                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              Baixar script
+                            </a>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   </div>
