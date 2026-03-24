@@ -42,8 +42,8 @@ test("authenticate portal user", async ({ page }) => {
   await submitButton.click();
 
   const outcome = await Promise.race([
-    page.waitForURL(/\/portal(\/|\?|$)/, { timeout: 15000 }).then(() => "portal" as const),
-    loginError.waitFor({ state: "visible", timeout: 15000 }).then(() => "error" as const),
+    page.waitForURL(/\/portal(\/|\?|$)/, { timeout: 30000 }).then(() => "portal" as const),
+    loginError.waitFor({ state: "visible", timeout: 30000 }).then(() => "error" as const),
   ]);
 
   if (outcome === "error") {

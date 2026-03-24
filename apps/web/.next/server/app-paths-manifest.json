@@ -1,5 +1,7 @@
 {
   "/api/auth/[...all]/route": "app/api/auth/[...all]/route.js",
+  "/api/platform/session-role/route": "app/api/platform/session-role/route.js",
   "/(site)/page": "app/(site)/page.js",
-  "/(autenticacao)/login/page": "app/(autenticacao)/login/page.js"
+  "/(autenticacao)/login/page": "app/(autenticacao)/login/page.js",
+  "/(platform)/portal/page": "app/(platform)/portal/page.js"
 }

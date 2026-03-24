@@ -12,6 +12,97 @@
       },
       "filename": "../C:\\DEV\\documentacao-syspro\\apps\\web\\src\\features\\auth\\application\\actions\\register.ts",
       "exportedName": "registerUser"
+    },
+    "4013259b0b84f1ec49db59248328c867ea7468a3b4": {
+      "workers": {
+        "app/(platform)/portal/page": {
+          "moduleId": "(rsc)/../../node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%2C%5B%7B%22id%22%3A%224013259b0b84f1ec49db59248328c867ea7468a3b4%22%2C%22exportedName%22%3A%22getTicketDetailsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240326cc5e603fa6a6831d528ed2e43d3bf0c71093c%22%2C%22exportedName%22%3A%22getTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240bd301233cdddcaffcf015e49578521c0f26e7e5f%22%2C%22exportedName%22%3A%22ticketQuickAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%22601860b8773e7b37e4f1fa7cb46dd3c6ffe1dc6a69%22%2C%22exportedName%22%3A%22replyTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%226091157d2fde11154a5cc78b3a93cbb35235b75534%22%2C%22exportedName%22%3A%22createTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227f5be7fc55377486a9953d4540a3085b530de68812%22%2C%22exportedName%22%3A%22getAdminTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227fbe8ede5880ffc89e9fc04bb64f16ec21afa9449c%22%2C%22exportedName%22%3A%22getMyTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%5D%5D%5D&__client_imported__=!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(platform)/portal/page": "rsc"
+      },
+      "filename": "../C:\\DEV\\documentacao-syspro\\apps\\web\\src\\features\\tickets\\application\\actions.ts",
+      "exportedName": "getTicketDetailsAction"
+    },
+    "40326cc5e603fa6a6831d528ed2e43d3bf0c71093c": {
+      "workers": {
+        "app/(platform)/portal/page": {
+          "moduleId": "(rsc)/../../node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%2C%5B%7B%22id%22%3A%224013259b0b84f1ec49db59248328c867ea7468a3b4%22%2C%22exportedName%22%3A%22getTicketDetailsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240326cc5e603fa6a6831d528ed2e43d3bf0c71093c%22%2C%22exportedName%22%3A%22getTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240bd301233cdddcaffcf015e49578521c0f26e7e5f%22%2C%22exportedName%22%3A%22ticketQuickAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%22601860b8773e7b37e4f1fa7cb46dd3c6ffe1dc6a69%22%2C%22exportedName%22%3A%22replyTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%226091157d2fde11154a5cc78b3a93cbb35235b75534%22%2C%22exportedName%22%3A%22createTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227f5be7fc55377486a9953d4540a3085b530de68812%22%2C%22exportedName%22%3A%22getAdminTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227fbe8ede5880ffc89e9fc04bb64f16ec21afa9449c%22%2C%22exportedName%22%3A%22getMyTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%5D%5D%5D&__client_imported__=!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(platform)/portal/page": "rsc"
+      },
+      "filename": "../C:\\DEV\\documentacao-syspro\\apps\\web\\src\\features\\tickets\\application\\actions.ts",
+      "exportedName": "getTicketsAction"
+    },
+    "40bd301233cdddcaffcf015e49578521c0f26e7e5f": {
+      "workers": {
+        "app/(platform)/portal/page": {
+          "moduleId": "(rsc)/../../node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%2C%5B%7B%22id%22%3A%224013259b0b84f1ec49db59248328c867ea7468a3b4%22%2C%22exportedName%22%3A%22getTicketDetailsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240326cc5e603fa6a6831d528ed2e43d3bf0c71093c%22%2C%22exportedName%22%3A%22getTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240bd301233cdddcaffcf015e49578521c0f26e7e5f%22%2C%22exportedName%22%3A%22ticketQuickAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%22601860b8773e7b37e4f1fa7cb46dd3c6ffe1dc6a69%22%2C%22exportedName%22%3A%22replyTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%226091157d2fde11154a5cc78b3a93cbb35235b75534%22%2C%22exportedName%22%3A%22createTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227f5be7fc55377486a9953d4540a3085b530de68812%22%2C%22exportedName%22%3A%22getAdminTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227fbe8ede5880ffc89e9fc04bb64f16ec21afa9449c%22%2C%22exportedName%22%3A%22getMyTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%5D%5D%5D&__client_imported__=!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(platform)/portal/page": "rsc"
+      },
+      "filename": "../C:\\DEV\\documentacao-syspro\\apps\\web\\src\\features\\tickets\\application\\actions.ts",
+      "exportedName": "ticketQuickAction"
+    },
+    "601860b8773e7b37e4f1fa7cb46dd3c6ffe1dc6a69": {
+      "workers": {
+        "app/(platform)/portal/page": {
+          "moduleId": "(rsc)/../../node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%2C%5B%7B%22id%22%3A%224013259b0b84f1ec49db59248328c867ea7468a3b4%22%2C%22exportedName%22%3A%22getTicketDetailsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240326cc5e603fa6a6831d528ed2e43d3bf0c71093c%22%2C%22exportedName%22%3A%22getTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240bd301233cdddcaffcf015e49578521c0f26e7e5f%22%2C%22exportedName%22%3A%22ticketQuickAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%22601860b8773e7b37e4f1fa7cb46dd3c6ffe1dc6a69%22%2C%22exportedName%22%3A%22replyTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%226091157d2fde11154a5cc78b3a93cbb35235b75534%22%2C%22exportedName%22%3A%22createTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227f5be7fc55377486a9953d4540a3085b530de68812%22%2C%22exportedName%22%3A%22getAdminTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227fbe8ede5880ffc89e9fc04bb64f16ec21afa9449c%22%2C%22exportedName%22%3A%22getMyTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%5D%5D%5D&__client_imported__=!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(platform)/portal/page": "rsc"
+      },
+      "filename": "../C:\\DEV\\documentacao-syspro\\apps\\web\\src\\features\\tickets\\application\\actions.ts",
+      "exportedName": "replyTicketAction"
+    },
+    "6091157d2fde11154a5cc78b3a93cbb35235b75534": {
+      "workers": {
+        "app/(platform)/portal/page": {
+          "moduleId": "(rsc)/../../node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%2C%5B%7B%22id%22%3A%224013259b0b84f1ec49db59248328c867ea7468a3b4%22%2C%22exportedName%22%3A%22getTicketDetailsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240326cc5e603fa6a6831d528ed2e43d3bf0c71093c%22%2C%22exportedName%22%3A%22getTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240bd301233cdddcaffcf015e49578521c0f26e7e5f%22%2C%22exportedName%22%3A%22ticketQuickAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%22601860b8773e7b37e4f1fa7cb46dd3c6ffe1dc6a69%22%2C%22exportedName%22%3A%22replyTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%226091157d2fde11154a5cc78b3a93cbb35235b75534%22%2C%22exportedName%22%3A%22createTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227f5be7fc55377486a9953d4540a3085b530de68812%22%2C%22exportedName%22%3A%22getAdminTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227fbe8ede5880ffc89e9fc04bb64f16ec21afa9449c%22%2C%22exportedName%22%3A%22getMyTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%5D%5D%5D&__client_imported__=!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(platform)/portal/page": "rsc"
+      },
+      "filename": "../C:\\DEV\\documentacao-syspro\\apps\\web\\src\\features\\tickets\\application\\actions.ts",
+      "exportedName": "createTicketAction"
+    },
+    "7f5be7fc55377486a9953d4540a3085b530de68812": {
+      "workers": {
+        "app/(platform)/portal/page": {
+          "moduleId": "(rsc)/../../node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%2C%5B%7B%22id%22%3A%224013259b0b84f1ec49db59248328c867ea7468a3b4%22%2C%22exportedName%22%3A%22getTicketDetailsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240326cc5e603fa6a6831d528ed2e43d3bf0c71093c%22%2C%22exportedName%22%3A%22getTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240bd301233cdddcaffcf015e49578521c0f26e7e5f%22%2C%22exportedName%22%3A%22ticketQuickAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%22601860b8773e7b37e4f1fa7cb46dd3c6ffe1dc6a69%22%2C%22exportedName%22%3A%22replyTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%226091157d2fde11154a5cc78b3a93cbb35235b75534%22%2C%22exportedName%22%3A%22createTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227f5be7fc55377486a9953d4540a3085b530de68812%22%2C%22exportedName%22%3A%22getAdminTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227fbe8ede5880ffc89e9fc04bb64f16ec21afa9449c%22%2C%22exportedName%22%3A%22getMyTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%5D%5D%5D&__client_imported__=!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(platform)/portal/page": "rsc"
+      },
+      "filename": "../C:\\DEV\\documentacao-syspro\\apps\\web\\src\\features\\tickets\\application\\actions.ts",
+      "exportedName": "getAdminTicketsAction"
+    },
+    "7fbe8ede5880ffc89e9fc04bb64f16ec21afa9449c": {
+      "workers": {
+        "app/(platform)/portal/page": {
+          "moduleId": "(rsc)/../../node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%2C%5B%7B%22id%22%3A%224013259b0b84f1ec49db59248328c867ea7468a3b4%22%2C%22exportedName%22%3A%22getTicketDetailsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240326cc5e603fa6a6831d528ed2e43d3bf0c71093c%22%2C%22exportedName%22%3A%22getTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%2240bd301233cdddcaffcf015e49578521c0f26e7e5f%22%2C%22exportedName%22%3A%22ticketQuickAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%22601860b8773e7b37e4f1fa7cb46dd3c6ffe1dc6a69%22%2C%22exportedName%22%3A%22replyTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%226091157d2fde11154a5cc78b3a93cbb35235b75534%22%2C%22exportedName%22%3A%22createTicketAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227f5be7fc55377486a9953d4540a3085b530de68812%22%2C%22exportedName%22%3A%22getAdminTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%2C%7B%22id%22%3A%227fbe8ede5880ffc89e9fc04bb64f16ec21afa9449c%22%2C%22exportedName%22%3A%22getMyTicketsAction%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Ctickets%5C%5Capplication%5C%5Cactions.ts%22%7D%5D%5D%5D&__client_imported__=!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(platform)/portal/page": "rsc"
+      },
+      "filename": "../C:\\DEV\\documentacao-syspro\\apps\\web\\src\\features\\tickets\\application\\actions.ts",
+      "exportedName": "getMyTicketsAction"
     }
   },
   "edge": {},
