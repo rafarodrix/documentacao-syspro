@@ -1,6 +1,6 @@
 import type { Release } from "@dosc-syspro/core";
 
-export type MonthSummary = {
+export type ReleaseMonthSummary = {
   year: string;
   month: string;
   monthName: string;
@@ -8,7 +8,7 @@ export type MonthSummary = {
   melhorias: number;
 };
 
-export function groupReleasesByMonth(releases: Release[]): MonthSummary[] {
+export function groupReleasesByMonth(releases: Release[]): ReleaseMonthSummary[] {
   const monthNames = ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   const grouped = releases.reduce((acc, release) => {
@@ -28,7 +28,7 @@ export function groupReleasesByMonth(releases: Release[]): MonthSummary[] {
     }
 
     return acc;
-  }, {} as Record<string, MonthSummary>);
+  }, {} as Record<string, ReleaseMonthSummary>);
 
   return Object.values(grouped).sort((a, b) => b.year.localeCompare(a.year) || b.month.localeCompare(a.month));
 }

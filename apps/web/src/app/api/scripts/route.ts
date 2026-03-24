@@ -1,6 +1,6 @@
 // api/scripts/route.ts
 import { NextResponse } from 'next/server';
-import { getSqlScripts } from '@/lib/scripts';
+import { getSqlScripts } from '@/features/sql-scripts/application/queries';
 
 export async function GET() {
   // Mesmo que getSqlScripts agora seja síncrona, mantemos a rota como async

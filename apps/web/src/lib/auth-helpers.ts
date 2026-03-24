@@ -2,7 +2,7 @@ import { cache } from "react"
 import { auth } from "./auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
-import { CompanySegment, CompanyStatus, ContractStatus, Role } from "@prisma/client"
+import { CompanyStatus, ContractStatus, Role } from "@prisma/client"
 import { redirect } from "next/navigation"
 
 export type UserRole = Role
@@ -105,38 +105,4 @@ export async function requireRole(
     redirect(unauthorizedRedirect)
   }
   return session
-}
-
-export async function canAccessByCompanySegment(
-  userId: string,
-  requiredSegments: CompanySegment[]
-): Promise<boolean> {
-  if (!requiredSegments.length) return true
-
-  const memberships = await prisma.membership.findMany({
-    where: {
-      userId,
-      company: {
-        deletedAt: null,
-        status: CompanyStatus.ACTIVE,
-      },
-    },
-    select: {
-      company: {
-        select: { segment: true },
-      },
-    },
-  })
-
-  const membershipSegments = memberships.map((membership) => membership.company.segment)
-
-  if (!membershipSegments.length || membershipSegments.some((segment) => segment == null)) {
-    return true
-  }
-
-  const definedSegments = membershipSegments.filter(
-    (segment): segment is CompanySegment => segment != null
-  )
-
-  return definedSegments.some((segment) => requiredSegments.includes(segment))
 }

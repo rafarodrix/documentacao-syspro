@@ -7,7 +7,7 @@ import { FinalCTA } from "@/components/site/FinalCTA";
 
 // 2. Logica de negocio e tipos.
 import { getReleases } from "@/features/releases/application/queries";
-import { groupReleasesByMonth } from "@/lib/releases-helpers";
+import { groupReleasesByMonth } from "@/features/releases/domain/release-grouping";
 import { Release } from "@dosc-syspro/core";
 
 // Configuracao de revalidacao (ISR).

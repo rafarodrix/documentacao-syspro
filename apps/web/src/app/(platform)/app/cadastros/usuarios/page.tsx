@@ -1,6 +1,6 @@
 import { Role } from "@prisma/client";
-import { hasPermission } from "@/lib/rbac";
 import { requireRole } from "@/lib/auth-helpers";
+import { hasPermission } from "@/features/user-access/domain/rbac";
 import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
 import { getClientUsersAdminViewData } from "@/features/user-access/application/queries";
 import { UserTab } from "@/features/user-access/interface";
