@@ -14,6 +14,10 @@ const emptyToUndefined = z.preprocess(
   z.string().optional()
 );
 
+export const COMPANY_SERVER_TYPE_VALUES = ["SYSPRO_SERVER", "IIS"] as const;
+export const COMPANY_SERVER_PROTOCOL_VALUES = ["HTTP", "HTTPS"] as const;
+export const COMPANY_REMOTE_CONNECTION_TYPE_VALUES = ["DDNS_NOIP", "RADMIN_VPN"] as const;
+
 const companyContactSchema = z.object({
   name: z.string().min(2, "Nome do contato obrigatorio").trim(),
   email: emptyToUndefined.pipe(z.string().email("E-mail invalido").optional()),
@@ -25,9 +29,10 @@ const companyContactSchema = z.object({
   status: z.nativeEnum(CompanyContactStatus).optional().default(CompanyContactStatus.LINKED),
 });
 
-export const COMPANY_SERVER_TYPE_VALUES = ["SYSPRO_SERVER", "IIS"] as const;
-export const COMPANY_SERVER_PROTOCOL_VALUES = ["HTTP", "HTTPS"] as const;
-export const COMPANY_REMOTE_CONNECTION_TYPE_VALUES = ["DDNS_NOIP", "RADMIN_VPN"] as const;
+const companyRemoteConnectionSchema = z.object({
+  type: z.enum(COMPANY_REMOTE_CONNECTION_TYPE_VALUES),
+  details: z.string().trim().min(1, "Informe o nome/IP/identificacao da conexao remota"),
+});
 
 export const createCompanySchema = z
   .object({
@@ -42,12 +47,11 @@ export const createCompanySchema = z
     logoUrl: emptyToUndefined.pipe(z.string().url("URL invalida").optional()),
     serverType: z.enum(COMPANY_SERVER_TYPE_VALUES).default("SYSPRO_SERVER"),
     serverPort: z.coerce.number().int().min(1, "Porta obrigatoria").default(1234),
-    serverHost: z.string().trim().min(1, "Servidor obrigatorio").default("sysproerp (localhost)"),
+    serverHost: z.string().trim().min(1, "Servidor obrigatorio").default("localhost"),
     serverProtocol: z.enum(COMPANY_SERVER_PROTOCOL_VALUES).default("HTTP"),
     iisIsapiPath: emptyToUndefined.default("SYSPROSERVERISAPI.DLL"),
-    installationDirectory: emptyToUndefined,
-    remoteConnectionType: z.enum(COMPANY_REMOTE_CONNECTION_TYPE_VALUES).nullable().optional(),
-    remoteConnectionDetails: emptyToUndefined,
+    installationDirectory: z.string().trim().min(1, "Diretorio da instalacao obrigatorio"),
+    remoteConnections: z.array(companyRemoteConnectionSchema).default([]),
     parentCompanyId: emptyToUndefined,
     accountingFirmId: emptyToUndefined,
     regimeTributario: z.nativeEnum(TaxRegime).nullable().optional(),

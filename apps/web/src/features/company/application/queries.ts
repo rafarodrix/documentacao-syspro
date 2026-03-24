@@ -158,6 +158,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
         serverProtocol: true,
         iisIsapiPath: true,
         installationDirectory: true,
+        remoteConnections: true,
         remoteConnectionType: true,
         remoteConnectionDetails: true,
       } as any),
@@ -217,6 +218,21 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
   ]);
 
   const address = company.addresses[0];
+  const remoteConnections = Array.isArray((company as any).remoteConnections)
+    ? ((company as any).remoteConnections as Array<{ type?: string; details?: string }>)
+        .filter((entry) => typeof entry?.type === "string" && typeof entry?.details === "string")
+        .map((entry) => ({
+          type: entry.type as "DDNS_NOIP" | "RADMIN_VPN",
+          details: entry.details,
+        }))
+    : (company as any).remoteConnectionType
+      ? [
+          {
+            type: (company as any).remoteConnectionType as "DDNS_NOIP" | "RADMIN_VPN",
+            details: ((company as any).remoteConnectionDetails ?? "") as string,
+          },
+        ]
+      : [];
   const initialZammadEmails: CompanyZammadEmailInput[] = zammadEmailsResult;
   const initialContacts: CompanyContactInput[] = company.contacts.map((contact: any) => ({
     name: contact.name,
@@ -244,12 +260,11 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
       status: company.status,
       serverType: ((company as any).serverType ?? "SYSPRO_SERVER") as "SYSPRO_SERVER" | "IIS",
       serverPort: Number((company as any).serverPort ?? 1234),
-      serverHost: ((company as any).serverHost ?? "sysproerp (localhost)") as string,
+      serverHost: ((company as any).serverHost ?? "localhost") as string,
       serverProtocol: ((company as any).serverProtocol ?? "HTTP") as "HTTP" | "HTTPS",
       iisIsapiPath: ((company as any).iisIsapiPath ?? "SYSPROSERVERISAPI.DLL") as string,
       installationDirectory: ((company as any).installationDirectory ?? "") as string,
-      remoteConnectionType: ((company as any).remoteConnectionType ?? undefined) as "DDNS_NOIP" | "RADMIN_VPN" | undefined,
-      remoteConnectionDetails: ((company as any).remoteConnectionDetails ?? "") as string,
+      remoteConnections,
       parentCompanyId: company.parentCompanyId ?? "",
       accountingFirmId: company.accountingFirmId ?? "",
       regimeTributario: company.regimeTributario ?? undefined,

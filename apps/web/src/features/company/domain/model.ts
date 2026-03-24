@@ -39,6 +39,11 @@ export type CompanyContactInput = {
   status?: CompanyContactStatus;
 };
 
+export type CompanyRemoteConnectionInput = {
+  type: "DDNS_NOIP" | "RADMIN_VPN";
+  details: string;
+};
+
 export type CompanyRegistryLookupResponse = {
   configured: boolean;
   provider: string;
@@ -127,8 +132,7 @@ export interface CompanyEditInitialData {
   serverProtocol: "HTTP" | "HTTPS";
   iisIsapiPath: string;
   installationDirectory: string;
-  remoteConnectionType?: "DDNS_NOIP" | "RADMIN_VPN" | null;
-  remoteConnectionDetails: string;
+  remoteConnections: CompanyRemoteConnectionInput[];
   parentCompanyId: string;
   accountingFirmId: string;
   regimeTributario?: TaxRegime | null;

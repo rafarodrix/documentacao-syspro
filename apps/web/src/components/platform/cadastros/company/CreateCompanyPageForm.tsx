@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ElementType } from "react";
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useFieldArray, useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import {
@@ -20,7 +20,12 @@ import {
   COMPANY_SERVER_TYPE_VALUES,
   type CreateCompanyInput,
 } from "@/features/company/application/company-schema";
-import type { CompanyContactInput, CompanyOption, CompanyZammadEmailInput } from "@/features/company/domain/model";
+import type {
+  CompanyContactInput,
+  CompanyOption,
+  CompanyRemoteConnectionInput,
+  CompanyZammadEmailInput,
+} from "@/features/company/domain/model";
 import {
   createCompanyAction,
   lookupCompanyProfileByCnpjAction,
@@ -50,7 +55,6 @@ import {
   ChevronRight,
   ExternalLink,
   FileText,
-  Landmark,
   Loader2,
   MapPin,
   CheckCircle2,
@@ -80,6 +84,11 @@ const CONTACT_STATUS_BADGE: Record<CompanyContactStatus, string> = {
   ARCHIVED: "border-zinc-500/20 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300",
 };
 
+const REMOTE_CONNECTION_LABEL: Record<CompanyRemoteConnectionInput["type"], string> = {
+  DDNS_NOIP: "DDNS (NoIP)",
+  RADMIN_VPN: "Radmin VPN",
+};
+
 interface CreateCompanyPageFormProps {
   backHref: string;
   companies: CompanyOption[];
@@ -91,7 +100,7 @@ interface CreateCompanyPageFormProps {
   canEditCnpj?: boolean;
 }
 
-type SectionId = "geral" | "fiscal" | "estrutura" | "configuracoes" | "endereco" | "contato";
+type SectionId = "geral" | "endereco" | "fiscal" | "contato" | "configuracoes";
 type ContactDraft = {
   name: string;
   email: string;
@@ -111,37 +120,6 @@ const SECTIONS: Array<{ id: SectionId; title: string; description: string; icon:
     fields: ["cnpj", "segment", "status", "razaoSocial", "nomeFantasia", "logoUrl", "dataFundacao"],
   },
   {
-    id: "fiscal",
-    title: "Fiscal",
-    description: "Regime e inscricoes",
-    icon: FileText,
-    fields: ["regimeTributario", "indicadorIE", "inscricaoEstadual", "inscricaoMunicipal", "cnae", "codSuframa"],
-  },
-  {
-    id: "estrutura",
-    title: "Estrutura",
-    description: "Hierarquia empresarial",
-    icon: Landmark,
-    fields: ["parentCompanyId", "accountingFirmId"],
-  },
-  {
-    id: "configuracoes",
-    title: "Configuracoes",
-    description: "Servidor e acesso remoto",
-    icon: BadgeHelp,
-    fields: [
-      "segment",
-      "serverType",
-      "serverPort",
-      "serverHost",
-      "serverProtocol",
-      "iisIsapiPath",
-      "installationDirectory",
-      "remoteConnectionType",
-      "remoteConnectionDetails",
-    ],
-  },
-  {
     id: "endereco",
     title: "Endereco",
     description: "Localizacao e IBGE",
@@ -155,6 +133,28 @@ const SECTIONS: Array<{ id: SectionId; title: string; description: string; icon:
       "address.bairro",
       "address.cidade",
       "address.estado",
+    ],
+  },
+  {
+    id: "fiscal",
+    title: "Fiscal",
+    description: "Regime, inscricoes e estrutura",
+    icon: FileText,
+    fields: ["regimeTributario", "indicadorIE", "inscricaoEstadual", "inscricaoMunicipal", "cnae", "codSuframa", "parentCompanyId", "accountingFirmId"],
+  },
+  {
+    id: "configuracoes",
+    title: "Configuracoes",
+    description: "Servidor e acesso remoto",
+    icon: BadgeHelp,
+    fields: [
+      "serverType",
+      "serverPort",
+      "serverHost",
+      "serverProtocol",
+      "iisIsapiPath",
+      "installationDirectory",
+      "remoteConnections",
     ],
   },
   {
@@ -246,12 +246,11 @@ export function CreateCompanyPageForm({
       status: CompanyStatus.ACTIVE,
       serverType: "SYSPRO_SERVER",
       serverPort: 1234,
-      serverHost: "sysproerp (localhost)",
+      serverHost: "localhost",
       serverProtocol: "HTTP",
       iisIsapiPath: "SYSPROSERVERISAPI.DLL",
       installationDirectory: "",
-      remoteConnectionType: undefined,
-      remoteConnectionDetails: "",
+      remoteConnections: [],
       indicadorIE: IndicadorIE.NAO_CONTRIBUINTE,
       regimeTributario: undefined,
       inscricaoEstadual: "",
@@ -285,6 +284,10 @@ export function CreateCompanyPageForm({
   });
 
   const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
+  const remoteConnectionsFieldArray = useFieldArray({
+    control: form.control,
+    name: "remoteConnections",
+  });
   const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue);
   const zammadEmailsDirty =
     JSON.stringify(normalizeZammadEmails(zammadEmails)) !== JSON.stringify(initialNormalizedZammadEmails);
@@ -295,6 +298,7 @@ export function CreateCompanyPageForm({
   const linkedContactsCount = contacts.filter((contact) => contact.status === CompanyContactStatus.LINKED).length;
   const pendingContactsCount = contacts.filter((contact) => contact.status === CompanyContactStatus.PENDING_LINK).length;
   const whatsappContactsCount = contacts.filter((contact) => contact.source === CompanyContactSource.WHATSAPP).length;
+  const remoteConnections = form.watch("remoteConnections") ?? [];
 
   function openCnpjLookup() {
     const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
@@ -576,6 +580,9 @@ export function CreateCompanyPageForm({
                       <FormField control={form.control} name="status" render={({ field }) => (
                         <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={toInputValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value={CompanyStatus.ACTIVE}>Ativo</SelectItem><SelectItem value={CompanyStatus.INACTIVE}>Inativo</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                       )} />
+                      <FormField control={form.control} name="segment" render={({ field }) => (
+                        <FormItem><FormLabel>Segmento</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definido</SelectItem>{Object.values(CompanySegment).map((segment) => <SelectItem key={segment} value={segment}>{COMPANY_SEGMENT_LABELS[segment]}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                      )} />
                     </div>
                     <FormField control={form.control} name="razaoSocial" render={({ field }) => (
                       <FormItem><FormLabel>Razao Social</FormLabel><FormControl><Input placeholder="Razao social" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
@@ -625,22 +632,20 @@ export function CreateCompanyPageForm({
                         <FormItem><FormLabel>Codigo SUFRAMA</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
                     </div>
-                  </CardContent>
-                </Card>
-                </MagicCard>
-              )}
-
-              {currentSection === "estrutura" && (
-                <MagicCard className="rounded-xl">
-                <Card className="border-border/60 bg-card/95">
-                  <CardHeader><CardTitle className="text-base">Estrutura</CardTitle></CardHeader>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="parentCompanyId" render={({ field }) => (
-                      <FormItem><FormLabel>Empresa Matriz</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definida</SelectItem>{companies.map((company) => <SelectItem key={company.id} value={company.id}>{company.nomeFantasia || company.razaoSocial}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="accountingFirmId" render={({ field }) => (
-                      <FormItem><FormLabel>Escritorio Contabil</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definido</SelectItem>{companies.map((company) => <SelectItem key={company.id} value={company.id}>{company.nomeFantasia || company.razaoSocial}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                    )} />
+                    <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-4">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Estrutura empresarial</p>
+                        <p className="text-xs text-muted-foreground">Hierarquia da empresa dentro do grupo e escritorio contabil vinculado.</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="parentCompanyId" render={({ field }) => (
+                          <FormItem><FormLabel>Empresa Matriz</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definida</SelectItem>{companies.map((company) => <SelectItem key={company.id} value={company.id}>{company.nomeFantasia || company.razaoSocial}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="accountingFirmId" render={({ field }) => (
+                          <FormItem><FormLabel>Escritorio Contabil</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definido</SelectItem>{companies.map((company) => <SelectItem key={company.id} value={company.id}>{company.nomeFantasia || company.razaoSocial}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                        )} />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
                 </MagicCard>
@@ -652,11 +657,11 @@ export function CreateCompanyPageForm({
                   <CardHeader><CardTitle className="text-base">Configuracoes do servidor</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="segment" render={({ field }) => (
-                        <FormItem><FormLabel>Segmento da empresa</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definido</SelectItem>{Object.values(CompanySegment).map((segment) => <SelectItem key={segment} value={segment}>{COMPANY_SEGMENT_LABELS[segment]}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                      )} />
                       <FormField control={form.control} name="serverType" render={({ field }) => (
                         <FormItem><FormLabel>Tipo de servidor</FormLabel><Select onValueChange={field.onChange} value={toInputValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value={COMPANY_SERVER_TYPE_VALUES[0]}>Syspro Server</SelectItem><SelectItem value={COMPANY_SERVER_TYPE_VALUES[1]}>IIS</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                      )} />
+                      <FormField control={form.control} name="installationDirectory" render={({ field }) => (
+                        <FormItem><FormLabel>Diretorio da instalacao</FormLabel><FormControl><Input placeholder="C:\\Syspro\\..." {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
                     </div>
 
@@ -668,7 +673,7 @@ export function CreateCompanyPageForm({
                         <FormItem><FormLabel>Conexao</FormLabel><Select onValueChange={field.onChange} value={toInputValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{COMPANY_SERVER_PROTOCOL_VALUES.map((protocol) => <SelectItem key={protocol} value={protocol}>{protocol}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="serverHost" render={({ field }) => (
-                        <FormItem><FormLabel>Servidor</FormLabel><FormControl><Input placeholder="sysproerp (localhost)" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Servidor</FormLabel><FormControl><Input placeholder="localhost" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
                     </div>
 
@@ -677,30 +682,62 @@ export function CreateCompanyPageForm({
                         <p className="text-sm text-muted-foreground">
                           Para IIS, normalmente o campo Url Path (ISAPI) deve ser preenchido com
                           <span className="mx-1 font-medium text-foreground">SYSPROSERVERISAPI.DLL</span>
-                          e o diretorio da instalacao correspondente.
+                          e apontar para o diretorio da instalacao configurado acima.
                         </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                           <FormField control={form.control} name="iisIsapiPath" render={({ field }) => (
                             <FormItem><FormLabel>Url Path (ISAPI)</FormLabel><FormControl><Input placeholder="SYSPROSERVERISAPI.DLL" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
-                          )} />
-                          <FormField control={form.control} name="installationDirectory" render={({ field }) => (
-                            <FormItem><FormLabel>Diretorio da instalacao</FormLabel><FormControl><Input placeholder="C:\\Syspro\\Web\\ISAPI" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                           )} />
                         </div>
                       </div>
                     ) : (
                       <div className="rounded-lg border border-border/60 bg-muted/10 p-4 text-sm text-muted-foreground">
-                        Padrao sugerido para novo cadastro: porta <span className="font-medium text-foreground">1234</span>, servidor <span className="font-medium text-foreground">sysproerp (localhost)</span> e conexao <span className="font-medium text-foreground">HTTP</span>.
+                        Padrao sugerido para novo cadastro: porta <span className="font-medium text-foreground">1234</span>, servidor <span className="font-medium text-foreground">localhost</span> e conexao <span className="font-medium text-foreground">HTTP</span>.
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="remoteConnectionType" render={({ field }) => (
-                        <FormItem><FormLabel>Tipo de conexao remota</FormLabel><Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={toSelectValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">Nao definido</SelectItem><SelectItem value={COMPANY_REMOTE_CONNECTION_TYPE_VALUES[0]}>DDNS (NoIP)</SelectItem><SelectItem value={COMPANY_REMOTE_CONNECTION_TYPE_VALUES[1]}>Radmin VPN</SelectItem></SelectContent></Select><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="remoteConnectionDetails" render={({ field }) => (
-                        <FormItem><FormLabel>Nome/IP/identificacao</FormLabel><FormControl><Input placeholder="Ex.: empresa.ddns.net, 26.x.x.x ou nome da maquina" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
-                      )} />
+                    <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Conexoes remotas</p>
+                          <p className="text-xs text-muted-foreground">Voce pode informar mais de uma conexao, como DDNS, Radmin VPN, IP ou nome da maquina.</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => remoteConnectionsFieldArray.append({ type: "DDNS_NOIP", details: "" })}
+                        >
+                          Adicionar conexao
+                        </Button>
+                      </div>
+
+                      {remoteConnections.length ? (
+                        <div className="space-y-3">
+                          {remoteConnectionsFieldArray.fields.map((fieldItem, index) => (
+                            <div key={fieldItem.id} className="grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-background/70 p-3 md:grid-cols-[220px_1fr_auto]">
+                              <div className="md:col-span-3">
+                                <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                                  {REMOTE_CONNECTION_LABEL[(remoteConnections[index]?.type as CompanyRemoteConnectionInput["type"]) ?? "DDNS_NOIP"]}
+                                </Badge>
+                              </div>
+                              <FormField control={form.control} name={`remoteConnections.${index}.type`} render={({ field }) => (
+                                <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} value={toInputValue(field.value)}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value={COMPANY_REMOTE_CONNECTION_TYPE_VALUES[0]}>DDNS (NoIP)</SelectItem><SelectItem value={COMPANY_REMOTE_CONNECTION_TYPE_VALUES[1]}>Radmin VPN</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                              )} />
+                              <FormField control={form.control} name={`remoteConnections.${index}.details`} render={({ field }) => (
+                                <FormItem><FormLabel>Nome/IP/identificacao</FormLabel><FormControl><Input placeholder="Ex.: empresa.ddns.net, 26.x.x.x, nome da maquina ou observacao da VPN" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
+                              )} />
+                              <div className="flex items-end">
+                                <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => remoteConnectionsFieldArray.remove(index)}>
+                                  Remover
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Nenhuma conexao remota cadastrada ainda.</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

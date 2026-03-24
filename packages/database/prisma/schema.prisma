@@ -220,12 +220,13 @@ model Company {
   logoUrl      String?
   serverType   CompanyServerType @default(SYSPRO_SERVER)
   serverPort   Int @default(1234)
-  serverHost   String @default("sysproerp (localhost)")
+  serverHost   String @default("localhost")
   serverProtocol CompanyServerProtocol @default(HTTP)
   iisIsapiPath String? @default("SYSPROSERVERISAPI.DLL")
   installationDirectory String?
   remoteConnectionType CompanyRemoteConnectionType?
   remoteConnectionDetails String?
+  remoteConnections Json?
 
   // HIERARQUIA
   parentCompanyId String?
