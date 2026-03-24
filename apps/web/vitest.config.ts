@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+﻿import { defineConfig } from "vitest/config";
 import path from "node:path";
 
 export default defineConfig({
@@ -30,6 +30,7 @@ export default defineConfig({
       "@dosc-syspro/contracts/documento-config": path.resolve(__dirname, "../../packages/contracts/src/documento-config.ts"),
       "@dosc-syspro/contracts/user": path.resolve(__dirname, "../../packages/contracts/src/user.ts"),
       "@dosc-syspro/contracts/zammad-api": path.resolve(__dirname, "../../packages/contracts/src/zammad-api.ts"),
+      "@dosc-syspro/database": path.resolve(__dirname, "../../packages/database/src/index.ts"),
     },
   },
 });
