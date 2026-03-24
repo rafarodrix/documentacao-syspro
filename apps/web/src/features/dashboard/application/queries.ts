@@ -249,7 +249,8 @@ export async function getDashboardData(
       ticketsResponse = await withTimeout(
         queryTicketsForViewer(
           { userId, email, role },
-          { page: 1, pageSize: 50, queue: "all", statusGroup: "all" }
+          { page: 1, pageSize: 50, queue: "all", statusGroup: "all" },
+          { includeQueueCounts: false, includeStatusCounts: true }
         ),
         DASHBOARD_ZAMMAD_TIMEOUT_MS,
         "Consulta de tickets do dashboard"
@@ -326,7 +327,11 @@ export async function getDashboardData(
   if (scopedEmails.length) {
     try {
       ticketsResponse = await withTimeout(
-        queryTicketsForViewer({ userId, email, role }, { page: 1, pageSize: 20, queue: "all", statusGroup: "all" }),
+        queryTicketsForViewer(
+          { userId, email, role },
+          { page: 1, pageSize: 20, queue: "all", statusGroup: "all" },
+          { includeQueueCounts: false, includeStatusCounts: true }
+        ),
         DASHBOARD_ZAMMAD_TIMEOUT_MS,
         "Consulta de tickets do dashboard"
       );

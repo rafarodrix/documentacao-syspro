@@ -13,6 +13,16 @@ export type ZammadCacheOptions = {
 };
 
 export interface ZammadGatewayRepository {
+  searchOperationalTicketsPage(
+    query: string,
+    options?: {
+      limit?: number;
+      page?: number;
+      cacheTtlSeconds?: number;
+      tags?: string[];
+      routeKey?: string;
+    }
+  ): Promise<{ tickets: ZammadOperationalTicket[]; total: number | null }>;
   searchOperationalTickets(
     query: string,
     options?: {

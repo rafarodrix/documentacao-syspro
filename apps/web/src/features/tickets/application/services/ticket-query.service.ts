@@ -12,6 +12,13 @@ import { getScopedCompanyZammadEmails, isSystemRole, type TicketViewer } from "@
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
 
 const TRANSPARENT_CACHE_THRESHOLD_MINUTES = 15;
+const EMPTY_QUEUE_COUNTS = { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 } as const;
+const EMPTY_STATUS_COUNTS = { open: 0, pending: 0, closed: 0 } as const;
+
+type TicketQueryExecutionOptions = {
+  includeQueueCounts?: boolean;
+  includeStatusCounts?: boolean;
+};
 
 function buildCacheFallbackWarning(input: { hasCache: boolean; staleMinutes: number | null }): string | undefined {
   if (!input.hasCache) {
@@ -31,13 +38,16 @@ function buildCacheFallbackWarning(input: { hasCache: boolean; staleMinutes: num
 
 export async function queryTicketsForViewer(
   viewer: TicketViewer,
-  params: TicketQueryParams = {}
+  params: TicketQueryParams = {},
+  options: TicketQueryExecutionOptions = {}
 ): Promise<TicketsDataResponse> {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(20, Math.max(10, params.pageSize ?? 20));
   const queue = params.queue ?? "all";
   const statusGroup = params.statusGroup ?? "all";
   const search = (params.search || "").trim();
+  const includeQueueCounts = options.includeQueueCounts ?? true;
+  const includeStatusCounts = options.includeStatusCounts ?? true;
 
   const routeKey = "app-chamados";
   const trackedStatusQuery = buildTrackedStatusQuery();
@@ -52,8 +62,8 @@ export async function queryTicketsForViewer(
       success: true,
       data: [],
       pagination: buildPagination(page, pageSize, 0, 0),
-      queueCounts: { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 },
-      statusCounts: { open: 0, pending: 0, closed: 0 },
+      queueCounts: { ...EMPTY_QUEUE_COUNTS },
+      statusCounts: { ...EMPTY_STATUS_COUNTS },
     };
   }
 
@@ -67,18 +77,22 @@ export async function queryTicketsForViewer(
   );
 
   try {
-    const [ticketsRaw, total, queueCounts, statusCounts] = await Promise.all([
-      ZammadGateway.searchOperationalTickets(finalQuery, {
+    const [ticketsPage, queueCounts, statusCounts] = await Promise.all([
+      ZammadGateway.searchOperationalTicketsPage(finalQuery, {
         limit: pageSize,
         page,
         cacheTtlSeconds: 45,
         tags: ["tickets-list", "tickets-dashboard"],
         routeKey,
       }),
-      ZammadGateway.getTicketCount(finalQuery, routeKey),
-      getQueueCountsFromZammad(combineQueryParts(viewerScopeQuery, operationalStatusQuery), routeKey, zammadUserId, searchQuery),
-      getStatusCountsFromZammad(scopedQuery, routeKey),
+      includeQueueCounts
+        ? getQueueCountsFromZammad(combineQueryParts(viewerScopeQuery, operationalStatusQuery), routeKey, zammadUserId, searchQuery)
+        : Promise.resolve({ ...EMPTY_QUEUE_COUNTS }),
+      includeStatusCounts
+        ? getStatusCountsFromZammad(scopedQuery, routeKey)
+        : Promise.resolve({ ...EMPTY_STATUS_COUNTS }),
     ]);
+    const ticketsRaw = ticketsPage.tickets;
 
     await upsertOperationalTicketsToCache(ticketsRaw);
 
@@ -90,7 +104,7 @@ export async function queryTicketsForViewer(
     return {
       success: true,
       data: formatTickets(ticketsRaw),
-      pagination: buildPagination(page, pageSize, total, ticketsRaw.length),
+      pagination: buildPagination(page, pageSize, ticketsPage.total, ticketsRaw.length),
       staleWarning,
       queueCounts,
       statusCounts,

@@ -72,6 +72,14 @@ function dedupeOperationalTickets(tickets: ZammadOperationalTicket[]): ZammadOpe
   );
 }
 
+function parseSearchTotal(headers: Headers): number | null {
+  const total = headers.get("X-Total-Count");
+  if (!total) return null;
+
+  const parsed = Number.parseInt(total, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function buildStateQuery(stateIds?: number[]): string {
   if (!stateIds?.length) return "";
   return `(${stateIds.map((id) => `state_id:${id}`).join(" OR ")})`;
@@ -88,6 +96,35 @@ function buildCustomerEmailsFallbackQuery(emails: string[]): string {
 }
 
 export const ZammadGateway: ZammadGatewayRepository = {
+  async searchOperationalTicketsPage(
+    query: string,
+    options?: {
+      limit?: number;
+      page?: number;
+      cacheTtlSeconds?: number;
+      tags?: string[];
+      routeKey?: string;
+    }
+  ): Promise<{ tickets: ZammadOperationalTicket[]; total: number | null }> {
+    const limit = options?.limit ?? 50;
+    const page = Math.max(1, options?.page ?? 1);
+    const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
+    const response = await fetchZammad(endpoint, {}, {
+      cacheTtlSeconds: options?.cacheTtlSeconds,
+      tags: options?.tags,
+      routeKey: options?.routeKey,
+      includeResponseMeta: true,
+    });
+
+    return {
+      tickets: normalizeSearchResponse(response.data)
+        .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
+        .filter((parsed) => parsed.success)
+        .map((parsed) => parsed.data),
+      total: parseSearchTotal(response.headers),
+    };
+  },
+
   async searchOperationalTickets(
     query: string,
     options?: {
@@ -98,24 +135,8 @@ export const ZammadGateway: ZammadGatewayRepository = {
       routeKey?: string;
     }
   ): Promise<ZammadOperationalTicket[]> {
-    try {
-      const limit = options?.limit ?? 50;
-      const page = Math.max(1, options?.page ?? 1);
-      const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
-      const data = await fetchZammad(endpoint, {}, {
-        cacheTtlSeconds: options?.cacheTtlSeconds,
-        tags: options?.tags,
-        routeKey: options?.routeKey,
-      });
-
-      return normalizeSearchResponse(data)
-        .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
-        .filter((parsed) => parsed.success)
-        .map((parsed) => parsed.data);
-    } catch (err) {
-      console.error("ZammadGateway.searchOperationalTickets:", err);
-      return [];
-    }
+    const result = await this.searchOperationalTicketsPage(query, options);
+    return result.tickets;
   },
 
   async getUserTickets(userEmail: string): Promise<Ticket[]> {
@@ -165,22 +186,17 @@ export const ZammadGateway: ZammadGatewayRepository = {
   },
 
   async getTicketCount(query: string, routeKey = getDefaultZammadRouteKey()): Promise<number> {
-    try {
-      const baseUrl = getZammadBaseUrl();
-      const token = getZammadToken();
-      if (!baseUrl || !token) return 0;
+    const baseUrl = getZammadBaseUrl();
+    const token = getZammadToken();
+    if (!baseUrl || !token) return 0;
 
-      const res = await fetchWithRetry(
-        `${baseUrl}/api/v1/tickets/search?query=${encodeURIComponent(query)}&limit=1`,
-        { headers: { Authorization: buildAuthorizationHeader(token) } },
-        { routeKey, endpoint: `tickets/search?query=${query}&limit=1` }
-      );
-      const total = res.headers.get("X-Total-Count");
-      return total ? parseInt(total, 10) : 0;
-    } catch (err) {
-      console.error("ZammadGateway.getTicketCount:", err);
-      return 0;
-    }
+    const res = await fetchWithRetry(
+      `${baseUrl}/api/v1/tickets/search?query=${encodeURIComponent(query)}&limit=1`,
+      { headers: { Authorization: buildAuthorizationHeader(token) } },
+      { routeKey, endpoint: `tickets/search?query=${query}&limit=1` }
+    );
+    const total = res.headers.get("X-Total-Count");
+    return total ? parseInt(total, 10) : 0;
   },
 
   async getUserIdByEmail(email: string, routeKey = getDefaultZammadRouteKey()): Promise<number | null> {

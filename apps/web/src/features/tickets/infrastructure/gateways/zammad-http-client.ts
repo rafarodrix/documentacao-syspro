@@ -36,6 +36,15 @@ export type FetchMeta = {
   endpoint: string;
 };
 
+type FetchZammadResponseMeta = {
+  data: unknown;
+  headers: Headers;
+};
+
+type FetchZammadCacheOptions = ZammadCacheOptions & {
+  includeResponseMeta?: boolean;
+};
+
 export function getDefaultZammadRouteKey() {
   return DEFAULT_ROUTE_KEY;
 }
@@ -192,7 +201,21 @@ export async function fetchWithRetry(input: string, options: NextFetchOptions, m
     : new Error("Falha ao consultar Zammad apos tentativas e timeout.");
 }
 
-export async function fetchZammad(endpoint: string, options: NextFetchOptions = {}, cacheOptions?: ZammadCacheOptions) {
+export function fetchZammad(
+  endpoint: string,
+  options?: NextFetchOptions,
+  cacheOptions?: ZammadCacheOptions
+): Promise<unknown>;
+export function fetchZammad(
+  endpoint: string,
+  options: NextFetchOptions | undefined,
+  cacheOptions: ZammadCacheOptions & { includeResponseMeta: true }
+): Promise<FetchZammadResponseMeta>;
+export async function fetchZammad(
+  endpoint: string,
+  options: NextFetchOptions = {},
+  cacheOptions?: FetchZammadCacheOptions
+): Promise<unknown | FetchZammadResponseMeta> {
   if (!ZAMMAD_URL || !ZAMMAD_TOKEN) {
     throw new Error("Zammad URL ou Token nao configurados.");
   }
@@ -232,6 +255,9 @@ export async function fetchZammad(endpoint: string, options: NextFetchOptions = 
       responseCache.set(cacheKey, { ts: Date.now(), data: json });
     }
     markZammadRouteFresh(routeKey);
+    if (cacheOptions?.includeResponseMeta) {
+      return { data: json, headers: res.headers };
+    }
     return json;
   } catch (error) {
     if (method === "GET") {
@@ -240,6 +266,9 @@ export async function fetchZammad(endpoint: string, options: NextFetchOptions = 
         const staleMinutes = Math.floor((Date.now() - fallback.ts) / 60000);
         if (staleMinutes <= ZAMMAD_FALLBACK_MAX_STALE_MINUTES) {
           markZammadRouteStale(routeKey, staleMinutes);
+          if (cacheOptions?.includeResponseMeta) {
+            return { data: fallback.data, headers: new Headers() };
+          }
           return fallback.data;
         }
       }
