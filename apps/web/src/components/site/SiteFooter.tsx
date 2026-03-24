@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Instagram, Mail, Youtube, Globe, Download, ExternalLink, ArrowRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function SiteFooter() {
@@ -146,7 +147,7 @@ function FooterLink({
   );
 }
 
-function SocialButton({ href, icon: Icon, label, hoverColor }: { href: string; icon: any; label: string; hoverColor: string }) {
+function SocialButton({ href, icon: Icon, label, hoverColor }: { href: string; icon: LucideIcon; label: string; hoverColor: string }) {
   return (
     <Link
       href={href}

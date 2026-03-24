@@ -28,6 +28,12 @@ Padronizar como um host remoto deve ser:
   - `POST /api/remote/agents/register`
   - `POST /api/remote/agents/heartbeat`
 - o `RustDesk ID` deve ser persistido sem espacos
+- a leitura operacional do host hoje segue a matriz:
+  - `ONLINE`
+  - `RECENT`
+  - `OFFLINE`
+  - `MISCONFIGURED`
+  - `SESSION_BUSY`
 
 <Callout type="warning" title="Fonte de verdade">
   No recorte OSS-first, o portal da Trilink e a fonte de verdade para `installToken`, metadata do agente, heartbeat e relacao entre empresa, host e sessao. O RustDesk nao substitui essa camada.
@@ -288,4 +294,12 @@ Este manual cobre principalmente:
 - `FEAT-002`
 - `FEAT-002B`
 - parte operacional de `FEAT-003`
+
+## Proximo endurecimento recomendado
+
+Depois da validacao em ambiente real, a evolucao recomendada e:
+
+1. manter `installToken` apenas no bootstrap
+2. emitir um `agentToken` para operacao continuada
+3. usar esse token nas chamadas futuras de heartbeat e jobs
 

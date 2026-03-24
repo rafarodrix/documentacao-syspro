@@ -27,30 +27,12 @@ import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
+import type { CompanyListItem } from "@/features/company/domain/model"
 
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/actions"
 
-interface CompanyWithRelations {
-  id: string
-  cnpj: string
-  razaoSocial: string
-  nomeFantasia: string | null
-  segment?: CompanySegment | null
-  status: CompanyStatus
-  contractBlockReasonLabel?: string | null
-  isBlockedByContract?: boolean
-  usersCount?: number
-  _count?: {
-    memberships: number
-    contracts?: number
-    branches?: number
-    accountingClients?: number
-  }
-  [key: string]: any
-}
-
 interface CompanyTabProps {
-  data: CompanyWithRelations[]
+  data: CompanyListItem[]
   canCreate: boolean
   canEdit: boolean
   canToggleStatus: boolean
@@ -101,7 +83,7 @@ function CompanyActionsMenu({
   onToggleStatus,
   onDelete,
 }: {
-  company: CompanyWithRelations
+  company: CompanyListItem
   canEdit: boolean
   canToggleStatus: boolean
   canDelete: boolean
@@ -178,7 +160,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<
-    | { type: "delete" | "status"; company: CompanyWithRelations }
+    | { type: "delete" | "status"; company: CompanyListItem }
     | null
   >(null)
 
@@ -221,7 +203,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
     [items],
   );
 
-  const handleToggleStatus = async (company: CompanyWithRelations) => {
+  const handleToggleStatus = async (company: CompanyListItem) => {
     setLoadingId(company.id)
     try {
       const nextStatus = company.status === "INACTIVE" ? CompanyStatus.ACTIVE : CompanyStatus.INACTIVE
@@ -245,7 +227,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
     }
   }
 
-  const handleDelete = async (company: CompanyWithRelations) => {
+  const handleDelete = async (company: CompanyListItem) => {
     setLoadingId(company.id)
     try {
       const result = await deleteCompanyAction(company.id)

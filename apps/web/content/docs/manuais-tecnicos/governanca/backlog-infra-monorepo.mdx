@@ -16,22 +16,22 @@ Concentrar apenas o backlog ainda pendente, separando:
 
 ## Contexto atual
 
-Ja concluido:
+Entregas relevantes ja consolidadas:
 
-- Fase A do modular monolith disciplinado
-- EPIC B1 de workspace e shell
-- `INFRA-013` com o primeiro recorte de `packages/shared`
-- `INFRA-014` com o primeiro recorte de `packages/ui`
-- `INFRA-015` com o primeiro recorte de `packages/contracts`
-- `INFRA-016` com o primeiro recorte de `packages/core`
-- `INFRA-017` com `packages/database`
-- `INFRA-018` com a estrategia de repositories/adapters para persistencia
-- `INFRA-019` com o shell modular de `packages/api`
-- `INFRA-020` com o padrao oficial de data fetching e invalidacao
-- `INFRA-021` com o shell estrutural de `apps/mobile`
-- `INFRA-022` com o shell de `apps/api` e transporte HTTP minimo
-- drenagem de `apps/web/src/core`
-- drenagem de `apps/web/src/hooks`
+- shell arquitetural do monorepo (`packages/*`, `apps/api`, `apps/mobile`) aberto
+- `src/core` e `src/hooks` drenados
+- fallback transparente do `Zammad`, `React cache()` em sessao protegida e extracao de queries do dashboard concluidos
+- `src/lib` limpo dos helpers de dominio mais sensiveis (`releases`, scripts SQL, `rbac`, acesso por segmento)
+- base de `CompanyContact` aberta no cadastro de empresa
+- base de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` aberta no dominio e no Prisma
+- plataforma remota ja operacional com:
+  - grid simplificada por empresa, `RustDesk ID` e descricao da maquina
+  - cadastro rapido recolhivel
+  - copia de `RustDesk ID` e comando PowerShell
+  - download de script `.ps1` por host com nome amigavel
+  - regeneracao automatica de `installToken` legado
+  - matriz operacional `ONLINE`, `RECENT`, `OFFLINE`, `MISCONFIGURED`, `SESSION_BUSY`
+  - TTL de sessao, rate limit basico no agente e endurecimento do deep-link por sessao `STARTED`
 
 Estado atual do codigo:
 
@@ -60,33 +60,24 @@ Ordem recomendada:
 4. fechar o MVP remoto fim a fim
 5. conectar shells de multi-app a casos de uso reais
 
-## Estabilizacao do app atual
+## Backlog ativo
 
-- [x] `INFRA-022A` [Alta] Remover hardcodes de tema/cor na area publica e consolidar uso de tokens (`bg-background`, `text-foreground`, `border-border`). Superficies, contraste base e fundos da home foram alinhados aos tokens do tema; acentos visuais de marca permanecem intencionais.
-- [x] `INFRA-022B` [Alta] Limpar mojibake residual em `auth`, `site`, `documentos` e componentes adjacentes.
-- [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes. Recortes em `auth`, `documentos`, `user-access`, `company`, `tickets` e parte das ferramentas legadas ja aplicados com contratos discriminados, hooks tipados e remocao dos `as any` mais criticos; falta consolidar o mesmo endurecimento nas ferramentas restantes e normalizar respostas compartilhadas de UI.
-- [x] `INFRA-022D` [Media] Revisar `src/lib` e mover helpers de dominio que ainda fazem mais sentido dentro de `features/*`. O agrupamento de releases foi movido para `features/releases`, a leitura de scripts SQL saiu de `src/lib` para uma feature propria, o conteudo de scripts foi deslocado de `src/data` para `content/scripts`, o RBAC saiu de `src/lib` para `features/user-access` e a regra de acesso por segmento saiu de `auth-helpers` para `features/company`; `cache-invalidation` permaneceu em `src/lib` por se comportar como infraestrutura transversal de `revalidatePath/revalidateTag` compartilhada entre varias features.
-- [x] `INFRA-022E` [Media] Normalizar tipagens e formatos compartilhados de UI para reduzir regressao em deploy por incompatibilidade de retorno. `settings`, `contracts`, `tax sync`, `tickets quick-actions` e grid nacional da SEFAZ agora usam contratos compartilhados mais estritos, reduzindo casts frouxos em `response.json()` e incompatibilidades de shape entre dominio e UI.
-- [x] `INFRA-022F` [Alta] Aplicar `React cache()` em `getProtectedSession()` para evitar consultas repetidas de sessao/usuario/membership no mesmo render tree SSR.
-- [x] `INFRA-022G` [Alta] Extrair queries do dashboard em `apps/web/src/app/(platform)/app/page.tsx` para `features/dashboard/application/queries.ts`, removendo acesso direto a Prisma da camada de UI.
-- [x] `INFRA-022H` [Media] Aplicar `unstable_cache` em queries frequentes de contagem, settings e status operacionais com invalidacao por tags.
-- [x] `INFRA-022I` [Alta] Tornar o fallback do Zammad transparente usando `ZammadTicketCache`, reduzindo SPOF e evitando alerta ruidoso quando o cache recente estiver valido.
+### Estabilizacao e contratos
 
-## Qualidade, CI e observabilidade
-
-- [ ] `INFRA-023` [Alta] Pipeline CI (lint, typecheck, test, build).
-- [ ] `INFRA-024` [Alta] Verificacao de contrato/schema em PR.
-- [ ] `INFRA-025` [Alta] Logs estruturados e correlation id.
-- [ ] `INFRA-026` [Alta] Metricas minimas por rota critica.
+- [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes. Recortes em `auth`, `documentos`, `user-access`, `company`, `tickets`, `contracts`, `settings`, `site` e parte das ferramentas legadas ja aplicados com contratos discriminados, hooks tipados e remocao dos `as any` mais criticos; resta fechar as ferramentas restantes e eliminar a excecao temporaria do `CreateCompanyPageForm`, que ainda depende de ajuste fino entre `zodResolver` e os generics do `react-hook-form`.
+- [ ] `INFRA-023` [Alta] Pipeline CI com `lint`, `typecheck`, `test` e `build` por PR.
+- [ ] `INFRA-024` [Alta] Verificacao de contrato/schema em PR, cobrindo Prisma, contratos compartilhados e surfaces criticas do app.
+- [ ] `INFRA-025` [Alta] Logs estruturados e `correlationId` para rotas criticas, integracoes e jobs.
+- [ ] `INFRA-026` [Media] Metricas minimas por rota critica, jobs e integracoes externas.
 - [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs.
 
-## Integracao progressiva de shells
+### Integracao progressiva de shells
 
 - [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`.
 - [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
 - [ ] `INFRA-027C` [Media] Revisar o que ainda deve sair de `apps/web/src/lib` para consumo compartilhado via packages.
 
-## Experiencia em docs
+### Experiencia em docs
 
 - [ ] `INFRA-028` [Media] Historico de buscas no modal.
 - [ ] `INFRA-029` [Media] Filtro de busca por categoria/tag.
@@ -96,10 +87,9 @@ Ordem recomendada:
 - [ ] `INFRA-033` [Media] Feedback "Esse conteudo ajudou?" com persistencia.
 - [ ] `INFRA-034` [Media] Acessibilidade WCAG AA na rota `/docs`.
 
-## Novas funcionalidades
+### Plataforma remota, backup e atendimento
 
 - [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Persistencia, tenant enforcement, rotas de `hosts` e `sessions`, separacao entre configuracao e operacao, detalhe do host, CRUD basico de host com `RustDesk ID`, busca operacional do modulo, rate limit basico no fluxo do agente, TTL de sessao e bloqueio de host ativo sem `RustDesk ID` ja existem; falta aplicar migration/generate/seed no ambiente, validar fluxo fim a fim por perfil e endurecer regras operacionais e mensagens de erro.
-- [x] `FEAT-001A` [Alta] Definir matriz de acesso da plataforma remota: `ADMIN`, `SUPORTE` e `DEVELOPER` com visao global; `CLIENTE_ADMIN` apenas com visao da propria empresa.
 - [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, observacoes manuais do host, token de instalacao, heartbeat, metadata basica do agente, download do instalador por host e regeneracao automatica de `installToken` legado ja existem; falta validar auto-registro/heartbeat em ambiente real, materializar fluxo de instalacao do agente em campo, ampliar filtros operacionais e separar entidade de agente quando o recorte OSS-first estabilizar.
 - [ ] `FEAT-002A` [Media] Consolidar UX operacional de hosts e agentes. Grid operacional simplificada, cadastro rapido recolhivel de maquina, filtros por status/ambiente/heartbeat, copia rapida de `RustDesk ID`, copia de comando PowerShell, download do script por host, labels amigaveis, indicadores de prontidao, acesso direto, modal curto de conexao, separacao entre observacoes do host vs empresa e matriz compartilhada de status operacional (`ONLINE`, `RECENT`, `OFFLINE`, `MISCONFIGURED`, `SESSION_BUSY`) ja existem; falta unificar o mesmo padrao visual entre configuracao, diretorio e detalhe, reforcar feedback de bloqueios por host e reduzir atrito no fluxo diario do suporte.
 - [ ] `FEAT-002B` [Media] Fechar fluxo OSS-first de agente. Endpoints de `register` e `heartbeat`, rate limit basico por IP, script PowerShell base do agente, download de `.ps1` por host e manual tecnico OSS ja existem; falta materializar auto-vinculo guiado ao host, instalar heartbeat periodico em ambiente real, validar atualizacao automatica de `RustDesk ID`/metadata e endurecer o segredo de `installToken` antes de abrir maior escala.
@@ -112,60 +102,70 @@ Ordem recomendada:
 - [ ] `FEAT-007` [Media] Estruturar canal futuro de WhatsApp mediado pelo backend. A direcao arquitetural ja foi definida para `apps/web` + `apps/api` + `apps/whatsapp-bridge` + `Zammad` + `RustDesk`, a base de `CompanyContact` ja entrou no cadastro da empresa, os contratos reforcados de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja existem no dominio com snapshots, delivery e historico de fila, e a modelagem Prisma base dessas quatro tabelas ja foi aberta; faltam aplicar migration no ambiente, backend dedicado ligado aos casos de uso reais, bridge isolado, filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`.
 - [ ] `FEAT-006` [Baixa] Evoluir area publica para aderir integralmente aos tokens de tema e remover hardcodes restantes.
 
-## Roadmap recomendado
+## Proximas sprints por prioridade
 
-### Sprint 4 - Estabilizacao e confiabilidade
+### Sprint 1 - Fechamento operacional do remoto
 
-- `INFRA-022A` a `INFRA-022E` estabilizacao do app atual
-- `INFRA-023` a `INFRA-027` qualidade e observabilidade
-- `INFRA-027A` a `INFRA-027C` integracao progressiva de shells
-- `INFRA-028` a `INFRA-034` evolucao de docs
+1. `FEAT-001`
+   aplicar migrations pendentes, `prisma generate` no ambiente e validar o fluxo completo por perfil
+2. `FEAT-002B`
+   validar `register`, `heartbeat`, script `.ps1`, auto-vinculo por `installToken` e metadata real do agente
+3. `FEAT-003`
+   materializar job de expiracao, persistir auditoria por sessao e validar `REQUESTED -> STARTED -> ENDED`
+4. `FEAT-003A`
+   configurar e validar deep-link real no `Zammad`
+5. `FEAT-003B`
+   validar payload real do webhook e fechar limpeza automatica de sessoes vencidas
 
-### Sprint 5 - Plataforma remota
+### Sprint 2 - Estabilizacao e confiabilidade
 
-- `FEAT-001` consolidacao do MVP remoto
-- `FEAT-001A` tenant scope global vs empresa concluido
-- `FEAT-002` enriquecimento de gestao de hosts e ambientes
-- `FEAT-002A` consolidacao da UX operacional de hosts/agentes
-- `FEAT-002B` instalacao e auto-registro OSS-first do agente
-- `FEAT-003` consolidacao de sessoes remotas com auditoria
-- `FEAT-003C` refinamento da UX operacional de sessoes
-- `FEAT-003A` link rapido `Zammad -> RustDesk`
-- `FEAT-003B` webhook `Zammad -> remote`
-- `FEAT-004` credenciais por referencia
-- `FEAT-005` backup e restore operacional
-- `FEAT-007` canal futuro de WhatsApp mediado pelo backend
+1. `INFRA-022C`
+   fechar ferramentas restantes e remover a excecao do `CreateCompanyPageForm`
+2. `INFRA-023`
+   CI com `lint`, `typecheck`, `test` e `build`
+3. `INFRA-024`
+   verificacao de contratos e schema em PR
+4. `INFRA-025`
+   logs estruturados com `correlationId`
+5. `INFRA-027`
+   E2E dos fluxos criticos do portal e docs
+
+### Sprint 3 - Experiencia operacional e backup
+
+1. `FEAT-002A`
+   unificar padrao visual entre configuracao, diretorio e detalhe do remoto
+2. `FEAT-003C`
+   reforcar UX das sessoes com feedback operacional completo
+3. `FEAT-004`
+   shell de credenciais por referencia
+4. `FEAT-005`
+   modelagem, endpoints e UI inicial de backup/restore operacional
+5. `INFRA-026`
+   metricas minimas das rotas e jobs mais sensiveis
+
+### Sprint 4 - Backend dedicado e atendimento conversacional
+
+1. `INFRA-027A`
+   ligar `apps/api` aos casos de uso reais
+2. `FEAT-007`
+   aplicar migration de conversas, abrir queries/actions minimas e preparar backend dedicado
+3. `INFRA-027C`
+   revisar o que ainda sai de `apps/web/src/lib` para `packages/*`
+4. `INFRA-027B`
+   materializar runtime real do `apps/mobile`
+
+### Sprint 5 - Docs e experiencia publica
+
+1. `INFRA-028` a `INFRA-034`
+   evolucao da experiencia de docs
+2. `FEAT-006`
+   limpeza final de hardcodes na area publica
 
 ## Proximo passo recomendado
 
-1. executar `INFRA-022A` e `INFRA-022B`
-2. depois fechar `INFRA-022C`
-3. em seguida validar `FEAT-001` fim a fim com migration, generate e seed
-
-## Proximos passos de produto
-
-1. aplicar a migration mais recente, rodar `prisma generate` e validar o schema remoto no ambiente, incluindo `description`, `notes`, `installToken`, `expiresAt` e metadata do agente
-2. validar fim a fim o CRUD de hosts no ambiente real, incluindo cadastro rapido recolhivel, download do instalador, copia de comando PowerShell, edicao, exclusao, `RustDesk ID` e observacoes do host
-3. validar `FEAT-002B` em ambiente real com o script OSS-first do agente, auto-vinculo por `installToken`, atualizacao de `RustDesk ID`, heartbeat periodico e resposta de rate limit
-4. consolidar o mesmo padrao visual de `FEAT-002A` entre configuracao, diretorio e detalhe, reaproveitando a matriz unica de status operacional e reforcando feedback de bloqueios por host e prontidao operacional
-5. validar o fluxo completo de sessao remota com `REQUESTED -> STARTED -> ENDED`, incluindo perfis, bloqueios, ultimo ticket associado, recomendacao operacional, `expiresAt`, deep-link condicionado a sessao ativa e comentario interno no `Zammad`, depois materializar job de expiracao e abrir `AuditLog`, `FEAT-004` e `FEAT-005`
-
-## Proximos passos imediatos do remoto
-
-1. aplicar a migration de `expiresAt` no ambiente
-2. validar `429` em `register/heartbeat`
-3. validar `REQUESTED -> STARTED -> ENDED` com TTL
-4. criar o job de expiracao automatica das sessoes
-5. endurecer `installToken` como segredo real, sem depender de token cru na UI/script
-
-## Prioridade sugerida de execucao
-
-1. `FEAT-002B`: rate limit consolidado e endurecimento de `installToken`
-2. `INFRA-022F`: `React cache()` em `getProtectedSession()`
-3. `INFRA-022G`: extracao das queries do dashboard para `features`
-4. `FEAT-003`: TTL e expiracao automatica das sessoes remotas
-5. `INFRA-022H`: `unstable_cache` para contagens, settings e status raramente mutaveis
-6. `FEAT-001`: validacao operacional de `agentExternalId` em hosts ativos e demais regras de confiabilidade
+1. fechar `FEAT-001`, `FEAT-002B` e `FEAT-003` em ambiente real
+2. em seguida atacar `INFRA-022C` e CI
+3. depois abrir `FEAT-005` e `FEAT-007` sobre base mais estavel
 
 
 

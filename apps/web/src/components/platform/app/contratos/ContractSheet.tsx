@@ -32,6 +32,20 @@ const DEFAULT_TAX_RATE = 6;
 const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
 
+const defaultValues: CreateContractInput = {
+    companyId: "",
+    percentage: 10,
+    minimumWage: 0,
+    taxRate: DEFAULT_TAX_RATE,
+    programmerRate: 25,
+    status: "ACTIVE",
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: "",
+    contractNumber: "",
+    notes: "",
+    allowTaxOverride: false,
+};
+
 export function ContractSheet({ companies, mode = "button" }: ContractSheetProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -39,20 +53,8 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
     const [negotiatedValueInput, setNegotiatedValueInput] = useState("0");
 
     const form = useForm<CreateContractInput>({
-        resolver: zodResolver(createContractSchema) as any,
-        defaultValues: {
-            companyId: "",
-            percentage: 10,
-            minimumWage: 0,
-            taxRate: DEFAULT_TAX_RATE,
-            programmerRate: 25,
-            status: "ACTIVE",
-            startDate: new Date().toISOString().split("T")[0],
-            endDate: "",
-            contractNumber: "",
-            notes: "",
-            allowTaxOverride: false,
-        } as any,
+        resolver: zodResolver(createContractSchema),
+        defaultValues,
     });
 
     useEffect(() => {
@@ -160,11 +162,11 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <Label className="text-xs flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-muted-foreground" /> Inicio</Label>
-                                <Input type="date" className="h-10" {...form.register("startDate" as any)} />
+                                <Input type="date" className="h-10" {...form.register("startDate")} />
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-xs flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-muted-foreground" /> Fim (opcional)</Label>
-                                <Input type="date" className="h-10" {...form.register("endDate" as any)} />
+                                <Input type="date" className="h-10" {...form.register("endDate")} />
                             </div>
                         </div>
                     </section>

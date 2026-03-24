@@ -4,6 +4,7 @@
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { batchReadjustContractsAction } from "@/features/contracts/application/actions"
+import type { ContractActionResponse } from "@/features/contracts/domain/model"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,13 +29,14 @@ export function BulkReadjustDialog() {
     }
 
     startTransition(async () => {
-      const res = await batchReadjustContractsAction(parsed) as any
+      const res: ContractActionResponse<{ affected: number }> = await batchReadjustContractsAction(parsed)
 
-      if (res.success) {
-        setResult({ affected: res.affected ?? 0 })
-      } else {
+      if (!res.success) {
         toast.error(res.error ?? "Erro ao aplicar reajuste.")
+        return
       }
+
+      setResult({ affected: res.data.affected ?? 0 })
     })
   }
 

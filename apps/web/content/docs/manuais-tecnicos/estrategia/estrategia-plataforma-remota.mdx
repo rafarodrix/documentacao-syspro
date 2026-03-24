@@ -56,6 +56,14 @@ Tambem ja existe separacao de experiencia:
   - acesso ao detalhe do host
   - ponto de abertura do acesso remoto
 
+Tambem ja existe uma matriz compartilhada de status operacional no dominio:
+
+- `ONLINE`
+- `RECENT`
+- `OFFLINE`
+- `MISCONFIGURED`
+- `SESSION_BUSY`
+
 ## Arquitetura aplicada
 
 ### Camadas
@@ -105,7 +113,7 @@ Entidades ainda planejadas:
 - `BackupJob`
 - `BackupArtifact`
 - `RestoreJob`
-- `AuditLog`
+- `RemoteSessionAudit`
 - `IntegrationEndpoint`
 
 ## Politica de acesso
@@ -168,6 +176,7 @@ Conectar atendimento e acesso remoto sem depender de plugin proprietario:
 - validar payload real do `Zammad`
 - configurar custom link real no `Zammad`
 - decidir se o host sera sempre resolvido por `rustdesk_id` ou se havera escolha explicita no atendimento
+- persistir auditoria por sessao
 - endurecer politicas de deduplicacao e fechamento operacional
 
 ### Padrao recomendado
@@ -274,6 +283,22 @@ Resultado esperado:
   - acessar o detalhe do host
   - abrir o acesso remoto
 
+### Fluxo OSS-first do agente
+
+Ja existe suporte para:
+
+- `POST /api/remote/agents/register`
+- `POST /api/remote/agents/heartbeat`
+- script PowerShell do agente
+- download de `.ps1` por host
+- regeneracao automatica de `installToken` legado
+
+O que ainda depende de ambiente real:
+
+- validar heartbeat periodico em maquina real
+- endurecer o segredo de `installToken`
+- substituir o bootstrap cru por `agentToken` em operacao continuada
+
 ## Roadmap por fases
 
 <Steps>
@@ -305,5 +330,5 @@ Resultado esperado:
 1. concluir migration e generate do Prisma no ambiente
 2. validar payload real do webhook do Zammad
 3. decidir politica definitiva de resolucao de host por ticket
-4. materializar `AuditLog`
+4. materializar `RemoteSessionAudit`
 5. abrir o modulo de backup/restore

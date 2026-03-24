@@ -31,6 +31,8 @@ Hoje o monorepo ja tem pontos que favorecem essa evolucao:
 - o schema Prisma ja contem `company.whatsapp`
 - a operacao remota ja integra `Zammad`, `RemoteHost` e `RemoteSession`
 - o projeto ja trabalha com webhooks, cache operacional do `Zammad` e rotas de integracao
+- a base de `CompanyContact` ja entrou no cadastro da empresa
+- a base Prisma de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja foi aberta
 
 <Callout type="info" title="Leitura correta do estado atual">
   A base atual ja esta pronta para um canal conversacional futuro, mas ainda nao existe infraestrutura dedicada de fila, worker de mensagens nem um backend materializado com casos de uso reais em `apps/api`.
@@ -350,7 +352,7 @@ Restricoes recomendadas:
 <Steps>
   <Step>
     ### Fase 1 - Preparacao de dominio
-    Criar contratos compartilhados para conversa, mensagem, vinculo com ticket e eventos de automacao em `packages/contracts` e `packages/core`.
+    Consolidar os contratos ja abertos para conversa, mensagem, fila e atribuicao, aplicar as migrations pendentes e normalizar os adapters de dominio.
   </Step>
   <Step>
     ### Fase 2 - Materializacao do backend dedicado
@@ -479,6 +481,21 @@ Com a infraestrutura atual, a sequencia mais coerente e:
 - criar cache e reconciliacao de ticket por conversa
 - amarrar handoff remoto ao fluxo de `RemoteSession`
 - introduzir `Redis/BullMQ`
+
+## Estado atual do recorte
+
+Ja existe:
+
+- `CompanyContact` no cadastro da empresa
+- contratos de conversa no dominio
+- modelagem Prisma base das tabelas conversacionais
+
+Ainda falta:
+
+- aplicar migration no ambiente
+- abrir queries/actions minimas
+- materializar backend dedicado
+- criar o bridge e as filas reais
 
 ## Conclusao
 

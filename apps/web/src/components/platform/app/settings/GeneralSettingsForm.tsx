@@ -19,19 +19,21 @@ import {
     Banknote, Lock
 } from "lucide-react";
 
+const defaultValues: SettingsInput = {
+    minimumWage: 0,
+    maintenanceMode: false,
+    supportEmail: "",
+    supportPhone: "",
+    rbacMatrixEnabled: true,
+};
+
 export default function GeneralSettingsForm() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, startTransition] = useTransition();
 
     const form = useForm<SettingsInput>({
-        resolver: zodResolver(settingsSchema) as any,
-        defaultValues: {
-            minimumWage: 0,
-            maintenanceMode: false,
-            supportEmail: "",
-            supportPhone: "",
-            rbacMatrixEnabled: true,
-        } as any,
+        resolver: zodResolver(settingsSchema),
+        defaultValues,
         mode: "onChange"
     });
 

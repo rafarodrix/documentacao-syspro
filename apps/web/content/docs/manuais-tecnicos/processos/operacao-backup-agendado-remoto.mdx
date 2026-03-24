@@ -371,6 +371,13 @@ Este manual orienta principalmente:
 - parte futura de `FEAT-002B`
 - expansao operacional do modulo remoto
 
+## Dependencias de ambiente antes de implementar
+
+- validar heartbeat real do agente remoto
+- endurecer `installToken` para fluxo de bootstrap + `agentToken`
+- fechar a auditoria de sessao remota e o job de expiracao
+- aplicar migrations pendentes do modulo remoto no ambiente
+
 <Callout type="warning" title="Decisao de produto">
   A experiencia de backup deve nascer dentro do mesmo modulo remoto ja existente, para que host, heartbeat, RustDesk, artefatos e jobs compartilhem contexto operacional unico.
 </Callout>

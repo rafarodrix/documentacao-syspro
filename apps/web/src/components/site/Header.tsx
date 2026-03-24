@@ -39,10 +39,13 @@ async function getSiteSession() {
   }
 }
 
+type SiteSession = Awaited<ReturnType<typeof getSiteSession>>;
+type SiteSessionUser = NonNullable<SiteSession>["user"];
+
 export async function SiteHeader() {
   const session = await getSiteSession();
 
-  const user = session?.user as any;
+  const user: SiteSessionUser | undefined = session?.user;
   const canViewTechnical = user?.role && SYSTEM_ROLES.includes(user.role);
   const dashboardUrl = "/app";
 
@@ -290,4 +293,3 @@ function MobileNavLink({ href, children, external }: { href: string; children: R
     </Link>
   );
 }
-
