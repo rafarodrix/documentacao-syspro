@@ -9,8 +9,8 @@ import type { TicketStatusCounts } from "./types";
 interface TicketsFiltersProps {
     searchTerm: string;
     setSearchTerm: (val: string) => void;
-    statusFilter: TicketStatusGroup | "all";
-    setStatusFilter: (val: TicketStatusGroup | "all") => void;
+    statusFilter: TicketStatusGroup;
+    setStatusFilter: (val: TicketStatusGroup) => void;
     isAdmin: boolean;
     counts: TicketStatusCounts;
 }
@@ -23,13 +23,8 @@ export function TicketsFilters({
     isAdmin,
     counts,
 }: TicketsFiltersProps) {
-    const total = counts.open + counts.pending + counts.closed;
 
     const handleStatusChange = (value: string) => {
-        if (value === "all") {
-            setStatusFilter("all");
-            return;
-        }
 
         if (isTicketStatusGroup(value)) {
             setStatusFilter(value);
@@ -38,8 +33,8 @@ export function TicketsFilters({
 
     return (
         <div className="flex flex-col items-center justify-between gap-4 p-1 lg:flex-row">
-            <Tabs defaultValue="all" value={statusFilter} onValueChange={handleStatusChange} className="w-full lg:w-auto">
-                <TabsList className="grid h-11 w-full grid-cols-4 rounded-lg border border-border/40 bg-muted/40 p-1 lg:w-auto">
+            <Tabs defaultValue="open" value={statusFilter} onValueChange={handleStatusChange} className="w-full lg:w-auto">
+                <TabsList className="grid h-11 w-full grid-cols-3 rounded-lg border border-border/40 bg-muted/40 p-1 lg:w-auto">
                     <TabsTrigger value="open" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                         Abertos ({counts.open})
                     </TabsTrigger>
@@ -48,9 +43,6 @@ export function TicketsFilters({
                     </TabsTrigger>
                     <TabsTrigger value="closed" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                         Fechados ({counts.closed})
-                    </TabsTrigger>
-                    <TabsTrigger value="all" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                        Todos ({total})
                     </TabsTrigger>
                 </TabsList>
             </Tabs>

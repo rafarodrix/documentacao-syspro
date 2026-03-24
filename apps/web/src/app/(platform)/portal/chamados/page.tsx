@@ -17,12 +17,12 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const queueParam = typeof params?.queue === "string" ? params.queue : "all";
   const search = typeof params?.search === "string" ? params.search : "";
-  const statusParam = typeof params?.status === "string" ? params.status : "all";
+  const statusParam = typeof params?.status === "string" ? params.status : "open";
 
   const queue = TICKET_QUEUE_KEYS.includes(queueParam as QueueKey)
     ? (queueParam as QueueKey)
     : "all";
-  const statusGroup: TicketStatusGroup | "all" = isTicketStatusGroup(statusParam) ? statusParam : "all";
+  const statusGroup: TicketStatusGroup = isTicketStatusGroup(statusParam) ? statusParam : "open";
 
   const { data, success, pagination, staleWarning, queueCounts, statusCounts } = await getTicketsAction({
     page,
@@ -55,3 +55,4 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     />
   );
 }
+

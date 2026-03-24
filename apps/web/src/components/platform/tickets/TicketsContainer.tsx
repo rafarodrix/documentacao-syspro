@@ -21,7 +21,7 @@ interface TicketsContainerProps {
     queueCounts: Record<QueueKey, number>;
     statusCounts: TicketStatusCounts;
     search: string;
-    statusGroup: TicketStatusGroup | "all";
+    statusGroup: TicketStatusGroup;
 }
 
 export function TicketsContainer({
@@ -82,9 +82,9 @@ export function TicketsContainer({
         });
     };
 
-    const setStatusFilter = (nextStatus: TicketStatusGroup | "all") => {
+    const setStatusFilter = (nextStatus: TicketStatusGroup) => {
         updateParams((params) => {
-            if (nextStatus === "all") {
+            if (nextStatus === "open") {
                 params.delete("status");
             } else {
                 params.set("status", nextStatus);
@@ -181,3 +181,4 @@ export function TicketsContainer({
         </div>
     );
 }
+
