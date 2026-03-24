@@ -97,7 +97,7 @@ export default async function ReformaTributariaPage() {
 
 function TaxViewerSkeleton() {
   return (
-    <div className="h-[600px] w-full space-y-4 rounded-md border bg-card p-4">
+    <div className="h-150 w-full space-y-4 rounded-md border bg-card p-4">
       <div className="h-10 w-full animate-pulse rounded-md bg-muted/40" />
       <div className="space-y-2">
         {[1, 2, 3, 4, 5].map((i) => (

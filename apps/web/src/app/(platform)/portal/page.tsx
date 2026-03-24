@@ -21,9 +21,9 @@ export default async function DashboardPage() {
   return (
     <div className="flex-1 space-y-4 sm:space-y-5 p-4 sm:p-6">
       <div>
-        <h1 className="text-lg sm:text-xl font-semibold tracking-tight">Bom dia, {session.name?.split(" ")[0] ?? "usuário"}</h1>
+        <h1 className="text-lg sm:text-xl font-semibold tracking-tight">Bom dia, {session.name?.split(" ")[0] ?? "usuÃ¡rio"}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {isSystemUser ? "Visão operacional do sistema em tempo real." : "Resumo da sua conta e chamados recentes."}
+          {isSystemUser ? "VisÃ£o operacional do sistema em tempo real." : "Resumo da sua conta e chamados recentes."}
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
           <div className="grid gap-4 grid-cols-1 xl:grid-cols-7">
             <ActivityChart
               title="Novos cadastros por dia"
-              description="Empresas criadas nos últimos 7 dias"
+              description="Empresas criadas nos Ãºltimos 7 dias"
               points={data.activity}
               badgeLabel="Atualizado agora"
             />
@@ -61,7 +61,7 @@ export default async function DashboardPage() {
         </>
       ) : (
         <>
-          <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card via-card to-primary/10 p-5 sm:p-6">
+          <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-linear-to-br from-card via-card to-primary/10 p-5 sm:p-6">
             <ShineBorder borderWidth={1} duration={14} shineColor={["#60a5fa66", "#22d3ee55", "#a78bfa55"]} />
             <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -69,9 +69,9 @@ export default async function DashboardPage() {
                   <Sparkles className="h-3.5 w-3.5" />
                   Painel do cliente
                 </div>
-                <h2 className="text-xl font-semibold tracking-tight">Sua operação em um só lugar</h2>
+                <h2 className="text-xl font-semibold tracking-tight">Sua operaÃ§Ã£o em um sÃ³ lugar</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Acompanhe chamados, histórico e movimentações recentes da sua conta.
+                  Acompanhe chamados, histÃ³rico e movimentaÃ§Ãµes recentes da sua conta.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
                 <Button asChild variant="outline" className="gap-2">
                   <Link href="/docs">
                     <BookOpen className="h-4 w-4" />
-                    Abrir documentação
+                    Abrir documentaÃ§Ã£o
                   </Link>
                 </Button>
               </div>
@@ -102,8 +102,8 @@ export default async function DashboardPage() {
                   <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Users className="h-3.5 w-3.5" />
                     {data.companyName === "Sem empresa vinculada"
-                      ? "Solicite vínculo de empresa ao administrador."
-                      : `${data.companyUsers} usuário(s) vinculado(s)`}
+                      ? "Solicite vÃ­nculo de empresa ao administrador."
+                      : `${data.companyUsers} usuÃ¡rio(s) vinculado(s)`}
                   </p>
                 </CardContent>
               </Card>
@@ -118,7 +118,7 @@ export default async function DashboardPage() {
                   <p className="text-3xl font-bold">
                     <NumberTicker value={data.totalOpen} />
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">{data.kpis.pending} em análise/pendentes</p>
+                  <p className="text-xs text-muted-foreground mt-1">{data.kpis.pending} em anÃ¡lise/pendentes</p>
                 </CardContent>
               </Card>
             </MagicCard>
@@ -132,7 +132,7 @@ export default async function DashboardPage() {
                   <p className="text-3xl font-bold">
                     <NumberTicker value={data.kpis.resolved} />
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">Histórico dos tickets recentes</p>
+                  <p className="text-xs text-muted-foreground mt-1">HistÃ³rico dos tickets recentes</p>
                 </CardContent>
               </Card>
             </MagicCard>
@@ -149,11 +149,11 @@ export default async function DashboardPage() {
             <ShineBorder borderWidth={1} duration={18} shineColor={["#22d3ee40", "#a78bfa44"]} className="opacity-60" />
             <div className="relative z-10 grid gap-4 grid-cols-1 xl:grid-cols-4">
               <ActivityChart
-                title="Atualizações de chamados"
-                description="Movimento dos seus chamados nos últimos 7 dias"
+                title="AtualizaÃ§Ãµes de chamados"
+                description="Movimento dos seus chamados nos Ãºltimos 7 dias"
                 points={data.activity}
-                badgeLabel="Meu histórico"
-                emptyLabel="Nenhuma atualização recente"
+                badgeLabel="Meu histÃ³rico"
+                emptyLabel="Nenhuma atualizaÃ§Ã£o recente"
               />
             </div>
           </div>
