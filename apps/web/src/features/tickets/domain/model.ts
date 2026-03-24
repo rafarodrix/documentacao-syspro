@@ -157,6 +157,8 @@ export interface ClientDashboardViewData {
     zammadWarning?: string;
     companyName: string;
     companyUsers: number;
+    companyCount: number;
+    companyNames: string[];
     tickets: TicketSummaryItem[];
     totalOpen: number;
     kpis: TicketKpis;

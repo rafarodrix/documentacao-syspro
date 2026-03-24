@@ -1,19 +1,29 @@
-# @dosc-syspro/app-mobile
+﻿# @dosc-syspro/app-mobile
 
 Shell estrutural do app mobile do monorepo.
 
-Objetivo:
-- materializar a pasta `apps/mobile`
+## Objetivo
+
 - fixar o boundary do mobile em cima de `packages/contracts`, `packages/core` e `packages/shared`
 - evitar dependencia de `Next.js`, Prisma e componentes web
+- permitir evolucao futura sem reescrever contratos e regras de negocio
 
-Estado atual:
+## Scripts
+
+```bash
+npm run dev -w @dosc-syspro/app-mobile
+npm run typecheck -w @dosc-syspro/app-mobile
+```
+
+## Estado atual
+
 - shell de workspace criado
 - navegacao e view models mobile definidos em TypeScript puro
 - mapeadores consumindo contratos e dominio compartilhado
 - runtime mobile ainda nao foi conectado a Expo ou React Native
 
-Escopo propositalmente fora deste passo:
+## Fora do escopo atual
+
 - design system mobile
 - navegacao nativa
 - auth mobile

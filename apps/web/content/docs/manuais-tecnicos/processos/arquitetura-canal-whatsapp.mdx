@@ -1,7 +1,7 @@
 ---
-title: Arquitetura futura do canal WhatsApp
-description: Diretrizes tecnicas para introduzir WhatsApp na plataforma usando a infraestrutura atual do monorepo, Zammad e RustDesk sem acoplar o canal ao app web.
-lastUpdated: 2026-03-23
+title: Arquitetura Futura do Canal WhatsApp
+description: Diretrizes tecnicas para introduzir o canal WhatsApp sem acoplar conversas, atendimento e remoto ao frontend.
+lastUpdated: 2026-03-24
 owner: Engenharia de Plataforma
 status: draft
 ---
@@ -11,500 +11,133 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 
 ## Objetivo
 
-Definir como o canal de WhatsApp deve entrar no ecossistema atual da Trilink sem degradar:
+Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo, preservando:
 
-- o portal web em `apps/web`
-- o shell de backend dedicado em `apps/api`
-- a integracao ja existente com `Zammad`
-- a plataforma remota baseada em `RustDesk`
+- `apps/web` como portal administrativo e operacional
+- `apps/api` como backend central de orquestracao
+- `Zammad` como help desk
+- `RustDesk` como dominio remoto controlado
 
-Este documento trata o WhatsApp como **canal futuro mediado pelo backend**, e nao como logica embutida no frontend ou no help desk.
+## Base atual que favorece essa evolucao
 
-## Diagnostico da base atual
-
-Hoje o monorepo ja tem pontos que favorecem essa evolucao:
-
-- `apps/web` concentra portal administrativo, operacao e UI
-- `apps/api` ja existe como shell HTTP dedicado para separar backend do web
-- `packages/api` ja encapsula o nucleo modular do BFF
-- `packages/contracts`, `packages/core` e `packages/database` ja formam a base para contratos, regras e persistencia compartilhada
-- o schema Prisma ja contem `company.whatsapp`
-- a operacao remota ja integra `Zammad`, `RemoteHost` e `RemoteSession`
-- o projeto ja trabalha com webhooks, cache operacional do `Zammad` e rotas de integracao
-- a base de `CompanyContact` ja entrou no cadastro da empresa
-- a base Prisma de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja foi aberta
+- `apps/api` e `apps/mobile` ja existem como shells
+- `packages/contracts`, `packages/core` e `packages/database` ja abrem caminho para compartilhamento real
+- `CompanyContact` ja entrou no cadastro da empresa
+- o dominio e o Prisma ja possuem base para:
+  - `Conversation`
+  - `ConversationMessage`
+  - `ConversationQueueEvent`
+  - `ConversationAssignment`
 
 <Callout type="info" title="Leitura correta do estado atual">
-  A base atual ja esta pronta para um canal conversacional futuro, mas ainda nao existe infraestrutura dedicada de fila, worker de mensagens nem um backend materializado com casos de uso reais em `apps/api`.
+  A base ja comporta um canal conversacional futuro, mas ainda nao existe backend materializado com casos de uso reais, fila operacional dedicada ou bridge de WhatsApp em producao.
 </Callout>
 
-## Decisao arquitetural recomendada
+## Decisao arquitetural
 
-Para a infraestrutura atual, a melhor composicao e esta:
-
-1. `apps/web` permanece como portal administrativo e operacional
-2. `apps/api` evolui para backend central de negocio e orquestracao
-3. um novo `apps/whatsapp-bridge` entra como servico isolado de conexao com WhatsApp
-4. `Redis/BullMQ` entra como fila entre bridge, backend, Zammad e automacoes
-5. `PostgreSQL + Prisma` continuam como fonte de verdade
-
-## O que nao fazer
-
-- nao rodar Baileys dentro do frontend
-- nao embutir o ciclo de QR, reconnect e credenciais do WhatsApp dentro de `apps/web`
-- nao acoplar regra de negocio no bridge
-- nao deixar o `Zammad` decidir sozinho politicas de cliente, empresa, ticket ou acesso remoto
-
-## Encaixe com a infraestrutura atual
-
-### Papel de `apps/web`
-
-O portal web deve continuar responsavel por:
-
-- onboarding e administracao do canal
-- configuracao por empresa
-- visualizacao de estado da conexao WhatsApp
-- fila operacional para suporte
-- auditoria e dashboards
-
-### Papel de `apps/api`
-
-O backend dedicado deve ser o orquestrador do dominio:
-
-- resolver telefone -> contato -> empresa
-- decidir abertura, reaproveitamento ou encerramento de ticket
-- decidir quando uma conversa pode oferecer suporte remoto
-- publicar jobs em fila
-- expor webhooks e APIs internas para o bridge
-
-<Callout type="warning" title="NestJS vs infraestrutura atual">
-  Se a equipe quiser NestJS no futuro, o melhor encaixe e usa-lo como runtime de `apps/api` ou de um novo app dedicado, reaproveitando `packages/contracts`, `packages/core` e `packages/database`. O que nao faz sentido e reintroduzir regra de negocio dentro do framework e perder a modularizacao que o monorepo ja conquistou.
-</Callout>
-
-### Papel de `apps/whatsapp-bridge`
-
-O bridge deve ficar isolado porque lida com:
-
-- QR code
-- credenciais de sessao
-- reconnect
-- eventos de mensagem
-- anexo e download de midia
-- limites e instabilidade do canal
-
-Esse servico deve conhecer apenas contratos tecnicos e APIs internas do backend, sem virar fonte de verdade de negocio.
-
-## Opcao de canal
-
-### Opcao A: bridge proprio com Baileys
-
-Mais alinhada com:
-
-- self-host
-- QR code
-- controle operacional total
-- onboarding tecnico sem depender da Meta desde o primeiro dia
-
-Riscos:
-
-- maior risco operacional
-- manutencao do bridge sob responsabilidade propria
-- maior sensibilidade a mudancas da biblioteca/canal
-
-### Opcao B: API oficial da Meta
-
-Mais alinhada com:
-
-- compliance
-- previsibilidade de continuidade
-- suporte oficial do fornecedor
-
-Impacto arquitetural:
-
-- a arquitetura geral continua praticamente a mesma
-- so muda o adaptador de canal
-- `apps/api` continua sendo o orquestrador
-
-## Topologia recomendada
+O desenho recomendado continua sendo:
 
 ```text
-Cliente WhatsApp
-  -> apps/whatsapp-bridge
-  -> fila Redis/BullMQ
-  -> apps/api
-  -> PostgreSQL / Prisma
-  -> Zammad
-  -> plataforma remota / RustDesk
-  -> apps/web para operacao e administracao
+apps/web
+  -> operacao, configuracao e auditoria
+apps/api
+  -> backend central de negocio
+apps/whatsapp-bridge
+  -> sessao do canal, QR, reconnect e eventos tecnicos
+Redis/BullMQ
+  -> fila entre bridge, backend e automacoes
+PostgreSQL / Prisma
+  -> fonte de verdade
+Zammad
+  -> ticketing
+RustDesk
+  -> handoff remoto governado pelo backend
 ```
 
-## Modelo de dominio sugerido
+## Regras que nao devem ser quebradas
 
-O schema atual ja tem `company.whatsapp`, mas isso nao basta para um canal conversacional completo.
+- nao rodar logica do canal no frontend
+- nao deixar o bridge decidir regra de negocio
+- nao transformar WhatsApp em bypass para suporte remoto
+- nao promover contato inbound diretamente para `User`
 
-Entidades sugeridas para fase futura:
+## Responsabilidades por camada
 
-- `CompanyContact`
-  - representa um contato operacional da empresa
-  - nao autentica no portal
-  - pode nascer de mensagem inbound, cadastro manual ou importacao
-  - pode depois ser promovido para `User`
-- `WhatsAppConnection`
-  - identifica uma instancia ou numero conectado
-  - guarda status da sessao, ultima sincronizacao e metadados operacionais
-- `WhatsAppContact`
-  - normaliza telefone, nome exibido e chaves externas
-- `Conversation`
-  - representa o fio da conversa por contato/empresa
-  - o canal entra como atributo, nao como nome da entidade
-  - deve preservar snapshots do contato no momento da conversa
-- `ConversationMessage`
-  - armazena inbound/outbound, tipo de conteudo, status e correlacao
-  - deve rastrear delivery, falha, reenvio e midia
-- `ConversationQueueEvent`
-  - registra entrada/saida de fila, SLA e historico operacional
-- `ConversationAssignment`
-  - registra assuncao, transferencia e liberacao por analista
-- `WhatsAppTicketLink`
-  - vincula conversa ao ticket do `Zammad`
-- `WhatsAppAutomationEvent`
-  - trilha de prompts, handoff, fallback, erro e automacoes
+### `apps/web`
 
-Campos ja reaproveitaveis da base atual:
+- onboarding e administracao do canal
+- fila operacional
+- auditoria
+- dashboards e estado da conexao
 
-- `company.whatsapp`
-- `company.emailContato`
-- `company.zammadEmails`
-- `remote_host`
-- `remote_session`
-- `ZammadTicketCache`
+### `apps/api`
 
-### Ajustes recomendados antes do Prisma
+- resolver contato, empresa e ticket
+- aplicar politicas de atendimento
+- abrir ou atualizar ticket no `Zammad`
+- autorizar eventual handoff remoto
 
-Para evitar retrabalho na persistencia, o contrato deve nascer com alguns campos que normalmente so aparecem quando a operacao fica real:
+### `apps/whatsapp-bridge`
 
-- `Conversation`
-  - `externalThreadId`
-  - `connectionId`
-  - `contactPhoneSnapshot`
-  - `contactWhatsappSnapshot`
-  - `contactNameSnapshot`
-  - `lastInboundAt`
-  - `lastOutboundAt`
-  - `closedAt`
-  - `resolvedByUserId`
-- `ConversationMessage`
-  - `replyToMessageId`
-  - `quotedExternalMessageId`
-  - `providerStatus`
-  - `providerError`
-  - `retryCount`
-  - `deliveredAt`
-  - `readAt`
-  - `storageKey`
-  - `fileSize`
-  - `checksum`
-- `ConversationQueueEvent`
-  - `enteredAt`
-  - `leftAt`
-  - `position`
-  - `slaDeadlineAt`
-  - `breachedAt`
-  - `assignedTeam`
-- `ConversationAssignment`
-  - `assignmentType`
-  - `transferFromUserId`
-  - `acceptedAt`
-  - `declinedAt`
+- QR code
+- credenciais da sessao
+- reconnect
+- midia
+- eventos tecnicos de inbound e outbound
 
-### Separacao entre identidade autenticavel e contato de atendimento
+## Modelo de dominio recomendado
 
-Regra estrutural recomendada:
+- `CompanyContact` para identidade operacional
+- `Conversation` para o fio da conversa
+- `ConversationMessage` para inbound e outbound
+- `ConversationQueueEvent` para fila e SLA
+- `ConversationAssignment` para assuncao e transferencia
 
-- `User`
-  - identidade autenticavel
-  - acessa a plataforma
-  - participa de sessao, permissao e membership
-- `CompanyContact`
-  - identidade operacional de conversa
-  - nao acessa a plataforma
-  - pode ser vinculado a empresa sem virar usuario do sistema
+Separacao obrigatoria:
 
-Essa separacao evita poluir a tabela de usuarios com numeros temporarios, terceiros ou contatos que so existem para atendimento.
+- `User` autentica no portal
+- `CompanyContact` existe para atendimento e pode ou nao ser promovido depois
 
-### Campos minimos sugeridos para `CompanyContact`
+## Fluxo funcional de referencia
 
-- `id`
-- `companyId?`
-- `name`
-- `phone`
-- `whatsapp`
-- `email?`
-- `notes?`
-- `source`
-  - `WHATSAPP`
-  - `MANUAL`
-  - `IMPORT`
-- `status`
-  - `PENDING_LINK`
-  - `LINKED`
-  - `ARCHIVED`
+1. mensagem chega ao bridge
+2. bridge publica evento tecnico
+3. `apps/api` resolve contato e empresa
+4. backend decide se continua conversa ou cria nova
+5. backend cria ou atualiza ticket no `Zammad`
+6. se houver necessidade de remoto, backend valida ticket, empresa e host antes de abrir `RemoteSession`
 
-### Promocao de contato para usuario
-
-O contato nao deve nascer como `User`.
-
-Fluxo recomendado:
-
-1. contato entra por conversa e vira `CompanyContact`
-2. analista vincula o contato a uma empresa, se necessario
-3. quando esse contato precisar acessar o portal, ele e promovido para `User`
-4. o sistema preserva o vinculo entre `CompanyContact` e `User`
-
-Diretriz de nomenclatura:
-
-- preferir `Contact` ou `CompanyContact`
-- evitar `PreUser`, porque isso mistura atendimento com autenticacao
-
-## Fluxo funcional recomendado
-
-### 1. Entrada de mensagem
-
-1. cliente envia mensagem ao numero da operacao
-2. `apps/whatsapp-bridge` recebe o evento
-3. bridge persiste o minimo tecnico e publica job de inbound
-4. `apps/api` resolve o telefone e tenta localizar `CompanyContact`
-5. backend decide:
-   - reutilizar contato existente
-   - criar novo `CompanyContact` pendente
-   - continuar conversa existente
-   - criar conversa nova
-   - abrir ou atualizar ticket no `Zammad`
-
-### 1A. Fila operacional inicial
-
-O frontend operacional futuro deve trabalhar com fila de atendimento.
-
-Estados minimos recomendados:
-
-- `NEW`
-- `UNASSIGNED`
-- `IN_PROGRESS`
-- `WAITING_CUSTOMER`
-- `RESOLVED`
-- `ARCHIVED`
-
-Fluxo inicial recomendado:
-
-1. chegou mensagem nova
-2. conversa entra em fila
-3. analista assume atendimento
-4. analista pode vincular o contato a empresa existente
-5. analista pode abrir ou atualizar ticket
-6. analista pode iniciar outbound manual para contatos existentes
-
-### 1B. Outbound manual
-
-O fluxo inicial tambem deve permitir atendimento ativo pelo analista.
-
-O analista deve poder:
-
-- buscar `CompanyContact`
-- buscar empresa
-- iniciar conversa outbound
-- continuar conversa existente
-
-Restricoes recomendadas:
-
-- outbound manual deve gerar trilha auditavel
-- oferta de suporte remoto continua exigindo ticket e empresa vinculados
-
-### 2. Classificacao e ticket
-
-1. backend verifica se ja existe ticket aberto para a conversa
-2. se nao existir, cria ticket no `Zammad`
-3. mensagens subsequentes viram artigos internos/externos do ticket
-4. o id do ticket e salvo no vinculo da conversa
-
-### 3. Atendimento remoto
-
-1. atendente identifica necessidade de acesso remoto
-2. backend valida:
-   - empresa resolvida
-   - ticket ativo
-   - host elegivel
-   - permissao do operador
-3. backend cria ou reutiliza `RemoteSession`
-4. somente depois entrega:
-   - instrucoes ao atendente
-   - deep-link controlado do `RustDesk`
-   - comentario interno no `Zammad`
-
-### 4. Saida de mensagem
-
-1. resposta do operador ou automacao entra em `apps/api`
-2. backend publica job outbound
-3. bridge envia a mensagem pelo canal
-4. resultado e persistido com status de entrega/falha
-
-## Fluxo tecnico de implementacao
+## Fases recomendadas
 
 <Steps>
   <Step>
-    ### Fase 1 - Preparacao de dominio
-    Consolidar os contratos ja abertos para conversa, mensagem, fila e atribuicao, aplicar as migrations pendentes e normalizar os adapters de dominio.
+    ### Fase 1 - Dominio e persistencia
+    Fechar migrations, contratos e adapters minimos de conversas.
   </Step>
   <Step>
-    ### Fase 2 - Materializacao do backend dedicado
-    Ligar `apps/api` aos casos de uso reais do monorepo, com endpoints internos para bridge, webhook, inbound e outbound.
+    ### Fase 2 - Backend dedicado
+    Ligar `apps/api` aos casos de uso reais de inbound, outbound e webhook interno.
   </Step>
   <Step>
-    ### Fase 3 - Bridge WhatsApp
-    Criar `apps/whatsapp-bridge` como servico isolado, com sessao, QR, reconnect, download de midia e comunicacao com `apps/api`.
+    ### Fase 3 - Bridge do canal
+    Criar `apps/whatsapp-bridge` com sessao, QR, reconnect e midia fora do frontend.
   </Step>
   <Step>
-    ### Fase 4 - Fila e worker
-    Introduzir `Redis/BullMQ` para desacoplar bursts, midia, retries e jobs de integracao com `Zammad`.
-  </Step>
-  <Step>
-    ### Fase 5 - Operacao no portal
-    Expor no `apps/web` o status do canal, fila de conversas, auditoria, estados da sessao e handoff para suporte remoto.
+    ### Fase 4 - Fila operacional
+    Introduzir `Redis/BullMQ` para bursts, retries, midia e desacoplamento.
   </Step>
 </Steps>
 
-## Estrutura sugerida no monorepo
+## O que ficou fora deste documento
 
-```text
-apps/
-  web/
-  api/
-  whatsapp-bridge/
-packages/
-  api/
-  contracts/
-  core/
-  database/
-  shared/
-```
+- backlog detalhado de implementacao
+- checklist de migration
+- lista de tarefas de sprint
 
-## Contratos internos recomendados
+Esses itens ficam no backlog central para nao duplicar fonte de verdade.
 
-Endpoints internos entre bridge e backend:
+## Relacao com outros manuais
 
-- `POST /internal/whatsapp/inbound`
-- `POST /internal/whatsapp/outbound`
-- `POST /internal/whatsapp/session/status`
-- `POST /internal/whatsapp/media/uploaded`
-- `GET /internal/whatsapp/bootstrap/:connectionId`
-
-Filas recomendadas:
-
-- `whatsapp:inbound`
-- `whatsapp:outbound`
-- `whatsapp:media`
-- `zammad:sync`
-- `remote:handoff`
-
-## Regras obrigatorias desde o inicio
-
-- telefone sozinho nao libera acesso remoto
-- toda oferta de suporte remoto exige ticket vinculado
-- bridge nao decide regra de negocio
-- novo contato inbound vira `CompanyContact`, nao `User`
-- promocao para `User` acontece so quando houver necessidade de autenticacao
-- credencial e sessao do canal devem ficar fora do frontend
-- anexos nao devem ficar em banco como blob bruto
-- toda mensagem automatica relevante deve gerar trilha auditavel
-
-## Seguranca e operacao
-
-### Seguranca minima
-
-- autenticar chamadas bridge -> backend com segredo rotativo ou assinatura
-- rate limit em endpoints internos expostos
-- segregacao por empresa no nivel do backend, nunca no bridge
-- storage separado para midia
-- mascaramento de dados pessoais em logs
-
-### Observabilidade minima
-
-- status da conexao por instancia
-- ultimo reconnect
-- fila de mensagens pendentes
-- tempo medio entre inbound e ticket criado
-- taxa de erro por outbound
-- correlacao entre conversa, ticket e sessao remota
-
-## Como o WhatsApp conversa com Zammad e RustDesk
-
-### Integracao com Zammad
-
-A recomendacao e manter o `Zammad` como sistema de atendimento, nao como controlador do canal.
-
-O backend deve:
-
-- abrir e atualizar tickets via API
-- transformar mensagens em artigos
-- sincronizar estados relevantes
-- refletir cache operacional quando o help desk oscilar
-
-### Integracao com RustDesk
-
-O canal de WhatsApp nao deve abrir remoto diretamente.
-
-O backend deve:
-
-- validar empresa e ticket
-- resolver host elegivel
-- abrir `RemoteSession`
-- so entao autorizar o deep-link ou a instrucao operacional
-
-Isso reaproveita a governanca ja criada na plataforma remota em vez de criar um bypass pelo canal conversacional.
-
-## Decisao pratica para este projeto
-
-Com a infraestrutura atual, a sequencia mais coerente e:
-
-1. consolidar `apps/api` com casos de uso reais
-2. abrir backlog de dominio para contatos, conversas e mensagens
-3. criar o bridge dedicado
-4. introduzir filas
-5. so depois expor operacao de WhatsApp no portal
-
-## Backlog tecnico sugerido
-
-- criar `CompanyContact` separado de `User`
-- materializar `apps/api` para casos de uso reais de integracao
-- criar contratos de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment`
-- criar contrato de promocao `CompanyContact -> User`
-- introduzir autenticacao entre bridge e backend
-- criar cache e reconciliacao de ticket por conversa
-- amarrar handoff remoto ao fluxo de `RemoteSession`
-- introduzir `Redis/BullMQ`
-
-## Estado atual do recorte
-
-Ja existe:
-
-- `CompanyContact` no cadastro da empresa
-- contratos de conversa no dominio
-- modelagem Prisma base das tabelas conversacionais
-
-Ainda falta:
-
-- aplicar migration no ambiente
-- abrir queries/actions minimas
-- materializar backend dedicado
-- criar o bridge e as filas reais
-
-## Conclusao
-
-A direcao faz sentido, mas o encaixe correto com a base atual nao e colocar WhatsApp dentro do app web. O desenho mais coerente para o monorepo e:
-
-- `apps/web` para operacao
-- `apps/api` como backend central
-- `apps/whatsapp-bridge` isolado
-- `Zammad` como help desk
-- `RustDesk` como engine remota governada pelo backend
-
-Isso preserva a arquitetura atual, reduz acoplamento e deixa aberta tanto a opcao de bridge proprio quanto a futura migracao para a API oficial da Meta sem reescrever o dominio.
+- backlog vivo: [`/docs/manuais-tecnicos/governanca/backlog-infra-monorepo`](/docs/manuais-tecnicos/governanca/backlog-infra-monorepo)
+- arquitetura geral: [`/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo`](/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo)
+- estrategia do remoto: [`/docs/manuais-tecnicos/estrategia/estrategia-plataforma-remota`](/docs/manuais-tecnicos/estrategia/estrategia-plataforma-remota)

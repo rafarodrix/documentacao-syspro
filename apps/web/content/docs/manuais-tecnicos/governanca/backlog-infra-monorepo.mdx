@@ -14,41 +14,17 @@ Concentrar apenas o backlog ainda pendente, separando:
 - infraestrutura e qualidade
 - novas funcionalidades em construcao
 
-## Contexto atual
+## Escopo deste backlog
 
-Entregas relevantes ja consolidadas:
+Este documento lista apenas o que ainda esta pendente ou em endurecimento.
 
-- shell arquitetural do monorepo (`packages/*`, `apps/api`, `apps/mobile`) aberto
-- `src/core` e `src/hooks` drenados
-- fallback transparente do `Zammad`, `React cache()` em sessao protegida e extracao de queries do dashboard concluidos
-- `src/lib` limpo dos helpers de dominio mais sensiveis (`releases`, scripts SQL, `rbac`, acesso por segmento)
-- base de `CompanyContact` aberta no cadastro de empresa
-- base de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` aberta no dominio e no Prisma
-- plataforma remota ja operacional com:
-  - grid simplificada por empresa, `RustDesk ID` e descricao da maquina
-  - cadastro rapido recolhivel
-  - copia de `RustDesk ID` e comando PowerShell
-  - download de script `.ps1` por host com nome amigavel
-  - regeneracao automatica de `installToken` legado
-  - matriz operacional `ONLINE`, `RECENT`, `OFFLINE`, `MISCONFIGURED`, `SESSION_BUSY`
-  - TTL de sessao, rate limit basico no agente e endurecimento do deep-link por sessao `STARTED`
+Nao e a fonte principal para:
 
-Estado atual do codigo:
+- arquitetura atual do monorepo
+- estrategia do modulo remoto
+- manuais operacionais do agente
 
-- boundaries por feature estao coerentes
-- `src/core` e `src/hooks` ja nao fazem parte da estrutura ativa
-- `src/lib`, `src/providers` e `src/types` seguem validos como camadas transversais
-- a feature `remote` ja saiu do shell puro e entrou em fase operacional inicial
-- a experiencia da feature `remote` ja foi separada em:
-  - `Configuracoes > Acesso Remoto`
-  - `/app/plataforma-remota`
-- a UX operacional inicial da feature `remote` ja contempla:
-  - grid simplificada por empresa, `RustDesk ID` e descricao da maquina
-  - cadastro rapido recolhivel de maquina
-  - copia rapida de `RustDesk ID` e do comando PowerShell
-  - download de script `.ps1` por host com nome amigavel
-  - geracao automatica de `installToken` para host legado no download do instalador
-  - detalhe do host com prontidao operacional e separacao entre observacoes do host vs empresa
+Esses pontos vivem em documentos especificos e devem ser referenciados daqui, nao repetidos.
 
 ## Diretriz de execucao
 
@@ -155,11 +131,11 @@ Ordem recomendada:
 2. `FEAT-006`
    limpeza final de hardcodes na area publica
 
-## Proximo passo recomendado
+## Referencias
 
-1. fechar `INFRA-022C` no ambiente e abrir `INFRA-023`
-2. depois voltar para `FEAT-001`, `FEAT-002B` e `FEAT-003` em ambiente real
-3. por fim abrir `FEAT-005` e `FEAT-007` sobre base mais estavel
+- arquitetura atual: [`/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo`](/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo)
+- estrategia remota: [`/docs/manuais-tecnicos/estrategia/estrategia-plataforma-remota`](/docs/manuais-tecnicos/estrategia/estrategia-plataforma-remota)
+- agente remoto OSS: [`/docs/manuais-tecnicos/processos/operacao-agente-remoto-oss`](/docs/manuais-tecnicos/processos/operacao-agente-remoto-oss)
 
 
 

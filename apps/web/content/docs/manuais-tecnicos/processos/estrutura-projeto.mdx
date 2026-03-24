@@ -1,93 +1,145 @@
 ---
-title: Estrutura do Projeto
-description: Visão geral da estrutura do projeto e organização dos arquivos.
-draft: true
-lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+title: Estrutura Atual do Projeto
+description: Visao pratica da estrutura vigente do monorepo e de onde cada tipo de responsabilidade deve ficar.
+lastUpdated: 2026-03-24
+owner: Engenharia de Plataforma
 status: published
 ---
 
+## Objetivo
 
-📦 app/
- ├─ layout.tsx                   # Layout global (tema, fontes, providers)
- ├─ globals.css                  # Tailwind e estilos globais
- │
- ├─ (public)/                    # Rotas públicas
- │   ├─ page.tsx                 # Página inicial
- │   ├─ login/
- │   │   └─ page.tsx
- │   ├─ portal/
- │   │   └─ page.tsx
- │   └─ docs/                    # Fumadocs
- │       ├─ layout.tsx
- │       └─ [...slug]/page.tsx
- │
- ├─ (internal)/                  # Rotas internas (autenticadas)
- │   └─ admin/
- │       ├─ layout.tsx           # Layout com sidebar
- │       ├─ page.tsx             # Dashboard principal
- │       ├─ scripts/
- │       │   └─ page.tsx         # Listagem de scripts SQL
- │       ├─ analisador/
- │       │   └─ page.tsx         # Página futura de análise
- │       └─ settings/
- │           └─ page.tsx         # Configurações futuras
- │
- ├─ api/
- │   ├─ scripts/
- │   │   └─ route.ts             # Manipulação dos scripts (GET, POST)
- │   └─ auth/
- │       └─ route.ts
- │
- ├─ favicon.ico
- ├─ layout.config.tsx
- └─ providers.tsx
+Descrever a estrutura que de fato esta em uso hoje no projeto, evitando referencia a layouts antigos que ja nao representam a base atual.
 
-📂 components/
- ├─ ui/                          # Componentes visuais reutilizáveis
- │   ├─ Button.tsx
- │   ├─ Card.tsx
- │   └─ Input.tsx
- ├─ admin/
- │   ├─ AdminSidebar.tsx
- │   ├─ DashboardCard.tsx
- │   └─ ScriptClientPage.tsx
- └─ portal/
-     └─ PortalCard.tsx
+## Visao geral do monorepo
 
-📂 lib/
- ├─ auth.ts                      # Autenticação
- ├─ api.ts                       # Axios/fetch
- ├─ utils.ts                     # Funções auxiliares
- ├─ scripts.ts                   # Funções para leitura dos scripts
- └─ validations/
-     └─ scriptSchema.ts          # Schema Zod
+```text
+apps/
+  web/        -> portal, docs, area publica e operacao principal
+  api/        -> shell HTTP dedicado para evolucao do backend
+  mobile/     -> shell estrutural para runtime mobile futuro
+packages/
+  api/        -> nucleo modular do BFF
+  contracts/  -> DTOs, schemas e contratos de fronteira
+  core/       -> regras e casos de uso extraiveis do app
+  database/   -> schema Prisma, client e persistencia compartilhada
+  shared/     -> utilitarios e funcoes puras compartilhadas
+  ui/         -> componentes e design system reutilizavel
+```
 
-📂 config/
- ├─ site.ts                      # Nome, URL, SEO
- ├─ docs.config.ts               # Configuração Fumadocs
- └─ theme.ts                     # Cores, dark mode, etc.
+## Estrutura principal de `apps/web`
 
-📂 server/
- ├─ db.ts                        # Conexão com banco
- ├─ actions/
- │   └─ scripts.ts               # Server actions (Next.js 14+)
- └─ services/
-     └─ scriptService.ts
+```text
+apps/web/
+  src/
+    app/          -> roteamento, layouts e endpoints do App Router
+    features/     -> dominio funcional por modulo
+    components/   -> componentes compartilhados de UI e composicao
+    lib/          -> infraestrutura transversal do app web
+    providers/    -> providers React
+    types/        -> tipos locais de suporte
+  content/
+    docs/         -> conteudo MDX da documentacao
+  public/         -> assets estaticos
+```
 
-📂 data/
- └─ scripts/
-     ├─ exemplo-01.mdx
-     ├─ exemplo-02.mdx
-     └─ exemplo-03.mdx
+## Regra por camada no app web
 
-📂 types/
- ├─ next-auth.d.ts
- ├─ script.d.ts
- └─ index.d.ts
+### `src/app`
 
-📂 public/
- └─ logo/
-     ├─ trilink.svg
-     └─ favicon.svg
+Responsavel por:
 
+- rotas
+- layouts
+- composicao de tela
+- route handlers do App Router
+
+Nao deve concentrar:
+
+- regra de negocio
+- consulta complexa repetida
+- integracao tecnica espalhada
+
+### `src/features/<feature>`
+
+Cada feature deve evoluir com separacao previsivel:
+
+```text
+src/features/<feature>/
+  domain/          -> tipos, regras puras, contratos
+  application/     -> queries, actions, orchestration, view models
+  infrastructure/  -> gateways, cache, adapters e mapeamentos tecnicos
+  interface/       -> componentes, tabelas, modais e containers
+  hooks/           -> hooks client-side especificos da feature
+```
+
+### `src/components`
+
+Fica reservado para:
+
+- `ui/` com componentes reutilizaveis de base
+- composicoes transversais que nao pertencem a uma unica feature
+
+Nao deve virar deposito de regra de negocio.
+
+### `src/lib`
+
+Camada transversal do app web para itens como:
+
+- auth
+- prisma client local
+- invalidacao de cache
+- observabilidade
+- helpers tecnicos compartilhados
+
+Regra funcional de dominio nao deve nascer aqui se pertencer claramente a uma feature.
+
+## Estrutura de docs
+
+```text
+apps/web/content/docs/
+  docs/                 -> documentacao publica e funcional
+  manuais-tecnicos/     -> arquitetura, governanca, processos e estrategia
+```
+
+Dentro de `manuais-tecnicos`, a organizacao correta e:
+
+- `arquitetura/` para fonte de verdade estrutural
+- `governanca/` para checklist, backlog e guardrails
+- `processos/` para manuais operacionais
+- `estrategia/` para direcao futura de modulos relevantes
+
+## Onde colocar codigo novo
+
+### Regra funcional nova
+
+Criar ou expandir uma feature em `apps/web/src/features/<feature>`.
+
+### Contrato compartilhado entre apps
+
+Avaliar `packages/contracts`.
+
+### Regra de negocio com potencial de extracao
+
+Avaliar `packages/core`, desde que o recorte ja esteja estavel.
+
+### Persistencia compartilhada
+
+Avaliar `packages/database`.
+
+### Componente visual reutilizavel
+
+Avaliar `packages/ui` ou `apps/web/src/components/ui`, conforme o escopo de reuso.
+
+## Sinais de estrutura antiga que nao devem voltar
+
+- pasta `server/` como centro de regra de negocio do app
+- components organizados por area antiga em vez de por feature
+- paginas montando query e autorizacao manualmente
+- helpers de dominio espalhados em `lib/`
+- documentos descrevendo apenas `app/`, `components/` e `lib/` como se o monorepo nao existisse
+
+## Documentos complementares
+
+- [`/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo`](/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo)
+- [`/docs/manuais-tecnicos/arquitetura/arquitetura-referencia-por-fluxo`](/docs/manuais-tecnicos/arquitetura/arquitetura-referencia-por-fluxo)
+- [`/docs/manuais-tecnicos/governanca/backlog-infra-monorepo`](/docs/manuais-tecnicos/governanca/backlog-infra-monorepo)

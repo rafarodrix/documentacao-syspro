@@ -1,336 +1,132 @@
-# 📘 Trilink Syspro — Documentação Técnica & Portal do Cliente
+# Trilink Syspro Workspace
 
-Este repositório concentra **a documentação oficial, manuais operacionais e o portal do cliente do Syspro ERP**, desenvolvido pela **Trilink Software**.
+Monorepo do portal, documentacao tecnica e shells de expansao do ecossistema Syspro ERP.
 
-O projeto foi construído com **Next.js 15 (App Router)**, **React 19** e **Fumadocs**, adotando **Clean Architecture + DDD** para garantir escalabilidade, organização e isolamento das regras de negócio em relação à interface.
+## Visao geral
 
-Além de documentação, esta aplicação atua como **plataforma funcional**, integrando:
+Este workspace concentra:
 
-* Autenticação e controle de acesso
-* Integrações fiscais (SEFAZ, XML, documentos)
-* Portal do cliente
-* Base para APIs e automações
+- `apps/web`: aplicacao principal em Next.js, portal, docs e operacao
+- `apps/api`: shell HTTP dedicado para evolucao do backend
+- `apps/mobile`: shell estrutural para futuro runtime mobile
+- `packages/*`: contratos, dominio compartilhado, banco, UI e utilitarios
 
----
+Hoje o runtime principal continua sendo o `@dosc-syspro/web`, mas a base ja esta organizada para evolucao incremental de multi-app.
 
-## 🚀 Stack Tecnológica
+## Estrutura
 
-### Core
-
-* **Next.js 15.2** (App Router)
-* **React 19**
-* **TypeScript**
-* **Clean Architecture + Domain Driven Design (DDD)**
-
-### Documentação
-
-* **Fumadocs (MDX)**
-* **KaTeX / Remark Math** para fórmulas técnicas
-* **Gray Matter** (front‑matter)
-
-### UI / UX
-
-* **Tailwind CSS 4**
-* **Shadcn/UI + Radix UI**
-* **Magic UI**
-* **Framer Motion**
-* **Lucide Icons**
-
-### Backend & Infra
-
-* **Prisma ORM**
-* **PostgreSQL**
-* **Better‑Auth + NextAuth**
-* **Axios**
-* **Fast XML Parser / xml2js**
-* **jsPDF / jsPDF‑AutoTable**
-
----
-
-## 📂 Estrutura de Pastas (Visão Geral)
-
-```
-.
-├── content
-├── prisma
-├── public
-├── src
-│   ├── actions
-│   ├── app
-│   ├── components
-│   ├── core
-│   ├── data
-│   ├── hooks
-│   ├── lib
-│   ├── providers
-│   ├── middleware.ts
-├── .env
-├── package.json
-├── README.md
+```text
+apps/
+  api/
+  mobile/
+  web/
+packages/
+  api/
+  contracts/
+  core/
+  database/
+  shared/
+  ui/
 ```
 
-Abaixo está o **detalhamento completo de cada pasta e seus papéis no projeto**.
+## Principios
 
----
+- regra de negocio nao fica em componente React
+- features do web evoluem em `src/features/<feature>`
+- adapters de infraestrutura ficam isolados
+- contratos compartilhados saem de telas e entram em packages quando estabilizam
+- a expansao para API e mobile deve reaproveitar contratos e dominio, nao duplicar fluxo
 
-## 📁 Raiz do Projeto
-
-### `content/`
-
-Fonte principal da **documentação em MDX**.
-
-* Manuais do usuário
-* Documentação fiscal
-* Guias técnicos
-* Tutoriais passo a passo
-
-Este conteúdo é consumido diretamente pelo **Fumadocs**.
-
----
-
-### `prisma/`
-
-Responsável por **persistência de dados e versionamento do banco**.
-
-* `schema.prisma` — Definição de modelos, enums e relacionamentos
-* `migrations/` — Histórico de migrações do banco
-* `seed.ts` — Dados iniciais (ambientes de dev/test)
-
-Scripts disponíveis:
+## Scripts principais
 
 ```bash
-npm run db:migrate
-npm run db:generate
+npm run dev
+npm run build
+npm run lint
+npm run typecheck
+npm run test
 ```
 
----
+Scripts especificos do workspace:
 
-### `public/`
+```bash
+npm run build:api
+npm run dev:api
+npm run typecheck:api
 
-Arquivos estáticos acessíveis diretamente:
+npm run build:mobile
+npm run dev:mobile
+npm run typecheck:mobile
 
-* Logos
-* Ícones
-* Imagens
-* Assets públicos
+npm run db:generate
+npm run db:validate
+npm run db:migrate
+npm run db:seed:remote
+```
 
----
+## Aplicacoes
 
-## 📁 `src/app` — Rotas & Navegação
+### `apps/web`
 
-Implementa o **App Router do Next.js**, organizado por **Route Groups**.
+Aplicacao principal em Next.js 15 com:
 
-### Estrutura
+- portal autenticado
+- documentacao MDX com Fumadocs
+- integracoes operacionais como tickets, remoto, tax e documentos
 
-* `(autenticacao)/`
+### `apps/api`
 
-  * Login
-  * Recuperação de senha
-  * Registro
+Shell HTTP em Node para expor o pacote `@dosc-syspro/api` fora do runtime do web.
 
-* `(platform)/`
+### `apps/mobile`
 
-  * Área autenticada do cliente
-  * Dashboards
-  * Funcionalidades internas
+Shell estrutural que fixa os boundaries do mobile sobre `contracts`, `core` e `shared`.
 
-* `(site)/`
+## Packages
 
-  * Páginas públicas
-  * Landing page
-  * Contato / Institucional
+### `@dosc-syspro/api`
 
-* `api/`
+Nucleo modular do BFF, com contexto, procedures e roteadores.
 
-  * API Routes
-  * Webhooks
-  * Integrações externas
+### `@dosc-syspro/contracts`
 
-* `docs/`
+DTOs e schemas de fronteira compartilhados.
 
-  * Rota base da documentação
-  * Renderização dinâmica MDX via Fumadocs
+### `@dosc-syspro/core`
 
-### Arquivos globais
+Regras puras e entidades extraiveis do app.
 
-* `layout.tsx` — Layout raiz da aplicação
-* `globals.css` — Estilos globais (Tailwind 4)
-* `not-found.tsx` — Página 404
+### `@dosc-syspro/database`
 
----
+Schema Prisma, migrations e bootstrap do client.
 
-## 📁 `src/components` — UI por Contexto
+### `@dosc-syspro/shared`
 
-Componentes React organizados **por domínio visual**, não por tipo genérico.
+Helpers puros e utilitarios sem acoplamento de UI.
 
-### Pastas
+### `@dosc-syspro/ui`
 
-* `ui/`
+Primitives e componentes reutilizaveis sem regra de negocio.
 
-  * Componentes base do Shadcn/UI
-  * Button, Input, Dialog, Tabs, etc
+## Ambiente
 
-* `auth/`
+O projeto depende de variaveis em `.env`, principalmente para:
 
-  * Formulários de autenticação
-  * Guards visuais
+- banco (`DATABASE_URL`, `DIRECT_URL`)
+- auth (`BETTER_AUTH_*`)
+- integracoes externas como Zammad
 
-* `docs/`
+Sem essas variaveis, partes do portal podem abrir em modo reduzido ou falhar em fluxos autenticados e de integracao.
 
-  * Componentes exclusivos para MDX
-  * Callouts, Cards, Alertas
+## Documentacao interna
 
-* `magicui/`
+A referencia arquitetural e operacional fica em:
 
-  * Animações avançadas
-  * Bento Grid, Marquee, Motion blocks
+- `apps/web/content/docs/manuais-tecnicos`
 
-* `platform/`
+Documentos principais:
 
-  * Componentes da área logada
-
-* `site/`
-
-  * Componentes do site público
-
-* `sefaz/`
-
-  * Visualização de XML
-  * Componentes fiscais
-
-### Arquivos de Base
-
-* `providers.tsx` — Wrapper global de contextos
-* `ThemeProvider.tsx` — Dark / Light mode
-* `ModeToggle.tsx` — Alternador de tema
-
----
-
-## 🧠 `src/core` — Coração da Aplicação
-
-**Totalmente desacoplado do Next.js**.
-Aqui vivem as **regras de negócio puras**.
-
-### `application/`
-
-Camada de **orquestração**.
-
-* `use-cases/`
-
-  * Casos de uso (regras aplicacionais)
-  * Ex: `ConsultarDocumentoFiscal`, `AbrirTicket`
-
-* `dto/`
-
-  * Data Transfer Objects
-  * Contratos de entrada e saída
-
-* `schema/`
-
-  * Schemas Zod
-  * Validação de dados
-
----
-
-### `domain/`
-
-O **domínio do negócio**.
-
-* `entities/`
-
-  * Entidades ricas
-  * Ex: Empresa, Documento, Usuário
-
-* `interfaces/`
-
-  * Contratos de repositórios e serviços
-
-* `errors/`
-
-  * Exceções do domínio
-
----
-
-### `infrastructure/`
-
-Implementações técnicas.
-
-* `gateways/`
-
-  * Integrações externas (SEFAZ, APIs)
-
-* `mappers/`
-
-  * Conversão DTO ↔ Entity
-
----
-
-### Outros diretórios do Core
-
-* `config/` — Permissões e regras globais
-* `constants/` — Constantes do domínio
-* `shared/` — Utilitários compartilhados
-* `types/` — Tipagens globais
-
----
-
-## ⚙️ Outras Pastas em `src/`
-
-### `actions/`
-
-* **Server Actions do Next.js**
-* Mutação de dados
-* Segurança no servidor
-
-### `hooks/`
-
-* Hooks React reutilizáveis
-
-### `lib/`
-
-* Utilitários gerais
-* Prisma Client
-* Axios Instances
-
-### `providers/`
-
-* Context Providers isolados
-
-### `data/scripts/`
-
-* Scripts manuais
-* Processamentos auxiliares
-
-### `middleware.ts`
-
-* Controle de acesso
-* Proteção de rotas
-
----
-
-## 🛠 Scripts Disponíveis
-
-| Script                | Descrição                   |
-| --------------------- | --------------------------- |
-| `npm run dev`         | Ambiente de desenvolvimento |
-| `npm run build`       | Build de produção           |
-| `npm run start`       | Start produção              |
-| `npm run postinstall` | Gera Fumadocs + Prisma      |
-| `npm run db:migrate`  | Migrações do banco          |
-| `npm run db:generate` | Geração do Prisma Client    |
-
----
-
-## 📌 Princípios do Projeto
-
-* UI **não contém regra de negócio**
-* Use Cases são a aplicação
-* Domínio é independente de framework
-* Documentação é código
-* Escalável para Mobile e Backend dedicado
-
----
-
-**Trilink Software — 2026**
-
-> Este projeto é a base oficial de documentação e evolução contínua do Syspro ERP.
+- arquitetura do monorepo
+- backlog de infraestrutura
+- estrategia da plataforma remota
+- integracao com Zammad

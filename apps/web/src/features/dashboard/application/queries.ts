@@ -305,9 +305,10 @@ export async function getDashboardData(
     };
   }
 
-  const [membership, scopedEmails] = await Promise.all([
-    prisma.membership.findFirst({
+  const [memberships, scopedEmails] = await Promise.all([
+    prisma.membership.findMany({
       where: { userId, company: { deletedAt: null } },
+      orderBy: { company: { razaoSocial: "asc" } },
       include: {
         company: {
           select: {
@@ -350,11 +351,18 @@ export async function getDashboardData(
       }
     : buildTicketKpis(normalizedTickets);
 
+  const companyNames = memberships
+    .map((membership) => membership.company.nomeFantasia || membership.company.razaoSocial)
+    .filter(Boolean);
+  const primaryMembership = memberships[0];
+
   return {
     mode: "client",
     zammadWarning: mergeZammadWarnings(zammadWarning, dashboardTicketWarning),
-    companyName: membership?.company?.nomeFantasia || membership?.company?.razaoSocial || "Sem empresa vinculada",
-    companyUsers: membership?.company?._count?.memberships || 0,
+    companyName: primaryMembership?.company?.nomeFantasia || primaryMembership?.company?.razaoSocial || "Sem empresa vinculada",
+    companyUsers: primaryMembership?.company?._count?.memberships || 0,
+    companyCount: companyNames.length,
+    companyNames,
     tickets,
     totalOpen: kpis.open + kpis.pending,
     kpis,

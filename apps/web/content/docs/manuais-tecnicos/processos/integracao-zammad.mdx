@@ -1,64 +1,97 @@
 ---
-title: Integração zammad
-description: Demonstrativo de Resultados do Exercício (DRE)
-draft: true
-lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+title: Integracao com Zammad
+description: Registro do papel atual do Zammad na plataforma e das diretrizes para novas integracoes.
+lastUpdated: 2026-03-24
+owner: Engenharia de Plataforma
 status: published
 ---
 
----
+import { Callout } from "fumadocs-ui/components/callout";
 
-### Análise da Proposta: Prós e Contras
+## Objetivo
 
-| Vantagens (Prós) 👍                                                                                                                                                                 | Desafios (Contras) 👎                                                                                                                                                                       |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Login Único (SSO):** Seus clientes não precisam de um novo login e senha. Eles usam as mesmas credenciais que já têm para acessar o portal de chamados do Zammad.                           | **Pré-requisito Técnico:** É crucial verificar se a sua versão/plano do Zammad permite que ele atue como um "Provedor OAuth 2.0" para aplicações externas. Nem todos os sistemas oferecem essa funcionalidade. |
-| **Segurança:** Você não precisa se preocupar em armazenar senhas ou gerenciar a segurança dos usuários. O Zammad, que é especializado nisso, cuida de tudo.                  | **Complexidade de Implementação:** A configuração do fluxo OAuth 2.0 requer lógica no lado do servidor e gerenciamento de sessões. A boa notícia é que isso é muito facilitado por bibliotecas como a **NextAuth.js**. |
-| **Personalização Total (O Grande Ganho):** Uma vez que o usuário está logado, sua Central de Ajuda **sabe quem ele é**. Isso abre um leque de possibilidades incríveis que discutimos: | **Documentação 100% Privada?** Restringir o acesso a *toda* a documentação pode ser um obstáculo para novos clientes ou para o SEO (mecanismos de busca não conseguirão indexar seu conteúdo). |
-| &nbsp;&nbsp;&nbsp;↳ **Painel "Meus Chamados":** Você pode criar a página que lista os tickets abertos e fechados daquele usuário específico.                                              |                                                                                                                                                                                             |
-| &nbsp;&nbsp;&nbsp;↳ **Abertura de Chamados Simplificada:** O formulário de suporte pode vir **pré-preenchido** com o nome e e-mail do cliente, reduzindo o atrito.                       |                                                                                                                                                                                             |
-| &nbsp;&nbsp;&nbsp;↳ **Conteúdo Exclusivo:** Você pode mostrar/ocultar seções da documentação com base no plano ou nos módulos que o cliente contratou, que estão registrados na organização dele no Zammad. |                                                                                                                                                                                             |
+Registrar como o projeto usa o Zammad hoje e evitar que decisoes antigas sobre SSO, frontend acoplado ou consultas redundantes voltem a orientar implementacoes novas.
 
----
+## Papel atual do Zammad
 
-### Roteiro Estratégico para Implementação
+Hoje o Zammad e tratado como:
 
-Implementar isso é um mini-projeto. Aqui está um roteiro sugerido:
+- sistema de atendimento e ticketing
+- origem de eventos para operacao remota
+- provider externo consultado por adapters dedicados
 
-#### Fase 1: Pesquisa e Validação (O Passo Mais Importante)
+Hoje o Zammad **nao** e tratado como:
 
-1.  **Verificar o Zammad:** Confirme na documentação oficial do Zammad se ele pode ser configurado como um **Provedor de Identidade OAuth 2.0** (Identity Provider).
-2.  **Configurar o Aplicativo:** Se for possível, você precisará ir ao painel de administração do Zammad e registrar sua "Central de Ajuda" como um aplicativo autorizado. O Zammad fornecerá duas chaves essenciais: um `Client ID` e um `Client Secret`.
+- fonte principal de autenticacao do portal
+- backend central da aplicacao
+- lugar para concentrar regra de negocio da Trilink
 
-#### Fase 2: Implementação da Autenticação com NextAuth.js
+<Callout type="info" title="Diretriz vigente">
+  O portal segue com autenticacao propria e usa o Zammad como integracao operacional. Qualquer acoplamento adicional deve passar por contrato e adapter da feature de tickets.
+</Callout>
 
-Esta é a biblioteca padrão para autenticação em projetos Next.js e vai simplificar imensamente o trabalho.
+## O que ja existe no codigo
 
-1.  **Instalar NextAuth.js:** `npm install next-auth`
-2.  **Configurar o Provedor:** Você criará uma configuração para um "Provedor OAuth Customizado", onde você inserirá as informações do Zammad (URL de autorização, URL de token, `Client ID` e `Client Secret`).
-3.  **Criar Páginas de Login:** Crie os componentes e rotas que o NextAuth.js usará para gerenciar o login, logout e as sessões dos usuários.
+- gateway dedicado para consultas e mutacoes do Zammad na feature de tickets
+- cache operacional local para fallback e contingencia
+- sincronizacao e webhook para refletir estado operacional
+- integracao com a plataforma remota para deep-link e anotacoes internas
 
-#### Fase 3: Construção das Funcionalidades Personalizadas
+## Decisoes praticas para novas implementacoes
 
-Com a autenticação funcionando, você pode finalmente construir as funcionalidades de alto valor:
+### Leitura operacional
 
-1.  **Proteger as Rotas:** Defina quais páginas da documentação exigirão login.
-2.  **Criar a Página "Meus Chamados":** Crie a página que busca os tickets do usuário logado na API do Zammad, usando o token de acesso obtido durante o login.
-3.  **Aprimorar o Formulário de Contato:** Faça com que o formulário de abertura de chamado puxe os dados do usuário logado e os envie automaticamente ao criar o ticket.
+- priorizar uma consulta principal por contexto
+- evitar consultas separadas de contagem quando o cache local puder responder
+- nao mascarar erro do provider como lista vazia quando houver fallback disponivel
 
----
+### Escrita
 
-### Estratégia: Documentação Pública vs. Privada
+- toda mutacao deve passar por camada de `application`
+- adapters do Zammad ficam isolados em infraestrutura
+- side effects como cache e invalidacao precisam ficar centralizados
 
-Antes de começar, vale a pena decidir: você quer que **toda** a documentação seja privada?
+### Contingencia
 
-* **100% Privada:** Garante exclusividade, mas cria uma barreira para clientes em potencial que querem conhecer o sistema e dificulta a indexação no Google.
-* **Modelo Híbrido (Recomendado):**
-    * **Público:** Manuais de módulos, guias gerais e tutoriais. Qualquer pessoa pode ler.
-    * **Privado:** Apenas as seções personalizadas, como o painel **"Meus Chamados"**, e talvez algumas documentações de funcionalidades "premium", exigiriam login.
+- erro do Zammad deve permitir degradacao controlada
+- dashboard e listagens devem usar cache local quando o provider oscilar
+- mensagens para o usuario precisam deixar claro quando os dados vieram de contingencia
 
-**Conclusão:** Sua ideia é excelente e é o caminho para criar uma experiência de suporte de alto nível. O ponto de partida crucial é **validar a capacidade do Zammad de atuar como provedor OAuth 2.0**. Se a resposta for sim, a biblioteca `NextAuth.js` será sua maior aliada para implementar essa funcionalidade de forma segura e eficiente.
+## O que nao devemos retomar
 
+- proposta de usar o Zammad como provedor OAuth principal do portal
+- texto normativo baseado em `NextAuth.js` como diretriz oficial
+- pagina ou componente consultando Zammad diretamente
+- varias consultas independentes para alimentar a mesma tela
 
+## Quando abrir um novo recorte de integracao
 
+Abrir documentacao tecnica nova apenas quando houver um destes casos:
+
+- novo webhook
+- novo fluxo de mutacao relevante
+- nova estrategia de sincronizacao
+- integracao com outro modulo, como remoto ou conversas
+
+Quando isso acontecer, o documento deve registrar:
+
+- contrato de entrada e saida
+- fallback esperado
+- impacto em cache local
+- observabilidade minima
+
+## Relacao com outros manuais
+
+- arquitetura geral: [`/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo`](/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo)
+- backlog e pendencias: [`/docs/manuais-tecnicos/governanca/backlog-infra-monorepo`](/docs/manuais-tecnicos/governanca/backlog-infra-monorepo)
+- direcao da plataforma remota: [`/docs/manuais-tecnicos/estrategia/estrategia-plataforma-remota`](/docs/manuais-tecnicos/estrategia/estrategia-plataforma-remota)
+
+## Registro historico
+
+Houve uma analise inicial propondo:
+
+- SSO com Zammad
+- area "Meus chamados" acoplada ao token do help desk
+- uso de biblioteca de auth como caminho principal da integracao
+
+Esse recorte foi mantido apenas como contexto historico e nao representa mais a diretriz vigente da plataforma.

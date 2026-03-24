@@ -1,64 +1,57 @@
-# Calculadora de Precificação e Markup
+﻿# Calculadora de Precificacao e Markup
 
-Este módulo implementa uma ferramenta para cálculo de preço de venda, margem de lucro e análise de custos fixos baseada em benchmarks de mercado.
+Ferramenta para calculo de preco de venda, margem, markup e leitura basica de custo fixo.
 
-## ?? Estrutura de Arquivos
+## Objetivo
 
-A arquitetura segue o padrão **Colocation Flat**:
+Ajudar na simulacao de precificacao com foco em cenarios operacionais simples e em explicacao didatica dos indicadores formados.
 
-- **`index.tsx`**: Ponto de entrada. Orquestra a UI e o Hook.
-- **`usePricingCalculator.ts`**: Gerenciamento de estado (React) e inputs do usuário.
-- **`calculations.ts`**: Lógica matemática pura (Testável e Reutilizável).
-- **`constants.ts`**: Dados estáticos, textos de feedback e benchmarks de mercado.
-- **`types.ts`**: Definições de tipagem TypeScript.
-- **`components/`**: Sub-componentes visuais (Steps, Cards de Resultado).
+## Estrutura do modulo
 
-## ?? Lógica de Negócio
+- `index.tsx`: entrada visual da calculadora
+- `usePricingCalculator.ts`: estado e inputs da interface
+- `calculations.ts`: funcoes matematicas puras
+- `constants.ts`: benchmarks e textos auxiliares
+- `types.ts`: contratos do modulo
+- `components/`: passos e cards de resultado
 
-### 1. Cálculo de Preço de Venda
-O sistema suporta três modos de cálculo (definidos em `calculations.ts`):
+## Modos de calculo
 
-1.  **A partir do Preço (Modo `venda`)**:
-    O usuário define o preço final e o sistema calcula quanto sobra de lucro.
-    `Lucro = Venda - Custo - Impostos - Despesas Fixas`
+### A partir do preco de venda
 
-2.  **A partir do Lucro em R$ (Modo `lucro_valor`)**:
-    Calcula o preço necessário para atingir um valor fixo de lucro (ex: quero ganhar R$ 50,00).
-    `Venda = (Lucro Alvo + Custo) / (1 - %CustosVariáveis)`
+O usuario informa o preco final e o sistema calcula lucro e margem resultantes.
 
-3.  **A partir da Margem % (Modo `lucro_percentual`)**:
-    Calcula o preço baseada em uma margem desejada (ex: quero 20% de margem líquida).
-    `Venda = Custo / (1 - (%CustosVariáveis + %MargemDesejada))`
+### A partir do lucro em valor
 
-### 2. Indicadores Calculados
-- **Markup**: Percentual adicionado sobre o custo para formar o preço.
-- **Margem de Contribuição**: `Venda - Custo - Impostos`. É o que sobra para pagar custos fixos.
-- **Ponto de Equilíbrio (PMZ)**: O preço mínimo onde o lucro é zero.
+O sistema calcula o preco necessario para atingir um lucro alvo em reais.
 
-## ?? Benchmarks de Mercado (`constants.ts`)
+### A partir da margem percentual
 
-Os feedbacks visuais (Saudável, Atenção, Perigoso) sobre o Custo Fixo são baseados nos seguintes limiares:
+O sistema calcula o preco necessario para atingir uma margem liquida desejada.
 
-| Segmento | Saudável | Atenção | Perigoso |
-| :--- | :--- | :--- | :--- |
-| **Varejo** | < 25% | 25% - 40% | > 40% |
-| **Indústria**| < 35% | 35% - 55% | > 55% |
-| **Serviços** | < 30% | 30% - 50% | > 50% |
+## Indicadores exibidos
 
-> *Nota: Estes valores são estimativas gerais de mercado e servem apenas como guia educativo.*
+- markup
+- margem de contribuicao
+- lucro estimado
+- ponto de equilibrio minimo
 
-## ?? Como Reutilizar
+## Benchmarks
 
-Se precisar calcular preços em lote (ex: Backend ou script de importação), importe apenas a função pura:
+Os feedbacks de custo fixo usam faixas referenciais por segmento para leitura educativa. Eles nao substituem analise financeira formal.
+
+## Reuso
+
+Para processamento sem UI, importar a funcao pura principal de `calculations.ts`.
 
 ```typescript
-import { calculatePricing } from '@/components/tools/calculadora-precificacao/calculations';
+import { calculatePricing } from "@/components/platform/tools/calculadora-precificacao/calculations";
 
 const resultado = calculatePricing({
   custo: 100,
   pImpostos: 18,
   pCustoFixo: 25,
   precoVendaInput: 200,
-  modo: 'venda',
-  // ...outros params zerados
+  modo: "venda",
 });
+```

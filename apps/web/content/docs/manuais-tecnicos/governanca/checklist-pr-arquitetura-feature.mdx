@@ -1,85 +1,85 @@
 ---
 title: Checklist de PR para Arquitetura por Feature
-description: Checklist operacional para revisar PRs sob a ótica de camada, acoplamento, contratos e duplicação de regra.
-lastUpdated: 2026-03-22
+description: Checklist operacional para revisar PRs sob a otica de camada, acoplamento, contratos e duplicacao de regra.
+lastUpdated: 2026-03-24
 owner: Engenharia de Plataforma
 status: published
 ---
 
 ## Objetivo
 
-Garantir que toda PR preserve o padrão arquitetural definido para o modular monolith e não reintroduza acoplamento indevido entre interface, application, domain e infraestrutura.
+Garantir que toda PR preserve o padrao arquitetural do modular monolith e nao reintroduza acoplamento indevido entre interface, application, domain e infraestrutura.
 
 ## Quando usar
 
 Aplicar este checklist em toda PR que:
 
 - cria ou altera uma feature
-- adiciona action, query ou integração externa
-- altera dashboard, listagem ou detalhe com regra de negócio
+- adiciona action, query ou integracao externa
+- altera dashboard, listagem ou detalhe com regra de negocio
 - acessa banco, cache, gateway externo ou observabilidade
 
-## Checklist obrigatório
+## Checklist obrigatorio
 
 ### 1. Fronteira da feature
 
-- [ ] A mudança ficou dentro de `src/features/<feature>` quando se trata de regra funcional do módulo.
-- [ ] A página (`page.tsx`) apenas compõe a tela e não concentra regra de negócio.
-- [ ] Componentes React não contêm regra crítica de domínio.
+- [ ] A mudanca ficou dentro de `src/features/<feature>` quando se trata de regra funcional do modulo.
+- [ ] A pagina (`page.tsx`) apenas compoe a tela e nao concentra regra de negocio.
+- [ ] Componentes React nao contem regra critica de dominio.
 
 ### 2. Camadas
 
-- [ ] `interface` não importa `prisma`, `@/lib/prisma` ou cliente técnico direto.
+- [ ] `interface` nao importa `prisma`, `@/lib/prisma` ou cliente tecnico direto.
 - [ ] `application` concentra orchestration, queries, writes e view models.
-- [ ] `domain` contém tipos, contratos e regras puras sem dependência de React, Next.js ou Prisma.
+- [ ] `domain` contem tipos, contratos e regras puras sem dependencia de React, Next.js ou Prisma.
 - [ ] `actions` atuam como ponte fina, sem duplicar regra existente em `application`.
 
 ### 3. Contratos e view models
 
-- [ ] Dashboard, listagem e detalhe usam contrato da feature, não shape local improvisado.
+- [ ] Dashboard, listagem e detalhe usam contrato da feature, nao shape local improvisado.
 - [ ] Tipos compartilhados entre telas vivem no `domain` da feature.
-- [ ] Não foi criado `type Item`, `type Row` ou `type Data` local quando o contrato pertence ao domínio da feature.
+- [ ] Nao foi criado `type Item`, `type Row` ou `type Data` local quando o contrato pertence ao dominio da feature.
 
-### 4. Persistência e infraestrutura
+### 4. Persistencia e infraestrutura
 
-- [ ] A página não fala com infraestrutura técnica diretamente.
-- [ ] Gateway ou adapter técnico novo ficou em `src/core/infrastructure`.
-- [ ] Se houve integração externa, existe contrato explícito em `src/core/domain/interfaces` ou no `domain` da feature.
-- [ ] Se houve persistência crítica, o fluxo segue a estratégia documentada para query direta vs repository contract.
+- [ ] A pagina nao fala com infraestrutura tecnica diretamente.
+- [ ] Gateway ou adapter tecnico novo ficou na infraestrutura prevista do projeto.
+- [ ] Se houve integracao externa, existe contrato explicito no dominio da feature ou no nucleo compartilhado apropriado.
+- [ ] Se houve persistencia critica, o fluxo segue a estrategia documentada para query direta vs repository contract.
 
 ### 5. Escopo, authz e tenant
 
-- [ ] Regras de escopo por empresa, usuário ou role não ficaram espalhadas entre página, componente e action.
-- [ ] O fluxo usa a mesma fonte de verdade para authz/tenant em dashboard, listagem e detalhe.
+- [ ] Regras de escopo por empresa, usuario ou role nao ficaram espalhadas entre pagina, componente e action.
+- [ ] O fluxo usa a mesma fonte de verdade para authz e tenant em dashboard, listagem e detalhe.
 
-### 6. Duplicação e regressão arquitetural
+### 6. Duplicacao e regressao arquitetural
 
-- [ ] A PR não recria regra já existente em outra tela ou outro serviço.
-- [ ] Filtros, KPIs e contadores reutilizam o mesmo contrato e a mesma query base quando pertencem ao mesmo domínio.
-- [ ] Não foi reintroduzido helper legado para contornar a feature atual.
+- [ ] A PR nao recria regra ja existente em outra tela ou outro servico.
+- [ ] Filtros, KPIs e contadores reutilizam o mesmo contrato e a mesma query base quando pertencem ao mesmo dominio.
+- [ ] Nao foi reintroduzido helper legado para contornar a feature atual.
 
-### 7. Evolução para monorepo
+### 7. Evolucao para monorepo
 
-- [ ] O código novo ficaria extraível para `packages/core`, `packages/contracts` ou `packages/database` sem reescrita estrutural.
-- [ ] Não foi movido cedo demais para `packages/*` algo ainda instável.
+- [ ] O codigo novo ficaria extraivel para `packages/core`, `packages/contracts` ou `packages/database` sem reescrita estrutural.
+- [ ] Nao foi movido cedo demais para `packages/*` algo ainda instavel.
 
-## Critérios de bloqueio
+## Criterios de bloqueio
 
 A PR deve ser revista novamente se ocorrer qualquer um destes casos:
 
-1. componente React com regra de negócio relevante
+1. componente React com regra de negocio relevante
 2. `page.tsx` montando query complexa ou regra de escopo
 3. acesso direto a `prisma` fora da feature ou da infraestrutura prevista
 4. contrato duplicado entre dashboard, tabela e detalhe
-5. gateway externo sem interface/contrato explícito
-6. action com lógica duplicada da camada `application`
+5. gateway externo sem interface ou contrato explicito
+6. action com logica duplicada da camada `application`
 
-## Perguntas rápidas para o revisor
+## Perguntas rapidas para o revisor
 
 Antes de aprovar, responda:
 
 1. Se eu mover esta feature para `packages/core`, o que quebraria primeiro?
-2. Existe alguma regra nesta PR que está no lugar errado só porque foi mais rápido?
+2. Existe alguma regra nesta PR que esta no lugar errado so porque foi mais rapido?
 3. O contrato novo serviria para web, API e mobile sem depender da UI atual?
 
-Se a resposta para qualquer uma for ruim, a PR ainda não está arquiteturalmente pronta.
+Se a resposta para qualquer uma for ruim, a PR ainda nao esta arquiteturalmente pronta.
