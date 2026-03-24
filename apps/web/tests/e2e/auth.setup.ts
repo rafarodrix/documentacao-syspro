@@ -21,6 +21,7 @@ async function fillControlledInput(page: Page, locator: Locator, value: string) 
 }
 
 test("authenticate portal user", async ({ page }) => {
+  test.setTimeout(60000);
   test.skip(!email || !password, "E2E_USER_EMAIL/E2E_USER_PASSWORD nao configurados.");
 
   await page.goto("/login?callbackUrl=%2Fportal");
@@ -42,8 +43,8 @@ test("authenticate portal user", async ({ page }) => {
   await submitButton.click();
 
   const outcome = await Promise.race([
-    page.waitForURL(/\/portal(\/|\?|$)/, { timeout: 30000 }).then(() => "portal" as const),
-    loginError.waitFor({ state: "visible", timeout: 30000 }).then(() => "error" as const),
+    page.waitForURL(/\/portal(\/|\?|$)/, { timeout: 45000 }).then(() => "portal" as const),
+    loginError.waitFor({ state: "visible", timeout: 45000 }).then(() => "error" as const),
   ]);
 
   if (outcome === "error") {

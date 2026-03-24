@@ -1,0 +1,111 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary:
+    - generic [ref=e4]:
+      - link "TrilinkAdmin Painel de Controle" [ref=e6] [cursor=pointer]:
+        - /url: /portal
+        - img [ref=e8]
+        - generic [ref=e11]:
+          - generic [ref=e12]: TrilinkAdmin
+          - generic [ref=e13]: Painel de Controle
+      - generic [ref=e14]:
+        - navigation [ref=e15]:
+          - paragraph [ref=e16]: Principal
+          - link "Dashboard" [ref=e17] [cursor=pointer]:
+            - /url: /portal
+            - generic [ref=e19]:
+              - img [ref=e20]
+              - text: Dashboard
+          - link "Tickets" [ref=e26] [cursor=pointer]:
+            - /url: /portal/chamados
+            - generic [ref=e28]:
+              - img [ref=e29]
+              - text: Tickets
+        - navigation [ref=e31]:
+          - paragraph [ref=e32]: Cadastros
+          - link "Cadastro Empresa" [ref=e33] [cursor=pointer]:
+            - /url: /portal/cadastros/empresa
+            - generic [ref=e35]:
+              - img [ref=e36]
+              - text: Cadastro Empresa
+          - link "Cadastro Usuario" [ref=e39] [cursor=pointer]:
+            - /url: /portal/cadastros/usuarios
+            - generic [ref=e41]:
+              - img [ref=e42]
+              - text: Cadastro Usuario
+          - link "Analista de Sistemas" [ref=e47] [cursor=pointer]:
+            - /url: /portal/cadastros/sistema
+            - generic [ref=e49]:
+              - img [ref=e50]
+              - text: Analista de Sistemas
+        - navigation [ref=e53]:
+          - paragraph [ref=e54]: Sistemas
+          - link "Ferramentas" [ref=e55] [cursor=pointer]:
+            - /url: /portal/tools
+            - generic [ref=e57]:
+              - img [ref=e58]
+              - text: Ferramentas
+          - link "Plataforma Remota" [ref=e60] [cursor=pointer]:
+            - /url: /portal/plataforma-remota
+            - generic [ref=e62]:
+              - img [ref=e63]
+              - text: Plataforma Remota
+        - navigation [ref=e65]:
+          - paragraph [ref=e66]: Documentacao de Usuario
+          - link "Documentacao" [ref=e67] [cursor=pointer]:
+            - /url: /docs
+            - generic [ref=e69]:
+              - img [ref=e70]
+              - text: Documentacao
+          - link "Releases" [ref=e72] [cursor=pointer]:
+            - /url: /releases
+            - generic [ref=e74]:
+              - img [ref=e75]
+              - text: Releases
+        - navigation [ref=e80]:
+          - paragraph [ref=e81]: Documentacao Tecnica
+          - link "Manuais Tecnicos" [ref=e82] [cursor=pointer]:
+            - /url: /docs/manuais-tecnicos
+            - generic [ref=e84]:
+              - img [ref=e85]
+              - text: Manuais Tecnicos
+      - button "R rafaelrodrix@icloud.com rafaelrodrix@icloud.com" [ref=e91]:
+        - generic [ref=e93]: R
+        - generic [ref=e94]:
+          - generic [ref=e95]: rafaelrodrix@icloud.com
+          - generic [ref=e96]: rafaelrodrix@icloud.com
+        - img [ref=e97]
+  - generic [ref=e99]:
+    - banner [ref=e100]:
+      - button "Minimizar menu lateral" [ref=e101]:
+        - img
+      - generic [ref=e102]:
+        - generic [ref=e104]: Portal
+        - img [ref=e105]
+        - generic [ref=e107]:
+          - img [ref=e108]
+          - generic [ref=e113]: Portal
+      - button "Buscar... ⌘ K" [ref=e115]:
+        - img [ref=e116]
+        - generic [ref=e119] [cursor=pointer]:
+          - generic [ref=e120]: Buscar...
+          - generic:
+            - generic: ⌘
+            - text: K
+      - generic [ref=e121]:
+        - link "Central" [ref=e122] [cursor=pointer]:
+          - /url: /portal/chamados
+          - img
+          - text: Central
+        - button "Notificacoes" [ref=e123]:
+          - img
+        - button "Alternar tema" [ref=e124]:
+          - img
+          - img
+          - generic [ref=e125]: Alternar tema
+        - button "R" [ref=e127]:
+          - generic [ref=e129]: R
+    - main [ref=e130]
+```
