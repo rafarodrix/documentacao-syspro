@@ -2,79 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { createRequestLogger } from "@/lib/observability/logger";
+import {
+  normalizeCompareValue,
+  normalizeRustdeskId,
+  normalizeSysproUpdates,
+  syncRemoteHostSysproUpdates,
+} from "@/features/remote/application/agent-payload";
 
 export const dynamic = "force-dynamic";
-
-function normalizeRustdeskId(value?: string | null) {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  return trimmed.replace(/\s+/g, "");
-}
-
-function parseSysproDate(value?: string | null) {
-  const trimmed = value?.trim();
-  if (!trimmed) return null;
-  const isoCandidate = trimmed.replace(" ", "T");
-  const parsed = new Date(isoCandidate);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function normalizeSysproUpdates(
-  value: unknown
-): Array<{ companyLabel: string; path: string; lastFileWriteAt: Date | null }> {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .map((entry) => {
-      if (!entry || typeof entry !== "object") return null;
-
-      const rawCompany =
-        "empresa" in entry && typeof entry.empresa === "string"
-          ? entry.empresa
-          : "companyLabel" in entry && typeof entry.companyLabel === "string"
-            ? entry.companyLabel
-            : "";
-      const rawPath =
-        "caminho" in entry && typeof entry.caminho === "string"
-          ? entry.caminho
-          : "path" in entry && typeof entry.path === "string"
-            ? entry.path
-            : "";
-      const rawLastFileWriteAt =
-        "ultimaAtualizacao" in entry && typeof entry.ultimaAtualizacao === "string"
-          ? entry.ultimaAtualizacao
-          : "lastFileWriteAt" in entry && typeof entry.lastFileWriteAt === "string"
-            ? entry.lastFileWriteAt
-            : null;
-
-      const companyLabel = rawCompany.trim();
-      const path = rawPath.trim();
-      if (!companyLabel || !path) return null;
-
-      return {
-        companyLabel,
-        path,
-        lastFileWriteAt: parseSysproDate(rawLastFileWriteAt),
-      };
-    })
-    .filter((entry): entry is { companyLabel: string; path: string; lastFileWriteAt: Date | null } => !!entry);
-}
-
-type ExistingSysproRow = {
-  id: string;
-  companyLabel: string;
-  path: string;
-};
-
-function normalizeCompareValue(value?: string | null) {
-  return (value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 export async function POST(request: Request) {
   const { logger, responseHeaders } = createRequestLogger(request, {
@@ -146,18 +81,6 @@ export async function POST(request: Request) {
     normalizeCompareValue(host.company.nomeFantasia),
     normalizeCompareValue(host.company.razaoSocial),
   ].filter(Boolean);
-  const candidateCompanies = sysproUpdates.length
-    ? await prisma.company.findMany({
-        where: {
-          deletedAt: null,
-        },
-        select: {
-          id: true,
-          nomeFantasia: true,
-          razaoSocial: true,
-        },
-      })
-    : [];
 
   const updated = await prisma.$transaction(async (tx) => {
     const remoteHost = await tx.remoteHost.update({
@@ -187,89 +110,13 @@ export async function POST(request: Request) {
       `;
     }
 
-    if (sysproUpdates.length) {
-      const existingUpdates = await tx.$queryRaw<ExistingSysproRow[]>`
-        SELECT
-          "id",
-          "companyLabel",
-          "path"
-        FROM "remote_host_syspro_update"
-        WHERE "hostId" = ${host.id}
-      `;
-
-      const existingKeyMap = new Map(
-        existingUpdates.map((entry) => [`${entry.companyLabel}::${entry.path}`.toLowerCase(), entry.id])
-      );
-      const incomingKeys = new Set<string>();
-
-      for (const entry of sysproUpdates) {
-        const compositeKey = `${entry.companyLabel}::${entry.path}`.toLowerCase();
-        incomingKeys.add(compositeKey);
-        const existingId = existingKeyMap.get(compositeKey);
-        const normalizedLabel = normalizeCompareValue(entry.companyLabel);
-        const resolvedCompanyId =
-          normalizedPrimaryNames.includes(normalizedLabel)
-            ? host.companyId
-            : candidateCompanies.find((company) => {
-                return (
-                  normalizeCompareValue(company.nomeFantasia) === normalizedLabel ||
-                  normalizeCompareValue(company.razaoSocial) === normalizedLabel
-                );
-              })?.id ?? null;
-
-        if (existingId) {
-          await tx.$executeRaw`
-            UPDATE "remote_host_syspro_update"
-            SET
-              "companyId" = ${resolvedCompanyId},
-              "companyLabel" = ${entry.companyLabel},
-              "path" = ${entry.path},
-              "lastFileWriteAt" = ${entry.lastFileWriteAt},
-              "lastHeartbeatAt" = ${heartbeatAt},
-              "updatedAt" = ${heartbeatAt}
-            WHERE "id" = ${existingId}
-          `;
-          continue;
-        }
-
-        await tx.$executeRaw`
-          INSERT INTO "remote_host_syspro_update" (
-            "id",
-            "hostId",
-            "companyId",
-            "companyLabel",
-            "path",
-            "lastFileWriteAt",
-            "lastHeartbeatAt",
-            "createdAt",
-            "updatedAt"
-          ) VALUES (
-            ${crypto.randomUUID()},
-            ${host.id},
-            ${resolvedCompanyId},
-            ${entry.companyLabel},
-            ${entry.path},
-            ${entry.lastFileWriteAt},
-            ${heartbeatAt},
-            ${heartbeatAt},
-            ${heartbeatAt}
-          )
-        `;
-      }
-
-      const staleIds = existingUpdates
-        .filter((entry) => !incomingKeys.has(`${entry.companyLabel}::${entry.path}`.toLowerCase()))
-        .map((entry) => entry.id);
-
-      if (staleIds.length) {
-        for (const staleId of staleIds) {
-          await tx.$executeRaw`
-            DELETE FROM "remote_host_syspro_update"
-            WHERE "id" = ${staleId}
-          `;
-        }
-      }
-    }
+    await syncRemoteHostSysproUpdates(tx, {
+      hostId: host.id,
+      hostCompanyId: host.companyId,
+      hostCompanyNames: normalizedPrimaryNames,
+      heartbeatAt,
+      sysproUpdates,
+    });
 
     return remoteHost;
   });

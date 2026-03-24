@@ -96,6 +96,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
   const [quickDescription, setQuickDescription] = useState("");
+  const [pendingCompanyById, setPendingCompanyById] = useState<Record<string, string>>({});
+  const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
 
@@ -179,6 +181,37 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     }
   }
 
+  async function handleLinkDiscoveredHost(id: string, fallbackName: string | null) {
+    const companyId = pendingCompanyById[id] ?? directory.companyOptions[0]?.id ?? "";
+    const name = (pendingNameById[id] ?? fallbackName ?? "").trim();
+
+    if (!companyId || !name) {
+      toast.error("Selecione a empresa e informe o nome do host.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/remote/discovered-hosts/${id}/link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId,
+          name,
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Falha ao vincular maquina descoberta.");
+      }
+
+      toast.success("Maquina vinculada e convertida em host.");
+      startTransition(() => router.refresh());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao vincular maquina.");
+    }
+  }
+
   const filteredItems = useMemo(() => {
     const term = normalizeSearchValue(searchTerm);
     return directory.items.filter((item) => {
@@ -220,6 +253,25 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent;
     });
   }, [agentFilter, directory.items, environmentFilter, heartbeatFilter, searchTerm, statusFilter]);
+
+  const filteredPendingItems = useMemo(() => {
+    const term = normalizeSearchValue(searchTerm);
+    return directory.pendingItems.filter((item) => {
+      const haystack = normalizeSearchValue([
+        item.machineName,
+        item.rustdeskId,
+        item.agentVersion,
+        item.provider,
+        item.environment,
+        item.description,
+        item.installationCompanies.join(" "),
+      ]
+        .filter(Boolean)
+        .join(" "));
+
+      return !term || haystack.includes(term);
+    });
+  }, [directory.pendingItems, searchTerm]);
 
   const directoryStats = useMemo(() => {
     const ready = directory.items.filter((item) => item.operationalStatus === "ONLINE").length;
@@ -284,6 +336,21 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             <p className="text-xs text-muted-foreground">Hosts sem token, sem RustDesk ID ou sem heartbeat inicial.</p>
           </CardContent>
         </Card>
+
+        {canCreateHosts ? (
+          <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Monitor className="h-4 w-4 text-violet-500" />
+                Maquinas em triagem
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-semibold text-foreground">{directory.stats.pendingDiscovery}</p>
+              <p className="text-xs text-muted-foreground">Descobertas pelo script padrao e aguardando vinculo.</p>
+            </CardContent>
+          </Card>
+        ) : null}
       </section>
 
       <Card className="border-border/50 overflow-hidden">
@@ -349,6 +416,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         </CardHeader>
 
         <CardContent className="space-y-4 p-6">
+          {canCreateHosts ? (
+            <div className="flex justify-end">
+              <a
+                href="/api/remote/agents/discovery-script"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <Download className="h-4 w-4" />
+                Baixar script padrao
+              </a>
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -447,6 +526,80 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               </Button>
             ) : null}
           </div>
+
+          {canCreateHosts && filteredPendingItems.length ? (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <p className="text-sm font-semibold text-foreground">Pendentes de vinculacao</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Maquinas que chegaram pelo script padrao. Escolha a empresa e transforme em host operacional.
+                </p>
+              </div>
+
+              {filteredPendingItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-amber-500/20 bg-linear-to-r from-background via-background to-amber-500/5 p-5 shadow-sm"
+                >
+                  <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                          Pendente
+                        </Badge>
+                        {item.environment ? (
+                          <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
+                            {item.environment}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <div>
+                        <p className="text-lg font-semibold text-foreground">{item.machineName ?? "Maquina sem nome"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          RustDesk ID: {item.rustdeskId ?? "Nao informado"}
+                          {item.agentVersion ? ` | Agente: ${item.agentVersion}` : ""}
+                          {item.lastHeartbeatAt ? ` | Heartbeat: ${new Date(item.lastHeartbeatAt).toLocaleString("pt-BR")}` : ""}
+                        </p>
+                      </div>
+                      {item.installationCompanies.length ? (
+                        <p className="text-sm text-muted-foreground">
+                          Instalacoes detectadas: {item.installationCompanies.join(" | ")}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Nenhuma instalacao detectada ainda no heartbeat.</p>
+                      )}
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                      <select
+                        value={pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? ""}
+                        onChange={(event) =>
+                          setPendingCompanyById((current) => ({ ...current, [item.id]: event.target.value }))
+                        }
+                        className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                      >
+                        {directory.companyOptions.map((company) => (
+                          <option key={company.id} value={company.id}>
+                            {company.label}
+                          </option>
+                        ))}
+                      </select>
+                      <Input
+                        value={pendingNameById[item.id] ?? item.machineName ?? ""}
+                        onChange={(event) =>
+                          setPendingNameById((current) => ({ ...current, [item.id]: event.target.value }))
+                        }
+                        placeholder="Nome do host"
+                      />
+                      <Button type="button" onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}>
+                        Vincular
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           {filteredItems.length ? (
             <div className="space-y-4">
@@ -561,13 +714,13 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 );
               })}
             </div>
-          ) : (
+          ) : !filteredPendingItems.length ? (
             <p className="text-sm text-muted-foreground">
               {searchTerm
                 ? `Nenhum host deste modulo corresponde a "${searchTerm}".`
                 : "Nenhum cliente/host remoto configurado no seu escopo."}
             </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </div>

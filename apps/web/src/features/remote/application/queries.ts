@@ -3,6 +3,7 @@ import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { resolveRemoteOperationalStatus } from "@/features/remote/domain/operational-status";
 import type {
   RemoteConfiguredHostItem,
+  RemoteDiscoveredHostItem,
   RemoteHostDetails,
   RemotePlatformDirectory,
   RemotePlatformOverview,
@@ -377,6 +378,8 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
     endpoints: [
       { method: "GET", path: "/api/remote/hosts", purpose: "Listar hosts remotos no escopo do usuario" },
       { method: "POST", path: "/api/remote/hosts", purpose: "Cadastrar host remoto" },
+      { method: "GET", path: "/api/remote/agents/discovery-script", purpose: "Baixar script padrao para descoberta sem pre-cadastro" },
+      { method: "POST", path: "/api/remote/agents/discover", purpose: "Registrar maquina descoberta e manter heartbeat sem host previo" },
       { method: "POST", path: "/api/remote/agents/register", purpose: "Registrar agente OSS no host via installToken" },
       { method: "POST", path: "/api/remote/agents/heartbeat", purpose: "Atualizar heartbeat e metadata minima do agente" },
       { method: "GET", path: "/api/remote/sessions", purpose: "Listar sessoes remotas no escopo do usuario" },
@@ -463,7 +466,7 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
   const tenantScope = await getRemoteTenantScope();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
-  const [hosts, totalHosts, activeHosts, companies, companyOptions] = await Promise.all([
+  const [hosts, totalHosts, activeHosts, companies, companyOptions, discoveredHosts] = await Promise.all([
     prisma.remoteHost.findMany({
       where: scopedWhere,
       include: {
@@ -490,6 +493,13 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       orderBy: [{ razaoSocial: "asc" }],
       take: 100,
     }),
+    tenantScope.isGlobalView
+      ? prisma.remoteDiscoveredHost.findMany({
+          where: { status: "PENDING_LINK" },
+          orderBy: [{ lastHeartbeatAt: "desc" }, { updatedAt: "desc" }],
+          take: 50,
+        })
+      : Promise.resolve([]),
   ]);
 
   const hostIds = hosts.map((host) => host.id);
@@ -517,6 +527,33 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
     installationMap.set(row.hostId, current);
   }
 
+  const pendingItems: RemoteDiscoveredHostItem[] = discoveredHosts.map((host) => {
+    const snapshot = Array.isArray(host.installationsSnapshot) ? host.installationsSnapshot : [];
+    const installationCompanies = snapshot
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return null;
+        if ("empresa" in entry && typeof entry.empresa === "string") return entry.empresa.trim();
+        if ("companyLabel" in entry && typeof entry.companyLabel === "string") return entry.companyLabel.trim();
+        return null;
+      })
+      .filter((entry): entry is string => !!entry);
+
+    return {
+      id: host.id,
+      machineName: host.machineName,
+      rustdeskId: host.agentExternalId,
+      agentVersion: host.agentVersion,
+      provider: host.provider,
+      environment: host.environment,
+      description: host.description,
+      serviceStatus: host.serviceStatus,
+      lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
+      status: host.status as RemoteDiscoveredHostItem["status"],
+      linkedHostId: host.linkedHostId,
+      installationCompanies,
+    };
+  });
+
   return {
     tenantScope,
     stats: {
@@ -526,11 +563,13 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       pendingInstall: hosts.filter((host) => !host.installToken || !host.agentExternalId).length,
       linkedAgents: hosts.filter((host) => !!host.agentExternalId).length,
       onlineAgents: hosts.filter((host) => !!host.lastHeartbeatAt).length,
+      pendingDiscovery: pendingItems.length,
     },
     companyOptions: companyOptions.map((company) => ({
       id: company.id,
       label: company.nomeFantasia ?? company.razaoSocial,
     })),
+    pendingItems,
     items: hosts.map((host) =>
       mapDirectoryItem({
         ...host,

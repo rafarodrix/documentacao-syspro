@@ -9,6 +9,7 @@ export type RemoteAccessPolicy = {
 };
 
 export type RemoteHostStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
+export type RemoteDiscoveredHostStatus = "PENDING_LINK" | "LINKED" | "IGNORED";
 
 export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";
 export type RemoteOperationalStatus = "ONLINE" | "RECENT" | "OFFLINE" | "MISCONFIGURED" | "SESSION_BUSY";
@@ -211,6 +212,21 @@ export type RemoteConfiguredHostItem = {
   };
 };
 
+export type RemoteDiscoveredHostItem = {
+  id: string;
+  machineName: string | null;
+  rustdeskId: string | null;
+  agentVersion: string | null;
+  provider: string | null;
+  environment: string | null;
+  description: string | null;
+  serviceStatus: string | null;
+  lastHeartbeatAt: string | null;
+  status: RemoteDiscoveredHostStatus;
+  linkedHostId: string | null;
+  installationCompanies: string[];
+};
+
 export type RemotePlatformDirectory = {
   tenantScope: RemoteTenantScope;
   stats: {
@@ -220,11 +236,13 @@ export type RemotePlatformDirectory = {
     pendingInstall: number;
     linkedAgents: number;
     onlineAgents: number;
+    pendingDiscovery: number;
   };
   companyOptions: Array<{
     id: string;
     label: string;
   }>;
+  pendingItems: RemoteDiscoveredHostItem[];
   items: RemoteConfiguredHostItem[];
 };
 

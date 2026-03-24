@@ -110,6 +110,12 @@ enum RemoteHostStatus {
   MAINTENANCE
 }
 
+enum RemoteDiscoveredHostStatus {
+  PENDING_LINK
+  LINKED
+  IGNORED
+}
+
 enum RemoteSessionStatus {
   REQUESTED
   STARTED
@@ -526,11 +532,40 @@ model RemoteHost {
 
   sessions RemoteSession[]
   sysproUpdates RemoteHostSysproUpdate[]
+  discoveryRecord RemoteDiscoveredHost?
 
   @@index([companyId, status])
   @@index([agentExternalId])
   @@index([installToken])
   @@map("remote_host")
+}
+
+model RemoteDiscoveredHost {
+  id String @id @default(cuid())
+
+  linkedHostId String? @unique
+  linkedHost   RemoteHost? @relation(fields: [linkedHostId], references: [id], onDelete: SetNull)
+
+  machineName String?
+  agentExternalId String?
+  agentVersion String?
+  provider String?
+  environment String?
+  description String? @db.Text
+  serviceStatus String?
+  status RemoteDiscoveredHostStatus @default(PENDING_LINK)
+  installationsSnapshot Json?
+  firstSeenAt DateTime @default(now())
+  lastHeartbeatAt DateTime?
+  linkedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([agentExternalId])
+  @@index([machineName])
+  @@map("remote_discovered_host")
 }
 
 model RemoteHostSysproUpdate {
