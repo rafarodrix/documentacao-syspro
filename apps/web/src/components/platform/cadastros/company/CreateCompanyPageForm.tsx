@@ -16,7 +16,6 @@ import {
 import {
   createCompanySchema,
   type CreateCompanyInput,
-  type CreateCompanyOutput,
 } from "@/features/company/application/company-schema";
 import type { CompanyContactInput, CompanyOption, CompanyZammadEmailInput } from "@/features/company/domain/model";
 import {
@@ -207,8 +206,8 @@ export function CreateCompanyPageForm({
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
 
-  const form = useForm<CreateCompanyInput, undefined, CreateCompanyOutput>({
-    resolver: zodResolver(createCompanySchema),
+  const form = useForm<CreateCompanyInput>({
+    resolver: zodResolver(createCompanySchema) as any,
     defaultValues: {
       cnpj: "",
       razaoSocial: "",
@@ -328,7 +327,7 @@ export function CreateCompanyPageForm({
     }
   }
 
-  const onSubmit: SubmitHandler<CreateCompanyOutput> = async (data) => {
+  const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
     const normalizedZammadEmails = normalizeZammadEmails(zammadEmails);
     const normalizedContacts: CompanyContactInput[] = contacts.map((contact, index) => ({
       name: contact.name.trim(),
