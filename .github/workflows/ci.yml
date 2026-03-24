@@ -5,10 +5,16 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  validate-and-build:
+  quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -23,8 +29,65 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: UTF-8 check
+        run: npm run check:utf8
+
+      - name: Prisma schema validate
+        run: npm run db:validate
+
+      - name: Prisma generate smoke
+        run: npm run db:generate
+
       - name: Docs check
         run: npm run docs:check
 
-      - name: Build
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck contracts
+        run: npm run typecheck:contracts
+
+      - name: Typecheck web
+        run: npm run typecheck
+
+      - name: Typecheck app-api
+        run: npm run typecheck:api
+
+      - name: Typecheck app-mobile
+        run: npm run typecheck:mobile
+
+      - name: Test web
+        run: npm run test
+
+      - name: Test authz
+        run: npm run test:authz
+
+      - name: Test tickets
+        run: npm run test:tickets
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build web
         run: npm run build
+
+      - name: Build app-api shell
+        run: npm run build:api
+
+      - name: Build app-mobile shell
+        run: npm run build:mobile

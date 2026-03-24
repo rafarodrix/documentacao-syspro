@@ -1,4 +1,4 @@
-﻿---
+---
 title: Backlog de Infraestrutura e Estabilizacao
 description: Backlog priorizado com os itens pendentes para estabilizacao do app, consolidacao arquitetural e evolucao das novas funcionalidades.
 lastUpdated: 2026-03-23
@@ -64,9 +64,9 @@ Ordem recomendada:
 
 ### Estabilizacao e contratos
 
-- [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes. Recortes em `auth`, `documentos`, `user-access`, `company`, `tickets`, `contracts`, `settings`, `site` e fluxo principal de `components + features` ja estao aplicados com contratos discriminados, hooks tipados e remocao dos `as any` mais criticos; o que resta agora e revisar ferramentas legadas fora do fluxo principal e confirmar o fechamento do item com build/typecheck limpos no ambiente.
-- [ ] `INFRA-023` [Alta] Pipeline CI com `lint`, `typecheck`, `test` e `build` por PR.
-- [ ] `INFRA-024` [Alta] Verificacao de contrato/schema em PR, cobrindo Prisma, contratos compartilhados e surfaces criticas do app.
+- [ ] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes. Recortes em `auth`, `documentos`, `user-access`, `company`, `tickets`, `contracts`, `settings`, `site` e fluxo principal de `components + features` ja estao aplicados com contratos discriminados, hooks tipados e remocao dos `as any` mais criticos; o item esta praticamente fechado e resta apenas confirmar build/typecheck limpos no ambiente e fazer uma ultima varredura de ferramentas legadas fora do fluxo principal antes de marcar como concluido.
+- [x] `INFRA-023` [Alta] Pipeline CI com `lint`, `typecheck`, `test` e `build` por PR. O workflow em `.github/workflows/ci.yml` agora executa `check:utf8`, `docs:check`, `lint`, `typecheck` do `web`, `app-api` e `app-mobile`, bateria de testes do `web` e etapa separada de `build` para `web`, `app-api` e `app-mobile`.
+- [x] `INFRA-024` [Alta] Verificacao de contrato/schema em PR, cobrindo Prisma, contratos compartilhados e surfaces criticas do app. O CI agora valida `prisma/schema.prisma`, executa `prisma generate` como smoke check e roda `typecheck` dedicado de `packages/contracts` antes das etapas de build.
 - [ ] `INFRA-025` [Alta] Logs estruturados e `correlationId` para rotas criticas, integracoes e jobs.
 - [ ] `INFRA-026` [Media] Metricas minimas por rota critica, jobs e integracoes externas.
 - [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs.
@@ -120,14 +120,10 @@ Ordem recomendada:
 ### Sprint 2 - Estabilizacao e confiabilidade
 
 1. `INFRA-022C`
-   fechar ferramentas restantes e remover a excecao do `CreateCompanyPageForm`
-2. `INFRA-023`
-   CI com `lint`, `typecheck`, `test` e `build`
-3. `INFRA-024`
-   verificacao de contratos e schema em PR
-4. `INFRA-025`
+   confirmar fechamento no ambiente e encerrar a varredura residual
+2. `INFRA-025`
    logs estruturados com `correlationId`
-5. `INFRA-027`
+3. `INFRA-027`
    E2E dos fluxos criticos do portal e docs
 
 ### Sprint 3 - Experiencia operacional e backup
@@ -163,9 +159,11 @@ Ordem recomendada:
 
 ## Proximo passo recomendado
 
-1. fechar `FEAT-001`, `FEAT-002B` e `FEAT-003` em ambiente real
-2. em seguida atacar `INFRA-022C` e CI
-3. depois abrir `FEAT-005` e `FEAT-007` sobre base mais estavel
+1. fechar `INFRA-022C` no ambiente e abrir `INFRA-023`
+2. depois voltar para `FEAT-001`, `FEAT-002B` e `FEAT-003` em ambiente real
+3. por fim abrir `FEAT-005` e `FEAT-007` sobre base mais estavel
+
+
 
 
 
