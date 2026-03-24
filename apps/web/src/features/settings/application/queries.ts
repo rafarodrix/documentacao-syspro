@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { settingsSchema, type SettingsInput, SETTING_KEYS } from "@dosc-syspro/contracts";
+import { settingsSchema, type SettingsOutput, SETTING_KEYS } from "@dosc-syspro/contracts";
 import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
 import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
@@ -10,7 +10,7 @@ import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/s
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
-export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsInput>> {
+export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsOutput>> {
   const session = await getProtectedSession();
   if (!session) return { success: false, error: "Nao autorizado." };
 
@@ -21,7 +21,7 @@ export async function getSettingsAction(): Promise<SettingsActionResponse<Settin
       return acc;
     }, {} as Record<string, string>);
 
-    const data: SettingsInput = {
+    const data: SettingsOutput = {
       minimumWage: Number(configMap[SETTING_KEYS.MIN_WAGE] || 0),
       maintenanceMode: configMap[SETTING_KEYS.MAINTENANCE] === "true",
       supportEmail: configMap[SETTING_KEYS.SUPPORT_EMAIL] || "",

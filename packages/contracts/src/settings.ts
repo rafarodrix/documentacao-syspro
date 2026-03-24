@@ -8,7 +8,8 @@ export const settingsSchema = z.object({
   rbacMatrixEnabled: z.boolean().default(true),
 });
 
-export type SettingsInput = z.infer<typeof settingsSchema>;
+export type SettingsInput = z.input<typeof settingsSchema>;
+export type SettingsOutput = z.output<typeof settingsSchema>;
 
 export const SETTING_KEYS = {
   MIN_WAGE: "minimumWage",

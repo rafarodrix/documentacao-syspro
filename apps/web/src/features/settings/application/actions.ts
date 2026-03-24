@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { settingsSchema, SettingsInput, SETTING_KEYS } from "@dosc-syspro/contracts";
+import { settingsSchema, type SettingsOutput, SETTING_KEYS } from "@dosc-syspro/contracts";
 import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
 import { SefazService } from "@/app/api/sefaz/sefaz.service";
@@ -11,7 +11,7 @@ import type { SettingsActionResponse } from "@/features/settings/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
-export async function updateSettingsAction(data: SettingsInput): Promise<SettingsActionResponse> {
+export async function updateSettingsAction(data: SettingsOutput): Promise<SettingsActionResponse> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };

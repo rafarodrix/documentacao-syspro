@@ -1,5 +1,5 @@
 export { settingsSchema, SETTING_KEYS } from "./settings";
-export type { SettingsInput } from "./settings";
+export type { SettingsInput, SettingsOutput } from "./settings";
 
 export { sefazRouteSchema, sefazRoutesSchema } from "./sefaz-routes";
 export type { SefazRouteInput, SefazRoutesInput } from "./sefaz-routes";

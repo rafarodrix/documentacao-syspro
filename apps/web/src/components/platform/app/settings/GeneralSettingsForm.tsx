@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { settingsSchema, type SettingsInput } from "@dosc-syspro/contracts";
+import { settingsSchema, type SettingsInput, type SettingsOutput } from "@dosc-syspro/contracts";
 import { updateSettingsAction } from "@/features/settings/application/actions";
 import { getSettingsAction } from "@/features/settings/application/queries";
 
@@ -31,7 +31,7 @@ export default function GeneralSettingsForm() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, startTransition] = useTransition();
 
-    const form = useForm<SettingsInput>({
+    const form = useForm<SettingsInput, undefined, SettingsOutput>({
         resolver: zodResolver(settingsSchema),
         defaultValues,
         mode: "onChange"
@@ -60,7 +60,7 @@ export default function GeneralSettingsForm() {
         return () => { isMounted = false; };
     }, [form]);
 
-    const onSubmit: SubmitHandler<SettingsInput> = async (data) => {
+    const onSubmit: SubmitHandler<SettingsOutput> = async (data) => {
         startTransition(async () => {
             const result = await updateSettingsAction(data);
             if (result.success) {
