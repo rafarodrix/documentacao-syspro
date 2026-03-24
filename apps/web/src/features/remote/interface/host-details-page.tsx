@@ -83,6 +83,34 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
+  const installations = useMemo(() => {
+    const seen = new Set<string>();
+    const items = details.sysproUpdates
+      .map((entry) => {
+        const companyName = entry.resolvedCompanyName ?? entry.companyLabel;
+        const key = `${companyName}::${entry.companyId ?? "unlinked"}`;
+        if (seen.has(key)) return null;
+        seen.add(key);
+        return {
+          companyId: entry.companyId,
+          companyName,
+          sourceLabel: entry.companyLabel,
+        };
+      })
+      .filter((entry): entry is { companyId: string | null; companyName: string; sourceLabel: string } => !!entry);
+
+    if (items.length) return items;
+
+    return host.companyName
+      ? [
+          {
+            companyId: host.companyId,
+            companyName: host.companyName,
+            sourceLabel: host.companyName,
+          },
+        ]
+      : [];
+  }, [details.sysproUpdates, host.companyId, host.companyName]);
 
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
@@ -185,7 +213,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">{host.name}</h1>
-                <p className="mt-1 text-base text-muted-foreground">{host.companyName ?? "Sem empresa"}</p>
+                <p className="mt-1 text-base text-muted-foreground">
+                  {installations.length
+                    ? `${installations.length} instalacao(oes) vinculada(s) nesta maquina`
+                    : "Maquina remota vinculada ao portal"}
+                </p>
                 <p className="mt-2 text-sm text-muted-foreground">{host.description || "Sem descricao operacional."}</p>
               </div>
             </div>
@@ -268,11 +300,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       </div>
 
       <Tabs defaultValue="conexao" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-6">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
           <TabsTrigger value="conexao">Conexao</TabsTrigger>
-          <TabsTrigger value="bases">Bases</TabsTrigger>
+          <TabsTrigger value="instalacoes">Instalacoes</TabsTrigger>
           <TabsTrigger value="agente">Agente</TabsTrigger>
-          <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
           <TabsTrigger value="observacoes">Observacoes</TabsTrigger>
         </TabsList>
@@ -312,12 +343,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           </Card>
         </TabsContent>
 
-        <TabsContent value="bases">
+        <TabsContent value="instalacoes">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Bases monitoradas</CardTitle>
+              <CardTitle className="text-lg">Instalacoes da maquina</CardTitle>
               <CardDescription>
-                Leituras recebidas do heartbeat para maquinas que hospedam mais de uma base Syspro.
+                Cada acesso remoto representa a maquina. Aqui aparecem todas as instalacoes/empresas encontradas nela.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -327,9 +358,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr_180px_180px]">
                       <div>
                         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
-                        <p className="mt-1 text-sm font-medium text-foreground">{entry.companyLabel}</p>
-                        {entry.resolvedCompanyName && entry.resolvedCompanyName !== entry.companyLabel ? (
-                          <p className="mt-1 text-xs text-muted-foreground">Vinculada a: {entry.resolvedCompanyName}</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">{entry.resolvedCompanyName ?? entry.companyLabel}</p>
+                        {!entry.companyId ? (
+                          <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">Sem vinculo automatico com empresa cadastrada</p>
                         ) : null}
                       </div>
                       <div>
@@ -349,7 +380,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Este host ainda nao enviou leituras de multi-bases no heartbeat.
+                  Esta maquina ainda nao enviou instalacoes no heartbeat.
                 </p>
               )}
             </CardContent>
@@ -402,32 +433,13 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           </Card>
         </TabsContent>
 
-        <TabsContent value="empresa">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg">Dados da empresa</CardTitle>
-              <CardDescription>Contexto rapido para confirmar quem esta sendo atendido.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p><span className="font-medium text-foreground">Empresa:</span> {details.company.nomeFantasia ?? details.company.razaoSocial}</p>
-                <p><span className="font-medium text-foreground">Razao social:</span> {details.company.razaoSocial}</p>
-                <p><span className="font-medium text-foreground">CNPJ:</span> {details.company.cnpj}</p>
-              </div>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p><span className="font-medium text-foreground">E-mail:</span> {details.company.emailContato ?? "Nao informado"}</p>
-                <p><span className="font-medium text-foreground">Telefone:</span> {details.company.telefone ?? "Nao informado"}</p>
-                <p><span className="font-medium text-foreground">Host ID:</span> {host.id}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="clientes">
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Pessoas vinculadas</CardTitle>
-              <CardDescription>Usuarios ativos da empresa para dar contexto ao atendimento.</CardDescription>
+              <CardDescription>
+                Usuarios ativos da empresa base do cadastro. Para maquinas multiempresa, a leitura principal agora esta em `Instalacoes`.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {details.linkedUsers.length ? (

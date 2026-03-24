@@ -185,6 +185,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       const haystack = normalizeSearchValue([
         item.name,
         item.companyName,
+        item.installationCompanies.join(" "),
         item.environment,
         item.provider,
         item.rustdeskId,
@@ -478,6 +479,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
                         <div className="space-y-3">
                           <p className="text-lg font-semibold text-foreground">{item.companyName ?? "Sem empresa"}</p>
+                          {item.installationCompanies.length > 1 ? (
+                            <p className="text-xs text-muted-foreground">
+                              Instalacoes: {item.installationCompanies.join(" | ")}
+                            </p>
+                          ) : null}
                           <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
                             <div className="grid grid-cols-[118px_1fr] gap-x-3 border-b border-border/40 px-3 py-2 text-sm">
                               <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Descricao</span>

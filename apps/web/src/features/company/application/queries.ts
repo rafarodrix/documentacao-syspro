@@ -135,7 +135,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
   const companyScopeIds =
     session.role === Role.CLIENTE_ADMIN ? await getSessionCompanyIds(session.userId) : null;
 
-  const company = await prisma.company.findFirst({
+  const company = (await prisma.company.findFirst({
     where: {
       id: companyId,
       deletedAt: null,
@@ -207,7 +207,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
         },
       },
     } as any,
-  } as any);
+  } as any)) as any;
 
   if (!company) notFound();
 
@@ -218,7 +218,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
 
   const address = company.addresses[0];
   const initialZammadEmails: CompanyZammadEmailInput[] = zammadEmailsResult;
-  const initialContacts: CompanyContactInput[] = company.contacts.map((contact) => ({
+  const initialContacts: CompanyContactInput[] = company.contacts.map((contact: any) => ({
     name: contact.name,
     email: contact.email ?? undefined,
     phone: contact.phone ?? undefined,

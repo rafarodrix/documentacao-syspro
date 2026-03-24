@@ -181,6 +181,7 @@ export type RemoteConfiguredHostItem = {
   id: string;
   companyId: string;
   companyName: string | null;
+  installationCompanies: string[];
   name: string;
   environment: string | null;
   provider: string | null;

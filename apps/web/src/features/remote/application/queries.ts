@@ -9,6 +9,7 @@ import type {
   RemoteAgentInstallStage,
   RemoteAgentLifecycleStatus,
 } from "@/features/remote/domain/model";
+import { Prisma } from "@prisma/client";
 
 function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
   return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
@@ -72,6 +73,7 @@ function mapDirectoryItem(host: {
   id: string;
   companyId: string;
   name: string;
+  installationCompanies?: string[];
   environment: string | null;
   provider: string | null;
   description: string | null;
@@ -116,6 +118,7 @@ function mapDirectoryItem(host: {
     id: host.id,
     companyId: host.companyId,
     companyName,
+    installationCompanies: host.installationCompanies ?? [],
     name: host.name,
     environment: host.environment,
     provider: host.provider,
@@ -489,6 +492,31 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
     }),
   ]);
 
+  const hostIds = hosts.map((host) => host.id);
+  const installationRows = hostIds.length
+    ? await prisma.$queryRaw<Array<{ hostId: string; companyName: string | null; companyLabel: string }>>(
+        Prisma.sql`
+          SELECT
+            u."hostId" AS "hostId",
+            COALESCE(c."nomeFantasia", c."razaoSocial") AS "companyName",
+            u."companyLabel" AS "companyLabel"
+          FROM "remote_host_syspro_update" u
+          LEFT JOIN "company" c ON c."id" = u."companyId"
+          WHERE u."hostId" IN (${Prisma.join(hostIds)})
+          ORDER BY u."companyLabel" ASC
+        `
+      )
+    : [];
+
+  const installationMap = new Map<string, string[]>();
+  for (const row of installationRows) {
+    const label = row.companyName ?? row.companyLabel;
+    if (!label) continue;
+    const current = installationMap.get(row.hostId) ?? [];
+    if (!current.includes(label)) current.push(label);
+    installationMap.set(row.hostId, current);
+  }
+
   return {
     tenantScope,
     stats: {
@@ -503,7 +531,12 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       id: company.id,
       label: company.nomeFantasia ?? company.razaoSocial,
     })),
-    items: hosts.map(mapDirectoryItem),
+    items: hosts.map((host) =>
+      mapDirectoryItem({
+        ...host,
+        installationCompanies: installationMap.get(host.id) ?? [],
+      })
+    ),
   };
 }
 
