@@ -30,6 +30,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(autenticacao)/login/page.js"
+    ],
+    "/api/auth/[...all]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/auth/[...all]/route.js"
     ]
   }
 }
