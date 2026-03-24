@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { useDocumentoForm } from "@/features/documentos/hooks/use-documento-form";
-import { type DocumentoFormValues } from "@dosc-syspro/contracts";
+import { documentoSchema, type DocumentoFormValues } from "@dosc-syspro/contracts";
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
 import { COMPORTAMENTOS_DOCUMENTO } from "@dosc-syspro/contracts";
 import { TIPOS_NOTA_CREDITO, TIPOS_NOTA_DEBITO } from "@dosc-syspro/contracts";
@@ -53,6 +53,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
     const handlePrint = useReactToPrint({ contentRef: componentRef });
 
     const handleFocus = (fieldName: string) => () => setFocusedField(fieldName);
+    const printableData = documentoSchema.parse(form.getValues());
 
     return (
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 animate-in fade-in duration-500 relative">
@@ -445,7 +446,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
             )}
 
             <div style={{ display: "none" }}>
-                <PrintableConfig ref={componentRef} data={form.getValues()} />
+                <PrintableConfig ref={componentRef} data={printableData} />
             </div>
         </div>
     );

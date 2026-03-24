@@ -7,12 +7,22 @@ test("authenticate portal user", async ({ page }) => {
   test.skip(!email || !password, "E2E_USER_EMAIL/E2E_USER_PASSWORD nao configurados.");
 
   await page.goto("/login?callbackUrl=%2Fportal");
-  await page.getByLabel("E-mail Corporativo").fill(email!);
-  await page.locator("#password").fill(password!);
 
+  const emailInput = page.locator("#email");
+  const passwordInput = page.locator("#password");
+  const submitButton = page.getByRole("button", { name: "Entrar no Sistema" });
   const loginError = page.getByRole("alert").filter({ hasText: "Falha no login" });
 
-  await page.getByRole("button", { name: "Entrar no Sistema" }).click();
+  await expect(emailInput).toBeVisible();
+  await expect(passwordInput).toBeVisible();
+  await expect(submitButton).toBeEnabled();
+
+  await emailInput.fill(email!);
+  await passwordInput.fill(password!);
+  await expect(emailInput).toHaveValue(email!);
+  await expect(passwordInput).toHaveValue(password!);
+
+  await submitButton.click();
 
   const outcome = await Promise.race([
     page.waitForURL(/\/portal(\/|\?|$)/, { timeout: 15000 }).then(() => "portal" as const),

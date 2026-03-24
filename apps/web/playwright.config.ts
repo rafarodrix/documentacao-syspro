@@ -1,8 +1,8 @@
-﻿import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
-function loadEnvFile(filePath: string) {
+function loadEnvFile(filePath: string, override = false) {
   if (!fs.existsSync(filePath)) return;
 
   const content = fs.readFileSync(filePath, "utf8");
@@ -17,15 +17,17 @@ function loadEnvFile(filePath: string) {
     const rawValue = trimmed.slice(separatorIndex + 1).trim();
     const value = rawValue.replace(/^['"]|['"]$/g, "");
 
-    if (!(key in process.env)) {
+    if (override || !(key in process.env)) {
       process.env[key] = value;
     }
   }
 }
 
 const workspaceRoot = path.resolve(__dirname, "../..");
-loadEnvFile(path.join(workspaceRoot, ".env.e2e"));
-loadEnvFile(path.join(__dirname, ".env.e2e"));
+loadEnvFile(path.join(workspaceRoot, ".env"));
+loadEnvFile(path.join(__dirname, ".env"));
+loadEnvFile(path.join(workspaceRoot, ".env.e2e"), true);
+loadEnvFile(path.join(__dirname, ".env.e2e"), true);
 
 const PORT = Number(process.env.E2E_PORT ?? 3100);
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${PORT}`;
