@@ -28,3 +28,5 @@ yarn-error.log*
 .vercel
 next-env.d.ts
 /generated/prisma
+# E2E auth state
+apps/web/tests/e2e/.auth/

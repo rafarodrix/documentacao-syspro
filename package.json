@@ -1,4 +1,4 @@
-{
+﻿{
     "name":  "dosc-syspro-workspace",
     "version":  "0.0.0",
     "private":  true,
@@ -31,7 +31,9 @@
                     "build:mobile":  "npm run build -w @dosc-syspro/app-mobile",
                     "dev:mobile":  "npm run dev -w @dosc-syspro/app-mobile",
                     "start:mobile":  "npm run start -w @dosc-syspro/app-mobile",
-                    "typecheck:mobile":  "npm run typecheck -w @dosc-syspro/app-mobile"
+                    "typecheck:mobile":  "npm run typecheck -w @dosc-syspro/app-mobile",
+                    "test:e2e":  "npm run test:e2e -w @dosc-syspro/web",
+                    "test:e2e:install":  "npm run test:e2e:install -w @dosc-syspro/web"
                 },
     "dependencies":  {
                          "@hookform/resolvers":  "^5.2.2",
@@ -105,6 +107,7 @@
                             "typescript":  "^5.8.2",
                             "vitest":  "^4.1.0",
                             "eslint":  "^9.23.0",
-                            "eslint-config-next":  "^15.5.14"
+                            "eslint-config-next":  "^15.5.14",
+                            "@playwright/test":  "^1.54.2"
                         }
 }
