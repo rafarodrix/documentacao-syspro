@@ -57,6 +57,21 @@ enum CompanyContactStatus {
   ARCHIVED
 }
 
+enum CompanyServerType {
+  SYSPRO_SERVER
+  IIS
+}
+
+enum CompanyServerProtocol {
+  HTTP
+  HTTPS
+}
+
+enum CompanyRemoteConnectionType {
+  DDNS_NOIP
+  RADMIN_VPN
+}
+
 enum TaxRegime {
   SIMPLES_NACIONAL
   SIMPLES_NACIONAL_EXCESSO
@@ -197,6 +212,14 @@ model Company {
   segment      CompanySegment?
   status       CompanyStatus @default(ACTIVE)
   logoUrl      String?
+  serverType   CompanyServerType @default(SYSPRO_SERVER)
+  serverPort   Int @default(1234)
+  serverHost   String @default("sysproerp (localhost)")
+  serverProtocol CompanyServerProtocol @default(HTTP)
+  iisIsapiPath String? @default("SYSPROSERVERISAPI.DLL")
+  installationDirectory String?
+  remoteConnectionType CompanyRemoteConnectionType?
+  remoteConnectionDetails String?
 
   // HIERARQUIA
   parentCompanyId String?

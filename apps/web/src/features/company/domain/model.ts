@@ -92,6 +92,10 @@ export interface CompanyListItem {
   nomeFantasia: string | null;
   segment?: CompanySegment | null;
   status: CompanyStatus;
+  serverType?: "SYSPRO_SERVER" | "IIS" | null;
+  serverPort?: number | null;
+  serverHost?: string | null;
+  serverProtocol?: "HTTP" | "HTTPS" | null;
   contractBlockReasonLabel?: string | null;
   isBlockedByContract?: boolean;
   usersCount?: number;
@@ -117,6 +121,14 @@ export interface CompanyEditInitialData {
   segment?: CompanySegment | null;
   logoUrl: string;
   status: CompanyStatus;
+  serverType: "SYSPRO_SERVER" | "IIS";
+  serverPort: number;
+  serverHost: string;
+  serverProtocol: "HTTP" | "HTTPS";
+  iisIsapiPath: string;
+  installationDirectory: string;
+  remoteConnectionType?: "DDNS_NOIP" | "RADMIN_VPN" | null;
+  remoteConnectionDetails: string;
   parentCompanyId: string;
   accountingFirmId: string;
   regimeTributario?: TaxRegime | null;

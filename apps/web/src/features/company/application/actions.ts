@@ -226,7 +226,7 @@ export async function createCompanyAction(
             : undefined,
         accountingFirm: accountingFirmId ? { connect: { id: accountingFirmId } } : undefined,
         parentCompany: parentCompanyId ? { connect: { id: parentCompanyId } } : undefined,
-      },
+      } as any,
     });
 
     if (zammadEmails !== undefined) {
@@ -325,7 +325,7 @@ export async function updateCompanyAction(
                   },
                 }
               : undefined,
-      },
+      } as any,
     });
 
     if (zammadEmails !== undefined) {

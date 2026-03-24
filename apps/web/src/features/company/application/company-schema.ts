@@ -25,6 +25,10 @@ const companyContactSchema = z.object({
   status: z.nativeEnum(CompanyContactStatus).optional().default(CompanyContactStatus.LINKED),
 });
 
+export const COMPANY_SERVER_TYPE_VALUES = ["SYSPRO_SERVER", "IIS"] as const;
+export const COMPANY_SERVER_PROTOCOL_VALUES = ["HTTP", "HTTPS"] as const;
+export const COMPANY_REMOTE_CONNECTION_TYPE_VALUES = ["DDNS_NOIP", "RADMIN_VPN"] as const;
+
 export const createCompanySchema = z
   .object({
     cnpj: z
@@ -36,6 +40,14 @@ export const createCompanySchema = z
     segment: z.nativeEnum(CompanySegment).nullable().optional(),
     status: z.nativeEnum(CompanyStatus).default(CompanyStatus.ACTIVE),
     logoUrl: emptyToUndefined.pipe(z.string().url("URL invalida").optional()),
+    serverType: z.enum(COMPANY_SERVER_TYPE_VALUES).default("SYSPRO_SERVER"),
+    serverPort: z.coerce.number().int().min(1, "Porta obrigatoria").default(1234),
+    serverHost: z.string().trim().min(1, "Servidor obrigatorio").default("sysproerp (localhost)"),
+    serverProtocol: z.enum(COMPANY_SERVER_PROTOCOL_VALUES).default("HTTP"),
+    iisIsapiPath: emptyToUndefined.default("SYSPROSERVERISAPI.DLL"),
+    installationDirectory: emptyToUndefined,
+    remoteConnectionType: z.enum(COMPANY_REMOTE_CONNECTION_TYPE_VALUES).nullable().optional(),
+    remoteConnectionDetails: emptyToUndefined,
     parentCompanyId: emptyToUndefined,
     accountingFirmId: emptyToUndefined,
     regimeTributario: z.nativeEnum(TaxRegime).nullable().optional(),
@@ -79,6 +91,18 @@ export const createCompanySchema = z
     {
       message: "Inscricao Estadual obrigatoria para Contribuintes",
       path: ["inscricaoEstadual"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.serverType === "IIS") {
+        return Boolean(data.iisIsapiPath?.trim());
+      }
+      return true;
+    },
+    {
+      message: "Informe o arquivo ISAPI quando o tipo de servidor for IIS.",
+      path: ["iisIsapiPath"],
     }
   );
 

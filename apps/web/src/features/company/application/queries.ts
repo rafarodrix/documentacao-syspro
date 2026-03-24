@@ -151,6 +151,16 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
       segment: true,
       logoUrl: true,
       status: true,
+      ...( {
+        serverType: true,
+        serverPort: true,
+        serverHost: true,
+        serverProtocol: true,
+        iisIsapiPath: true,
+        installationDirectory: true,
+        remoteConnectionType: true,
+        remoteConnectionDetails: true,
+      } as any),
       parentCompanyId: true,
       accountingFirmId: true,
       regimeTributario: true,
@@ -196,8 +206,8 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
           codigoIbgeEstado: true,
         },
       },
-    },
-  });
+    } as any,
+  } as any);
 
   if (!company) notFound();
 
@@ -232,6 +242,14 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
       segment: company.segment ?? undefined,
       logoUrl: company.logoUrl ?? "",
       status: company.status,
+      serverType: ((company as any).serverType ?? "SYSPRO_SERVER") as "SYSPRO_SERVER" | "IIS",
+      serverPort: Number((company as any).serverPort ?? 1234),
+      serverHost: ((company as any).serverHost ?? "sysproerp (localhost)") as string,
+      serverProtocol: ((company as any).serverProtocol ?? "HTTP") as "HTTP" | "HTTPS",
+      iisIsapiPath: ((company as any).iisIsapiPath ?? "SYSPROSERVERISAPI.DLL") as string,
+      installationDirectory: ((company as any).installationDirectory ?? "") as string,
+      remoteConnectionType: ((company as any).remoteConnectionType ?? undefined) as "DDNS_NOIP" | "RADMIN_VPN" | undefined,
+      remoteConnectionDetails: ((company as any).remoteConnectionDetails ?? "") as string,
       parentCompanyId: company.parentCompanyId ?? "",
       accountingFirmId: company.accountingFirmId ?? "",
       regimeTributario: company.regimeTributario ?? undefined,
