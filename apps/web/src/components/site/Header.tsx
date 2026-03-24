@@ -13,7 +13,7 @@ import {
   Menu,
   User,
 } from "lucide-react";
-import { SYSTEM_ROLES } from "@dosc-syspro/core";
+import { SYSTEM_ROLES, hasAllowedRole } from "@dosc-syspro/core";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,7 +46,7 @@ export async function SiteHeader() {
   const session = await getSiteSession();
 
   const user: SiteSessionUser | undefined = session?.user;
-  const canViewTechnical = user?.role && SYSTEM_ROLES.includes(user.role);
+  const canViewTechnical = user?.role ? hasAllowedRole(user.role, SYSTEM_ROLES) : false;
   const dashboardUrl = "/portal";
 
   return (
@@ -101,7 +101,7 @@ export async function SiteHeader() {
               <DropdownMenuItem asChild>
                 <Link href="/docs/duvidas" className="flex items-center gap-2">
                   <HelpCircle className="h-4 w-4" />
-                  Dúvidas Frequentes
+                  DÃºvidas Frequentes
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -120,7 +120,7 @@ export async function SiteHeader() {
                 <DropdownMenuItem asChild>
                   <Link href="/docs/manuais-tecnicos" className="flex items-center gap-2">
                     <LayoutDashboard className="h-4 w-4" />
-                    Manuais Técnicos
+                    Manuais TÃ©cnicos
                   </Link>
                 </DropdownMenuItem>
               ) : null}
@@ -232,11 +232,11 @@ export async function SiteHeader() {
                   <div className="my-2 h-px bg-border/50" />
                   <MobileNavLink href="/docs">Central</MobileNavLink>
                   <MobileNavLink href="/docs/manual">Manual de uso</MobileNavLink>
-                  <MobileNavLink href="/docs/duvidas">Dúvidas frequentes</MobileNavLink>
+                  <MobileNavLink href="/docs/duvidas">DÃºvidas frequentes</MobileNavLink>
                   <MobileNavLink href="/docs/treinamento">Treinamentos</MobileNavLink>
                   <MobileNavLink href="/docs/suporte">Suporte</MobileNavLink>
                   {canViewTechnical ? (
-                    <MobileNavLink href="/docs/manuais-tecnicos">Manuais técnicos</MobileNavLink>
+                    <MobileNavLink href="/docs/manuais-tecnicos">Manuais tÃ©cnicos</MobileNavLink>
                   ) : null}
                   <MobileNavLink href="/releases">Releases</MobileNavLink>
                   <MobileNavLink href="https://www.trilink.com.br/public/downloads" external>

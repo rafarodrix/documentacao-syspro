@@ -4,6 +4,5 @@
   "/api/platform/notifications/route": "app/api/platform/notifications/route.js",
   "/(site)/page": "app/(site)/page.js",
   "/(autenticacao)/login/page": "app/(autenticacao)/login/page.js",
-  "/docs/[[...slug]]/page": "app/docs/[[...slug]]/page.js",
   "/(platform)/portal/page": "app/(platform)/portal/page.js"
 }
