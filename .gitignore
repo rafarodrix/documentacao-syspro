@@ -9,6 +9,7 @@
 # test & build
 /coverage
 /.next/
+apps/web/.next/
 /out/
 /build
 *.tsbuildinfo

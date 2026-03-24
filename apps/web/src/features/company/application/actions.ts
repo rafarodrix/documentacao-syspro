@@ -17,6 +17,7 @@ import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
   CompanyActionResponse as ActionResponse,
   CompanyContactInput,
+  CompanyActionFailure,
   CompanyRegistryLookupResponse,
   CompanyValidationErrors,
   CompanyZammadEmailInput,
@@ -123,7 +124,7 @@ async function replaceCompanyContacts(companyId: string, items: CompanyContactIn
   });
 }
 
-function handleActionError(error: unknown): ActionResponse {
+function handleActionError(error: unknown): CompanyActionFailure {
   console.error("[CompanyAction Error]:", error);
 
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -172,7 +173,7 @@ export async function lookupCompanyProfileByCnpjAction(
     };
   } catch (error) {
     const handled = handleActionError(error);
-    return { success: false, message: handled.message, errors: handled.errors };
+    return handled;
   }
 }
 

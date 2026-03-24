@@ -20,6 +20,27 @@ async function fillControlledInput(page: Page, locator: Locator, value: string) 
   throw new Error(`Nao foi possivel manter o valor no campo ${await locator.getAttribute("id")}.`);
 }
 
+async function waitForPortalOrError(page: Page, loginError: Locator) {
+  const portalNav = page.getByRole("link", { name: /Dashboard/i });
+  const deadline = Date.now() + 45000;
+
+  while (Date.now() < deadline) {
+    if (await loginError.isVisible().catch(() => false)) {
+      return "error" as const;
+    }
+
+    const url = page.url();
+    const inPortal = /\/portal(\/|\?|$)/.test(url);
+    if (inPortal && (await portalNav.isVisible().catch(() => false))) {
+      return "portal" as const;
+    }
+
+    await page.waitForTimeout(500);
+  }
+
+  throw new Error(`Timeout aguardando portal autenticado. URL atual: ${page.url()}`);
+}
+
 test("authenticate portal user", async ({ page }) => {
   test.setTimeout(60000);
   test.skip(!email || !password, "E2E_USER_EMAIL/E2E_USER_PASSWORD nao configurados.");
@@ -42,10 +63,7 @@ test("authenticate portal user", async ({ page }) => {
 
   await submitButton.click();
 
-  const outcome = await Promise.race([
-    page.waitForURL(/\/portal(\/|\?|$)/, { timeout: 45000 }).then(() => "portal" as const),
-    loginError.waitFor({ state: "visible", timeout: 45000 }).then(() => "error" as const),
-  ]);
+  const outcome = await waitForPortalOrError(page, loginError);
 
   if (outcome === "error") {
     const errorText = (await loginError.textContent())?.trim() || "Falha de login sem mensagem visivel.";
