@@ -89,6 +89,15 @@ interface CreateCompanyPageFormProps {
 }
 
 type SectionId = "geral" | "fiscal" | "estrutura" | "endereco" | "contato";
+type ContactDraft = {
+  name: string;
+  email: string;
+  phone: string;
+  whatsapp: string;
+  notes: string;
+  source: CompanyContactSource;
+  status: CompanyContactStatus;
+};
 
 const SECTIONS: Array<{ id: SectionId; title: string; description: string; icon: ElementType; fields: string[] }> = [
   {
@@ -193,7 +202,7 @@ export function CreateCompanyPageForm({
     [initialContacts],
   );
   const [contacts, setContacts] = useState(initialNormalizedContacts);
-  const [contactDraft, setContactDraft] = useState({
+  const [contactDraft, setContactDraft] = useState<ContactDraft>({
     name: "",
     email: "",
     phone: "",
