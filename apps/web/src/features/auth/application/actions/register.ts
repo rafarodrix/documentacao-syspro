@@ -1,10 +1,10 @@
 "use server"
 
+import { Role } from "@prisma/client"
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { headers } from "next/headers"
-import { Role } from "@prisma/client"
-import { redirect } from "next/navigation"
 
 type AuthApiError = {
     body?: {

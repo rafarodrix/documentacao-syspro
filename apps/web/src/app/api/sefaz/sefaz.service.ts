@@ -2,12 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { analyzeSefazResponse, buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
 import { SETTING_KEYS } from "@dosc-syspro/contracts";
 import { sefazRoutesSchema } from "@dosc-syspro/contracts";
+import type { SefazServiceType, SefazStatusType } from "@prisma/client";
 import { createLogger } from "@/lib/observability/logger";
 
 type SefazCheckResult = {
     uf: string;
-    service: string;
-    status: string;
+    service: SefazServiceType;
+    status: SefazStatusType;
     latency: number;
 };
 
