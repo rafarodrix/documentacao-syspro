@@ -223,7 +223,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
         .filter((entry) => typeof entry?.type === "string" && typeof entry?.details === "string")
         .map((entry) => ({
           type: entry.type as "DDNS_NOIP" | "RADMIN_VPN",
-          details: entry.details,
+          details: entry.details ?? "",
         }))
     : (company as any).remoteConnectionType
       ? [
