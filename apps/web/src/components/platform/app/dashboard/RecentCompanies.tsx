@@ -78,7 +78,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
 
       <CardContent className="px-5 pb-5 flex-1">
         {companies.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full min-h-[240px] text-center gap-4">
+          <div className="flex flex-col items-center justify-center h-full min-h-60 text-center gap-4">
             <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center border border-border">
               <Building2 className="h-7 w-7 text-muted-foreground/40" />
             </div>
@@ -105,7 +105,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
                   href={`/portal/cadastros/empresa?empresa=${company.id}`}
                   className="flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
                 >
-                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-muted to-muted/60 border border-border/50 flex items-center justify-center flex-shrink-0 text-xs font-bold text-muted-foreground group-hover:border-border/80 transition-colors">
+                  <div className="h-9 w-9 rounded-lg bg-linear-to-br from-muted to-muted/60 border border-border/50 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground group-hover:border-border/80 transition-colors">
                     {getInitials(company.nomeFantasia || company.razaoSocial)}
                   </div>
 
@@ -114,7 +114,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
                       <span className="text-sm font-medium text-foreground truncate leading-tight">
                         {company.nomeFantasia || company.razaoSocial}
                       </span>
-                      <Badge variant="outline" className={cn("text-[10px] h-4 px-1.5 flex-shrink-0 border", statusCfg.class)}>
+                      <Badge variant="outline" className={cn("text-[10px] h-4 px-1.5 shrink-0 border", statusCfg.class)}>
                         {statusCfg.label}
                       </Badge>
                     </div>
@@ -134,7 +134,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
                     </div>
                   </div>
 
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right shrink-0">
                     <p className="text-[11px] text-muted-foreground">
                       {formatRelativeDate(company.createdAt)}
                     </p>

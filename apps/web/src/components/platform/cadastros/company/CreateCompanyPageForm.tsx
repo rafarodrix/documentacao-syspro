@@ -385,11 +385,11 @@ export function CreateCompanyPageForm({
     if (!email) return;
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!valid) {
-      toast.error("Informe um e-mail vÃ¡lido para integraÃ§Ã£o Zammad.");
+      toast.error("Informe um e-mail vÃƒÂ¡lido para integraÃƒÂ§ÃƒÂ£o Zammad.");
       return;
     }
     if (zammadEmails.some((item) => item.email === email)) {
-      toast.error("Este e-mail jÃ¡ foi adicionado.");
+      toast.error("Este e-mail jÃƒÂ¡ foi adicionado.");
       return;
     }
     setZammadEmails((prev) => [
@@ -441,7 +441,7 @@ export function CreateCompanyPageForm({
   return (
     <div className="relative w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card/95 overflow-hidden shadow-xl">
       <ShineBorder borderWidth={1} duration={16} shineColor={["#2dd4bf", "#60a5fa", "#a78bfa"]} />
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4 bg-gradient-to-r from-muted/30 via-background to-muted/20">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4 bg-linear-to-r from-muted/30 via-background to-muted/20">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary/70" />

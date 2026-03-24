@@ -36,7 +36,7 @@ export function HeroSection({ currentVersion, releaseLink }: HeroSectionProps) {
           do{" "}
           <span className="relative inline-block pb-1">
             {/* Gradiente de Texto Premium */}
-            <span className="bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground">
+            <span className="bg-clip-text text-transparent bg-linear-to-b from-foreground to-muted-foreground">
               Syspro ERP
             </span>
 
@@ -90,17 +90,17 @@ function GridBackground() {
   return (
     <div className="absolute inset-0 -z-10 h-full w-full overflow-hidden">
       {/* Gradiente de Fundo Suave */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
 
       {/* Grid Pattern com Mask Radial (Magic UI Style) */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.16)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.16)_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.16)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.16)_1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
     </div>
   );
 }
 
 function Spotlight() {
   return (
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[400px] w-[1000px] rounded-full bg-primary/10 blur-[120px] pointer-events-none -z-10 opacity-50" />
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-100 w-250 rounded-full bg-primary/10 blur-[120px] pointer-events-none -z-10 opacity-50" />
   );
 }
 
@@ -132,7 +132,7 @@ function ReleaseBadge({ currentVersion }: { currentVersion: string }) {
     <div className="relative inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-background/80 backdrop-blur-xl hover:border-primary/40 transition-all cursor-pointer group overflow-hidden">
 
       {/* Efeito Shimmer (Brilho passando) */}
-      <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-primary/10 to-transparent z-0"></div>
+      <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_2s_infinite] bg-linear-to-r from-transparent via-primary/10 to-transparent z-0"></div>
 
       <span className="relative flex h-2 w-2 z-10">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -153,14 +153,14 @@ function ReleaseBadge({ currentVersion }: { currentVersion: string }) {
 function HeroFeatures() {
   const features = [
     { icon: Library, text: "Base de Conhecimento" },
-    { icon: History, text: "Histórico de Versões" },
+    { icon: History, text: "História de Versões" },
     { icon: LifeBuoy, text: "Suporte Especializado" },
   ];
 
   return (
     <div className="mt-20 pt-8 border-t border-border/30 flex flex-wrap justify-center gap-8 md:gap-16 relative">
       {/* Luz sutil na borda */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
 
       {features.map((item, i) => (
         <div key={i} className="flex items-center gap-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group cursor-default">

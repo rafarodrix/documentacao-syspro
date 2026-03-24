@@ -397,12 +397,12 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
                     <TableRow key={company.id} className="group hover:bg-muted/20 transition-colors border-b border-border/30 last:border-0">
                       <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-primary/8 dark:bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <div className="h-8 w-8 rounded-lg bg-primary/8 dark:bg-primary/10 flex items-center justify-center shrink-0">
                             <Building2 className="h-4 w-4 text-primary/70" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-[220px]">{company.razaoSocial}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[220px]">
+                            <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-55">{company.razaoSocial}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-55">
                               {company.nomeFantasia || <span className="italic opacity-50">Nome fantasia nao informado</span>}
                             </p>
                           </div>
@@ -432,7 +432,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
                           {company.contractBlockReasonLabel && (
                             <div className="space-y-1">
                               <div className="hidden md:flex items-center gap-1 text-[10px] text-muted-foreground">
-                                <span className="max-w-[190px] truncate">{company.contractBlockReasonLabel}</span>
+                                <span className="max-w-47.5 truncate">{company.contractBlockReasonLabel}</span>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -444,7 +444,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
                                         <CircleAlert className="h-3.5 w-3.5" />
                                       </button>
                                     </TooltipTrigger>
-                                    <TooltipContent className="max-w-[280px] whitespace-normal text-left">
+                                    <TooltipContent className="max-w-70 whitespace-normal text-left">
                                       {company.contractBlockReasonLabel}
                                     </TooltipContent>
                                   </Tooltip>

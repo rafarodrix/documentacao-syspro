@@ -89,7 +89,7 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
           : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20",
       )}
     >
-      <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", isActive ? "bg-emerald-500 animate-pulse" : "bg-zinc-400")} />
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", isActive ? "bg-emerald-500 animate-pulse" : "bg-zinc-400")} />
       {isActive ? "Ativo" : "Inativo"}
     </span>
   );
@@ -104,7 +104,7 @@ function EmptyState({ isSearching, searchTerm, onClear }: { isSearching: boolean
       <p className="text-sm font-semibold text-foreground">
         {isSearching ? `Sem resultados para "${searchTerm}"` : "Nenhum membro administrativo cadastrado"}
       </p>
-      <p className="text-xs text-muted-foreground mt-1 max-w-[260px] text-center">
+      <p className="text-xs text-muted-foreground mt-1 max-w-65 text-center">
         {isSearching ? "Tente outros termos ou limpe o filtro." : "Adicione o primeiro membro da equipe interna."}
       </p>
       {isSearching && (
@@ -330,17 +330,17 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
                   <TableRow key={user.id} className="group hover:bg-muted/20 transition-colors border-b border-border/30 last:border-0">
                     <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 border-2 border-purple-100 dark:border-purple-900/30 flex-shrink-0">
+                        <Avatar className="h-9 w-9 border-2 border-purple-100 dark:border-purple-900/30 shrink-0">
                           <AvatarImage src={user.image ?? undefined} />
                           <AvatarFallback className="bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold text-xs">
                             {getInitials(user.name)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-[180px]">
+                          <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-45">
                             {user.name ?? <span className="italic text-muted-foreground/60 font-normal">Sem nome</span>}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[180px]">{user.email}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-45">{user.email}</p>
                         </div>
                       </div>
                     </TableCell>
@@ -348,11 +348,11 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Briefcase className="w-3 h-3 flex-shrink-0 opacity-60" />
-                          <span className="truncate max-w-[140px]">{user.jobTitle || <span className="italic opacity-50">Nao informado</span>}</span>
+                          <Briefcase className="w-3 h-3 shrink-0 opacity-60" />
+                          <span className="truncate max-w-35">{user.jobTitle || <span className="italic opacity-50">Nao informado</span>}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 font-mono">
-                          <Fingerprint className="w-3 h-3 flex-shrink-0 opacity-50" />
+                          <Fingerprint className="w-3 h-3 shrink-0 opacity-50" />
                           {formatCPF(user.cpf)}
                         </div>
                       </div>

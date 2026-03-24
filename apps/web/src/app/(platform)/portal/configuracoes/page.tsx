@@ -54,7 +54,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const sefazRoutes = settingsView.sefazRoutes;
 
     return (
-        <div className="flex flex-col gap-8 p-6 max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+        <div className="flex flex-col gap-8 p-6 max-w-400 mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
             <div className="flex flex-col gap-2 border-b border-border/40 pb-6">
                 <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
                     <Sliders className="h-8 w-8 text-primary/80" />

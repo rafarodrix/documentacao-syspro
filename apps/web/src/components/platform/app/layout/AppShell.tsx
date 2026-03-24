@@ -45,7 +45,7 @@ export function AppShell({ user, children }: AppShellProps) {
         <ClientHeader user={user} sidebarCollapsed={collapsed} onToggleSidebar={() => setCollapsed((prev) => !prev)} />
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
-          <div className="max-w-[1600px] mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div className="max-w-400 mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
             {children}
           </div>
         </main>

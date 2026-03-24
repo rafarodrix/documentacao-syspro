@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useTicketChat } from "@/features/tickets/hooks/use-ticket-chat";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
             </CardHeader>
 
             <CardContent className="p-0">
-                <ScrollArea className="h-[520px] bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40">
+                <ScrollArea className="h-130 bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40">
                     <div className="p-4 space-y-6">
                         {articles.map((article) => {
                             const messageIsMe = isMe(article.from);
@@ -70,7 +70,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
 
                                     <div className={cn("flex flex-col min-w-0", messageIsMe && "items-end")}>
                                         <div className="flex items-center gap-2 mb-1 px-1">
-                                            <span className="text-xs font-medium truncate max-w-[220px]">
+                                            <span className="text-xs font-medium truncate max-w-55">
                                                 {messageIsMe ? "Você" : article.from.split("<")[0]}
                                             </span>
                                             <span className="text-[10px] text-muted-foreground">{article.createdAt}</span>
@@ -78,10 +78,10 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
 
                                         <div
                                             className={cn(
-                                                "rounded-2xl p-3 text-sm shadow-sm break-words prose prose-sm max-w-none",
+                                                "rounded-2xl p-3 text-sm shadow-sm wrap-break-word prose prose-sm max-w-none",
                                                 "prose-pre:bg-black prose-pre:text-white prose-pre:p-3 prose-pre:rounded-lg prose-pre:border",
                                                 messageIsMe
-                                                    ? "bg-primary text-primary-foreground rounded-tr-sm [&_*]:text-primary-foreground"
+                                                    ? "bg-primary text-primary-foreground rounded-tr-sm **:text-primary-foreground"
                                                     : "bg-secondary text-foreground border border-border rounded-tl-sm dark:prose-invert"
                                             )}
                                             dangerouslySetInnerHTML={{ __html: article.body }}
@@ -108,7 +108,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 placeholder="Digite sua resposta..."
-                                className="min-h-[56px] max-h-[180px] pr-14 rounded-xl resize-none bg-muted/30"
+                                className="min-h-14 max-h-45 pr-14 rounded-xl resize-none bg-muted/30"
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter" && !e.shiftKey) {
                                         e.preventDefault();

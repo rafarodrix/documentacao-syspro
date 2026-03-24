@@ -269,7 +269,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-border/50 bg-gradient-to-br from-background to-muted/20">
+        <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
@@ -282,7 +282,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 bg-gradient-to-br from-background to-muted/20">
+        <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <TimerReset className="h-4 w-4 text-amber-500" />
@@ -295,7 +295,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 bg-gradient-to-br from-background to-muted/20">
+        <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Monitor className="h-4 w-4 text-sky-500" />
@@ -308,7 +308,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 bg-gradient-to-br from-background to-muted/20">
+        <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Wrench className="h-4 w-4 text-rose-500" />
@@ -323,7 +323,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       </section>
 
       <Card className="border-border/50 overflow-hidden">
-        <CardHeader className="border-b border-border/50 bg-gradient-to-r from-background via-muted/10 to-background">
+        <CardHeader className="border-b border-border/50 bg-linear-to-r from-background via-muted/10 to-background">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-1">
               <CardTitle className="text-xl">Console de acesso remoto</CardTitle>
@@ -333,7 +333,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             </div>
 
             {canCreateHosts ? (
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-3 lg:min-w-[380px]">
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-3 lg:min-w-95">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-foreground">Cadastro rapido de maquina</p>
@@ -496,7 +496,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 return (
                   <div
                     key={item.id}
-                    className="rounded-2xl border border-border/50 bg-gradient-to-r from-background via-background to-muted/20 p-5 shadow-sm transition-colors hover:border-primary/20"
+                    className="rounded-2xl border border-border/50 bg-linear-to-r from-background via-background to-muted/20 p-5 shadow-sm transition-colors hover:border-primary/20"
                   >
                     <div className="grid gap-5 xl:grid-cols-[1.2fr_0.9fr_0.8fr]">
                       <div className="space-y-4">
@@ -570,7 +570,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fluxo do agente</p>
                           <p className="mt-1 text-sm font-medium text-foreground">{item.agent.lifecycleStatus.replace(/_/g, " ")}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{item.agent.installStages.join(" | ") || "Sem etapas concluídas"}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.agent.installStages.join(" | ") || "Sem etapas concluÃ­das"}</p>
                         </div>
                         <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo ticket</p>

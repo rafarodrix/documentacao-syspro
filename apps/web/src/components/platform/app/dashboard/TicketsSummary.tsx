@@ -13,14 +13,14 @@ interface TicketsSummaryProps {
 
 const STATUS_CONFIG = {
   Aberto: { icon: Inbox, color: "text-blue-500", bg: "bg-blue-500/10", label: "Aberto" },
-  "Em Análise": { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Em Análise" },
+  "Em AnÃ¡lise": { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Em AnÃ¡lise" },
   Pendente: { icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-500/10", label: "Pendente" },
   Resolvido: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Resolvido" },
 }
 
 const PRIORITY_CONFIG = {
   Alta: { class: "bg-red-500/10 text-red-600 border-red-500/20" },
-  Média: { class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  MÃ©dia: { class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   Baixa: { class: "bg-muted text-muted-foreground border-border" },
 }
 
@@ -28,8 +28,8 @@ function formatDate(iso: string): string {
   const date = new Date(iso)
   const now = new Date()
   const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60)
-  if (diff < 60) return `${diff}min atrás`
-  if (diff < 1440) return `${Math.floor(diff / 60)}h atrás`
+  if (diff < 60) return `${diff}min atrÃ¡s`
+  if (diff < 1440) return `${Math.floor(diff / 60)}h atrÃ¡s`
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
 }
 
@@ -61,7 +61,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
 
       <CardContent className="px-5 pb-5">
         {tickets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[120px] gap-3 text-center">
+          <div className="flex flex-col items-center justify-center min-h-30 gap-3 text-center">
             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center border border-border">
               <Headset className="h-5 w-5 text-muted-foreground/40" />
             </div>
@@ -83,7 +83,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
                   href={`/portal/chamados/${ticket.id}`}
                   className="flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
                 >
-                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0", statusCfg.bg)}>
+                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", statusCfg.bg)}>
                     <StatusIcon className={cn("h-4 w-4", statusCfg.color)} />
                   </div>
 
@@ -92,19 +92,19 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
                       <span className="text-sm font-medium truncate leading-tight">{ticket.subject}</span>
                       <Badge
                         variant="outline"
-                        className={cn("text-[10px] h-4 px-1.5 flex-shrink-0 border", priorityCfg.class)}
+                        className={cn("text-[10px] h-4 px-1.5 shrink-0 border", priorityCfg.class)}
                       >
                         {ticket.priority}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[11px] text-muted-foreground font-mono">#{ticket.number}</span>
-                      <span className="text-muted-foreground/30">·</span>
+                      <span className="text-muted-foreground/30">Â·</span>
                       <span className={cn("text-[11px]", statusCfg.color)}>{statusCfg.label}</span>
                     </div>
                   </div>
 
-                  <span className="text-[11px] text-muted-foreground flex-shrink-0">{formatDate(ticket.lastUpdate)}</span>
+                  <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(ticket.lastUpdate)}</span>
                 </Link>
               )
             })}

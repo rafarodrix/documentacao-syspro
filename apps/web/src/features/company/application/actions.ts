@@ -240,7 +240,8 @@ export async function createCompanyAction(
     const segmentTriggers = resolveCompanySegmentTriggers(result.segment);
 
     revalidateCadastrosViews();
-    return { success: true, message: "Empresa criada com sucesso!", data: { ...result, segmentTriggers } };
+    void segmentTriggers;
+    return { success: true, message: "Empresa criada com sucesso!" };
   } catch (error) {
     return handleActionError(error);
   }

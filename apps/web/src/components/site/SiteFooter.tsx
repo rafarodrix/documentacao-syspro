@@ -11,7 +11,7 @@ export function SiteFooter() {
     <footer className="border-t border-border/40 bg-background pt-16 pb-8 relative overflow-hidden">
 
       {/* Background Grids (Sutil) */}
-      <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.12)_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+      <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.12)_1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
 
       <div className="container max-w-screen-2xl px-4 md:px-8 relative z-10">
 
@@ -44,10 +44,10 @@ export function SiteFooter() {
             </Link>
 
             <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-              Soluções robustas para gestão empresarial. Simplificando processos, garantindo compliance e conectando resultados para impulsionar o seu negócio.
+              SoluÃ§Ãµes robustas para gestÃ£o empresarial. Simplificando processos, garantindo compliance e conectando resultados para impulsionar o seu negÃ³cio.
             </p>
 
-            {/* Botões Sociais */}
+            {/* BotÃµes Sociais */}
             <div className="flex items-center gap-2">
               <SocialButton href="https://www.youtube.com/channel/UCcH7GYfmvIE9_UlWAUH8h2Q" icon={Youtube} label="YouTube" hoverColor="hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/5" />
               <SocialButton href="https://www.instagram.com/trilinksoftwares" icon={Instagram} label="Instagram" hoverColor="hover:text-pink-500 hover:border-pink-500/20 hover:bg-pink-500/5" />
@@ -55,7 +55,7 @@ export function SiteFooter() {
             </div>
           </div>
 
-          {/* COLUNA 2: Acesso Rápido */}
+          {/* COLUNA 2: Acesso RÃ¡pido */}
           <div className="md:col-span-2 md:col-start-6 flex flex-col gap-4">
             <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Institucional</h4>
             <ul className="space-y-3">
@@ -66,7 +66,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <FooterLink href="https://www.trilink.com.br/public/downloads" external>
-                  <Download className="h-3.5 w-3.5 mr-2 opacity-70" /> Área de Downloads
+                  <Download className="h-3.5 w-3.5 mr-2 opacity-70" /> Ãrea de Downloads
                 </FooterLink>
               </li>
             </ul>
@@ -76,15 +76,15 @@ export function SiteFooter() {
           <div className="md:col-span-2 flex flex-col gap-4">
             <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Suporte</h4>
             <ul className="space-y-3">
-              <li><FooterLink href="/docs/manual">Documentação Oficial</FooterLink></li>
-              <li><FooterLink href="/docs/duvidas">Dúvidas Frequentes</FooterLink></li>
+              <li><FooterLink href="/docs/manual">DocumentaÃ§Ã£o Oficial</FooterLink></li>
+              <li><FooterLink href="/docs/duvidas">DÃºvidas Frequentes</FooterLink></li>
               <li><FooterLink href="/docs/suporte">Suporte</FooterLink></li>
             </ul>
           </div>
 
           {/* COLUNA 4: Legal */}
           <div className="md:col-span-2 flex flex-col gap-4">
-            <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Acesso Rápido</h4>
+            <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Acesso RÃ¡pido</h4>
             <ul className="space-y-3">
               <li><FooterLink href="/login">Login</FooterLink></li>
               <li><FooterLink href="/portal">Portal do Cliente</FooterLink></li>
@@ -93,7 +93,7 @@ export function SiteFooter() {
 
         </div>
 
-        {/* --- RODAPÉ INFERIOR --- */}
+        {/* --- RODAPÃ‰ INFERIOR --- */}
         <div className="border-t border-border/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-xs text-muted-foreground text-center md:text-left">
             &copy; {currentYear} Trilink Software Ltda. Todos os direitos reservados.
@@ -101,7 +101,7 @@ export function SiteFooter() {
 
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
             <FooterLink href="/termos">Termos de Uso</FooterLink>
-            <FooterLink href="/privacidade">Política de Privacidade</FooterLink>
+            <FooterLink href="/privacidade">PolÃ­tica de Privacidade</FooterLink>
           </div>
         </div>
 

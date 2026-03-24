@@ -62,8 +62,8 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
             <Table>
                 <TableHeader className="bg-muted/40">
                     <TableRow className="hover:bg-transparent border-b border-border/60">
-                        <TableHead className="w-[100px]">Ticket</TableHead>
-                        <TableHead className="min-w-[280px]">Assunto</TableHead>
+                        <TableHead className="w-25">Ticket</TableHead>
+                        <TableHead className="min-w-70">Assunto</TableHead>
                         {isAdmin && <TableHead>Cliente</TableHead>}
                         <TableHead>Status</TableHead>
                         <TableHead>Prioridade</TableHead>
@@ -81,7 +81,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                                 <TableCell className="font-mono text-xs font-medium text-muted-foreground">#{ticket.number}</TableCell>
                                 <TableCell>
                                     <div className="flex flex-col gap-0.5">
-                                        <span className="font-medium text-foreground truncate max-w-[280px] sm:max-w-[420px]">{ticket.title}</span>
+                                        <span className="font-medium text-foreground truncate max-w-70 sm:max-w-105">{ticket.title}</span>
                                         <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{ticket.group}</span>
                                     </div>
                                 </TableCell>
@@ -90,7 +90,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                                     <TableCell>
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <Building2 className="w-3 h-3" />
-                                            <span className="text-sm truncate max-w-[180px]">{ticket.customer}</span>
+                                            <span className="text-sm truncate max-w-45">{ticket.customer}</span>
                                         </div>
                                     </TableCell>
                                 )}

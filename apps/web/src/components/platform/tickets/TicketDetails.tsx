@@ -90,7 +90,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto p-4 md:p-0">
-            <Card className="border-border/60 bg-gradient-to-b from-card via-card to-muted/10">
+            <Card className="border-border/60 bg-linear-to-b from-card via-card to-muted/10">
                 <CardHeader className="gap-4">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3 min-w-0">
@@ -101,7 +101,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                             </Button>
 
                             <div className="min-w-0">
-                                <CardTitle className="text-xl md:text-2xl tracking-tight leading-snug break-words">
+                                <CardTitle className="text-xl md:text-2xl tracking-tight leading-snug wrap-break-word">
                                     {ticket.title}
                                 </CardTitle>
                                 <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-muted-foreground">

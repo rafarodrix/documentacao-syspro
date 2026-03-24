@@ -19,7 +19,7 @@ export default async function ReformaTributariaPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 p-6 animate-in fade-in duration-500">
+    <div className="mx-auto flex w-full max-w-400 flex-col gap-6 p-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-primary/10 p-2 text-primary">
