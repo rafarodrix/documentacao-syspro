@@ -1,4 +1,4 @@
-import type { TicketStatus } from "../entities/ticket";
+﻿import type { TicketStatus } from "../entities/ticket";
 
 type StatusRule = {
   status: TicketStatus;
@@ -19,9 +19,10 @@ const DEFAULT_MATRIX: ParsedStateMatrix = {
     3: "Em Análise",
     4: "Pendente",
     5: "Pendente",
+    7: "Resolvido",
   },
   statusRules: [
-    { status: "Resolvido", keywords: ["closed", "fechado", "resolvido", "merged", "mesclado"] },
+    { status: "Resolvido", keywords: ["closed", "fechado", "resolvido", "merged", "mesclado", "finalizado"] },
     { status: "Pendente", keywords: ["pendente", "pending", "aguardando", "teste", "testes", "reminder"] },
     { status: "Em Análise", keywords: ["analise", "análise", "desenvolvimento", "development"] },
     { status: "Aberto", keywords: ["novo", "new", "open", "aberto"] },
