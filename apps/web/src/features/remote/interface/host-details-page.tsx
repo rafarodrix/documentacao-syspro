@@ -8,6 +8,7 @@ import {
   Copy,
   ExternalLink,
   Fingerprint,
+  HardDriveDownload,
   LifeBuoy,
   ShieldCheck,
   Signal,
@@ -268,8 +269,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       </div>
 
       <Tabs defaultValue="conexao" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-4">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
           <TabsTrigger value="conexao">Conexao</TabsTrigger>
+          <TabsTrigger value="agente">Agente</TabsTrigger>
           <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
           <TabsTrigger value="observacoes">Observacoes</TabsTrigger>
@@ -305,6 +307,52 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Heartbeat</p>
                 <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="agente">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Fluxo de instalacao do agente</CardTitle>
+              <CardDescription>Recorte operacional do FEAT-002 para nao depender de memoria do tecnico em campo.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <a href={host.agent.installerPath} className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
+                  <HardDriveDownload className="h-4 w-4" />
+                  Baixar .ps1 do host
+                </a>
+                <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="gap-2">
+                  <Fingerprint className="h-4 w-4" />
+                  Copiar token
+                </Button>
+                <Button variant="outline" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")} className="gap-2">
+                  <Copy className="h-4 w-4" />
+                  Copiar RustDesk ID
+                </Button>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {details.installGuide.map((step) => (
+                  <div key={step.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-foreground">{step.title}</p>
+                      <Badge variant="outline" className={step.done ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"}>
+                        {step.done ? "OK" : "Pendente"}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                <p>1. Baixe o script dedicado deste host.</p>
+                <p>2. Execute na maquina do cliente e confirme o RustDesk ID devolvido.</p>
+                <p>3. Aguarde o heartbeat inicial para o host sair de `PENDING_INSTALL`.</p>
+                <p>4. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
               </div>
             </CardContent>
           </Card>

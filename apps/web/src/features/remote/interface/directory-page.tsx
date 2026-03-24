@@ -129,6 +129,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "MAINTENANCE" | "INACTIVE">("all");
   const [environmentFilter, setEnvironmentFilter] = useState("all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
+  const [agentFilter, setAgentFilter] = useState<"all" | "pending" | "linked" | "online" | "stale">("all");
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
   const [quickDescription, setQuickDescription] = useState("");
@@ -240,10 +241,21 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       const matchesEnvironment = environmentFilter === "all" || item.environment === environmentFilter;
       const matchesHeartbeat = heartbeatFilter === "all" || heartbeat.bucket === heartbeatFilter;
+      const matchesAgent =
+        agentFilter === "all" ||
+        (agentFilter === "pending" && item.agent.lifecycleStatus === "PENDING_INSTALL") ||
+        (agentFilter === "linked" &&
+          (item.agent.lifecycleStatus === "INSTALLED" ||
+            item.agent.lifecycleStatus === "ONLINE" ||
+            item.agent.lifecycleStatus === "STALE" ||
+            item.agent.lifecycleStatus === "UNLINKED")) ||
+        (agentFilter === "online" && item.agent.lifecycleStatus === "ONLINE") ||
+        (agentFilter === "stale" &&
+          (item.agent.lifecycleStatus === "STALE" || item.agent.lifecycleStatus === "UNLINKED"));
 
-      return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat;
+      return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent;
     });
-  }, [directory.items, environmentFilter, heartbeatFilter, searchTerm, statusFilter]);
+  }, [agentFilter, directory.items, environmentFilter, heartbeatFilter, searchTerm, statusFilter]);
 
   const directoryStats = useMemo(() => {
     const ready = directory.items.filter((item) => item.operationalStatus === "ONLINE").length;
@@ -305,7 +317,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold text-foreground">{directoryStats.pendingSetup}</p>
-            <p className="text-xs text-muted-foreground">Hosts sem token ou sem RustDesk ID completo.</p>
+            <p className="text-xs text-muted-foreground">Hosts sem token, sem RustDesk ID ou sem heartbeat inicial.</p>
           </CardContent>
         </Card>
       </section>
@@ -419,6 +431,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 <option value="stale">Antigo</option>
                 <option value="missing">Sem heartbeat</option>
               </select>
+
+              <select
+                value={agentFilter}
+                onChange={(event) => setAgentFilter(event.target.value as typeof agentFilter)}
+                className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              >
+                <option value="all">Qualquer agente</option>
+                <option value="pending">Pendente de instalacao</option>
+                <option value="linked">Agente vinculado</option>
+                <option value="online">Heartbeat confirmado</option>
+                <option value="stale">Heartbeat antigo/offline</option>
+              </select>
             </div>
 
             <Dialog>
@@ -442,7 +466,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               </DialogContent>
             </Dialog>
 
-            {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" ? (
+            {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" ? (
               <Button
                 type="button"
                 variant="outline"
@@ -451,6 +475,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                   setStatusFilter("all");
                   setEnvironmentFilter("all");
                   setHeartbeatFilter("all");
+                  setAgentFilter("all");
                 }}
               >
                 <X className="mr-2 h-4 w-4" />
@@ -509,6 +534,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                             {item.provider ? ` | ${item.provider}` : ""}
                             {item.machineName ? ` | ${item.machineName}` : ""}
                           </p>
+                          <p className="text-xs text-muted-foreground">
+                            Agente: {item.agent.lifecycleStatus.replace(/_/g, " ").toLowerCase()} | etapas {item.agent.installStages.length}/4
+                          </p>
                         </div>
 
                         {alerts.length ? (
@@ -538,6 +566,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
                           <p className="mt-1 text-sm font-medium text-foreground">{formatRelativeHeartbeat(item.lastHeartbeatAt)}</p>
                           <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.lastHeartbeatAt)}</p>
+                        </div>
+                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fluxo do agente</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">{item.agent.lifecycleStatus.replace(/_/g, " ")}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.agent.installStages.join(" | ") || "Sem etapas concluídas"}</p>
                         </div>
                         <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo ticket</p>
@@ -575,7 +608,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         ) : null}
                         {canCreateHosts ? (
                           <a
-                            href={`/api/remote/hosts/${item.id}/installer`}
+                            href={item.agent.installerPath}
                             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "justify-start gap-2")}
                           >
                             <Download className="h-3.5 w-3.5" />

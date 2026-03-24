@@ -6,6 +6,8 @@ import type {
   RemoteHostDetails,
   RemotePlatformDirectory,
   RemotePlatformOverview,
+  RemoteAgentInstallStage,
+  RemoteAgentLifecycleStatus,
 } from "@/features/remote/domain/model";
 
 function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
@@ -30,6 +32,40 @@ function mapHostDescription(input: {
   ]
     .filter(Boolean)
     .join(" | ");
+}
+
+function resolveAgentLifecycleStatus(input: {
+  installToken: string | null;
+  rustdeskId: string | null;
+  lastHeartbeatAt: Date | null;
+}): RemoteAgentLifecycleStatus {
+  if (!input.installToken || !input.rustdeskId) {
+    return "PENDING_INSTALL";
+  }
+
+  if (!input.lastHeartbeatAt) {
+    return "INSTALLED";
+  }
+
+  const diffMinutes = Math.floor((Date.now() - input.lastHeartbeatAt.getTime()) / 60000);
+  if (diffMinutes <= 5) return "ONLINE";
+  if (diffMinutes <= 60) return "STALE";
+  return "UNLINKED";
+}
+
+function buildInstallStages(input: {
+  installToken: string | null;
+  rustdeskId: string | null;
+  lastHeartbeatAt: Date | null;
+}): RemoteAgentInstallStage[] {
+  const stages: RemoteAgentInstallStage[] = [];
+
+  if (input.installToken) stages.push("TOKEN_READY");
+  if (input.installToken) stages.push("SCRIPT_READY");
+  if (input.rustdeskId) stages.push("RUSTDESK_LINKED");
+  if (input.lastHeartbeatAt) stages.push("HEARTBEAT_OK");
+
+  return stages;
 }
 
 function mapDirectoryItem(host: {
@@ -64,6 +100,16 @@ function mapDirectoryItem(host: {
       machineName: host.machineName,
       agentVersion: host.agentVersion,
     });
+  const lifecycleStatus = resolveAgentLifecycleStatus({
+    installToken: host.installToken,
+    rustdeskId: host.agentExternalId,
+    lastHeartbeatAt: host.lastHeartbeatAt,
+  });
+  const installStages = buildInstallStages({
+    installToken: host.installToken,
+    rustdeskId: host.agentExternalId,
+    lastHeartbeatAt: host.lastHeartbeatAt,
+  });
 
   return {
     id: host.id,
@@ -90,7 +136,46 @@ function mapDirectoryItem(host: {
     lastSessionAt,
     lastSessionStatus,
     lastTicketNumber,
+    agent: {
+      installToken: host.installToken,
+      rustdeskId: host.agentExternalId,
+      machineName: host.machineName,
+      agentVersion: host.agentVersion,
+      lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
+      lifecycleStatus,
+      installStages,
+      installerPath: `/api/remote/hosts/${host.id}/installer`,
+    },
   };
+}
+
+function buildInstallGuide(item: RemoteConfiguredHostItem) {
+  return [
+    {
+      id: "TOKEN_READY" as const,
+      title: "Host com token operacional",
+      description: "O portal precisa manter installToken valido para bootstrap do agente.",
+      done: item.agent.installStages.includes("TOKEN_READY"),
+    },
+    {
+      id: "SCRIPT_READY" as const,
+      title: "Script de instalacao disponivel",
+      description: "Baixe o .ps1 por host para registrar o agente no campo sem preencher payload manual.",
+      done: item.agent.installStages.includes("SCRIPT_READY"),
+    },
+    {
+      id: "RUSTDESK_LINKED" as const,
+      title: "RustDesk ID vinculado",
+      description: "A maquina precisa devolver RustDesk ID valido para o host ficar pronto para acesso.",
+      done: item.agent.installStages.includes("RUSTDESK_LINKED"),
+    },
+    {
+      id: "HEARTBEAT_OK" as const,
+      title: "Heartbeat confirmado",
+      description: "Depois do registro inicial, o agente precisa voltar ao portal com heartbeat recorrente.",
+      done: item.agent.installStages.includes("HEARTBEAT_OK"),
+    },
+  ];
 }
 
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
@@ -408,6 +493,9 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       totalHosts,
       activeHosts,
       companies: companies.length,
+      pendingInstall: hosts.filter((host) => !host.installToken || !host.agentExternalId).length,
+      linkedAgents: hosts.filter((host) => !!host.agentExternalId).length,
+      onlineAgents: hosts.filter((host) => !!host.lastHeartbeatAt).length,
     },
     companyOptions: companyOptions.map((company) => ({
       id: company.id,
@@ -481,6 +569,16 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         ticketNumber: session.ticketNumber,
       })),
     }),
+    installGuide: buildInstallGuide(
+      mapDirectoryItem({
+        ...host,
+        sessions: host.sessions.map((session) => ({
+          createdAt: session.createdAt,
+          status: session.status,
+          ticketNumber: session.ticketNumber,
+        })),
+      })
+    ),
     company: {
       id: host.company.id,
       razaoSocial: host.company.razaoSocial,

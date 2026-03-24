@@ -23,6 +23,19 @@ export type RemoteSessionAuditAction =
   | "HOST_RESOLVED"
   | "COMMENT_POSTED";
 
+export type RemoteAgentInstallStage =
+  | "TOKEN_READY"
+  | "SCRIPT_READY"
+  | "RUSTDESK_LINKED"
+  | "HEARTBEAT_OK";
+
+export type RemoteAgentLifecycleStatus =
+  | "PENDING_INSTALL"
+  | "INSTALLED"
+  | "ONLINE"
+  | "STALE"
+  | "UNLINKED";
+
 export type RemoteHostSummary = {
   id: string;
   companyId: string;
@@ -184,6 +197,16 @@ export type RemoteConfiguredHostItem = {
   lastSessionAt: string | null;
   lastSessionStatus: RemoteSessionStatus | null;
   lastTicketNumber: string | null;
+  agent: {
+    installToken: string | null;
+    rustdeskId: string | null;
+    machineName: string | null;
+    agentVersion: string | null;
+    lastHeartbeatAt: string | null;
+    lifecycleStatus: RemoteAgentLifecycleStatus;
+    installStages: RemoteAgentInstallStage[];
+    installerPath: string;
+  };
 };
 
 export type RemotePlatformDirectory = {
@@ -192,6 +215,9 @@ export type RemotePlatformDirectory = {
     totalHosts: number;
     activeHosts: number;
     companies: number;
+    pendingInstall: number;
+    linkedAgents: number;
+    onlineAgents: number;
   };
   companyOptions: Array<{
     id: string;
@@ -202,6 +228,12 @@ export type RemotePlatformDirectory = {
 
 export type RemoteHostDetails = {
   host: RemoteConfiguredHostItem;
+  installGuide: Array<{
+    id: RemoteAgentInstallStage;
+    title: string;
+    description: string;
+    done: boolean;
+  }>;
   company: {
     id: string;
     razaoSocial: string;
