@@ -15,7 +15,11 @@ function buildDiscoveryScript(input: { portalBaseUrl: string; discoveryToken: st
   const escapedPortalBaseUrl = escapePowerShell(input.portalBaseUrl);
   const escapedDiscoveryToken = escapePowerShell(input.discoveryToken);
 
-  return `# Trilink Remote Agent OSS - Script Padrao de Descoberta
+  return `param(
+    [string]$RustDeskPassword = 'Trilink098'
+)
+
+# Trilink Remote Agent OSS - Script Padrao de Descoberta
 # Fluxo: instala a maquina no portal sem pre-cadastro e envia heartbeat continuo
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -44,7 +48,6 @@ $expectedRustDeskVersion = '1.3.1'
 $rustDeskDownloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$expectedRustDeskVersion/rustdesk-$expectedRustDeskVersion-x86_64.exe"
 $customRendezvousServer = 'rustdesk.trilinksoftware.com.br'
 $customServerKey = 'SUA_CHAVE_PUBLICA_AQUI'
-$rustDeskPassword = 'Trilink098'
 $machineName = $env:COMPUTERNAME
 $agentVersion = 'rustdesk-oss-discovery'
 $aliasMaquina = "$machineName - Trilink Discovery"
@@ -97,9 +100,15 @@ function Install-Or-Update-RustDesk {
         }
 
         $tempInstaller = "$env:TEMP\\rustdesk_installer.exe"
-        Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing
-        Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden
-        Start-Sleep -Seconds 12
+        try {
+            Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing -TimeoutSec 120
+            Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden
+            Start-Sleep -Seconds 12
+        } finally {
+            if (Test-Path $tempInstaller) {
+                Remove-Item -Path $tempInstaller -Force -ErrorAction SilentlyContinue
+            }
+        }
     } else {
         Write-Host "RustDesk ja esta na versao esperada ($expectedRustDeskVersion)." -ForegroundColor Green
         Write-InstallLog -Message "RustDesk ja esta na versao esperada ($expectedRustDeskVersion)."
@@ -130,12 +139,12 @@ function Resolve-RustDeskId {
 
 function Write-InstallLog {
     param([string]$Message)
-    Add-Content -Path $discoveryLogPath -Value "[$((Get-Date).ToString('s'))] $Message"
+    Out-File -FilePath $discoveryLogPath -InputObject "[$((Get-Date).ToString('s'))] $Message" -Append -Encoding utf8
 }
 
 function Write-InstallError {
     param([string]$Message)
-    Add-Content -Path $errorLogPath -Value "[$((Get-Date).ToString('s'))] $Message"
+    Out-File -FilePath $errorLogPath -InputObject "[$((Get-Date).ToString('s'))] $Message" -Append -Encoding utf8
 }
 
 function Test-PortalConnection {
@@ -200,7 +209,7 @@ function Invoke-Discovery {
         sysproUpdates = Get-SysproUpdates
     }
 
-    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/discover" -ContentType 'application/json' -Body ($payload | ConvertTo-Json -Depth 6) -ErrorAction Stop
+    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/discover" -ContentType 'application/json' -Body ($payload | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
 }
 
 if (-not (Test-Path $agentDir)) {
@@ -234,7 +243,7 @@ if (-not $rustdeskExe) {
 }
 
 Write-Host '[2/5] Aplicando configuracoes do RustDesk...' -ForegroundColor Cyan
-Start-Process -FilePath $rustdeskExe -ArgumentList "--password $rustDeskPassword" -Wait -WindowStyle Hidden
+Start-Process -FilePath $rustdeskExe -ArgumentList "--password $RustDeskPassword" -Wait -WindowStyle Hidden
 if (-not [string]::IsNullOrWhiteSpace($customRendezvousServer)) {
     Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-rendezvous-server $customRendezvousServer" -Wait -WindowStyle Hidden
 }
@@ -276,99 +285,102 @@ try {
 
 Write-Host '[4/5] Gerando heartbeat continuo...' -ForegroundColor Cyan
 
-$heartbeatScriptContent = @"
+$heartbeatScriptContent = @'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-\$portalBaseUrl = '${escapedPortalBaseUrl}'
-\$discoveryToken = '${escapedDiscoveryToken}'
-\$machineName = '$machineName'
-\$agentVersion = '$agentVersion'
-\$expectedRustDeskVersion = '$expectedRustDeskVersion'
-\$listaServidores = ConvertFrom-Json @'
-$servidoresJson
+$portalBaseUrl = 'PORTAL_BASE_URL'
+$discoveryToken = 'DISCOVERY_TOKEN'
+$machineName = 'MACHINE_NAME'
+$agentVersion = 'AGENT_VERSION'
+$listaServidores = ConvertFrom-Json @'
+SERVIDORES_JSON
 '@
 
-Get-ChildItem -Path 'C:\\Trilink\\Agent' -Filter '*.log' -ErrorAction SilentlyContinue |
-    Where-Object { \$_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
+Get-ChildItem -Path 'C:\Trilink\Agent' -Filter '*.log' -ErrorAction SilentlyContinue |
+    Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
     Remove-Item -Force -ErrorAction SilentlyContinue
 
 function Normalize-RustDeskId {
-    param([string]\$Value)
-    if ([string]::IsNullOrWhiteSpace(\$Value)) { return \$null }
-    return ((\$Value -replace '\s+', '').Trim())
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
+    return (($Value -replace '\s+', '').Trim())
 }
 
 function Resolve-RustDeskId {
-    \$configPaths = @(
-        'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk.toml',
-        'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk2.toml',
-        "\$env:APPDATA\\RustDesk\\config\\RustDesk.toml",
-        "\$env:APPDATA\\RustDesk\\config\\RustDesk2.toml"
+    $configPaths = @(
+        'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml',
+        'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml'
     )
 
-    foreach (\$configPath in \$configPaths) {
-        if (Test-Path \$configPath) {
-            \$content = Get-Content \$configPath -Raw
-            if (\$content -match "id\s*=\s*'([^']+)'") {
-                return Normalize-RustDeskId -Value \$matches[1]
+    foreach ($configPath in $configPaths) {
+        if (Test-Path $configPath) {
+            $content = Get-Content $configPath -Raw -Encoding UTF8
+            if ($content -match "id\s*=\s*'([^']+)'") {
+                return Normalize-RustDeskId -Value $Matches[1]
             }
         }
     }
 
-    return \$null
+    return $null
 }
 
 function Write-HeartbeatError {
-    param([string]\$Message)
-    \$errorMsg = "[\$((Get-Date).ToString('s'))] \$Message"
-    Out-File -FilePath "C:\\Trilink\\Agent\\discovery_error.log" -InputObject \$errorMsg -Append -Encoding utf8
+    param([string]$Message)
+    $errorMsg = "[$((Get-Date).ToString('s'))] $Message"
+    Out-File -FilePath 'C:\Trilink\Agent\discovery_error.log' -InputObject $errorMsg -Append -Encoding utf8
 }
 
-\$rustdeskId = Resolve-RustDeskId
-\$serviceStatus = 'not_found'
-\$svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
-if (\$svc) {
-    if (\$svc.Status -ne 'Running') {
+$rustdeskId = Resolve-RustDeskId
+$serviceStatus = 'not_found'
+$svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
+if ($svc) {
+    if ($svc.Status -ne 'Running') {
         try {
             Start-Service -Name 'RustDesk' -ErrorAction Stop
-            \$serviceStatus = 'restarted_by_agent'
+            $serviceStatus = 'restarted_by_agent'
         } catch {
-            \$serviceStatus = \$svc.Status.ToString().ToLower()
+            $serviceStatus = $svc.Status.ToString().ToLower()
         }
     } else {
-        \$serviceStatus = 'running'
+        $serviceStatus = 'running'
     }
 }
 
-\$resultadosUpdates = @()
-foreach (\$srv in \$listaServidores) {
-    \$dataAtualizacao = \$null
-    if (Test-Path \$srv.Caminho) {
-        \$dataAtualizacao = (Get-Item \$srv.Caminho).LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')
+$resultadosUpdates = @()
+foreach ($srv in $listaServidores) {
+    $dataAtualizacao = $null
+    if (Test-Path $srv.Caminho) {
+        $dataAtualizacao = (Get-Item $srv.Caminho).LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')
     }
 
-    \$resultadosUpdates += @{
-        empresa = \$srv.Empresa
-        caminho = \$srv.Caminho
-        ultimaAtualizacao = \$dataAtualizacao
+    $resultadosUpdates += @{
+        empresa = $srv.Empresa
+        caminho = $srv.Caminho
+        ultimaAtualizacao = $dataAtualizacao
     }
 }
 
-\$payload = @{
-    discoveryToken = \$discoveryToken
-    rustdeskId = \$rustdeskId
-    machineName = \$machineName
-    agentVersion = \$agentVersion
+$payload = @{
+    discoveryToken = $discoveryToken
+    rustdeskId = $rustdeskId
+    machineName = $machineName
+    agentVersion = $agentVersion
     provider = 'RustDesk'
-    serviceStatus = \$serviceStatus
-    sysproUpdates = \$resultadosUpdates
+    serviceStatus = $serviceStatus
+    sysproUpdates = $resultadosUpdates
 }
 
 try {
-    Invoke-RestMethod -Method Post -Uri "\$portalBaseUrl/api/remote/agents/discover" -ContentType 'application/json' -Body (\$payload | ConvertTo-Json -Depth 6) -ErrorAction Stop
+    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/discover" -ContentType 'application/json' -Body ($payload | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
 } catch {
-    Write-HeartbeatError -Message "Erro na descoberta: \$($_.Exception.Message)"
+    Write-HeartbeatError -Message "Erro na descoberta: $($_.Exception.Message)"
 }
-"@
+'@
+
+$heartbeatScriptContent = $heartbeatScriptContent.Replace('PORTAL_BASE_URL', '${escapedPortalBaseUrl}')
+$heartbeatScriptContent = $heartbeatScriptContent.Replace('DISCOVERY_TOKEN', '${escapedDiscoveryToken}')
+$heartbeatScriptContent = $heartbeatScriptContent.Replace('MACHINE_NAME', "$machineName")
+$heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_VERSION', "$agentVersion")
+$heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVIDORES_JSON', $servidoresJson)
 
 Set-Content -Path $heartbeatScriptPath -Value $heartbeatScriptContent -Force -Encoding UTF8
 
