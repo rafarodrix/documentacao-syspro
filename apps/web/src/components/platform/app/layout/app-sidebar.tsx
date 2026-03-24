@@ -130,7 +130,7 @@ function SidebarBrand({
             "h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-all duration-300",
             isSystemUser
               ? "bg-violet-600 group-hover:bg-violet-700 group-hover:shadow-violet-500/25 group-hover:shadow-md"
-              : "bg-gradient-to-br from-primary to-primary/70 group-hover:shadow-primary/25 group-hover:shadow-md group-hover:scale-105",
+              : "bg-linear-to-br from-primary to-primary/70 group-hover:shadow-primary/25 group-hover:shadow-md group-hover:scale-105",
           )}
         >
           {isSystemUser ? <ShieldCheck className="h-4.5 w-4.5" /> : <Sparkles className="h-4.5 w-4.5" />}
@@ -182,7 +182,7 @@ function SidebarFooter({
               collapsed ? "justify-center px-1.5 py-2" : "gap-3 px-2 py-2",
             )}
           >
-            <Avatar className="h-8 w-8 border border-border/50 flex-shrink-0">
+            <Avatar className="h-8 w-8 border border-border/50 shrink-0">
               <AvatarImage src={user.image ?? ""} alt={user.name} />
               <AvatarFallback
                 className={cn(
@@ -211,7 +211,7 @@ function SidebarFooter({
             )}
 
             {!collapsed && (
-              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground flex-shrink-0 transition-colors" />
+              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
             )}
           </button>
         </DropdownMenuTrigger>

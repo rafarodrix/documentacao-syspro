@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { FieldValues, UseFormSetValue } from "react-hook-form";
+import { UseFormSetValue } from "react-hook-form";
+import type { CreateCompanyInput } from "@/features/company/application/company-schema";
 
 interface BrasilApiCepResponse {
   state?: string;
@@ -50,7 +51,7 @@ const UF_IBGE_CODE: Record<string, string> = {
   DF: "53",
 };
 
-export function useAddressLookup<TFieldValues extends FieldValues>(setValue: UseFormSetValue<TFieldValues>) {
+export function useAddressLookup(setValue: UseFormSetValue<CreateCompanyInput>) {
   const [isLoadingCep, setIsLoadingCep] = useState(false);
 
   const handleCepChange = async (value: string) => {
