@@ -3,6 +3,13 @@ import { analyzeSefazResponse, buildDefaultSefazRoutes } from "@dosc-syspro/cont
 import { SETTING_KEYS } from "@dosc-syspro/contracts";
 import { sefazRoutesSchema } from "@dosc-syspro/contracts";
 
+type SefazCheckResult = {
+    uf: string;
+    service: string;
+    status: string;
+    latency: number;
+};
+
 export class SefazService {
     private async loadConfiguredEndpoints() {
         const setting = await prisma.systemSetting.findUnique({
@@ -62,7 +69,7 @@ export class SefazService {
         );
 
         const dataToSave = results
-            .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
+            .filter((r): r is PromiseFulfilledResult<SefazCheckResult> => r.status === "fulfilled")
             .map((r) => r.value);
 
         if (dataToSave.length > 0) {

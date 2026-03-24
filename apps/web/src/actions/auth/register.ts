@@ -6,6 +6,19 @@ import { headers } from "next/headers"
 import { Role } from "@prisma/client"
 import { redirect } from "next/navigation"
 
+type AuthApiError = {
+    body?: {
+        message?: string
+    }
+}
+
+function getAuthErrorMessage(error: unknown): string | null {
+    if (typeof error !== "object" || error === null) return null
+
+    const authError = error as AuthApiError
+    return authError.body?.message ?? null
+}
+
 export async function registerUser(formData: FormData) {
     const name = formData.get("name") as string
     const email = formData.get("email") as string
@@ -16,7 +29,6 @@ export async function registerUser(formData: FormData) {
     }
 
     try {
-        // O Better Auth cria User e Account (com a senha) automaticamente aqui
         const authResponse = await auth.api.signUpEmail({
             body: {
                 email,
@@ -27,10 +39,9 @@ export async function registerUser(formData: FormData) {
         })
 
         if (!authResponse?.user) {
-            return { error: "Erro ao registrar usuário." }
+            return { error: "Erro ao registrar usuario." }
         }
 
-        // Atualizamos apenas campos extras que o Better Auth não conhece (Role)
         await prisma.user.update({
             where: { id: authResponse.user.id },
             data: {
@@ -39,9 +50,9 @@ export async function registerUser(formData: FormData) {
             }
         })
 
-    } catch (error: any) {
-        // Se der erro de APIError, pegamos a mensagem
-        if (error?.body?.message) return { error: error.body.message }
+    } catch (error: unknown) {
+        const authMessage = getAuthErrorMessage(error)
+        if (authMessage) return { error: authMessage }
         return { error: "Erro ao processar cadastro." }
     }
 

@@ -53,7 +53,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
     const [negotiatedValueInput, setNegotiatedValueInput] = useState("0");
 
     const form = useForm<CreateContractInput>({
-        resolver: zodResolver(createContractSchema),
+        resolver: zodResolver(createContractSchema, undefined, { raw: true }),
         defaultValues,
     });
 
