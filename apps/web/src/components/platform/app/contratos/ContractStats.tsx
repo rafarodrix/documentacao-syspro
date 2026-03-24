@@ -108,7 +108,7 @@ export function ContractStats({ contracts }: { contracts: ContractLike[] }) {
 
             <StatCard
                 title="Media do Percentual"
-                value={avgPercentage}
+                value={avgPercentage / 100}
                 type="percent"
                 decimalPlaces={2}
                 icon={Activity}
