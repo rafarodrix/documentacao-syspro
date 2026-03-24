@@ -25,13 +25,13 @@ const DEFAULT_MATRIX: ParsedStateMatrix = {
   statusRules: [
     { status: "Resolvido", keywords: ["closed", "fechado", "resolvido", "merged", "mesclado", "finalizado"] },
     { status: "Pendente", keywords: ["pendente", "pending", "aguardando", "teste", "testes", "reminder"] },
-    { status: "Em Análise", keywords: ["analise", "an�lise", "desenvolvimento", "development"] },
+    { status: "Em Análise", keywords: ["analise", "analysis", "desenvolvimento", "development"] },
     { status: "Aberto", keywords: ["novo", "new", "open", "aberto"] },
   ],
 };
 
 function isTicketStatus(value: unknown): value is TicketStatus {
-  return value === "Aberto" || value === "Em An�lise" || value === "Pendente" || value === "Resolvido";
+  return value === "Aberto" || value === "Em Análise" || value === "Pendente" || value === "Resolvido";
 }
 
 function parseStateMatrixFromEnv(): ParsedStateMatrix | null {
