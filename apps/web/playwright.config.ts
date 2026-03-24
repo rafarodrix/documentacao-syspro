@@ -58,7 +58,15 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
     },
     {
-      name: "chromium",
+      name: "public-chromium",
+      testMatch: [/public-docs\.spec\.ts/, /portal-redirect\.spec\.ts/],
+      use: {
+        ...devices["Desktop Chrome"],
+      },
+    },
+    {
+      name: "authenticated-chromium",
+      testMatch: /portal-authenticated\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: hasAuthEnv ? "tests/e2e/.auth/user.json" : undefined,
