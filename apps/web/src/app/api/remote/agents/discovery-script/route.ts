@@ -45,6 +45,11 @@ $rustDeskPassword = 'Trilink098'
 $machineName = $env:COMPUTERNAME
 $agentVersion = 'rustdesk-oss-discovery'
 $aliasMaquina = "$machineName - Trilink Discovery"
+$agentDir = 'C:\\Trilink\\Agent'
+$heartbeatScriptPath = "$agentDir\\heartbeat-discovery.ps1"
+$taskName = 'Trilink_RemoteAgent_Discovery'
+$discoveryLogPath = "$agentDir\\discovery_install.log"
+$errorLogPath = "$agentDir\\discovery_error.log"
 
 $servidoresSyspro = @(
     @{ Empresa = $machineName; Caminho = 'C:\\syspro\\sysptoserver.exe' }
@@ -88,8 +93,77 @@ function Resolve-RustDeskId {
     return $null
 }
 
+function Get-ServiceHealthStatus {
+    $serviceStatus = 'not_found'
+    $svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
+    if ($svc) {
+        if ($svc.Status -ne 'Running') {
+            try {
+                Start-Service -Name 'RustDesk' -ErrorAction Stop
+                $serviceStatus = 'restarted_by_agent'
+            } catch {
+                $serviceStatus = $svc.Status.ToString().ToLower()
+            }
+        } else {
+            $serviceStatus = 'running'
+        }
+    }
+
+    return $serviceStatus
+}
+
+function Get-SysproUpdates {
+    $resultadosUpdates = @()
+    foreach ($srv in $servidoresSyspro) {
+        $dataAtualizacao = $null
+        if (Test-Path $srv.Caminho) {
+            $dataAtualizacao = (Get-Item $srv.Caminho).LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')
+        }
+
+        $resultadosUpdates += @{
+            empresa = $srv.Empresa
+            caminho = $srv.Caminho
+            ultimaAtualizacao = $dataAtualizacao
+        }
+    }
+
+    return $resultadosUpdates
+}
+
+function Invoke-Discovery {
+    param(
+        [string]$RustDeskId,
+        [string]$ServiceStatus
+    )
+
+    $payload = @{
+        discoveryToken = $discoveryToken
+        rustdeskId = $RustDeskId
+        machineName = $machineName
+        agentVersion = $agentVersion
+        provider = 'RustDesk'
+        serviceStatus = $ServiceStatus
+        sysproUpdates = Get-SysproUpdates
+    }
+
+    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/discover" -ContentType 'application/json' -Body ($payload | ConvertTo-Json -Depth 6) -ErrorAction Stop
+}
+
+if (-not (Test-Path $agentDir)) {
+    New-Item -ItemType Directory -Path $agentDir -Force | Out-Null
+}
+
+Write-Host '=========================================================' -ForegroundColor DarkGray
+Write-Host ' Trilink Remote Agent - Instalador Padrao' -ForegroundColor Cyan
+Write-Host '=========================================================' -ForegroundColor DarkGray
+Write-Host "Maquina: $machineName" -ForegroundColor Gray
+Write-Host "Portal: $portalBaseUrl" -ForegroundColor Gray
+Write-Host ''
+
+Write-Host '[1/5] Verificando RustDesk...' -ForegroundColor Cyan
 $rustdeskExe = Find-RustDeskExecutable
 if (-not $rustdeskExe) {
+    Write-Host 'RustDesk nao encontrado. Baixando instalador...' -ForegroundColor Yellow
     $tempInstaller = "$env:TEMP\\rustdesk_installer.exe"
     Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing
     Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden
@@ -99,9 +173,12 @@ if (-not $rustdeskExe) {
 
 if (-not $rustdeskExe) {
     Write-Host 'RustDesk nao encontrado apos instalacao.' -ForegroundColor Red
+    Add-Content -Path $errorLogPath -Value "[$((Get-Date).ToString('s'))] RustDesk nao encontrado apos instalacao."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
 }
 
+Write-Host '[2/5] Aplicando configuracoes do RustDesk...' -ForegroundColor Cyan
 Start-Process -FilePath $rustdeskExe -ArgumentList "--password $rustDeskPassword" -Wait -WindowStyle Hidden
 if (-not [string]::IsNullOrWhiteSpace($customRendezvousServer)) {
     Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-rendezvous-server $customRendezvousServer" -Wait -WindowStyle Hidden
@@ -113,14 +190,36 @@ Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-alias \`"$al
 Restart-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 5
 
-$agentDir = 'C:\\Trilink\\Agent'
-$heartbeatScriptPath = "$agentDir\\heartbeat-discovery.ps1"
-$taskName = 'Trilink_RemoteAgent_Discovery'
 $servidoresJson = $servidoresSyspro | ConvertTo-Json -Compress -Depth 5
 
-if (-not (Test-Path $agentDir)) {
-    New-Item -ItemType Directory -Path $agentDir -Force | Out-Null
+Write-Host '[3/5] Validando RustDesk ID e enviando a primeira descoberta...' -ForegroundColor Cyan
+$rustdeskId = Resolve-RustDeskId
+if ([string]::IsNullOrWhiteSpace($rustdeskId)) {
+    Write-Host 'Nao foi possivel descobrir o RustDesk ID automaticamente.' -ForegroundColor Yellow
+    $rustdeskId = Normalize-RustDeskId -Value (Read-Host 'Informe o RustDesk ID manualmente')
 }
+
+if ([string]::IsNullOrWhiteSpace($rustdeskId)) {
+    Write-Host 'RustDesk ID obrigatorio para continuar.' -ForegroundColor Red
+    Add-Content -Path $errorLogPath -Value "[$((Get-Date).ToString('s'))] RustDesk ID nao informado."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    exit
+}
+
+$serviceStatus = Get-ServiceHealthStatus
+
+try {
+    $discoveryResponse = Invoke-Discovery -RustDeskId $rustdeskId -ServiceStatus $serviceStatus
+    Write-Host "Primeiro envio concluido com sucesso. RustDesk ID: $rustdeskId" -ForegroundColor Green
+    Add-Content -Path $discoveryLogPath -Value "[$((Get-Date).ToString('s'))] Descoberta inicial enviada com sucesso. RustDesk ID: $rustdeskId"
+} catch {
+    $errorMessage = $_.Exception.Message
+    Write-Host "Falha ao enviar descoberta inicial: $errorMessage" -ForegroundColor Red
+    Add-Content -Path $errorLogPath -Value "[$((Get-Date).ToString('s'))] Falha na descoberta inicial: $errorMessage"
+    Write-Host "Log salvo em: $errorLogPath" -ForegroundColor Yellow
+}
+
+Write-Host '[4/5] Gerando heartbeat continuo...' -ForegroundColor Cyan
 
 $heartbeatScriptContent = @"
 \$portalBaseUrl = '${escapedPortalBaseUrl}'
@@ -219,8 +318,14 @@ $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoi
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
 Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File \`"$heartbeatScriptPath\`"" -WindowStyle Hidden
 
-Write-Host 'Script padrao instalado. A maquina aparecera no portal em Pendentes.' -ForegroundColor Green
+Write-Host '[5/5] Instalacao concluida.' -ForegroundColor Cyan
+Write-Host 'Script padrao instalado. A maquina deve aparecer no portal em Pendentes.' -ForegroundColor Green
+Write-Host "Logs: $discoveryLogPath" -ForegroundColor Gray
+Write-Host "Erros: $errorLogPath" -ForegroundColor Gray
 Write-Host 'Se preferir, fixe este arquivo na area de trabalho e use como instalador padrao do tecnico.' -ForegroundColor Cyan
+Write-Host ''
+Write-Host 'Pressione qualquer tecla para fechar...' -ForegroundColor DarkGray
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 `;
 }
 
