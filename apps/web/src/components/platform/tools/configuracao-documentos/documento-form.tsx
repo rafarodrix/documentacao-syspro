@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { useDocumentoForm } from "@/features/documentos/hooks/use-documento-form";
-import { DocumentoFormValues } from "@dosc-syspro/contracts";
+import { type DocumentoFormValues } from "@dosc-syspro/contracts";
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
 import { COMPORTAMENTOS_DOCUMENTO } from "@dosc-syspro/contracts";
 import { TIPOS_NOTA_CREDITO, TIPOS_NOTA_DEBITO } from "@dosc-syspro/contracts";

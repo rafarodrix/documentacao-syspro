@@ -18,7 +18,7 @@ export { addressSchema } from "./address";
 export type { AddressInput } from "./address";
 
 export { documentoSchema } from "./documento";
-export type { DocumentoFormValues } from "./documento";
+export type { DocumentoFormInput, DocumentoFormValues } from "./documento";
 
 export {
   FIELD_METADATA,

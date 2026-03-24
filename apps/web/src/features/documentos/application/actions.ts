@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { DocumentoFormValues, documentoSchema } from "@dosc-syspro/contracts";
+import { type DocumentoFormValues, documentoSchema } from "@dosc-syspro/contracts";
 import type { DocumentosListResponse, DocumentoActionResponse } from "@/features/documentos/domain/model";
 import { revalidateDocumentosViews } from "@/lib/cache-invalidation";
 

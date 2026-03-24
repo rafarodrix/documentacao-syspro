@@ -25,4 +25,5 @@ export const documentoSchema = z.object({
   cfopInternacional: z.string().optional().default(""),
 });
 
-export type DocumentoFormValues = z.infer<typeof documentoSchema>;
+export type DocumentoFormInput = z.input<typeof documentoSchema>;
+export type DocumentoFormValues = z.output<typeof documentoSchema>;

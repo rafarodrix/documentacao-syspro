@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { documentoSchema, DocumentoFormValues } from "@dosc-syspro/contracts";
+import { documentoSchema, type DocumentoFormInput, type DocumentoFormValues } from "@dosc-syspro/contracts";
 
 export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | null) {
   // 1. Sanitização manual: garante que null vire valor válido
@@ -34,7 +34,7 @@ export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | 
     comportamentos: initialValues?.comportamentos ?? [],
   };
 
-  return useForm<DocumentoFormValues>({
+  return useForm<DocumentoFormInput, undefined, DocumentoFormValues>({
     resolver: zodResolver(documentoSchema),
     defaultValues,
     mode: "onChange"
