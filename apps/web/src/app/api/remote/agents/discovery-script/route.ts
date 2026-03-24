@@ -40,7 +40,8 @@ if (-not $isAdmin) {
 $ErrorActionPreference = 'Stop'
 $portalBaseUrl = '${escapedPortalBaseUrl}'
 $discoveryToken = '${escapedDiscoveryToken}'
-$rustDeskDownloadUrl = 'https://github.com/rustdesk/rustdesk/releases/download/1.3.1/rustdesk-1.3.1-x86_64.exe'
+$expectedRustDeskVersion = '1.3.1'
+$rustDeskDownloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$expectedRustDeskVersion/rustdesk-$expectedRustDeskVersion-x86_64.exe"
 $customRendezvousServer = 'rustdesk.trilinksoftware.com.br'
 $customServerKey = 'SUA_CHAVE_PUBLICA_AQUI'
 $rustDeskPassword = 'Trilink098'
@@ -73,6 +74,38 @@ function Find-RustDeskExecutable {
         if (Test-Path $path) { return $path }
     }
     return $null
+}
+
+function Get-RustDeskVersion {
+    param([string]$ExecutablePath)
+    if (-not (Test-Path $ExecutablePath)) { return $null }
+    return (Get-Item $ExecutablePath).VersionInfo.ProductVersion
+}
+
+function Install-Or-Update-RustDesk {
+    $rustdeskExe = Find-RustDeskExecutable
+    $currentVersion = if ($rustdeskExe) { Get-RustDeskVersion -ExecutablePath $rustdeskExe } else { $null }
+    $needsInstall = (-not $rustdeskExe) -or ([string]::IsNullOrWhiteSpace($currentVersion)) -or ($currentVersion -ne $expectedRustDeskVersion)
+
+    if ($needsInstall) {
+        if ($rustdeskExe -and $currentVersion) {
+            Write-Host "RustDesk encontrado na versao $currentVersion. Atualizando para $expectedRustDeskVersion..." -ForegroundColor Yellow
+            Write-InstallLog -Message "Atualizando RustDesk de $currentVersion para $expectedRustDeskVersion."
+        } else {
+            Write-Host 'RustDesk nao encontrado. Baixando instalador...' -ForegroundColor Yellow
+            Write-InstallLog -Message "Instalando RustDesk na versao $expectedRustDeskVersion."
+        }
+
+        $tempInstaller = "$env:TEMP\\rustdesk_installer.exe"
+        Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing
+        Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden
+        Start-Sleep -Seconds 12
+    } else {
+        Write-Host "RustDesk ja esta na versao esperada ($expectedRustDeskVersion)." -ForegroundColor Green
+        Write-InstallLog -Message "RustDesk ja esta na versao esperada ($expectedRustDeskVersion)."
+    }
+
+    return Find-RustDeskExecutable
 }
 
 function Resolve-RustDeskId {
@@ -191,15 +224,7 @@ if (Test-PortalConnection) {
 }
 
 Write-Host '[1/5] Verificando RustDesk...' -ForegroundColor Cyan
-$rustdeskExe = Find-RustDeskExecutable
-if (-not $rustdeskExe) {
-    Write-Host 'RustDesk nao encontrado. Baixando instalador...' -ForegroundColor Yellow
-    $tempInstaller = "$env:TEMP\\rustdesk_installer.exe"
-    Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing
-    Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden
-    Start-Sleep -Seconds 10
-    $rustdeskExe = Find-RustDeskExecutable
-}
+$rustdeskExe = Install-Or-Update-RustDesk
 
 if (-not $rustdeskExe) {
     Write-Host 'RustDesk nao encontrado apos instalacao.' -ForegroundColor Red
@@ -257,9 +282,14 @@ $heartbeatScriptContent = @"
 \$discoveryToken = '${escapedDiscoveryToken}'
 \$machineName = '$machineName'
 \$agentVersion = '$agentVersion'
+\$expectedRustDeskVersion = '$expectedRustDeskVersion'
 \$listaServidores = ConvertFrom-Json @'
 $servidoresJson
 '@
+
+Get-ChildItem -Path 'C:\\Trilink\\Agent' -Filter '*.log' -ErrorAction SilentlyContinue |
+    Where-Object { \$_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
+    Remove-Item -Force -ErrorAction SilentlyContinue
 
 function Normalize-RustDeskId {
     param([string]\$Value)
@@ -347,11 +377,12 @@ if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
 }
 
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File \`"$heartbeatScriptPath\`""
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+$triggerStartup = New-ScheduledTaskTrigger -AtStartup
+$triggerRepetition = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
 $principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\\SYSTEM' -LogonType ServiceAccount -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd
 
-Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger @($triggerStartup, $triggerRepetition) -Principal $principal -Settings $settings -Force | Out-Null
 Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File \`"$heartbeatScriptPath\`"" -WindowStyle Hidden
 
 Write-Host '[5/5] Instalacao concluida.' -ForegroundColor Cyan
