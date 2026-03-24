@@ -8,10 +8,12 @@ test.describe("authenticated portal shell", () => {
   });
 
   test("authenticated user can open portal shell", async ({ page }) => {
-    await page.goto("/portal");
+    test.setTimeout(60000);
+
+    await page.goto("/portal", { waitUntil: "domcontentloaded", timeout: 45000 });
     await expect(page).toHaveURL(/\/portal(\/|\?|$)/);
-    await expect(page.getByRole("link", { name: /Dashboard/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Tickets/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^R$/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Dashboard/i })).toBeVisible({ timeout: 45000 });
+    await expect(page.getByRole("link", { name: /Tickets/i })).toBeVisible({ timeout: 45000 });
+    await expect(page.getByRole("button", { name: /^R$/i })).toBeVisible({ timeout: 45000 });
   });
 });

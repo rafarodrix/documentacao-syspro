@@ -208,7 +208,7 @@ export async function createCompanyAction(
     };
   }
 
-  const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
+  const { address, parentCompanyId, accountingFirmId, contacts: validatedContacts, ...validData } = validation.data;
 
   try {
     const result = await prisma.company.create({
@@ -232,8 +232,9 @@ export async function createCompanyAction(
     if (zammadEmails !== undefined) {
       await replaceCompanyZammadEmails(result.id, zammadEmails);
     }
-    if (contacts !== undefined) {
-      await replaceCompanyContacts(result.id, contacts);
+    const contactsToPersist = contacts ?? validatedContacts;
+    if (contactsToPersist !== undefined) {
+      await replaceCompanyContacts(result.id, contactsToPersist);
     }
 
     const segmentTriggers = resolveCompanySegmentTriggers(result.segment);
@@ -288,7 +289,7 @@ export async function updateCompanyAction(
       return { success: false, message: "Empresa nao encontrada." };
     }
 
-    const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
+    const { address, parentCompanyId, accountingFirmId, contacts: validatedContacts, ...validData } = validation.data;
     const nextCnpj = session.role === Role.CLIENTE_ADMIN ? existing.cnpj : validData.cnpj;
 
     await prisma.company.update({
@@ -329,8 +330,9 @@ export async function updateCompanyAction(
     if (zammadEmails !== undefined) {
       await replaceCompanyZammadEmails(id, zammadEmails);
     }
-    if (contacts !== undefined) {
-      await replaceCompanyContacts(id, contacts);
+    const contactsToPersist = contacts ?? validatedContacts;
+    if (contactsToPersist !== undefined) {
+      await replaceCompanyContacts(id, contactsToPersist);
     }
 
     revalidateCadastrosViews();

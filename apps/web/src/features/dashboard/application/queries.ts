@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { buildTicketKpis, toTicketSummaryItems } from "@/features/tickets/application/dashboard";
 import { queryTicketsForViewer } from "@/features/tickets/application/queries";
-import type { AdminDashboardViewData, ClientDashboardViewData } from "@/features/tickets/domain/model";
+import type { AdminDashboardViewData, ClientDashboardViewData, TicketsDataResponse } from "@/features/tickets/domain/model";
 import { getLatestOperationalTicketCacheFreshness } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { getZammadRouteHealth } from "@/features/tickets/infrastructure/observability/zammad-observability";
 import { unstable_cache } from "next/cache";
@@ -10,6 +10,35 @@ import { CACHE_TAGS } from "@/lib/cache-invalidation";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const TRANSPARENT_CACHE_THRESHOLD_MINUTES = 15;
+const DASHBOARD_ZAMMAD_TIMEOUT_MS = 4000;
+
+function timeoutError(label: string, timeoutMs: number) {
+  return new Error(`${label} excedeu ${timeoutMs}ms.`);
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(timeoutError(label, timeoutMs)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+function mergeZammadWarnings(...warnings: Array<string | undefined>): string | undefined {
+  const unique = Array.from(new Set(warnings.filter(Boolean)));
+  return unique.length > 0 ? unique.join(" ") : undefined;
+}
+
+function getDashboardTimeoutWarning() {
+  return "Integracao Zammad em contingencia no dashboard. Alguns cards foram carregados com dados reduzidos.";
+}
 
 function getLast7DaysRange() {
   const start = new Date();
@@ -213,14 +242,27 @@ export async function getDashboardData(
     ]);
     const [companiesCount, companiesThisMonth, companiesLastMonth, usersCount, activeUsersCount] = metrics;
 
-    const ticketsResponse = await queryTicketsForViewer(
-      { userId, email, role },
-      { page: 1, pageSize: 50, queue: "all", statusGroup: "all" }
-    );
-    const normalizedTickets = ticketsResponse.success ? toTicketSummaryItems(ticketsResponse.data) : [];
+    let ticketsResponse: TicketsDataResponse | null = null;
+    let dashboardTicketWarning: string | undefined;
+
+    try {
+      ticketsResponse = await withTimeout(
+        queryTicketsForViewer(
+          { userId, email, role },
+          { page: 1, pageSize: 50, queue: "all", statusGroup: "all" }
+        ),
+        DASHBOARD_ZAMMAD_TIMEOUT_MS,
+        "Consulta de tickets do dashboard"
+      );
+    } catch {
+      dashboardTicketWarning = getDashboardTimeoutWarning();
+    }
+
+    const successfulTicketsResponse = ticketsResponse && ticketsResponse.success ? ticketsResponse : null;
+    const normalizedTickets = successfulTicketsResponse ? toTicketSummaryItems(successfulTicketsResponse.data) : [];
     const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 5);
-    const totalOpen = ticketsResponse.success
-      ? ticketsResponse.statusCounts.open + ticketsResponse.statusCounts.pending
+    const totalOpen = successfulTicketsResponse
+      ? successfulTicketsResponse.statusCounts.open + successfulTicketsResponse.statusCounts.pending
       : normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").length;
 
     const companies = recentCompanies.map((company) => ({
@@ -248,7 +290,7 @@ export async function getDashboardData(
 
     return {
       mode: "admin",
-      zammadWarning,
+      zammadWarning: mergeZammadWarnings(zammadWarning, dashboardTicketWarning),
       companiesCount,
       companiesGrowth: companiesThisMonth - companiesLastMonth,
       usersCount,
@@ -278,9 +320,21 @@ export async function getDashboardData(
     getScopedCompanyZammadEmailsByUserId(userId),
   ]);
 
-  const ticketsResponse = scopedEmails.length
-    ? await queryTicketsForViewer({ userId, email, role }, { page: 1, pageSize: 20, queue: "all", statusGroup: "all" })
-    : null;
+  let ticketsResponse: TicketsDataResponse | null = null;
+  let dashboardTicketWarning: string | undefined;
+
+  if (scopedEmails.length) {
+    try {
+      ticketsResponse = await withTimeout(
+        queryTicketsForViewer({ userId, email, role }, { page: 1, pageSize: 20, queue: "all", statusGroup: "all" }),
+        DASHBOARD_ZAMMAD_TIMEOUT_MS,
+        "Consulta de tickets do dashboard"
+      );
+    } catch {
+      dashboardTicketWarning = getDashboardTimeoutWarning();
+    }
+  }
+
   const normalizedTickets = ticketsResponse?.success ? toTicketSummaryItems(ticketsResponse.data) : [];
   const tickets = normalizedTickets.filter((ticket) => ticket.status !== "Resolvido").slice(0, 10);
   const kpis = ticketsResponse?.success
@@ -293,7 +347,7 @@ export async function getDashboardData(
 
   return {
     mode: "client",
-    zammadWarning,
+    zammadWarning: mergeZammadWarnings(zammadWarning, dashboardTicketWarning),
     companyName: membership?.company?.nomeFantasia || membership?.company?.razaoSocial || "Sem empresa vinculada",
     companyUsers: membership?.company?._count?.memberships || 0,
     tickets,
