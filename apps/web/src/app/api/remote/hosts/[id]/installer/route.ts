@@ -56,17 +56,26 @@ function buildInstallerScript(input: {
 # Host: ${input.hostName}
 # Descricao da maquina: ${description}
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 # ==========================================
 # 0. VERIFICACAO DE PRIVILEGIOS DE ADMINISTRADOR
 # ==========================================
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 if (-not $isAdmin) {
-    Write-Host "=========================================================" -ForegroundColor Red
-    Write-Host " ERRO: PRIVILEGIOS DE ADMINISTRADOR NECESSARIOS" -ForegroundColor Red
-    Write-Host "=========================================================" -ForegroundColor Red
-    Write-Host "Feche esta janela, clique com o botao direito no PowerShell e escolha 'Executar como administrador'." -ForegroundColor Yellow
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    Write-Host 'Solicitando elevacao para administrador...' -ForegroundColor Yellow
+    try {
+        $scriptPath = $MyInvocation.MyCommand.Path
+        if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+            throw 'Caminho do script nao identificado.'
+        }
+        Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -File \`"$scriptPath\`""
+    } catch {
+        Write-Host "Nao foi possivel solicitar elevacao automatica: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host 'Clique com o botao direito no arquivo e execute como administrador.' -ForegroundColor Yellow
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
     exit
 }
 
@@ -93,6 +102,12 @@ $agentVersion = 'rustdesk-oss-local'
 $machineName = $env:COMPUTERNAME
 $rustDeskId = '${escapedRustDeskId}'
 $aliasMaquina = "$machineName - ${escapedCompanyName}"
+$agentDir = 'C:\\Trilink\\Agent'
+$heartbeatScriptPath = "$agentDir\\heartbeat.ps1"
+$taskName = 'Trilink_RemoteAgent_Heartbeat'
+$installLogPath = "$agentDir\\install.log"
+$installErrorLogPath = "$agentDir\\install_error.log"
+$heartbeatErrorLogPath = "$agentDir\\heartbeat_error.log"
 
 # ==========================================
 # 3. CONFIGURACAO DE MULTI-SERVIDORES (EDITE SE NECESSARIO)
@@ -152,14 +167,107 @@ function Invoke-PortalJsonPost {
     Invoke-RestMethod -Method Post -Uri $Url -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Depth 6) -ErrorAction Stop
 }
 
+function Write-InstallLog {
+    param([string]$Message)
+    Add-Content -Path $installLogPath -Value "[$((Get-Date).ToString('s'))] $Message"
+}
+
+function Write-InstallError {
+    param([string]$Message)
+    Add-Content -Path $installErrorLogPath -Value "[$((Get-Date).ToString('s'))] $Message"
+}
+
+function Test-PortalConnection {
+    try {
+        Invoke-WebRequest -Uri $portalBaseUrl -Method Head -UseBasicParsing -TimeoutSec 20 | Out-Null
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Get-ServiceHealthStatus {
+    $serviceStatus = 'not_found'
+    $svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
+    if ($svc) {
+        if ($svc.Status -ne 'Running') {
+            try {
+                Start-Service -Name 'RustDesk' -ErrorAction Stop
+                $serviceStatus = 'restarted_by_agent'
+            } catch {
+                $serviceStatus = $svc.Status.ToString().ToLower()
+            }
+        } else {
+            $serviceStatus = 'running'
+        }
+    }
+
+    return $serviceStatus
+}
+
+function Get-SysproUpdates {
+    $resultadosUpdates = @()
+    foreach ($srv in $servidoresSyspro) {
+        $dataAtualizacao = $null
+        if (Test-Path $srv.Caminho) {
+            $dataAtualizacao = (Get-Item $srv.Caminho).LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')
+        }
+
+        $resultadosUpdates += @{
+            empresa = $srv.Empresa
+            caminho = $srv.Caminho
+            ultimaAtualizacao = $dataAtualizacao
+        }
+    }
+
+    return $resultadosUpdates
+}
+
+function Invoke-InitialHeartbeat {
+    param(
+        [string]$NormalizedRustDeskId,
+        [string]$ServiceStatus
+    )
+
+    $payloadHeartbeat = @{
+        installToken = $installToken
+        rustdeskId = $NormalizedRustDeskId
+        machineName = $machineName
+        agentVersion = $agentVersion
+        serviceStatus = $ServiceStatus
+        sysproUpdates = Get-SysproUpdates
+    }
+
+    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body ($payloadHeartbeat | ConvertTo-Json -Depth 6) -ErrorAction Stop
+}
+
+if (-not (Test-Path $agentDir)) {
+    New-Item -ItemType Directory -Path $agentDir -Force | Out-Null
+}
+
+Write-Host '=========================================================' -ForegroundColor DarkGray
+Write-Host ' Trilink Remote Agent - Instalador do Host' -ForegroundColor Cyan
+Write-Host '=========================================================' -ForegroundColor DarkGray
 Write-Host "Empresa: $companyName"
 Write-Host "Host: $hostName"
 Write-Host "Descricao: $hostDescription"
 Write-Host "Senha padrao RustDesk: $rustDeskPassword"
+Write-Host "Token: $installToken"
+Write-Host ''
+
+Write-Host '[0/5] Validando conectividade com o portal...' -ForegroundColor Cyan
+if (Test-PortalConnection) {
+    Write-Host 'Portal acessivel.' -ForegroundColor Green
+    Write-InstallLog -Message 'Portal acessivel na validacao inicial.'
+} else {
+    Write-Host 'Falha ao validar conectividade inicial com o portal. O instalador vai continuar e registrar erro se o envio falhar.' -ForegroundColor Yellow
+    Write-InstallError -Message 'Falha na validacao inicial de conectividade com o portal.'
+}
 
 # ==========================================
 # 4. VERIFICACAO E INSTALACAO DO RUSTDESK
 # ==========================================
+Write-Host '[1/5] Verificando RustDesk...' -ForegroundColor Cyan
 $rustdeskExe = Find-RustDeskExecutable
 
 if (-not $rustdeskExe) {
@@ -179,13 +287,15 @@ if (-not $rustdeskExe) {
 
 if (-not $rustdeskExe) {
     Write-Host 'RustDesk nao foi localizado apos a instalacao.' -ForegroundColor Red
+    Write-InstallError -Message 'RustDesk nao localizado apos a instalacao.'
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
 }
 
 # ==========================================
 # 5. CONFIGURACAO DO RUSTDESK
 # ==========================================
-Write-Host 'Aplicando configuracoes do RustDesk...' -ForegroundColor Cyan
+Write-Host '[2/5] Aplicando configuracoes do RustDesk...' -ForegroundColor Cyan
 
 try {
     Start-Process -FilePath $rustdeskExe -ArgumentList "--password $rustDeskPassword" -Wait -WindowStyle Hidden
@@ -207,11 +317,13 @@ try {
     Start-Sleep -Seconds 5
 } catch {
     Write-Host "Falha ao configurar RustDesk: $($_.Exception.Message)" -ForegroundColor Red
+    Write-InstallError -Message "Falha ao configurar RustDesk: $($_.Exception.Message)"
 }
 
 # ==========================================
 # 6. DESCOBERTA DO RUSTDESK ID E AUTO-REGISTRO
 # ==========================================
+Write-Host '[3/5] Validando RustDesk ID e registrando host...' -ForegroundColor Cyan
 $normalizedRustDeskId = Resolve-RustDeskId -FallbackValue $rustDeskId
 
 if ([string]::IsNullOrWhiteSpace($normalizedRustDeskId)) {
@@ -221,6 +333,8 @@ if ([string]::IsNullOrWhiteSpace($normalizedRustDeskId)) {
 
 if ([string]::IsNullOrWhiteSpace($normalizedRustDeskId)) {
     Write-Host 'RustDesk ID obrigatorio para registrar o agente.' -ForegroundColor Red
+    Write-InstallError -Message 'RustDesk ID nao informado.'
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
 }
 
@@ -237,25 +351,34 @@ Write-Host 'Registrando agente no portal...' -ForegroundColor Cyan
 try {
     Invoke-PortalJsonPost -Url "$portalBaseUrl/api/remote/agents/register" -Body $payloadRegister
     Write-Host 'Registro concluido com sucesso.' -ForegroundColor Green
+    Write-InstallLog -Message "Registro concluido com sucesso. RustDesk ID: $normalizedRustDeskId"
 } catch {
     Write-Host "Falha ao registrar o agente: $($_.Exception.Message)" -ForegroundColor Red
+    Write-InstallError -Message "Falha no registro inicial: $($_.Exception.Message)"
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
 }
 
 # ==========================================
-# 7. HEARTBEAT CONTINUO
+# 7. HEARTBEAT INICIAL E CONTINUO
 # ==========================================
-$taskName = 'Trilink_RemoteAgent_Heartbeat'
-$agentDir = 'C:\\Trilink\\Agent'
-$heartbeatScriptPath = "$agentDir\\heartbeat.ps1"
+Write-Host '[4/5] Enviando heartbeat inicial...' -ForegroundColor Cyan
+$serviceStatus = Get-ServiceHealthStatus
+try {
+    Invoke-InitialHeartbeat -NormalizedRustDeskId $normalizedRustDeskId -ServiceStatus $serviceStatus
+    Write-Host 'Heartbeat inicial enviado com sucesso.' -ForegroundColor Green
+    Write-InstallLog -Message 'Heartbeat inicial enviado com sucesso.'
+} catch {
+    Write-Host "Falha ao enviar heartbeat inicial: $($_.Exception.Message)" -ForegroundColor Red
+    Write-InstallError -Message "Falha no heartbeat inicial: $($_.Exception.Message)"
+}
+
+Write-Host '[5/5] Configurando heartbeat continuo...' -ForegroundColor Cyan
 $servidoresJson = $servidoresSyspro | ConvertTo-Json -Compress -Depth 5
 
 try {
-    if (-not (Test-Path $agentDir)) {
-        New-Item -ItemType Directory -Path $agentDir -Force | Out-Null
-    }
-
     $heartbeatScriptContent = @"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 \$portalBaseUrl = '${escapedPortalBaseUrl}'
 \$installToken = '${escapedInstallToken}'
 \$machineName = '$machineName'
@@ -291,6 +414,12 @@ function Resolve-RustDeskId {
     }
 
     return Normalize-RustDeskId -Value \$FallbackValue
+}
+
+function Write-HeartbeatError {
+    param([string]\$Message)
+    \$errorMsg = "[\$((Get-Date).ToString('s'))] \$Message"
+    Out-File -FilePath "${heartbeatErrorLogPath}" -InputObject \$errorMsg -Append -Encoding utf8
 }
 
 \$normalizedRustDeskId = Resolve-RustDeskId -FallbackValue \$rustDeskIdFallback
@@ -335,8 +464,7 @@ foreach (\$srv in \$listaServidores) {
 try {
     Invoke-RestMethod -Method Post -Uri "\$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body (\$payloadHeartbeat | ConvertTo-Json -Depth 6) -ErrorAction Stop
 } catch {
-    \$errorMsg = "[\$((Get-Date).ToString('s'))] Erro no heartbeat: \$($_.Exception.Message)"
-    Out-File -FilePath "C:\\Trilink\\Agent\\heartbeat_error.log" -InputObject \$errorMsg -Append -Encoding utf8
+    Write-HeartbeatError -Message "Erro no heartbeat: \$($_.Exception.Message)"
 }
 "@
 
@@ -355,14 +483,23 @@ try {
 
     Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File \`"$heartbeatScriptPath\`"" -WindowStyle Hidden
     Write-Host 'Heartbeat continuo configurado com sucesso.' -ForegroundColor Green
+    Write-InstallLog -Message 'Tarefa de heartbeat continuo configurada.'
 } catch {
     Write-Host "Falha ao configurar heartbeat continuo: $($_.Exception.Message)" -ForegroundColor Red
+    Write-InstallError -Message "Falha ao configurar heartbeat continuo: $($_.Exception.Message)"
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
 }
 
 Write-Host '========================================================='
 Write-Host 'Instalacao e configuracao do agente Trilink concluidas.' -ForegroundColor Green
 Write-Host '========================================================='
+Write-Host "Log de instalacao: $installLogPath" -ForegroundColor Gray
+Write-Host "Log de erros: $installErrorLogPath" -ForegroundColor Gray
+Write-Host "Log de heartbeat: $heartbeatErrorLogPath" -ForegroundColor Gray
+Write-Host ''
+Write-Host 'Pressione qualquer tecla para fechar...' -ForegroundColor DarkGray
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 `;
 }
 

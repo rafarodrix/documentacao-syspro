@@ -18,6 +18,8 @@ function buildDiscoveryScript(input: { portalBaseUrl: string; discoveryToken: st
   return `# Trilink Remote Agent OSS - Script Padrao de Descoberta
 # Fluxo: instala a maquina no portal sem pre-cadastro e envia heartbeat continuo
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Write-Host 'Solicitando elevacao para administrador...' -ForegroundColor Yellow
@@ -93,6 +95,25 @@ function Resolve-RustDeskId {
     return $null
 }
 
+function Write-InstallLog {
+    param([string]$Message)
+    Add-Content -Path $discoveryLogPath -Value "[$((Get-Date).ToString('s'))] $Message"
+}
+
+function Write-InstallError {
+    param([string]$Message)
+    Add-Content -Path $errorLogPath -Value "[$((Get-Date).ToString('s'))] $Message"
+}
+
+function Test-PortalConnection {
+    try {
+        Invoke-WebRequest -Uri $portalBaseUrl -Method Head -UseBasicParsing -TimeoutSec 20 | Out-Null
+        return $true
+    } catch {
+        return $false
+    }
+}
+
 function Get-ServiceHealthStatus {
     $serviceStatus = 'not_found'
     $svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
@@ -160,6 +181,15 @@ Write-Host "Maquina: $machineName" -ForegroundColor Gray
 Write-Host "Portal: $portalBaseUrl" -ForegroundColor Gray
 Write-Host ''
 
+Write-Host '[0/5] Validando conectividade com o portal...' -ForegroundColor Cyan
+if (Test-PortalConnection) {
+    Write-Host 'Portal acessivel.' -ForegroundColor Green
+    Write-InstallLog -Message 'Portal acessivel na validacao inicial.'
+} else {
+    Write-Host 'Falha ao validar conectividade inicial com o portal. O instalador vai continuar e registrar erro se o envio falhar.' -ForegroundColor Yellow
+    Write-InstallError -Message 'Falha na validacao inicial de conectividade com o portal.'
+}
+
 Write-Host '[1/5] Verificando RustDesk...' -ForegroundColor Cyan
 $rustdeskExe = Find-RustDeskExecutable
 if (-not $rustdeskExe) {
@@ -173,7 +203,7 @@ if (-not $rustdeskExe) {
 
 if (-not $rustdeskExe) {
     Write-Host 'RustDesk nao encontrado apos instalacao.' -ForegroundColor Red
-    Add-Content -Path $errorLogPath -Value "[$((Get-Date).ToString('s'))] RustDesk nao encontrado apos instalacao."
+    Write-InstallError -Message 'RustDesk nao encontrado apos instalacao.'
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
 }
@@ -201,7 +231,7 @@ if ([string]::IsNullOrWhiteSpace($rustdeskId)) {
 
 if ([string]::IsNullOrWhiteSpace($rustdeskId)) {
     Write-Host 'RustDesk ID obrigatorio para continuar.' -ForegroundColor Red
-    Add-Content -Path $errorLogPath -Value "[$((Get-Date).ToString('s'))] RustDesk ID nao informado."
+    Write-InstallError -Message 'RustDesk ID nao informado.'
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
 }
@@ -211,17 +241,18 @@ $serviceStatus = Get-ServiceHealthStatus
 try {
     $discoveryResponse = Invoke-Discovery -RustDeskId $rustdeskId -ServiceStatus $serviceStatus
     Write-Host "Primeiro envio concluido com sucesso. RustDesk ID: $rustdeskId" -ForegroundColor Green
-    Add-Content -Path $discoveryLogPath -Value "[$((Get-Date).ToString('s'))] Descoberta inicial enviada com sucesso. RustDesk ID: $rustdeskId"
+    Write-InstallLog -Message "Descoberta inicial enviada com sucesso. RustDesk ID: $rustdeskId"
 } catch {
     $errorMessage = $_.Exception.Message
     Write-Host "Falha ao enviar descoberta inicial: $errorMessage" -ForegroundColor Red
-    Add-Content -Path $errorLogPath -Value "[$((Get-Date).ToString('s'))] Falha na descoberta inicial: $errorMessage"
+    Write-InstallError -Message "Falha na descoberta inicial: $errorMessage"
     Write-Host "Log salvo em: $errorLogPath" -ForegroundColor Yellow
 }
 
 Write-Host '[4/5] Gerando heartbeat continuo...' -ForegroundColor Cyan
 
 $heartbeatScriptContent = @"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 \$portalBaseUrl = '${escapedPortalBaseUrl}'
 \$discoveryToken = '${escapedDiscoveryToken}'
 \$machineName = '$machineName'
@@ -254,6 +285,12 @@ function Resolve-RustDeskId {
     }
 
     return \$null
+}
+
+function Write-HeartbeatError {
+    param([string]\$Message)
+    \$errorMsg = "[\$((Get-Date).ToString('s'))] \$Message"
+    Out-File -FilePath "C:\\Trilink\\Agent\\discovery_error.log" -InputObject \$errorMsg -Append -Encoding utf8
 }
 
 \$rustdeskId = Resolve-RustDeskId
@@ -299,8 +336,7 @@ foreach (\$srv in \$listaServidores) {
 try {
     Invoke-RestMethod -Method Post -Uri "\$portalBaseUrl/api/remote/agents/discover" -ContentType 'application/json' -Body (\$payload | ConvertTo-Json -Depth 6) -ErrorAction Stop
 } catch {
-    \$errorMsg = "[\$((Get-Date).ToString('s'))] Erro na descoberta: \$($_.Exception.Message)"
-    Out-File -FilePath "C:\\Trilink\\Agent\\discovery_error.log" -InputObject \$errorMsg -Append -Encoding utf8
+    Write-HeartbeatError -Message "Erro na descoberta: \$($_.Exception.Message)"
 }
 "@
 
