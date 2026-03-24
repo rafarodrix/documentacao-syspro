@@ -560,6 +560,28 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
 
   if (!host) return null;
 
+  const sysproUpdates = await prisma.$queryRaw<
+    Array<{
+      id: string;
+      companyId: string | null;
+      companyLabel: string;
+      path: string;
+      lastFileWriteAt: Date | null;
+      lastHeartbeatAt: Date;
+    }>
+  >`
+    SELECT
+      "id",
+      "companyId",
+      "companyLabel",
+      "path",
+      "lastFileWriteAt",
+      "lastHeartbeatAt"
+    FROM "remote_host_syspro_update"
+    WHERE "hostId" = ${host.id}
+    ORDER BY "companyLabel" ASC, "path" ASC
+  `;
+
   return {
     host: mapDirectoryItem({
       ...host,
@@ -609,6 +631,14 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       createdAt: session.createdAt.toISOString(),
       startedAt: session.startedAt?.toISOString() ?? null,
       endedAt: session.endedAt?.toISOString() ?? null,
+    })),
+    sysproUpdates: sysproUpdates.map((entry) => ({
+      id: entry.id,
+      companyId: entry.companyId,
+      companyLabel: entry.companyLabel,
+      path: entry.path,
+      lastFileWriteAt: entry.lastFileWriteAt?.toISOString() ?? null,
+      lastHeartbeatAt: entry.lastHeartbeatAt.toISOString(),
     })),
   };
 }

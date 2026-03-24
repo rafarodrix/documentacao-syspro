@@ -37,6 +37,15 @@ import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 
+function normalizeSearchValue(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function getStatusLabel(status: "ACTIVE" | "MAINTENANCE" | "INACTIVE") {
   if (status === "ACTIVE") return "Ativo";
@@ -171,9 +180,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   }
 
   const filteredItems = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = normalizeSearchValue(searchTerm);
     return directory.items.filter((item) => {
-      const haystack = [
+      const haystack = normalizeSearchValue([
         item.name,
         item.companyName,
         item.environment,
@@ -185,10 +194,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         item.lastTicketNumber,
         item.lastSessionStatus,
         item.status,
+        item.companyId,
       ]
         .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+        .join(" "));
 
       const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
       const matchesSearch = !term || haystack.includes(term);

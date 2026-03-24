@@ -226,6 +226,15 @@ export type RemotePlatformDirectory = {
   items: RemoteConfiguredHostItem[];
 };
 
+export type RemoteHostSysproUpdateItem = {
+  id: string;
+  companyId: string | null;
+  companyLabel: string;
+  path: string;
+  lastFileWriteAt: string | null;
+  lastHeartbeatAt: string;
+};
+
 export type RemoteHostDetails = {
   host: RemoteConfiguredHostItem;
   installGuide: Array<{
@@ -259,4 +268,5 @@ export type RemoteHostDetails = {
       endedAt: string | null;
     }
   >;
+  sysproUpdates: RemoteHostSysproUpdateItem[];
 };

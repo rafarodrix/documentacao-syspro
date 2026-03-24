@@ -231,6 +231,7 @@ model Company {
   contacts          CompanyContact[]
   conversations     Conversation[]
   remoteHosts       RemoteHost[]
+  remoteHostSysproUpdates RemoteHostSysproUpdate[]
   remoteSessions    RemoteSession[]
   zammadEmails      CompanyZammadEmail[]
 
@@ -500,11 +501,35 @@ model RemoteHost {
   updatedAt DateTime @updatedAt
 
   sessions RemoteSession[]
+  sysproUpdates RemoteHostSysproUpdate[]
 
   @@index([companyId, status])
   @@index([agentExternalId])
   @@index([installToken])
   @@map("remote_host")
+}
+
+model RemoteHostSysproUpdate {
+  id String @id @default(cuid())
+
+  hostId String
+  host   RemoteHost @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  companyLabel String
+  path String
+  lastFileWriteAt DateTime?
+  lastHeartbeatAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([hostId, companyLabel, path])
+  @@index([hostId, lastHeartbeatAt])
+  @@index([companyId])
+  @@map("remote_host_syspro_update")
 }
 
 model RemoteSession {

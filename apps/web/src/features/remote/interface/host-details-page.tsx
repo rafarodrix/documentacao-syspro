@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import {
-  AlertTriangle,
   ArrowLeft,
   Copy,
   ExternalLink,
@@ -11,7 +10,6 @@ import {
   HardDriveDownload,
   LifeBuoy,
   ShieldCheck,
-  Signal,
   TimerReset,
   UserRound,
   Wrench,
@@ -23,7 +21,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
-import { getRemoteOperationalStatusMeta } from "@/features/remote/domain/operational-status";
 
 function formatDateTime(value: string | null) {
   if (!value) return "Sem registro";
@@ -85,35 +82,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     };
   }, [host.lastHeartbeatAt]);
 
-  const readiness = useMemo(() => getRemoteOperationalStatusMeta(host.operationalStatus), [host.operationalStatus]);
-
-  const operationalAlerts = useMemo(() => {
-    const alerts: Array<{ label: string; tone: string }> = [];
-
-    if (!host.installToken) {
-      alerts.push({
-        label: "Sem token de instalacao",
-        tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      });
-    }
-
-    if (!normalizedRustdeskId) {
-      alerts.push({
-        label: "Sem RustDesk ID",
-        tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      });
-    }
-
-    if (host.openSessionCount > 0) {
-      alerts.push({
-        label: host.openSessionCount > 1 ? `${host.openSessionCount} sessoes abertas` : "Sessao aberta",
-        tone: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-      });
-    }
-
-    return alerts;
-  }, [host.installToken, host.openSessionCount, normalizedRustdeskId]);
-
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
       toast.error(`${label} nao configurado.`);
@@ -149,9 +117,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <Badge variant="outline" className={heartbeat.tone}>
                 {heartbeat.label}
               </Badge>
-              <Badge variant="outline" className={readiness.className}>
-                {readiness.title}
-              </Badge>
               <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                 {statusLabel}
               </Badge>
@@ -185,16 +150,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </div>
             </div>
 
-            {operationalAlerts.length ? (
-              <div className="flex flex-wrap gap-2">
-                {operationalAlerts.map((alert) => (
-                  <Badge key={alert.label} variant="outline" className={alert.tone}>
-                    <AlertTriangle className="mr-1 h-3.5 w-3.5" />
-                    {alert.label}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -238,7 +193,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               Copiar token
             </Button>
             <Link href="/portal/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "justify-start gap-2")}>
-              <Signal className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" />
               Voltar ao diretorio
             </Link>
           </CardContent>
@@ -254,11 +209,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-              <p className="font-medium text-foreground">{readiness.description}</p>
+              <p className="font-medium text-foreground">Heartbeat: {heartbeat.label}</p>
               <p className="mt-1 text-muted-foreground">{heartbeat.description}</p>
             </div>
             <div className="rounded-xl border border-border/50 bg-muted/15 p-3 text-muted-foreground">
-              <p>1. Valide o badge de prontidao.</p>
+              <p>1. Valide o heartbeat e o status do host.</p>
               <p>2. Use `Abrir RustDesk` como acao principal.</p>
               <p>3. Se houver bloqueio do navegador, use `Copiar RustDesk ID`.</p>
               <p>4. Se falhar, valide senha do host e servidor configurado.</p>
@@ -269,8 +224,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       </div>
 
       <Tabs defaultValue="conexao" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-6">
           <TabsTrigger value="conexao">Conexao</TabsTrigger>
+          <TabsTrigger value="bases">Bases</TabsTrigger>
           <TabsTrigger value="agente">Agente</TabsTrigger>
           <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
@@ -308,6 +264,47 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Heartbeat</p>
                 <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="bases">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Bases monitoradas</CardTitle>
+              <CardDescription>
+                Leituras recebidas do heartbeat para maquinas que hospedam mais de uma base Syspro.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {details.sysproUpdates.length ? (
+                details.sysproUpdates.map((entry) => (
+                  <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr_180px_180px]">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">{entry.companyLabel}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
+                        <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
+                        <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
+                        <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastHeartbeatAt)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Este host ainda nao enviou leituras de multi-bases no heartbeat.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
