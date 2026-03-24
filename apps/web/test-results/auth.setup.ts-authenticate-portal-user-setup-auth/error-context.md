@@ -1,0 +1,82 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - link "Voltar" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img [ref=e8]
+        - generic [ref=e10]: Voltar
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - img [ref=e15]
+          - heading "Acesso ao Portal" [level=1] [ref=e17]
+          - paragraph [ref=e18]: Entre com suas credenciais para acessar o sistema.
+        - main [ref=e19]:
+          - generic [ref=e20]:
+            - form "Formulário de login" [ref=e21]:
+              - generic [ref=e22]:
+                - generic [ref=e23]: E-mail Corporativo
+                - generic [ref=e24]:
+                  - img
+                  - textbox "E-mail Corporativo" [active] [ref=e25]:
+                    - /placeholder: nome@empresa.com
+                    - text: rafaelrodrix@icloud.com
+              - generic [ref=e26]:
+                - generic [ref=e27]:
+                  - generic [ref=e28]: Senha
+                  - link "Esqueceu a senha?" [ref=e29] [cursor=pointer]:
+                    - /url: /forgot-password
+                - generic [ref=e30]:
+                  - img
+                  - textbox "Senha" [ref=e31]:
+                    - /placeholder: "********"
+                  - button "Mostrar senha" [ref=e32]:
+                    - img [ref=e33]
+              - button "Entrar no Sistema" [ref=e36]
+            - generic [ref=e37]:
+              - generic [ref=e42]: Precisa de acesso?
+              - paragraph [ref=e43]:
+                - text: Entre em contato pelo
+                - link "WhatsApp" [ref=e44] [cursor=pointer]:
+                  - /url: https://wa.me/5534997713731?text=Olá
+                - text: ou fale com o
+                - link "suporte técnico" [ref=e45] [cursor=pointer]:
+                  - /url: /docs/suporte
+                - text: .
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - img [ref=e49]
+        - generic [ref=e51]: Trilink Software
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - heading "A Central de Ajuda do Syspro ERP" [level=2] [ref=e54]
+          - paragraph [ref=e55]: Acesse sua conta para ter acesso a toda a documentação, chamados e configurações com segurança total.
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - img [ref=e59]
+            - generic [ref=e62]:
+              - heading "Segurança" [level=3] [ref=e63]
+              - paragraph [ref=e64]: Criptografia de ponta a ponta.
+          - generic [ref=e65]:
+            - img [ref=e67]
+            - generic [ref=e69]:
+              - heading "Performance" [level=3] [ref=e70]
+              - paragraph [ref=e71]: Dashboard otimizado em tempo real.
+          - generic [ref=e72]:
+            - img [ref=e74]
+            - generic [ref=e77]:
+              - heading "Compliance" [level=3] [ref=e78]
+              - paragraph [ref=e79]: Regras de negócio atualizadas.
+      - generic [ref=e80]:
+        - paragraph [ref=e81]: © 2026 Trilink Software. Todos os direitos reservados.
+        - generic [ref=e82]:
+          - link "Termos" [ref=e83] [cursor=pointer]:
+            - /url: /termos
+          - link "Privacidade" [ref=e84] [cursor=pointer]:
+            - /url: /privacidade
+  - button "Open Next.js Dev Tools" [ref=e90] [cursor=pointer]:
+    - img [ref=e91]
+  - alert [ref=e94]
+```

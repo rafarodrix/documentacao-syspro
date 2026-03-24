@@ -1,5 +1,19 @@
 {
-  "node": {},
+  "node": {
+    "40faad528eeb669eb73aec9255755e23f4e426dc95": {
+      "workers": {
+        "app/(autenticacao)/login/page": {
+          "moduleId": "(action-browser)/../../node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Cauth%5C%5Capplication%5C%5Cactions%5C%5Cregister.ts%22%2C%5B%7B%22id%22%3A%2240faad528eeb669eb73aec9255755e23f4e426dc95%22%2C%22exportedName%22%3A%22registerUser%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CDEV%5C%5Cdocumentacao-syspro%5C%5Capps%5C%5Cweb%5C%5Csrc%5C%5Cfeatures%5C%5Cauth%5C%5Capplication%5C%5Cactions%5C%5Cregister.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(autenticacao)/login/page": "action-browser"
+      },
+      "filename": "../C:\\DEV\\documentacao-syspro\\apps\\web\\src\\features\\auth\\application\\actions\\register.ts",
+      "exportedName": "registerUser"
+    }
+  },
   "edge": {},
   "encryptionKey": "1bbizE3AgVEm3kDPUr1DGV+TC4yILa5G59jI4dyBmQ0="
 }
