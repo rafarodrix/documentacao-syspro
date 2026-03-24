@@ -11,46 +11,18 @@ interface TicketsSummaryProps {
   totalOpen: number
 }
 
-function normalizeLabel(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9 ]/g, "")
-    .trim()
-    .toLowerCase()
-}
+const STATUS_CONFIG = {
+  Aberto: { icon: Inbox, color: "text-blue-500", bg: "bg-blue-500/10", label: "Aberto" },
+  "Em Análise": { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Em Análise" },
+  Pendente: { icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-500/10", label: "Pendente" },
+  Resolvido: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Resolvido" },
+} as const
 
-function getStatusConfig(status: TicketSummaryItem["status"]) {
-  const normalized = normalizeLabel(String(status))
-
-  switch (normalized) {
-    case "aberto":
-      return { icon: Inbox, color: "text-blue-500", bg: "bg-blue-500/10", label: "Aberto" }
-    case "em analise":
-      return { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Em Analise" }
-    case "pendente":
-      return { icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-500/10", label: "Pendente" }
-    case "resolvido":
-      return { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Resolvido" }
-    default:
-      return { icon: Inbox, color: "text-blue-500", bg: "bg-blue-500/10", label: String(status) }
-  }
-}
-
-function getPriorityConfig(priority: TicketSummaryItem["priority"]) {
-  const normalized = normalizeLabel(String(priority))
-
-  switch (normalized) {
-    case "alta":
-      return { class: "bg-red-500/10 text-red-600 border-red-500/20" }
-    case "media":
-      return { class: "bg-amber-500/10 text-amber-600 border-amber-500/20" }
-    case "baixa":
-      return { class: "bg-muted text-muted-foreground border-border" }
-    default:
-      return { class: "bg-muted text-muted-foreground border-border" }
-  }
-}
+const PRIORITY_CONFIG = {
+  Alta: { class: "bg-red-500/10 text-red-600 border-red-500/20" },
+  Média: { class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  Baixa: { class: "bg-muted text-muted-foreground border-border" },
+} as const
 
 function formatDate(iso: string): string {
   const date = new Date(iso)
@@ -101,8 +73,8 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
         ) : (
           <div className="space-y-1">
             {tickets.map((ticket) => {
-              const statusCfg = getStatusConfig(ticket.status)
-              const priorityCfg = getPriorityConfig(ticket.priority)
+              const statusCfg = STATUS_CONFIG[ticket.status]
+              const priorityCfg = PRIORITY_CONFIG[ticket.priority]
               const StatusIcon = statusCfg.icon
 
               return (
