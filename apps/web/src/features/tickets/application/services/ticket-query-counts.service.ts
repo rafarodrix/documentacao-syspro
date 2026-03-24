@@ -2,8 +2,19 @@ import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { CLOSED_STATE_IDS, OPERATIONAL_STATE_IDS, type QueueKey, type TicketStatusGroup } from "@dosc-syspro/core";
 import { getStateIdsForStatusGroup } from "@dosc-syspro/core";
-import type { TicketStatusCounts } from "@/components/platform/tickets/types";
+import type { ClosedTicketsWindow, TicketStatusCounts } from "@/components/platform/tickets/types";
 import { isSystemRole } from "./ticket-scope.service";
+import { getClosedWindowStartDate } from "./ticket-query-builders";
+
+function appendWhereAnd(where: Prisma.ZammadTicketCacheWhereInput, clause: Prisma.ZammadTicketCacheWhereInput) {
+  const existingAnd = where.AND
+    ? Array.isArray(where.AND)
+      ? where.AND
+      : [where.AND]
+    : [];
+
+  where.AND = [...existingAnd, clause];
+}
 
 export function buildCacheWhere(input: {
   role: Role;
@@ -13,6 +24,7 @@ export function buildCacheWhere(input: {
   zammadUserId: number | null;
   search?: string;
   statusGroup?: TicketStatusGroup | "all";
+  closedWindow?: ClosedTicketsWindow;
 }): Prisma.ZammadTicketCacheWhereInput {
   const where: Prisma.ZammadTicketCacheWhereInput = {};
 
@@ -32,13 +44,8 @@ export function buildCacheWhere(input: {
     if (isSystemRole(input.role)) {
       searchConditions.push({ customer: { contains: search, mode: "insensitive" } });
     }
-    const existingAnd = where.AND
-      ? Array.isArray(where.AND)
-        ? where.AND
-        : [where.AND]
-      : [];
 
-    where.AND = [...existingAnd, { OR: searchConditions }];
+    appendWhereAnd(where, { OR: searchConditions });
   }
 
   if (input.queue === "my_queue") {
@@ -65,6 +72,19 @@ export function buildCacheWhere(input: {
     where.stateId = { in: [...getStateIdsForStatusGroup(input.statusGroup)] };
   } else {
     where.stateId = { in: Array.from(new Set([...OPERATIONAL_STATE_IDS, ...CLOSED_STATE_IDS])) };
+  }
+
+  if (input.statusGroup === "closed" && input.closedWindow && input.closedWindow !== "all") {
+    const startDate = getClosedWindowStartDate(input.closedWindow);
+    if (startDate) {
+      const since = new Date(`${startDate}T00:00:00.000Z`);
+      appendWhereAnd(where, {
+        OR: [
+          { resolvedAt: { gte: since } },
+          { AND: [{ resolvedAt: null }, { updatedAtZammad: { gte: since } }] },
+        ],
+      });
+    }
   }
 
   return where;

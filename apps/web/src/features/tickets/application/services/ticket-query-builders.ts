@@ -1,15 +1,17 @@
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
-import { TICKET_STATUS_QUERY_TERMS, getStateIdsForStatusGroup } from "@dosc-syspro/core";
+import type { ClosedTicketsWindow } from "@/features/tickets/domain/model";
+import { getStateIdsForStatusGroup } from "@dosc-syspro/core";
+
+const CLOSED_WINDOW_DAYS: Record<Exclude<ClosedTicketsWindow, "all">, number> = {
+  "30d": 30,
+  "60d": 60,
+  "90d": 90,
+  "180d": 180,
+  "365d": 365,
+};
 
 export function buildStateIdQuery(stateIds: readonly number[]): string {
   return `(${stateIds.map((id) => `state_id:${id}`).join(" OR ")})`;
-}
-
-export function buildStatusTermsQuery(statusGroup: TicketStatusGroup): string {
-  const terms = TICKET_STATUS_QUERY_TERMS[statusGroup] ?? [];
-  if (!terms.length) return "";
-
-  return `(${terms.map((term) => `state:"${escapeSearchTerm(term)}"`).join(" OR ")})`;
 }
 
 export function buildEmailScopeQuery(emails: string[]): string {
@@ -54,14 +56,7 @@ export function combineQueryParts(...parts: Array<string | null | undefined>): s
 export function buildStatusQuery(statusGroup?: TicketStatusGroup | "all"): string {
   if (!statusGroup || statusGroup === "all") return "";
   const stateIds = getStateIdsForStatusGroup(statusGroup);
-  const parts = [
-    stateIds.length ? buildStateIdQuery(stateIds) : "",
-    buildStatusTermsQuery(statusGroup),
-  ].filter(Boolean);
-
-  if (!parts.length) return "id:-1";
-  if (parts.length === 1) return parts[0];
-  return `(${parts.join(" OR ")})`;
+  return stateIds.length ? buildStateIdQuery(stateIds) : "id:-1";
 }
 
 export function buildTrackedStatusQuery(): string {
@@ -69,4 +64,20 @@ export function buildTrackedStatusQuery(): string {
   if (!parts.length) return "";
   if (parts.length === 1) return parts[0];
   return `(${parts.join(" OR ")})`;
+}
+
+export function getClosedWindowStartDate(window: ClosedTicketsWindow, now = new Date()): string | null {
+  if (window === "all") return null;
+
+  const days = CLOSED_WINDOW_DAYS[window];
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - days);
+  return start.toISOString().slice(0, 10);
+}
+
+export function buildClosedWindowQuery(window: ClosedTicketsWindow, now = new Date()): string {
+  const startDate = getClosedWindowStartDate(window, now);
+  if (!startDate) return "";
+  return `(close_at:>=${startDate} OR updated_at:>=${startDate})`;
 }

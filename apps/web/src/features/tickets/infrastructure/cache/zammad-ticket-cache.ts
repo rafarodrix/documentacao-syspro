@@ -2,9 +2,10 @@ import { Prisma, Role, ZammadTicketCache } from "@prisma/client";
 import { ZammadOperationalTicket } from "@dosc-syspro/contracts";
 import { prisma } from "@/lib/prisma";
 import { computeTicketSla } from "@dosc-syspro/core";
-import { CLOSED_STATE_IDS, OPERATIONAL_STATE_IDS, getStateIdsForStatusGroup, type QueueKey, type TicketStatusGroup } from "@dosc-syspro/core";
+import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
+import type { ClosedTicketsWindow } from "@/features/tickets/domain/model";
+import { buildCacheWhere } from "@/features/tickets/application/services/ticket-query-counts.service";
 
-const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
 const CACHE_UPSERT_CHUNK_SIZE = 50;
 const CACHE_UPSERT_MAX_RETRIES = 3;
 
@@ -106,66 +107,25 @@ export async function listCachedTickets(input: {
   zammadUserId?: number | null;
   search?: string;
   statusGroup?: TicketStatusGroup | "all";
+  closedWindow?: ClosedTicketsWindow;
 }): Promise<{ rows: ZammadTicketCache[]; total: number }> {
-  const where: Prisma.ZammadTicketCacheWhereInput = {};
-
-  if (!SYSTEM_ROLES.has(input.role)) {
-    const emails = input.scopedEmails?.length ? input.scopedEmails : [input.email];
-    where.OR = emails.map((value) => ({
-      customer: { contains: value, mode: "insensitive" },
-    }));
-  }
-
-  if (input.queue === "my_queue") {
-    if (input.zammadUserId) {
-      where.ownerId = input.zammadUserId;
-    } else {
-      where.zammadTicketId = -1;
-    }
-  }
-
-  if (input.queue === "unassigned") {
-    where.ownerId = null;
-  }
-
-  if (input.queue === "critical") {
-    where.priorityId = 3;
-  }
-
-  if (input.queue === "no_response") {
-    where.firstResponseAt = null;
-  }
-
-  const search = input.search?.trim();
-  if (search) {
-    const searchConditions: Prisma.ZammadTicketCacheWhereInput[] = [
-      { number: { contains: search, mode: "insensitive" } },
-      { title: { contains: search, mode: "insensitive" } },
-    ];
-
-    if (SYSTEM_ROLES.has(input.role)) {
-      searchConditions.push({ customer: { contains: search, mode: "insensitive" } });
-    }
-
-    const existingAnd = where.AND
-      ? Array.isArray(where.AND)
-        ? where.AND
-        : [where.AND]
-      : [];
-
-    where.AND = [...existingAnd, { OR: searchConditions }];
-  }
-
-  if (input.statusGroup && input.statusGroup !== "all") {
-    where.stateId = { in: [...getStateIdsForStatusGroup(input.statusGroup)] };
-  } else {
-    where.stateId = { in: Array.from(new Set([...OPERATIONAL_STATE_IDS, ...CLOSED_STATE_IDS])) };
-  }
+  const where: Prisma.ZammadTicketCacheWhereInput = buildCacheWhere({
+    role: input.role,
+    email: input.email,
+    scopedEmails: input.scopedEmails ?? [],
+    queue: input.queue ?? "all",
+    zammadUserId: input.zammadUserId ?? null,
+    search: input.search,
+    statusGroup: input.statusGroup,
+    closedWindow: input.closedWindow,
+  });
 
   const [rows, total] = await prisma.$transaction([
     prisma.zammadTicketCache.findMany({
       where,
-      orderBy: { updatedAtZammad: "desc" },
+      orderBy: input.statusGroup === "closed"
+        ? [{ resolvedAt: "desc" }, { updatedAtZammad: "desc" }]
+        : [{ updatedAtZammad: "desc" }],
       skip: (input.page - 1) * input.pageSize,
       take: input.pageSize,
     }),

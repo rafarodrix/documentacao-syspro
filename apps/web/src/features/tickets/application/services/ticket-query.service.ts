@@ -5,7 +5,7 @@ import {
   listCachedTickets,
   upsertOperationalTicketsToCache,
 } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
-import { buildEmailScopeQuery, buildQueueQuery, buildSearchQuery, buildStatusQuery, buildTrackedStatusQuery, combineQueryParts } from "@/features/tickets/application/services/ticket-query-builders";
+import { buildClosedWindowQuery, buildEmailScopeQuery, buildQueueQuery, buildSearchQuery, buildStatusQuery, buildTrackedStatusQuery, combineQueryParts } from "@/features/tickets/application/services/ticket-query-builders";
 import { getQueueCountsFromCache, getStatusCountsFromCache } from "@/features/tickets/application/services/ticket-query-counts.service";
 import { getTicketMetricsSnapshot } from "@/features/tickets/application/services/ticket-metrics-snapshot.service";
 import { buildPagination, formatCachedTickets, formatTickets } from "@/features/tickets/application/services/ticket-query-formatters";
@@ -50,6 +50,7 @@ export async function queryTicketsForViewer(
   const pageSize = Math.min(20, Math.max(10, params.pageSize ?? 20));
   const queue = params.queue ?? "all";
   const statusGroup = params.statusGroup ?? "all";
+  const closedWindow = params.closedWindow ?? "30d";
   const search = (params.search || "").trim();
   const includeQueueCounts = options.includeQueueCounts ?? true;
   const includeStatusCounts = options.includeStatusCounts ?? true;
@@ -79,7 +80,8 @@ export async function queryTicketsForViewer(
   const scopedQuery = combineQueryParts(viewerScopeQuery, searchQuery, queueQuery);
   const finalQuery = combineQueryParts(
     scopedQuery,
-    statusGroup === "all" ? trackedStatusQuery : buildStatusQuery(statusGroup)
+    statusGroup === "all" ? trackedStatusQuery : buildStatusQuery(statusGroup),
+    statusGroup === "closed" ? buildClosedWindowQuery(closedWindow) : ""
   );
 
   try {
@@ -159,6 +161,7 @@ export async function queryTicketsForViewer(
         zammadUserId,
         search,
         statusGroup,
+        closedWindow,
       }),
       getLatestOperationalTicketCacheFreshness(),
     ]);
@@ -183,4 +186,3 @@ export async function queryTicketsForViewer(
     };
   }
 }
-

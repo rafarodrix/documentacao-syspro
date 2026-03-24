@@ -3,6 +3,7 @@ export type {
   TicketListItem,
   TicketsPagination,
   TicketStatusCounts,
+  ClosedTicketsWindow,
   TicketQueryParams,
   TicketsDataResponse,
   TicketDetailsItem,

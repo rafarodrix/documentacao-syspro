@@ -9,7 +9,7 @@ import { TicketsFilters } from "./TicketsFilters";
 import { TicketsTable } from "./TicketsTable";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { TicketListItem, TicketStatusCounts, TicketsPagination } from "./types";
+import type { ClosedTicketsWindow, TicketListItem, TicketStatusCounts, TicketsPagination } from "./types";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 
 interface TicketsContainerProps {
@@ -22,6 +22,7 @@ interface TicketsContainerProps {
     statusCounts: TicketStatusCounts;
     search: string;
     statusGroup: TicketStatusGroup;
+    closedWindow: ClosedTicketsWindow;
 }
 
 export function TicketsContainer({
@@ -34,6 +35,7 @@ export function TicketsContainer({
     statusCounts,
     search,
     statusGroup,
+    closedWindow,
 }: TicketsContainerProps) {
     const router = useRouter();
     const pathname = usePathname();
@@ -93,6 +95,17 @@ export function TicketsContainer({
         });
     };
 
+    const setClosedWindowFilter = (nextWindow: ClosedTicketsWindow) => {
+        updateParams((params) => {
+            if (nextWindow === "30d") {
+                params.delete("closedWindow");
+            } else {
+                params.set("closedWindow", nextWindow);
+            }
+            params.set("page", "1");
+        });
+    };
+
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10 duration-700">
             {staleWarning && (
@@ -118,9 +131,6 @@ export function TicketsContainer({
 
             {isAdmin && (
                 <div className="flex flex-wrap gap-2">
-                    <Button variant={queue === "all" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("all")}>
-                        Todos ({queueCounts.all})
-                    </Button>
                     <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("my_queue")}>
                         Minha fila ({queueCounts.my_queue})
                     </Button>
@@ -141,6 +151,8 @@ export function TicketsContainer({
                 setSearchTerm={setSearchTerm}
                 statusFilter={statusGroup}
                 setStatusFilter={setStatusFilter}
+                closedWindow={closedWindow}
+                setClosedWindow={setClosedWindowFilter}
                 isAdmin={isAdmin}
                 counts={statusCounts}
             />
@@ -181,4 +193,3 @@ export function TicketsContainer({
         </div>
     );
 }
-

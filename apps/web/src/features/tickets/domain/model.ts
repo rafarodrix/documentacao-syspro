@@ -30,6 +30,8 @@ export interface TicketsPagination {
     total: number | null;
 }
 
+export type ClosedTicketsWindow = "30d" | "60d" | "90d" | "180d" | "365d" | "all";
+
 export interface TicketStatusCounts {
     open: number;
     pending: number;
@@ -42,6 +44,7 @@ export interface TicketQueryParams {
     queue?: QueueKey;
     search?: string;
     statusGroup?: TicketStatusGroup | "all";
+    closedWindow?: ClosedTicketsWindow;
 }
 
 export type TicketActionFailure = {
