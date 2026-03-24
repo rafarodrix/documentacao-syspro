@@ -31,7 +31,7 @@ const DEFAULT_MATRIX: ParsedStateMatrix = {
 };
 
 function isTicketStatus(value: unknown): value is TicketStatus {
-  return value === "Aberto" || value === "Em Análise" || value === "Pendente" || value === "Resolvido";
+  return value === "Aberto" || value === "Em Analise" || value === "Pendente" || value === "Resolvido";
 }
 
 function parseStateMatrixFromEnv(): ParsedStateMatrix | null {

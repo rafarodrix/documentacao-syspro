@@ -2,9 +2,9 @@
 
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { isTicketStatusGroup, type TicketStatusGroup } from "@dosc-syspro/core";
+import { type TicketStatusGroup } from "@dosc-syspro/core";
 import type { ClosedTicketsWindow, TicketStatusCounts } from "./types";
 
 interface TicketsFiltersProps {
@@ -37,28 +37,20 @@ export function TicketsFilters({
     isAdmin,
     counts,
 }: TicketsFiltersProps) {
-    const handleStatusChange = (value: string) => {
-        if (isTicketStatusGroup(value)) {
-            setStatusFilter(value);
-        }
-    };
-
     return (
         <div className="flex flex-col gap-4 p-1">
             <div className="flex flex-col items-center justify-between gap-4 lg:flex-row">
-                <Tabs defaultValue="open" value={statusFilter} onValueChange={handleStatusChange} className="w-full lg:w-auto">
-                    <TabsList className="grid h-11 w-full grid-cols-3 rounded-lg border border-border/40 bg-muted/40 p-1 lg:w-auto">
-                        <TabsTrigger value="open" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                            Abertos ({counts.open})
-                        </TabsTrigger>
-                        <TabsTrigger value="pending" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                            Em analise ({counts.pending})
-                        </TabsTrigger>
-                        <TabsTrigger value="closed" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                            Fechados ({counts.closed})
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <div className="flex w-full flex-wrap gap-2 lg:w-auto">
+                    <Button type="button" variant={statusFilter === "open" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("open")}>
+                        Abertos ({counts.open})
+                    </Button>
+                    <Button type="button" variant={statusFilter === "pending" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("pending")}>
+                        Em analise ({counts.pending})
+                    </Button>
+                    <Button type="button" variant={statusFilter === "closed" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("closed")}>
+                        Fechados ({counts.closed})
+                    </Button>
+                </div>
 
                 <div className="group relative w-full lg:w-96">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />

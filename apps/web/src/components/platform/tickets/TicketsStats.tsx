@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Inbox, Clock, CheckCircle2 } from "lucide-react"
 import { LucideIcon } from "lucide-react"
 import { TicketStatusCounts } from "./types"
+import type { TicketStatusGroup } from "@dosc-syspro/core"
 
 interface TicketsStatsProps {
     counts: TicketStatusCounts
+    activeStatus: TicketStatusGroup
+    onSelectStatus: (status: TicketStatusGroup) => void
 }
 
-export function TicketsStats({ counts }: TicketsStatsProps) {
+export function TicketsStats({ counts, activeStatus, onSelectStatus }: TicketsStatsProps) {
     return (
         <div className="grid gap-4 md:grid-cols-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <KpiCard
@@ -18,6 +21,8 @@ export function TicketsStats({ counts }: TicketsStatsProps) {
                 icon={Inbox}
                 color="blue"
                 label="Fila de atendimento"
+                active={activeStatus === "open"}
+                onClick={() => onSelectStatus("open")}
             />
             <KpiCard
                 title="Em Analise"
@@ -25,6 +30,8 @@ export function TicketsStats({ counts }: TicketsStatsProps) {
                 icon={Clock}
                 color="amber"
                 label="Aguardando resposta"
+                active={activeStatus === "pending"}
+                onClick={() => onSelectStatus("pending")}
             />
             <KpiCard
                 title="Finalizados"
@@ -32,6 +39,8 @@ export function TicketsStats({ counts }: TicketsStatsProps) {
                 icon={CheckCircle2}
                 color="green"
                 label="Historico recente"
+                active={activeStatus === "closed"}
+                onClick={() => onSelectStatus("closed")}
             />
         </div>
     )
@@ -45,9 +54,11 @@ interface KpiCardProps {
     icon: LucideIcon;
     color: KpiColor;
     label: string;
+    active: boolean;
+    onClick: () => void;
 }
 
-function KpiCard({ title, value, icon: Icon, color, label }: KpiCardProps) {
+function KpiCard({ title, value, icon: Icon, color, label, active, onClick }: KpiCardProps) {
     const colors: Record<KpiColor, string> = {
         blue: "bg-blue-500/10 text-blue-600 border-blue-500/20",
         amber: "bg-amber-500/10 text-amber-600 border-amber-500/20",
@@ -62,15 +73,17 @@ function KpiCard({ title, value, icon: Icon, color, label }: KpiCardProps) {
     };
 
     return (
-        <Card className={`${colors[color]} shadow-sm border transition-transform hover:scale-[1.01]`}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <Icon className={`h-4 w-4 ${iconColors[color]}`} />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
-                <p className="text-xs opacity-80">{label}</p>
-            </CardContent>
-        </Card>
+        <button type="button" onClick={onClick} aria-pressed={active} className="text-left">
+            <Card className={`${colors[color]} shadow-sm border transition-all hover:scale-[1.01] hover:shadow-md ${active ? "ring-2 ring-primary/60 ring-offset-2 ring-offset-background" : ""}`}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                    <Icon className={`h-4 w-4 ${iconColors[color]}`} />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{value}</div>
+                    <p className="text-xs opacity-80">{label}</p>
+                </CardContent>
+            </Card>
+        </button>
     )
 }

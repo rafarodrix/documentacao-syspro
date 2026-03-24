@@ -127,7 +127,7 @@ export function TicketsContainer({
                 {!isAdmin && <TicketSheet />}
             </div>
 
-            <TicketsStats counts={statusCounts} />
+            <TicketsStats counts={statusCounts} activeStatus={statusGroup} onSelectStatus={setStatusFilter} />
 
             {isAdmin && (
                 <div className="flex flex-wrap gap-2">
