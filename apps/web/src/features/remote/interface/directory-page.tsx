@@ -357,9 +357,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         <CardHeader className="border-b border-border/50 bg-linear-to-r from-background via-muted/10 to-background">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xl">Console de acesso remoto</CardTitle>
+              <CardTitle className="text-xl">Centro operacional de acesso remoto</CardTitle>
               <CardDescription>
-                Inspirado em consoles de suporte remoto: empresa em destaque, prontidao imediata, acao principal evidente e detalhe tecnico sem esconder o que bloqueia o acesso.
+                Use esta tela para operar o modulo remoto: cadastrar hosts, vincular maquinas descobertas, acompanhar heartbeat e abrir o acesso com contexto tecnico.
               </CardDescription>
             </div>
 
@@ -367,9 +367,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <div className="rounded-xl border border-border/60 bg-muted/20 p-3 lg:min-w-95">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Cadastro rapido de maquina</p>
+                    <p className="text-sm font-semibold text-foreground">Cadastro rapido de host</p>
                     <p className="text-xs text-muted-foreground">
-                      Fluxo minimo para registrar host e gerar acesso operacional.
+                      Fluxo minimo para criar um host operacional diretamente nesta rota.
                     </p>
                   </div>
                   <Button type="button" variant="outline" onClick={() => setShowQuickCreate((current) => !current)} className="gap-2">
@@ -434,7 +434,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <Input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Pesquisar empresa, host, ambiente, ticket ou RustDesk ID"
+                placeholder="Pesquisar empresa, host, instalacao, ambiente, ticket ou RustDesk ID"
                 className="pl-9"
               />
             </div>
@@ -490,7 +490,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button type="button" variant="outline">Como conectar</Button>
+                <Button type="button" variant="outline">Fluxo operacional</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -530,9 +530,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           {canCreateHosts && filteredPendingItems.length ? (
             <div className="space-y-3">
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                <p className="text-sm font-semibold text-foreground">Pendentes de vinculacao</p>
+                <p className="text-sm font-semibold text-foreground">Maquinas pendentes de vinculacao</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Maquinas que chegaram pelo script padrao. Escolha a empresa e transforme em host operacional.
+                  Maquinas que chegaram pelo script padrao. Escolha a empresa e transforme cada uma em host operacional nesta mesma tela.
                 </p>
               </div>
 
@@ -718,7 +718,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             <p className="text-sm text-muted-foreground">
               {searchTerm
                 ? `Nenhum host deste modulo corresponde a "${searchTerm}".`
-                : "Nenhum cliente/host remoto configurado no seu escopo."}
+                : "Nenhum host remoto operacional configurado no seu escopo."}
             </p>
           ) : null}
         </CardContent>

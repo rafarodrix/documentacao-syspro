@@ -58,7 +58,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     Configuracoes
                 </h1>
                 <p className="text-muted-foreground text-lg max-w-2xl">
-                    Gerencie parametros globais, contratos ativos e regras de acesso do sistema.
+                    Gerencie parametros globais do sistema. Operacao remota, cadastro e manutencao de hosts ficam em Plataforma Remota.
                 </p>
             </div>
 

@@ -18,7 +18,7 @@ export default async function RemotePlatformPage() {
           Plataforma Remota
         </h1>
         <p className="max-w-3xl text-muted-foreground text-lg">
-          Diretorio operacional dos clientes e hosts remotos ja configurados para acesso.
+          Centro operacional do modulo remoto: descubra maquinas, cadastre e edite hosts, vincule empresas e execute o atendimento.
         </p>
       </div>
 
