@@ -155,10 +155,12 @@ Entidades sugeridas para fase futura:
 - `Conversation`
   - representa o fio da conversa por contato/empresa
   - o canal entra como atributo, nao como nome da entidade
+  - deve preservar snapshots do contato no momento da conversa
 - `ConversationMessage`
   - armazena inbound/outbound, tipo de conteudo, status e correlacao
-- `ConversationQueue`
-  - organiza fila operacional para novos atendimentos e handoff
+  - deve rastrear delivery, falha, reenvio e midia
+- `ConversationQueueEvent`
+  - registra entrada/saida de fila, SLA e historico operacional
 - `ConversationAssignment`
   - registra assuncao, transferencia e liberacao por analista
 - `WhatsAppTicketLink`
@@ -174,6 +176,44 @@ Campos ja reaproveitaveis da base atual:
 - `remote_host`
 - `remote_session`
 - `ZammadTicketCache`
+
+### Ajustes recomendados antes do Prisma
+
+Para evitar retrabalho na persistencia, o contrato deve nascer com alguns campos que normalmente so aparecem quando a operacao fica real:
+
+- `Conversation`
+  - `externalThreadId`
+  - `connectionId`
+  - `contactPhoneSnapshot`
+  - `contactWhatsappSnapshot`
+  - `contactNameSnapshot`
+  - `lastInboundAt`
+  - `lastOutboundAt`
+  - `closedAt`
+  - `resolvedByUserId`
+- `ConversationMessage`
+  - `replyToMessageId`
+  - `quotedExternalMessageId`
+  - `providerStatus`
+  - `providerError`
+  - `retryCount`
+  - `deliveredAt`
+  - `readAt`
+  - `storageKey`
+  - `fileSize`
+  - `checksum`
+- `ConversationQueueEvent`
+  - `enteredAt`
+  - `leftAt`
+  - `position`
+  - `slaDeadlineAt`
+  - `breachedAt`
+  - `assignedTeam`
+- `ConversationAssignment`
+  - `assignmentType`
+  - `transferFromUserId`
+  - `acceptedAt`
+  - `declinedAt`
 
 ### Separacao entre identidade autenticavel e contato de atendimento
 
@@ -433,7 +473,7 @@ Com a infraestrutura atual, a sequencia mais coerente e:
 
 - criar `CompanyContact` separado de `User`
 - materializar `apps/api` para casos de uso reais de integracao
-- criar contratos de `Conversation`, `ConversationMessage`, `ConversationQueue` e `ConversationAssignment`
+- criar contratos de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment`
 - criar contrato de promocao `CompanyContact -> User`
 - introduzir autenticacao entre bridge e backend
 - criar cache e reconciliacao de ticket por conversa

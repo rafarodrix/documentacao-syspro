@@ -12,6 +12,8 @@ export type ConversationPriority = "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
 
 export type ConversationParticipantKind = "COMPANY_CONTACT" | "USER" | "EXTERNAL";
 
+export type ConversationEntryPoint = "INBOUND" | "OUTBOUND" | "CAMPAIGN" | "SYSTEM";
+
 export type ConversationMessageDirection = "INBOUND" | "OUTBOUND" | "INTERNAL";
 
 export type ConversationMessageType =
@@ -23,6 +25,7 @@ export type ConversationMessageType =
   | "SYSTEM_EVENT";
 
 export type ConversationAssignmentStatus = "ACTIVE" | "TRANSFERRED" | "RELEASED";
+export type ConversationAssignmentType = "AUTO" | "MANUAL" | "TRANSFER";
 
 export type ConversationQueueKey =
   | "new"
@@ -54,11 +57,14 @@ export type ConversationSummary = {
   contactName: string | null;
   assignedUserId: string | null;
   assignedUserName: string | null;
+  entryPoint: ConversationEntryPoint;
   ticketId: string | null;
   ticketNumber: string | null;
   subject: string | null;
   lastMessagePreview: string | null;
   lastMessageAt: string | null;
+  lastInboundAt: string | null;
+  lastOutboundAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -67,12 +73,19 @@ export type ConversationDetails = {
   conversation: ConversationSummary & {
     externalThreadId: string | null;
     connectionId: string | null;
+    contactPhoneSnapshot: string | null;
+    contactWhatsappSnapshot: string | null;
+    contactNameSnapshot: string | null;
+    resolvedByUserId: string | null;
+    resolvedByUserName: string | null;
+    closedAt: string | null;
     metadata: Record<string, unknown> | null;
   };
   contact: ConversationContactRef | null;
   messages: ConversationMessage[];
   assignments: ConversationAssignment[];
-  queue: ConversationQueueState | null;
+  currentQueue: ConversationQueueState | null;
+  queueHistory: ConversationQueueEvent[];
 };
 
 export type ConversationMessage = {
@@ -84,12 +97,22 @@ export type ConversationMessage = {
   authorUserId: string | null;
   authorContactId: string | null;
   externalMessageId: string | null;
+  replyToMessageId: string | null;
+  quotedExternalMessageId: string | null;
   body: string | null;
   mediaUrl: string | null;
+  storageKey: string | null;
   mediaMimeType: string | null;
+  fileSize: number | null;
+  checksum: string | null;
   status: "PENDING" | "SENT" | "DELIVERED" | "READ" | "FAILED";
+  providerStatus: string | null;
+  providerError: string | null;
+  retryCount: number;
   metadata: Record<string, unknown> | null;
   sentAt: string | null;
+  deliveredAt: string | null;
+  readAt: string | null;
   createdAt: string;
 };
 
@@ -99,7 +122,22 @@ export type ConversationQueueState = {
   position: number;
   waitingSince: string;
   slaDeadlineAt: string | null;
+  breachedAt: string | null;
+  slaPolicyId: string | null;
   assignedTeam: string | null;
+};
+
+export type ConversationQueueEvent = {
+  id: string;
+  conversationId: string;
+  queueKey: ConversationQueueKey;
+  enteredAt: string;
+  leftAt: string | null;
+  position: number | null;
+  assignedTeam: string | null;
+  slaDeadlineAt: string | null;
+  breachedAt: string | null;
+  metadata: Record<string, unknown> | null;
 };
 
 export type ConversationAssignment = {
@@ -107,11 +145,16 @@ export type ConversationAssignment = {
   conversationId: string;
   assignedUserId: string;
   assignedUserName: string | null;
+  assignmentType: ConversationAssignmentType;
   assignedByUserId: string | null;
   assignedByUserName: string | null;
+  transferFromUserId: string | null;
+  transferFromUserName: string | null;
   status: ConversationAssignmentStatus;
   reason: string | null;
   startedAt: string;
+  acceptedAt: string | null;
+  declinedAt: string | null;
   endedAt: string | null;
 };
 
@@ -127,6 +170,7 @@ export type StartConversationInput = {
   contactName?: string;
   contactPhone?: string;
   contactWhatsapp?: string;
+  entryPoint?: ConversationEntryPoint;
   subject?: string;
   priority?: ConversationPriority;
   initialMessage?: string;
@@ -145,6 +189,7 @@ export type SendConversationMessageInput = {
 export type AssignConversationInput = {
   conversationId: string;
   assignedUserId: string;
+  assignmentType?: ConversationAssignmentType;
   reason?: string;
 };
 
