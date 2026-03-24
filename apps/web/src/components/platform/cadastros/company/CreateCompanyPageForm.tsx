@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MagicCard } from "@/components/magicui/magic-card";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { AnimatePresence, motion } from "framer-motion";
@@ -254,6 +255,9 @@ export function CreateCompanyPageForm({
   const contactsDirty = JSON.stringify(contacts) !== JSON.stringify(initialNormalizedContacts);
   const canSubmit = isDirty || zammadEmailsDirty || contactsDirty;
   const currentCnpj = form.watch("cnpj");
+  const linkedContactsCount = contacts.filter((contact) => contact.status === CompanyContactStatus.LINKED).length;
+  const pendingContactsCount = contacts.filter((contact) => contact.status === CompanyContactStatus.PENDING_LINK).length;
+  const whatsappContactsCount = contacts.filter((contact) => contact.source === CompanyContactSource.WHATSAPP).length;
 
   function openCnpjLookup() {
     const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
@@ -682,9 +686,9 @@ export function CreateCompanyPageForm({
                       <div className="flex items-start gap-2">
                         <Users className="mt-0.5 h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium">Contatos da empresa</p>
+                          <p className="text-sm font-medium">Central de contatos</p>
                           <p className="text-xs text-muted-foreground">
-                            Esses contatos sao operacionais e servem como base para atendimento por conversa. Nao recebem acesso ao portal automaticamente.
+                            Base operacional para atendimento, vinculo com empresa e preparo do futuro fluxo de conversa/WhatsApp.
                           </p>
                         </div>
                       </div>
@@ -694,219 +698,249 @@ export function CreateCompanyPageForm({
                           `User` e autenticavel. `Contato` e identidade operacional de conversa. Quando um contato precisar entrar na plataforma, ele podera ser promovido depois para usuario.
                         </p>
                       </div>
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                        <Input
-                          placeholder="Nome do contato"
-                          value={contactDraft.name}
-                          onChange={(event) => setContactDraft((prev) => ({ ...prev, name: event.target.value }))}
-                        />
-                        <Input
-                          type="email"
-                          placeholder="contato@empresa.com.br"
-                          value={contactDraft.email}
-                          onChange={(event) => setContactDraft((prev) => ({ ...prev, email: event.target.value }))}
-                        />
-                        <Input
-                          placeholder="Telefone"
-                          value={contactDraft.phone}
-                          onChange={(event) =>
-                            setContactDraft((prev) => ({ ...prev, phone: formatPhone(event.target.value) }))
-                          }
-                        />
-                        <Input
-                          placeholder="WhatsApp"
-                          value={contactDraft.whatsapp}
-                          onChange={(event) =>
-                            setContactDraft((prev) => ({ ...prev, whatsapp: formatPhone(event.target.value) }))
-                          }
-                        />
-                        <Select
-                          value={contactDraft.source}
-                          onValueChange={(value) =>
-                            setContactDraft((prev) => ({ ...prev, source: value as CompanyContactSource }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Origem do contato" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={CompanyContactSource.MANUAL}>Manual</SelectItem>
-                            <SelectItem value={CompanyContactSource.WHATSAPP}>WhatsApp</SelectItem>
-                            <SelectItem value={CompanyContactSource.IMPORT}>Importado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select
-                          value={contactDraft.status}
-                          onValueChange={(value) =>
-                            setContactDraft((prev) => ({ ...prev, status: value as CompanyContactStatus }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Status do contato" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={CompanyContactStatus.LINKED}>Vinculado</SelectItem>
-                            <SelectItem value={CompanyContactStatus.PENDING_LINK}>Pendente de vinculo</SelectItem>
-                            <SelectItem value={CompanyContactStatus.ARCHIVED}>Arquivado</SelectItem>
-                          </SelectContent>
-                        </Select>
+
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <div className="rounded-lg border border-border/60 bg-background/70 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Contatos vinculados</p>
+                          <p className="mt-1 text-2xl font-semibold text-foreground">{linkedContactsCount}</p>
+                        </div>
+                        <div className="rounded-lg border border-border/60 bg-background/70 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pendentes de vinculo</p>
+                          <p className="mt-1 text-2xl font-semibold text-foreground">{pendingContactsCount}</p>
+                        </div>
+                        <div className="rounded-lg border border-border/60 bg-background/70 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Origem WhatsApp</p>
+                          <p className="mt-1 text-2xl font-semibold text-foreground">{whatsappContactsCount}</p>
+                        </div>
                       </div>
-                      <Textarea
-                        rows={2}
-                        placeholder="Observacoes do contato"
-                        value={contactDraft.notes}
-                        onChange={(event) => setContactDraft((prev) => ({ ...prev, notes: event.target.value }))}
-                      />
-                      <div className="flex justify-end">
-                        <Button type="button" variant="outline" onClick={addCompanyContact}>
-                          Adicionar contato
-                        </Button>
-                      </div>
-                      {contacts.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">Nenhum contato operacional configurado.</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {contacts.map((contact, index) => (
-                            <div key={`${contact.name}-${contact.email}-${index}`} className="rounded-md border border-border/60 px-3 py-2">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium">{contact.name}</span>
-                                    {index === 0 ? <Badge variant="outline">Principal</Badge> : null}
-                                    <Badge variant="outline" className={cn("border-border/60 bg-background/70", CONTACT_STATUS_BADGE[contact.status])}>
-                                      {CONTACT_STATUS_LABEL[contact.status]}
-                                    </Badge>
-                                    <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
-                                      {CONTACT_SOURCE_LABEL[contact.source]}
-                                    </Badge>
+
+                      <Tabs defaultValue="listagem" className="space-y-3">
+                        <TabsList className="grid w-full grid-cols-3">
+                          <TabsTrigger value="listagem">Contatos</TabsTrigger>
+                          <TabsTrigger value="novo">Novo contato</TabsTrigger>
+                          <TabsTrigger value="zammad">Zammad</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="listagem" className="space-y-3">
+                          {contacts.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Nenhum contato operacional configurado.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {contacts.map((contact, index) => (
+                                <div key={`${contact.name}-${contact.email}-${index}`} className="rounded-md border border-border/60 px-3 py-2">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="space-y-1">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-sm font-medium">{contact.name}</span>
+                                        {index === 0 ? <Badge variant="outline">Principal</Badge> : null}
+                                        <Badge variant="outline" className={cn("border-border/60 bg-background/70", CONTACT_STATUS_BADGE[contact.status])}>
+                                          {CONTACT_STATUS_LABEL[contact.status]}
+                                        </Badge>
+                                        <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
+                                          {CONTACT_SOURCE_LABEL[contact.source]}
+                                        </Badge>
+                                      </div>
+                                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        {contact.email ? <span>{contact.email}</span> : null}
+                                        {contact.phone ? <span>{contact.phone}</span> : null}
+                                        {contact.whatsapp ? <span>{contact.whatsapp}</span> : null}
+                                      </div>
+                                      {contact.notes ? <p className="text-xs text-muted-foreground">{contact.notes}</p> : null}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      {index !== 0 ? (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() =>
+                                            setContacts((prev) => {
+                                              const next = [...prev];
+                                              const [selected] = next.splice(index, 1);
+                                              return [selected, ...next.map((item, itemIndex) => ({ ...item, isPrimary: itemIndex === 0 }))];
+                                            })
+                                          }
+                                        >
+                                          Tornar principal
+                                        </Button>
+                                      ) : null}
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() =>
+                                          setContacts((prev) =>
+                                            prev.map((item, itemIndex) =>
+                                              itemIndex === index
+                                                ? {
+                                                    ...item,
+                                                    status:
+                                                      item.status === CompanyContactStatus.ARCHIVED
+                                                        ? CompanyContactStatus.LINKED
+                                                        : CompanyContactStatus.ARCHIVED,
+                                                  }
+                                                : item,
+                                            ),
+                                          )
+                                        }
+                                      >
+                                        {contact.status === CompanyContactStatus.ARCHIVED ? "Reativar" : "Arquivar"}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-destructive hover:text-destructive"
+                                        onClick={() => setContacts((prev) => prev.filter((_, contactIndex) => contactIndex !== index))}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
                                   </div>
-                                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                    {contact.email ? <span>{contact.email}</span> : null}
-                                    {contact.phone ? <span>{contact.phone}</span> : null}
-                                    {contact.whatsapp ? <span>{contact.whatsapp}</span> : null}
-                                  </div>
-                                  {contact.notes ? <p className="text-xs text-muted-foreground">{contact.notes}</p> : null}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  {index !== 0 ? (
+                              ))}
+                            </div>
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="novo" className="space-y-3">
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                            <Input
+                              placeholder="Nome do contato"
+                              value={contactDraft.name}
+                              onChange={(event) => setContactDraft((prev) => ({ ...prev, name: event.target.value }))}
+                            />
+                            <Input
+                              type="email"
+                              placeholder="contato@empresa.com.br"
+                              value={contactDraft.email}
+                              onChange={(event) => setContactDraft((prev) => ({ ...prev, email: event.target.value }))}
+                            />
+                            <Input
+                              placeholder="Telefone"
+                              value={contactDraft.phone}
+                              onChange={(event) =>
+                                setContactDraft((prev) => ({ ...prev, phone: formatPhone(event.target.value) }))
+                              }
+                            />
+                            <Input
+                              placeholder="WhatsApp"
+                              value={contactDraft.whatsapp}
+                              onChange={(event) =>
+                                setContactDraft((prev) => ({ ...prev, whatsapp: formatPhone(event.target.value) }))
+                              }
+                            />
+                            <Select
+                              value={contactDraft.source}
+                              onValueChange={(value) =>
+                                setContactDraft((prev) => ({ ...prev, source: value as CompanyContactSource }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Origem do contato" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={CompanyContactSource.MANUAL}>Manual</SelectItem>
+                                <SelectItem value={CompanyContactSource.WHATSAPP}>WhatsApp</SelectItem>
+                                <SelectItem value={CompanyContactSource.IMPORT}>Importado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Select
+                              value={contactDraft.status}
+                              onValueChange={(value) =>
+                                setContactDraft((prev) => ({ ...prev, status: value as CompanyContactStatus }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Status do contato" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={CompanyContactStatus.LINKED}>Vinculado</SelectItem>
+                                <SelectItem value={CompanyContactStatus.PENDING_LINK}>Pendente de vinculo</SelectItem>
+                                <SelectItem value={CompanyContactStatus.ARCHIVED}>Arquivado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Textarea
+                            rows={2}
+                            placeholder="Observacoes do contato"
+                            value={contactDraft.notes}
+                            onChange={(event) => setContactDraft((prev) => ({ ...prev, notes: event.target.value }))}
+                          />
+                          <div className="flex justify-end">
+                            <Button type="button" variant="outline" onClick={addCompanyContact}>
+                              Adicionar contato
+                            </Button>
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="zammad" className="space-y-3">
+                          <div>
+                            <p className="text-sm font-medium">E-mails vinculados ao Zammad</p>
+                            <p className="text-xs text-muted-foreground">
+                              Use esta lista para incluir caixas compartilhadas da empresa (ex.: suporte@, fiscal@).
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_180px_auto]">
+                            <Input
+                              type="email"
+                              placeholder="suporte@empresa.com.br"
+                              value={zammadEmailInput}
+                              onChange={(event) => setZammadEmailInput(event.target.value)}
+                            />
+                            <Input
+                              placeholder="Label (opcional)"
+                              value={zammadEmailLabel}
+                              onChange={(event) => setZammadEmailLabel(event.target.value)}
+                            />
+                            <Button type="button" variant="outline" onClick={addZammadEmail}>
+                              Adicionar
+                            </Button>
+                          </div>
+                          {zammadEmails.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Nenhum e-mail adicional configurado.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {zammadEmails.map((item) => (
+                                <div key={item.email} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-2 py-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant={item.isActive ? "default" : "outline"}>{item.isActive ? "Ativo" : "Inativo"}</Badge>
+                                    <span className="text-sm font-medium">{item.email}</span>
+                                    {item.label ? <span className="text-xs text-muted-foreground">({item.label})</span> : null}
+                                  </div>
+                                  <div className="flex items-center gap-2">
                                     <Button
                                       type="button"
                                       size="sm"
                                       variant="ghost"
                                       onClick={() =>
-                                        setContacts((prev) => {
-                                          const next = [...prev];
-                                          const [selected] = next.splice(index, 1);
-                                          return [selected, ...next.map((item, itemIndex) => ({ ...item, isPrimary: itemIndex === 0 }))];
-                                        })
+                                        setZammadEmails((prev) =>
+                                          prev.map((current) =>
+                                            current.email === item.email
+                                              ? { ...current, isActive: !(current.isActive ?? true) }
+                                              : current,
+                                          ),
+                                        )
                                       }
                                     >
-                                      Tornar principal
+                                      {item.isActive ? "Desativar" : "Ativar"}
                                     </Button>
-                                  ) : null}
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() =>
-                                      setContacts((prev) =>
-                                        prev.map((item, itemIndex) =>
-                                          itemIndex === index
-                                            ? {
-                                                ...item,
-                                                status:
-                                                  item.status === CompanyContactStatus.ARCHIVED
-                                                    ? CompanyContactStatus.LINKED
-                                                    : CompanyContactStatus.ARCHIVED,
-                                              }
-                                            : item,
-                                        ),
-                                      )
-                                    }
-                                  >
-                                    {contact.status === CompanyContactStatus.ARCHIVED ? "Reativar" : "Arquivar"}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    className="text-destructive hover:text-destructive"
-                                    onClick={() => setContacts((prev) => prev.filter((_, contactIndex) => contactIndex !== index))}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-destructive hover:text-destructive"
+                                      onClick={() => setZammadEmails((prev) => prev.filter((current) => current.email !== item.email))}
+                                    >
+                                      Remover
+                                    </Button>
+                                  </div>
                                 </div>
-                              </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-3">
-                      <div>
-                        <p className="text-sm font-medium">E-mails vinculados ao Zammad</p>
-                        <p className="text-xs text-muted-foreground">
-                          Use esta lista para incluir caixas compartilhadas da empresa (ex.: suporte@, fiscal@).
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_180px_auto]">
-                        <Input
-                          type="email"
-                          placeholder="suporte@empresa.com.br"
-                          value={zammadEmailInput}
-                          onChange={(event) => setZammadEmailInput(event.target.value)}
-                        />
-                        <Input
-                          placeholder="Label (opcional)"
-                          value={zammadEmailLabel}
-                          onChange={(event) => setZammadEmailLabel(event.target.value)}
-                        />
-                        <Button type="button" variant="outline" onClick={addZammadEmail}>
-                          Adicionar
-                        </Button>
-                      </div>
-                      {zammadEmails.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">Nenhum e-mail adicional configurado.</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {zammadEmails.map((item) => (
-                            <div key={item.email} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-2 py-1.5">
-                              <div className="flex items-center gap-2">
-                                <Badge variant={item.isActive ? "default" : "outline"}>{item.isActive ? "Ativo" : "Inativo"}</Badge>
-                                <span className="text-sm font-medium">{item.email}</span>
-                                {item.label ? <span className="text-xs text-muted-foreground">({item.label})</span> : null}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() =>
-                                    setZammadEmails((prev) =>
-                                      prev.map((current) =>
-                                        current.email === item.email
-                                          ? { ...current, isActive: !(current.isActive ?? true) }
-                                          : current,
-                                      ),
-                                    )
-                                  }
-                                >
-                                  {item.isActive ? "Desativar" : "Ativar"}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-destructive hover:text-destructive"
-                                  onClick={() => setZammadEmails((prev) => prev.filter((current) => current.email !== item.email))}
-                                >
-                                  Remover
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                          )}
+                        </TabsContent>
+                      </Tabs>
                     </div>
                   </CardContent>
                 </Card>

@@ -1,7 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createCompanySchema, CreateCompanyInput } from "@/features/company/application/company-schema";
+import {
+  createCompanySchema,
+  type CreateCompanyInput,
+  type CreateCompanyOutput,
+} from "@/features/company/application/company-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { Prisma, CompanyStatus, Role } from "@prisma/client";
 import { z } from "zod";
@@ -173,7 +177,7 @@ export async function lookupCompanyProfileByCnpjAction(
 }
 
 export async function createCompanyAction(
-  data: CreateCompanyInput,
+  data: CreateCompanyOutput,
   zammadEmails?: CompanyZammadEmailInput[],
   contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
@@ -242,7 +246,7 @@ export async function createCompanyAction(
 
 export async function updateCompanyAction(
   id: string,
-  data: CreateCompanyInput,
+  data: CreateCompanyOutput,
   zammadEmails?: CompanyZammadEmailInput[],
   contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
