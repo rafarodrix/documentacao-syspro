@@ -7,7 +7,7 @@ import {
 } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { buildEmailScopeQuery, buildQueueQuery, buildSearchQuery, buildStatusQuery, buildTrackedStatusQuery, combineQueryParts } from "@/features/tickets/application/services/ticket-query-builders";
 import { getQueueCountsFromCache, getStatusCountsFromCache } from "@/features/tickets/application/services/ticket-query-counts.service";
-import { getOrCreateTicketMetricsSnapshot } from "@/features/tickets/application/services/ticket-metrics-snapshot.service";
+import { getTicketMetricsSnapshot } from "@/features/tickets/application/services/ticket-metrics-snapshot.service";
 import { buildPagination, formatCachedTickets, formatTickets } from "@/features/tickets/application/services/ticket-query-formatters";
 import { getScopedCompanyZammadEmails, isSystemRole, type TicketViewer } from "@/features/tickets/application/services/ticket-scope.service";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
@@ -101,7 +101,7 @@ export async function queryTicketsForViewer(
       search,
     };
     const snapshot = canUseMetricsSnapshot
-      ? await getOrCreateTicketMetricsSnapshot({
+      ? await getTicketMetricsSnapshot({
           role: viewer.role,
           email: viewer.email,
           scopedEmails,
@@ -163,7 +163,7 @@ export async function queryTicketsForViewer(
       getLatestOperationalTicketCacheFreshness(),
     ]);
     const snapshot = canUseMetricsSnapshot
-      ? await getOrCreateTicketMetricsSnapshot({
+      ? await getTicketMetricsSnapshot({
           role: viewer.role,
           email: viewer.email,
           scopedEmails,
