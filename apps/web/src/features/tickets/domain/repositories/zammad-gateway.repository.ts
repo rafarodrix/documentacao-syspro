@@ -4,7 +4,6 @@ import type {
   ZammadTicketArticle,
   ZammadTicketDetails,
 } from "@dosc-syspro/contracts";
-import type { Ticket } from "@dosc-syspro/core";
 
 export type ZammadCacheOptions = {
   cacheTtlSeconds?: number;
@@ -23,46 +22,12 @@ export interface ZammadGatewayRepository {
       routeKey?: string;
     }
   ): Promise<{ tickets: ZammadOperationalTicket[]; total: number | null }>;
-  searchOperationalTickets(
-    query: string,
-    options?: {
-      limit?: number;
-      page?: number;
-      cacheTtlSeconds?: number;
-      tags?: string[];
-      routeKey?: string;
-    }
-  ): Promise<ZammadOperationalTicket[]>;
   getTicketCount(query: string, routeKey?: string): Promise<number>;
   getUserIdByEmail(email: string, routeKey?: string): Promise<number | null>;
   searchTickets(query: string, limit?: number, routeKey?: string): Promise<ZammadTicketAPI[]>;
   getAllTickets(
     limit?: number,
     cacheOptions?: ZammadCacheOptions & { page?: number; stateIds?: number[] }
-  ): Promise<ZammadOperationalTicket[]>;
-  getUserTickets(userEmail: string): Promise<Ticket[]>;
-  getTicketsForUser(
-    email: string,
-    options?: {
-      stateIds?: number[];
-      limit?: number;
-      page?: number;
-      scope?: "organization-or-email" | "email-only";
-      cacheTtlSeconds?: number;
-      tags?: string[];
-      routeKey?: string;
-    }
-  ): Promise<ZammadOperationalTicket[]>;
-  getTicketsForCustomerEmails(
-    emails: string[],
-    options?: {
-      stateIds?: number[];
-      limit?: number;
-      page?: number;
-      cacheTtlSeconds?: number;
-      tags?: string[];
-      routeKey?: string;
-    }
   ): Promise<ZammadOperationalTicket[]>;
   getTicketsForCustomerEmailsPaged(
     emails: string[],

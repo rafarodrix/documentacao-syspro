@@ -1,18 +1,14 @@
-import { Ticket } from "@dosc-syspro/core";
 import {
   zammadOperationalTicketSchema,
   zammadTicketAPISchema,
   zammadTicketArticleSchema,
   zammadTicketDetailsSchema,
-  zammadUserSearchSchema,
   type ZammadOperationalTicket,
   type ZammadTicketAPI,
   type ZammadTicketArticle,
   type ZammadTicketDetails,
-  type ZammadUserSearch,
 } from "@dosc-syspro/contracts";
 import { OPERATIONAL_STATE_IDS } from "@dosc-syspro/core";
-import { mapTicketPriority, mapTicketStatusFromStateName } from "@/features/tickets/infrastructure/mappers/zammad-ticket.mapper";
 import type { ZammadGatewayRepository, ZammadCacheOptions } from "@/features/tickets/domain/repositories/zammad-gateway.repository";
 import {
   buildAuthorizationHeader,
@@ -125,66 +121,6 @@ export const ZammadGateway: ZammadGatewayRepository = {
     };
   },
 
-  async searchOperationalTickets(
-    query: string,
-    options?: {
-      limit?: number;
-      page?: number;
-      cacheTtlSeconds?: number;
-      tags?: string[];
-      routeKey?: string;
-    }
-  ): Promise<ZammadOperationalTicket[]> {
-    const result = await this.searchOperationalTicketsPage(query, options);
-    return result.tickets;
-  },
-
-  async getUserTickets(userEmail: string): Promise<Ticket[]> {
-    try {
-      const query = `query=customer.email:${userEmail}&limit=10&sort_by=updated_at&order_by=desc&expand=true`;
-      const data = await fetchZammad(`tickets/search?${query}`, { next: { revalidate: 30 } });
-
-      const rawTickets = normalizeSearchResponse(data);
-      const dataObj = data as {
-        assets?: {
-          TicketState?: Record<number, { name?: string }>;
-          TicketPriority?: Record<number, { name?: string }>;
-        };
-      };
-      const stateMap = dataObj.assets?.TicketState || {};
-      const priorityMap = dataObj.assets?.TicketPriority || {};
-
-      return rawTickets
-        .map((raw) => {
-          const result = zammadTicketAPISchema.safeParse(raw);
-          if (!result.success) return null;
-
-          const parsed = result.data;
-          const stateName = stateMap[parsed.state_id]?.name || "";
-          const priorityName = priorityMap[parsed.priority_id]?.name || "";
-
-          return {
-            id: String(parsed.number),
-            number: String(parsed.number),
-            subject: parsed.title,
-            status: mapTicketStatusFromStateName(stateName),
-            priority: mapTicketPriority(parsed.priority_id, priorityName),
-            date: new Date(parsed.updated_at).toLocaleDateString("pt-BR", {
-              day: "2-digit",
-              month: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            lastUpdate: new Date(parsed.updated_at).toISOString(),
-          };
-        })
-        .filter((t) => t !== null) as Ticket[];
-    } catch (err) {
-      console.error("ZammadGateway.getUserTickets:", err);
-      return [];
-    }
-  },
-
   async getTicketCount(query: string, routeKey = getDefaultZammadRouteKey()): Promise<number> {
     const baseUrl = getZammadBaseUrl();
     const token = getZammadToken();
@@ -254,88 +190,16 @@ export const ZammadGateway: ZammadGatewayRepository = {
   ): Promise<ZammadOperationalTicket[]> {
     try {
       const query = buildStateQuery(cacheOptions?.stateIds ?? [...OPERATIONAL_STATE_IDS]) || "state_id:1";
-      return this.searchOperationalTickets(query, {
+      const result = await this.searchOperationalTicketsPage(query, {
         limit,
         page: Math.max(1, cacheOptions?.page ?? 1),
         cacheTtlSeconds: cacheOptions?.cacheTtlSeconds,
         tags: cacheOptions?.tags,
         routeKey: cacheOptions?.routeKey,
       });
+      return result.tickets;
     } catch (err) {
       console.error("ZammadGateway.getAllTickets:", err);
-      return [];
-    }
-  },
-
-  async getTicketsForUser(
-    email: string,
-    options?: {
-      stateIds?: number[];
-      limit?: number;
-      page?: number;
-      scope?: "organization-or-email" | "email-only";
-      cacheTtlSeconds?: number;
-      tags?: string[];
-      routeKey?: string;
-    }
-  ): Promise<ZammadOperationalTicket[]> {
-    try {
-      let scopeQuery = `customer.email:${email}`;
-
-      if ((options?.scope ?? "organization-or-email") === "organization-or-email") {
-        const usersResponse = await fetchZammad(
-          `users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`,
-          { cache: "no-store" },
-          { routeKey: options?.routeKey }
-        );
-
-        if (Array.isArray(usersResponse) && usersResponse.length > 0) {
-          const userParsed = zammadUserSearchSchema.safeParse(usersResponse[0]);
-          if (userParsed.success) {
-            const user: ZammadUserSearch = userParsed.data;
-            if (user.organization_id) {
-              scopeQuery = `organization_id:${user.organization_id}`;
-            }
-          }
-        }
-      }
-
-      const stateQuery = buildStateQuery(options?.stateIds);
-      const query = stateQuery ? `(${scopeQuery}) AND ${stateQuery}` : scopeQuery;
-      const limit = options?.limit ?? 50;
-      const page = Math.max(1, options?.page ?? 1);
-      const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
-      const data = await fetchZammad(endpoint, {}, {
-        cacheTtlSeconds: options?.cacheTtlSeconds,
-        tags: options?.tags,
-        routeKey: options?.routeKey,
-      });
-
-      return normalizeSearchResponse(data)
-        .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
-        .filter((parsed) => parsed.success)
-        .map((parsed) => parsed.data);
-    } catch (err) {
-      console.error("ZammadGateway.getTicketsForUser:", err);
-      return [];
-    }
-  },
-
-  async getTicketsForCustomerEmails(
-    emails: string[],
-    options?: {
-      stateIds?: number[];
-      limit?: number;
-      page?: number;
-      cacheTtlSeconds?: number;
-      tags?: string[];
-      routeKey?: string;
-    }
-  ): Promise<ZammadOperationalTicket[]> {
-    try {
-      return this.getTicketsForCustomerEmailsPaged(emails, options);
-    } catch (err) {
-      console.error("ZammadGateway.getTicketsForCustomerEmails:", err);
       return [];
     }
   },

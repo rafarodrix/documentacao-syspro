@@ -70,10 +70,3 @@ export function buildTrackedStatusQuery(): string {
   if (parts.length === 1) return parts[0];
   return `(${parts.join(" OR ")})`;
 }
-
-export function buildOperationalStatusQuery(): string {
-  const parts = [buildStatusQuery("open"), buildStatusQuery("pending")].filter(Boolean);
-  if (!parts.length) return "";
-  if (parts.length === 1) return parts[0];
-  return `(${parts.join(" OR ")})`;
-}

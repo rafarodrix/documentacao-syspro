@@ -1,51 +1,9 @@
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import { CLOSED_STATE_IDS, OPERATIONAL_STATE_IDS, type QueueKey, type TicketStatusGroup } from "@dosc-syspro/core";
 import { getStateIdsForStatusGroup } from "@dosc-syspro/core";
 import type { TicketStatusCounts } from "@/components/platform/tickets/types";
-import { combineQueryParts, buildQueueQuery, buildStatusQuery } from "./ticket-query-builders";
 import { isSystemRole } from "./ticket-scope.service";
-
-export async function getQueueCountsFromZammad(
-  baseQuery: string,
-  routeKey: string,
-  zammadUserId: number | null,
-  searchQuery: string
-): Promise<Record<QueueKey, number>> {
-  const queueBaseQuery = combineQueryParts(baseQuery, searchQuery);
-
-  const [all, myQueue, unassigned, critical, noResponse] = await Promise.all([
-    ZammadGateway.getTicketCount(queueBaseQuery, routeKey),
-    zammadUserId
-      ? ZammadGateway.getTicketCount(combineQueryParts(queueBaseQuery, buildQueueQuery("my_queue", zammadUserId)), routeKey)
-      : Promise.resolve(0),
-    ZammadGateway.getTicketCount(combineQueryParts(queueBaseQuery, buildQueueQuery("unassigned")), routeKey),
-    ZammadGateway.getTicketCount(combineQueryParts(queueBaseQuery, buildQueueQuery("critical")), routeKey),
-    ZammadGateway.getTicketCount(combineQueryParts(queueBaseQuery, buildQueueQuery("no_response")), routeKey),
-  ]);
-
-  return {
-    all,
-    my_queue: myQueue,
-    unassigned,
-    critical,
-    no_response: noResponse,
-  };
-}
-
-export async function getStatusCountsFromZammad(
-  scopedQuery: string,
-  routeKey: string
-): Promise<TicketStatusCounts> {
-  const [open, pending, closed] = await Promise.all([
-    ZammadGateway.getTicketCount(combineQueryParts(scopedQuery, buildStatusQuery("open")), routeKey),
-    ZammadGateway.getTicketCount(combineQueryParts(scopedQuery, buildStatusQuery("pending")), routeKey),
-    ZammadGateway.getTicketCount(combineQueryParts(scopedQuery, buildStatusQuery("closed")), routeKey),
-  ]);
-
-  return { open, pending, closed };
-}
 
 export function buildCacheWhere(input: {
   role: Role;
