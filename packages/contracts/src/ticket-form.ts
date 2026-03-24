@@ -11,4 +11,5 @@ export const ticketFormSchema = z.object({
     .max(5000, "Descricao muito longa."),
 });
 
-export type TicketFormInput = z.infer<typeof ticketFormSchema>;
+export type TicketFormInput = z.input<typeof ticketFormSchema>;
+export type TicketFormOutput = z.output<typeof ticketFormSchema>;

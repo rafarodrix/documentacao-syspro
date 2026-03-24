@@ -3,7 +3,7 @@
 import { useState, useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ticketFormSchema, TicketFormInput } from "@dosc-syspro/contracts";
+import { ticketFormSchema, type TicketFormInput, type TicketFormOutput } from "@dosc-syspro/contracts";
 import { createTicketAction } from "@/features/tickets/application/actions";
 import { toast } from "sonner";
 
@@ -12,7 +12,7 @@ export function useTicketSheet(onSuccess: () => void) {
     const [isPending, startTransition] = useTransition();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const form = useForm<TicketFormInput>({
+    const form = useForm<TicketFormInput, undefined, TicketFormOutput>({
         resolver: zodResolver(ticketFormSchema),
         defaultValues: {
             subject: "",
@@ -41,7 +41,7 @@ export function useTicketSheet(onSuccess: () => void) {
 
     const triggerFileInput = () => fileInputRef.current?.click();
 
-    const onSubmit = (data: TicketFormInput) => {
+    const onSubmit = (data: TicketFormOutput) => {
         startTransition(async () => {
             const formData = new FormData();
             formData.append("subject", data.subject);

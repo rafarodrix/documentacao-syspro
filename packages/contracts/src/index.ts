@@ -13,7 +13,7 @@ export {
 export type { SefazConfig, SefazRoutePreset } from "./sefaz-endpoints";
 
 export { ticketFormSchema } from "./ticket-form";
-export type { TicketFormInput } from "./ticket-form";
+export type { TicketFormInput, TicketFormOutput } from "./ticket-form";
 export { addressSchema } from "./address";
 export type { AddressInput } from "./address";
 
