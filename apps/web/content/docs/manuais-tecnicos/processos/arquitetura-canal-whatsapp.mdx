@@ -152,10 +152,15 @@ Entidades sugeridas para fase futura:
   - guarda status da sessao, ultima sincronizacao e metadados operacionais
 - `WhatsAppContact`
   - normaliza telefone, nome exibido e chaves externas
-- `WhatsAppConversation`
+- `Conversation`
   - representa o fio da conversa por contato/empresa
-- `WhatsAppMessage`
+  - o canal entra como atributo, nao como nome da entidade
+- `ConversationMessage`
   - armazena inbound/outbound, tipo de conteudo, status e correlacao
+- `ConversationQueue`
+  - organiza fila operacional para novos atendimentos e handoff
+- `ConversationAssignment`
+  - registra assuncao, transferencia e liberacao por analista
 - `WhatsAppTicketLink`
   - vincula conversa ao ticket do `Zammad`
 - `WhatsAppAutomationEvent`
@@ -428,7 +433,7 @@ Com a infraestrutura atual, a sequencia mais coerente e:
 
 - criar `CompanyContact` separado de `User`
 - materializar `apps/api` para casos de uso reais de integracao
-- criar contratos de `WhatsAppConversation` e `WhatsAppMessage`
+- criar contratos de `Conversation`, `ConversationMessage`, `ConversationQueue` e `ConversationAssignment`
 - criar contrato de promocao `CompanyContact -> User`
 - introduzir autenticacao entre bridge e backend
 - criar cache e reconciliacao de ticket por conversa

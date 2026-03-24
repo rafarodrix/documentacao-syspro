@@ -177,7 +177,7 @@ export async function lookupCompanyProfileByCnpjAction(
 }
 
 export async function createCompanyAction(
-  data: CreateCompanyOutput,
+  data: CreateCompanyInput | CreateCompanyOutput,
   zammadEmails?: CompanyZammadEmailInput[],
   contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
@@ -246,7 +246,7 @@ export async function createCompanyAction(
 
 export async function updateCompanyAction(
   id: string,
-  data: CreateCompanyOutput,
+  data: CreateCompanyInput | CreateCompanyOutput,
   zammadEmails?: CompanyZammadEmailInput[],
   contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
