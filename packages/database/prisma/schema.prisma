@@ -103,6 +103,86 @@ enum RemoteSessionStatus {
   CANCELLED
 }
 
+enum ConversationChannel {
+  WHATSAPP
+  EMAIL
+  PORTAL
+  PHONE
+}
+
+enum ConversationStatus {
+  NEW
+  UNASSIGNED
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  ARCHIVED
+}
+
+enum ConversationPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum ConversationEntryPoint {
+  INBOUND
+  OUTBOUND
+  CAMPAIGN
+  SYSTEM
+}
+
+enum ConversationParticipantKind {
+  COMPANY_CONTACT
+  USER
+  EXTERNAL
+}
+
+enum ConversationMessageDirection {
+  INBOUND
+  OUTBOUND
+  INTERNAL
+}
+
+enum ConversationMessageType {
+  TEXT
+  IMAGE
+  DOCUMENT
+  AUDIO
+  VIDEO
+  SYSTEM_EVENT
+}
+
+enum ConversationMessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum ConversationAssignmentStatus {
+  ACTIVE
+  TRANSFERRED
+  RELEASED
+}
+
+enum ConversationAssignmentType {
+  AUTO
+  MANUAL
+  TRANSFER
+}
+
+enum ConversationQueueKey {
+  new
+  unassigned
+  in_progress
+  waiting_customer
+  resolved
+  archived
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -149,6 +229,7 @@ model Company {
   contracts         Contract[]
   memberships       Membership[]
   contacts          CompanyContact[]
+  conversations     Conversation[]
   remoteHosts       RemoteHost[]
   remoteSessions    RemoteSession[]
   zammadEmails      CompanyZammadEmail[]
@@ -181,6 +262,9 @@ model CompanyContact {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  conversations Conversation[]
+  authoredConversationMessages ConversationMessage[] @relation("ConversationMessageAuthorContact")
 
   @@index([companyId, status])
   @@index([whatsapp])
@@ -271,6 +355,12 @@ model User {
   memberships Membership[]
   sessions    Session[]
   accounts    Account[]
+  assignedConversations Conversation[] @relation("ConversationAssignedUser")
+  resolvedConversations Conversation[] @relation("ConversationResolvedByUser")
+  authoredConversationMessages ConversationMessage[] @relation("ConversationMessageAuthorUser")
+  conversationAssignments ConversationAssignment[] @relation("ConversationAssignmentAssignedUser")
+  assignedConversationTransfers ConversationAssignment[] @relation("ConversationAssignmentAssignedByUser")
+  transferredConversationAssignments ConversationAssignment[] @relation("ConversationAssignmentTransferFromUser")
   requestedRemoteSessions RemoteSession[] @relation("RemoteSessionRequestedBy")
   startedRemoteSessions   RemoteSession[] @relation("RemoteSessionStartedBy")
 
@@ -450,6 +540,164 @@ model RemoteSession {
   @@index([hostId, status])
   @@index([requestedByUserId])
   @@map("remote_session")
+}
+
+model Conversation {
+  id String @id @default(cuid())
+
+  channel ConversationChannel
+  status ConversationStatus @default(NEW)
+  priority ConversationPriority @default(NORMAL)
+  entryPoint ConversationEntryPoint @default(INBOUND)
+
+  companyId String?
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  companyContactId String?
+  companyContact CompanyContact? @relation(fields: [companyContactId], references: [id], onDelete: SetNull)
+
+  assignedUserId String?
+  assignedUser User? @relation("ConversationAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+
+  resolvedByUserId String?
+  resolvedByUser User? @relation("ConversationResolvedByUser", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  ticketId String?
+  ticketNumber String?
+  subject String?
+  externalThreadId String?
+  connectionId String?
+
+  contactPhoneSnapshot String?
+  contactWhatsappSnapshot String?
+  contactNameSnapshot String?
+
+  lastMessagePreview String? @db.Text
+  lastMessageAt DateTime?
+  lastInboundAt DateTime?
+  lastOutboundAt DateTime?
+  closedAt DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ConversationMessage[]
+  assignments ConversationAssignment[]
+  queueEvents ConversationQueueEvent[]
+
+  @@index([channel, status])
+  @@index([companyId, status])
+  @@index([companyContactId, status])
+  @@index([assignedUserId, status])
+  @@index([ticketNumber])
+  @@index([lastMessageAt])
+  @@map("conversation")
+}
+
+model ConversationMessage {
+  id String @id @default(cuid())
+
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  direction ConversationMessageDirection
+  type ConversationMessageType
+  authorKind ConversationParticipantKind
+
+  authorUserId String?
+  authorUser User? @relation("ConversationMessageAuthorUser", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  authorContactId String?
+  authorContact CompanyContact? @relation("ConversationMessageAuthorContact", fields: [authorContactId], references: [id], onDelete: SetNull)
+
+  externalMessageId String?
+
+  replyToMessageId String?
+  replyToMessage ConversationMessage? @relation("ConversationMessageReplyTo", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies ConversationMessage[] @relation("ConversationMessageReplyTo")
+
+  quotedExternalMessageId String?
+  body String? @db.Text
+  mediaUrl String?
+  storageKey String?
+  mediaMimeType String?
+  fileSize Int?
+  checksum String?
+
+  status ConversationMessageStatus @default(PENDING)
+  providerStatus String?
+  providerError String? @db.Text
+  retryCount Int @default(0)
+  metadata Json?
+
+  sentAt DateTime?
+  deliveredAt DateTime?
+  readAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([externalMessageId])
+  @@index([authorUserId])
+  @@index([authorContactId])
+  @@map("conversation_message")
+}
+
+model ConversationQueueEvent {
+  id String @id @default(cuid())
+
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  queueKey ConversationQueueKey
+  enteredAt DateTime @default(now())
+  leftAt DateTime?
+  position Int?
+  assignedTeam String?
+  slaDeadlineAt DateTime?
+  breachedAt DateTime?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, enteredAt])
+  @@index([queueKey, leftAt])
+  @@index([slaDeadlineAt])
+  @@map("conversation_queue_event")
+}
+
+model ConversationAssignment {
+  id String @id @default(cuid())
+
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  assignedUserId String
+  assignedUser User @relation("ConversationAssignmentAssignedUser", fields: [assignedUserId], references: [id], onDelete: Restrict)
+
+  assignedByUserId String?
+  assignedByUser User? @relation("ConversationAssignmentAssignedByUser", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+
+  transferFromUserId String?
+  transferFromUser User? @relation("ConversationAssignmentTransferFromUser", fields: [transferFromUserId], references: [id], onDelete: SetNull)
+
+  assignmentType ConversationAssignmentType @default(MANUAL)
+  status ConversationAssignmentStatus @default(ACTIVE)
+  reason String? @db.Text
+  startedAt DateTime @default(now())
+  acceptedAt DateTime?
+  declinedAt DateTime?
+  endedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId, status])
+  @@index([assignedUserId, status])
+  @@index([assignedByUserId])
+  @@index([transferFromUserId])
+  @@map("conversation_assignment")
 }
 
 model SystemSetting {
