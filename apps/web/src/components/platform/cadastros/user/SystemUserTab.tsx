@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Search,
   MoreHorizontal,
@@ -306,10 +307,11 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
           )}
         </div>
 
-        <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+        <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30 border-b border-border/40">
+            <TableHeader className="bg-muted/20">
+              <TableRow className="hover:bg-transparent border-b border-border/60">
                 <TableHead className="py-3.5 px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Membro da equipe</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cargo / Identificacao</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acesso</TableHead>
@@ -326,11 +328,15 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredData.map((user) => (
-                  <TableRow key={user.id} className="group hover:bg-muted/20 transition-colors border-b border-border/30 last:border-0">
+                filteredData.map((user, index) => (
+                  <TableRow
+                    key={user.id}
+                    className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
+                    style={{ animationDelay: `${index * 40}ms` }}
+                  >
                     <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 border-2 border-purple-100 dark:border-purple-900/30 shrink-0">
+                        <Avatar className="h-9 w-9 border-2 border-purple-100 dark:border-purple-900/30 shrink-0 transition-all group-hover/row:scale-105">
                           <AvatarImage src={user.image ?? undefined} />
                           <AvatarFallback className="bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold text-xs">
                             {getInitials(user.name)}
@@ -353,7 +359,7 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 font-mono">
                           <Fingerprint className="w-3 h-3 shrink-0 opacity-50" />
-                          {formatCPF(user.cpf)}
+                          <span className="rounded-md border border-border/40 bg-muted/30 px-1.5 py-0.5">{formatCPF(user.cpf)}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -379,7 +385,7 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
               )}
             </TableBody>
           </Table>
-        </div>
+        </Card>
 
         {filteredData.length > 0 && (
           <div className="flex items-center justify-between px-1">

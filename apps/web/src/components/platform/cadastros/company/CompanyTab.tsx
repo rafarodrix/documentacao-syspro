@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Search, MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil } from "lucide-react"
+import { Card } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -371,10 +372,11 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
           </div>
         </div>
 
-        <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
+        <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30 border-b border-border/40">
+            <TableHeader className="bg-muted/20">
+              <TableRow className="hover:bg-transparent border-b border-border/60">
                 <TableHead className="py-3.5 px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Organizacao</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">CNPJ</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Segmento</TableHead>
@@ -387,17 +389,31 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</TableCell>
+                  <TableCell colSpan={6} className="h-64 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground animate-in fade-in zoom-in-95 duration-500">
+                      <div className="rounded-full bg-muted/30 p-4">
+                        <Building2 className="h-8 w-8 opacity-40" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">Nenhuma empresa encontrada</p>
+                        <p className="text-xs">Ajuste os filtros ou cadastre uma nova empresa.</p>
+                      </div>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ) : (
-                filteredData.map((company) => {
+                filteredData.map((company, index) => {
                   const memberCount = company._count?.memberships ?? company.usersCount ?? 0
 
                   return (
-                    <TableRow key={company.id} className="group hover:bg-muted/20 transition-colors border-b border-border/30 last:border-0">
+                    <TableRow
+                      key={company.id}
+                      className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
+                      style={{ animationDelay: `${index * 40}ms` }}
+                    >
                       <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-primary/8 dark:bg-primary/10 flex items-center justify-center shrink-0">
+                          <div className="h-8 w-8 rounded-lg bg-primary/8 dark:bg-primary/10 flex items-center justify-center shrink-0 transition-all group-hover/row:scale-105">
                             <Building2 className="h-4 w-4 text-primary/70" />
                           </div>
                           <div className="min-w-0">
@@ -482,7 +498,7 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
               )}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       </div>
     </>
   )

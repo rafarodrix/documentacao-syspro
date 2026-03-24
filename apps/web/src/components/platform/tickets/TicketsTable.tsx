@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { TicketListItem, TicketPriorityLevel } from "./types";
 import { getTicketStatusGroup } from "@dosc-syspro/core";
 import type { TicketMutationResponse } from "@/features/tickets/domain/model";
@@ -58,28 +59,37 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
     };
 
     return (
-        <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden animate-in fade-in duration-700">
+        <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl animate-in fade-in duration-700">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <Table>
-                <TableHeader className="bg-muted/40">
+                <TableHeader className="bg-muted/20">
                     <TableRow className="hover:bg-transparent border-b border-border/60">
-                        <TableHead className="w-25">Ticket</TableHead>
-                        <TableHead className="min-w-70">Assunto</TableHead>
-                        {isAdmin && <TableHead>Cliente</TableHead>}
-                        <TableHead>Status</TableHead>
-                        <TableHead>Prioridade</TableHead>
-                        <TableHead>SLA</TableHead>
-                        <TableHead>Atualizacao</TableHead>
-                        <TableHead className="text-right">Acoes</TableHead>
+                        <TableHead className="w-25 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Ticket</TableHead>
+                        <TableHead className="min-w-70 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Assunto</TableHead>
+                        {isAdmin && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Cliente</TableHead>}
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Status</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Prioridade</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">SLA</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Atualizacao</TableHead>
+                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Acoes</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {tickets.length === 0 ? (
                         <EmptyState isAdmin={isAdmin} />
                     ) : (
-                        tickets.map((ticket) => (
-                            <TableRow key={ticket.id} className="group hover:bg-muted/40 transition-colors border-b border-border/40 last:border-0">
-                                <TableCell className="font-mono text-xs font-medium text-muted-foreground">#{ticket.number}</TableCell>
-                                <TableCell>
+                        tickets.map((ticket, index) => (
+                            <TableRow
+                                key={ticket.id}
+                                className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
+                                style={{ animationDelay: `${index * 40}ms` }}
+                            >
+                                <TableCell className="py-4">
+                                    <span className="rounded-md border border-border/40 bg-muted/30 px-2 py-1 font-mono text-[11px] font-medium text-muted-foreground">
+                                        #{ticket.number}
+                                    </span>
+                                </TableCell>
+                                <TableCell className="py-4">
                                     <div className="flex flex-col gap-0.5">
                                         <span className="font-medium text-foreground truncate max-w-70 sm:max-w-105">{ticket.title}</span>
                                         <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{ticket.group}</span>
@@ -89,7 +99,9 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                                 {isAdmin && (
                                     <TableCell>
                                         <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Building2 className="w-3 h-3" />
+                                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-all group-hover/row:bg-primary/20 group-hover/row:scale-105">
+                                                <Building2 className="w-3.5 h-3.5" />
+                                            </div>
                                             <span className="text-sm truncate max-w-45">{ticket.customer}</span>
                                         </div>
                                     </TableCell>
@@ -141,7 +153,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                     )}
                 </TableBody>
             </Table>
-        </div>
+        </Card>
     );
 }
 
