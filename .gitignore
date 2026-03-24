@@ -12,6 +12,9 @@
 /out/
 /build
 *.tsbuildinfo
+apps/web/test-results/
+playwright-report/
+blob-report/
 
 # misc
 .DS_Store
@@ -25,6 +28,8 @@ yarn-error.log*
 # others
 .env
 .env*.local
+.env.e2e
+apps/web/.env.e2e
 .vercel
 next-env.d.ts
 /generated/prisma
