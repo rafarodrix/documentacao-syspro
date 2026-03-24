@@ -1,4 +1,4 @@
-﻿import type { TicketStatus } from "../entities/ticket";
+import type { TicketStatus } from "../entities/ticket";
 
 type StatusRule = {
   status: TicketStatus;
@@ -12,25 +12,26 @@ type ParsedStateMatrix = {
 };
 
 const DEFAULT_MATRIX: ParsedStateMatrix = {
-  activeWorkflowStateIds: [2, 3],
+  activeWorkflowStateIds: [2, 6, 7],
   statusByStateId: {
     1: "Aberto",
     2: "Em Análise",
-    3: "Em Análise",
-    4: "Pendente",
-    5: "Pendente",
-    7: "Resolvido",
+    3: "Pendente",
+    4: "Resolvido",
+    5: "Resolvido",
+    6: "Em Análise",
+    7: "Pendente",
   },
   statusRules: [
     { status: "Resolvido", keywords: ["closed", "fechado", "resolvido", "merged", "mesclado", "finalizado"] },
     { status: "Pendente", keywords: ["pendente", "pending", "aguardando", "teste", "testes", "reminder"] },
-    { status: "Em Análise", keywords: ["analise", "análise", "desenvolvimento", "development"] },
+    { status: "Em Análise", keywords: ["analise", "an�lise", "desenvolvimento", "development"] },
     { status: "Aberto", keywords: ["novo", "new", "open", "aberto"] },
   ],
 };
 
 function isTicketStatus(value: unknown): value is TicketStatus {
-  return value === "Aberto" || value === "Em Análise" || value === "Pendente" || value === "Resolvido";
+  return value === "Aberto" || value === "Em An�lise" || value === "Pendente" || value === "Resolvido";
 }
 
 function parseStateMatrixFromEnv(): ParsedStateMatrix | null {
