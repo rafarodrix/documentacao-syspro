@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useTicketChat } from "@/features/tickets/hooks/use-ticket-chat";
 import { Button } from "@/components/ui/button";
@@ -8,18 +8,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Send, Loader2, User, Headset, Bot, AlertCircle, MessageSquareText } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Article {
-    id: number;
-    body: string;
-    from: string;
-    createdAt: string;
-    isInternal: boolean;
-}
+import type { TicketArticleItem } from "./types";
 
 interface TicketChatProps {
     ticketId: string;
-    articles: Article[];
+    articles: TicketArticleItem[];
     ticketStatus: string;
 }
 
@@ -78,7 +71,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                     <div className={cn("flex flex-col min-w-0", messageIsMe && "items-end")}>
                                         <div className="flex items-center gap-2 mb-1 px-1">
                                             <span className="text-xs font-medium truncate max-w-[220px]">
-                                                {messageIsMe ? "VocÃª" : article.from.split("<")[0]}
+                                                {messageIsMe ? "Você" : article.from.split("<")[0]}
                                             </span>
                                             <span className="text-[10px] text-muted-foreground">{article.createdAt}</span>
                                         </div>
