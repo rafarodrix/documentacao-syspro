@@ -20,8 +20,18 @@ function buildDiscoveryScript(input: { portalBaseUrl: string; discoveryToken: st
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Write-Host 'Execute este script como administrador.' -ForegroundColor Red
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    Write-Host 'Solicitando elevacao para administrador...' -ForegroundColor Yellow
+    try {
+        $scriptPath = $MyInvocation.MyCommand.Path
+        if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+            throw 'Caminho do script nao identificado.'
+        }
+        Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -File \`"$scriptPath\`""
+    } catch {
+        Write-Host "Nao foi possivel solicitar elevacao automatica: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host 'Clique com o botao direito no arquivo e execute como administrador.' -ForegroundColor Yellow
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
     exit
 }
 
@@ -210,6 +220,7 @@ Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Pr
 Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File \`"$heartbeatScriptPath\`"" -WindowStyle Hidden
 
 Write-Host 'Script padrao instalado. A maquina aparecera no portal em Pendentes.' -ForegroundColor Green
+Write-Host 'Se preferir, fixe este arquivo na area de trabalho e use como instalador padrao do tecnico.' -ForegroundColor Cyan
 `;
 }
 

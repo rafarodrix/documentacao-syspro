@@ -4,6 +4,7 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
+  Download,
   ExternalLink,
   GraduationCap,
   HelpCircle,
@@ -93,22 +94,28 @@ export function StaticSiteHeader() {
 
           <NavLink href="/releases">Releases</NavLink>
           <div className="mx-2 h-4 w-px bg-border/50" />
-          <Link
-            href="https://www.trilink.com.br/public/downloads"
-            target="_blank"
-            className="group inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            Downloads
-            <ExternalLink className="h-3 w-3 opacity-50 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-          </Link>
-          <Link
-            href="https://trilink.com.br"
-            target="_blank"
-            className="group inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            Institucional
-            <ExternalLink className="h-3 w-3 opacity-50 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
+                Institucional
+                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-64">
+              <DropdownMenuItem asChild>
+                <Link href="https://trilink.com.br" target="_blank" className="flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  Site institucional
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="https://www.trilink.com.br/public/downloads" target="_blank" className="flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  Area de downloads
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
 
         <div className="flex items-center gap-2 md:gap-4">
@@ -141,11 +148,11 @@ export function StaticSiteHeader() {
                   <MobileNavLink href="/docs/treinamento">Treinamentos</MobileNavLink>
                   <MobileNavLink href="/docs/suporte">Suporte</MobileNavLink>
                   <MobileNavLink href="/releases">Releases</MobileNavLink>
-                  <MobileNavLink href="https://www.trilink.com.br/public/downloads" external>
-                    Downloads
-                  </MobileNavLink>
                   <MobileNavLink href="https://trilink.com.br" external>
                     Institucional
+                  </MobileNavLink>
+                  <MobileNavLink href="https://www.trilink.com.br/public/downloads" external>
+                    Area de downloads
                   </MobileNavLink>
                 </div>
 
@@ -186,4 +193,3 @@ function MobileNavLink({ href, children, external }: { href: string; children: R
     </Link>
   );
 }
-

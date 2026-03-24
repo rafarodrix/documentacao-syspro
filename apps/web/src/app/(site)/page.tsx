@@ -3,6 +3,7 @@ import { Metadata } from "next";
 // 1. Importacao dos componentes modulares.
 import { HeroSection } from "@/components/site/HeroSection";
 import { TrilinkEcosystem } from "@/components/site/TrilinkEcosystem";
+import { DownloadsSection } from "@/components/site/DownloadsSection";
 import { FinalCTA } from "@/components/site/FinalCTA";
 
 // 2. Logica de negocio e tipos.
@@ -34,6 +35,7 @@ export default async function LandingPage() {
     <main className="min-h-screen bg-background text-foreground">
       <HeroSection currentVersion={currentVersion} releaseLink={releaseLink} />
       <TrilinkEcosystem summaries={monthlySummaries} releaseLink={releaseLink} />
+      <DownloadsSection />
       <FinalCTA />
     </main>
   );
