@@ -3,7 +3,6 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle,
   ArrowUpRight,
   Copy,
   Download,
@@ -23,7 +22,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -35,28 +34,9 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
-import { getRemoteOperationalStatusMeta } from "@/features/remote/domain/operational-status";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 
-function formatDateTime(value: string | null) {
-  if (!value) return "Sem registro";
-  return new Date(value).toLocaleString("pt-BR");
-}
-
-function formatRelativeHeartbeat(value: string | null) {
-  if (!value) return "Sem heartbeat";
-
-  const diffMinutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000);
-  if (diffMinutes < 1) return "Agora";
-  if (diffMinutes < 60) return `${diffMinutes} min atras`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h atras`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d atras`;
-}
 
 function getStatusLabel(status: "ACTIVE" | "MAINTENANCE" | "INACTIVE") {
   if (status === "ACTIVE") return "Ativo";
@@ -95,32 +75,6 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
   };
 }
 
-function getOperationalAlerts(item: DirectoryItem) {
-  const alerts: Array<{ label: string; className: string }> = [];
-
-  if (!item.installToken) {
-    alerts.push({
-      label: "Sem token",
-      className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    });
-  }
-
-  if (!item.rustdeskId) {
-    alerts.push({
-      label: "Sem RustDesk ID",
-      className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-    });
-  }
-
-  if (item.openSessionCount > 0) {
-    alerts.push({
-      label: item.openSessionCount > 1 ? `${item.openSessionCount} sessoes abertas` : "Sessao aberta",
-      className: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-    });
-  }
-
-  return alerts;
-}
 
 export function RemotePlatformDirectoryPanel({ directory }: { directory: RemotePlatformDirectory }) {
   const router = useRouter();
@@ -488,8 +442,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             <div className="space-y-4">
               {filteredItems.map((item) => {
                 const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
-                const readiness = getRemoteOperationalStatusMeta(item.operationalStatus);
-                const alerts = getOperationalAlerts(item);
                 const HeartbeatIcon = heartbeat.icon;
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
 
@@ -498,15 +450,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                     key={item.id}
                     className="rounded-2xl border border-border/50 bg-linear-to-r from-background via-background to-muted/20 p-5 shadow-sm transition-colors hover:border-primary/20"
                   >
-                    <div className="grid gap-5 xl:grid-cols-[1.35fr_1fr_0.82fr]">
-                      <div className="space-y-3">
+                    <div className="grid gap-5 xl:grid-cols-[1.5fr_0.85fr_0.8fr]">
+                      <div className="space-y-4">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className={heartbeat.className}>
                             <HeartbeatIcon className="mr-1 h-3.5 w-3.5" />
                             {heartbeat.shortLabel}
-                          </Badge>
-                          <Badge variant="outline" className={readiness.className}>
-                            {readiness.title}
                           </Badge>
                           <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                             {getStatusLabel(item.status)}
@@ -518,57 +467,19 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           ) : null}
                         </div>
 
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-lg font-semibold text-foreground">{item.companyName ?? "Sem empresa"}</p>
-                            {rustdeskHref ? (
-                              <a href={rustdeskHref} className={cn(buttonVariants({ variant: "default" }), "h-8 gap-1 px-3 shadow-sm")}>
-                                <ExternalLink className="h-3.5 w-3.5" />
-                                Acesso direto
-                              </a>
-                            ) : null}
-                          </div>
+                        <div className="space-y-3">
+                          <p className="text-lg font-semibold text-foreground">{item.companyName ?? "Sem empresa"}</p>
                           <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
                             <div className="grid grid-cols-[118px_1fr] gap-x-3 border-b border-border/40 px-3 py-2 text-sm">
                               <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Descricao</span>
                               <span className="font-medium text-foreground">{item.description || "Sem descricao operacional."}</span>
                             </div>
-                            <div className="grid grid-cols-[118px_1fr] gap-x-3 border-b border-border/40 px-3 py-2 text-sm">
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Host</span>
-                              <span className="text-foreground">
-                                {item.name}
-                                {item.machineName ? ` | ${item.machineName}` : ""}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-[118px_1fr] gap-x-3 border-b border-border/40 px-3 py-2 text-sm">
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Motor</span>
-                              <span className="text-foreground">{item.provider || "Nao informado"}</span>
-                            </div>
                             <div className="grid grid-cols-[118px_1fr] gap-x-3 px-3 py-2 text-sm">
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Agente</span>
-                              <span className="text-foreground">
-                                {item.agent.lifecycleStatus.replace(/_/g, " ")} | etapas {item.agent.installStages.length}/4
-                              </span>
+                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Host</span>
+                              <span className="text-foreground">{item.name}</span>
                             </div>
                           </div>
                         </div>
-
-                        {alerts.length ? (
-                          <div className="flex flex-wrap gap-2">
-                            {alerts.map((alert) => (
-                              <Badge key={alert.label} variant="outline" className={alert.className}>
-                                <AlertTriangle className="mr-1 h-3.5 w-3.5" />
-                                {alert.label}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : null}
-
-                        {item.notes ? (
-                          <div className="rounded-xl border border-border/50 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">Observacao:</span> {item.notes}
-                          </div>
-                        ) : null}
                       </div>
 
                       <div className="space-y-2">
@@ -576,32 +487,19 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
                           <p className="mt-1 font-mono text-sm text-foreground">{item.rustdeskId ?? "Nao configurado"}</p>
                         </div>
-                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
-                          <p className="mt-1 text-sm font-medium text-foreground">{formatRelativeHeartbeat(item.lastHeartbeatAt)}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.lastHeartbeatAt)}</p>
-                        </div>
-                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fluxo do agente</p>
-                          <p className="mt-1 text-sm font-medium text-foreground">{item.agent.lifecycleStatus.replace(/_/g, " ")}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{item.agent.installStages.join(" | ") || "Sem etapas concluÃ­das"}</p>
-                        </div>
-                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo ticket</p>
-                          <p className="mt-1 text-sm font-medium text-foreground">{item.lastTicketNumber ? `#${item.lastTicketNumber}` : "Sem ticket recente"}</p>
-                        </div>
-                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima sessao</p>
-                          <p className="mt-1 text-sm font-medium text-foreground">{item.lastSessionStatus ?? "Sem historico"}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.lastSessionAt)}</p>
-                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyRustDeskId(item.rustdeskId)}
+                          className="w-full justify-start gap-2"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          Copiar RustDesk ID
+                        </Button>
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Leitura rapida</p>
-                          <p className="mt-1 text-sm font-medium text-foreground">{readiness.description}</p>
-                        </div>
                         <div className="space-y-1 rounded-xl border border-border/50 bg-muted/10 p-1">
                           {rustdeskHref ? (
                             <a
@@ -619,16 +517,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                             <ArrowUpRight className="h-3.5 w-3.5" />
                             Visualizar detalhes
                           </Link>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCopyRustDeskId(item.rustdeskId)}
-                            className="justify-start gap-2 rounded-lg px-3 py-2"
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                            Copiar RustDesk ID
-                          </Button>
                           {canCreateHosts ? (
                             <Button
                               type="button"
@@ -670,3 +558,5 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     </div>
   );
 }
+
+
