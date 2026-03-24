@@ -16,5 +16,5 @@ export default async function CadastrosEmpresaNovoPage() {
 
   const companies = await getCompanyOptionsAction();
 
-  return <CreateCompanyPageForm backHref="/app/cadastros/empresa" companies={companies} />;
+  return <CreateCompanyPageForm backHref="/portal/cadastros/empresa" companies={companies} />;
 }

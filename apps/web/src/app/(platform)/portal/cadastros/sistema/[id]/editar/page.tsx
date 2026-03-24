@@ -28,7 +28,7 @@ export default async function CadastrosSistemaEditarPage({ params }: PageProps) 
       companies={[]}
       context="SYSTEM"
       isAdmin
-      backHref="/app/cadastros/sistema"
+      backHref="/portal/cadastros/sistema"
       initialData={view.initialData}
     />
   );

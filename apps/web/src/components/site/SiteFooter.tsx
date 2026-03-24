@@ -87,7 +87,7 @@ export function SiteFooter() {
             <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Acesso Rápido</h4>
             <ul className="space-y-3">
               <li><FooterLink href="/login">Login</FooterLink></li>
-              <li><FooterLink href="/app">Portal do Cliente</FooterLink></li>
+              <li><FooterLink href="/portal">Portal do Cliente</FooterLink></li>
             </ul>
           </div>
 

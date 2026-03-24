@@ -51,7 +51,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
-            <Link href="/app/chamados">
+            <Link href="/portal/chamados">
               Ver todos
               <ArrowUpRight className="h-3 w-3" />
             </Link>
@@ -80,7 +80,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
               return (
                 <Link
                   key={ticket.id}
-                  href={`/app/chamados/${ticket.id}`}
+                  href={`/portal/chamados/${ticket.id}`}
                   className="flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
                 >
                   <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0", statusCfg.bg)}>

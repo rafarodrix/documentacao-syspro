@@ -56,5 +56,5 @@ export async function registerUser(formData: FormData) {
         return { error: "Erro ao processar cadastro." }
     }
 
-    redirect("/app")
+    redirect("/portal")
 }

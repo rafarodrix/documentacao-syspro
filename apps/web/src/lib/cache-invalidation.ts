@@ -18,15 +18,15 @@ function revalidatePaths(paths: readonly string[]) {
 
 export function revalidateCadastrosViews() {
   revalidatePaths([
-    "/app/cadastros",
-    "/app/cadastros/empresa",
-    "/app/cadastros/usuarios",
-    "/app/cadastros/sistema",
+    "/portal/cadastros",
+    "/portal/cadastros/empresa",
+    "/portal/cadastros/usuarios",
+    "/portal/cadastros/sistema",
   ]);
 }
 
 export function revalidateContractsViews(includeCadastros = true) {
-  revalidatePaths(["/app/contratos", "/app/configuracoes"]);
+  revalidatePaths(["/portal/contratos", "/portal/configuracoes"]);
 
   if (includeCadastros) {
     revalidateCadastrosViews();
@@ -35,25 +35,25 @@ export function revalidateContractsViews(includeCadastros = true) {
 
 export function revalidateSettingsViews(includeDashboard = false) {
   if (includeDashboard) {
-    revalidatePaths(["/app", "/app/configuracoes"]);
+    revalidatePaths(["/portal", "/portal/configuracoes"]);
     return;
   }
 
-  revalidatePath("/app/configuracoes");
+  revalidatePath("/portal/configuracoes");
 }
 
 export function revalidateTaxViews() {
-  revalidatePaths(["/app/configuracoes", "/app/reforma-tributaria"]);
+  revalidatePaths(["/portal/configuracoes", "/portal/reforma-tributaria"]);
 }
 
 export function revalidateDocumentosViews() {
-  revalidatePath("/app/tools/configuracao-documentos");
+  revalidatePath("/portal/tools/configuracao-documentos");
 }
 
 export function revalidateTicketCollections() {
   revalidateTag(CACHE_TAGS.ticketsList);
   revalidateTag(CACHE_TAGS.ticketsDashboard);
-  revalidatePath("/app/chamados");
+  revalidatePath("/portal/chamados");
 }
 
 export function revalidateDashboardCollections() {
@@ -61,12 +61,12 @@ export function revalidateDashboardCollections() {
   revalidateTag(CACHE_TAGS.dashboardCompanies);
   revalidateTag(CACHE_TAGS.dashboardSefaz);
   revalidateTag(CACHE_TAGS.dashboardActivity);
-  revalidatePath("/app");
+  revalidatePath("/portal");
 }
 
 export function revalidateTicketViews(ticketId?: string | number) {
   if (ticketId !== undefined && ticketId !== null) {
-    revalidatePath(`/app/chamados/${ticketId}`);
+    revalidatePath(`/portal/chamados/${ticketId}`);
   }
 
   revalidateTicketCollections();

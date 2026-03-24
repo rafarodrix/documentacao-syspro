@@ -27,7 +27,7 @@ export default async function CadastrosUsuariosEditarPage({ params }: PageProps)
       companies={view.companies}
       context="CLIENT"
       isAdmin={view.isAdmin}
-      backHref="/app/cadastros/usuarios"
+      backHref="/portal/cadastros/usuarios"
       initialData={view.initialData}
     />
   );

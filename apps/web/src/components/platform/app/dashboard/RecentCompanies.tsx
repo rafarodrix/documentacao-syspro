@@ -67,7 +67,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
-            <Link href="/app/cadastros">
+            <Link href="/portal/cadastros">
               Ver todos
               <ArrowUpRight className="h-3 w-3" />
             </Link>
@@ -87,7 +87,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
               <p className="text-xs text-muted-foreground">Cadastros aparecerão aqui assim que criados.</p>
             </div>
             <Button variant="outline" size="sm" className="gap-2 border-dashed h-8" asChild>
-              <Link href="/app/cadastros">
+              <Link href="/portal/cadastros">
                 <Plus className="h-3.5 w-3.5" />
                 Cadastrar empresa
               </Link>
@@ -103,7 +103,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
               return (
                 <Link
                   key={company.id}
-                  href={`/app/cadastros/empresa?empresa=${company.id}`}
+                  href={`/portal/cadastros/empresa?empresa=${company.id}`}
                   className="flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
                 >
                   {/* Avatar com iniciais */}

@@ -52,13 +52,13 @@ export async function POST(request: Request) {
     if (scope === "tickets" || scope === "all") {
       revalidateTag("tickets-list");
       revalidateTag("tickets-dashboard");
-      revalidatePath("/app");
-      revalidatePath("/app/chamados");
+      revalidatePath("/portal");
+      revalidatePath("/portal/chamados");
       revalidatedTags.push("tickets-list", "tickets-dashboard");
-      revalidatedPaths.push("/app", "/app/chamados");
+      revalidatedPaths.push("/portal", "/portal/chamados");
       if (ticketId) {
-        revalidatePath(`/app/chamados/${ticketId}`);
-        revalidatedPaths.push(`/app/chamados/${ticketId}`);
+        revalidatePath(`/portal/chamados/${ticketId}`);
+        revalidatedPaths.push(`/portal/chamados/${ticketId}`);
       }
     }
 

@@ -33,7 +33,7 @@ const TAB_VALUES = new Set(["general", "access", "tax", "contracts", "sefaz", "o
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
     const session = await requireSession();
     if (session.role !== Role.ADMIN) {
-        redirect("/app");
+        redirect("/portal");
     }
 
     const params = searchParams ? await searchParams : undefined;

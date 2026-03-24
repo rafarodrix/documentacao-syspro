@@ -164,7 +164,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <Link href="/app/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "h-8 gap-2 px-3")}>
+                <Link href="/portal/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "h-8 gap-2 px-3")}>
                   <ArrowLeft className="h-4 w-4" />
                   Voltar
                 </Link>
@@ -237,7 +237,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <Fingerprint className="h-4 w-4" />
               Copiar token
             </Button>
-            <Link href="/app/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "justify-start gap-2")}>
+            <Link href="/portal/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "justify-start gap-2")}>
               <Signal className="h-4 w-4" />
               Voltar ao diretorio
             </Link>

@@ -108,7 +108,7 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
       title: "Reforma Tributaria (IBS/CBS)",
       description: "Consulte tabelas e parametros da reforma em uma guia dedicada.",
       icon: Scale,
-      href: "/app/reforma-tributaria",
+      href: "/portal/reforma-tributaria",
       category: "reforma",
       badge: "Novo",
     },

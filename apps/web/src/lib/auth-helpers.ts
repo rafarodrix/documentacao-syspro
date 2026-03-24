@@ -94,11 +94,11 @@ export async function requireSession(): Promise<ProtectedSession> {
 
 /**
  * Variante que exige role especifica.
- * Redireciona para /login se nao autenticado, ou para /app se sem permissao.
+ * Redireciona para /login se nao autenticado, ou para /portal se sem permissao.
  */
 export async function requireRole(
   allowedRoles: Role[],
-  unauthorizedRedirect = "/app"
+  unauthorizedRedirect = "/portal"
 ): Promise<ProtectedSession> {
   const session = await requireSession()
   if (!allowedRoles.includes(session.role)) {

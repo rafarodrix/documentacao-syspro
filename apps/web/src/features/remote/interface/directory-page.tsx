@@ -616,7 +616,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           </a>
                         ) : null}
                         <Link
-                          href={`/app/plataforma-remota/${item.id}`}
+                          href={`/portal/plataforma-remota/${item.id}`}
                           className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "justify-start gap-2")}
                         >
                           <ArrowUpRight className="h-3.5 w-3.5" />

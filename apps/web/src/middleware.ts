@@ -117,14 +117,14 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthenticated && (pathname === "/login" || pathname === "/register")) {
-    return redirectTo(request, "/app");
+    return redirectTo(request, "/portal");
   }
 
   if (
     isAuthenticated &&
     (
-      pathname.startsWith("/app/cadastros") ||
-      pathname.startsWith("/app/plataforma-remota") ||
+      pathname.startsWith("/portal/cadastros") ||
+      pathname.startsWith("/portal/plataforma-remota") ||
       pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix)
     )
   ) {
@@ -134,7 +134,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    if (pathname === "/app/cadastros" && !hasAllowedRole(role, CADASTROS_ROUTE_RULES.empresa.allowed)) {
+    if (pathname === "/portal/cadastros" && !hasAllowedRole(role, CADASTROS_ROUTE_RULES.empresa.allowed)) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.root.redirectIfBlocked);
     }
 
@@ -150,8 +150,8 @@ export async function middleware(request: NextRequest) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked);
     }
 
-    if (pathname.startsWith("/app/plataforma-remota") && !hasAllowedRole(role, REMOTE_PLATFORM_ROLES)) {
-      return redirectTo(request, "/app");
+    if (pathname.startsWith("/portal/plataforma-remota") && !hasAllowedRole(role, REMOTE_PLATFORM_ROLES)) {
+      return redirectTo(request, "/portal");
     }
 
     if (

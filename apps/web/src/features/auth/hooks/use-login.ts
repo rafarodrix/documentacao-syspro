@@ -56,9 +56,9 @@ export function useLogin() {
 
     try {
       await authClient.getSession()
-      router.push("/app")
+      router.push("/portal")
     } catch {
-      router.push("/app")
+      router.push("/portal")
     }
   }
 

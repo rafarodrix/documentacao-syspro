@@ -156,7 +156,7 @@ function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: Us
         <DropdownMenuSeparator />
 
         <DropdownMenuItem asChild className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md">
-          <Link href={`/app/cadastros/usuarios/${user.id}/editar`}>
+          <Link href={`/portal/cadastros/usuarios/${user.id}/editar`}>
             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
             <span className="text-sm">Editar perfil</span>
           </Link>
@@ -292,7 +292,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
           </div>
 
           {canManage && (
-            <Link href="/app/cadastros/usuarios/novo">
+            <Link href="/portal/cadastros/usuarios/novo">
               <Button
                 type="button"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"

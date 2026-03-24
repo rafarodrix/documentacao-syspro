@@ -57,7 +57,7 @@ function buildTicketNotifications(
 
     const mins = minutesBetween(now, ticket.updated_at);
     const hours = Math.max(1, Math.floor(mins / 60));
-    const href = `/app/chamados/${ticket.id}`;
+    const href = `/portal/chamados/${ticket.id}`;
     const sla = computeTicketSla({
       createdAt: new Date(ticket.created_at),
       firstResponseAt: ticket.first_response_at ? new Date(ticket.first_response_at) : null,
@@ -168,7 +168,7 @@ async function buildSystemOperationalNotifications(includeContracts: boolean): P
       description: isExpired
         ? `${contract.company.razaoSocial} com contrato vencido.`
         : `${contract.company.razaoSocial} vence em ${days} dia(s).`,
-      href: "/app/contratos",
+      href: "/portal/contratos",
       createdAt: contract.updatedAt.toISOString(),
     });
   }
@@ -180,7 +180,7 @@ async function buildSystemOperationalNotifications(includeContracts: boolean): P
       level: sefaz.status === "OFFLINE" ? "critical" : "warning",
       title: `SEFAZ ${sefaz.service} ${sefaz.status === "OFFLINE" ? "indisponivel" : "instavel"}`,
       description: `UF ${sefaz.uf} com latencia ${sefaz.latency}ms.`,
-      href: "/app",
+      href: "/portal",
       createdAt: sefaz.createdAt.toISOString(),
     });
   }

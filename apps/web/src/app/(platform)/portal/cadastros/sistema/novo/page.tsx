@@ -19,7 +19,7 @@ export default async function CadastrosSistemaNovoPage() {
       companies={[]}
       context="SYSTEM"
       isAdmin
-      backHref="/app/cadastros/sistema"
+      backHref="/portal/cadastros/sistema"
     />
   );
 }

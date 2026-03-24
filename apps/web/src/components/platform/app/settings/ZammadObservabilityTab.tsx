@@ -34,8 +34,8 @@ type ApiResponse = {
 };
 
 const ROUTE_LABELS: Record<string, string> = {
-  "app-dashboard": "/app",
-  "app-chamados": "/app/chamados",
+  "app-dashboard": "/portal",
+  "app-chamados": "/portal/chamados",
   notifications: "notificações",
 };
 

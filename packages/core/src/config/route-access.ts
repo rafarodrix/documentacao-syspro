@@ -7,23 +7,23 @@ export const CADASTRO_MANAGER_ROLES: AppRole[] = ["ADMIN", "DEVELOPER", "SUPORTE
 export const CADASTROS_ROUTE_RULES = {
   root: {
     blocked: ["CLIENTE_USER"],
-    redirectIfBlocked: "/app",
-    redirectIfAllowed: "/app/cadastros/empresa",
+    redirectIfBlocked: "/portal",
+    redirectIfAllowed: "/portal/cadastros/empresa",
   },
   empresa: {
-    pathPrefix: "/app/cadastros/empresa",
+    pathPrefix: "/portal/cadastros/empresa",
     allowed: CADASTRO_MANAGER_ROLES,
-    redirectIfBlocked: "/app",
+    redirectIfBlocked: "/portal",
   },
   usuarios: {
-    pathPrefix: "/app/cadastros/usuarios",
+    pathPrefix: "/portal/cadastros/usuarios",
     allowed: CADASTRO_MANAGER_ROLES,
-    redirectIfBlocked: "/app",
+    redirectIfBlocked: "/portal",
   },
   sistema: {
-    pathPrefix: "/app/cadastros/sistema",
+    pathPrefix: "/portal/cadastros/sistema",
     allowed: SYSTEM_ROLES,
-    redirectIfBlocked: "/app",
+    redirectIfBlocked: "/portal",
   },
 } as const;
 

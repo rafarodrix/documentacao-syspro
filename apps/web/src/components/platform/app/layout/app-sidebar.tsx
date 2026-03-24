@@ -54,20 +54,20 @@ export interface AppSidebarProps {
 }
 
 const NAV_MAIN: NavItemType[] = [
-  { title: "Dashboard", href: "/app", icon: LayoutDashboard },
-  { title: "Meus Chamados", href: "/app/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
-  { title: "Tickets", href: "/app/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
+  { title: "Dashboard", href: "/portal", icon: LayoutDashboard },
+  { title: "Meus Chamados", href: "/portal/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
+  { title: "Tickets", href: "/portal/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
 ]
 
 const NAV_CADASTROS: NavItemType[] = [
-  { title: "Cadastro Empresa", href: "/app/cadastros/empresa", icon: FileText, roles: [...SIDEBAR_ROLE_RULES.cadastroEmpresa] },
-  { title: "Cadastro Usuario", href: "/app/cadastros/usuarios", icon: Users, roles: [...SIDEBAR_ROLE_RULES.cadastroUsuarios] },
-  { title: "Analista de Sistemas", href: "/app/cadastros/sistema", icon: ShieldCheck, roles: [...SIDEBAR_ROLE_RULES.cadastroSistema] },
+  { title: "Cadastro Empresa", href: "/portal/cadastros/empresa", icon: FileText, roles: [...SIDEBAR_ROLE_RULES.cadastroEmpresa] },
+  { title: "Cadastro Usuario", href: "/portal/cadastros/usuarios", icon: Users, roles: [...SIDEBAR_ROLE_RULES.cadastroUsuarios] },
+  { title: "Analista de Sistemas", href: "/portal/cadastros/sistema", icon: ShieldCheck, roles: [...SIDEBAR_ROLE_RULES.cadastroSistema] },
 ]
 
 const NAV_SYSTEM: NavItemType[] = [
-  { title: "Ferramentas", href: "/app/tools", icon: Wrench },
-  { title: "Plataforma Remota", href: "/app/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
+  { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
+  { title: "Plataforma Remota", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
 ]
 
 const NAV_DOCS_USER: NavItemType[] = [
@@ -120,7 +120,7 @@ function SidebarBrand({
   return (
     <div className={cn("flex h-16 items-center border-b border-border/40 shrink-0", collapsed ? "px-3 justify-center" : "px-5")}>
       <Link
-        href="/app"
+        href="/portal"
         className={cn("flex items-center font-semibold group w-full", collapsed ? "justify-center" : "gap-3")}
         onClick={onClose}
         title={collapsed ? "Trilink" : undefined}
@@ -228,7 +228,7 @@ function SidebarFooter({
           <DropdownMenuItem
             className="cursor-pointer gap-2 text-sm"
             onClick={() => {
-              router.push(isSystemUser ? "/app/configuracoes" : "/app/perfil")
+              router.push(isSystemUser ? "/portal/configuracoes" : "/portal/perfil")
               onClose?.()
             }}
           >
@@ -267,7 +267,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
   const isSidebarCollapsed = !mobile && collapsed
 
-  const isActive = (href: string) => (href === "/app" ? pathname === "/app" : pathname.startsWith(href))
+  const isActive = (href: string) => (href === "/portal" ? pathname === "/portal" : pathname.startsWith(href))
 
   return (
     <div

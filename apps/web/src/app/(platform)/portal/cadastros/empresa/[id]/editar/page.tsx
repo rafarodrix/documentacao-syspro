@@ -26,7 +26,7 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
       mode="edit"
       companyId={view.companyId}
       canEditCnpj={view.canEditCnpj}
-      backHref="/app/cadastros/empresa"
+      backHref="/portal/cadastros/empresa"
       companies={view.companies}
       initialZammadEmails={view.initialZammadEmails}
       initialContacts={view.initialContacts}

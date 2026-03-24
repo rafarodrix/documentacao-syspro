@@ -270,7 +270,7 @@ export function CreateCompanyPageForm({
   function openCnpjLookup() {
     const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
     const query = cnpj ? `?cnpj=${encodeURIComponent(cnpj)}` : "";
-    window.open(`/app/tools/consulta-cnpj${query}`, "_blank", "noopener,noreferrer");
+    window.open(`/portal/tools/consulta-cnpj${query}`, "_blank", "noopener,noreferrer");
   }
 
   async function importCompanyByCnpj() {

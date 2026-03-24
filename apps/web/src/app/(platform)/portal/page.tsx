@@ -1,4 +1,4 @@
-﻿import { requireSession } from "@/lib/auth-helpers";
+import { requireSession } from "@/lib/auth-helpers";
 import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
@@ -160,7 +160,7 @@ export default async function DashboardPage() {
 
           <div className="flex justify-end">
             <Button asChild variant="ghost" className="gap-2 text-muted-foreground">
-              <Link href="/app/chamados">
+              <Link href="/portal/chamados">
                 Ver todos os chamados
                 <ArrowUpRight className="h-4 w-4" />
               </Link>

@@ -160,7 +160,7 @@ export function NotificationsMenu() {
         <DropdownMenuSeparator className="my-0" />
 
         <div className="px-3 py-2">
-          <Link href="/app/chamados" className="text-xs text-primary hover:underline">
+          <Link href="/portal/chamados" className="text-xs text-primary hover:underline">
             Ver central de chamados
           </Link>
         </div>

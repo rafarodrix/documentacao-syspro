@@ -47,7 +47,7 @@ export async function SiteHeader() {
 
   const user: SiteSessionUser | undefined = session?.user;
   const canViewTechnical = user?.role && SYSTEM_ROLES.includes(user.role);
-  const dashboardUrl = "/app";
+  const dashboardUrl = "/portal";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">

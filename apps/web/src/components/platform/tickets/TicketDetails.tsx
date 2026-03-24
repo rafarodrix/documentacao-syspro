@@ -34,7 +34,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [loadingAction, setLoadingAction] = useState<"assume" | "priority_high" | "macro_followup" | null>(null);
-    const backUrl = "/app/chamados";
+    const backUrl = "/portal/chamados";
 
     const runQuickAction = (action: "assume" | "priority_high" | "macro_followup") => {
         if (!ticket) return;

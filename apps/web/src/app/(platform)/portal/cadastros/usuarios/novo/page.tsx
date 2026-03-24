@@ -22,7 +22,7 @@ export default async function CadastrosUsuariosNovoPage() {
       companies={result.companies}
       context="CLIENT"
       isAdmin={result.isGlobalView}
-      backHref="/app/cadastros/usuarios"
+      backHref="/portal/cadastros/usuarios"
     />
   );
 }

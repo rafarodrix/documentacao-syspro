@@ -11,7 +11,7 @@ export default async function RemoteHostDetailsPage({
 }: {
   params: Promise<{ hostId: string }>;
 }) {
-  await requireRole(ALLOWED_ROLES, "/app");
+  await requireRole(ALLOWED_ROLES, "/portal");
   const { hostId } = await params;
   const details = await getRemoteHostDetails(hostId);
 

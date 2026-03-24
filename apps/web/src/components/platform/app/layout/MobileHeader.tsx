@@ -31,7 +31,7 @@ export function MobileHeader({ user }: MobileHeaderProps) {
       </Button>
 
       {/* Logo centralizada */}
-      <Link href="/app" className="flex items-center gap-2 group">
+      <Link href="/portal" className="flex items-center gap-2 group">
         <div className={cn(
           "h-7 w-7 rounded-lg flex items-center justify-center text-white text-xs transition-all",
           isSystemUser

@@ -70,7 +70,7 @@ export function UserProfile({ user }: UserProfileProps) {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem asChild className="cursor-pointer gap-2">
-          <Link href="/app/perfil">
+          <Link href="/portal/perfil">
             <User className="h-4 w-4 text-muted-foreground" />
             Meu Perfil
           </Link>
