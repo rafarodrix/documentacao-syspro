@@ -70,6 +70,23 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(platform)/portal/page.js"
+    ],
+    "/api/platform/notifications/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/platform/notifications/route.js"
+    ],
+    "/docs/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/docs/layout.css",
+      "static/chunks/app/docs/layout.js"
+    ],
+    "/docs/[[...slug]]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/docs/[[...slug]]/page.css",
+      "static/chunks/app/docs/[[...slug]]/page.js"
     ]
   }
 }

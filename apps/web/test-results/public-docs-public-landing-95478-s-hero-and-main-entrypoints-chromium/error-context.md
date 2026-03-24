@@ -1,0 +1,308 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "Trilink Software" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img "Trilink Software" [ref=e8]
+      - navigation [ref=e9]:
+        - button "Documentacao" [ref=e10]:
+          - text: Documentacao
+          - img [ref=e11]
+        - link "Aplicacao" [ref=e13] [cursor=pointer]:
+          - /url: /portal
+        - link "Releases" [ref=e14] [cursor=pointer]:
+          - /url: /releases
+        - link "Downloads" [ref=e16] [cursor=pointer]:
+          - /url: https://www.trilink.com.br/public/downloads
+          - text: Downloads
+          - img [ref=e17]
+        - link "Institucional" [ref=e21] [cursor=pointer]:
+          - /url: https://trilink.com.br
+          - text: Institucional
+          - img [ref=e22]
+      - generic [ref=e26]:
+        - button "Alternar tema" [ref=e27]:
+          - img
+          - img
+          - generic [ref=e28]: Alternar tema
+        - button "RA" [ref=e30]:
+          - generic [ref=e32] [cursor=pointer]: RA
+  - main [ref=e33]:
+    - main [ref=e34]:
+      - generic [ref=e35]:
+        - generic:
+          - generic:
+            - img
+          - generic:
+            - img
+          - generic:
+            - img
+          - generic:
+            - img
+        - generic [ref=e39]:
+          - link "Portal v2026.03 disponível | Novidades" [ref=e41] [cursor=pointer]:
+            - /url: /releases/2026/03
+            - generic [ref=e42]:
+              - generic [ref=e47]: Portal v2026.03 disponível
+              - generic [ref=e48]:
+                - text: "|"
+                - generic [ref=e49]:
+                  - text: Novidades
+                  - img [ref=e50]
+          - heading "A Central Oficial do Syspro ERP ." [level=1] [ref=e52]:
+            - text: A
+            - generic [ref=e53]: Central
+            - text: Oficial
+            - text: do
+            - generic [ref=e55]:
+              - text: Syspro ERP
+              - img [ref=e56]
+            - text: .
+          - paragraph [ref=e58]:
+            - text: Acesse a documentação oficial do
+            - strong [ref=e59]: Syspro ERP
+            - text: . Guias, tutoriais, releases, boas práticas e ferramentas exclusivas da Trilink para apoiar seu dia a dia..
+          - generic [ref=e60]:
+            - link "Acessar Portal do Cliente" [ref=e61] [cursor=pointer]:
+              - /url: /portal
+              - button "Acessar Portal do Cliente" [ref=e62]:
+                - text: Acessar Portal do Cliente
+                - img
+            - link "Explorar Documentação" [ref=e63] [cursor=pointer]:
+              - /url: /docs
+              - button "Explorar Documentação" [ref=e64]:
+                - img
+                - text: Explorar Documentação
+          - generic [ref=e66]:
+            - generic [ref=e68]:
+              - img [ref=e71]
+              - text: Base de Conhecimento
+            - generic [ref=e73]:
+              - img [ref=e76]
+              - text: Histórico de Versões
+            - generic [ref=e80]:
+              - img [ref=e83]
+              - text: Suporte Especializado
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - generic [ref=e95]: Ecossistema Integrado
+          - heading "O Hub de Inteligência do seu ERP" [level=2] [ref=e96]
+          - paragraph [ref=e97]: Centralizamos a expertise técnica da Trilink em ferramentas modernas que transformam a maneira como sua equipe interage com o Syspro.
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - img [ref=e102]
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - img [ref=e109]
+                - heading "Documentação Viva" [level=3] [ref=e114]
+                - paragraph [ref=e115]: Não apenas manuais. Acesse guias interativos, referências de API e boas práticas validadas pelos nossos consultores sêniores.
+              - link "Acessar Biblioteca" [ref=e117] [cursor=pointer]:
+                - /url: /docs
+                - text: Acessar Biblioteca
+                - img [ref=e118]
+          - generic [ref=e122]:
+            - generic [ref=e123]:
+              - img [ref=e125]
+              - heading "Suporte Trilink" [level=3] [ref=e128]
+              - paragraph [ref=e129]: Conexão direta com quem entende do seu negócio. Abertura de chamados, rastreamento de SLA e suporte remoto especializado.
+              - list [ref=e130]:
+                - listitem [ref=e131]: Atendimento Prioritário
+                - listitem [ref=e133]: Consultoria Técnica
+                - listitem [ref=e135]: Análise de Logs
+            - link "Falar no WhatsApp" [ref=e137] [cursor=pointer]:
+              - /url: https://wa.me/5534997713731?text=Gostaria%20de%20falar%20com%20o%20Suporte
+              - button "Falar no WhatsApp" [ref=e138]:
+                - img
+                - text: Falar no WhatsApp
+                - img
+          - generic [ref=e141]:
+            - img [ref=e143]
+            - heading "Syspro Tools" [level=3] [ref=e145]
+            - paragraph [ref=e146]: Validadores XML, scripts SQL e utilitários de automação para facilitar o dia a dia.
+            - link "Acessar Tools" [ref=e147] [cursor=pointer]:
+              - /url: /tools
+              - text: Acessar Tools
+              - img [ref=e148]
+          - generic [ref=e152]:
+            - img [ref=e154]
+            - heading "FAQ & Dúvidas" [level=3] [ref=e157]
+            - paragraph [ref=e158]: Respostas rápidas para as perguntas mais comuns sobre configuração e uso do ERP.
+            - link "Ver Respostas" [ref=e159] [cursor=pointer]:
+              - /url: /docs/duvidas
+              - text: Ver Respostas
+              - img [ref=e160]
+          - generic [ref=e163]:
+            - generic [ref=e164]:
+              - generic [ref=e165]:
+                - img [ref=e167]
+                - generic [ref=e169]:
+                  - heading "Ciclo de Atualizações" [level=3] [ref=e170]
+                  - text: Evolução contínua do produto
+              - link "Roadmap Completo" [ref=e171] [cursor=pointer]:
+                - /url: /releases/2026/03
+                - text: Roadmap Completo
+                - img [ref=e172]
+            - generic [ref=e174]:
+              - link "Marco /2026 Melhorias 4 Correções 14" [ref=e175] [cursor=pointer]:
+                - /url: /releases/2026/03
+                - generic [ref=e176]:
+                  - img [ref=e177]
+                  - text: Marco
+                  - generic [ref=e179]: /2026
+                - generic [ref=e180]:
+                  - generic [ref=e181]:
+                    - generic [ref=e182]:
+                      - img [ref=e183]
+                      - text: Melhorias
+                    - generic [ref=e185]: "4"
+                  - generic [ref=e186]:
+                    - generic [ref=e187]:
+                      - img [ref=e188]
+                      - text: Correções
+                    - generic [ref=e197]: "14"
+              - link "Fevereiro /2026 Melhorias 3 Correções 2" [ref=e198] [cursor=pointer]:
+                - /url: /releases/2026/02
+                - generic [ref=e199]:
+                  - img [ref=e200]
+                  - text: Fevereiro
+                  - generic [ref=e202]: /2026
+                - generic [ref=e203]:
+                  - generic [ref=e204]:
+                    - generic [ref=e205]:
+                      - img [ref=e206]
+                      - text: Melhorias
+                    - generic [ref=e208]: "3"
+                  - generic [ref=e209]:
+                    - generic [ref=e210]:
+                      - img [ref=e211]
+                      - text: Correções
+                    - generic [ref=e220]: "2"
+              - link "Janeiro /2026 Melhorias 9 Correções 12" [ref=e221] [cursor=pointer]:
+                - /url: /releases/2026/01
+                - generic [ref=e222]:
+                  - img [ref=e223]
+                  - text: Janeiro
+                  - generic [ref=e225]: /2026
+                - generic [ref=e226]:
+                  - generic [ref=e227]:
+                    - generic [ref=e228]:
+                      - img [ref=e229]
+                      - text: Melhorias
+                    - generic [ref=e231]: "9"
+                  - generic [ref=e232]:
+                    - generic [ref=e233]:
+                      - img [ref=e234]
+                      - text: Correções
+                    - generic [ref=e243]: "12"
+          - generic [ref=e246]:
+            - img [ref=e250]
+            - heading "Status do Sistema" [level=3] [ref=e252]
+            - generic [ref=e253]: Operacional
+            - link "Histórico de incidentes" [ref=e257] [cursor=pointer]:
+              - /url: /status
+              - text: Histórico de incidentes
+              - img [ref=e258]
+      - generic [ref=e266]:
+        - generic [ref=e268]:
+          - img [ref=e269]
+          - generic [ref=e271]: Pronto para começar?
+        - heading "Sua operação Syspro em outro nível de eficiência." [level=2] [ref=e272]:
+          - text: Sua operação Syspro em
+          - text: outro nível de eficiência.
+        - paragraph [ref=e273]:
+          - text: Junte-se às empresas líderes que confiam na
+          - strong [ref=e274]: Trilink
+          - text: para garantir estabilidade, compliance fiscal e inovação contínua.
+        - generic [ref=e275]:
+          - link "Acessar Portal Agora" [ref=e276] [cursor=pointer]:
+            - /url: /login
+            - button "Acessar Portal Agora" [ref=e277]:
+              - generic [ref=e279]:
+                - text: Acessar Portal Agora
+                - img
+          - link "Falar com Consultor" [ref=e280] [cursor=pointer]:
+            - /url: /contato
+            - button "Falar com Consultor" [ref=e281]
+        - paragraph [ref=e282]: Acesso imediato para clientes ativos • Suporte especializado
+  - contentinfo [ref=e283]:
+    - generic [ref=e285]:
+      - generic [ref=e286]:
+        - generic [ref=e287]:
+          - link "Trilink Software" [ref=e288] [cursor=pointer]:
+            - /url: /
+            - img "Trilink Software" [ref=e290]
+          - paragraph [ref=e291]: Soluções robustas para gestão empresarial. Simplificando processos, garantindo compliance e conectando resultados para impulsionar o seu negócio.
+          - generic [ref=e292]:
+            - link "YouTube" [ref=e293] [cursor=pointer]:
+              - /url: https://www.youtube.com/channel/UCcH7GYfmvIE9_UlWAUH8h2Q
+              - button [ref=e294]:
+                - img
+            - link "Instagram" [ref=e295] [cursor=pointer]:
+              - /url: https://www.instagram.com/trilinksoftwares
+              - button [ref=e296]:
+                - img
+            - link "Email" [ref=e297] [cursor=pointer]:
+              - /url: mailto:trilinksuporte@gmail.com
+              - button [ref=e298]:
+                - img
+        - generic [ref=e299]:
+          - heading "Institucional" [level=4] [ref=e300]
+          - list [ref=e301]:
+            - listitem [ref=e302]:
+              - link "Site" [ref=e303] [cursor=pointer]:
+                - /url: https://www.trilink.com.br/
+                - img [ref=e304]
+                - text: Site
+                - img [ref=e308]
+            - listitem [ref=e312]:
+              - link "Área de Downloads" [ref=e313] [cursor=pointer]:
+                - /url: https://www.trilink.com.br/public/downloads
+                - img [ref=e314]
+                - text: Área de Downloads
+                - img [ref=e318]
+        - generic [ref=e322]:
+          - heading "Suporte" [level=4] [ref=e323]
+          - list [ref=e324]:
+            - listitem [ref=e325]:
+              - link "Documentação Oficial" [ref=e326] [cursor=pointer]:
+                - /url: /docs/manual
+                - text: Documentação Oficial
+                - img [ref=e328]
+            - listitem [ref=e330]:
+              - link "Dúvidas Frequentes" [ref=e331] [cursor=pointer]:
+                - /url: /docs/duvidas
+                - text: Dúvidas Frequentes
+                - img [ref=e333]
+            - listitem [ref=e335]:
+              - link "Suporte" [ref=e336] [cursor=pointer]:
+                - /url: /docs/suporte
+                - text: Suporte
+                - img [ref=e338]
+        - generic [ref=e340]:
+          - heading "Acesso Rápido" [level=4] [ref=e341]
+          - list [ref=e342]:
+            - listitem [ref=e343]:
+              - link "Login" [ref=e344] [cursor=pointer]:
+                - /url: /login
+                - text: Login
+                - img [ref=e346]
+            - listitem [ref=e348]:
+              - link "Portal do Cliente" [ref=e349] [cursor=pointer]:
+                - /url: /portal
+                - text: Portal do Cliente
+                - img [ref=e351]
+      - generic [ref=e353]:
+        - paragraph [ref=e354]: © 2026 Trilink Software Ltda. Todos os direitos reservados.
+        - generic [ref=e355]:
+          - link "Termos de Uso" [ref=e356] [cursor=pointer]:
+            - /url: /termos
+            - text: Termos de Uso
+            - img [ref=e358]
+          - link "Política de Privacidade" [ref=e360] [cursor=pointer]:
+            - /url: /privacidade
+            - text: Política de Privacidade
+            - img [ref=e362]
+```

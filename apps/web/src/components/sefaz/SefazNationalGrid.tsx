@@ -15,7 +15,7 @@ export function SefazNationalGrid({ data }: { data: SefazStatusItem[] }) {
     return data?.find(d => d.uf === uf && d.service === service);
   };
 
-  // Pegamos a lista Ãºnica de UFs das suas constantes
+  // Pegamos a lista ÃƒÂºnica de UFs das suas constantes
   const ufs = Array.from(new Set(SEFAZ_ENDPOINTS.map(e => e.uf)));
 
   return (
@@ -57,7 +57,7 @@ export function SefazNationalGrid({ data }: { data: SefazStatusItem[] }) {
   );
 }
 
-function StatusIcon({ status }: { status?: string }) {
+function StatusIcon({ status }: { status?: string | null }) {
   if (status === 'ONLINE') return <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />;
   if (status === 'UNSTABLE') return <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />;
   return <div className="h-2 w-2 rounded-full bg-destructive" />;
