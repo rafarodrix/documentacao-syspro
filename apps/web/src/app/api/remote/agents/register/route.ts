@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { createRequestLogger } from "@/lib/observability/logger";
@@ -95,41 +96,84 @@ export async function POST(request: Request) {
   const agentTokenHash = hashAgentToken(agentToken);
   const registerAt = new Date();
 
-  const updated = await prisma.remoteHost.update({
-    where: { id: host.id },
-    data: {
-      agentExternalId: normalizeRustdeskId(body.rustdeskId) || host.agentExternalId,
-      machineName: body.machineName?.trim() || host.machineName,
-      agentVersion: body.agentVersion?.trim() || host.agentVersion,
-      environment: body.environment?.trim() || host.environment,
-      agentTokenHash,
-      agentTokenIssuedAt: registerAt,
-      agentTokenLastUsedAt: registerAt,
-      lastHeartbeatAt: registerAt,
-      lastHeartbeatSuccessAt: registerAt,
-      lastHeartbeatErrorAt: null,
-      lastHeartbeatErrorMessage: null,
-      lastKnownIp: ip || host.lastKnownIp,
-      lastRegisterAt: registerAt,
-      lastRegisterSource: "installToken",
-      status: "ACTIVE",
-    },
-    select: {
-      id: true,
-      companyId: true,
-      name: true,
-      agentExternalId: true,
-      installToken: true,
-      machineName: true,
-      agentVersion: true,
-      lastHeartbeatAt: true,
-      lastHeartbeatSuccessAt: true,
-      lastKnownIp: true,
-      lastRegisterAt: true,
-      lastRegisterSource: true,
-      status: true,
-    },
-  });
+  let updated: {
+    id: string;
+    companyId: string;
+    name: string;
+    agentExternalId: string | null;
+    installToken: string | null;
+    machineName: string | null;
+    agentVersion: string | null;
+    lastHeartbeatAt: Date | null;
+    lastHeartbeatSuccessAt: Date | null;
+    lastKnownIp: string | null;
+    lastRegisterAt: Date | null;
+    lastRegisterSource: string | null;
+    status: string;
+  };
+
+  try {
+    updated = await prisma.remoteHost.update({
+      where: { id: host.id },
+      data: {
+        agentExternalId: normalizeRustdeskId(body.rustdeskId) || host.agentExternalId,
+        machineName: body.machineName?.trim() || host.machineName,
+        agentVersion: body.agentVersion?.trim() || host.agentVersion,
+        environment: body.environment?.trim() || host.environment,
+        agentTokenHash,
+        agentTokenIssuedAt: registerAt,
+        agentTokenLastUsedAt: registerAt,
+        lastHeartbeatAt: registerAt,
+        lastHeartbeatSuccessAt: registerAt,
+        lastHeartbeatErrorAt: null,
+        lastHeartbeatErrorMessage: null,
+        lastKnownIp: ip || host.lastKnownIp,
+        lastRegisterAt: registerAt,
+        lastRegisterSource: "installToken",
+        status: "ACTIVE",
+      },
+      select: {
+        id: true,
+        companyId: true,
+        name: true,
+        agentExternalId: true,
+        installToken: true,
+        machineName: true,
+        agentVersion: true,
+        lastHeartbeatAt: true,
+        lastHeartbeatSuccessAt: true,
+        lastKnownIp: true,
+        lastRegisterAt: true,
+        lastRegisterSource: true,
+        status: true,
+      },
+    });
+  } catch (error) {
+    const prismaError = error instanceof Prisma.PrismaClientKnownRequestError ? error : null;
+    const errorCode = prismaError?.code ?? "REMOTE_AGENT_REGISTER_FAILED";
+    const errorMessage =
+      prismaError?.message?.slice(0, 500) ??
+      (error instanceof Error ? error.message.slice(0, 500) : "Falha desconhecida no registro do agente.");
+
+    logger.error("remote.agent.register.failed", {
+      hostId: host.id,
+      companyId: host.companyId,
+      correlationId,
+      errorCode,
+      errorMessage,
+    });
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Falha ao registrar agente no host remoto.",
+        code: errorCode,
+        detail: errorMessage,
+        correlationId,
+      },
+      { status: 500, headers: responseHeaders }
+    );
+  }
 
   logger.info("remote.agent.register.succeeded", {
     hostId: updated.id,
