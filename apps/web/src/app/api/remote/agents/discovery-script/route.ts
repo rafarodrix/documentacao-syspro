@@ -164,6 +164,31 @@ function Write-InstallError {
     Out-File -FilePath $errorLogPath -InputObject "[$((Get-Date).ToString('s'))] $Message" -Append -Encoding utf8
 }
 
+function Get-ApiErrorDetails {
+    param([object]$ErrorRecord)
+
+    $statusCode = $null
+    $responseBody = $null
+
+    if ($ErrorRecord.Exception.Response) {
+        try { $statusCode = [int]$ErrorRecord.Exception.Response.StatusCode } catch {}
+        try {
+            $stream = $ErrorRecord.Exception.Response.GetResponseStream()
+            if ($stream) {
+                $reader = New-Object System.IO.StreamReader($stream)
+                $responseBody = $reader.ReadToEnd()
+                $reader.Close()
+            }
+        } catch {}
+    }
+
+    return @{
+        statusCode = $statusCode
+        responseBody = $responseBody
+        message = $ErrorRecord.Exception.Message
+    }
+}
+
 function Test-PortalConnection {
     try {
         Invoke-WebRequest -Uri $portalBaseUrl -Method Head -UseBasicParsing -TimeoutSec 20 | Out-Null
@@ -302,9 +327,13 @@ try {
     Write-Host "Primeiro envio concluido com sucesso. RustDesk ID: $rustdeskId" -ForegroundColor Green
     Write-InstallLog -Message "Descoberta inicial enviada com sucesso. RustDesk ID: $rustdeskId"
 } catch {
-    $errorMessage = $_.Exception.Message
-    Write-Host "Falha ao enviar descoberta inicial: $errorMessage" -ForegroundColor Red
-    Write-InstallError -Message "Falha na descoberta inicial: $errorMessage"
+    $apiError = Get-ApiErrorDetails -ErrorRecord $_
+    Write-Host "Falha ao enviar descoberta inicial: $($apiError.message)" -ForegroundColor Red
+    if ($apiError.statusCode) {
+        Write-InstallError -Message "Falha na descoberta inicial. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
+    } else {
+        Write-InstallError -Message "Falha na descoberta inicial: $($apiError.message)"
+    }
     Write-Host "Log salvo em: $errorLogPath" -ForegroundColor Yellow
 }
 
@@ -354,6 +383,31 @@ function Write-HeartbeatError {
     Out-File -FilePath 'C:\Trilink\Agent\discovery_error.log' -InputObject $errorMsg -Append -Encoding utf8
 }
 
+function Get-ApiErrorDetails {
+    param([object]$ErrorRecord)
+
+    $statusCode = $null
+    $responseBody = $null
+
+    if ($ErrorRecord.Exception.Response) {
+        try { $statusCode = [int]$ErrorRecord.Exception.Response.StatusCode } catch {}
+        try {
+            $stream = $ErrorRecord.Exception.Response.GetResponseStream()
+            if ($stream) {
+                $reader = New-Object System.IO.StreamReader($stream)
+                $responseBody = $reader.ReadToEnd()
+                $reader.Close()
+            }
+        } catch {}
+    }
+
+    return @{
+        statusCode = $statusCode
+        responseBody = $responseBody
+        message = $ErrorRecord.Exception.Message
+    }
+}
+
 $rustdeskId = Resolve-RustDeskId
 $serviceStatus = 'not_found'
 $svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
@@ -397,7 +451,12 @@ $payload = @{
 try {
     Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/discover" -ContentType 'application/json' -Body ($payload | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
 } catch {
-    Write-HeartbeatError -Message "Erro na descoberta: $($_.Exception.Message)"
+    $apiError = Get-ApiErrorDetails -ErrorRecord $_
+    if ($apiError.statusCode) {
+        Write-HeartbeatError -Message "Erro na descoberta. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
+    } else {
+        Write-HeartbeatError -Message "Erro na descoberta: $($apiError.message)"
+    }
 }
 '@
 

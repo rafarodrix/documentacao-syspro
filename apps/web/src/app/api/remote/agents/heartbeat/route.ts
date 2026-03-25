@@ -92,8 +92,8 @@ export async function POST(request: Request) {
       credentialType: "agentToken",
     });
     return NextResponse.json(
-      { success: false, error: "Credencial do agente invalida." },
-      { status: 404, headers: responseHeaders }
+      { success: false, error: "agentToken invalido ou expirado.", code: "AGENT_TOKEN_INVALID" },
+      { status: 401, headers: responseHeaders }
     );
   }
 

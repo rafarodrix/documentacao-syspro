@@ -267,6 +267,31 @@ function Write-InstallError {
     Out-File -FilePath $installErrorLogPath -InputObject "[$((Get-Date).ToString('s'))] $Message" -Append -Encoding utf8
 }
 
+function Get-ApiErrorDetails {
+    param([object]$ErrorRecord)
+
+    $statusCode = $null
+    $responseBody = $null
+
+    if ($ErrorRecord.Exception.Response) {
+        try { $statusCode = [int]$ErrorRecord.Exception.Response.StatusCode } catch {}
+        try {
+            $stream = $ErrorRecord.Exception.Response.GetResponseStream()
+            if ($stream) {
+                $reader = New-Object System.IO.StreamReader($stream)
+                $responseBody = $reader.ReadToEnd()
+                $reader.Close()
+            }
+        } catch {}
+    }
+
+    return @{
+        statusCode = $statusCode
+        responseBody = $responseBody
+        message = $ErrorRecord.Exception.Message
+    }
+}
+
 function Test-PortalConnection {
     try {
         Invoke-WebRequest -Uri $portalBaseUrl -Method Head -UseBasicParsing -TimeoutSec 20 | Out-Null
@@ -451,8 +476,13 @@ try {
     Write-Host 'Registro concluido com sucesso.' -ForegroundColor Green
     Write-InstallLog -Message "Registro concluido com sucesso. RustDesk ID: $normalizedRustDeskId"
 } catch {
-    Write-Host "Falha ao registrar o agente: $($_.Exception.Message)" -ForegroundColor Red
-    Write-InstallError -Message "Falha no registro inicial: $($_.Exception.Message)"
+    $apiError = Get-ApiErrorDetails -ErrorRecord $_
+    Write-Host "Falha ao registrar o agente: $($apiError.message)" -ForegroundColor Red
+    if ($apiError.statusCode) {
+        Write-InstallError -Message "Falha no registro inicial. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
+    } else {
+        Write-InstallError -Message "Falha no registro inicial: $($apiError.message)"
+    }
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
 }
@@ -467,8 +497,15 @@ try {
     Write-Host 'Heartbeat inicial enviado com sucesso.' -ForegroundColor Green
     Write-InstallLog -Message 'Heartbeat inicial enviado com sucesso.'
 } catch {
-    Write-Host "Falha ao enviar heartbeat inicial: $($_.Exception.Message)" -ForegroundColor Red
-    Write-InstallError -Message "Falha no heartbeat inicial: $($_.Exception.Message)"
+    $apiError = Get-ApiErrorDetails -ErrorRecord $_
+    Write-Host "Falha ao enviar heartbeat inicial: $($apiError.message)" -ForegroundColor Red
+    if ($apiError.statusCode -eq 401 -and ($apiError.responseBody -like '*AGENT_TOKEN_INVALID*')) {
+        Write-InstallError -Message 'agentToken invalido ou expirado no heartbeat inicial. Execute o bootstrap novamente para emitir nova credencial.'
+    } elseif ($apiError.statusCode) {
+        Write-InstallError -Message "Falha no heartbeat inicial. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
+    } else {
+        Write-InstallError -Message "Falha no heartbeat inicial: $($apiError.message)"
+    }
 }
 
 Write-Host '[5/5] Configurando heartbeat continuo...' -ForegroundColor Cyan
@@ -558,6 +595,31 @@ function Write-HeartbeatError {
     Out-File -FilePath $heartbeatErrorLogPath -InputObject $errorMsg -Append -Encoding utf8
 }
 
+function Get-ApiErrorDetails {
+    param([object]$ErrorRecord)
+
+    $statusCode = $null
+    $responseBody = $null
+
+    if ($ErrorRecord.Exception.Response) {
+        try { $statusCode = [int]$ErrorRecord.Exception.Response.StatusCode } catch {}
+        try {
+            $stream = $ErrorRecord.Exception.Response.GetResponseStream()
+            if ($stream) {
+                $reader = New-Object System.IO.StreamReader($stream)
+                $responseBody = $reader.ReadToEnd()
+                $reader.Close()
+            }
+        } catch {}
+    }
+
+    return @{
+        statusCode = $statusCode
+        responseBody = $responseBody
+        message = $ErrorRecord.Exception.Message
+    }
+}
+
 function Resolve-AgentToken {
     if (-not [string]::IsNullOrWhiteSpace($agentToken)) {
         return $agentToken
@@ -624,7 +686,19 @@ $payloadHeartbeat.agentToken = $resolvedAgentToken
 try {
     Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body ($payloadHeartbeat | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
 } catch {
-    Write-HeartbeatError -Message "Erro no heartbeat: $($_.Exception.Message)"
+    $apiError = Get-ApiErrorDetails -ErrorRecord $_
+    if ($apiError.statusCode -eq 401 -and ($apiError.responseBody -like '*AGENT_TOKEN_INVALID*')) {
+        try {
+            if (Test-Path $agentTokenPath) {
+                Remove-Item -Path $agentTokenPath -Force -ErrorAction SilentlyContinue
+            }
+        } catch {}
+        Write-HeartbeatError -Message 'agentToken invalido ou expirado. Credencial local removida; execute o bootstrap novamente no host.'
+    } elseif ($apiError.statusCode) {
+        Write-HeartbeatError -Message "Erro no heartbeat. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
+    } else {
+        Write-HeartbeatError -Message "Erro no heartbeat: $($apiError.message)"
+    }
 }
 '@
 
