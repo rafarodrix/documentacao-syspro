@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
@@ -200,9 +201,11 @@ function getBootstrapMeta(input: { lastRegisterAt: string | null; needsBootstrap
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const [machineName, setMachineName] = useState(host.machineName ?? "");
+  const [companyObservacoes, setCompanyObservacoes] = useState(details.company.observacoes ?? "");
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
+  const [isSavingCompanyObservacoes, startSavingCompanyObservacoes] = useTransition();
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
@@ -370,6 +373,30 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
+  function handleSaveCompanyObservacoes() {
+    startSavingCompanyObservacoes(async () => {
+      try {
+        const response = await fetch(`/api/remote/companies/${details.company.id}/observacoes`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            observacoes: companyObservacoes,
+          }),
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Falha ao salvar observacoes da empresa.");
+        }
+
+        toast.success("Observacoes da empresa atualizadas.");
+        window.location.reload();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Falha ao salvar observacoes da empresa.");
+      }
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -516,12 +543,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       </Card>
 
       <Tabs defaultValue="conexao" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-4">
           <TabsTrigger value="conexao">Conexao</TabsTrigger>
-          <TabsTrigger value="instalacoes">Instalacoes</TabsTrigger>
+          <TabsTrigger value="contexto">Contexto</TabsTrigger>
           <TabsTrigger value="agente">Agente</TabsTrigger>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
-          <TabsTrigger value="observacoes">Observacoes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="conexao">
@@ -564,46 +590,154 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           </Card>
         </TabsContent>
 
-        <TabsContent value="instalacoes">
+        <TabsContent value="contexto">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Instalacoes da maquina</CardTitle>
-              <CardDescription>
-                Cada acesso remoto representa a maquina. Aqui aparecem todas as instalacoes/empresas encontradas nela.
-              </CardDescription>
+              <CardTitle className="text-lg">Contexto operacional da maquina</CardTitle>
+              <CardDescription>Instalacoes detectadas, parametros definidos na empresa e observacoes manuais no mesmo lugar.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {details.sysproUpdates.length ? (
-                details.sysproUpdates.map((entry) => (
-                  <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                    <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr_180px_180px]">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
-                        <p className="mt-1 text-sm font-medium text-foreground">{entry.resolvedCompanyName ?? entry.companyLabel}</p>
-                        {!entry.companyId ? (
-                          <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">Sem vinculo automatico com empresa cadastrada</p>
-                        ) : null}
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
-                        <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
-                        <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
-                        <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastHeartbeatAt)}</p>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+              <div className="space-y-4">
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2 font-medium text-foreground">
+                    <Wrench className="h-4 w-4 text-muted-foreground" />
+                    Host
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    <p><span className="font-medium text-foreground">Descricao:</span> {host.description || "Sem descricao operacional."}</p>
+                    <p><span className="font-medium text-foreground">Observacoes:</span> {host.notes ?? "Sem observacoes do host."}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2 font-medium text-foreground">
+                    <TimerReset className="h-4 w-4 text-muted-foreground" />
+                    Empresa
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    <p><span className="font-medium text-foreground">Empresa:</span> {details.company.nomeFantasia ?? details.company.razaoSocial}</p>
+                    <div className="space-y-2">
+                      <p className="font-medium text-foreground">Observacoes da empresa</p>
+                      <Textarea
+                        rows={5}
+                        value={companyObservacoes}
+                        onChange={(event) => setCompanyObservacoes(event.target.value)}
+                        placeholder="Registre orientacoes operacionais desta empresa para futuros acessos remotos."
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleSaveCompanyObservacoes}
+                          disabled={isSavingCompanyObservacoes || companyObservacoes === (details.company.observacoes ?? "")}
+                        >
+                          {isSavingCompanyObservacoes ? "Salvando..." : "Salvar observacoes da empresa"}
+                        </Button>
                       </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Esta maquina ainda nao enviou instalacoes no heartbeat.
-                </p>
-              )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2 font-medium text-foreground">
+                    <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
+                    Configuracoes do servidor
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
+                      <p className="mt-1 text-sm text-foreground">
+                        {details.company.serverType ? COMPANY_SERVER_TYPE_LABEL[details.company.serverType] : "Nao configurado"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao</p>
+                      <p className="mt-1 break-all text-sm text-foreground">{details.company.installationDirectory || "Nao configurado"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor</p>
+                      <p className="mt-1 text-sm text-foreground">{details.company.serverHost || "Nao configurado"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta</p>
+                      <p className="mt-1 text-sm text-foreground">{details.company.serverPort ? String(details.company.serverPort) : "Nao configurado"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conexao</p>
+                      <p className="mt-1 text-sm text-foreground">{details.company.serverProtocol || "Nao configurado"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Url Path (ISAPI)</p>
+                      <p className="mt-1 break-all text-sm text-foreground">{details.company.iisIsapiPath || "Nao configurado"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2 font-medium text-foreground">
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                    Conexoes remotas
+                  </p>
+                  <div className="mt-3 space-y-3">
+                    {details.company.remoteConnections.length ? (
+                      details.company.remoteConnections.map((connection, index) => (
+                        <div key={`${connection.type}-${index}`} className="rounded-lg border border-border/40 bg-background/40 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">{REMOTE_CONNECTION_LABEL[connection.type]}</p>
+                          <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Nome/IP/identificacao</p>
+                          <p className="mt-1 break-all text-sm text-foreground">{connection.details || "Sem detalhe informado"}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border/50 bg-background/30 p-3">
+                        Nenhuma conexao remota cadastrada na empresa.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Instalacoes detectadas na maquina</p>
+                  <p className="text-sm text-muted-foreground">Cada linha representa um caminho monitorado e a empresa associada a esta maquina.</p>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {details.sysproUpdates.length ? (
+                    details.sysproUpdates.map((entry) => (
+                      <div key={entry.id} className="rounded-xl border border-border/50 bg-background/40 p-4">
+                        <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr_180px_180px]">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
+                            <p className="mt-1 text-sm font-medium text-foreground">{entry.resolvedCompanyName ?? entry.companyLabel}</p>
+                            {!entry.companyId ? (
+                              <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">Sem vinculo automatico com empresa cadastrada</p>
+                            ) : null}
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
+                            <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
+                            <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
+                            <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastHeartbeatAt)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Esta maquina ainda nao enviou instalacoes no heartbeat.
+                    </p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -688,7 +822,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             <CardHeader>
               <CardTitle className="text-lg">Pessoas vinculadas</CardTitle>
               <CardDescription>
-                Usuarios ativos da empresa base do cadastro. Para maquinas multiempresa, a leitura principal agora esta em `Instalacoes`.
+                Usuarios ativos da empresa base do cadastro. Para maquinas multiempresa, a leitura principal agora esta em `Contexto`.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -710,100 +844,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               ) : (
                 <p className="text-sm text-muted-foreground">Nenhum usuario ativo vinculado a esta empresa.</p>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="observacoes">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg">Observacoes e configuracoes operacionais</CardTitle>
-              <CardDescription>Contexto manual do host e parametros tecnicos definidos no cadastro da empresa.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
-              <div className="space-y-4">
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2 font-medium text-foreground">
-                    <Wrench className="h-4 w-4 text-muted-foreground" />
-                    Host
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    <p><span className="font-medium text-foreground">Descricao:</span> {host.description || "Sem descricao operacional."}</p>
-                    <p><span className="font-medium text-foreground">Observacoes:</span> {host.notes ?? "Sem observacoes do host."}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2 font-medium text-foreground">
-                    <TimerReset className="h-4 w-4 text-muted-foreground" />
-                    Empresa
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    <p><span className="font-medium text-foreground">Empresa:</span> {details.company.nomeFantasia ?? details.company.razaoSocial}</p>
-                    <p><span className="font-medium text-foreground">Observacoes da empresa:</span> {details.company.observacoes ?? "Sem observacoes cadastradas."}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2 font-medium text-foreground">
-                    <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
-                    Configuracoes do servidor
-                  </p>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
-                      <p className="mt-1 text-sm text-foreground">
-                        {details.company.serverType ? COMPANY_SERVER_TYPE_LABEL[details.company.serverType] : "Nao configurado"}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao</p>
-                      <p className="mt-1 break-all text-sm text-foreground">{details.company.installationDirectory || "Nao configurado"}</p>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor</p>
-                      <p className="mt-1 text-sm text-foreground">{details.company.serverHost || "Nao configurado"}</p>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta</p>
-                      <p className="mt-1 text-sm text-foreground">{details.company.serverPort ? String(details.company.serverPort) : "Nao configurado"}</p>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conexao</p>
-                      <p className="mt-1 text-sm text-foreground">{details.company.serverProtocol || "Nao configurado"}</p>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Url Path (ISAPI)</p>
-                      <p className="mt-1 break-all text-sm text-foreground">{details.company.iisIsapiPath || "Nao configurado"}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2 font-medium text-foreground">
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    Conexoes remotas
-                  </p>
-                  <div className="mt-3 space-y-3">
-                    {details.company.remoteConnections.length ? (
-                      details.company.remoteConnections.map((connection, index) => (
-                        <div key={`${connection.type}-${index}`} className="rounded-lg border border-border/40 bg-background/40 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo</p>
-                          <p className="mt-1 text-sm font-medium text-foreground">{REMOTE_CONNECTION_LABEL[connection.type]}</p>
-                          <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Nome/IP/identificacao</p>
-                          <p className="mt-1 break-all text-sm text-foreground">{connection.details || "Sem detalhe informado"}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-border/50 bg-background/30 p-3">
-                        Nenhuma conexao remota cadastrada na empresa.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

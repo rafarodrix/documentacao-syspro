@@ -207,16 +207,11 @@ function Get-RustDeskVersion {
 function Install-Or-Update-RustDesk {
     $rustdeskExe = Find-RustDeskExecutable
     $currentVersion = if ($rustdeskExe) { Get-RustDeskVersion -ExecutablePath $rustdeskExe } else { $null }
-    $needsInstall = (-not $rustdeskExe) -or ([string]::IsNullOrWhiteSpace($currentVersion)) -or ($currentVersion -ne $expectedRustDeskVersion)
+    $needsInstall = (-not $rustdeskExe)
 
     if ($needsInstall) {
-        if ($rustdeskExe -and $currentVersion) {
-            Write-Host "RustDesk encontrado na versao $currentVersion. Atualizando para $expectedRustDeskVersion..." -ForegroundColor Yellow
-            Write-InstallLog -Message "Atualizando RustDesk de $currentVersion para $expectedRustDeskVersion."
-        } else {
-            Write-Host 'RustDesk nao encontrado. Fazendo download e instalacao silenciosa...' -ForegroundColor Cyan
-            Write-InstallLog -Message "Instalando RustDesk na versao $expectedRustDeskVersion."
-        }
+        Write-Host 'RustDesk nao encontrado. Fazendo download e instalacao silenciosa...' -ForegroundColor Cyan
+        Write-InstallLog -Message "Instalando RustDesk na versao $expectedRustDeskVersion."
 
         $tempInstaller = "$env:TEMP\\rustdesk_installer.msi"
         try {
@@ -229,6 +224,9 @@ function Install-Or-Update-RustDesk {
                 Remove-Item -Path $tempInstaller -Force -ErrorAction SilentlyContinue
             }
         }
+    } elseif ($currentVersion -and $currentVersion -ne $expectedRustDeskVersion) {
+        Write-Host "RustDesk ja instalado na versao $currentVersion. Upgrade automatico ignorado para preservar a instalacao existente." -ForegroundColor Yellow
+        Write-InstallLog -Message "Instalacao existente detectada na versao $currentVersion. Upgrade automatico ignorado; mantendo a instalacao atual."
     } else {
         Write-Host "RustDesk ja esta na versao esperada ($expectedRustDeskVersion)." -ForegroundColor Green
         Write-InstallLog -Message "RustDesk ja esta na versao esperada ($expectedRustDeskVersion)."
