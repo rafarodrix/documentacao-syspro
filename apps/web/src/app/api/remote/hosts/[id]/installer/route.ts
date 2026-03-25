@@ -503,7 +503,7 @@ try {
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('MACHINE_NAME', "$machineName")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_VERSION', "$agentVersion")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('RUSTDESK_ID_FALLBACK', "$normalizedRustDeskId")
-    $heartbeatScriptContent = $heartbeatScriptContent.Replace('HEARTBEAT_ERROR_LOG_PATH', "${heartbeatErrorLogPath}")
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('HEARTBEAT_ERROR_LOG_PATH', "$heartbeatErrorLogPath")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVIDORES_JSON', $servidoresJson)
 
     Set-Content -Path $heartbeatScriptPath -Value $heartbeatScriptContent -Force -Encoding UTF8
