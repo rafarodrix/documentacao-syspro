@@ -613,7 +613,20 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
 
 export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDetails | null> {
   const tenantScope = await getRemoteTenantScope();
+  const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const companyOptions = await prisma.company.findMany({
+    where: tenantScope.isGlobalView
+      ? { deletedAt: null }
+      : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
+    select: {
+      id: true,
+      nomeFantasia: true,
+      razaoSocial: true,
+    },
+    orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
+    take: 200,
+  });
 
   const host = await prisma.remoteHost.findFirst({
     where: {
