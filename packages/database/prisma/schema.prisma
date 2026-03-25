@@ -522,11 +522,20 @@ model RemoteHost {
   notes String? @db.Text
   agentExternalId String?
   installToken String? @unique
+  agentTokenHash String? @unique
   machineName String?
   agentVersion String?
   serviceStatus String?
   status RemoteHostStatus @default(ACTIVE)
   lastHeartbeatAt DateTime?
+  lastHeartbeatSuccessAt DateTime?
+  lastHeartbeatErrorAt DateTime?
+  lastHeartbeatErrorMessage String? @db.Text
+  lastKnownIp String?
+  lastRegisterAt DateTime?
+  lastRegisterSource String?
+  agentTokenIssuedAt DateTime?
+  agentTokenLastUsedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -538,6 +547,8 @@ model RemoteHost {
   @@index([companyId, status])
   @@index([agentExternalId])
   @@index([installToken])
+  @@index([agentTokenHash])
+  @@index([lastHeartbeatSuccessAt])
   @@map("remote_host")
 }
 

@@ -1,11 +1,6 @@
 import { z } from "zod";
-import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getProtectedSession } from "@/lib/auth-helpers";
-import { revalidatePath } from "next/cache";
-import type { RemoteModuleSettings, RemoteModuleSettingsActionResponse } from "@/features/remote/domain/model";
-
-const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
+import type { RemoteModuleSettings } from "@/features/remote/domain/model";
 
 export const REMOTE_MODULE_SETTINGS_KEY = "remote.module.settings";
 
@@ -52,50 +47,5 @@ export async function getRemoteModuleSettingsSnapshot(): Promise<RemoteModuleSet
     return validation.data;
   } catch {
     return getDefaultRemoteModuleSettings();
-  }
-}
-
-export async function getRemoteModuleSettingsAction(): Promise<RemoteModuleSettingsActionResponse<RemoteModuleSettings>> {
-  "use server";
-  const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
-    return { success: false, error: "Permissao negada." };
-  }
-
-  const data = await getRemoteModuleSettingsSnapshot();
-  return { success: true, data };
-}
-
-export async function updateRemoteModuleSettingsAction(
-  input: RemoteModuleSettings
-): Promise<RemoteModuleSettingsActionResponse> {
-  "use server";
-  const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
-    return { success: false, error: "Permissao negada." };
-  }
-
-  const validation = remoteModuleSettingsSchema.safeParse(input);
-  if (!validation.success) {
-    return { success: false, error: validation.error.issues[0]?.message ?? "Dados invalidos." };
-  }
-
-  try {
-    await prisma.systemSetting.upsert({
-      where: { key: REMOTE_MODULE_SETTINGS_KEY },
-      update: { value: JSON.stringify(validation.data) },
-      create: {
-        key: REMOTE_MODULE_SETTINGS_KEY,
-        value: JSON.stringify(validation.data),
-        description: "Configuracoes globais do modulo remoto",
-      },
-    });
-
-    revalidatePath("/portal/configuracoes");
-    revalidatePath("/portal/plataforma-remota");
-    return { success: true, message: "Configuracoes do modulo remoto salvas." };
-  } catch (error) {
-    console.error("Erro ao salvar configuracoes do modulo remoto:", error);
-    return { success: false, error: "Erro ao salvar configuracoes do modulo remoto." };
   }
 }

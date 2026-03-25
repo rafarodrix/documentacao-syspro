@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
@@ -11,12 +12,29 @@ function normalizeRustdeskId(value?: string | null) {
   return trimmed.replace(/\s+/g, "");
 }
 
+function buildAgentToken() {
+  return `ragent_${randomBytes(24).toString("hex")}`;
+}
+
+function hashAgentToken(token: string) {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+function getRequestIp(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0]?.trim() || null;
+  }
+
+  return request.headers.get("cf-connecting-ip")?.trim() || null;
+}
+
 export async function POST(request: Request) {
   const { logger, responseHeaders, correlationId } = createRequestLogger(request, {
     area: "api",
     feature: "remote-agent-register",
   });
-  const ip = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for");
+  const ip = getRequestIp(request);
   const rateLimit = consumeActionRateLimit({
     action: "remote-agent-register",
     ip,
@@ -55,12 +73,27 @@ export async function POST(request: Request) {
 
   const host = await prisma.remoteHost.findFirst({
     where: { installToken },
+    select: {
+      id: true,
+      companyId: true,
+      name: true,
+      agentExternalId: true,
+      installToken: true,
+      machineName: true,
+      agentVersion: true,
+      environment: true,
+      lastKnownIp: true,
+    },
   });
 
   if (!host) {
     logger.warn("remote.agent.register.invalid_install_token");
     return NextResponse.json({ success: false, error: "Token de instalacao invalido." }, { status: 404, headers: responseHeaders });
   }
+
+  const agentToken = buildAgentToken();
+  const agentTokenHash = hashAgentToken(agentToken);
+  const registerAt = new Date();
 
   const updated = await prisma.remoteHost.update({
     where: { id: host.id },
@@ -69,7 +102,16 @@ export async function POST(request: Request) {
       machineName: body.machineName?.trim() || host.machineName,
       agentVersion: body.agentVersion?.trim() || host.agentVersion,
       environment: body.environment?.trim() || host.environment,
-      lastHeartbeatAt: new Date(),
+      agentTokenHash,
+      agentTokenIssuedAt: registerAt,
+      agentTokenLastUsedAt: registerAt,
+      lastHeartbeatAt: registerAt,
+      lastHeartbeatSuccessAt: registerAt,
+      lastHeartbeatErrorAt: null,
+      lastHeartbeatErrorMessage: null,
+      lastKnownIp: ip || host.lastKnownIp,
+      lastRegisterAt: registerAt,
+      lastRegisterSource: "installToken",
       status: "ACTIVE",
     },
     select: {
@@ -81,6 +123,10 @@ export async function POST(request: Request) {
       machineName: true,
       agentVersion: true,
       lastHeartbeatAt: true,
+      lastHeartbeatSuccessAt: true,
+      lastKnownIp: true,
+      lastRegisterAt: true,
+      lastRegisterSource: true,
       status: true,
     },
   });
@@ -89,8 +135,18 @@ export async function POST(request: Request) {
     hostId: updated.id,
     companyId: updated.companyId,
     machineName: updated.machineName,
+    lastKnownIp: updated.lastKnownIp,
     correlationId,
   });
 
-  return NextResponse.json({ success: true, data: updated }, { headers: responseHeaders });
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        ...updated,
+        agentToken,
+      },
+    },
+    { headers: responseHeaders }
+  );
 }

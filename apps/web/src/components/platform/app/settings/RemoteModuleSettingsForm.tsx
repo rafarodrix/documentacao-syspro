@@ -11,10 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  getRemoteModuleSettingsAction,
   remoteModuleSettingsSchema,
-  updateRemoteModuleSettingsAction,
 } from "@/features/remote/application/module-settings";
+import {
+  getRemoteModuleSettingsAction,
+  updateRemoteModuleSettingsAction,
+} from "@/features/remote/application/module-settings-actions";
 import type { RemoteModuleSettings } from "@/features/remote/domain/model";
 
 const defaultValues: RemoteModuleSettings = {

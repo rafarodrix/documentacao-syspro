@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
@@ -11,12 +12,25 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function hashAgentToken(token: string) {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+function getRequestIp(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0]?.trim() || null;
+  }
+
+  return request.headers.get("cf-connecting-ip")?.trim() || null;
+}
+
 export async function POST(request: Request) {
   const { logger, responseHeaders } = createRequestLogger(request, {
     area: "api",
     feature: "remote-agent-heartbeat",
   });
-  const ip = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for");
+  const ip = getRequestIp(request);
   const rateLimit = consumeActionRateLimit({
     action: "remote-agent-heartbeat",
     ip,
@@ -41,6 +55,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     installToken?: string;
+    agentToken?: string;
     rustdeskId?: string | null;
     machineName?: string | null;
     agentVersion?: string | null;
@@ -49,16 +64,23 @@ export async function POST(request: Request) {
   };
 
   const installToken = body.installToken?.trim();
-  if (!installToken) {
-    logger.warn("remote.agent.heartbeat.missing_install_token");
-    return NextResponse.json({ success: false, error: "installToken e obrigatorio." }, { status: 400, headers: responseHeaders });
+  const agentToken = body.agentToken?.trim();
+  if (!installToken && !agentToken) {
+    logger.warn("remote.agent.heartbeat.missing_agent_credentials");
+    return NextResponse.json(
+      { success: false, error: "agentToken ou installToken e obrigatorio." },
+      { status: 400, headers: responseHeaders }
+    );
   }
 
+  const agentTokenHash = agentToken ? hashAgentToken(agentToken) : null;
   const host = await prisma.remoteHost.findFirst({
-    where: { installToken },
+    where: agentTokenHash ? { agentTokenHash } : { installToken },
     select: {
       id: true,
       companyId: true,
+      installToken: true,
+      agentTokenHash: true,
       company: {
         select: {
           nomeFantasia: true,
@@ -69,8 +91,13 @@ export async function POST(request: Request) {
   });
 
   if (!host) {
-    logger.warn("remote.agent.heartbeat.invalid_install_token");
-    return NextResponse.json({ success: false, error: "Token de instalacao invalido." }, { status: 404, headers: responseHeaders });
+    logger.warn("remote.agent.heartbeat.invalid_agent_credentials", {
+      credentialType: agentTokenHash ? "agentToken" : "installToken",
+    });
+    return NextResponse.json(
+      { success: false, error: "Credencial do agente invalida." },
+      { status: 404, headers: responseHeaders }
+    );
   }
 
   const heartbeatAt = new Date();
@@ -82,48 +109,88 @@ export async function POST(request: Request) {
     normalizeCompareValue(host.company.razaoSocial),
   ].filter(Boolean);
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const remoteHost = await tx.remoteHost.update({
+  let updated: {
+    id: string;
+    lastHeartbeatAt: Date | null;
+    lastHeartbeatSuccessAt: Date | null;
+    status: string;
+    agentExternalId: string | null;
+    machineName: string | null;
+    agentVersion: string | null;
+    lastKnownIp: string | null;
+  };
+  try {
+    updated = await prisma.$transaction(async (tx) => {
+      const remoteHost = await tx.remoteHost.update({
+        where: { id: host.id },
+        data: {
+          agentExternalId: normalizeRustdeskId(body.rustdeskId),
+          machineName: body.machineName?.trim() || undefined,
+          agentVersion: body.agentVersion?.trim() || undefined,
+          lastHeartbeatAt: heartbeatAt,
+          lastHeartbeatSuccessAt: heartbeatAt,
+          lastHeartbeatErrorAt: null,
+          lastHeartbeatErrorMessage: null,
+          lastKnownIp: ip || undefined,
+          agentTokenLastUsedAt: agentTokenHash ? heartbeatAt : undefined,
+          status: "ACTIVE",
+        },
+        select: {
+          id: true,
+          lastHeartbeatAt: true,
+          lastHeartbeatSuccessAt: true,
+          status: true,
+          agentExternalId: true,
+          machineName: true,
+          agentVersion: true,
+          lastKnownIp: true,
+        },
+      });
+
+      if (hasServiceStatus) {
+        await tx.$executeRaw`
+          UPDATE "remote_host"
+          SET "serviceStatus" = ${normalizedServiceStatus}
+          WHERE "id" = ${host.id}
+        `;
+      }
+
+      await syncRemoteHostSysproUpdates(tx, {
+        hostId: host.id,
+        hostCompanyId: host.companyId,
+        hostCompanyNames: normalizedPrimaryNames,
+        heartbeatAt,
+        sysproUpdates,
+      });
+
+      return remoteHost;
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message.slice(0, 2000) : "Falha desconhecida ao processar heartbeat.";
+    await prisma.remoteHost.update({
       where: { id: host.id },
       data: {
-        agentExternalId: normalizeRustdeskId(body.rustdeskId),
-        machineName: body.machineName?.trim() || undefined,
-        agentVersion: body.agentVersion?.trim() || undefined,
-        lastHeartbeatAt: heartbeatAt,
-        status: "ACTIVE",
-      },
-      select: {
-        id: true,
-        lastHeartbeatAt: true,
-        status: true,
-        agentExternalId: true,
-        machineName: true,
-        agentVersion: true,
+        lastHeartbeatErrorAt: heartbeatAt,
+        lastHeartbeatErrorMessage: errorMessage,
       },
     });
 
-    if (hasServiceStatus) {
-      await tx.$executeRaw`
-        UPDATE "remote_host"
-        SET "serviceStatus" = ${normalizedServiceStatus}
-        WHERE "id" = ${host.id}
-      `;
-    }
-
-    await syncRemoteHostSysproUpdates(tx, {
+    logger.error("remote.agent.heartbeat.failed", {
       hostId: host.id,
-      hostCompanyId: host.companyId,
-      hostCompanyNames: normalizedPrimaryNames,
-      heartbeatAt,
-      sysproUpdates,
+      authMode: agentTokenHash ? "agentToken" : "installToken",
+      errorMessage,
     });
 
-    return remoteHost;
-  });
+    return NextResponse.json(
+      { success: false, error: "Falha ao processar heartbeat do agente." },
+      { status: 500, headers: responseHeaders }
+    );
+  }
 
   logger.info("remote.agent.heartbeat.succeeded", {
     hostId: updated.id,
     machineName: updated.machineName,
+    authMode: agentTokenHash ? "agentToken" : "installToken",
     serviceStatus: hasServiceStatus ? normalizedServiceStatus : undefined,
     sysproUpdateCount: sysproUpdates.length,
   });
