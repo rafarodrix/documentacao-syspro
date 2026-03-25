@@ -1,32 +1,36 @@
-﻿---
+---
 title: Operacao do Agente Remoto OSS
-description: Fluxo tecnico para instalacao, auto-registro, heartbeat e validacao operacional do agente remoto no modelo RustDesk self-hosted com portal proprio.
-lastUpdated: 2026-03-23
+description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat e validacao operacional do agente remoto no modelo RustDesk self-hosted com portal proprio.
+lastUpdated: 2026-03-25
 owner: Engenharia de Plataforma
-status: draft
+status: published
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 
-Este manual descreve o fluxo operacional do agente remoto no modelo **OSS-first**, em que o portal da Trilink e a fonte de verdade para host, heartbeat e metadata do agente, enquanto o **RustDesk self-hosted** fica responsavel pela conectividade remota.
+Este manual descreve o fluxo operacional vigente do agente remoto no modelo **OSS-first**, em que o portal da Trilink continua sendo a fonte de verdade para host, heartbeat, instalacoes monitoradas e metadata do agente, enquanto o **RustDesk self-hosted** fica responsavel pela conectividade remota.
 
 ## Objetivo
 
-Padronizar como um host remoto deve ser:
+Padronizar como uma maquina remota deve ser:
 
-- cadastrado no portal
-- vinculado por `installToken`
-- registrado pelo agente
-- mantido online via heartbeat
-- validado antes do uso pelo suporte
+- descoberta sem pre-cadastro
+- vinculada a empresa/host quando necessario
+- registrada diretamente em host ja existente
+- mantida online via heartbeat recorrente
+- validada antes do uso pelo suporte
 
 ## Premissas
 
-- a modelagem de `RemoteHost` ja existe no banco
+- a operacao diaria acontece em `/portal/plataforma-remota`
+- as configuracoes globais do modulo remoto ficam em `/portal/configuracoes?tab=remote`
 - o portal expoe:
+  - `GET /api/remote/agents/discovery-script`
+  - `POST /api/remote/agents/discover`
   - `POST /api/remote/agents/register`
   - `POST /api/remote/agents/heartbeat`
+  - `POST /api/remote/discovered-hosts/:id/link`
 - o `RustDesk ID` deve ser persistido sem espacos
 - a leitura operacional do host hoje segue a matriz:
   - `ONLINE`
@@ -36,7 +40,7 @@ Padronizar como um host remoto deve ser:
   - `SESSION_BUSY`
 
 <Callout type="warning" title="Fonte de verdade">
-  No recorte OSS-first, o portal da Trilink e a fonte de verdade para `installToken`, metadata do agente, heartbeat e relacao entre empresa, host e sessao. O RustDesk nao substitui essa camada.
+  No recorte OSS-first, o portal da Trilink continua sendo a fonte de verdade para `installToken`, metadata do agente, heartbeat, multi-instalacoes e relacao entre empresa, host e sessao. O RustDesk nao substitui essa camada.
 </Callout>
 
 ## Campos operacionais do host
@@ -50,19 +54,53 @@ Padronizar como um host remoto deve ser:
 - `installToken`
 - `machineName`
 - `agentVersion`
+- `serviceStatus`
 - `lastHeartbeatAt`
 - `status`
 
-## Fluxo operacional
+## Fluxos oficiais
+
+Hoje existem **dois fluxos oficiais** de instalacao.
+
+### 1. Descoberta sem pre-cadastro
+
+Usado quando a maquina ainda nao existe no portal.
+
+<Steps>
+  <Step>
+    ### 1. Baixar script padrao
+    O operador baixa o script em `GET /api/remote/agents/discovery-script` pela tela `/portal/plataforma-remota`.
+  </Step>
+  <Step>
+    ### 2. Executar na maquina
+    O script instala/atualiza o RustDesk, aplica a configuracao do servidor proprio, tenta autoelevacao, envia a primeira descoberta e agenda heartbeat recorrente.
+  </Step>
+  <Step>
+    ### 3. Entrada em triagem
+    A maquina aparece em `Maquinas pendentes de vinculacao` no diretorio remoto, ainda como descoberta sem host operacional definitivo.
+  </Step>
+  <Step>
+    ### 4. Vinculacao
+    O operador escolhe a empresa, define o nome do host e converte a descoberta em host operacional via `POST /api/remote/discovered-hosts/:id/link`.
+  </Step>
+  <Step>
+    ### 5. Operacao do suporte
+    O suporte passa a operar o host ja vinculado pelo diretorio e pelo detalhe da maquina.
+  </Step>
+</Steps>
+
+### 2. Instalacao por host ja cadastrado
+
+Usado quando o host ja existe no portal e o agente deve entrar direto no cadastro correto.
 
 <Steps>
   <Step>
     ### 1. Cadastro do host
-    O operador acessa `Configuracoes > Acesso Remoto`, cadastra o host e confirma que o portal gerou um `installToken`.
+    O operador cria ou revisa o host em `/portal/plataforma-remota` ou em `/portal/configuracoes?tab=remote`.
   </Step>
   <Step>
-    ### 2. Instalacao/configuracao do agente
-    A maquina de destino recebe o cliente RustDesk configurado para o servidor self-hosted da operacao.
+    ### 2. Download do instalador do host
+    O operador baixa o `.ps1` do host em `GET /api/remote/hosts/:id/installer`.
   </Step>
   <Step>
     ### 3. Auto-registro
@@ -70,15 +108,51 @@ Padronizar como um host remoto deve ser:
   </Step>
   <Step>
     ### 4. Heartbeat
-    O agente envia chamadas periodicas para `POST /api/remote/agents/heartbeat` para manter `lastHeartbeatAt` atualizado.
+    O agente envia chamadas periodicas para `POST /api/remote/agents/heartbeat` para manter `lastHeartbeatAt`, `serviceStatus` e `sysproUpdates[]` atualizados.
   </Step>
   <Step>
     ### 5. Operacao do suporte
-    O suporte consulta `/app/plataforma-remota`, verifica heartbeat, copia `RustDesk ID` ou abre o detalhe do host antes da sessao.
+    O suporte consulta `/portal/plataforma-remota`, usa `Acesso rapido` ou abre o detalhe do host antes da sessao.
   </Step>
 </Steps>
 
-## Payload de auto-registro
+## Payload minimo recomendado
+
+### Descoberta
+
+Endpoint:
+
+```text
+POST /api/remote/agents/discover
+```
+
+Payload recomendado:
+
+```json
+{
+  "discoveryToken": "REMOTE_DISCOVERY_TOKEN",
+  "rustdeskId": "21187620068",
+  "machineName": "ERP-MATRIZ-01",
+  "agentVersion": "rustdesk-oss-discovery",
+  "serviceStatus": "running",
+  "sysproUpdates": [
+    {
+      "empresa": "EMPRESA X",
+      "caminho": "C:\\syspro\\sysptoserver.exe",
+      "ultimaAtualizacao": "2026-03-25 10:00:00"
+    }
+  ]
+}
+```
+
+Resultado esperado:
+
+- descoberta criada ou atualizada
+- `machineName` preenchido
+- `agentExternalId` preenchido quando o `RustDesk ID` vier valido
+- `serviceStatus` e `sysproUpdates[]` persistidos no host descoberto ou no host ja vinculado
+
+### Registro inicial em host operacional
 
 Endpoint:
 
@@ -90,10 +164,10 @@ Exemplo:
 
 ```json
 {
-  "installToken": "seed-token-<companyId>-prod",
+  "installToken": "rhost_abc123",
   "rustdeskId": "21187620068",
   "machineName": "ERP-MATRIZ-01",
-  "agentVersion": "1.4.0",
+  "agentVersion": "rustdesk-oss-local",
   "environment": "Producao"
 }
 ```
@@ -103,10 +177,8 @@ Resultado esperado:
 - `agentExternalId` preenchido
 - `machineName` preenchido
 - `agentVersion` preenchido
-- `lastHeartbeatAt` atualizado
-- `status` em `ACTIVE`
 
-## Payload de heartbeat
+### Heartbeat operacional
 
 Endpoint:
 
@@ -118,137 +190,117 @@ Exemplo:
 
 ```json
 {
-  "installToken": "seed-token-<companyId>-prod",
+  "installToken": "rhost_abc123",
   "rustdeskId": "21187620068",
   "machineName": "ERP-MATRIZ-01",
-  "agentVersion": "1.4.0"
+  "agentVersion": "rustdesk-oss-local",
+  "serviceStatus": "running",
+  "sysproUpdates": [
+    {
+      "empresa": "EMPRESA X",
+      "caminho": "C:\\syspro\\sysptoserver.exe",
+      "ultimaAtualizacao": "2026-03-25 10:00:00"
+    }
+  ]
 }
 ```
 
 Resultado esperado:
 
 - `lastHeartbeatAt` atualizado
-- metadata visivel no detalhe do host
-- card operacional com leitura de prontidao coerente
+- `serviceStatus` refletido no detalhe do host
+- instalacoes monitoradas atualizadas sem duplicar hosts
 
-## Script base do agente
+## Scripts oficiais
 
-Script operacional disponivel em:
+### Script padrao
+
+Origem oficial:
 
 ```text
-scripts/remote-agent-oss.ps1
+GET /api/remote/agents/discovery-script
 ```
 
-Ele suporta:
+Observacoes:
 
-- registro inicial do agente
-- heartbeat sob demanda
-- instalacao opcional de tarefa agendada para heartbeat periodico
+- e o **script oficial de producao**
+- usa `REMOTE_DISCOVERY_TOKEN` do ambiente
+- consome as configuracoes globais do modulo remoto:
+  - servidor RustDesk
+  - config exportada
+  - chave publica
+  - versao alvo
+  - intervalo de heartbeat
+  - senha padrao
 
-Trecho principal do fluxo:
+### Script estatico em `public`
 
-```powershell
-param(
-  [Parameter(Mandatory = $true)]
-  [string]$PortalBaseUrl,
-  [Parameter(Mandatory = $true)]
-  [string]$InstallToken,
-  [string]$RustDeskId,
-  [string]$MachineName = $env:COMPUTERNAME,
-  [string]$AgentVersion = "rustdesk-oss-local",
-  [string]$Environment,
-  [switch]$HeartbeatOnly,
-  [switch]$InstallScheduledTask,
-  [string]$TaskName = "TrilinkRemoteAgentHeartbeat",
-  [int]$HeartbeatIntervalMinutes = 5
-)
+Arquivo:
 
-$ErrorActionPreference = "Stop"
-
-function Normalize-RustDeskId {
-  param([string]$Value)
-  if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
-  return (($Value -replace "\s+", "").Trim())
-}
-
-function Invoke-RemotePortalEndpoint {
-  param([string]$Url, [hashtable]$Body)
-  $jsonBody = $Body | ConvertTo-Json -Depth 6
-  Invoke-RestMethod -Method Post -Uri $Url -ContentType "application/json" -Body $jsonBody
-}
-
-$normalizedPortalBaseUrl = $PortalBaseUrl.TrimEnd("/")
-$normalizedRustDeskId = Normalize-RustDeskId -Value $RustDeskId
-
-$registerPayload = @{
-  installToken = $InstallToken.Trim()
-  rustdeskId = $normalizedRustDeskId
-  machineName = $MachineName
-  agentVersion = $AgentVersion
-  environment = $Environment
-}
-
-$heartbeatPayload = @{
-  installToken = $InstallToken.Trim()
-  rustdeskId = $normalizedRustDeskId
-  machineName = $MachineName
-  agentVersion = $AgentVersion
-}
-
-if (-not $HeartbeatOnly) {
-  Invoke-RemotePortalEndpoint -Url "$normalizedPortalBaseUrl/api/remote/agents/register" -Body $registerPayload
-}
-
-Invoke-RemotePortalEndpoint -Url "$normalizedPortalBaseUrl/api/remote/agents/heartbeat" -Body $heartbeatPayload
+```text
+public/downloads/trilink-instalador-padrao.ps1
 ```
 
-Exemplo de uso:
+Uso recomendado:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\remote-agent-oss.ps1 `
-  -PortalBaseUrl "https://ajuda.trilinksoftware.com.br" `
-  -InstallToken "seed-token-<companyId>-prod" `
-  -RustDeskId "21187620068" `
-  -MachineName "ERP-MATRIZ-01" `
-  -AgentVersion "1.4.0" `
-  -Environment "Producao"
+- documentacao interna
+- referencia tecnica
+- nao tratar como fonte oficial quando houver divergencia com a rota dinamica
+
+<Callout type="info" title="Regra pratica">
+  Em producao, sempre priorize o script baixado pela rota dinamica. O arquivo estatico em `public` pode ficar defasado se as configuracoes globais do modulo remoto mudarem.
+</Callout>
+
+## Configuracoes globais que afetam o agente
+
+Tela:
+
+```text
+/portal/configuracoes?tab=remote
 ```
 
-Exemplo com instalacao de tarefa agendada:
+Parametros atualmente centralizados:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\remote-agent-oss.ps1 `
-  -PortalBaseUrl "https://ajuda.trilinksoftware.com.br" `
-  -InstallToken "seed-token-<companyId>-prod" `
-  -RustDeskId "21187620068" `
-  -MachineName "ERP-MATRIZ-01" `
-  -AgentVersion "1.4.0" `
-  -Environment "Producao" `
-  -InstallScheduledTask `
-  -HeartbeatIntervalMinutes 5
-```
+- host do servidor RustDesk
+- configuracao exportada do RustDesk
+- chave publica do servidor
+- versao alvo do RustDesk
+- intervalo do heartbeat
+- senha padrao do agente
+
+Esses valores alimentam:
+
+- `GET /api/remote/agents/discovery-script`
+- `GET /api/remote/hosts/:id/installer`
 
 ## Checklist de validacao
 
-### Cadastro
+### Descoberta
+
+- script padrao baixado pela rota dinamica
+- primeira chamada para `discover` concluida
+- maquina aparece em `Maquinas pendentes de vinculacao`
+- vinculacao manual concluida sem erro
+
+### Host operacional
 
 - host criado com empresa correta
-- `installToken` presente
+- `installToken` presente quando o fluxo for por host
 - `RustDesk ID` salvo sem espacos
-
-### Agente
-
-- auto-registro concluido
-- heartbeat atualizado
 - `machineName` e `agentVersion` preenchidos
+
+### Heartbeat
+
+- heartbeat periodico ativo
+- `serviceStatus` atualizado
+- `sysproUpdates[]` refletindo as instalacoes detectadas
 
 ### Operacao
 
-- host aparece em `/app/plataforma-remota`
-- filtros por `status`, `ambiente` e `heartbeat` funcionam
-- `Copiar ID` funciona
-- detalhe do host mostra prontidao operacional
-- `rustdesk://<id>` abre corretamente
+- host aparece em `/portal/plataforma-remota`
+- busca por empresa principal e empresas secundarias funciona
+- `Acesso rapido` funciona
+- detalhe do host mostra nome da maquina, heartbeat e instalacoes
 
 ### Sessao
 
@@ -259,6 +311,45 @@ powershell -ExecutionPolicy Bypass -File .\scripts\remote-agent-oss.ps1 `
 
 ## Problemas comuns
 
+### `403` na descoberta
+
+O `discoveryToken` enviado nao bate com `REMOTE_DISCOVERY_TOKEN`.
+
+Tratamento:
+
+- baixar novamente o script pela rota dinamica
+- validar a variavel de ambiente
+- evitar usar copia antiga do script
+
+### `405` na chamada do agente
+
+Historicamente isso aconteceu quando `middleware` interceptava `/api/remote/agents/*`.
+
+Tratamento:
+
+- validar se a rota do agente continua publica no middleware
+- confirmar que a chamada chega direto em `discover`, `register` ou `heartbeat`
+
+### `Impossivel conectar-se ao servidor remoto`
+
+Normalmente indica URL errada para a API do portal.
+
+Tratamento:
+
+- usar `https://ajuda.trilinksoftware.com.br`
+- nao apontar a API do agente para o host do servidor RustDesk se ele nao hospeda o portal Next
+
+### Sem heartbeat
+
+O agente nao registrou atividade recente no portal.
+
+Tratamento:
+
+- validar script/tarefa agendada
+- validar conectividade com o portal
+- validar `installToken` ou `discoveryToken`
+- validar permissao do PowerShell
+
 ### `about:blank#blocked`
 
 O navegador bloqueou o protocolo externo `rustdesk://`.
@@ -268,38 +359,21 @@ Tratamento:
 - testar `rustdesk://<id>` no `Win + R`
 - copiar o `RustDesk ID` e abrir manualmente no app
 
-### `ID nao existe`
-
-O `RustDesk ID` foi salvo incorretamente ou com espacos.
-
-Tratamento:
-
-- regravar o cadastro sem espacos
-- confirmar que o ID enviado ao RustDesk esta normalizado
-
-### Sem heartbeat
-
-O agente nao registrou atividade recente no portal.
-
-Tratamento:
-
-- validar script/servico do agente
-- validar conectividade com o portal
-- validar `installToken`
-
 ## Relacao com o backlog
 
 Este manual cobre principalmente:
 
+- `FEAT-001`
 - `FEAT-002`
+- `FEAT-002A`
 - `FEAT-002B`
+- parte operacional de `FEAT-002C`
 - parte operacional de `FEAT-003`
 
 ## Proximo endurecimento recomendado
 
 Depois da validacao em ambiente real, a evolucao recomendada e:
 
-1. manter `installToken` apenas no bootstrap
-2. emitir um `agentToken` para operacao continuada
-3. usar esse token nas chamadas futuras de heartbeat e jobs
-
+1. validar os dois fluxos em maquina real de ponta a ponta
+2. endurecer observabilidade do agente com inventario tecnico e rede
+3. decidir se `installToken` continua apenas como bootstrap antes de evoluir para `agentToken`
