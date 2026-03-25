@@ -151,55 +151,6 @@ function getOperationalMeta(input: { rustdeskId: string | null; lastHeartbeatAt:
   };
 }
 
-function getHeartbeatOperationalMeta(value: string | null) {
-  if (!value) {
-    return {
-      label: "Heartbeat pendente",
-      description: "O portal ainda nao recebeu sucesso operacional do agente.",
-      tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-    };
-  }
-
-  const diffMs = Date.now() - new Date(value).getTime();
-  if (diffMs <= 10 * 60 * 1000) {
-    return {
-      label: "Heartbeat ativo",
-      description: "O agente segue reportando atividade recente ao portal.",
-      tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    };
-  }
-
-  return {
-    label: "Heartbeat degradado",
-    description: "Existe historico de sucesso, mas a leitura recente ja pede verificacao.",
-    tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  };
-}
-
-function getBootstrapMeta(input: { lastRegisterAt: string | null; needsBootstrap: boolean }) {
-  if (input.lastRegisterAt && !input.needsBootstrap) {
-    return {
-      label: "Bootstrap concluido",
-      description: "O host ja concluiu bootstrap e pode seguir operando com a credencial atual.",
-      tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    };
-  }
-
-  if (input.lastRegisterAt) {
-    return {
-      label: "Bootstrap expirado",
-      description: "O host ja foi registrado antes, mas agora precisa de novo bootstrap.",
-      tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    };
-  }
-
-  return {
-    label: "Bootstrap pendente",
-    description: "O host ainda nao concluiu um bootstrap valido neste portal.",
-    tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-  };
-}
-
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const [machineName, setMachineName] = useState(host.machineName ?? "");
@@ -219,7 +170,24 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [linkingUpdateId, startLinkingUpdateId] = useTransition();
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
-  const installCommand = `powershell.exe -ExecutionPolicy Bypass -File ".\\${host.name
+  const rustDeskServerHost = details.moduleSettings.rustDeskServerHost || "acesso.trilinksoftware.com.br";
+  const rustDeskPublicKey =
+    details.moduleSettings.rustDeskPublicKey || "6FpnQH+KbbpX0qw6XxF0xqnIO0QnHImwbvQ5Lv7q6gU=";
+  const rustDeskServerConfig =
+    details.moduleSettings.rustDeskServerConfig ||
+    "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye";
+  const adminShellCommand = `powershell.exe -ExecutionPolicy Bypass -File ".\\${host.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "trilink-remote-agent"}.ps1"`;
+  const unblockAndRunCommand = `Unblock-File ".\\${host.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "trilink-remote-agent"}.ps1"\npowershell.exe -ExecutionPolicy Bypass -File ".\\${host.name
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -237,12 +205,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       }),
     [agentTokenMeta.needsBootstrap, host.lastHeartbeatAt, host.rustdeskId]
   );
-  const heartbeatOperationalMeta = useMemo(() => getHeartbeatOperationalMeta(host.lastHeartbeatSuccessAt), [host.lastHeartbeatSuccessAt]);
-  const bootstrapMeta = useMemo(
-    () => getBootstrapMeta({ lastRegisterAt: host.lastRegisterAt, needsBootstrap: agentTokenMeta.needsBootstrap }),
-    [agentTokenMeta.needsBootstrap, host.lastRegisterAt]
-  );
-
   const installations = useMemo(() => {
     const seen = new Set<string>();
     const items = details.sysproUpdates
@@ -460,14 +422,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <Badge variant="outline" className={heartbeat.tone}>
                 {heartbeat.label}
               </Badge>
-              <Badge variant="outline" className={serviceStatus.tone}>
-                {serviceStatus.label}
-              </Badge>
               <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                 {statusLabel}
-              </Badge>
-              <Badge variant="outline" className={agentTokenMeta.tone}>
-                {agentTokenMeta.label}
               </Badge>
               {host.environment ? (
                 <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
@@ -484,6 +440,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   : "Maquina remota vinculada ao portal"}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">{host.description || "Sem descricao operacional."}</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {operationalMeta.label}. Detalhes de bootstrap, token e instalacao ficam concentrados na aba `Agente`.
+              </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-[1fr_auto]">
@@ -512,18 +471,30 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Configuracao e instalacao manual</DialogTitle>
-                      <DialogDescription>Dados do servidor RustDesk e comando base para rodar o script no PowerShell como administrador.</DialogDescription>
+                      <DialogDescription>Campos prontos para preencher manualmente no RustDesk e scripts de shell para instalar o agente com privilegio de administrador.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 text-sm text-muted-foreground">
+                      <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-medium text-foreground">Servidor ID/Relay</p>
+                          <Button variant="ghost" size="sm" onClick={() => handleCopy(`${rustDeskServerHost}\n${rustDeskServerHost}\n${rustDeskServerHost}\n${rustDeskPublicKey}`, "Dados manuais do servidor")}>
+                            <Copy className="mr-2 h-3.5 w-3.5" />
+                            Copiar bloco
+                          </Button>
+                        </div>
+                        <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr] md:items-center">
+                          <p className="text-sm text-foreground">Servidor de ID</p>
+                          <div className="rounded-md border border-border bg-background px-3 py-2 font-medium text-foreground">{rustDeskServerHost}</div>
+                          <p className="text-sm text-foreground">Servidor de Relay</p>
+                          <div className="rounded-md border border-border bg-background px-3 py-2 font-medium text-foreground">{rustDeskServerHost}</div>
+                          <p className="text-sm text-foreground">Servidor da API</p>
+                          <div className="rounded-md border border-border bg-background px-3 py-2 font-medium text-foreground">{rustDeskServerHost}</div>
+                          <p className="text-sm text-foreground">Key</p>
+                          <div className="rounded-md border border-border bg-background px-3 py-2 break-all font-mono text-xs text-foreground">{rustDeskPublicKey}</div>
+                        </div>
+                      </div>
+
                       <div className="grid gap-3 md:grid-cols-2">
-                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-                          <p className="text-[11px] uppercase tracking-wide">Servidor ID/Relay</p>
-                          <p className="mt-1 break-all font-medium text-foreground">{details.moduleSettings.rustDeskServerHost}</p>
-                        </div>
-                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-                          <p className="text-[11px] uppercase tracking-wide">Key publica</p>
-                          <p className="mt-1 break-all font-mono text-xs text-foreground">{details.moduleSettings.rustDeskPublicKey || "Nao configurada"}</p>
-                        </div>
                         <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
                           <p className="text-[11px] uppercase tracking-wide">Versao alvo</p>
                           <p className="mt-1 text-foreground">{details.moduleSettings.rustDeskVersion}</p>
@@ -535,10 +506,21 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       </div>
 
                       <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-                        <p className="text-[11px] uppercase tracking-wide">Comando base no PowerShell</p>
-                        <p className="mt-1 break-all font-mono text-xs text-foreground">{installCommand}</p>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-[11px] uppercase tracking-wide">Config exportada do servidor</p>
+                          <Button variant="outline" size="sm" onClick={() => handleCopy(rustDeskServerConfig, "Config exportada do servidor")}>
+                            <Copy className="mr-2 h-3.5 w-3.5" />
+                            Copiar config
+                          </Button>
+                        </div>
+                        <p className="mt-2 break-all font-mono text-xs text-foreground">{rustDeskServerConfig}</p>
+                      </div>
+
+                      <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                        <p className="text-[11px] uppercase tracking-wide">Comando base no PowerShell como administrador</p>
+                        <p className="mt-1 break-all font-mono text-xs text-foreground">{adminShellCommand}</p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleCopy(installCommand, "Comando de instalacao")}>
+                          <Button variant="outline" size="sm" onClick={() => handleCopy(adminShellCommand, "Comando de instalacao")}>
                             <Copy className="mr-2 h-3.5 w-3.5" />
                             Copiar comando
                           </Button>
@@ -550,20 +532,28 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       </div>
 
                       <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                        <p className="text-[11px] uppercase tracking-wide">Shell se o arquivo vier bloqueado</p>
+                        <p className="mt-1 whitespace-pre-wrap break-all font-mono text-xs text-foreground">{unblockAndRunCommand}</p>
+                        <div className="mt-3">
+                          <Button variant="outline" size="sm" onClick={() => handleCopy(unblockAndRunCommand, "Comando com Unblock-File")}>
+                            <Copy className="mr-2 h-3.5 w-3.5" />
+                            Copiar shell completo
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
                         <p className="font-medium text-foreground">Passo a passo</p>
                         <p className="mt-2">1. Baixe o `.ps1` deste host pelo portal.</p>
                         <p>2. Abra o PowerShell como administrador.</p>
-                        <p>3. Rode o comando base acima apontando para o arquivo baixado.</p>
-                        <p>4. Se precisar configurar manualmente o app, use o servidor e a key mostrados neste popup.</p>
-                        {isMobileClient ? <p>5. No celular, use esse popup como referencia e prefira `Abrir no app` para o acesso.</p> : null}
+                        <p>3. Se o Windows bloquear o arquivo, rode primeiro o shell com `Unblock-File`.</p>
+                        <p>4. Se precisar configurar manualmente o app, preencha `Servidor de ID`, `Relay`, `API` e `Key` com os dados acima.</p>
+                        <p>5. Se o cliente pedir, cole tambem a `config exportada` no fluxo do servidor proprio.</p>
+                        {isMobileClient ? <p>6. No celular, use esse popup como referencia e prefira `Abrir no app` para o acesso.</p> : null}
                       </div>
                     </div>
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="gap-2">
-                  <Fingerprint className="h-4 w-4" />
-                  Copiar token
-                </Button>
               </div>
             </div>
 
@@ -591,23 +581,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </span>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className={cn("rounded-xl border p-3", operationalMeta.tone)}>
-                <p className="text-[11px] uppercase tracking-wide opacity-80">Operacao</p>
-                <p className="mt-1 text-sm font-semibold">{operationalMeta.label}</p>
-                <p className="mt-1 text-xs opacity-90">{operationalMeta.description}</p>
-              </div>
-              <div className={cn("rounded-xl border p-3", heartbeatOperationalMeta.tone)}>
-                <p className="text-[11px] uppercase tracking-wide opacity-80">Saude do heartbeat</p>
-                <p className="mt-1 text-sm font-semibold">{heartbeatOperationalMeta.label}</p>
-                <p className="mt-1 text-xs opacity-90">{heartbeatOperationalMeta.description}</p>
-              </div>
-              <div className={cn("rounded-xl border p-3", bootstrapMeta.tone)}>
-                <p className="text-[11px] uppercase tracking-wide opacity-80">Bootstrap</p>
-                <p className="mt-1 text-sm font-semibold">{bootstrapMeta.label}</p>
-                <p className="mt-1 text-xs opacity-90">{bootstrapMeta.description}</p>
-              </div>
-            </div>
           </div>
 
           <div className="space-y-3">
@@ -634,14 +607,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             </div>
             <div className="rounded-xl border border-border/50 bg-muted/15 p-3 text-sm text-muted-foreground">
               <p>
-                1. Use <span className="font-medium text-foreground">{isMobileClient ? "Abrir no app" : "Abrir acesso remoto"}</span> como acao principal.
+                Use <span className="font-medium text-foreground">{isMobileClient ? "Abrir no app" : "Abrir acesso remoto"}</span> como acao principal.
+                Se precisar de instalacao, token ou rotacao, avance para a aba <span className="font-medium text-foreground">Agente</span>.
               </p>
-              <p>2. Se o app nao abrir, copie o `RustDesk ID` e conecte manualmente.</p>
-              <p>3. Atualize o nome da maquina quando o heartbeat vier com identificacao diferente.</p>
-              {agentTokenMeta.needsBootstrap ? (
-                <p>4. Este host precisa de novo bootstrap antes do proximo heartbeat valido.</p>
-              ) : null}
-              {host.openSessionCount > 0 ? <p>{agentTokenMeta.needsBootstrap ? "5" : "4"}. Ja existe sessao aberta. Evite duplicidade de atendimento.</p> : null}
             </div>
           </div>
         </CardContent>
