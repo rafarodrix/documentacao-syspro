@@ -124,6 +124,79 @@ function getAgentTokenMeta(value: string | null) {
   };
 }
 
+function hasNumericRustDeskId(value: string | null) {
+  return !!value && /^\d{7,12}$/.test(value.replace(/\s+/g, ""));
+}
+
+function getOperationalMeta(input: { rustdeskId: string | null; lastHeartbeatAt: string | null; needsBootstrap: boolean }) {
+  const heartbeatMs = input.lastHeartbeatAt ? Date.now() - new Date(input.lastHeartbeatAt).getTime() : Number.POSITIVE_INFINITY;
+  const heartbeatRecent = heartbeatMs <= 10 * 60 * 1000;
+  const hasValidId = hasNumericRustDeskId(input.rustdeskId);
+
+  if (heartbeatRecent && hasValidId && !input.needsBootstrap) {
+    return {
+      label: "Host operacional",
+      description: "Heartbeat recente, ID valido e credencial operacional liberada.",
+      tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  return {
+    label: "Host exige revisao",
+    description: "Valide ID, heartbeat ou bootstrap antes de tratar este host como pronto para acesso.",
+    tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  };
+}
+
+function getHeartbeatOperationalMeta(value: string | null) {
+  if (!value) {
+    return {
+      label: "Heartbeat pendente",
+      description: "O portal ainda nao recebeu sucesso operacional do agente.",
+      tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+    };
+  }
+
+  const diffMs = Date.now() - new Date(value).getTime();
+  if (diffMs <= 10 * 60 * 1000) {
+    return {
+      label: "Heartbeat ativo",
+      description: "O agente segue reportando atividade recente ao portal.",
+      tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  return {
+    label: "Heartbeat degradado",
+    description: "Existe historico de sucesso, mas a leitura recente ja pede verificacao.",
+    tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  };
+}
+
+function getBootstrapMeta(input: { lastRegisterAt: string | null; needsBootstrap: boolean }) {
+  if (input.lastRegisterAt && !input.needsBootstrap) {
+    return {
+      label: "Bootstrap concluido",
+      description: "O host ja concluiu bootstrap e pode seguir operando com a credencial atual.",
+      tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  if (input.lastRegisterAt) {
+    return {
+      label: "Bootstrap expirado",
+      description: "O host ja foi registrado antes, mas agora precisa de novo bootstrap.",
+      tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    };
+  }
+
+  return {
+    label: "Bootstrap pendente",
+    description: "O host ainda nao concluiu um bootstrap valido neste portal.",
+    tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+  };
+}
+
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const [machineName, setMachineName] = useState(host.machineName ?? "");
@@ -135,6 +208,20 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
   const agentTokenMeta = useMemo(() => getAgentTokenMeta(host.lastHeartbeatErrorMessage), [host.lastHeartbeatErrorMessage]);
+  const operationalMeta = useMemo(
+    () =>
+      getOperationalMeta({
+        rustdeskId: host.rustdeskId,
+        lastHeartbeatAt: host.lastHeartbeatAt,
+        needsBootstrap: agentTokenMeta.needsBootstrap,
+      }),
+    [agentTokenMeta.needsBootstrap, host.lastHeartbeatAt, host.rustdeskId]
+  );
+  const heartbeatOperationalMeta = useMemo(() => getHeartbeatOperationalMeta(host.lastHeartbeatSuccessAt), [host.lastHeartbeatSuccessAt]);
+  const bootstrapMeta = useMemo(
+    () => getBootstrapMeta({ lastRegisterAt: host.lastRegisterAt, needsBootstrap: agentTokenMeta.needsBootstrap }),
+    [agentTokenMeta.needsBootstrap, host.lastRegisterAt]
+  );
 
   const installations = useMemo(() => {
     const seen = new Set<string>();
@@ -370,6 +457,24 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
                 Agente: {host.agentVersion ?? "Nao registrado"}
               </span>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className={cn("rounded-xl border p-3", operationalMeta.tone)}>
+                <p className="text-[11px] uppercase tracking-wide opacity-80">Operacao</p>
+                <p className="mt-1 text-sm font-semibold">{operationalMeta.label}</p>
+                <p className="mt-1 text-xs opacity-90">{operationalMeta.description}</p>
+              </div>
+              <div className={cn("rounded-xl border p-3", heartbeatOperationalMeta.tone)}>
+                <p className="text-[11px] uppercase tracking-wide opacity-80">Saude do heartbeat</p>
+                <p className="mt-1 text-sm font-semibold">{heartbeatOperationalMeta.label}</p>
+                <p className="mt-1 text-xs opacity-90">{heartbeatOperationalMeta.description}</p>
+              </div>
+              <div className={cn("rounded-xl border p-3", bootstrapMeta.tone)}>
+                <p className="text-[11px] uppercase tracking-wide opacity-80">Bootstrap</p>
+                <p className="mt-1 text-sm font-semibold">{bootstrapMeta.label}</p>
+                <p className="mt-1 text-xs opacity-90">{bootstrapMeta.description}</p>
+              </div>
             </div>
           </div>
 

@@ -106,6 +106,22 @@ function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
   };
 }
 
+function hasNumericRustDeskId(value: string | null) {
+  return !!value && /^\d{7,12}$/.test(value.replace(/\s+/g, ""));
+}
+
+function getOperationalHighlights(item: DirectoryItem) {
+  const heartbeatRecent = !!item.lastHeartbeatSuccessAt && Date.now() - new Date(item.lastHeartbeatSuccessAt).getTime() <= 10 * 60 * 1000;
+  const bootstrapComplete = !!item.lastRegisterAt && !getAgentTokenMeta(item.lastHeartbeatErrorMessage).needsBootstrap;
+  const hostOperational = heartbeatRecent && bootstrapComplete && hasNumericRustDeskId(item.rustdeskId);
+
+  return {
+    hostOperational,
+    heartbeatRecent,
+    bootstrapComplete,
+  };
+}
+
 export function RemotePlatformDirectoryPanel({ directory }: { directory: RemotePlatformDirectory }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -617,6 +633,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
                 const HeartbeatIcon = heartbeat.icon;
                 const agentToken = getAgentTokenMeta(item.lastHeartbeatErrorMessage);
+                const operational = getOperationalHighlights(item);
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
                 const companyLine = item.installationCompanies.length
                   ? item.installationCompanies.join(" | ")
@@ -654,6 +671,38 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           <p className="text-sm text-muted-foreground">
                             Maquina: {item.machineName ?? item.name}
                           </p>
+                          <div className="flex flex-wrap gap-2 text-[11px]">
+                            <span
+                              className={cn(
+                                "rounded-full border px-2.5 py-1",
+                                operational.hostOperational
+                                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                  : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                              )}
+                            >
+                              {operational.hostOperational ? "Host operacional" : "Host exige revisao"}
+                            </span>
+                            <span
+                              className={cn(
+                                "rounded-full border px-2.5 py-1",
+                                operational.heartbeatRecent
+                                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                  : "border-border/60 bg-background/70 text-muted-foreground"
+                              )}
+                            >
+                              {operational.heartbeatRecent ? "Heartbeat ativo" : "Heartbeat pendente"}
+                            </span>
+                            <span
+                              className={cn(
+                                "rounded-full border px-2.5 py-1",
+                                operational.bootstrapComplete
+                                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                  : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                              )}
+                            >
+                              {operational.bootstrapComplete ? "Bootstrap concluido" : "Bootstrap pendente"}
+                            </span>
+                          </div>
                           {agentToken.needsBootstrap ? (
                             <p className="text-xs text-rose-600 dark:text-rose-300">
                               O agentToken deste host precisa de novo bootstrap antes do proximo heartbeat valido.

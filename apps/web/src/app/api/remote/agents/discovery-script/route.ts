@@ -242,6 +242,17 @@ function Get-ApiErrorDetails {
     }
 }
 
+function Get-RustDeskProcess {
+    return Get-Process -Name 'rustdesk' -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+
+function Get-RustDeskService {
+    $service = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
+    if ($service) { return $service }
+
+    return Get-Service -DisplayName '*RustDesk*' -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+
 function Test-PortalConnection {
     try {
         Invoke-WebRequest -Uri $portalBaseUrl -Method Head -UseBasicParsing -TimeoutSec 20 | Out-Null
@@ -253,11 +264,11 @@ function Test-PortalConnection {
 
 function Get-ServiceHealthStatus {
     $serviceStatus = 'not_found'
-    $svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
+    $svc = Get-RustDeskService
     if ($svc) {
         if ($svc.Status -ne 'Running') {
             try {
-                Start-Service -Name 'RustDesk' -ErrorAction Stop
+                Start-Service -InputObject $svc -ErrorAction Stop
                 $serviceStatus = 'restarted_by_agent'
             } catch {
                 $serviceStatus = $svc.Status.ToString().ToLower()
@@ -265,6 +276,8 @@ function Get-ServiceHealthStatus {
         } else {
             $serviceStatus = 'running'
         }
+    } elseif (Get-RustDeskProcess) {
+        $serviceStatus = 'running'
     }
 
     return $serviceStatus
@@ -461,13 +474,24 @@ function Get-ApiErrorDetails {
     }
 }
 
+function Get-RustDeskProcess {
+    return Get-Process -Name 'rustdesk' -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+
+function Get-RustDeskService {
+    $service = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
+    if ($service) { return $service }
+
+    return Get-Service -DisplayName '*RustDesk*' -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+
 $rustdeskId = Resolve-RustDeskId
 $serviceStatus = 'not_found'
-$svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
+$svc = Get-RustDeskService
 if ($svc) {
     if ($svc.Status -ne 'Running') {
         try {
-            Start-Service -Name 'RustDesk' -ErrorAction Stop
+            Start-Service -InputObject $svc -ErrorAction Stop
             $serviceStatus = 'restarted_by_agent'
         } catch {
             $serviceStatus = $svc.Status.ToString().ToLower()
@@ -475,6 +499,8 @@ if ($svc) {
     } else {
         $serviceStatus = 'running'
     }
+} elseif (Get-RustDeskProcess) {
+    $serviceStatus = 'running'
 }
 
 $resultadosUpdates = @()
