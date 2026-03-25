@@ -328,11 +328,11 @@ function Invoke-InitialHeartbeat {
         sysproUpdates = Get-SysproUpdates
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($AgentToken)) {
-        $payloadHeartbeat.agentToken = $AgentToken
-    } else {
-        $payloadHeartbeat.installToken = $installToken
+    if ([string]::IsNullOrWhiteSpace($AgentToken)) {
+        throw 'agentToken nao disponivel para heartbeat inicial.'
     }
+
+    $payloadHeartbeat.agentToken = $AgentToken
 
     Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body ($payloadHeartbeat | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
 }
@@ -446,7 +446,7 @@ try {
         Set-Content -Path $agentTokenPath -Value $agentToken -Force -Encoding UTF8
         Write-InstallLog -Message 'agentToken emitido e persistido localmente.'
     } else {
-        Write-InstallError -Message 'Resposta de register sem agentToken. Heartbeat seguira em modo de compatibilidade.'
+        throw 'Resposta de register sem agentToken.'
     }
     Write-Host 'Registro concluido com sucesso.' -ForegroundColor Green
     Write-InstallLog -Message "Registro concluido com sucesso. RustDesk ID: $normalizedRustDeskId"
@@ -478,7 +478,6 @@ try {
 $heartbeatScriptContent = @'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $portalBaseUrl = 'PORTAL_BASE_URL'
-$installToken = 'INSTALL_TOKEN'
 $agentToken = 'AGENT_TOKEN'
 $agentTokenPath = 'AGENT_TOKEN_PATH'
 $machineName = 'MACHINE_NAME'
@@ -615,11 +614,12 @@ $payloadHeartbeat = @{
     sysproUpdates = $resultadosUpdates
 }
 
-if (-not [string]::IsNullOrWhiteSpace($resolvedAgentToken)) {
-    $payloadHeartbeat.agentToken = $resolvedAgentToken
-} else {
-    $payloadHeartbeat.installToken = $installToken
+if ([string]::IsNullOrWhiteSpace($resolvedAgentToken)) {
+    Write-HeartbeatError -Message 'agentToken indisponivel. Execute o bootstrap novamente para restabelecer o heartbeat.'
+    exit
 }
+
+$payloadHeartbeat.agentToken = $resolvedAgentToken
 
 try {
     Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body ($payloadHeartbeat | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
@@ -629,7 +629,6 @@ try {
 '@
 
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('PORTAL_BASE_URL', '${escapedPortalBaseUrl}')
-    $heartbeatScriptContent = $heartbeatScriptContent.Replace('INSTALL_TOKEN', '${escapedInstallToken}')
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_TOKEN', $agentToken)
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_TOKEN_PATH', "$agentTokenPath")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('MACHINE_NAME', "$machineName")

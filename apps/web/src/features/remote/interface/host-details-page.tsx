@@ -224,22 +224,22 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
-  function handleRevokeAgentToken() {
+  function handleRotateAgentToken() {
     startRevokingAgentToken(async () => {
       try {
         const response = await fetch(`/api/remote/hosts/${host.id}/agent-token`, {
-          method: "DELETE",
+          method: "POST",
         });
 
         const payload = await response.json().catch(() => null);
         if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao revogar agentToken.");
+          throw new Error(payload?.error ?? "Falha ao rotacionar agentToken.");
         }
 
-        toast.success(payload?.message ?? "agentToken revogado.");
+        toast.success(payload?.message ?? "agentToken rotacionado.");
         window.location.reload();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao revogar agentToken.");
+        toast.error(error instanceof Error ? error.message : "Falha ao rotacionar agentToken.");
       }
     });
   }
@@ -472,9 +472,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <Copy className="h-4 w-4" />
                   Copiar RustDesk ID
                 </Button>
-                <Button variant="outline" onClick={handleRevokeAgentToken} disabled={isRevokingAgentToken} className="gap-2">
+                <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="gap-2">
                   <Fingerprint className="h-4 w-4" />
-                  {isRevokingAgentToken ? "Revogando..." : "Revogar agentToken"}
+                  {isRevokingAgentToken ? "Rotacionando..." : "Rotacionar agentToken"}
                 </Button>
               </div>
 

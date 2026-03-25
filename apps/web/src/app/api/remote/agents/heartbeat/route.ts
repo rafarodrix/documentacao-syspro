@@ -54,7 +54,6 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as {
-    installToken?: string;
     agentToken?: string;
     rustdeskId?: string | null;
     machineName?: string | null;
@@ -63,23 +62,21 @@ export async function POST(request: Request) {
     sysproUpdates?: unknown;
   };
 
-  const installToken = body.installToken?.trim();
   const agentToken = body.agentToken?.trim();
-  if (!installToken && !agentToken) {
+  if (!agentToken) {
     logger.warn("remote.agent.heartbeat.missing_agent_credentials");
     return NextResponse.json(
-      { success: false, error: "agentToken ou installToken e obrigatorio." },
+      { success: false, error: "agentToken e obrigatorio." },
       { status: 400, headers: responseHeaders }
     );
   }
 
-  const agentTokenHash = agentToken ? hashAgentToken(agentToken) : null;
+  const agentTokenHash = hashAgentToken(agentToken);
   const host = await prisma.remoteHost.findFirst({
-    where: agentTokenHash ? { agentTokenHash } : { installToken },
+    where: { agentTokenHash },
     select: {
       id: true,
       companyId: true,
-      installToken: true,
       agentTokenHash: true,
       company: {
         select: {
@@ -92,7 +89,7 @@ export async function POST(request: Request) {
 
   if (!host) {
     logger.warn("remote.agent.heartbeat.invalid_agent_credentials", {
-      credentialType: agentTokenHash ? "agentToken" : "installToken",
+      credentialType: "agentToken",
     });
     return NextResponse.json(
       { success: false, error: "Credencial do agente invalida." },
@@ -132,7 +129,7 @@ export async function POST(request: Request) {
           lastHeartbeatErrorAt: null,
           lastHeartbeatErrorMessage: null,
           lastKnownIp: ip || undefined,
-          agentTokenLastUsedAt: agentTokenHash ? heartbeatAt : undefined,
+          agentTokenLastUsedAt: heartbeatAt,
           status: "ACTIVE",
         },
         select: {
@@ -177,7 +174,7 @@ export async function POST(request: Request) {
 
     logger.error("remote.agent.heartbeat.failed", {
       hostId: host.id,
-      authMode: agentTokenHash ? "agentToken" : "installToken",
+      authMode: "agentToken",
       errorMessage,
     });
 
@@ -190,7 +187,7 @@ export async function POST(request: Request) {
   logger.info("remote.agent.heartbeat.succeeded", {
     hostId: updated.id,
     machineName: updated.machineName,
-    authMode: agentTokenHash ? "agentToken" : "installToken",
+    authMode: "agentToken",
     serviceStatus: hasServiceStatus ? normalizedServiceStatus : undefined,
     sysproUpdateCount: sysproUpdates.length,
   });
