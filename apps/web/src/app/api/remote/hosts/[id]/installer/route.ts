@@ -88,9 +88,10 @@ $ErrorActionPreference = 'Stop'
 # ==========================================
 # 1. CONFIGURACOES DO SERVIDOR RUSTDESK
 # ==========================================
-$expectedRustDeskVersion = '1.3.1'
-$rustDeskDownloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$expectedRustDeskVersion/rustdesk-$expectedRustDeskVersion-x86_64.exe"
+$expectedRustDeskVersion = '1.4.6'
+$rustDeskDownloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$expectedRustDeskVersion/rustdesk-$expectedRustDeskVersion-x86_64.msi"
 $customRendezvousServer = 'rustdesk.trilinksoftware.com.br'
+$serverConfig = '==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye'
 $customServerKey = 'SUA_CHAVE_PUBLICA_AQUI'
 
 # ==========================================
@@ -160,11 +161,12 @@ function Install-Or-Update-RustDesk {
             Write-InstallLog -Message "Instalando RustDesk na versao $expectedRustDeskVersion."
         }
 
-        $tempInstaller = "$env:TEMP\\rustdesk_installer.exe"
+        $tempInstaller = "$env:TEMP\\rustdesk_installer.msi"
         try {
             Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing -TimeoutSec 120
-            Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden
-            Start-Sleep -Seconds 12
+            $msiArgs = "/i \`"$tempInstaller\`" /qn /norestart"
+            Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -WindowStyle Hidden
+            Start-Sleep -Seconds 15
         } finally {
             if (Test-Path $tempInstaller) {
                 Remove-Item -Path $tempInstaller -Force -ErrorAction SilentlyContinue
@@ -181,16 +183,48 @@ function Install-Or-Update-RustDesk {
 function Resolve-RustDeskId {
     param([string]$FallbackValue)
 
+    $tmpFile = "$env:TEMP\\rd_id_capture.txt"
+    $exePath = Find-RustDeskExecutable
+
+    if ($exePath) {
+        try {
+            Start-Process -FilePath $exePath -ArgumentList "--get-id" -RedirectStandardOutput $tmpFile -NoNewWindow -Wait
+            if (Test-Path $tmpFile) {
+                $rawId = Get-Content $tmpFile -Raw
+                Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
+                if ($rawId -match '(\d{7,10})') {
+                    return Normalize-RustDeskId -Value $matches[1]
+                }
+            }
+        } catch {}
+    }
+
+    $regPaths = @(
+        'HKLM:\\SOFTWARE\\RustDesk',
+        'HKLM:\\SOFTWARE\\WOW6432Node\\RustDesk'
+    )
+
+    foreach ($regPath in $regPaths) {
+        if (Test-Path $regPath) {
+            $val = Get-ItemProperty -Path $regPath -Name 'id' -ErrorAction SilentlyContinue
+            if ($val.id -match '\d{7,10}') {
+                return Normalize-RustDeskId -Value $val.id.ToString()
+            }
+        }
+    }
+
     $configPaths = @(
         'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk.toml',
         'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk2.toml',
-        "$env:APPDATA\\RustDesk\\config\\RustDesk.toml",
-        "$env:APPDATA\\RustDesk\\config\\RustDesk2.toml"
+        'C:\\Windows\\System32\\config\\systemprofile\\AppData\\Roaming\\RustDesk\\config\\RustDesk.toml',
+        'C:\\Windows\\System32\\config\\systemprofile\\AppData\\Roaming\\RustDesk\\config\\RustDesk2.toml',
+        'C:\\ProgramData\\RustDesk\\config\\RustDesk.toml',
+        'C:\\ProgramData\\RustDesk\\config\\RustDesk2.toml'
     )
 
     foreach ($configPath in $configPaths) {
         if (Test-Path $configPath) {
-            $content = Get-Content $configPath -Raw
+            $content = Get-Content $configPath -Raw -Encoding UTF8
             if ($content -match "id\\s*=\\s*'([^']+)'") {
                 return Normalize-RustDeskId -Value $matches[1]
             }
@@ -327,6 +361,15 @@ Write-Host '[2/5] Aplicando configuracoes do RustDesk...' -ForegroundColor Cyan
 try {
     Start-Process -FilePath $rustdeskExe -ArgumentList "--password $RustDeskPassword" -Wait -WindowStyle Hidden
 
+    if (-not [string]::IsNullOrWhiteSpace($serverConfig)) {
+        try {
+            Start-Process -FilePath $rustdeskExe -ArgumentList "--config $serverConfig" -Wait -WindowStyle Hidden
+        } catch {
+            Write-Host "Falha ao aplicar config exportada do RustDesk: $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-InstallError -Message "Falha ao aplicar config exportada do RustDesk: $($_.Exception.Message)"
+        }
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($customRendezvousServer)) {
         Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-rendezvous-server $customRendezvousServer" -Wait -WindowStyle Hidden
     }
@@ -429,9 +472,43 @@ function Normalize-RustDeskId {
 function Resolve-RustDeskId {
     param([string]$FallbackValue)
 
+    $tmpFile = "$env:TEMP\rd_id_capture.txt"
+    $exePath = "C:\Program Files\RustDesk\rustdesk.exe"
+
+    if (Test-Path $exePath) {
+        try {
+            Start-Process -FilePath $exePath -ArgumentList "--get-id" -RedirectStandardOutput $tmpFile -NoNewWindow -Wait
+            if (Test-Path $tmpFile) {
+                $rawId = Get-Content $tmpFile -Raw
+                Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
+                if ($rawId -match '(\d{7,10})') {
+                    return Normalize-RustDeskId -Value $matches[1]
+                }
+            }
+        } catch {}
+    }
+
+    $regPaths = @(
+        'HKLM:\SOFTWARE\RustDesk',
+        'HKLM:\SOFTWARE\WOW6432Node\RustDesk'
+    )
+
+    foreach ($regPath in $regPaths) {
+        if (Test-Path $regPath) {
+            $val = Get-ItemProperty -Path $regPath -Name 'id' -ErrorAction SilentlyContinue
+            if ($val.id -match '\d{7,10}') {
+                return Normalize-RustDeskId -Value $val.id.ToString()
+            }
+        }
+    }
+
     $configPaths = @(
         'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml',
-        'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml'
+        'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml',
+        'C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml',
+        'C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml',
+        'C:\ProgramData\RustDesk\config\RustDesk.toml',
+        'C:\ProgramData\RustDesk\config\RustDesk2.toml'
     )
 
     foreach ($configPath in $configPaths) {

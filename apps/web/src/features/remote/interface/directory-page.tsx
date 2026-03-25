@@ -84,6 +84,16 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
   };
 }
 
+function buildOperationalSummary(item: DirectoryItem) {
+  return [
+    item.machineName ? `Maquina: ${item.machineName}` : null,
+    item.agentVersion ? `Agente: ${item.agentVersion}` : null,
+    item.lastHeartbeatAt ? `Heartbeat: ${new Date(item.lastHeartbeatAt).toLocaleString("pt-BR")}` : null,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
 
 export function RemotePlatformDirectoryPanel({ directory }: { directory: RemotePlatformDirectory }) {
   const router = useRouter();
@@ -607,6 +617,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
                 const HeartbeatIcon = heartbeat.icon;
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
+                const operationalSummary = buildOperationalSummary(item);
 
                 return (
                   <div
@@ -647,6 +658,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                               <span className="text-foreground">{item.name}</span>
                             </div>
                           </div>
+                          {operationalSummary ? (
+                            <p className="text-xs text-muted-foreground">{operationalSummary}</p>
+                          ) : null}
                         </div>
                       </div>
 
