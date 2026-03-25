@@ -305,6 +305,7 @@ export type RemoteHostDetails = {
   };
   moduleSettings: {
     rustDeskServerHost: string;
+    rustDeskServerConfig: string;
     rustDeskPublicKey: string;
     rustDeskVersion: string;
     defaultPassword: string;

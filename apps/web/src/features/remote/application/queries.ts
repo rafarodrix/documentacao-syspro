@@ -759,6 +759,7 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     },
     moduleSettings: {
       rustDeskServerHost: moduleSettings.rustDeskServerHost,
+      rustDeskServerConfig: moduleSettings.rustDeskServerConfig,
       rustDeskPublicKey: moduleSettings.rustDeskPublicKey,
       rustDeskVersion: moduleSettings.rustDeskVersion,
       defaultPassword: moduleSettings.defaultPassword,
