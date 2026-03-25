@@ -131,6 +131,34 @@ function hasNumericRustDeskId(value: string | null) {
   return !!value && /^\d{7,12}$/.test(value.replace(/\s+/g, ""));
 }
 
+async function copyTextWithFallback(value: string) {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {}
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.top = "-9999px";
+  textarea.style.left = "-9999px";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, value.length);
+
+  const copied = document.execCommand("copy");
+  textarea.remove();
+
+  if (!copied) {
+    throw new Error("copy_failed");
+  }
+}
+
 function getOperationalMeta(input: { rustdeskId: string | null; lastHeartbeatAt: string | null; needsBootstrap: boolean }) {
   const heartbeatMs = input.lastHeartbeatAt ? Date.now() - new Date(input.lastHeartbeatAt).getTime() : Number.POSITIVE_INFINITY;
   const heartbeatRecent = heartbeatMs <= 10 * 60 * 1000;
@@ -282,7 +310,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     }
 
     try {
-      await navigator.clipboard.writeText(value);
+      await copyTextWithFallback(value);
       toast.success(`${label} copiado.`);
     } catch {
       toast.error(`Falha ao copiar ${label.toLowerCase()}.`);
@@ -445,50 +473,68 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </p>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <p className="font-mono text-base font-semibold text-foreground">{normalizedRustdeskId ?? "Nao configurado"}</p>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")}>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <p className="min-w-0 break-all font-mono text-base font-semibold text-foreground">
+                    {normalizedRustdeskId ?? "Nao configurado"}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 sm:w-auto"
+                    onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")}
+                  >
                     <Copy className="h-4 w-4" />
+                    Copiar ID
                   </Button>
                 </div>
               </div>
 
               <div className="flex flex-col gap-2">
-                <Button onClick={handleOpenRustDesk} disabled={!rustdeskHref} className="gap-2 shadow-sm">
+                <Button onClick={handleOpenRustDesk} disabled={!rustdeskHref} className="w-full gap-2 shadow-sm">
                   <ExternalLink className="h-4 w-4" />
                   {isMobileClient ? "Abrir no app" : "Abrir acesso remoto"}
                 </Button>
                 <Dialog open={showInstallGuide} onOpenChange={setShowInstallGuide}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2">
+                    <Button variant="outline" className="w-full gap-2">
                       <HardDriveDownload className="h-4 w-4" />
                       Configuracao e instalacao
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="max-h-[85vh] w-[calc(100vw-1rem)] max-w-3xl overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
                       <DialogTitle>Configuracao e instalacao manual</DialogTitle>
                       <DialogDescription>Campos prontos para preencher manualmente no RustDesk e scripts de shell para instalar o agente com privilegio de administrador.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 text-sm text-muted-foreground">
                       <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <p className="font-medium text-foreground">Servidor ID/Relay</p>
-                          <Button variant="ghost" size="sm" onClick={() => handleCopy(`${rustDeskServerHost}\n${rustDeskServerHost}\n${rustDeskServerHost}\n${rustDeskPublicKey}`, "Dados manuais do servidor")}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 sm:w-auto"
+                            onClick={() =>
+                              handleCopy(
+                                `${rustDeskServerHost}\n${rustDeskServerHost}\n${rustDeskServerHost}\n${rustDeskPublicKey}`,
+                                "Dados manuais do servidor"
+                              )
+                            }
+                          >
                             <Copy className="mr-2 h-3.5 w-3.5" />
                             Copiar bloco
                           </Button>
                         </div>
-                        <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr] md:items-center">
+                        <div className="mt-3 grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
                           <p className="text-sm text-foreground">Servidor de ID</p>
-                          <div className="rounded-md border border-border bg-background px-3 py-2 font-medium text-foreground">{rustDeskServerHost}</div>
+                          <div className="break-all rounded-md border border-border bg-background px-3 py-2 font-medium text-foreground">{rustDeskServerHost}</div>
                           <p className="text-sm text-foreground">Servidor de Relay</p>
-                          <div className="rounded-md border border-border bg-background px-3 py-2 font-medium text-foreground">{rustDeskServerHost}</div>
+                          <div className="break-all rounded-md border border-border bg-background px-3 py-2 font-medium text-foreground">{rustDeskServerHost}</div>
                           <p className="text-sm text-foreground">Servidor da API</p>
-                          <div className="rounded-md border border-border bg-background px-3 py-2 font-medium text-foreground">{rustDeskServerHost}</div>
+                          <div className="break-all rounded-md border border-border bg-background px-3 py-2 font-medium text-foreground">{rustDeskServerHost}</div>
                           <p className="text-sm text-foreground">Key</p>
                           <div className="rounded-md border border-border bg-background px-3 py-2 break-all font-mono text-xs text-foreground">{rustDeskPublicKey}</div>
                         </div>
@@ -506,9 +552,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       </div>
 
                       <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <p className="text-[11px] uppercase tracking-wide">Config exportada do servidor</p>
-                          <Button variant="outline" size="sm" onClick={() => handleCopy(rustDeskServerConfig, "Config exportada do servidor")}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 sm:w-auto"
+                            onClick={() => handleCopy(rustDeskServerConfig, "Config exportada do servidor")}
+                          >
                             <Copy className="mr-2 h-3.5 w-3.5" />
                             Copiar config
                           </Button>
@@ -519,12 +570,22 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
                         <p className="text-[11px] uppercase tracking-wide">Comando base no PowerShell como administrador</p>
                         <p className="mt-1 break-all font-mono text-xs text-foreground">{adminShellCommand}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleCopy(adminShellCommand, "Comando de instalacao")}>
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 sm:w-auto"
+                            onClick={() => handleCopy(adminShellCommand, "Comando de instalacao")}
+                          >
                             <Copy className="mr-2 h-3.5 w-3.5" />
                             Copiar comando
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleCopy(host.agent.installerPath, "URL do script do host")}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 sm:w-auto"
+                            onClick={() => handleCopy(host.agent.installerPath, "URL do script do host")}
+                          >
                             <Copy className="mr-2 h-3.5 w-3.5" />
                             Copiar URL do script
                           </Button>
@@ -535,7 +596,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         <p className="text-[11px] uppercase tracking-wide">Shell se o arquivo vier bloqueado</p>
                         <p className="mt-1 whitespace-pre-wrap break-all font-mono text-xs text-foreground">{unblockAndRunCommand}</p>
                         <div className="mt-3">
-                          <Button variant="outline" size="sm" onClick={() => handleCopy(unblockAndRunCommand, "Comando com Unblock-File")}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 sm:w-auto"
+                            onClick={() => handleCopy(unblockAndRunCommand, "Comando com Unblock-File")}
+                          >
                             <Copy className="mr-2 h-3.5 w-3.5" />
                             Copiar shell completo
                           </Button>
@@ -557,13 +623,17 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
               <div className="space-y-2">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da maquina</p>
                 <Input value={machineName} onChange={(event) => setMachineName(event.target.value)} placeholder="SERVIDOR-01" />
               </div>
               <div className="flex items-end">
-                <Button onClick={handleSaveMachineName} disabled={isSavingMachineName || machineName === (host.machineName ?? "")}>
+                <Button
+                  className="w-full lg:w-auto"
+                  onClick={handleSaveMachineName}
+                  disabled={isSavingMachineName || machineName === (host.machineName ?? "")}
+                >
                   Salvar nome
                 </Button>
               </div>
@@ -818,15 +888,15 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   {details.sysproUpdates.length ? (
                     details.sysproUpdates.map((entry) => (
                       <div key={entry.id} className="rounded-xl border border-border/50 bg-background/40 p-4">
-                        <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr_180px_180px]">
-                          <div>
+                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_180px_180px]">
+                          <div className="min-w-0">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
                             <p className="mt-1 text-sm font-medium text-foreground">{entry.resolvedCompanyName ?? entry.companyLabel}</p>
                             {!entry.companyId ? (
                               <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">Sem vinculo automatico com empresa cadastrada</p>
                             ) : null}
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
                             <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
                           </div>
@@ -840,7 +910,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           </div>
                         </div>
                         {details.permissions.canRelinkInstallations ? (
-                          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+                          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
                             <select
                               value={pendingUpdateCompanyById[entry.id] ?? entry.companyId ?? details.company.id}
                               onChange={(event) =>
@@ -854,7 +924,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                                 </option>
                               ))}
                             </select>
-                            <Button onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
+                            <Button className="w-full lg:w-auto" onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
                               Vincular empresa
                             </Button>
                           </div>
@@ -879,26 +949,26 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <CardDescription>Recorte operacional do FEAT-002 para nao depender de memoria do tecnico em campo.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
                 <RemoteScriptDownloadButton
                   url={host.agent.installerPath}
                   filenameFallback="trilink-remote-agent.ps1"
                   label="Baixar .ps1 do host"
                   variant="outline"
-                  className="gap-2"
+                  className="w-full gap-2 xl:w-auto"
                 >
                   <HardDriveDownload className="h-4 w-4" />
                   Baixar .ps1 do host
                 </RemoteScriptDownloadButton>
-                <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="gap-2">
+                <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="w-full gap-2 xl:w-auto">
                   <Fingerprint className="h-4 w-4" />
                   Copiar token
                 </Button>
-                <Button variant="outline" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")} className="gap-2">
+                <Button variant="outline" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")} className="w-full gap-2 xl:w-auto">
                   <Copy className="h-4 w-4" />
                   Copiar RustDesk ID
                 </Button>
-                <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="gap-2">
+                <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 xl:w-auto">
                   <Fingerprint className="h-4 w-4" />
                   {isRevokingAgentToken ? "Rotacionando..." : "Rotacionar agentToken"}
                 </Button>

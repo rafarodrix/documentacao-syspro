@@ -112,6 +112,34 @@ function hasNumericRustDeskId(value: string | null) {
   return !!value && /^\d{7,12}$/.test(value.replace(/\s+/g, ""));
 }
 
+async function copyTextWithFallback(value: string) {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {}
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.top = "-9999px";
+  textarea.style.left = "-9999px";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, value.length);
+
+  const copied = document.execCommand("copy");
+  textarea.remove();
+
+  if (!copied) {
+    throw new Error("copy_failed");
+  }
+}
+
 function getOperationalHighlights(item: DirectoryItem) {
   const heartbeatRecent = !!item.lastHeartbeatSuccessAt && Date.now() - new Date(item.lastHeartbeatSuccessAt).getTime() <= 10 * 60 * 1000;
   const bootstrapComplete = !!item.lastRegisterAt && !getAgentTokenMeta(item.lastHeartbeatErrorMessage).needsBootstrap;
@@ -159,7 +187,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     }
 
     try {
-      await navigator.clipboard.writeText(value);
+      await copyTextWithFallback(value);
       toast.success("RustDesk ID copiado.");
     } catch {
       toast.error("Falha ao copiar RustDesk ID.");
@@ -309,10 +337,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
         <a
           href="/portal/configuracoes?tab=remote"
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 sm:w-auto sm:justify-start"
         >
           <Settings className="h-4 w-4" />
           Configuracoes
@@ -323,7 +351,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           filenameFallback="trilink-remote-discovery.ps1"
           label="Baixar script padrao"
           variant="outline"
-          className="gap-2"
+          className="w-full gap-2 sm:w-auto"
         >
           <Monitor className="h-4 w-4" />
           Baixar script padrao
@@ -332,7 +360,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         {canCreateHosts ? (
           <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
             <DialogTrigger asChild>
-              <Button type="button" variant="outline" className="gap-2">
+              <Button type="button" variant="outline" className="w-full gap-2 sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Cadastro rapido
               </Button>
@@ -461,11 +489,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               />
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-                className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
               >
                 <option value="all">Todos os status</option>
                 <option value="ACTIVE">Ativo</option>
@@ -476,7 +504,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <select
                 value={environmentFilter}
                 onChange={(event) => setEnvironmentFilter(event.target.value)}
-                className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
               >
                 <option value="all">Todos os ambientes</option>
                 {environmentOptions.map((environment) => (
@@ -489,7 +517,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <select
                 value={heartbeatFilter}
                 onChange={(event) => setHeartbeatFilter(event.target.value as typeof heartbeatFilter)}
-                className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
               >
                 <option value="all">Qualquer heartbeat</option>
                 <option value="recent">Online agora</option>
@@ -500,7 +528,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <select
                 value={agentFilter}
                 onChange={(event) => setAgentFilter(event.target.value as typeof agentFilter)}
-                className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
               >
                 <option value="all">Qualquer agente</option>
                 <option value="pending">Bootstrap pendente</option>
@@ -728,17 +756,17 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="min-w-0 space-y-2">
                         <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
-                          <p className="mt-1 font-mono text-sm text-foreground">{item.rustdeskId ?? "Nao configurado"}</p>
+                          <p className="mt-1 break-all font-mono text-sm text-foreground">{item.rustdeskId ?? "Nao configurado"}</p>
                         </div>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => handleCopyRustDeskId(item.rustdeskId)}
-                          className="w-full justify-start gap-2"
+                          className="w-full justify-center gap-2 sm:justify-start"
                         >
                           <Copy className="h-3.5 w-3.5" />
                           Copiar RustDesk ID
@@ -750,7 +778,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           {rustdeskHref ? (
                             <a
                               href={rustdeskHref}
-                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+                              className="flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 sm:justify-start"
                             >
                               <ExternalLink className="h-3.5 w-3.5" />
                               {isMobileClient ? "Abrir no app" : "Acesso rapido"}
@@ -758,7 +786,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           ) : null}
                           <Link
                             href={`/portal/plataforma-remota/${item.id}`}
-                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+                            className="flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 sm:justify-start"
                           >
                             <ArrowUpRight className="h-3.5 w-3.5" />
                             Visualizar detalhes
