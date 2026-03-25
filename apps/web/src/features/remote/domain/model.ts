@@ -299,6 +299,14 @@ export type RemoteHostSysproUpdateItem = {
 
 export type RemoteHostDetails = {
   host: RemoteConfiguredHostItem;
+  permissions: {
+    canEditCompanyContext: boolean;
+    canRelinkInstallations: boolean;
+  };
+  companyOptions: Array<{
+    id: string;
+    label: string;
+  }>;
   installGuide: Array<{
     id: RemoteAgentInstallStage;
     title: string;

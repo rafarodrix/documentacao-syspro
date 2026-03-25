@@ -205,6 +205,18 @@ function buildInstallGuide(item: RemoteConfiguredHostItem) {
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
   const tenantScope = await getRemoteTenantScope();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const companyOptions = await prisma.company.findMany({
+    where: tenantScope.isGlobalView
+      ? { deletedAt: null }
+      : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
+    select: {
+      id: true,
+      nomeFantasia: true,
+      razaoSocial: true,
+    },
+    orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
+    take: 200,
+  });
 
   const [
     recentHosts,
@@ -724,6 +736,16 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         ticketNumber: session.ticketNumber,
       })),
     }),
+    permissions: {
+      canEditCompanyContext:
+        tenantScope.role === "ADMIN" || tenantScope.role === "SUPORTE" || tenantScope.role === "DEVELOPER",
+      canRelinkInstallations:
+        tenantScope.role === "ADMIN" || tenantScope.role === "SUPORTE" || tenantScope.role === "DEVELOPER",
+    },
+    companyOptions: companyOptions.map((company) => ({
+      id: company.id,
+      label: company.nomeFantasia ?? company.razaoSocial,
+    })),
     installGuide: buildInstallGuide(
       mapDirectoryItem({
         ...host,
