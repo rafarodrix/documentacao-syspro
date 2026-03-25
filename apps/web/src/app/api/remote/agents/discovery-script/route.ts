@@ -82,7 +82,9 @@ $servidoresSyspro = @(
 function Normalize-RustDeskId {
     param([string]$Value)
     if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
-    return (($Value -replace '\\s+', '').Trim())
+    $normalized = (($Value -replace '\\s+', '').Trim())
+    if ($normalized -match '^\d{7,12}$') { return $normalized }
+    return $null
 }
 
 function Find-RustDeskExecutable {
@@ -93,6 +95,48 @@ function Find-RustDeskExecutable {
     foreach ($path in $paths) {
         if (Test-Path $path) { return $path }
     }
+
+    $service = Get-CimInstance Win32_Service -Filter "Name = 'RustDesk'" -ErrorAction SilentlyContinue
+    if ($service -and $service.PathName) {
+        $servicePath = $service.PathName.Trim()
+        if ($servicePath.StartsWith('"')) {
+            $servicePath = $servicePath.Split('"')[1]
+        } else {
+            $servicePath = $servicePath.Split(' ')[0]
+        }
+
+        if (Test-Path $servicePath) {
+            return $servicePath
+        }
+    }
+
+    $uninstallKeys = @(
+        'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+        'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+    )
+
+    foreach ($key in $uninstallKeys) {
+        $entries = Get-ItemProperty -Path $key -ErrorAction SilentlyContinue
+        foreach ($entry in $entries) {
+            if (($entry.DisplayName -like 'RustDesk*') -or ($entry.Publisher -like '*RustDesk*')) {
+                if ($entry.DisplayIcon) {
+                    $displayIcon = [string]$entry.DisplayIcon
+                    $candidate = $displayIcon.Split(',')[0].Trim('"')
+                    if (Test-Path $candidate) {
+                        return $candidate
+                    }
+                }
+
+                if ($entry.InstallLocation) {
+                    $candidate = Join-Path ([string]$entry.InstallLocation) 'rustdesk.exe'
+                    if (Test-Path $candidate) {
+                        return $candidate
+                    }
+                }
+            }
+        }
+    }
+
     return $null
 }
 
@@ -131,7 +175,16 @@ function Install-Or-Update-RustDesk {
         Write-InstallLog -Message "RustDesk ja esta na versao esperada ($expectedRustDeskVersion)."
     }
 
-    return Find-RustDeskExecutable
+    for ($attempt = 1; $attempt -le 6; $attempt++) {
+        $resolvedExe = Find-RustDeskExecutable
+        if ($resolvedExe) {
+            return $resolvedExe
+        }
+
+        Start-Sleep -Seconds 3
+    }
+
+    return $null
 }
 
 function Resolve-RustDeskId {
@@ -145,7 +198,7 @@ function Resolve-RustDeskId {
     foreach ($configPath in $configPaths) {
         if (Test-Path $configPath) {
             $content = Get-Content $configPath -Raw
-            if ($content -match "id\\s*=\\s*'([^']+)'") {
+            if ($content -match "id\\s*=\\s*'(\d{7,12})'") {
                 return Normalize-RustDeskId -Value $matches[1]
             }
         }
@@ -354,7 +407,9 @@ Get-ChildItem -Path 'C:\Trilink\Agent' -Filter '*.log' -ErrorAction SilentlyCont
 function Normalize-RustDeskId {
     param([string]$Value)
     if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
-    return (($Value -replace '\s+', '').Trim())
+    $normalized = (($Value -replace '\s+', '').Trim())
+    if ($normalized -match '^\d{7,12}$') { return $normalized }
+    return $null
 }
 
 function Resolve-RustDeskId {
@@ -366,7 +421,7 @@ function Resolve-RustDeskId {
     foreach ($configPath in $configPaths) {
         if (Test-Path $configPath) {
             $content = Get-Content $configPath -Raw -Encoding UTF8
-            if ($content -match "id\s*=\s*'([^']+)'") {
+            if ($content -match "id\s*=\s*'(\d{7,12})'") {
                 return Normalize-RustDeskId -Value $Matches[1]
             }
         }

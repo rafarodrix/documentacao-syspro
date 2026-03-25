@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 function normalizeRustdeskId(value?: string | null) {
   const trimmed = value?.trim();
   if (!trimmed) return null;
-  return trimmed.replace(/\s+/g, "");
+  const normalized = trimmed.replace(/\s+/g, "");
+  return /^\d{7,12}$/.test(normalized) ? normalized : null;
 }
 
 function buildAgentToken() {

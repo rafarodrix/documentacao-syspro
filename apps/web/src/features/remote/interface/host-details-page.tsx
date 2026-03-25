@@ -86,6 +86,44 @@ const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
   RADMIN_VPN: "Radmin VPN",
 };
 
+function getAgentTokenMeta(value: string | null) {
+  const normalized = value?.toLowerCase() ?? "";
+
+  if (normalized.includes("agenttoken invalido") || normalized.includes("agenttoken expirado")) {
+    return {
+      label: "agentToken invalido",
+      tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+      description: "O heartbeat foi recusado. Execute o bootstrap novamente neste host para emitir nova credencial.",
+      needsBootstrap: true,
+    };
+  }
+
+  if (normalized.includes("agenttoken rotacionado")) {
+    return {
+      label: "agentToken rotacionado",
+      tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      description: "A credencial anterior foi invalidada pelo portal. O host precisa de novo bootstrap.",
+      needsBootstrap: true,
+    };
+  }
+
+  if (normalized.includes("agenttoken indisponivel")) {
+    return {
+      label: "agentToken ausente",
+      tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      description: "O heartbeat local nao encontrou a credencial do agente. Reexecute o instalador deste host.",
+      needsBootstrap: true,
+    };
+  }
+
+  return {
+    label: "agentToken valido",
+    tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    description: "O host possui credencial operacional para heartbeat recorrente.",
+    needsBootstrap: false,
+  };
+}
+
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const [machineName, setMachineName] = useState(host.machineName ?? "");
@@ -96,6 +134,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
+  const agentTokenMeta = useMemo(() => getAgentTokenMeta(host.lastHeartbeatErrorMessage), [host.lastHeartbeatErrorMessage]);
 
   const installations = useMemo(() => {
     const seen = new Set<string>();
@@ -266,6 +305,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                 {statusLabel}
               </Badge>
+              <Badge variant="outline" className={agentTokenMeta.tone}>
+                {agentTokenMeta.label}
+              </Badge>
               {host.environment ? (
                 <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
                   {host.environment}
@@ -332,6 +374,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           </div>
 
           <div className="space-y-3">
+            {agentTokenMeta.needsBootstrap ? (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
+                <p className="font-medium text-foreground">Agente exige novo bootstrap</p>
+                <p className="mt-1 text-sm text-muted-foreground">{agentTokenMeta.description}</p>
+              </div>
+            ) : null}
             <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
               <p className="font-medium text-foreground">Heartbeat: {heartbeat.label}</p>
               <p className="mt-1 text-sm text-muted-foreground">{heartbeat.description}</p>
@@ -353,7 +401,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </p>
               <p>2. Se o app nao abrir, copie o `RustDesk ID` e conecte manualmente.</p>
               <p>3. Atualize o nome da maquina quando o heartbeat vier com identificacao diferente.</p>
-              {host.openSessionCount > 0 ? <p>4. Ja existe sessao aberta. Evite duplicidade de atendimento.</p> : null}
+              {agentTokenMeta.needsBootstrap ? (
+                <p>4. Este host precisa de novo bootstrap antes do proximo heartbeat valido.</p>
+              ) : null}
+              {host.openSessionCount > 0 ? <p>{agentTokenMeta.needsBootstrap ? "5" : "4"}. Ja existe sessao aberta. Evite duplicidade de atendimento.</p> : null}
             </div>
           </div>
         </CardContent>
@@ -480,6 +531,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estado do agentToken</p>
+                  <p className="mt-1 text-sm text-foreground">{agentTokenMeta.label}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bootstrap inicial</p>
                   <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.lastRegisterAt)}</p>
                 </div>
@@ -515,8 +570,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <p>1. Baixe o script dedicado deste host.</p>
                 <p>2. Execute na maquina do cliente e confirme o RustDesk ID devolvido.</p>
                 <p>3. O bootstrap emite `agentToken` e o heartbeat continuo passa a preferir essa credencial.</p>
-                <p>4. Se revogar o `agentToken`, execute o bootstrap novamente neste host.</p>
+                <p>4. Se rotacionar o `agentToken` ou se ele expirar, execute o bootstrap novamente neste host.</p>
                 <p>5. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
+                {isMobileClient ? <p>6. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
               </div>
             </CardContent>
           </Card>

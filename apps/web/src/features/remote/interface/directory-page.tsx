@@ -83,6 +83,29 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
   };
 }
 
+function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
+  const normalized = lastHeartbeatErrorMessage?.toLowerCase() ?? "";
+
+  if (
+    normalized.includes("agenttoken invalido") ||
+    normalized.includes("agenttoken expirado") ||
+    normalized.includes("agenttoken rotacionado") ||
+    normalized.includes("agenttoken indisponivel")
+  ) {
+    return {
+      label: "Rebootstrap necessario",
+      className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+      needsBootstrap: true,
+    };
+  }
+
+  return {
+    label: "Agente operacional",
+    className: "border-border/60 bg-background/70 text-muted-foreground",
+    needsBootstrap: false,
+  };
+}
+
 export function RemotePlatformDirectoryPanel({ directory }: { directory: RemotePlatformDirectory }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -593,6 +616,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               {filteredItems.map((item) => {
                 const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
                 const HeartbeatIcon = heartbeat.icon;
+                const agentToken = getAgentTokenMeta(item.lastHeartbeatErrorMessage);
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
                 const companyLine = item.installationCompanies.length
                   ? item.installationCompanies.join(" | ")
@@ -613,6 +637,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                             {getStatusLabel(item.status)}
                           </Badge>
+                          {agentToken.needsBootstrap ? (
+                            <Badge variant="outline" className={agentToken.className}>
+                              {agentToken.label}
+                            </Badge>
+                          ) : null}
                           {item.environment ? (
                             <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
                               {item.environment}
@@ -625,6 +654,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           <p className="text-sm text-muted-foreground">
                             Maquina: {item.machineName ?? item.name}
                           </p>
+                          {agentToken.needsBootstrap ? (
+                            <p className="text-xs text-rose-600 dark:text-rose-300">
+                              O agentToken deste host precisa de novo bootstrap antes do proximo heartbeat valido.
+                            </p>
+                          ) : null}
                           {item.installationCompanies.length > 1 ? (
                             <p className="text-xs text-muted-foreground">
                               Multiplas empresas vinculadas nesta maquina.
@@ -674,6 +708,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       {isMobileClient ? (
                         <p className="text-xs text-muted-foreground xl:col-span-3">
                           No celular, use `Abrir no app`. Se o RustDesk nao abrir automaticamente, copie o ID e cole manualmente no aplicativo.
+                          {agentToken.needsBootstrap ? " Se o card pedir rebootstrap, abra os detalhes antes de tentar o acesso." : ""}
                         </p>
                       ) : null}
                     </div>

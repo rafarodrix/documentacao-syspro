@@ -109,6 +109,7 @@ export async function middleware(request: NextRequest) {
   const sessionToken = getSessionToken(request);
   const isAuthenticated = !!sessionToken;
   const isPublicRoute = isPublicPath(pathname);
+  const resolvedRole = isAuthenticated ? await resolveRequestRole(request, sessionToken) : null;
 
   if (!isPublicRoute && !isAuthenticated) {
     const url = request.nextUrl.clone();
@@ -117,47 +118,41 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (isAuthenticated && (pathname === "/login" || pathname === "/register")) {
+  if (resolvedRole && (pathname === "/login" || pathname === "/register")) {
     return redirectTo(request, "/portal");
   }
 
   if (
-    isAuthenticated &&
+    resolvedRole &&
     (
       pathname.startsWith("/portal/cadastros") ||
       pathname.startsWith("/portal/plataforma-remota") ||
       pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix)
     )
   ) {
-    const role = await resolveRequestRole(request, sessionToken);
-
-    if (!role) {
-      return NextResponse.next();
-    }
-
-    if (pathname === "/portal/cadastros" && !hasAllowedRole(role, CADASTROS_ROUTE_RULES.empresa.allowed)) {
+    if (pathname === "/portal/cadastros" && !hasAllowedRole(resolvedRole, CADASTROS_ROUTE_RULES.empresa.allowed)) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.root.redirectIfBlocked);
     }
 
-    if (pathname.startsWith(CADASTROS_ROUTE_RULES.sistema.pathPrefix) && !hasAllowedRole(role, SYSTEM_ROLES)) {
+    if (pathname.startsWith(CADASTROS_ROUTE_RULES.sistema.pathPrefix) && !hasAllowedRole(resolvedRole, SYSTEM_ROLES)) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.sistema.redirectIfBlocked);
     }
 
-    if (pathname.startsWith(CADASTROS_ROUTE_RULES.empresa.pathPrefix) && !hasAllowedRole(role, CADASTROS_ROUTE_RULES.empresa.allowed)) {
+    if (pathname.startsWith(CADASTROS_ROUTE_RULES.empresa.pathPrefix) && !hasAllowedRole(resolvedRole, CADASTROS_ROUTE_RULES.empresa.allowed)) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.empresa.redirectIfBlocked);
     }
 
-    if (pathname.startsWith(CADASTROS_ROUTE_RULES.usuarios.pathPrefix) && !hasAllowedRole(role, CADASTROS_ROUTE_RULES.usuarios.allowed)) {
+    if (pathname.startsWith(CADASTROS_ROUTE_RULES.usuarios.pathPrefix) && !hasAllowedRole(resolvedRole, CADASTROS_ROUTE_RULES.usuarios.allowed)) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked);
     }
 
-    if (pathname.startsWith("/portal/plataforma-remota") && !hasAllowedRole(role, REMOTE_PLATFORM_ROLES)) {
+    if (pathname.startsWith("/portal/plataforma-remota") && !hasAllowedRole(resolvedRole, REMOTE_PLATFORM_ROLES)) {
       return redirectTo(request, "/portal");
     }
 
     if (
       pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix) &&
-      !hasAllowedRole(role, DOCS_ROUTE_RULES.technical.allowed)
+      !hasAllowedRole(resolvedRole, DOCS_ROUTE_RULES.technical.allowed)
     ) {
       return redirectTo(request, DOCS_ROUTE_RULES.technical.redirectIfBlocked);
     }
