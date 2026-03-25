@@ -615,6 +615,15 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
           cnpj: true,
           emailContato: true,
           telefone: true,
+          serverType: true,
+          serverPort: true,
+          serverHost: true,
+          serverProtocol: true,
+          iisIsapiPath: true,
+          installationDirectory: true,
+          remoteConnections: true,
+          remoteConnectionType: true,
+          remoteConnectionDetails: true,
           observacoes: true,
           memberships: {
             where: {
@@ -683,6 +692,21 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     WHERE "id" = ${host.id}
   `;
   const serviceStatus = hostServiceStatus[0]?.serviceStatus ?? null;
+  const remoteConnections = Array.isArray((host.company as any).remoteConnections)
+    ? ((host.company as any).remoteConnections as Array<{ type?: string; details?: string }>)
+        .filter((entry) => typeof entry?.type === "string" && typeof entry?.details === "string")
+        .map((entry) => ({
+          type: entry.type as "DDNS_NOIP" | "RADMIN_VPN",
+          details: entry.details ?? "",
+        }))
+    : (host.company as any).remoteConnectionType
+      ? [
+          {
+            type: (host.company as any).remoteConnectionType as "DDNS_NOIP" | "RADMIN_VPN",
+            details: ((host.company as any).remoteConnectionDetails ?? "") as string,
+          },
+        ]
+      : [];
 
   return {
     host: mapDirectoryItem({
@@ -724,6 +748,13 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       cnpj: host.company.cnpj,
       emailContato: host.company.emailContato,
       telefone: host.company.telefone,
+      serverType: ((host.company as any).serverType ?? null) as "SYSPRO_SERVER" | "IIS" | null,
+      serverPort: host.company.serverPort ?? null,
+      serverHost: host.company.serverHost ?? null,
+      serverProtocol: ((host.company as any).serverProtocol ?? null) as "HTTP" | "HTTPS" | null,
+      iisIsapiPath: host.company.iisIsapiPath ?? null,
+      installationDirectory: host.company.installationDirectory ?? null,
+      remoteConnections,
       observacoes: host.company.observacoes,
     },
     linkedUsers: host.company.memberships.map((membership) => ({

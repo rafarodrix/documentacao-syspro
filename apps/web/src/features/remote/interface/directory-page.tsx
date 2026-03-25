@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -86,6 +86,7 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
 export function RemotePlatformDirectoryPanel({ directory }: { directory: RemotePlatformDirectory }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isMobileClient, setIsMobileClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "MAINTENANCE" | "INACTIVE">("all");
   const [environmentFilter, setEnvironmentFilter] = useState("all");
@@ -98,6 +99,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
+  }, []);
 
   const environmentOptions = useMemo(() => {
     const values = Array.from(new Set(directory.items.map((item) => item.environment).filter(Boolean))) as string[];
@@ -256,6 +263,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     return { ready, attention, openSessions, pendingSetup };
   }, [directory.items]);
 
+  const activeResultCount = filteredItems.length;
+  const activePendingCount = filteredPendingItems.length;
+
   return (
     <div className="space-y-6">
       <section className={cn("grid gap-3", canCreateHosts ? "md:grid-cols-3 xl:grid-cols-5" : "md:grid-cols-2 xl:grid-cols-4")}>
@@ -276,12 +286,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           <CardHeader className="pb-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <TimerReset className="h-4 w-4 text-amber-500" />
-              Pedem verificacao
+              Exigem revisao
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-2xl font-semibold text-foreground">{directoryStats.attention}</p>
-            <p className="text-xs text-muted-foreground">Hosts com heartbeat antigo ou conectividade instavel.</p>
+            <p className="text-xs text-muted-foreground">Hosts com heartbeat antigo ou sinais de instabilidade.</p>
           </CardContent>
         </Card>
 
@@ -302,12 +312,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           <CardHeader className="pb-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Wrench className="h-4 w-4 text-rose-500" />
-              Cadastro pendente
+              Aguardam bootstrap
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-2xl font-semibold text-foreground">{directoryStats.pendingSetup}</p>
-            <p className="text-xs text-muted-foreground">Hosts sem token, sem RustDesk ID ou sem heartbeat inicial.</p>
+            <p className="text-xs text-muted-foreground">Hosts ainda sem ciclo completo de agente e heartbeat.</p>
           </CardContent>
         </Card>
 
@@ -431,9 +441,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 className="h-10 rounded-md border border-border bg-background px-3 text-sm"
               >
                 <option value="all">Qualquer heartbeat</option>
-                <option value="recent">Recente</option>
+                <option value="recent">Online agora</option>
                 <option value="stale">Antigo</option>
-                <option value="missing">Sem heartbeat</option>
+                <option value="missing">Sem contato</option>
               </select>
 
               <select
@@ -442,10 +452,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 className="h-10 rounded-md border border-border bg-background px-3 text-sm"
               >
                 <option value="all">Qualquer agente</option>
-                <option value="pending">Pendente de instalacao</option>
+                <option value="pending">Bootstrap pendente</option>
                 <option value="linked">Agente vinculado</option>
                 <option value="online">Heartbeat confirmado</option>
-                <option value="stale">Heartbeat antigo/offline</option>
+                <option value="stale">Exige revisao</option>
               </select>
             </div>
 
@@ -462,8 +472,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 </DialogHeader>
                 <div className="space-y-3 text-sm text-muted-foreground">
                   <p>1. Procure pela empresa ou pelo ticket.</p>
-                  <p>2. Priorize cards marcados como `Pronto para acesso`.</p>
-                  <p>3. Use `Acesso direto` para abrir o RustDesk no menor numero de cliques.</p>
+                  <p>2. Priorize cards marcados como `Online` ou com heartbeat recente.</p>
+                  <p>3. Use `Acesso rapido` no desktop ou `Abrir no app` no celular.</p>
                   <p>4. Se o navegador bloquear, use `Copiar ID` e conecte manualmente.</p>
                   <p>5. Se houver alerta de sessao aberta ou heartbeat antigo, valide antes de prosseguir.</p>
                 </div>
@@ -485,6 +495,22 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 <X className="mr-2 h-4 w-4" />
                 Limpar
               </Button>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full border border-border/50 bg-muted/10 px-3 py-1">
+              {activeResultCount} host(s) no diretorio
+            </span>
+            {canCreateHosts ? (
+              <span className="rounded-full border border-border/50 bg-muted/10 px-3 py-1">
+                {activePendingCount} item(ns) em triagem
+              </span>
+            ) : null}
+            {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" ? (
+              <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-primary">
+                filtros ativos
+              </span>
             ) : null}
           </div>
 
@@ -632,7 +658,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
                             >
                               <ExternalLink className="h-3.5 w-3.5" />
-                              Acesso rapido
+                              {isMobileClient ? "Abrir no app" : "Acesso rapido"}
                             </a>
                           ) : null}
                           <Link
@@ -644,6 +670,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           </Link>
                         </div>
                       </div>
+
+                      {isMobileClient ? (
+                        <p className="text-xs text-muted-foreground xl:col-span-3">
+                          No celular, use `Abrir no app`. Se o RustDesk nao abrir automaticamente, copie o ID e cole manualmente no aplicativo.
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 );

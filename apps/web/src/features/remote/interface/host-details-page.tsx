@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   ArrowLeft,
   Copy,
@@ -76,10 +76,22 @@ function getServiceStatusMeta(value: string | null) {
   };
 }
 
+const COMPANY_SERVER_TYPE_LABEL: Record<"SYSPRO_SERVER" | "IIS", string> = {
+  SYSPRO_SERVER: "Syspro Server",
+  IIS: "IIS",
+};
+
+const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
+  DDNS_NOIP: "DDNS (NoIP)",
+  RADMIN_VPN: "Radmin VPN",
+};
+
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const [machineName, setMachineName] = useState(host.machineName ?? "");
+  const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
+  const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
@@ -149,6 +161,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     };
   }, [host.lastHeartbeatAt]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
+  }, []);
+
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
       toast.error(`${label} nao configurado.`);
@@ -206,6 +224,26 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
+  function handleRevokeAgentToken() {
+    startRevokingAgentToken(async () => {
+      try {
+        const response = await fetch(`/api/remote/hosts/${host.id}/agent-token`, {
+          method: "DELETE",
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Falha ao revogar agentToken.");
+        }
+
+        toast.success(payload?.message ?? "agentToken revogado.");
+        window.location.reload();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Falha ao revogar agentToken.");
+      }
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -259,7 +297,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <div className="flex flex-col gap-2">
                 <Button onClick={handleOpenRustDesk} disabled={!rustdeskHref} className="gap-2 shadow-sm">
                   <ExternalLink className="h-4 w-4" />
-                  Abrir acesso remoto
+                  {isMobileClient ? "Abrir no app" : "Abrir acesso remoto"}
                 </Button>
                 <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="gap-2">
                   <Fingerprint className="h-4 w-4" />
@@ -310,8 +348,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </div>
             </div>
             <div className="rounded-xl border border-border/50 bg-muted/15 p-3 text-sm text-muted-foreground">
-              <p>1. Use `Abrir acesso remoto` como acao principal.</p>
-              <p>2. Se falhar, copie o `RustDesk ID` e conecte manualmente.</p>
+              <p>
+                1. Use <span className="font-medium text-foreground">{isMobileClient ? "Abrir no app" : "Abrir acesso remoto"}</span> como acao principal.
+              </p>
+              <p>2. Se o app nao abrir, copie o `RustDesk ID` e conecte manualmente.</p>
               <p>3. Atualize o nome da maquina quando o heartbeat vier com identificacao diferente.</p>
               {host.openSessionCount > 0 ? <p>4. Ja existe sessao aberta. Evite duplicidade de atendimento.</p> : null}
             </div>
@@ -432,6 +472,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <Copy className="h-4 w-4" />
                   Copiar RustDesk ID
                 </Button>
+                <Button variant="outline" onClick={handleRevokeAgentToken} disabled={isRevokingAgentToken} className="gap-2">
+                  <Fingerprint className="h-4 w-4" />
+                  {isRevokingAgentToken ? "Revogando..." : "Revogar agentToken"}
+                </Button>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -471,7 +515,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <p>1. Baixe o script dedicado deste host.</p>
                 <p>2. Execute na maquina do cliente e confirme o RustDesk ID devolvido.</p>
                 <p>3. O bootstrap emite `agentToken` e o heartbeat continuo passa a preferir essa credencial.</p>
-                <p>4. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
+                <p>4. Se revogar o `agentToken`, execute o bootstrap novamente neste host.</p>
+                <p>5. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
               </div>
             </CardContent>
           </Card>
@@ -511,28 +556,91 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         <TabsContent value="observacoes">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Observacoes operacionais</CardTitle>
-              <CardDescription>Informacao manual para nao depender de memoria do suporte.</CardDescription>
+              <CardTitle className="text-lg">Observacoes e configuracoes operacionais</CardTitle>
+              <CardDescription>Contexto manual do host e parametros tecnicos definidos no cadastro da empresa.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2 font-medium text-foreground">
-                  <Wrench className="h-4 w-4 text-muted-foreground" />
-                  Host
-                </p>
-                <div className="mt-3 space-y-2">
-                  <p><span className="font-medium text-foreground">Descricao:</span> {host.description || "Sem descricao operacional."}</p>
-                  <p><span className="font-medium text-foreground">Observacoes:</span> {host.notes ?? "Sem observacoes do host."}</p>
+            <CardContent className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+              <div className="space-y-4">
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2 font-medium text-foreground">
+                    <Wrench className="h-4 w-4 text-muted-foreground" />
+                    Host
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    <p><span className="font-medium text-foreground">Descricao:</span> {host.description || "Sem descricao operacional."}</p>
+                    <p><span className="font-medium text-foreground">Observacoes:</span> {host.notes ?? "Sem observacoes do host."}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2 font-medium text-foreground">
+                    <TimerReset className="h-4 w-4 text-muted-foreground" />
+                    Empresa
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    <p><span className="font-medium text-foreground">Empresa:</span> {details.company.nomeFantasia ?? details.company.razaoSocial}</p>
+                    <p><span className="font-medium text-foreground">Observacoes da empresa:</span> {details.company.observacoes ?? "Sem observacoes cadastradas."}</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2 font-medium text-foreground">
-                  <TimerReset className="h-4 w-4 text-muted-foreground" />
-                  Empresa
-                </p>
-                <div className="mt-3 space-y-2">
-                  <p><span className="font-medium text-foreground">Observacoes da empresa:</span> {details.company.observacoes ?? "Sem observacoes cadastradas."}</p>
+              <div className="space-y-4">
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2 font-medium text-foreground">
+                    <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
+                    Configuracoes do servidor
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
+                      <p className="mt-1 text-sm text-foreground">
+                        {details.company.serverType ? COMPANY_SERVER_TYPE_LABEL[details.company.serverType] : "Nao configurado"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao</p>
+                      <p className="mt-1 break-all text-sm text-foreground">{details.company.installationDirectory || "Nao configurado"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor</p>
+                      <p className="mt-1 text-sm text-foreground">{details.company.serverHost || "Nao configurado"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta</p>
+                      <p className="mt-1 text-sm text-foreground">{details.company.serverPort ? String(details.company.serverPort) : "Nao configurado"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conexao</p>
+                      <p className="mt-1 text-sm text-foreground">{details.company.serverProtocol || "Nao configurado"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Url Path (ISAPI)</p>
+                      <p className="mt-1 break-all text-sm text-foreground">{details.company.iisIsapiPath || "Nao configurado"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2 font-medium text-foreground">
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                    Conexoes remotas
+                  </p>
+                  <div className="mt-3 space-y-3">
+                    {details.company.remoteConnections.length ? (
+                      details.company.remoteConnections.map((connection, index) => (
+                        <div key={`${connection.type}-${index}`} className="rounded-lg border border-border/40 bg-background/40 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">{REMOTE_CONNECTION_LABEL[connection.type]}</p>
+                          <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Nome/IP/identificacao</p>
+                          <p className="mt-1 break-all text-sm text-foreground">{connection.details || "Sem detalhe informado"}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border/50 bg-background/30 p-3">
+                        Nenhuma conexao remota cadastrada na empresa.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>

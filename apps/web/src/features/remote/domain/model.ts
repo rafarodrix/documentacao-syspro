@@ -312,6 +312,16 @@ export type RemoteHostDetails = {
     cnpj: string;
     emailContato: string | null;
     telefone: string | null;
+    serverType: "SYSPRO_SERVER" | "IIS" | null;
+    serverPort: number | null;
+    serverHost: string | null;
+    serverProtocol: "HTTP" | "HTTPS" | null;
+    iisIsapiPath: string | null;
+    installationDirectory: string | null;
+    remoteConnections: Array<{
+      type: "DDNS_NOIP" | "RADMIN_VPN";
+      details: string;
+    }>;
     observacoes: string | null;
   };
   linkedUsers: Array<{

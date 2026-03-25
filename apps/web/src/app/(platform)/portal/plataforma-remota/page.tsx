@@ -23,6 +23,9 @@ export default async function RemotePlatformPage() {
           <p className="max-w-3xl text-muted-foreground text-lg">
             Centro operacional do modulo remoto: descubra maquinas, cadastre e edite hosts, vincule empresas e execute o atendimento.
           </p>
+          <p className="text-sm text-muted-foreground">
+            O download oficial do instalador padrao fica neste cabecalho. A versao estatica permanece apenas como referencia tecnica.
+          </p>
         </div>
 
         <a
@@ -35,13 +38,6 @@ export default async function RemotePlatformPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <a
-          href="/downloads/trilink-instalador-padrao.ps1"
-          className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
-        >
-          <Download className="h-4 w-4" />
-          Baixar script manual
-        </a>
         <a
           href="/portal/configuracoes?tab=remote"
           className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
