@@ -1,7 +1,6 @@
-param(
+﻿param(
     [string]$RustDeskPassword = 'Trilink098',
-    [Parameter(Mandatory = $true)]
-    [string]$DiscoveryToken,
+    [string]$DiscoveryToken = '3dacac7beba253a33e953e6b2f970ac594c06b3152ab285e7015085b4494ee44',
     [string]$ApiBaseUrl = 'https://ajuda.trilinksoftware.com.br'
 )
 
@@ -288,3 +287,4 @@ finally {
     try { Stop-Transcript | Out-Null } catch {}
     Read-Host "Pressione ENTER para fechar"
 }
+
