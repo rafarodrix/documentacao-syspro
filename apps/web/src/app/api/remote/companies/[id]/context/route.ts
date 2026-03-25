@@ -56,6 +56,11 @@ export async function PATCH(
     body.serverPort === null || body.serverPort === undefined || body.serverPort === ""
       ? null
       : Number(body.serverPort);
+  const serverHostValue = body.serverHost?.trim();
+  const serverProtocolValue = body.serverProtocol ?? undefined;
+  const installationDirectoryValue = body.installationDirectory?.trim();
+  const iisIsapiPathValue = body.iisIsapiPath?.trim();
+  const observacoesValue = body.observacoes?.trim();
 
   if (serverPortValue !== null && (!Number.isFinite(serverPortValue) || serverPortValue <= 0)) {
     return NextResponse.json({ success: false, error: "Porta invalida." }, { status: 400 });
@@ -65,12 +70,12 @@ export async function PATCH(
     where: { id },
     data: {
       serverType: body.serverType ?? undefined,
-      installationDirectory: body.installationDirectory?.trim() || null,
-      serverHost: body.serverHost?.trim() || null,
+      installationDirectory: installationDirectoryValue ? installationDirectoryValue : null,
+      serverHost: serverHostValue || "localhost",
       serverPort: serverPortValue ?? undefined,
-      serverProtocol: body.serverProtocol ?? undefined,
-      iisIsapiPath: body.iisIsapiPath?.trim() || null,
-      observacoes: body.observacoes?.trim() || null,
+      serverProtocol: serverProtocolValue,
+      iisIsapiPath: iisIsapiPathValue ? iisIsapiPathValue : null,
+      observacoes: observacoesValue ? observacoesValue : null,
     },
     select: {
       id: true,

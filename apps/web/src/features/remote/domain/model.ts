@@ -303,6 +303,12 @@ export type RemoteHostDetails = {
     canEditCompanyContext: boolean;
     canRelinkInstallations: boolean;
   };
+  moduleSettings: {
+    rustDeskServerHost: string;
+    rustDeskPublicKey: string;
+    rustDeskVersion: string;
+    defaultPassword: string;
+  };
   companyOptions: Array<{
     id: string;
     label: string;

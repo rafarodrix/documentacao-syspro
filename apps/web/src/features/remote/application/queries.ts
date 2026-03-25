@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings";
 import { resolveRemoteOperationalStatus } from "@/features/remote/domain/operational-status";
 import type {
   RemoteConfiguredHostItem,
@@ -204,6 +205,7 @@ function buildInstallGuide(item: RemoteConfiguredHostItem) {
 
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
   const tenantScope = await getRemoteTenantScope();
+  const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
   const companyOptions = await prisma.company.findMany({
     where: tenantScope.isGlobalView
@@ -741,6 +743,12 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         tenantScope.role === "ADMIN" || tenantScope.role === "SUPORTE" || tenantScope.role === "DEVELOPER",
       canRelinkInstallations:
         tenantScope.role === "ADMIN" || tenantScope.role === "SUPORTE" || tenantScope.role === "DEVELOPER",
+    },
+    moduleSettings: {
+      rustDeskServerHost: moduleSettings.rustDeskServerHost,
+      rustDeskPublicKey: moduleSettings.rustDeskPublicKey,
+      rustDeskVersion: moduleSettings.rustDeskVersion,
+      defaultPassword: moduleSettings.defaultPassword,
     },
     companyOptions: companyOptions.map((company) => ({
       id: company.id,

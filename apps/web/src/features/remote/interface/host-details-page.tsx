@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -210,12 +211,19 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [companyIisIsapiPath, setCompanyIisIsapiPath] = useState(details.company.iisIsapiPath ?? "");
   const [pendingUpdateCompanyById, setPendingUpdateCompanyById] = useState<Record<string, string>>({});
   const [isMobileClient, setIsMobileClient] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
   const [isSavingCompanyContext, startSavingCompanyContext] = useTransition();
   const [linkingUpdateId, startLinkingUpdateId] = useTransition();
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
+  const installCommand = `powershell.exe -ExecutionPolicy Bypass -File ".\\${host.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "trilink-remote-agent"}.ps1"`;
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
   const agentTokenMeta = useMemo(() => getAgentTokenMeta(host.lastHeartbeatErrorMessage), [host.lastHeartbeatErrorMessage]);
@@ -493,6 +501,64 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <ExternalLink className="h-4 w-4" />
                   {isMobileClient ? "Abrir no app" : "Abrir acesso remoto"}
                 </Button>
+                <Dialog open={showInstallGuide} onOpenChange={setShowInstallGuide}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <HardDriveDownload className="h-4 w-4" />
+                      Configuracao e instalacao
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Configuracao e instalacao manual</DialogTitle>
+                      <DialogDescription>Dados do servidor RustDesk e comando base para rodar o script no PowerShell como administrador.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 text-sm text-muted-foreground">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                          <p className="text-[11px] uppercase tracking-wide">Servidor ID/Relay</p>
+                          <p className="mt-1 break-all font-medium text-foreground">{details.moduleSettings.rustDeskServerHost}</p>
+                        </div>
+                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                          <p className="text-[11px] uppercase tracking-wide">Key publica</p>
+                          <p className="mt-1 break-all font-mono text-xs text-foreground">{details.moduleSettings.rustDeskPublicKey || "Nao configurada"}</p>
+                        </div>
+                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                          <p className="text-[11px] uppercase tracking-wide">Versao alvo</p>
+                          <p className="mt-1 text-foreground">{details.moduleSettings.rustDeskVersion}</p>
+                        </div>
+                        <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                          <p className="text-[11px] uppercase tracking-wide">Senha padrao</p>
+                          <p className="mt-1 text-foreground">{details.moduleSettings.defaultPassword}</p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                        <p className="text-[11px] uppercase tracking-wide">Comando base no PowerShell</p>
+                        <p className="mt-1 break-all font-mono text-xs text-foreground">{installCommand}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleCopy(installCommand, "Comando de instalacao")}>
+                            <Copy className="mr-2 h-3.5 w-3.5" />
+                            Copiar comando
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleCopy(host.agent.installerPath, "URL do script do host")}>
+                            <Copy className="mr-2 h-3.5 w-3.5" />
+                            Copiar URL do script
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                        <p className="font-medium text-foreground">Passo a passo</p>
+                        <p className="mt-2">1. Baixe o `.ps1` deste host pelo portal.</p>
+                        <p>2. Abra o PowerShell como administrador.</p>
+                        <p>3. Rode o comando base acima apontando para o arquivo baixado.</p>
+                        <p>4. Se precisar configurar manualmente o app, use o servidor e a key mostrados neste popup.</p>
+                        {isMobileClient ? <p>5. No celular, use esse popup como referencia e prefira `Abrir no app` para o acesso.</p> : null}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="gap-2">
                   <Fingerprint className="h-4 w-4" />
                   Copiar token
