@@ -267,7 +267,7 @@ export const ZammadGateway: ZammadGatewayRepository = {
 
     try {
       for (const email of normalizedEmails) {
-        const query = `(id:${ticketId}) AND customer.email:${email}`;
+        const query = `(id:${ticketId}) AND (customer.email:${email} OR customer:${email} OR "${email}")`;
         const endpoint = `tickets/search?query=${encodeURIComponent(query)}&limit=1&expand=true`;
         const data = await fetchZammad(endpoint, { cache: "no-store" });
         const found = normalizeSearchResponse(data)

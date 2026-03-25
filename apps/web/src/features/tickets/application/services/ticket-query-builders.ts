@@ -1,6 +1,6 @@
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 import type { ClosedTicketsWindow } from "@/features/tickets/domain/model";
-import { getStateIdsForStatusGroup } from "@dosc-syspro/core";
+import { TICKET_STATUS_QUERY_TERMS, getStateIdsForStatusGroup } from "@dosc-syspro/core";
 
 const CLOSED_WINDOW_DAYS: Record<Exclude<ClosedTicketsWindow, "all">, number> = {
   "30d": 30,
@@ -14,10 +14,19 @@ export function buildStateIdQuery(stateIds: readonly number[]): string {
   return `(${stateIds.map((id) => `state_id:${id}`).join(" OR ")})`;
 }
 
+export function buildStatusTermsQuery(statusGroup: TicketStatusGroup): string {
+  const terms = TICKET_STATUS_QUERY_TERMS[statusGroup] ?? [];
+  if (!terms.length) return "";
+
+  return `(${terms.map((term) => `state:"${escapeSearchTerm(term)}"`).join(" OR ")})`;
+}
+
 export function buildEmailScopeQuery(emails: string[]): string {
   const normalized = Array.from(new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean)));
   if (!normalized.length) return "";
-  return `(${normalized.map((email) => `customer.email:${email}`).join(" OR ")})`;
+  return `(${normalized
+    .map((email) => `(customer.email:${email} OR customer:${email} OR "${email}")`)
+    .join(" OR ")})`;
 }
 
 export function buildQueueQuery(queue: QueueKey, zammadUserId?: number | null): string {
@@ -56,7 +65,14 @@ export function combineQueryParts(...parts: Array<string | null | undefined>): s
 export function buildStatusQuery(statusGroup?: TicketStatusGroup | "all"): string {
   if (!statusGroup || statusGroup === "all") return "";
   const stateIds = getStateIdsForStatusGroup(statusGroup);
-  return stateIds.length ? buildStateIdQuery(stateIds) : "id:-1";
+  const parts = [
+    stateIds.length ? buildStateIdQuery(stateIds) : "",
+    buildStatusTermsQuery(statusGroup),
+  ].filter(Boolean);
+
+  if (!parts.length) return "id:-1";
+  if (parts.length === 1) return parts[0];
+  return `(${parts.join(" OR ")})`;
 }
 
 export function buildTrackedStatusQuery(): string {

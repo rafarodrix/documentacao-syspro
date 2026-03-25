@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
+import { RemoteScriptDownloadButton } from "@/features/remote/interface/script-download-button";
 
 function formatDateTime(value: string | null) {
   if (!value) return "Sem registro";
@@ -911,10 +912,16 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
-                <a href={host.agent.installerPath} className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
+                <RemoteScriptDownloadButton
+                  url={host.agent.installerPath}
+                  filenameFallback="trilink-remote-agent.ps1"
+                  label="Baixar .ps1 do host"
+                  variant="outline"
+                  className="gap-2"
+                >
                   <HardDriveDownload className="h-4 w-4" />
                   Baixar .ps1 do host
-                </a>
+                </RemoteScriptDownloadButton>
                 <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="gap-2">
                   <Fingerprint className="h-4 w-4" />
                   Copiar token

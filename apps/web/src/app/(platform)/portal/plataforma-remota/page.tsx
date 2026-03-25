@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import { requireRole } from "@/lib/auth-helpers";
 import { getRemotePlatformDirectory } from "@/features/remote/application/queries";
 import { RemotePlatformDirectoryPanel } from "@/features/remote/interface/directory-page";
+import { RemoteScriptDownloadButton } from "@/features/remote/interface/script-download-button";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Download, Monitor, Settings } from "lucide-react";
@@ -28,13 +29,16 @@ export default async function RemotePlatformPage() {
           </p>
         </div>
 
-        <a
-          href="/api/remote/agents/discovery-script"
-          className={cn(buttonVariants({ variant: "outline" }), "gap-2 self-start")}
+        <RemoteScriptDownloadButton
+          url="/api/remote/agents/discovery-script"
+          filenameFallback="trilink-remote-discovery.ps1"
+          label="Baixar script padrao"
+          variant="outline"
+          className="gap-2 self-start"
         >
           <Download className="h-4 w-4" />
           Baixar script padrao
-        </a>
+        </RemoteScriptDownloadButton>
       </div>
 
       <div className="flex flex-wrap gap-3">
