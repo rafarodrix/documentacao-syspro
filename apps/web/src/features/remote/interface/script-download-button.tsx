@@ -39,6 +39,8 @@ export function RemoteScriptDownloadButton({
   const [isDownloading, setIsDownloading] = useState(false);
 
   async function handleDownload() {
+    let objectUrl: string | null = null;
+
     try {
       setIsDownloading(true);
 
@@ -64,22 +66,42 @@ export function RemoteScriptDownloadButton({
       }
 
       const blob = await response.blob();
-      const objectUrl = window.URL.createObjectURL(blob);
+      objectUrl = window.URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       const filename =
         parseFilenameFromDisposition(response.headers.get("content-disposition")) ?? filenameFallback;
 
       anchor.href = objectUrl;
       anchor.download = filename;
+      anchor.style.display = "none";
+      anchor.rel = "noopener";
       document.body.appendChild(anchor);
-      anchor.click();
+      anchor.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
       anchor.remove();
-      window.URL.revokeObjectURL(objectUrl);
 
       toast.success("Download iniciado.");
     } catch (error) {
+      if (objectUrl) {
+        try {
+          window.open(objectUrl, "_blank", "noopener,noreferrer");
+          toast.success("Arquivo aberto em nova aba para concluir o download.");
+          return;
+        } catch {}
+      }
+
+      try {
+        window.location.assign(url);
+        toast.success("Tentando baixar diretamente pelo navegador.");
+        return;
+      } catch {}
+
       toast.error(error instanceof Error ? error.message : "Falha ao baixar script.");
     } finally {
+      if (objectUrl) {
+        window.setTimeout(() => {
+          window.URL.revokeObjectURL(objectUrl as string);
+        }, 15000);
+      }
       setIsDownloading(false);
     }
   }
