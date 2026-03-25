@@ -345,9 +345,7 @@ $portalBaseUrl = 'PORTAL_BASE_URL'
 $discoveryToken = 'DISCOVERY_TOKEN'
 $machineName = 'MACHINE_NAME'
 $agentVersion = 'AGENT_VERSION'
-$listaServidores = ConvertFrom-Json @'
-SERVIDORES_JSON
-'@
+$listaServidores = ConvertFrom-Json 'SERVIDORES_JSON'
 
 Get-ChildItem -Path 'C:\Trilink\Agent' -Filter '*.log' -ErrorAction SilentlyContinue |
     Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
@@ -464,7 +462,7 @@ $heartbeatScriptContent = $heartbeatScriptContent.Replace('PORTAL_BASE_URL', '${
 $heartbeatScriptContent = $heartbeatScriptContent.Replace('DISCOVERY_TOKEN', '${escapedDiscoveryToken}')
 $heartbeatScriptContent = $heartbeatScriptContent.Replace('MACHINE_NAME', "$machineName")
 $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_VERSION', "$agentVersion")
-$heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVIDORES_JSON', $servidoresJson)
+$heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVIDORES_JSON', ($servidoresJson -replace "'", "''"))
 
 Set-Content -Path $heartbeatScriptPath -Value $heartbeatScriptContent -Force -Encoding UTF8
 

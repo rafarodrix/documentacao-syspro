@@ -521,9 +521,7 @@ $machineName = 'MACHINE_NAME'
 $agentVersion = 'AGENT_VERSION'
 $rustDeskIdFallback = 'RUSTDESK_ID_FALLBACK'
 $heartbeatErrorLogPath = 'HEARTBEAT_ERROR_LOG_PATH'
-$listaServidores = ConvertFrom-Json @'
-SERVIDORES_JSON
-'@
+$listaServidores = ConvertFrom-Json 'SERVIDORES_JSON'
 
 Get-ChildItem -Path 'C:\Trilink\Agent' -Filter '*.log' -ErrorAction SilentlyContinue |
     Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
@@ -709,7 +707,7 @@ try {
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_VERSION', "$agentVersion")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('RUSTDESK_ID_FALLBACK', "$normalizedRustDeskId")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('HEARTBEAT_ERROR_LOG_PATH', "$heartbeatErrorLogPath")
-    $heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVIDORES_JSON', $servidoresJson)
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVIDORES_JSON', ($servidoresJson -replace "'", "''"))
 
     Set-Content -Path $heartbeatScriptPath -Value $heartbeatScriptContent -Force -Encoding UTF8
 
