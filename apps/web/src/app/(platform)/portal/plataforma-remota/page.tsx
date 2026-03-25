@@ -1,7 +1,8 @@
 import { Role } from "@prisma/client";
 import { requireRole } from "@/lib/auth-helpers";
-import { getRemotePlatformDirectory } from "@/features/remote/application/queries";
+import { getRemotePlatformDirectory, getRemotePlatformOverview } from "@/features/remote/application/queries";
 import { RemotePlatformDirectoryPanel } from "@/features/remote/interface/directory-page";
+import { RemotePlatformControls } from "@/features/remote/interface/remote-controls";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Download, Monitor } from "lucide-react";
@@ -10,7 +11,7 @@ const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CL
 
 export default async function RemotePlatformPage() {
   await requireRole(ALLOWED_ROLES, "/portal");
-  const directory = await getRemotePlatformDirectory();
+  const [directory, overview] = await Promise.all([getRemotePlatformDirectory(), getRemotePlatformOverview()]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -34,6 +35,7 @@ export default async function RemotePlatformPage() {
         </a>
       </div>
 
+      <RemotePlatformControls overview={overview} />
       <RemotePlatformDirectoryPanel directory={directory} />
     </div>
   );

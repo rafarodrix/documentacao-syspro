@@ -1,16 +1,19 @@
+import Link from "next/link";
+import { ArrowUpRight, KeyRound, Monitor, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { RemotePlatformOverview } from "@/features/remote/domain/model";
-import { RemotePlatformControls } from "@/features/remote/interface/remote-controls";
 
 export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatformOverview }) {
   return (
     <div className="space-y-6">
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg">Acesso Remoto</CardTitle>
+          <CardTitle className="text-lg">Modulo remoto</CardTitle>
           <CardDescription>
-            Configuracao de hosts, associacao por empresa e preparacao operacional da plataforma remota.
+            Esta aba fica reservada para parametros globais do modulo. A operacao diaria de hosts, vinculos e sessoes acontece em Plataforma Remota.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
@@ -36,35 +39,69 @@ export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatform
         </CardContent>
       </Card>
 
-      <RemotePlatformControls overview={overview} />
+      <Card className="border-border/50">
+        <CardHeader className="space-y-2">
+          <CardTitle className="text-lg">Configuracoes globais previstas</CardTitle>
+          <CardDescription>
+            A base operacional foi movida para a rota do modulo. Este espaco concentra o que for global e transversal ao agente remoto.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 lg:grid-cols-3">
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium text-foreground">Tokens e segredos</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              `REMOTE_DISCOVERY_TOKEN`, chave publica do RustDesk e defaults do instalador devem ficar centralizados aqui.
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Monitor className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium text-foreground">Politicas do agente</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Intervalo de heartbeat, versao alvo do RustDesk, comportamento do script padrao e defaults operacionais do modulo.
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium text-foreground">Governanca</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Controle de quem pode operar hosts, baixar scripts e administrar o onboarding tecnico do ambiente remoto.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg">Hosts configurados recentemente</CardTitle>
-          <CardDescription>Referencias operacionais para validar cadastro, provider e escopo por empresa.</CardDescription>
+          <CardTitle className="text-lg">Operacao do modulo</CardTitle>
+          <CardDescription>
+            Cadastro, edicao, exclusao, vinculo de maquinas descobertas e sessoes remotas ficam centralizados na rota operacional.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {overview.recentHosts.length ? (
-            overview.recentHosts.map((host) => (
-              <div key={host.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{host.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {host.companyName ?? "Sem empresa"}
-                      {host.environment ? ` | ${host.environment}` : ""}
-                      {host.provider ? ` | ${host.provider}` : ""}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                    {host.status}
-                  </Badge>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">Nenhum host configurado ainda.</p>
-          )}
+        <CardContent className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                Hosts: {overview.hostStats.total}
+              </Badge>
+              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                Sessoes abertas: {overview.sessionStats.requested + overview.sessionStats.started}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Acesse a Plataforma Remota para editar ou excluir hosts, gerar scripts, vincular descobertas e acompanhar heartbeats.
+            </p>
+          </div>
+          <Link href="/portal/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "gap-2 self-start")}>
+            <ArrowUpRight className="h-4 w-4" />
+            Abrir Plataforma Remota
+          </Link>
         </CardContent>
       </Card>
     </div>
