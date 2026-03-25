@@ -1,11 +1,12 @@
 "use client";
 
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
-import { Button, type ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
-type RemoteScriptDownloadButtonProps = ButtonProps & {
+type RemoteScriptDownloadButtonProps = ComponentProps<typeof Button> & {
   url: string;
   filenameFallback: string;
   label: string;
