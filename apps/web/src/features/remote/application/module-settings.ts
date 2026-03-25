@@ -1,5 +1,3 @@
-"use server";
-
 import { z } from "zod";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -58,6 +56,7 @@ export async function getRemoteModuleSettingsSnapshot(): Promise<RemoteModuleSet
 }
 
 export async function getRemoteModuleSettingsAction(): Promise<RemoteModuleSettingsActionResponse<RemoteModuleSettings>> {
+  "use server";
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };
@@ -70,6 +69,7 @@ export async function getRemoteModuleSettingsAction(): Promise<RemoteModuleSetti
 export async function updateRemoteModuleSettingsAction(
   input: RemoteModuleSettings
 ): Promise<RemoteModuleSettingsActionResponse> {
+  "use server";
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
     return { success: false, error: "Permissao negada." };

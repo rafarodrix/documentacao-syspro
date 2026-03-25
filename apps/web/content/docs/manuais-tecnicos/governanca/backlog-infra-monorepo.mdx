@@ -70,6 +70,7 @@ Ordem recomendada:
 - [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, observacoes manuais do host, token de instalacao, heartbeat, metadata basica do agente, download do instalador por host, download do script padrao de descoberta, configuracoes globais do modulo remoto e regeneracao automatica de `installToken` legado ja existem; falta validar auto-registro/heartbeat em ambiente real, materializar instalacao em campo com ciclo recorrente e decidir se a entidade de agente vira tabela propria quando o recorte OSS-first estabilizar.
 - [ ] `FEAT-002A` [Media] Consolidar UX operacional de hosts e agentes. Grid operacional simplificada, cadastro rapido por modal, filtros por status/ambiente/heartbeat, copia rapida de `RustDesk ID`, labels amigaveis, indicadores de prontidao, acesso direto, simplificacao do detalhe do host, edicao de `machineName`, separacao entre observacoes do host vs empresa e matriz compartilhada de status operacional (`ONLINE`, `RECENT`, `OFFLINE`, `MISCONFIGURED`, `SESSION_BUSY`) ja existem; falta fechar consistencia visual entre configuracao, diretorio e detalhe, revisar mobile e reforcar feedback de bloqueios por host.
 - [ ] `FEAT-002B` [Media] Fechar fluxo OSS-first de agente. Endpoints de `discover`, `register` e `heartbeat`, rate limit basico por IP, script PowerShell padrao de descoberta, download de `.ps1` por host e manual tecnico OSS ja existem; falta validar auto-vinculo guiado ao host em campo, instalar heartbeat periodico em ambiente real, validar reconfiguracao de maquina ja instalada, endurecer o segredo de `installToken` e decidir a estrategia futura de `agentToken`.
+- [ ] `FEAT-002E` [Alta] Introduzir `agentToken` pos-bootstrap e observabilidade minima do agente. O proximo endurecimento deve separar `installToken` como token de bootstrap e migrar o heartbeat recorrente para `agentToken`, com hash persistido, emissao no `register`, rotacao, `lastHeartbeatSuccessAt`, `lastHeartbeatErrorAt`, `lastHeartbeatErrorMessage`, `lastKnownIp`, `lastRegisterAt` e exposicao desses sinais no detalhe do host. O desenho tecnico inicial deste recorte foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-agent-token-observabilidade-remoto`.
 - [ ] `FEAT-002C` [Media] Evoluir o agente RustDesk para cenarios `multi-servidores` na mesma maquina. O backend ja persiste `sysproUpdates[]`, a UI ja lista multiplas empresas por maquina no diretorio e no detalhe do host, e o fluxo de descoberta/heartbeat ja aceita leituras multi-instalacao; falta abrir lista configuravel de empresas/caminhos Syspro por host, enriquecer o script RMM, validar o comportamento em campo com discos/bases diferentes e decidir se a entidade filha deixa de ser tratada apenas como leitura de update para virar objeto operacional proprio. O desenho tecnico inicial desta evolucao foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-remoto-multi-bases`.
 - [ ] `FEAT-002D` [Media] Evoluir o agente remoto para `inventario tecnico` e `telemetria operacional` alem do heartbeat atual. O backend atual ja suporta `serviceStatus` e `sysproUpdates[]`, mas ainda nao persiste nem exibe `IP local`, `modelo do equipamento`, `RAM`, `networkReady`, versao efetiva do binario RustDesk e `status de processo do Syspro` separado da leitura de arquivo. Esse recorte deve abrir contrato de payload para `hardware`/`network`, decidir persistencia em `RemoteDiscoveredHost` e `RemoteHost`, refletir a leitura no detalhe da maquina e definir politica segura para `self-healing` do Syspro como comportamento opcional, nao padrao. Tambem precisa decidir se o agente passa a enviar inventario em toda execucao ou somente em `startup` e `mudanca de estado`.
 - [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima. Start/stop, ticket link, comentario interno no Zammad, regra de deduplicacao inicial, bloqueio de inicio concorrente no mesmo host, `expiresAt` para TTL e recorte tecnico do contrato de auditoria por sessao ja existem; falta validar o fluxo completo em ambiente real, materializar job de expiracao para limpar sessoes vencidas, consolidar a resolucao de host por ticket e persistir a auditoria de solicitacao, inicio, encerramento e origem da sessao.
@@ -89,11 +90,13 @@ Ordem recomendada:
    aplicar migrations pendentes, `prisma generate` no ambiente e validar o fluxo completo por perfil
 2. `FEAT-002B`
    validar `discover`, `register`, `heartbeat`, script `.ps1`, auto-vinculo por `installToken` e metadata real do agente
-3. `FEAT-003`
+3. `FEAT-002E`
+   abrir modelagem de `agentToken`, emissao no `register` e observabilidade minima do agente
+4. `FEAT-003`
    materializar job de expiracao, persistir auditoria por sessao e validar `REQUESTED -> STARTED -> ENDED`
-4. `FEAT-003A`
+5. `FEAT-003A`
    configurar e validar deep-link real no `Zammad`
-5. `FEAT-003B`
+6. `FEAT-003B`
    validar payload real do webhook e fechar limpeza automatica de sessoes vencidas
 
 ### Sprint 2 - Estabilizacao do agente e UX
@@ -102,7 +105,9 @@ Ordem recomendada:
    fechar consistencia visual entre configuracao, diretorio e detalhe e revisar responsividade
 2. `FEAT-002B`
    validar reconfiguracao de maquina ja instalada e endurecer segredos do agente
-3. `INFRA-027`
+3. `FEAT-002E`
+   fechar rotacao, revogacao e exibicao dos novos sinais operacionais
+4. `INFRA-027`
    E2E dos fluxos criticos do portal e docs
 
 ### Sprint 3 - Multi-instalacao e observabilidade

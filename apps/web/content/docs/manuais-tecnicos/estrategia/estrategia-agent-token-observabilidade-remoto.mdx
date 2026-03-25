@@ -1,0 +1,238 @@
+---
+title: Estrategia de AgentToken e Observabilidade Remota
+description: Desenho tecnico inicial para evoluir o agente remoto com token pos-bootstrap e telemetria operacional coerente com servidor RustDesk proprio.
+lastUpdated: "2026-03-25"
+owner: Equipe de Arquitetura
+status: draft
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+## Objetivo
+
+Definir o recorte tecnico inicial para substituir a dependencia continua de `installToken` por um `agentToken` pos-bootstrap e abrir uma camada minima de observabilidade do agente e do canal remoto.
+
+## Motivacao
+
+Com servidor RustDesk proprio em `acesso.trilinksoftware.com.br`, o maior ganho seguinte nao esta mais em conectividade e sim em:
+
+- endurecer autenticacao do agente
+- reduzir risco operacional do `installToken`
+- melhorar diagnostico de heartbeat, canal e maquina
+- criar base para rotacao, revogacao e auditoria do agente
+
+<Callout type="info" title="Diretriz">
+  `installToken` continua sendo token de bootstrap. O ciclo continuo do agente deve migrar para `agentToken`, emitido pelo backend apos o registro inicial e rotacionavel sem recriar o host.
+</Callout>
+
+## Situacao atual
+
+Hoje o fluxo esta assim:
+
+1. instalador por host envia `installToken` para `register`
+2. heartbeats seguintes continuam usando `installToken`
+3. o portal persiste `serviceStatus`, `machineName`, `agentVersion` e `sysproUpdates[]`
+4. a observabilidade do agente ainda e limitada ao heartbeat e a alguns logs locais
+
+## Problemas do modelo atual
+
+- `installToken` fica exposto por mais tempo do que o necessario
+- nao existe distincao clara entre token de bootstrap e identidade persistente do agente
+- revogar/rotacionar acesso do agente e custoso
+- o portal ainda nao mostra ultimo erro, ultimo sucesso, telemetria de rede ou estado do canal
+
+## Direcao proposta
+
+### 1. Token de bootstrap
+
+`installToken` permanece com escopo restrito a:
+
+- download do instalador por host
+- primeiro `POST /api/remote/agents/register`
+
+Ele nao deve ser exigido para heartbeat continuo depois da emissao do token definitivo do agente.
+
+### 2. Token operacional do agente
+
+Depois do `register`, o backend passa a emitir:
+
+- `agentToken` em texto plano, devolvido uma unica vez ao script
+- `agentTokenHash` persistido no banco
+- `agentTokenIssuedAt`
+- `agentTokenLastUsedAt`
+
+O `agentToken` passa a ser exigido em:
+
+- `POST /api/remote/agents/heartbeat`
+- futuras rotas de polling/telemetria
+- futuras rotas de job local do agente
+
+### 3. Observabilidade minima
+
+O backend deve passar a registrar no host:
+
+- `lastHeartbeatAt`
+- `lastHeartbeatSuccessAt`
+- `lastHeartbeatErrorAt`
+- `lastHeartbeatErrorMessage`
+- `serviceStatus`
+- `machineName`
+- `agentVersion`
+- `lastKnownIp`
+- `lastRegisterAt`
+- `lastRegisterSource`
+
+<Callout type="warning" title="Escopo inicial">
+  Este recorte ainda nao tenta instrumentar telemetria completa do servidor RustDesk. O foco inicial e observabilidade do agente e do estado operacional do host dentro do portal.
+</Callout>
+
+## Fluxo futuro
+
+<Steps>
+  <Step>
+    ### 1. Bootstrap
+    O script por host usa `installToken` em `POST /api/remote/agents/register`.
+  </Step>
+  <Step>
+    ### 2. Emissao do agentToken
+    O backend valida o `installToken`, registra a maquina e devolve `agentToken` ao script.
+  </Step>
+  <Step>
+    ### 3. Persistencia local
+    O script grava o `agentToken` localmente com protecao minima adequada ao ambiente Windows.
+  </Step>
+  <Step>
+    ### 4. Heartbeat continuo
+    O script passa a chamar `POST /api/remote/agents/heartbeat` com `agentToken`.
+  </Step>
+  <Step>
+    ### 5. Rotacao
+    O portal ganha acao para rotacionar o token do agente sem recriar o host.
+  </Step>
+</Steps>
+
+## Contrato inicial sugerido
+
+### Registro inicial
+
+Endpoint:
+
+```text
+POST /api/remote/agents/register
+```
+
+Resposta proposta:
+
+```json
+{
+  "success": true,
+  "data": {
+    "hostId": "remote-host-id",
+    "agentToken": "agt_xxxxxxxxxxxx",
+    "agentTokenIssuedAt": "2026-03-25T18:00:00.000Z"
+  }
+}
+```
+
+### Heartbeat continuo
+
+Endpoint:
+
+```text
+POST /api/remote/agents/heartbeat
+```
+
+Payload proposto:
+
+```json
+{
+  "agentToken": "agt_xxxxxxxxxxxx",
+  "rustdeskId": "21187620068",
+  "machineName": "ERP-MATRIZ-01",
+  "agentVersion": "rustdesk-oss-local",
+  "serviceStatus": "running",
+  "sysproUpdates": [
+    {
+      "empresa": "EMPRESA X",
+      "caminho": "C:\\syspro\\sysptoserver.exe",
+      "ultimaAtualizacao": "2026-03-25 10:00:00"
+    }
+  ]
+}
+```
+
+## Persistencia sugerida
+
+### Em `RemoteHost`
+
+Campos sugeridos:
+
+- `agentTokenHash`
+- `agentTokenIssuedAt`
+- `agentTokenLastUsedAt`
+- `lastHeartbeatSuccessAt`
+- `lastHeartbeatErrorAt`
+- `lastHeartbeatErrorMessage`
+- `lastKnownIp`
+- `lastRegisterAt`
+- `lastRegisterSource`
+
+### Opcional em tabela dedicada
+
+Se o recorte crescer, extrair para algo como:
+
+`RemoteHostAgent`
+
+para separar:
+
+- identidade do host
+- identidade do agente
+- historico de token
+- ultimos erros
+
+## UI recomendada
+
+### Detalhe do host
+
+Exibir:
+
+- ultimo heartbeat bem-sucedido
+- ultimo erro de heartbeat
+- IP conhecido
+- versao efetiva do agente
+- status do servico RustDesk
+- botao `Rotacionar token do agente`
+
+### Configuracoes do modulo remoto
+
+Exibir:
+
+- politica de token do agente
+- timeout de heartbeat
+- comportamento de expiracao
+
+## Riscos e cuidados
+
+- nunca persistir `agentToken` em texto plano no banco
+- rotacao deve invalidar heartbeats antigos imediatamente
+- o script precisa tratar troca/expiracao de token sem quebrar toda a instalacao
+- o `installToken` nao deve continuar aceito para heartbeat normal apos a transicao
+
+## Escopo que fica fora deste recorte
+
+- replay de sessao
+- gravacao de sessao RustDesk
+- telemetria completa do servidor RustDesk
+- self-healing do Syspro
+- inventario de hardware completo
+
+Esses pontos entram depois, principalmente no backlog de `FEAT-002D`.
+
+## Proximo passo recomendado
+
+1. abrir modelagem Prisma do `agentToken` e observabilidade minima
+2. ajustar `register` para emitir `agentToken`
+3. ajustar `heartbeat` para aceitar `agentToken`
+4. adaptar os dois scripts oficiais
+5. mostrar os novos sinais no detalhe do host

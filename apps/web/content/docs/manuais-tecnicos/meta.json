@@ -20,6 +20,7 @@
     "processos/operacao-agente-remoto-oss",
     "processos/operacao-backup-agendado-remoto",
     "---Estrategia---",
-    "estrategia/estrategia-plataforma-remota"
+    "estrategia/estrategia-plataforma-remota",
+    "estrategia/estrategia-agent-token-observabilidade-remoto"
   ]
 }
