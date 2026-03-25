@@ -158,8 +158,10 @@ function Install-Or-Update-RustDesk {
         $tempInstaller = "$env:TEMP\\rustdesk_installer.exe"
         try {
             Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing -TimeoutSec 120
-            Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden
-            Start-Sleep -Seconds 12
+            $installProcess = Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden -PassThru
+            if ($installProcess.ExitCode -ne 0) {
+                throw "Instalador retornou codigo $($installProcess.ExitCode)."
+            }
         } finally {
             if (Test-Path $tempInstaller) {
                 Remove-Item -Path $tempInstaller -Force -ErrorAction SilentlyContinue

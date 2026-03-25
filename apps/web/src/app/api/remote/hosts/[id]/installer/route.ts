@@ -217,8 +217,10 @@ function Install-Or-Update-RustDesk {
         try {
             Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing -TimeoutSec 120
             $msiArgs = "/i \`"$tempInstaller\`" /qn /norestart"
-            Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -WindowStyle Hidden
-            Start-Sleep -Seconds 15
+            $installProcess = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -WindowStyle Hidden -PassThru
+            if ($installProcess.ExitCode -ne 0) {
+                throw "MSI retornou codigo $($installProcess.ExitCode)."
+            }
         } finally {
             if (Test-Path $tempInstaller) {
                 Remove-Item -Path $tempInstaller -Force -ErrorAction SilentlyContinue
