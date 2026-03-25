@@ -1,11 +1,8 @@
-import Link from "next/link";
-import { ArrowUpRight, KeyRound, Monitor, ShieldCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { KeyRound, Monitor, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import type { RemotePlatformOverview } from "@/features/remote/domain/model";
 import { RemotePlatformControls } from "@/features/remote/interface/remote-controls";
+import { RemoteModuleSettingsForm } from "@/components/platform/app/settings/RemoteModuleSettingsForm";
 
 export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatformOverview }) {
   return (
@@ -77,6 +74,8 @@ export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatform
           </div>
         </CardContent>
       </Card>
+
+      <RemoteModuleSettingsForm />
 
       <RemotePlatformControls overview={overview} />
     </div>

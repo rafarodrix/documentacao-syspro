@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   Copy,
-  Download,
   ExternalLink,
   Monitor,
   Plus,
@@ -84,17 +83,6 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
   };
 }
 
-function buildOperationalSummary(item: DirectoryItem) {
-  return [
-    item.machineName ? `Maquina: ${item.machineName}` : null,
-    item.agentVersion ? `Agente: ${item.agentVersion}` : null,
-    item.lastHeartbeatAt ? `Heartbeat: ${new Date(item.lastHeartbeatAt).toLocaleString("pt-BR")}` : null,
-  ]
-    .filter(Boolean)
-    .join(" | ");
-}
-
-
 export function RemotePlatformDirectoryPanel({ directory }: { directory: RemotePlatformDirectory }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -127,30 +115,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       toast.success("RustDesk ID copiado.");
     } catch {
       toast.error("Falha ao copiar RustDesk ID.");
-    }
-  }
-
-  async function handleCopyPowerShellCommand(item: DirectoryItem) {
-    const command = [
-      "powershell -ExecutionPolicy Bypass -File .\\scripts\\remote-agent-oss.ps1",
-      `-PortalBaseUrl "${window.location.origin}"`,
-      `-InstallToken "${item.installToken ?? ""}"`,
-      item.rustdeskId ? `-RustDeskId "${item.rustdeskId}"` : null,
-      `-MachineName "${item.name}"`,
-    ]
-      .filter(Boolean)
-      .join(" ");
-
-    if (!item.installToken) {
-      toast.error("Host sem token de instalacao.");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(command);
-      toast.success("Comando PowerShell copiado.");
-    } catch {
-      toast.error("Falha ao copiar comando PowerShell.");
     }
   }
 
@@ -294,69 +258,69 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className={cn("grid gap-3", canCreateHosts ? "md:grid-cols-3 xl:grid-cols-5" : "md:grid-cols-2 xl:grid-cols-4")}>
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
               Prontos para acesso
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">{directoryStats.ready}</p>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-semibold text-foreground">{directoryStats.ready}</p>
             <p className="text-xs text-muted-foreground">Hosts com ID valido e heartbeat recente.</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <TimerReset className="h-4 w-4 text-amber-500" />
               Pedem verificacao
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">{directoryStats.attention}</p>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-semibold text-foreground">{directoryStats.attention}</p>
             <p className="text-xs text-muted-foreground">Hosts com heartbeat antigo ou conectividade instavel.</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Monitor className="h-4 w-4 text-sky-500" />
               Em atendimento
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">{directoryStats.openSessions}</p>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-semibold text-foreground">{directoryStats.openSessions}</p>
             <p className="text-xs text-muted-foreground">Hosts com sessao aberta ou solicitacao ativa.</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Wrench className="h-4 w-4 text-rose-500" />
               Cadastro pendente
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">{directoryStats.pendingSetup}</p>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-semibold text-foreground">{directoryStats.pendingSetup}</p>
             <p className="text-xs text-muted-foreground">Hosts sem token, sem RustDesk ID ou sem heartbeat inicial.</p>
           </CardContent>
         </Card>
 
         {canCreateHosts ? (
           <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-1">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Monitor className="h-4 w-4 text-violet-500" />
                 Maquinas em triagem
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold text-foreground">{directory.stats.pendingDiscovery}</p>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-semibold text-foreground">{directory.stats.pendingDiscovery}</p>
               <p className="text-xs text-muted-foreground">Descobertas pelo script padrao e aguardando vinculo.</p>
             </CardContent>
           </Card>
@@ -374,22 +338,21 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             </div>
 
             {canCreateHosts ? (
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-3 lg:min-w-95">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Cadastro rapido de host</p>
-                    <p className="text-xs text-muted-foreground">
-                      Fluxo minimo para criar um host operacional diretamente nesta rota.
-                    </p>
-                  </div>
-                  <Button type="button" variant="outline" onClick={() => setShowQuickCreate((current) => !current)} className="gap-2">
+              <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" className="gap-2 self-start">
                     <Plus className="h-4 w-4" />
-                    {showQuickCreate ? "Recolher" : "Cadastrar maquina"}
+                    Cadastro rapido
                   </Button>
-                </div>
-
-                {showQuickCreate ? (
-                  <div className="mt-4 space-y-3">
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Cadastro rapido de host</DialogTitle>
+                    <DialogDescription>
+                      Fluxo minimo para criar um host operacional diretamente nesta rota.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3">
                     <div className="grid gap-3 md:grid-cols-3">
                       <div className="space-y-2">
                         <Label>Empresa</Label>
@@ -419,25 +382,13 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       Confirmar cadastro
                     </Button>
                   </div>
-                ) : null}
-              </div>
+                </DialogContent>
+              </Dialog>
             ) : null}
           </div>
         </CardHeader>
 
         <CardContent className="space-y-4 p-6">
-          {canCreateHosts ? (
-            <div className="flex justify-end">
-              <a
-                href="/api/remote/agents/discovery-script"
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                <Download className="h-4 w-4" />
-                Baixar script padrao
-              </a>
-            </div>
-          ) : null}
-
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -617,14 +568,16 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
                 const HeartbeatIcon = heartbeat.icon;
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
-                const operationalSummary = buildOperationalSummary(item);
+                const companyLine = item.installationCompanies.length
+                  ? item.installationCompanies.join(" | ")
+                  : item.companyName ?? "Sem empresa";
 
                 return (
                   <div
                     key={item.id}
                     className="rounded-2xl border border-border/50 bg-linear-to-r from-background via-background to-muted/20 p-5 shadow-sm transition-colors hover:border-primary/20"
                   >
-                    <div className="grid gap-5 xl:grid-cols-[1.5fr_0.85fr_0.8fr]">
+                    <div className="grid gap-4 xl:grid-cols-[1.6fr_0.8fr_0.7fr]">
                       <div className="space-y-4">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className={heartbeat.className}>
@@ -641,25 +594,15 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           ) : null}
                         </div>
 
-                        <div className="space-y-3">
-                          <p className="text-lg font-semibold text-foreground">{item.companyName ?? "Sem empresa"}</p>
+                        <div className="space-y-2">
+                          <p className="text-lg font-semibold text-foreground">{companyLine}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Maquina: {item.machineName ?? item.name}
+                          </p>
                           {item.installationCompanies.length > 1 ? (
                             <p className="text-xs text-muted-foreground">
-                              Instalacoes: {item.installationCompanies.join(" | ")}
+                              Multiplas empresas vinculadas nesta maquina.
                             </p>
-                          ) : null}
-                          <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
-                            <div className="grid grid-cols-[118px_1fr] gap-x-3 border-b border-border/40 px-3 py-2 text-sm">
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Descricao</span>
-                              <span className="font-medium text-foreground">{item.description || "Sem descricao operacional."}</span>
-                            </div>
-                            <div className="grid grid-cols-[118px_1fr] gap-x-3 px-3 py-2 text-sm">
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Host</span>
-                              <span className="text-foreground">{item.name}</span>
-                            </div>
-                          </div>
-                          {operationalSummary ? (
-                            <p className="text-xs text-muted-foreground">{operationalSummary}</p>
                           ) : null}
                         </div>
                       </div>
@@ -699,28 +642,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                             <ArrowUpRight className="h-3.5 w-3.5" />
                             Visualizar detalhes
                           </Link>
-                          {canCreateHosts ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyPowerShellCommand(item)}
-                              className="justify-start gap-2 rounded-lg px-3 py-2"
-                              disabled={!item.installToken}
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                              Copiar comando
-                            </Button>
-                          ) : null}
-                          {canCreateHosts ? (
-                            <a
-                              href={item.agent.installerPath}
-                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                              Baixar script
-                            </a>
-                          ) : null}
                         </div>
                       </div>
                     </div>

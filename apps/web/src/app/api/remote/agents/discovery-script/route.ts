@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProtectedSession } from "@/lib/auth-helpers";
+import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +12,27 @@ function escapePowerShell(value: string | null | undefined) {
   return (value ?? "").replace(/'/g, "''");
 }
 
-function buildDiscoveryScript(input: { portalBaseUrl: string; discoveryToken: string }) {
+function buildDiscoveryScript(input: {
+  portalBaseUrl: string;
+  discoveryToken: string;
+  rustDeskServerHost: string;
+  rustDeskServerConfig: string;
+  rustDeskPublicKey: string;
+  rustDeskVersion: string;
+  heartbeatIntervalMinutes: number;
+  defaultPassword: string;
+}) {
   const escapedPortalBaseUrl = escapePowerShell(input.portalBaseUrl);
   const escapedDiscoveryToken = escapePowerShell(input.discoveryToken);
+  const escapedServerHost = escapePowerShell(input.rustDeskServerHost);
+  const escapedServerConfig = escapePowerShell(input.rustDeskServerConfig);
+  const escapedPublicKey = escapePowerShell(input.rustDeskPublicKey);
+  const escapedVersion = escapePowerShell(input.rustDeskVersion);
+  const heartbeatIntervalMinutes = Math.max(1, Math.min(120, input.heartbeatIntervalMinutes));
+  const escapedDefaultPassword = escapePowerShell(input.defaultPassword);
 
   return `param(
-    [string]$RustDeskPassword = 'Trilink098'
+    [string]$RustDeskPassword = '${escapedDefaultPassword}'
 )
 
 # Trilink Remote Agent OSS - Script Padrao de Descoberta
@@ -44,10 +60,11 @@ if (-not $isAdmin) {
 $ErrorActionPreference = 'Stop'
 $portalBaseUrl = '${escapedPortalBaseUrl}'
 $discoveryToken = '${escapedDiscoveryToken}'
-$expectedRustDeskVersion = '1.3.1'
+$expectedRustDeskVersion = '${escapedVersion}'
 $rustDeskDownloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$expectedRustDeskVersion/rustdesk-$expectedRustDeskVersion-x86_64.exe"
-$customRendezvousServer = 'rustdesk.trilinksoftware.com.br'
-$customServerKey = 'SUA_CHAVE_PUBLICA_AQUI'
+$customRendezvousServer = '${escapedServerHost}'
+$serverConfig = '${escapedServerConfig}'
+$customServerKey = '${escapedPublicKey}'
 $machineName = $env:COMPUTERNAME
 $agentVersion = 'rustdesk-oss-discovery'
 $aliasMaquina = "$machineName - Trilink Discovery"
@@ -244,10 +261,18 @@ if (-not $rustdeskExe) {
 
 Write-Host '[2/5] Aplicando configuracoes do RustDesk...' -ForegroundColor Cyan
 Start-Process -FilePath $rustdeskExe -ArgumentList "--password $RustDeskPassword" -Wait -WindowStyle Hidden
+if (-not [string]::IsNullOrWhiteSpace($serverConfig)) {
+    try {
+        Start-Process -FilePath $rustdeskExe -ArgumentList "--config $serverConfig" -Wait -WindowStyle Hidden
+    } catch {
+        Write-Host "Falha ao aplicar config exportada do RustDesk: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-InstallError -Message "Falha ao aplicar config exportada do RustDesk: $($_.Exception.Message)"
+    }
+}
 if (-not [string]::IsNullOrWhiteSpace($customRendezvousServer)) {
     Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-rendezvous-server $customRendezvousServer" -Wait -WindowStyle Hidden
 }
-if ($customServerKey -and $customServerKey -ne 'SUA_CHAVE_PUBLICA_AQUI') {
+if (-not [string]::IsNullOrWhiteSpace($customServerKey)) {
     Start-Process -FilePath $rustdeskExe -ArgumentList "--option key $customServerKey" -Wait -WindowStyle Hidden
 }
 Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-alias \`"$aliasMaquina\`"" -Wait -WindowStyle Hidden
@@ -390,7 +415,7 @@ if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
 
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File \`"$heartbeatScriptPath\`""
 $triggerStartup = New-ScheduledTaskTrigger -AtStartup
-$triggerRepetition = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+$triggerRepetition = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes ${heartbeatIntervalMinutes})
 $principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\\SYSTEM' -LogonType ServiceAccount -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd
 
@@ -427,7 +452,17 @@ export async function GET(request: Request) {
   }
 
   const portalBaseUrl = new URL(request.url).origin;
-  const script = buildDiscoveryScript({ portalBaseUrl, discoveryToken });
+  const settings = await getRemoteModuleSettingsSnapshot();
+  const script = buildDiscoveryScript({
+    portalBaseUrl,
+    discoveryToken,
+    rustDeskServerHost: settings.rustDeskServerHost,
+    rustDeskServerConfig: settings.rustDeskServerConfig,
+    rustDeskPublicKey: settings.rustDeskPublicKey,
+    rustDeskVersion: settings.rustDeskVersion,
+    heartbeatIntervalMinutes: settings.heartbeatIntervalMinutes,
+    defaultPassword: settings.defaultPassword,
+  });
 
   return new NextResponse(script, {
     status: 200,

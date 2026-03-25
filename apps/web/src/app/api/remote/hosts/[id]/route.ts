@@ -37,6 +37,7 @@ export async function PATCH(
   const body = (await request.json()) as {
     companyId?: string;
     name?: string;
+    machineName?: string | null;
     environment?: string | null;
     provider?: string | null;
     description?: string | null;
@@ -79,6 +80,7 @@ export async function PATCH(
     data: {
       companyId,
       name,
+      machineName: body.machineName?.trim() || null,
       environment: body.environment?.trim() || null,
       provider: body.provider?.trim() || null,
       description: body.description?.trim() || null,

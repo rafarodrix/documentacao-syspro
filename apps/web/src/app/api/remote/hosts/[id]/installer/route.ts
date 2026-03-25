@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,12 @@ function buildInstallerScript(input: {
   description: string | null;
   rustdeskId: string | null;
   environment: string | null;
+  rustDeskServerHost: string;
+  rustDeskServerConfig: string;
+  rustDeskPublicKey: string;
+  rustDeskVersion: string;
+  heartbeatIntervalMinutes: number;
+  defaultPassword: string;
 }) {
   const description = input.description?.trim() || "Sem descricao operacional cadastrada.";
   const rustdeskId = input.rustdeskId?.trim() || "";
@@ -50,9 +57,15 @@ function buildInstallerScript(input: {
   const escapedDescription = escapePowerShell(description);
   const escapedEnvironment = escapePowerShell(environment);
   const escapedRustDeskId = escapePowerShell(rustdeskId);
+  const escapedServerHost = escapePowerShell(input.rustDeskServerHost);
+  const escapedServerConfig = escapePowerShell(input.rustDeskServerConfig);
+  const escapedPublicKey = escapePowerShell(input.rustDeskPublicKey);
+  const escapedRustDeskVersion = escapePowerShell(input.rustDeskVersion);
+  const escapedDefaultPassword = escapePowerShell(input.defaultPassword);
+  const heartbeatIntervalMinutes = Math.max(1, Math.min(120, input.heartbeatIntervalMinutes));
 
   return `param(
-    [string]$RustDeskPassword = 'Trilink098'
+    [string]$RustDeskPassword = '${escapedDefaultPassword}'
 )
 
 # Trilink Remote Agent OSS - Agente Completo
@@ -88,11 +101,11 @@ $ErrorActionPreference = 'Stop'
 # ==========================================
 # 1. CONFIGURACOES DO SERVIDOR RUSTDESK
 # ==========================================
-$expectedRustDeskVersion = '1.4.6'
+$expectedRustDeskVersion = '${escapedRustDeskVersion}'
 $rustDeskDownloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$expectedRustDeskVersion/rustdesk-$expectedRustDeskVersion-x86_64.msi"
-$customRendezvousServer = 'rustdesk.trilinksoftware.com.br'
-$serverConfig = '==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye'
-$customServerKey = 'SUA_CHAVE_PUBLICA_AQUI'
+$customRendezvousServer = '${escapedServerHost}'
+$serverConfig = '${escapedServerConfig}'
+$customServerKey = '${escapedPublicKey}'
 
 # ==========================================
 # 2. CONFIGURACAO DO HOST E PORTAL
@@ -374,7 +387,7 @@ try {
         Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-rendezvous-server $customRendezvousServer" -Wait -WindowStyle Hidden
     }
 
-    if ($customServerKey -and $customServerKey -ne 'SUA_CHAVE_PUBLICA_AQUI') {
+    if (-not [string]::IsNullOrWhiteSpace($customServerKey)) {
         Start-Process -FilePath $rustdeskExe -ArgumentList "--option key $customServerKey" -Wait -WindowStyle Hidden
     } else {
         Write-Host 'Chave publica do servidor RustDesk nao configurada no script. Ajuste $customServerKey se necessario.' -ForegroundColor Yellow
@@ -591,7 +604,7 @@ try {
 
     $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File \`"$heartbeatScriptPath\`""
     $triggerStartup = New-ScheduledTaskTrigger -AtStartup
-    $triggerRepetition = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+    $triggerRepetition = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes ${heartbeatIntervalMinutes})
     $principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\\SYSTEM' -LogonType ServiceAccount -RunLevel Highest
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd
 
@@ -673,6 +686,7 @@ export async function GET(
   }
 
   const portalBaseUrl = new URL(request.url).origin;
+  const settings = await getRemoteModuleSettingsSnapshot();
   const companyName = host.company.nomeFantasia ?? host.company.razaoSocial;
   const companySlug = slugifyFilePart(companyName || "empresa");
   const hostSlug = slugifyFilePart(host.name || "host-remoto");
@@ -684,6 +698,12 @@ export async function GET(
     description: host.description,
     rustdeskId: host.agentExternalId,
     environment: host.environment,
+    rustDeskServerHost: settings.rustDeskServerHost,
+    rustDeskServerConfig: settings.rustDeskServerConfig,
+    rustDeskPublicKey: settings.rustDeskPublicKey,
+    rustDeskVersion: settings.rustDeskVersion,
+    heartbeatIntervalMinutes: settings.heartbeatIntervalMinutes,
+    defaultPassword: settings.defaultPassword,
   });
 
   return new NextResponse(script, {

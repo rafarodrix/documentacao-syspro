@@ -1,5 +1,34 @@
 export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
 
+export type RemoteModuleSettings = {
+  rustDeskServerHost: string;
+  rustDeskServerConfig: string;
+  rustDeskPublicKey: string;
+  rustDeskVersion: string;
+  heartbeatIntervalMinutes: number;
+  defaultPassword: string;
+};
+
+export type RemoteModuleSettingsActionSuccess<T = void> = T extends void
+  ? {
+      success: true;
+      message?: string;
+    }
+  : {
+      success: true;
+      message?: string;
+      data: T;
+    };
+
+export type RemoteModuleSettingsActionFailure = {
+  success: false;
+  error: string;
+};
+
+export type RemoteModuleSettingsActionResponse<T = void> =
+  | RemoteModuleSettingsActionSuccess<T>
+  | RemoteModuleSettingsActionFailure;
+
 export type RemoteAccessScope = "global" | "company";
 
 export type RemoteAccessPolicy = {

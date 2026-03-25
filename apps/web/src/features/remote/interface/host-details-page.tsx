@@ -1,15 +1,13 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   ArrowLeft,
   Copy,
   ExternalLink,
   Fingerprint,
   HardDriveDownload,
-  LifeBuoy,
-  ShieldCheck,
   TimerReset,
   UserRound,
   Wrench,
@@ -18,6 +16,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
@@ -79,10 +78,13 @@ function getServiceStatusMeta(value: string | null) {
 
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
+  const [machineName, setMachineName] = useState(host.machineName ?? "");
+  const [isSavingMachineName, startSavingMachineName] = useTransition();
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
+
   const installations = useMemo(() => {
     const seen = new Set<string>();
     const items = details.sysproUpdates
@@ -173,10 +175,48 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     }, 600);
   }
 
+  function handleSaveMachineName() {
+    startSavingMachineName(async () => {
+      try {
+        const response = await fetch(`/api/remote/hosts/${host.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            companyId: host.companyId,
+            name: host.name,
+            machineName,
+            environment: host.environment,
+            provider: host.provider,
+            description: host.description,
+            notes: host.notes,
+            agentExternalId: host.rustdeskId,
+            status: host.status,
+          }),
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Falha ao salvar nome da maquina.");
+        }
+
+        toast.success("Nome da maquina atualizado.");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Falha ao salvar nome da maquina.");
+      }
+    });
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center">
+        <Link href="/portal/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "h-8 gap-2 px-3")}>
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </Link>
+      </div>
+
       <Card className="border-border/50 overflow-hidden">
-        <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.25fr_0.75fr]">
+        <CardContent className="grid gap-5 p-5 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className={heartbeat.tone}>
@@ -195,109 +235,89 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               ) : null}
             </div>
 
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <Link href="/portal/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "h-8 gap-2 px-3")}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Voltar
-                </Link>
-                {rustdeskHref ? (
-                  <Button onClick={handleOpenRustDesk} className="gap-2 shadow-sm">
-                    <ExternalLink className="h-4 w-4" />
-                    Abrir acesso remoto
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{host.name}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {installations.length
+                  ? `${installations.length} instalacao(oes) vinculada(s) nesta maquina`
+                  : "Maquina remota vinculada ao portal"}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{host.description || "Sem descricao operacional."}</p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <p className="font-mono text-base font-semibold text-foreground">{normalizedRustdeskId ?? "Nao configurado"}</p>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")}>
+                    <Copy className="h-4 w-4" />
                   </Button>
-                ) : (
-                  <Button disabled>RustDesk nao configurado</Button>
-                )}
+                </div>
               </div>
 
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">{host.name}</h1>
-                <p className="mt-1 text-base text-muted-foreground">
-                  {installations.length
-                    ? `${installations.length} instalacao(oes) vinculada(s) nesta maquina`
-                    : "Maquina remota vinculada ao portal"}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">{host.description || "Sem descricao operacional."}</p>
+              <div className="flex flex-col gap-2">
+                <Button onClick={handleOpenRustDesk} disabled={!rustdeskHref} className="gap-2 shadow-sm">
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir acesso remoto
+                </Button>
+                <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="gap-2">
+                  <Fingerprint className="h-4 w-4" />
+                  Copiar token
+                </Button>
               </div>
             </div>
 
+            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <div className="space-y-2">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da maquina</p>
+                <Input value={machineName} onChange={(event) => setMachineName(event.target.value)} placeholder="SERVIDOR-01" />
+              </div>
+              <div className="flex items-end">
+                <Button onClick={handleSaveMachineName} disabled={isSavingMachineName || machineName === (host.machineName ?? "")}>
+                  Salvar nome
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
+                Heartbeat: {formatRelativeHeartbeat(host.lastHeartbeatAt)}
+              </span>
+              <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
+                Sessao: {host.openSessionCount ? `${host.openSessionCount} ativa(s)` : "Nenhuma"}
+              </span>
+              <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
+                Agente: {host.agentVersion ?? "Nao registrado"}
+              </span>
+            </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
-              <p className="mt-1 font-mono text-base font-semibold text-foreground">{normalizedRustdeskId ?? "Nao configurado"}</p>
+          <div className="space-y-3">
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+              <p className="font-medium text-foreground">Heartbeat: {heartbeat.label}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{heartbeat.description}</p>
             </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
-              <p className="mt-1 text-base font-semibold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servico do agente</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{serviceStatus.label}</p>
+              </div>
             </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servico do agente</p>
-              <p className="mt-1 text-base font-semibold text-foreground">{serviceStatus.label}</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sessao aberta</p>
-              <p className="mt-1 text-base font-semibold text-foreground">{host.openSessionCount ? `${host.openSessionCount} ativa(s)` : "Nenhuma"}</p>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-3 text-sm text-muted-foreground">
+              <p>1. Use `Abrir acesso remoto` como acao principal.</p>
+              <p>2. Se falhar, copie o `RustDesk ID` e conecte manualmente.</p>
+              <p>3. Atualize o nome da maquina quando o heartbeat vier com identificacao diferente.</p>
+              {host.openSessionCount > 0 ? <p>4. Ja existe sessao aberta. Evite duplicidade de atendimento.</p> : null}
             </div>
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-              Acoes imediatas
-            </CardTitle>
-            <CardDescription>Atalhos para reduzir cliques na operacao de suporte.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2">
-            <Button onClick={handleOpenRustDesk} disabled={!rustdeskHref} className="justify-start gap-2">
-              <ExternalLink className="h-4 w-4" />
-              Abrir RustDesk
-            </Button>
-            <Button variant="outline" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")} className="justify-start gap-2">
-              <Copy className="h-4 w-4" />
-              Copiar RustDesk ID
-            </Button>
-            <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="justify-start gap-2">
-              <Fingerprint className="h-4 w-4" />
-              Copiar token
-            </Button>
-            <Link href="/portal/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "justify-start gap-2")}>
-              <ArrowLeft className="h-4 w-4" />
-              Voltar ao diretorio
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <LifeBuoy className="h-5 w-5 text-primary" />
-              Guia operacional
-            </CardTitle>
-            <CardDescription>Leitura curta para o analista decidir rapido.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-              <p className="font-medium text-foreground">Heartbeat: {heartbeat.label}</p>
-              <p className="mt-1 text-muted-foreground">{heartbeat.description}</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-3 text-muted-foreground">
-              <p>1. Valide o heartbeat e o status do host.</p>
-              <p>2. Use `Abrir RustDesk` como acao principal.</p>
-              <p>3. Se houver bloqueio do navegador, use `Copiar RustDesk ID`.</p>
-              <p>4. Se falhar, valide senha do host e servidor configurado.</p>
-              {host.openSessionCount > 0 ? <p>5. Ja existe sessao aberta. Evite duplicidade de atendimento.</p> : null}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       <Tabs defaultValue="conexao" className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
@@ -312,16 +332,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Resumo de conexao</CardTitle>
-              <CardDescription>Informacoes que normalmente ficam dispersas entre cadastro, agente e sessao.</CardDescription>
+              <CardDescription>Somente os dados tecnicos que ainda valem consulta depois do bloco inicial.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
-                <p className="mt-1 font-mono text-sm text-foreground">{normalizedRustdeskId ?? "Nao configurado"}</p>
-              </div>
+            <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Machine name</p>
-                <p className="mt-1 text-sm text-foreground">{host.machineName ?? "Nao registrada"}</p>
+                <p className="mt-1 text-sm text-foreground">{machineName || "Nao registrada"}</p>
               </div>
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao do agente</p>
@@ -334,10 +350,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
                 <p className="mt-1 text-sm text-foreground">{host.provider ?? "Nao definido"}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Heartbeat</p>
-                <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
               </div>
             </CardContent>
           </Card>
