@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformOverview } from "@/features/remote/domain/model";
+import { RemotePlatformControls } from "@/features/remote/interface/remote-controls";
 
 export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatformOverview }) {
   return (
@@ -77,33 +78,7 @@ export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatform
         </CardContent>
       </Card>
 
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="text-lg">Operacao do modulo</CardTitle>
-          <CardDescription>
-            Cadastro, edicao, exclusao, vinculo de maquinas descobertas e sessoes remotas ficam centralizados na rota operacional.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                Hosts: {overview.hostStats.total}
-              </Badge>
-              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                Sessoes abertas: {overview.sessionStats.requested + overview.sessionStats.started}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Acesse a Plataforma Remota para editar ou excluir hosts, gerar scripts, vincular descobertas e acompanhar heartbeats.
-            </p>
-          </div>
-          <Link href="/portal/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "gap-2 self-start")}>
-            <ArrowUpRight className="h-4 w-4" />
-            Abrir Plataforma Remota
-          </Link>
-        </CardContent>
-      </Card>
+      <RemotePlatformControls overview={overview} />
     </div>
   );
 }

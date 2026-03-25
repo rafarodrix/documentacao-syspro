@@ -1,17 +1,16 @@
 import { Role } from "@prisma/client";
 import { requireRole } from "@/lib/auth-helpers";
-import { getRemotePlatformDirectory, getRemotePlatformOverview } from "@/features/remote/application/queries";
+import { getRemotePlatformDirectory } from "@/features/remote/application/queries";
 import { RemotePlatformDirectoryPanel } from "@/features/remote/interface/directory-page";
-import { RemotePlatformControls } from "@/features/remote/interface/remote-controls";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Download, Monitor } from "lucide-react";
+import { Download, Monitor, Settings } from "lucide-react";
 
 const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 
 export default async function RemotePlatformPage() {
   await requireRole(ALLOWED_ROLES, "/portal");
-  const [directory, overview] = await Promise.all([getRemotePlatformDirectory(), getRemotePlatformOverview()]);
+  const directory = await getRemotePlatformDirectory();
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -35,7 +34,23 @@ export default async function RemotePlatformPage() {
         </a>
       </div>
 
-      <RemotePlatformControls overview={overview} />
+      <div className="flex flex-wrap gap-3">
+        <a
+          href="/downloads/trilink-instalador-padrao.ps1"
+          className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
+        >
+          <Download className="h-4 w-4" />
+          Baixar script manual
+        </a>
+        <a
+          href="/portal/configuracoes?tab=remote"
+          className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
+        >
+          <Settings className="h-4 w-4" />
+          Abrir configuracoes do modulo
+        </a>
+      </div>
+
       <RemotePlatformDirectoryPanel directory={directory} />
     </div>
   );
