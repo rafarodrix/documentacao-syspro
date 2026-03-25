@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { z } from "zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -19,6 +20,8 @@ import {
 } from "@/features/remote/application/module-settings-actions";
 import type { RemoteModuleSettings } from "@/features/remote/domain/model";
 
+type RemoteModuleSettingsFormValues = z.input<typeof remoteModuleSettingsSchema>;
+
 const defaultValues: RemoteModuleSettings = {
   rustDeskServerHost: "acesso.trilinksoftware.com.br",
   rustDeskServerConfig:
@@ -33,7 +36,7 @@ export function RemoteModuleSettingsForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, startTransition] = useTransition();
 
-  const form = useForm<RemoteModuleSettings>({
+  const form = useForm<RemoteModuleSettingsFormValues>({
     resolver: zodResolver(remoteModuleSettingsSchema),
     defaultValues,
     mode: "onChange",
@@ -65,12 +68,13 @@ export function RemoteModuleSettingsForm() {
     };
   }, [form]);
 
-  const onSubmit: SubmitHandler<RemoteModuleSettings> = async (data) => {
+  const onSubmit: SubmitHandler<RemoteModuleSettingsFormValues> = async (data) => {
     startTransition(async () => {
-      const result = await updateRemoteModuleSettingsAction(data);
+      const parsed = remoteModuleSettingsSchema.parse(data);
+      const result = await updateRemoteModuleSettingsAction(parsed);
       if (result.success) {
         toast.success(result.message);
-        form.reset(data);
+        form.reset(parsed);
       } else {
         toast.error(result.error);
       }

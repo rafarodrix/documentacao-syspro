@@ -351,6 +351,19 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
                 <p className="mt-1 text-sm text-foreground">{host.provider ?? "Nao definido"}</p>
               </div>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo sucesso</p>
+                <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatSuccessAt)}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo IP</p>
+                <p className="mt-1 text-sm text-foreground">{host.lastKnownIp ?? "Sem leitura"}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 md:col-span-2 xl:col-span-2">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo erro do heartbeat</p>
+                <p className="mt-1 text-sm text-foreground">{host.lastHeartbeatErrorMessage ?? "Sem erro recente registrado"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatErrorAt)}</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -421,6 +434,25 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </Button>
               </div>
 
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bootstrap inicial</p>
+                  <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.lastRegisterAt)}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Origem do bootstrap</p>
+                  <p className="mt-1 text-sm text-foreground">{host.agent.lastRegisterSource ?? "Sem leitura"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat valido</p>
+                  <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.lastHeartbeatSuccessAt)}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo IP reportado</p>
+                  <p className="mt-1 text-sm text-foreground">{host.agent.lastKnownIp ?? "Sem leitura"}</p>
+                </div>
+              </div>
+
               <div className="grid gap-3 md:grid-cols-2">
                 {details.installGuide.map((step) => (
                   <div key={step.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
@@ -438,7 +470,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
                 <p>1. Baixe o script dedicado deste host.</p>
                 <p>2. Execute na maquina do cliente e confirme o RustDesk ID devolvido.</p>
-                <p>3. Aguarde o heartbeat inicial para o host sair de `PENDING_INSTALL`.</p>
+                <p>3. O bootstrap emite `agentToken` e o heartbeat continuo passa a preferir essa credencial.</p>
                 <p>4. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
               </div>
             </CardContent>

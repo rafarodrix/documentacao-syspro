@@ -122,6 +122,7 @@ $rustDeskId = '${escapedRustDeskId}'
 $aliasMaquina = "$machineName - ${escapedCompanyName}"
 $agentDir = 'C:\\Trilink\\Agent'
 $heartbeatScriptPath = "$agentDir\\heartbeat.ps1"
+$agentTokenPath = "$agentDir\\agent-token.txt"
 $taskName = 'Trilink_RemoteAgent_Heartbeat'
 $installLogPath = "$agentDir\\install.log"
 $installErrorLogPath = "$agentDir\\install_error.log"
@@ -315,16 +316,22 @@ function Get-SysproUpdates {
 function Invoke-InitialHeartbeat {
     param(
         [string]$NormalizedRustDeskId,
-        [string]$ServiceStatus
+        [string]$ServiceStatus,
+        [string]$AgentToken
     )
 
     $payloadHeartbeat = @{
-        installToken = $installToken
         rustdeskId = $NormalizedRustDeskId
         machineName = $machineName
         agentVersion = $agentVersion
         serviceStatus = $ServiceStatus
         sysproUpdates = Get-SysproUpdates
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($AgentToken)) {
+        $payloadHeartbeat.agentToken = $AgentToken
+    } else {
+        $payloadHeartbeat.installToken = $installToken
     }
 
     Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body ($payloadHeartbeat | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
@@ -428,11 +435,19 @@ $payloadRegister = @{
     agentVersion = $agentVersion
     environment = $environment
 }
+$agentToken = ''
 
 Write-Host 'Registrando agente no portal...' -ForegroundColor Cyan
 
 try {
-    Invoke-PortalJsonPost -Url "$portalBaseUrl/api/remote/agents/register" -Body $payloadRegister
+    $registerResponse = Invoke-PortalJsonPost -Url "$portalBaseUrl/api/remote/agents/register" -Body $payloadRegister
+    if ($registerResponse -and $registerResponse.data -and $registerResponse.data.agentToken) {
+        $agentToken = [string]$registerResponse.data.agentToken
+        Set-Content -Path $agentTokenPath -Value $agentToken -Force -Encoding UTF8
+        Write-InstallLog -Message 'agentToken emitido e persistido localmente.'
+    } else {
+        Write-InstallError -Message 'Resposta de register sem agentToken. Heartbeat seguira em modo de compatibilidade.'
+    }
     Write-Host 'Registro concluido com sucesso.' -ForegroundColor Green
     Write-InstallLog -Message "Registro concluido com sucesso. RustDesk ID: $normalizedRustDeskId"
 } catch {
@@ -448,7 +463,7 @@ try {
 Write-Host '[4/5] Enviando heartbeat inicial...' -ForegroundColor Cyan
 $serviceStatus = Get-ServiceHealthStatus
 try {
-    Invoke-InitialHeartbeat -NormalizedRustDeskId $normalizedRustDeskId -ServiceStatus $serviceStatus
+    Invoke-InitialHeartbeat -NormalizedRustDeskId $normalizedRustDeskId -ServiceStatus $serviceStatus -AgentToken $agentToken
     Write-Host 'Heartbeat inicial enviado com sucesso.' -ForegroundColor Green
     Write-InstallLog -Message 'Heartbeat inicial enviado com sucesso.'
 } catch {
@@ -460,10 +475,12 @@ Write-Host '[5/5] Configurando heartbeat continuo...' -ForegroundColor Cyan
 $servidoresJson = $servidoresSyspro | ConvertTo-Json -Compress -Depth 5
 
 try {
-    $heartbeatScriptContent = @'
+$heartbeatScriptContent = @'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $portalBaseUrl = 'PORTAL_BASE_URL'
 $installToken = 'INSTALL_TOKEN'
+$agentToken = 'AGENT_TOKEN'
+$agentTokenPath = 'AGENT_TOKEN_PATH'
 $machineName = 'MACHINE_NAME'
 $agentVersion = 'AGENT_VERSION'
 $rustDeskIdFallback = 'RUSTDESK_ID_FALLBACK'
@@ -542,7 +559,25 @@ function Write-HeartbeatError {
     Out-File -FilePath $heartbeatErrorLogPath -InputObject $errorMsg -Append -Encoding utf8
 }
 
+function Resolve-AgentToken {
+    if (-not [string]::IsNullOrWhiteSpace($agentToken)) {
+        return $agentToken
+    }
+
+    if (Test-Path $agentTokenPath) {
+        try {
+            $persisted = (Get-Content $agentTokenPath -Raw -Encoding UTF8).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($persisted)) {
+                return $persisted
+            }
+        } catch {}
+    }
+
+    return $null
+}
+
 $normalizedRustDeskId = Resolve-RustDeskId -FallbackValue $rustDeskIdFallback
+$resolvedAgentToken = Resolve-AgentToken
 $serviceStatus = 'not_found'
 $svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue
 if ($svc) {
@@ -573,12 +608,17 @@ foreach ($srv in $listaServidores) {
 }
 
 $payloadHeartbeat = @{
-    installToken = $installToken
     rustdeskId = $normalizedRustDeskId
     machineName = $machineName
     agentVersion = $agentVersion
     serviceStatus = $serviceStatus
     sysproUpdates = $resultadosUpdates
+}
+
+if (-not [string]::IsNullOrWhiteSpace($resolvedAgentToken)) {
+    $payloadHeartbeat.agentToken = $resolvedAgentToken
+} else {
+    $payloadHeartbeat.installToken = $installToken
 }
 
 try {
@@ -590,6 +630,8 @@ try {
 
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('PORTAL_BASE_URL', '${escapedPortalBaseUrl}')
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('INSTALL_TOKEN', '${escapedInstallToken}')
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_TOKEN', $agentToken)
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_TOKEN_PATH', "$agentTokenPath")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('MACHINE_NAME', "$machineName")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_VERSION', "$agentVersion")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('RUSTDESK_ID_FALLBACK', "$normalizedRustDeskId")

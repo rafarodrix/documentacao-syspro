@@ -224,6 +224,12 @@ export type RemoteConfiguredHostItem = {
   agentVersion: string | null;
   serviceStatus: string | null;
   lastHeartbeatAt: string | null;
+  lastHeartbeatSuccessAt: string | null;
+  lastHeartbeatErrorAt: string | null;
+  lastHeartbeatErrorMessage: string | null;
+  lastKnownIp: string | null;
+  lastRegisterAt: string | null;
+  lastRegisterSource: string | null;
   openSessionCount: number;
   operationalStatus: RemoteOperationalStatus;
   lastSessionAt: string | null;
@@ -235,6 +241,12 @@ export type RemoteConfiguredHostItem = {
     machineName: string | null;
     agentVersion: string | null;
     lastHeartbeatAt: string | null;
+    lastHeartbeatSuccessAt: string | null;
+    lastHeartbeatErrorAt: string | null;
+    lastHeartbeatErrorMessage: string | null;
+    lastKnownIp: string | null;
+    lastRegisterAt: string | null;
+    lastRegisterSource: string | null;
     lifecycleStatus: RemoteAgentLifecycleStatus;
     installStages: RemoteAgentInstallStage[];
     installerPath: string;

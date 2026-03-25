@@ -86,6 +86,12 @@ function mapDirectoryItem(host: {
   serviceStatus?: string | null;
   status: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
   lastHeartbeatAt: Date | null;
+  lastHeartbeatSuccessAt?: Date | null;
+  lastHeartbeatErrorAt?: Date | null;
+  lastHeartbeatErrorMessage?: string | null;
+  lastKnownIp?: string | null;
+  lastRegisterAt?: Date | null;
+  lastRegisterSource?: string | null;
   company: { nomeFantasia: string | null; razaoSocial: string };
   sessions: Array<{ createdAt: Date; status: string; ticketNumber: string | null }>;
 }): RemoteConfiguredHostItem {
@@ -132,6 +138,12 @@ function mapDirectoryItem(host: {
     agentVersion: host.agentVersion,
     serviceStatus: host.serviceStatus ?? null,
     lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
+    lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt?.toISOString() ?? null,
+    lastHeartbeatErrorAt: host.lastHeartbeatErrorAt?.toISOString() ?? null,
+    lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage ?? null,
+    lastKnownIp: host.lastKnownIp ?? null,
+    lastRegisterAt: host.lastRegisterAt?.toISOString() ?? null,
+    lastRegisterSource: host.lastRegisterSource ?? null,
     openSessionCount,
     operationalStatus: resolveRemoteOperationalStatus({
       rustdeskId: host.agentExternalId,
@@ -148,6 +160,12 @@ function mapDirectoryItem(host: {
       machineName: host.machineName,
       agentVersion: host.agentVersion,
       lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
+      lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt?.toISOString() ?? null,
+      lastHeartbeatErrorAt: host.lastHeartbeatErrorAt?.toISOString() ?? null,
+      lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage ?? null,
+      lastKnownIp: host.lastKnownIp ?? null,
+      lastRegisterAt: host.lastRegisterAt?.toISOString() ?? null,
+      lastRegisterSource: host.lastRegisterSource ?? null,
       lifecycleStatus,
       installStages,
       installerPath: `/api/remote/hosts/${host.id}/installer`,
@@ -670,6 +688,12 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     host: mapDirectoryItem({
       ...host,
       serviceStatus,
+      lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt,
+      lastHeartbeatErrorAt: host.lastHeartbeatErrorAt,
+      lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage,
+      lastKnownIp: host.lastKnownIp,
+      lastRegisterAt: host.lastRegisterAt,
+      lastRegisterSource: host.lastRegisterSource,
       sessions: host.sessions.map((session) => ({
         createdAt: session.createdAt,
         status: session.status,
@@ -680,6 +704,12 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       mapDirectoryItem({
         ...host,
         serviceStatus,
+        lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt,
+        lastHeartbeatErrorAt: host.lastHeartbeatErrorAt,
+        lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage,
+        lastKnownIp: host.lastKnownIp,
+        lastRegisterAt: host.lastRegisterAt,
+        lastRegisterSource: host.lastRegisterSource,
         sessions: host.sessions.map((session) => ({
           createdAt: session.createdAt,
           status: session.status,
