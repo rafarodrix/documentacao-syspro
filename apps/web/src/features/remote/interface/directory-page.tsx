@@ -9,6 +9,7 @@ import {
   Monitor,
   Plus,
   Search,
+  Settings,
   ShieldCheck,
   TimerReset,
   Wifi,
@@ -20,7 +21,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
+import { RemoteScriptDownloadButton } from "@/features/remote/interface/script-download-button";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 
@@ -307,6 +309,76 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <a
+          href="/portal/configuracoes?tab=remote"
+          className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+        >
+          <Settings className="h-4 w-4" />
+          Configuracoes
+        </a>
+
+        <RemoteScriptDownloadButton
+          url="/api/remote/agents/discovery-script"
+          filenameFallback="trilink-remote-discovery.ps1"
+          label="Baixar script padrao"
+          variant="outline"
+          className="gap-2"
+        >
+          <Monitor className="h-4 w-4" />
+          Baixar script padrao
+        </RemoteScriptDownloadButton>
+
+        {canCreateHosts ? (
+          <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
+            <DialogTrigger asChild>
+              <Button type="button" variant="outline" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Cadastro rapido
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Cadastro rapido de host</DialogTitle>
+                <DialogDescription>
+                  Fluxo minimo para criar um host operacional diretamente nesta rota.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label>Empresa</Label>
+                    <select
+                      value={quickCompanyId}
+                      onChange={(event) => setQuickCompanyId(event.target.value)}
+                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                    >
+                      {directory.companyOptions.map((company) => (
+                        <option key={company.id} value={company.id}>
+                          {company.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>RustDesk ID</Label>
+                    <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Descricao</Label>
+                    <Input value={quickDescription} onChange={(event) => setQuickDescription(event.target.value)} placeholder="ERP matriz / servidor fiscal" />
+                  </div>
+                </div>
+                <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Confirmar cadastro
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        ) : null}
+      </div>
+
       <section className={cn("grid gap-3", canCreateHosts ? "md:grid-cols-3 xl:grid-cols-5" : "md:grid-cols-2 xl:grid-cols-4")}>
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
           <CardHeader className="pb-1">
@@ -377,67 +449,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       </section>
 
       <Card className="border-border/50 overflow-hidden">
-        <CardHeader className="border-b border-border/50 bg-linear-to-r from-background via-muted/10 to-background">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-xl">Centro operacional de acesso remoto</CardTitle>
-              <CardDescription>
-                Use esta tela para operar o modulo remoto: cadastrar hosts, vincular maquinas descobertas, acompanhar heartbeat e abrir o acesso com contexto tecnico.
-              </CardDescription>
-            </div>
-
-            {canCreateHosts ? (
-              <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
-                <DialogTrigger asChild>
-                  <Button type="button" variant="outline" className="gap-2 self-start">
-                    <Plus className="h-4 w-4" />
-                    Cadastro rapido
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Cadastro rapido de host</DialogTitle>
-                    <DialogDescription>
-                      Fluxo minimo para criar um host operacional diretamente nesta rota.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-3">
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label>Empresa</Label>
-                        <select
-                          value={quickCompanyId}
-                          onChange={(event) => setQuickCompanyId(event.target.value)}
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                        >
-                          {directory.companyOptions.map((company) => (
-                            <option key={company.id} value={company.id}>
-                              {company.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>RustDesk ID</Label>
-                        <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Descricao</Label>
-                        <Input value={quickDescription} onChange={(event) => setQuickDescription(event.target.value)} placeholder="ERP matriz / servidor fiscal" />
-                      </div>
-                    </div>
-                    <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      Confirmar cadastro
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            ) : null}
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-4 p-6">
+        <CardContent className="space-y-4 p-5 sm:p-6">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
