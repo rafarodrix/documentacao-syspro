@@ -61,7 +61,7 @@ $ErrorActionPreference = 'Stop'
 $portalBaseUrl = '${escapedPortalBaseUrl}'
 $discoveryToken = '${escapedDiscoveryToken}'
 $expectedRustDeskVersion = '${escapedVersion}'
-$rustDeskDownloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$expectedRustDeskVersion/rustdesk-$expectedRustDeskVersion-x86_64.exe"
+$rustDeskDownloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$expectedRustDeskVersion/rustdesk-$expectedRustDeskVersion-x86_64.msi"
 $customRendezvousServer = '${escapedServerHost}'
 $serverConfig = '${escapedServerConfig}'
 $customServerKey = '${escapedPublicKey}'
@@ -155,12 +155,13 @@ function Install-Or-Update-RustDesk {
         Write-Host 'RustDesk nao encontrado. Baixando instalador...' -ForegroundColor Yellow
         Write-InstallLog -Message "Instalando RustDesk na versao $expectedRustDeskVersion."
 
-        $tempInstaller = "$env:TEMP\\rustdesk_installer.exe"
+        $tempInstaller = "$env:TEMP\\rustdesk_installer.msi"
         try {
             Invoke-WebRequest -Uri $rustDeskDownloadUrl -OutFile $tempInstaller -UseBasicParsing -TimeoutSec 120
-            $installProcess = Start-Process -FilePath $tempInstaller -ArgumentList '--silent-install' -Wait -WindowStyle Hidden -PassThru
+            $msiArgs = "/i \`"$tempInstaller\`" /qn /norestart"
+            $installProcess = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -WindowStyle Hidden -PassThru
             if ($installProcess.ExitCode -ne 0) {
-                throw "Instalador retornou codigo $($installProcess.ExitCode)."
+                throw "MSI retornou codigo $($installProcess.ExitCode)."
             }
         } finally {
             if (Test-Path $tempInstaller) {
@@ -691,8 +692,9 @@ export async function GET(request: Request) {
   return new NextResponse(script, {
     status: 200,
     headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="trilink-remote-discovery.ps1"',
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": 'attachment; filename="trilink-remote-discovery.ps1"; filename*=UTF-8\'\'trilink-remote-discovery.ps1',
+      "X-Content-Type-Options": "nosniff",
       "Cache-Control": "no-store",
     },
   });

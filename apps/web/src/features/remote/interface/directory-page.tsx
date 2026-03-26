@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Copy,
   ExternalLink,
+  Filter,
   Monitor,
   Plus,
   Search,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
+import { RemoteInstallGuideDialog } from "@/features/remote/interface/remote-install-guide-dialog";
 import { RemoteScriptDownloadButton } from "@/features/remote/interface/script-download-button";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
@@ -357,6 +359,15 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           Baixar script padrao
         </RemoteScriptDownloadButton>
 
+        <RemoteInstallGuideDialog
+          moduleSettings={directory.moduleSettings}
+          scriptUrl="/api/remote/agents/discovery-script"
+          scriptFilename="trilink-remote-discovery.ps1"
+          title="Configuracao e instalacao padrao"
+          description="Dados manuais do servidor RustDesk e comandos para instalar o script padrao de descoberta a partir da plataforma."
+          triggerClassName="w-full gap-2 sm:w-auto"
+        />
+
         {canCreateHosts ? (
           <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
             <DialogTrigger asChild>
@@ -478,8 +489,13 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
       <Card className="border-border/50 overflow-hidden">
         <CardContent className="space-y-4 p-5 sm:p-6">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-            <div className="relative flex-1">
+          <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              Filtros de operacao
+            </div>
+            <div className="mt-4 flex flex-col gap-3">
+              <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchTerm}
@@ -487,94 +503,123 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 placeholder="Pesquisar empresa, host, instalacao, ambiente, ticket ou RustDesk ID"
                 className="pl-9"
               />
-            </div>
+              </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-              >
-                <option value="all">Todos os status</option>
-                <option value="ACTIVE">Ativo</option>
-                <option value="MAINTENANCE">Manutencao</option>
-                <option value="INACTIVE">Inativo</option>
-              </select>
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Leitura rapida</p>
+                    <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
+                      <Button type="button" variant={heartbeatFilter === "recent" ? "default" : "outline"} onClick={() => setHeartbeatFilter("recent")} className="justify-center xl:justify-start">
+                        Online agora
+                      </Button>
+                      <Button type="button" variant={heartbeatFilter === "stale" ? "default" : "outline"} onClick={() => setHeartbeatFilter("stale")} className="justify-center xl:justify-start">
+                        Heartbeat antigo
+                      </Button>
+                      <Button type="button" variant={agentFilter === "pending" ? "default" : "outline"} onClick={() => setAgentFilter("pending")} className="justify-center xl:justify-start">
+                        Bootstrap pendente
+                      </Button>
+                      <Button type="button" variant={agentFilter === "stale" ? "default" : "outline"} onClick={() => setAgentFilter("stale")} className="justify-center xl:justify-start">
+                        Exige revisao
+                      </Button>
+                    </div>
+                  </div>
 
-              <select
-                value={environmentFilter}
-                onChange={(event) => setEnvironmentFilter(event.target.value)}
-                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-              >
-                <option value="all">Todos os ambientes</option>
-                {environmentOptions.map((environment) => (
-                  <option key={environment} value={environment}>
-                    {environment}
-                  </option>
-                ))}
-              </select>
+                  <div>
+                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Filtros detalhados</p>
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                      <select
+                        value={statusFilter}
+                        onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                      >
+                        <option value="all">Todos os status</option>
+                        <option value="ACTIVE">Ativo</option>
+                        <option value="MAINTENANCE">Manutencao</option>
+                        <option value="INACTIVE">Inativo</option>
+                      </select>
 
-              <select
-                value={heartbeatFilter}
-                onChange={(event) => setHeartbeatFilter(event.target.value as typeof heartbeatFilter)}
-                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-              >
-                <option value="all">Qualquer heartbeat</option>
-                <option value="recent">Online agora</option>
-                <option value="stale">Antigo</option>
-                <option value="missing">Sem contato</option>
-              </select>
+                      <select
+                        value={environmentFilter}
+                        onChange={(event) => setEnvironmentFilter(event.target.value)}
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                      >
+                        <option value="all">Todos os ambientes</option>
+                        {environmentOptions.map((environment) => (
+                          <option key={environment} value={environment}>
+                            {environment}
+                          </option>
+                        ))}
+                      </select>
 
-              <select
-                value={agentFilter}
-                onChange={(event) => setAgentFilter(event.target.value as typeof agentFilter)}
-                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-              >
-                <option value="all">Qualquer agente</option>
-                <option value="pending">Bootstrap pendente</option>
-                <option value="linked">Agente vinculado</option>
-                <option value="online">Heartbeat confirmado</option>
-                <option value="stale">Exige revisao</option>
-              </select>
-            </div>
+                      <select
+                        value={heartbeatFilter}
+                        onChange={(event) => setHeartbeatFilter(event.target.value as typeof heartbeatFilter)}
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                      >
+                        <option value="all">Qualquer heartbeat</option>
+                        <option value="recent">Online agora</option>
+                        <option value="stale">Antigo</option>
+                        <option value="missing">Sem contato</option>
+                      </select>
 
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button type="button" variant="outline">Fluxo operacional</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Roteiro rapido de atendimento</DialogTitle>
-                  <DialogDescription>
-                    Fluxo inspirado em softwares de suporte remoto: validar prontidao, entrar rapido e so abrir o detalhe quando precisar de mais contexto.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <p>1. Procure pela empresa ou pelo ticket.</p>
-                  <p>2. Priorize cards marcados como `Online` ou com heartbeat recente.</p>
-                  <p>3. Use `Acesso rapido` no desktop ou `Abrir no app` no celular.</p>
-                  <p>4. Se o navegador bloquear, use `Copiar ID` e conecte manualmente.</p>
-                  <p>5. Se houver alerta de sessao aberta ou heartbeat antigo, valide antes de prosseguir.</p>
+                      <select
+                        value={agentFilter}
+                        onChange={(event) => setAgentFilter(event.target.value as typeof agentFilter)}
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                      >
+                        <option value="all">Qualquer agente</option>
+                        <option value="pending">Bootstrap pendente</option>
+                        <option value="linked">Agente vinculado</option>
+                        <option value="online">Heartbeat confirmado</option>
+                        <option value="stale">Exige revisao</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
-              </DialogContent>
-            </Dialog>
 
-            {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("all");
-                  setEnvironmentFilter("all");
-                  setHeartbeatFilter("all");
-                  setAgentFilter("all");
-                }}
-              >
-                <X className="mr-2 h-4 w-4" />
-                Limpar
-              </Button>
-            ) : null}
+                <div className="flex flex-col gap-2 xl:w-[220px]">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button type="button" variant="outline" className="w-full">Fluxo operacional</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Roteiro rapido de atendimento</DialogTitle>
+                        <DialogDescription>
+                          Fluxo inspirado em softwares de suporte remoto: validar prontidao, entrar rapido e so abrir o detalhe quando precisar de mais contexto.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3 text-sm text-muted-foreground">
+                        <p>1. Procure pela empresa ou pelo ticket.</p>
+                        <p>2. Priorize cards marcados como `Online` ou com heartbeat recente.</p>
+                        <p>3. Use `Acesso rapido` no desktop ou `Abrir no app` no celular.</p>
+                        <p>4. Se o navegador bloquear, use `Copiar ID` e conecte manualmente.</p>
+                        <p>5. Se houver alerta de sessao aberta ou heartbeat antigo, valide antes de prosseguir.</p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setStatusFilter("all");
+                        setEnvironmentFilter("all");
+                        setHeartbeatFilter("all");
+                        setAgentFilter("all");
+                      }}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Limpar filtros
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

@@ -496,6 +496,7 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
 
 export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirectory> {
   const tenantScope = await getRemoteTenantScope();
+  const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
   const [hosts, totalHosts, activeHosts, companies, companyOptions, discoveredHosts] = await Promise.all([
@@ -588,6 +589,13 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
 
   return {
     tenantScope,
+    moduleSettings: {
+      rustDeskServerHost: moduleSettings.rustDeskServerHost,
+      rustDeskServerConfig: moduleSettings.rustDeskServerConfig,
+      rustDeskPublicKey: moduleSettings.rustDeskPublicKey,
+      rustDeskVersion: moduleSettings.rustDeskVersion,
+      defaultPassword: moduleSettings.defaultPassword,
+    },
     stats: {
       totalHosts,
       activeHosts,

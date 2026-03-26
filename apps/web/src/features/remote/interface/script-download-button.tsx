@@ -29,16 +29,15 @@ export function RemoteScriptDownloadButton({
   async function handleDownload() {
     try {
       setIsDownloading(true);
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.setAttribute("aria-hidden", "true");
-      iframe.src = absoluteUrl;
-      iframe.title = filenameFallback;
-      document.body.appendChild(iframe);
-
-      window.setTimeout(() => {
-        iframe.remove();
-      }, 45000);
+      const anchor = document.createElement("a");
+      anchor.href = absoluteUrl;
+      anchor.download = filenameFallback;
+      anchor.target = "_blank";
+      anchor.rel = "noopener";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
 
       toast.success("Download iniciado.");
     } catch (error) {

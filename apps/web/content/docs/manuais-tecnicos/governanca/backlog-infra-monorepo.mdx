@@ -512,3 +512,175 @@ Consolidar o backlog ativo, eliminar duplicidades, integrar ideias adicionais de
 1. Validar ambiente de produção para migrações e tokens remotos
 2. Considerar impacto de multi-instalação Syspro na UX e scripts agente
 3. Avaliar necessidade de backend dedicado separado para WhatsApp vs integrar em apps/api
+
+
+Esta é a solução completa para implementar sua própria API minimalista de RustDesk utilizando **Next.js** e **Prisma**. Ao centralizar a inteligência no seu backend, você ganha total autonomia sobre a organização por tags e a gestão dos túneis.
+
+---
+
+### ?? Backlog de Implementação
+
+| Etapa | Tarefa | Descrição |
+| :--- | :--- | :--- |
+| **1. Setup** | Configuração do Prisma | Definir o Schema com suporte a N-N para Tags e relacionamentos com Empresas. |
+| **2. Auth** | Rota `/api/login` | Implementar a autenticação que o RustDesk exige para liberar o Address Book. |
+| **3. Core** | Rota `/api/devices` | Endpoint para registrar ou atualizar os dados das máquinas que se conectam. |
+| **4. Sync** | Rota `/api/address-book` | Gerar o JSON dinâmico "achatando" empresas e categorias em Tags. |
+| **5. Client** | Integração | Apontar o "Servidor de API" no RustDesk para a URL do seu Next.js. |
+
+---
+
+### ??? Schema Prisma (`schema.prisma`)
+
+Este modelo foca na flexibilidade total via Tags, permitindo agrupar por CNPJ, tipo de máquina (Servidores) ou dono.
+
+```prisma
+datasource db {
+  provider = "postgresql" // ou sqlite/mysql
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-node"
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  cnpj      String?  @unique
+  owner     String?
+  devices   Device[]
+  createdAt DateTime @default(now())
+}
+
+model Device {
+  id        String   @id // ID numérico do RustDesk
+  alias     String   // Apelido da máquina
+  hostname  String?
+  platform  String?
+  username  String?
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  tags      Tag[]    @relation("DeviceTags")
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id      String   @id @default(uuid())
+  name    String   @unique // Ex: "Servidor", "CNPJ: 00...", "Dono: Rafael"
+  devices Device[] @relation("DeviceTags")
+}
+
+model User {
+  id       String @id @default(uuid())
+  username String @unique
+  password String // Use hash (bcrypt) em produção
+}
+```
+
+---
+
+### ??? Código Exemplo: API Routes (Next.js App Router)
+
+#### 1. Login (`app/api/login/route.ts`)
+O RustDesk precisa de um token para habilitar os recursos de rede.
+
+```typescript
+import { NextResponse } from 'next/server';
+
+export async function POST(req: Request) {
+  const { username, password } = await req.json();
+
+  // Implemente sua lógica de verificação de usuário aqui
+  if (username === 'admin' && password === 'sua_senha') {
+    return NextResponse.json({
+      access_token: 'token_gerado_jwt', // Em produção, gere um JWT real
+      type: 'access',
+      user: { name: username }
+    });
+  }
+
+  return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+}
+```
+
+#### 2. Address Book (`app/api/address-book/route.ts`)
+Este é o coração da sincronização. Ele converte os dados do banco para o formato de Tags do RustDesk.
+
+```typescript
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma'; // Sua instância do Prisma Client
+
+export async function GET() {
+  const devices = await prisma.device.findMany({
+    include: {
+      company: true,
+      tags: true,
+    },
+  });
+
+  const addressBook = devices.map((dev) => ({
+    id: dev.id,
+    alias: dev.alias,
+    // Unifica empresa e tags em uma lista plana para o RustDesk
+    tags: [
+      `Empresa: ${dev.company.name}`,
+      ...(dev.company.cnpj ? [`CNPJ: ${dev.company.cnpj}`] : []),
+      ...dev.tags.map(t => t.name)
+    ],
+    hash: dev.updatedAt.getTime().toString(),
+  }));
+
+  return NextResponse.json(addressBook);
+}
+```
+
+#### 3. Registro de Dispositivos (`app/api/devices/route.ts`)
+Executado quando uma nova máquina é acessada ou alterada.
+
+```typescript
+export async function POST(req: Request) {
+  const data = await req.json();
+
+  await prisma.device.upsert({
+    where: { id: data.id },
+    update: {
+      hostname: data.hostname,
+      platform: data.os,
+      updatedAt: new Date(),
+    },
+    create: {
+      id: data.id,
+      alias: data.alias || data.hostname,
+      hostname: data.hostname,
+      platform: data.os,
+      companyId: 'id-da-empresa-padrao', // Defina uma lógica de atribuição
+    },
+  });
+
+  return NextResponse.json({ status: 'ok' });
+}
+```
+
+---
+
+### ?? Configuração no Cliente RustDesk
+
+Para ativar sua API, abra o RustDesk em sua máquina e siga:
+
+1.  **Configurações > Rede**:
+    * **Servidor de ID**: IP/Domínio do seu servidor dedicado.
+    * **Servidor de API**: `http://seu-portal-nextjs.com.br` (onde as rotas acima estão rodando).
+2.  **Configurações > Conta**:
+    * Clique em **Entrar**.
+    * Use o usuário e senha definidos na sua rota de login.
+
+---
+
+### ?? Dicas de Manutenção e Performance
+
+1.  **Cache do Address Book**: O RustDesk consulta a API com frequência. Use `revalidatePath` ou `cache` do Next.js para não sobrecarregar o banco de dados.
+2.  **Hash do Dispositivo**: O campo `hash` no JSON do Address Book é obrigatório. Sempre que mudar uma tag ou o nome no seu portal, atualize o `updatedAt` para que o RustDesk perceba a mudança.
+3.  **Segurança**: Use o `middleware.ts` do Next.js para proteger essas rotas, exigindo o Bearer Token que você emitiu no login.
+
+Com essa estrutura, você elimina a dependência de repositórios externos e mantém o controle total sobre como seus clientes são organizados e acessados.

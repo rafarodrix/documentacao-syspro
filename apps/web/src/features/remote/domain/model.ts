@@ -270,6 +270,13 @@ export type RemoteDiscoveredHostItem = {
 
 export type RemotePlatformDirectory = {
   tenantScope: RemoteTenantScope;
+  moduleSettings: {
+    rustDeskServerHost: string;
+    rustDeskServerConfig: string;
+    rustDeskPublicKey: string;
+    rustDeskVersion: string;
+    defaultPassword: string;
+  };
   stats: {
     totalHosts: number;
     activeHosts: number;

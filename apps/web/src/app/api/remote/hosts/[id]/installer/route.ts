@@ -934,8 +934,9 @@ export async function GET(
   return new NextResponse(script, {
     status: 200,
     headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Content-Disposition": `attachment; filename="trilink-remote-agent-${companySlug}-${hostSlug}.ps1"`,
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": `attachment; filename="trilink-remote-agent-${companySlug}-${hostSlug}.ps1"; filename*=UTF-8''trilink-remote-agent-${companySlug}-${hostSlug}.ps1`,
+      "X-Content-Type-Options": "nosniff",
       "Cache-Control": "no-store",
     },
   });

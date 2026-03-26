@@ -1,0 +1,236 @@
+---
+title: Integração de Boletos – Banco Santander
+description: Configuração completa da emissão de boletos via API no Syspro ERP com registro instantâneo.
+lastUpdated: 2026-03-26
+owner: Equipe de Documentacao
+status: published
+---
+
+import {
+  Accordion,
+  Accordions,
+} from "fumadocs-ui/components/accordion";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Callout } from "fumadocs-ui/components/callout";
+import SuporteSection from "@/components/docs/SuporteSection";
+import { DocsMetaChips } from "@/components/docs/DocsMetaChips";
+
+# Integração de Boletos via API – Banco Santander
+
+<DocsMetaChips 
+  status="Publicado"
+  owner="Equipe de Documentação"
+  updatedAtLabel="26/03/2026"
+/>
+
+---
+
+## Introdução
+
+A integração de boletos via API do Banco Santander no **Syspro ERP** representa uma evolução no processo de cobrança, permitindo o **registro imediato do boleto no momento da emissão**.
+
+Diferente do modelo tradicional via CNAB (remessa), onde o registro ocorre apenas no próximo dia útil (D+1), a **Transmissão Instantânea** garante que o boleto já seja criado com status **REGISTRADO**, possibilitando o pagamento imediato pelo cliente.
+
+> [!IMPORTANT]
+> O registro é imediato, porém a **liquidação (pagamento)** segue os prazos normais de compensação bancária.
+
+---
+
+## Quando utilizar esta integração?
+
+Recomenda-se o uso da API quando:
+
+- É necessário permitir pagamento imediato após emissão
+- Deseja-se eliminar dependência de remessas CNAB
+- Busca-se maior automação e confiabilidade
+- Há necessidade de emissão com **PIX (QRCode)** integrado
+
+---
+
+## Dicionário de Campos
+
+Para configurar a integração, é necessário obter os seguintes itens:
+
+<Cards>
+<Card 
+  title="Usuário Master" 
+  description="Somente o usuário Master da conta PJ pode criar aplicações e acessar as APIs do Santander." 
+/>
+<Card 
+  title="Certificado Digital A1 (PFX)" 
+  description="Certificado obrigatório para autenticação. Deve possuir assinatura digital válida e estar dentro do prazo." 
+/>
+<Card 
+  title="Client ID / Client Secret" 
+  description="Credenciais geradas no Portal Santander Developer após criação da aplicação." 
+/>
+<Card 
+  title="Workspace ID" 
+  description="Identificador do ambiente de cobrança criado via API, necessário para emissão dos boletos." 
+/>
+</Cards>
+
+---
+
+## Passo a Passo
+
+Siga o fluxo abaixo para habilitar a integração:
+
+<Steps>
+
+<Step title="Criar Aplicação no Santander Developer">
+
+Acesse:
+
+👉 https://developer.santander.com.br
+
+- Faça login com o **Usuário Master**
+- Acesse **Minhas Aplicações**
+- Crie uma nova aplicação
+- Anexe o certificado digital (PFX)
+- Selecione:
+  - Emissão de Boletos
+  - Geração de QRCode (PIX)
+
+</Step>
+
+<Step title="Obter Credenciais da Aplicação">
+
+Após aprovação:
+
+- Copie o **Client ID**
+- Copie o **Client Secret**
+
+> Essas informações serão utilizadas no Syspro ERP.
+
+</Step>
+
+<Step title="Configurar Ambiente de Teste (Postman ou Insomnia)">
+
+- Importe a collection do Santander
+- Configure o certificado PFX no host:
+
+```
+
+trust-open.api.santander.com.br
+
+````
+
+- Informe a senha do certificado
+
+</Step>
+
+<Step title="Gerar Access Token">
+
+Execute a requisição de autenticação (**Token**).
+
+Retorno esperado:
+
+```json
+{
+  "access_token": "TOKEN_GERADO",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
+````
+
+</Step>
+
+<Step title="Criar Workspace de Cobrança">
+
+Headers:
+
+* Application Key = Client ID
+
+Body:
+
+```json
+{
+  "type": "BILLING",
+  "covenants": [
+    { "code": "SEU_CONVENIO" }
+  ]
+}
+```
+
+Resultado esperado:
+
+* Status: **ACTIVE**
+* Retorno do **Workspace ID**
+
+</Step>
+
+<Step title="Configurar no Syspro ERP">
+
+No servidor de integração:
+
+* Informar:
+
+  * Client ID
+  * Client Secret
+  * Certificado PFX
+  * Senha do certificado
+  * Workspace ID
+
+* Realizar teste de emissão
+
+Resultado esperado:
+
+* Boleto com status **REGISTRADO imediatamente**
+
+</Step>
+
+</Steps>
+
+---
+
+## Boas Práticas de Implantação
+
+<Callout type="info">
+Antes de liberar em produção, valide todos os cenários abaixo:
+</Callout>
+
+* Emissão de boletos
+* Geração de QRCode PIX
+* Cancelamento de boletos
+* Alteração de vencimento
+* Consulta de status
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="O boleto pode ser pago imediatamente?">
+    Sim. O boleto já é registrado no momento da emissão.
+
+    Pode haver um pequeno atraso de alguns minutos para propagação entre bancos e canais de pagamento.
+  </Accordion>
+
+  <Accordion title="É possível emitir boleto com PIX?">
+    Sim, desde que a API de QRCode esteja habilitada na aplicação do Santander.
+  </Accordion>
+
+  <Accordion title="Erro 401 Unauthorized – o que significa?">
+    Normalmente indica um problema de autenticação. As causas mais comuns são:
+
+    - Certificado PFX não configurado corretamente
+    - Client ID inválido
+    - Token expirado
+  </Accordion>
+
+  <Accordion title="Ainda preciso usar CNAB?">
+    Não. A API substitui o processo de remessa CNAB para registro online dos boletos.
+  </Accordion>
+
+  <Accordion title="Posso ir direto para produção?">
+    Não é o mais indicado. Sempre realize os testes completos em homologação antes da liberação em produção.
+  </Accordion>
+</Accordions>
+
+---
+
+<SuporteSection modulo="Integração Bancária - Boletos Santander" />
+
+---
