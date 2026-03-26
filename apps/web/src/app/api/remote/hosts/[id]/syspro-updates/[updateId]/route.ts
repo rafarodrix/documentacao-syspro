@@ -15,7 +15,7 @@ function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ hostId: string; updateId: string }> }
+  { params }: { params: Promise<{ id: string; updateId: string }> }
 ) {
   const session = await getProtectedSession();
   if (!session) {
@@ -27,13 +27,13 @@ export async function PATCH(
   }
 
   const tenantScope = await getRemoteTenantScope();
-  const { hostId, updateId } = await params;
+  const { id, updateId } = await params;
   const body = (await request.json()) as { companyId?: string | null };
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
   const host = await prisma.remoteHost.findFirst({
     where: {
-      id: hostId,
+      id,
       ...scopedWhere,
     },
     select: { id: true },
@@ -46,7 +46,7 @@ export async function PATCH(
   const update = await prisma.remoteHostSysproUpdate.findFirst({
     where: {
       id: updateId,
-      hostId,
+      hostId: id,
     },
     select: { id: true, companyLabel: true },
   });

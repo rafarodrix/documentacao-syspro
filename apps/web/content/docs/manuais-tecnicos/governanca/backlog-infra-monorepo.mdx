@@ -65,22 +65,56 @@ Ordem recomendada:
 
 ### Plataforma remota, backup e atendimento
 
-- [ ] `FEAT-008` [Media] Evoluir cadastro de empresa com guia `Parametros Servidor`. A nova guia deve permitir definir `tipo de servidor` entre `Syspro Server` e `IIS`; quando o tipo for `IIS`, deve abrir configuracoes especificas do servidor (`porta`, `protocolo`, `servidor` e `url path / ISAPI`, conforme o padrao operacional do cliente). O mesmo recorte tambem deve incluir o cadastro de `tipo de conexao remota` entre `DDNS (NoIP)` e `Radmin VPN`, alem da `descricao da maquina`, para consolidar os parametros tecnicos da empresa no proprio cadastro e reduzir dependencias de anotacoes externas.
-- [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Persistencia, tenant enforcement, rotas de `hosts`, `sessions`, `discover`, `register` e `heartbeat`, separacao entre configuracao e operacao, detalhe do host, CRUD basico de host com `RustDesk ID`, busca operacional do modulo, rate limit basico no fluxo do agente, triagem de maquinas descobertas, TTL de sessao e bloqueio de host ativo sem `RustDesk ID` ja existem; falta aplicar migration/generate/seed no ambiente, validar fluxo fim a fim por perfil, endurecer mensagens de erro e fechar testes operacionais com maquina real.
+#### Atendimento - WhatsApp:
+- [ ] `FEAT-007` [Media] Estruturar canal futuro de WhatsApp mediado pelo backend. A direcao arquitetural ja foi definida para `apps/web` + `apps/api` + `apps/whatsapp-bridge` + `Zammad` + `RustDesk`, a base de `CompanyContact` ja entrou no cadastro da empresa, os contratos reforcados de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja existem no dominio com snapshots, delivery e historico de fila, e a modelagem Prisma base dessas quatro tabelas ja foi aberta; faltam aplicar migration no ambiente, backend dedicado ligado aos casos de uso reais, bridge isolado, filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`.
+- [ ] `FEAT-007A` [Media] Concluir integracao de WhatsApp via backend dedicado, com filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`. A direcao arquitetural ja esta definida para `apps/web` + `apps/api` + `apps/whatsapp-bridge` + `Zammad` + `RustDesk`, a base de `CompanyContact` ja entrou no cadastro da empresa, os contratos reforcados de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja existem no dominio com snapshots, delivery e historico de fila, e a modelagem Prisma base dessas quatro tabelas ja foi aberta; faltam aplicar migration no ambiente, backend dedicado ligado aos casos de uso reais, bridge isolado, filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`.
+- [ ] `FEAT-007B` [Media] Evoluir a experiencia de atendimento via WhatsApp com mensagens interativas, templates e feedback operacional completo. A direcao arquitetural ja esta definida para `apps/web` + `apps/api` + `apps/whatsapp-bridge` + `Zammad` + `RustDesk`, a base de `CompanyContact` ja entrou no cadastro da empresa, os contratos reforcados de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja existem no dominio com snapshots, delivery e historico de fila, e a modelagem Prisma base dessas quatro tabelas ja foi aberta; faltam aplicar migration no ambiente, backend dedicado ligado aos casos de uso reais, bridge isolado, filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`.
+
+#### Acesso remoto - RustDesk:
 - [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, observacoes manuais do host, token de instalacao, heartbeat, metadata basica do agente, download do instalador por host, download do script padrao de descoberta, configuracoes globais do modulo remoto e regeneracao automatica de `installToken` legado ja existem; falta validar auto-registro/heartbeat em ambiente real, materializar instalacao em campo com ciclo recorrente e decidir se a entidade de agente vira tabela propria quando o recorte OSS-first estabilizar.
 - [ ] `FEAT-002A` [Media] Consolidar UX operacional de hosts e agentes. Grid operacional simplificada, cadastro rapido por modal, filtros por status/ambiente/heartbeat, copia rapida de `RustDesk ID`, labels amigaveis, indicadores de prontidao, acesso direto, simplificacao do detalhe do host, edicao de `machineName`, separacao entre observacoes do host vs empresa e matriz compartilhada de status operacional (`ONLINE`, `RECENT`, `OFFLINE`, `MISCONFIGURED`, `SESSION_BUSY`) ja existem; falta fechar consistencia visual entre configuracao, diretorio e detalhe, revisar mobile e reforcar feedback de bloqueios por host.
-- [ ] `FEAT-002B` [Media] Fechar fluxo OSS-first de agente. Endpoints de `discover`, `register` e `heartbeat`, rate limit basico por IP, script PowerShell padrao de descoberta, download de `.ps1` por host, `agentToken` pos-bootstrap no fluxo cadastrado e manual tecnico OSS ja existem; falta validar auto-vinculo guiado ao host em campo, instalar heartbeat periodico em ambiente real, validar reconfiguracao de maquina ja instalada, endurecer o segredo de `installToken` no bootstrap e decidir a estrategia futura do contrato de descoberta.
-- [ ] `FEAT-002E` [Alta] Concluir endurecimento final do `agentToken` pos-bootstrap e da observabilidade do agente. A base deste recorte ja foi aplicada com `agentToken` emitido no `register`, hash persistido no host, heartbeat recorrente aceitando apenas `agentToken`, `lastHeartbeatSuccessAt`, `lastHeartbeatErrorAt`, `lastHeartbeatErrorMessage`, `lastKnownIp`, `lastRegisterAt`, `lastRegisterSource`, propagacao do token no instalador por host, rotacao operacional forcando novo bootstrap, tratamento inicial de erro/invalidacao do token nos scripts, exposicao inicial desses sinais no detalhe do host e primeiros ajustes de UX mobile para abertura no app RustDesk. O que permanece pendente agora e endurecer expiracao do token no agente, revisar o comportamento do token no fluxo de descoberta quando esse contrato evoluir, validar a rotacao em campo com reinstall/bootstrap e fechar o acabamento de UX mobile/operacional em listagem e detalhe. O desenho tecnico inicial deste recorte foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-agent-token-observabilidade-remoto`.
+- [ ] `FEAT-002B` [Media] Fechar fluxo OSS-first de agente. Endpoints de `discover`, `register` e `heartbeat`, rate limit basico por IP, script PowerShell padrao de descoberta, download de `.ps1` por host, `agentToken` pos-bootstrap no fluxo cadastrado e manual tecnico OSS ja existem; falta validar auto-vinculo guiado ao host em campo, instalar heartbeat periodico em ambiente real, validar reconfigacao de maquina ja instalada, endurecer o segredo de `installToken` no bootstrap e decidir a estrategia futura do contrato de descoberta.
+- [ ] `FEAT-002E` [Alta] Concluir endurecimento final do `agentToken` pos-bootstrap e da observabilidade do agente. A base deste recorte ja foi aplicada com `agentToken` emitido no `register`, hash persistido no host, heartbeat recorrente aceitando apenas `agentToken`, `lastHeartbeatSuccessAt`, `lastHeartbeatErrorAt`, `lastHeartbeatErrorMessage`, `lastKnownIp`, `lastRegisterAt`, `lastRegisterSource `, propagacao do token no instalador por host, rotacao operacional forcando novo bootstrap, tratamento inicial de erro/invalidacao do token nos scripts, exposicao inicial desses sinais no detalhe do host e primeiros ajustes de UX mobile para abertura no app RustDesk. O que permanece pendente agora e endurecer expiracao do token no agente, revisar o comportamento do token no fluxo de descoberta quando esse contrato evoluir, validar a rotacao em campo com reinstall/bootstrap e fechar o acabamento de UX mobile/operacional em listagem e detalhe. O desenho tecnico inicial deste recorte foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-agent-token-observabilidade-remoto`.
 - [ ] `FEAT-002C` [Media] Evoluir o agente RustDesk para cenarios `multi-servidores` na mesma maquina. O backend ja persiste `sysproUpdates[]`, a UI ja lista multiplas empresas por maquina no diretorio e no detalhe do host, e o fluxo de descoberta/heartbeat ja aceita leituras multi-instalacao; falta abrir lista configuravel de empresas/caminhos Syspro por host, enriquecer o script RMM, validar o comportamento em campo com discos/bases diferentes e decidir se a entidade filha deixa de ser tratada apenas como leitura de update para virar objeto operacional proprio. O desenho tecnico inicial desta evolucao foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-remoto-multi-bases`.
-- [ ] `FEAT-002D` [Media] Evoluir o agente remoto para `inventario tecnico` e `telemetria operacional` alem do heartbeat atual. O backend atual ja suporta `serviceStatus` e `sysproUpdates[]`, mas ainda nao persiste nem exibe `IP local`, `modelo do equipamento`, `RAM`, `networkReady`, versao efetiva do binario RustDesk e `status de processo do Syspro` separado da leitura de arquivo. Esse recorte deve abrir contrato de payload para `hardware`/`network`, decidir persistencia em `RemoteDiscoveredHost` e `RemoteHost`, refletir a leitura no detalhe da maquina e definir politica segura para `self-healing` do Syspro como comportamento opcional, nao padrao. Tambem precisa decidir se o agente passa a enviar inventario em toda execucao ou somente em `startup` e `mudanca de estado`.
+- [ ] `FEAT-002D` [Media] Evoluir o agente remoto para `inventario tecnico` e `telemetria operacional` alem do heartbeat atual. O backend atual ja suporta `serviceStatus` e `sysproUpdates[]`, mas ainda nao persiste nem exibe `IP local`, `modelo do equipamento`, `RAM`, `networkReady`, versao efetiva do binario RustDesk e `status de processo do Syspro` separado da leitura de arquivo. Esse recorte deve abrir contrato de payload para `hardware`/`network`, decidir persistencia em `RemoteDiscoveredHost` e `RemoteHost`, refletir a leitura no detalhe da maquina e definir politica segura para `self-healing` do Syspro como comportamento opcional, nao padrao. Tambem precisa decidir se o agente passa a enviar inventario em toda execucao ou somente em `startup` e `mudanca de estado`.  
 - [ ] `FEAT-003` [Media] Abrir fluxo inicial de sessoes remotas com auditoria minima. Start/stop, ticket link, comentario interno no Zammad, regra de deduplicacao inicial, bloqueio de inicio concorrente no mesmo host, `expiresAt` para TTL e recorte tecnico do contrato de auditoria por sessao ja existem; falta validar o fluxo completo em ambiente real, materializar job de expiracao para limpar sessoes vencidas, consolidar a resolucao de host por ticket e persistir a auditoria de solicitacao, inicio, encerramento e origem da sessao.
-- [ ] `FEAT-003C` [Media] Refinar UX da operacao de sessoes remotas. Fluxo manual de solicitar/iniciar/encerrar, destaque do ultimo ticket, recomendacao de proximo passo e bloqueios basicos de transicao ja existem; falta aplicar o mesmo padrao visual nas demais telas, validar o fluxo em ambiente real e ampliar o feedback operacional para o atendente.
 - [ ] `FEAT-003A` [Media] Integrar `Zammad + RustDesk` com `rustdesk://<id>` no ticket e abertura rapida da sessao pelo atendente. Endpoint de deep-link ja implementado e agora exige sessao `STARTED` valida para o ticket; falta configurar custom link no Zammad e validar com ticket real.
-- [ ] `FEAT-003B` [Media] Criar fluxo de webhook/API entre `Zammad` e orquestrador remoto para registrar sessao, ticket vinculado e trilha de auditoria. Webhook ja cria/encerra `RemoteSession`, passa a preencher `expiresAt` e respeita o endurecimento do fluxo; falta validar payload real do Zammad e materializar limpeza automatica de sessoes expiradas.
+- [ ] `FEAT-003B` [Media] Criar fluxo de webhook/API entre `Zammad` e orquestrador remoto para registrar sessao, ticket vinculado e trilha de auditoria. Webhook ja cria/encerra `RemoteSession`, passa a preencher `expiresAt` e respeita o endurecimento do fluxo; falta validar payload real do Zammad e materializar limpeza automatica de sessoes expiradas. O desenho tecnico inicial deste recorte foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-integracao-zammad-remoto`. 
+- [ ] `FEAT-003C` [Media] Refinar UX da operacao de sessoes remotas. Fluxo manual de solicitar/iniciar/encerrar, destaque do ultimo ticket, recomendacao de proximo passo e bloqueios basicos de transicao ja existem; falta aplicar o mesmo padrao visual nas demais telas, validar o fluxo em ambiente real e ampliar o feedback operacional para o atendente.   
+- [ ] `FEAT-003D` [Media] Evoluir a experiencia de atendimento remoto com feedback operacional completo. A direcao ja esta consolidada para destacar o status do host, recomendar o proximo passo, reforcar bloqueios de transicao, destacar o link do ticket e melhorar o feedback visual para o atendente; falta aplicar esse padrao em todas as telas, validar o comportamento em ambiente real e reforcar a resolucao de host por ticket.  
 - [ ] `FEAT-004` [Media] Criar shell de credenciais por referencia com controle de acesso e trilha de uso.
+
+#### Chamados - Zammad:
+- [ ] `FEAT-003E` [Media] Atentende ser possivel abrir um tick manual na rota de chamados narota de portal/chamados, neste caso o operador deve selecionar o email de contatos do zammad que esta vinculado a empresa
+
+
+#### Integração entre os tres pilares: WhatsApp, RustDesk e Zammad
+- [ ] `FEAT-007` [Media] Estruturar canal futuro de WhatsApp mediado pelo backend. A direcao arquitetural ja foi definida para `apps/web` + `apps/api` + `apps/whatsapp-bridge` + `Zammad` + `RustDesk`, a base de `CompanyContact` ja entrou no cadastro da empresa, os contratos reforcados de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja existem no dominio com snapshots, delivery e historico de fila, e a modelagem Prisma base dessas quatro tabelas ja foi aberta; faltam aplicar migration no ambiente, backend dedicado ligado aos casos de uso reais, bridge isolado, filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`.  O desenho tecnico inicial deste recorte foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-integracao-zammad-whatsapp`.
+- [ ] `FEAT-007A` [Media] Concluir integracao de WhatsApp via backend dedicado, com filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`. A direcao arquitetural ja esta definida para `apps/web` + `apps/api` + `apps/whatsapp-bridge` + `Zammad` + `RustDesk`, a base de `CompanyContact` ja entrou no cadastro da empresa, os contratos reforcados de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja existem no dominio com snapshots, delivery e historico de fila, e a modelagem Prisma base dessas quatro tabelas ja foi aberta; faltam aplicar migration no ambiente, backend dedicado ligado aos casos de uso reais, bridge isolado, filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`. O desenho tecnico inicial deste recorte foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-integracao-zammad-whatsapp`.
+- [ ] `FEAT-007B` [Media] Evoluir a experiencia de atendimento via WhatsApp com mensagens interativas, templates e feedback operacional completo. A direcao arquitetural ja esta consolidada para `apps/web` + `apps/api` + `apps/whatsapp-bridge` + `Zammad` + `RustDesk`, a base de `CompanyContact` ja entrou no cadastro da empresa, os contratos reforcados de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja existem no dominio com snapshots, delivery e historico de fila, e a modelagem Prisma base dessas quatro tabelas ja foi aberta; faltam aplicar migration no ambiente, backend dedicado ligado aos casos de uso reais, bridge isolado, filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`. O desenho tecnico inicial deste recorte foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-integracao-zammad-whatsapp`. 
+- 
+
+#### Infraestrutura e evolucao do app web:
+- [x] `FEAT-008` [Media] Evoluir cadastro de empresa com guia `Parametros Servidor`. A nova guia deve permitir definir `tipo de servidor` entre `Syspro Server` e `IIS`; quando o tipo for `IIS`, deve abrir configuracoes especificas do servidor (`porta`, `protocolo`, `servidor` e `url path / ISAPI`, conforme o padrao operacional do cliente). O mesmo recorte tambem deve incluir o cadastro de `tipo de conexao remota` entre `DDNS (NoIP)` e `Radmin VPN`, alem da `descricao da maquina`, para consolidar os parametros tecnicos da empresa no proprio cadastro e reduzir dependencias de anotacoes externas.
+- [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Persistencia, tenant enforcement, rotas de `hosts`, `sessions`, `discover`, `register` e `heartbeat`, separacao entre configuracao e operacao, detalhe do host, CRUD basico de host com `RustDesk ID`, busca operacional do modulo, rate limit basico no fluxo do agente, triagem de maquinas descobertas, TTL de sessao e bloqueio de host ativo sem `RustDesk ID` ja existem; falta aplicar migration/generate/seed no ambiente, validar fluxo fim a fim por perfil, endurecer mensagens de erro e fechar testes operacionais com maquina real.
 - [ ] `FEAT-005` [Media] Implementar painel inicial de backup e restore com jobs catalogados. A direcao ja esta consolidada para agente local com execucao `pull`, agenda por host, `BackupJob`, `BackupArtifact`, envio preferencial para storage proprio e visualizacao rapida no mesmo modulo remoto; faltam modelagem, endpoints, polling do agente e UI operacional.
-- [ ] `FEAT-007` [Media] Estruturar canal futuro de WhatsApp mediado pelo backend. A direcao arquitetural ja foi definida para `apps/web` + `apps/api` + `apps/whatsapp-bridge` + `Zammad` + `RustDesk`, a base de `CompanyContact` ja entrou no cadastro da empresa, os contratos reforcados de `Conversation`, `ConversationMessage`, `ConversationQueueEvent` e `ConversationAssignment` ja existem no dominio com snapshots, delivery e historico de fila, e a modelagem Prisma base dessas quatro tabelas ja foi aberta; faltam aplicar migration no ambiente, backend dedicado ligado aos casos de uso reais, bridge isolado, filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`.
 - [ ] `FEAT-006` [Baixa] Evoluir area publica para aderir integralmente aos tokens de tema e remover hardcodes restantes.
+
+#### Api
+- [ ] `FEAT-009` [Media] Criar shell inicial de `apps/api` com endpoints de exemplo e contrato de API compartilhado. O esqueleto do app, configuração de rota, autenticação básica por token, logger estruturado e endpoint de exemplo já existem; faltam definir contrato de API compartilhado, aplicar a esse contrato em endpoints reais, integrar casos de uso do `apps/web` e validar o comportamento em ambiente real.
+
+#### Backend
+- [ ] `FEAT-008` [Media] Criar shell inicial de backend dedicado para o canal de WhatsApp, com endpoints de exemplo e contrato compartilhado. O esqueleto do app, configuração de rota, autenticação básica por token, logger estruturado e endpoint de exemplo já existem; faltam definir contrato compartilhado, aplicar a esse contrato em endpoints reais, integrar casos de uso do `apps/web` e validar o comportamento em ambiente real.  
+
+#### Frontend
+- [ ] `FEAT-002A` [Media] Reforcar a consistencia visual do app com o tema compartilhado, aplicando-o integralmente e eliminando hardcodes. O tema compartilhado já existe em `packages/ui`, foi integrado ao `apps/web` e aplicado em diversos componentes e telas, mas ainda existem pontos de inconsistência visual e hardcodes de cor, tipografia e espaciamento que precisam ser eliminados para garantir uma experiencia visual coesa e aderente ao design system. O recorte inicial deste item deve focar em consolidar o uso do tema em `auth`, `documentos`, `user-access`, `company`, `tickets`, `contracts`, `settings` e `site`, alem do fluxo principal de `components + features`; a partir disso, o padrao visual deve ser aplicado de forma sistematica em todas as telas e componentes, revisando responsividade e eliminando hardcodes restantes. O desenho tecnico inicial deste recorte foi consolidado em `/docs/manuais-tecnicos/estrategia/estrategia-tema-compartilhado`.  
+- 
+
+#### Mobile
+- [ ] `FEAT-010` [Media] Criar shell inicial de `apps/mobile` com boundaries definidas e integração inicial com o backend. O esqueleto do app, configuração de rota, autenticação básica por token, logger estruturado e tela de exemplo já existem; faltam definir boundaries de integração, aplicar a esses contratos em telas reais, integrar casos de uso do `apps/web` e validar o comportamento em ambiente real. 
+
+
+
 
 ## Proximas sprints por prioridade
 
@@ -152,4 +186,329 @@ Ordem recomendada:
 
 
 
+Analisei os dois módulos em profundidade. Aqui está o backlog completo, organizado por área e prioridade.
 
+---
+
+## Plataforma Remota — backlog
+
+**Novos recursos**
+
+**Mapa de cobertura remota** — grid ou mapa de regiões do Brasil com densidade de hosts por UF. Útil para gerenciar cobertura de clientes.
+
+**Timeline de heartbeats por host** — gráfico de linha mostrando saúde do agente ao longo do tempo (latência, falhas, reinicializações). Hoje só existe `lastHeartbeatAt` sem histórico.
+
+**Dashboard de status em tempo real** — SSE ou polling curto mostrando quais hosts estão `ACTIVE`, `INACTIVE`, `MAINTENANCE` com atualização automática sem reload.
+
+**Sessões remotas inline** — na página de detalhes do host, exibir o histórico completo de sessões com duração, operador, ticket vinculado e possibilidade de reabrir uma sessão expirada.
+
+**Bulk actions na listagem** — selecionar múltiplos hosts e aplicar: trocar empresa, mudar status, baixar instaladores em lote (zip).
+
+**Notificação proativa de host offline** — quando um host ativo não envia heartbeat por mais de N minutos, acionar notificação no painel e opcionalmente webhook.
+
+**Versionamento de agente** — detectar quando `agentVersion` está desatualizado em relação à versão configurada no módulo e sinalizar no card do host.
+
+**Notas ricas por host** — hoje `notes` é texto plano. Suporte a markdown com preview, histórico de edições (quem editou e quando).
+
+**Auditoria de sessões** — endpoint e tela listando todas as sessões de um período, com filtros por operador, empresa, duração, ticket.
+
+**Portal do cliente para Plataforma Remota** — `CLIENTE_ADMIN` já tem acesso mas a interface é a mesma do admin. Criar visão simplificada: lista dos próprios hosts, status, botão de solicitar sessão sem expor configurações internas.
+
+---
+
+**Melhorias em recursos existentes**
+
+**Backend**
+
+No `POST /api/remote/agents/discover` — hoje o upsert por `machineName` pode colidir se duas máquinas diferentes tiverem o mesmo nome de computador. Adicionar fingerprint de hardware (hash de MAC ou BIOS UUID) como campo secundário de resolução.
+
+No `POST /api/remote/sessions` — não há expiração automática de sessões `REQUESTED` que nunca foram iniciadas. Adicionar job de limpeza (cron ou trigger por webhook) para expirar sessões paradas há mais de 15 minutos.
+
+No `PATCH /api/remote/hosts/[id]` — o campo `status` aceita qualquer valor do enum mas não registra quem mudou e quando. Adicionar `statusChangedAt` e `statusChangedByUserId` no modelo.
+
+`getRemotePlatformDirectory` — a query carrega todos os hosts sem paginação. Adicionar cursor pagination e filtros server-side (por empresa, status, `agentVersion`, `lastHeartbeatAt`).
+
+A lógica de `syncRemoteHostSysproUpdates` em `agent-payload.ts` roda dentro de transação mas pode gerar N queries para N instalações. Substituir por `upsertMany` com raw SQL ou batch.
+
+**Frontend**
+
+`RemotePlatformDirectoryPanel` — sem estado de busca persistida na URL. Adicionar `?search=&company=&status=` para que o filtro sobreviva ao refresh e seja compartilhável.
+
+Cards de host sem indicador visual imediato de `serviceStatus` (running, not_found, restarted_by_agent). Adicionar badge colorido no card.
+
+`RemoteHostDetailsPanel` — quando o host não tem `agentExternalId`, o botão de conexão RustDesk aparece mas gera erro silencioso. Desabilitar com tooltip explicativo.
+
+Download de script instalador — hoje retorna `.ps1` sem preview. Adicionar modal com preview do script e instruções passo a passo antes do download.
+
+Seção de instalações Syspro sem ordenação nem possibilidade de filtrar por empresa desvinculada (`companyId: null`). Adicionar filtro e ação de vincular diretamente do card.
+
+---
+
+## Chamados — backlog
+
+**Novos recursos**
+
+**Criação de chamado inline** — hoje não existe fluxo de abertura de chamado dentro do portal. Adicionar modal com `ticketFormSchema` já existente em `packages/contracts`, integrado ao Zammad via `POST /api/zendesk/tickets` (ou endpoint equivalente).
+
+**Resposta a artigos** — na página de detalhes do chamado, campo de resposta com editor rico, suporte a upload de anexo e envio direto para o Zammad. Hoje `TicketDetails` é somente leitura.
+
+**Filtro por empresa** — admin vê todos os tickets mas não pode filtrar por empresa cliente. Adicionar `?company=` como parâmetro de busca com autocomplete das empresas cadastradas.
+
+**Exportação CSV** — para admins, botão de exportar chamados filtrados (status, período, fila) em CSV com campos principais.
+
+**Agrupamento por status customizável** — hoje os status groups são fixos (`open`, `pending`, `closed`). Permitir que admin configure labels de exibição via settings.
+
+**Visualização de SLA em lista** — hoje SLA só aparece nas notificações. Exibir badge de SLA diretamente na linha da tabela de tickets (breached vermelho, warning âmbar, ok verde).
+
+**Tickets duplicados** — ação para marcar um ticket como duplicata de outro, com campo de referência ao ticket original, sincronizado como nota interna no Zammad.
+
+**Assinatura de ticket para o cliente** — `CLIENTE_ADMIN` assinar para receber atualizações via e-mail quando o status muda.
+
+**Widget de histórico de atendimentos por empresa** — na página de cadastro de empresa, painel lateral com os últimos 5 chamados, contagem por status e SLA médio.
+
+---
+
+**Melhorias em recursos existentes**
+
+**Backend**
+
+`getTicketsAction` — hoje faz chamada ao Zammad a cada request sem cache de camada de dados. O cache existe via `unstable_cache` com tags, mas a função `ZammadGateway.getAllTickets` faz HTTP sempre que o cache expira. Implementar cache Redis ou Supabase para reduzir chamadas externas em picos.
+
+`buildTicketNotifications` em `/api/platform/notifications` — itera todos os tickets ativos para calcular SLA em memória. Migrar para usar `prisma.zammadTicketCache` com campo `breached` já persistido (que existe no schema) e fazer a query direto no banco.
+
+`getTicketsAction` com `statusGroup: "closed"` — busca todos os tickets fechados no período e filtra em memória. Adicionar filtro de data server-side no gateway para reduzir payload.
+
+`ticketQuickAction` — as três ações (`assume`, `priority_high`, `macro_followup`) não têm rate limit. Adicionar `consumeActionRateLimit` igual ao padrão já usado em rotas de agente remoto.
+
+`ZammadGateway.getTicketsForCustomerEmailsPaged` — quando um cliente tem muitos e-mails vinculados, a query pode gerar URLs muito longas. Paginar ou usar POST search.
+
+**Frontend**
+
+`TicketsContainer` — filtro de queue e status resetam a paginação somente via navegação (URL params). Se o usuário está na página 3 e muda o filtro, a página não volta para 1 automaticamente. Corrigir no handler de mudança de filtro.
+
+`ClosedTicketsWindow` — seletor de janela de fechados (`30d`, `60d`...) sem label de contexto. Adicionar texto "Exibindo fechados dos últimos X dias" próximo ao seletor.
+
+`TicketDetails` — artigos internos (campo `internal: true`) aparecem misturados com artigos públicos para usuários cliente. Filtrar artigos internos para roles não-admin antes de renderizar.
+
+Página de detalhes sem breadcrumb de volta para a lista com os filtros preservados. Adicionar `<Link href="/portal/chamados?[filtros atuais]">` no header da página.
+
+`TicketsSummary` no dashboard — exibe lista estática sem link direto para o chamado. Adicionar href para `/portal/chamados/[id]` em cada item.
+
+Skeleton de loading (`ChamadosLoading`) não cobre o estado de detalhe do chamado (`/portal/chamados/[id]`). Adicionar `loading.tsx` na rota de detalhe.
+
+---
+
+**Ajustes finos transversais (ambos módulos)**
+
+**Segurança** — `CLIENTE_USER` não tem acesso à Plataforma Remota, mas se conhecer o ID de um host pode tentar acessar `/api/remote/hosts/[id]` diretamente. A rota `GET /api/remote/hosts` filtra por tenant, mas rotas individuais como `PATCH` e `DELETE` verificam apenas `canManageHost(role)` sem checar se o host pertence ao tenant do usuário logado. Unificar a verificação de escopo em todas as rotas individuais.
+
+**Observabilidade** — adicionar métricas de duração de sessão remota e de tempo de resposta do Zammad ao snapshot de observabilidade existente em `/api/platform/observability/zammad`.
+
+**Acessibilidade** — `TicketsContainer` usa filtros como `<select>` nativos sem `aria-label`. `RemotePlatformDirectoryPanel` não tem região `role="main"`. Adicionar atributos ARIA nos dois módulos.
+
+**i18n de datas** — `formatRecency` em `packages/shared` usa `pt-BR` hardcoded. Mover para aceitar `locale` como parâmetro para quando o produto eventualmente suportar outros idiomas.
+
+
+
+[ ] [Alta] FEAT-RUST-LOCK: Bloquear interface de configurações para o usuário final (Modo Kiosk).
+
+[ ] [Alta] FEAT-RUST-UAC: Implementar auto-elevação para garantir privilégios de Admin no início da sessão.
+
+[ ] [Média] FEAT-RUST-INV: Integrar coleta de inventário básico (Disco/CPU/RAM) no payload do agente.
+
+[ ] [Média] INFRA-RUST-MSI: Criar pipeline para gerar instalador MSI para deploy em massa.
+
+[ ] [Baixa] FEAT-RUST-MSG: Customizar mensagens de chat pré-definidas (ex: "Trilink Software está analisando seu banco de dados...").
+
+[ ] [Alta] FEAT-TELEMETRY-SCRIPT: Criar o script .ps1 otimizado para os requisitos do seu ERP.
+
+[ ] [Média] INFRA-NSIS-PATCH: Modificar o patch_client.py para injetar as instruções de telemetria no instalador Windows.
+
+[ ] [Baixa] INFRA-API-HEALTH: Criar um endpoint simples no seu servidor para receber e armazenar esses JSONs.
+
+[ ] [Alta] FEAT-TELEMETRY-ANALYTICS: Configurar um dashboard de monitoramento para analisar os dados coletados.
+
+[ ] [Média] FEAT-TELEMETRY-ALERTS: Configurar alertas para anomalias (ex: aumento súbito de falhas de conexão).
+
+[ ] [Baixa] FEAT-TELEMETRY-REPORTS: Gerar relatórios periódicos para revisão interna e otimização do serviço.
+
+#### RUSTDESK CUSTOMIZADO - IDEIAS DE RECURSOS
+1,UAC Auto-Elevate,O app já abre pedindo senha de Admin. Essencial para mexer em registros de ERP e pastas de sistema.,Baixo (Ajuste de Manifesto)
+2,Service Persistence,Garante que o RustDesk reinicie sozinho se o Windows travar ou se o usuário tentar fechar o processo.,Médio (Scripting/NSIS)
+3,Hardware Codec Force,"Força o uso de H.265/AV1 em máquinas com placa de vídeo, reduzindo o lag de vídeo a quase zero.",Médio (Rust Config)
+4,Custom Icon Set,"Troca todos os ícones internos (chat, arquivos, mouse) pela identidade visual da Trilink.",Médio (Assets/Design)
+5,Pre-defined Password,"Você compila o app com uma ""Senha de Emergência"" fixa, para entrar mesmo se o cliente não souber a dele.",Baixo (Rust Patch)
+6,Privacy Mode (Curtain),"Permite ""apagar"" o monitor do cliente durante o suporte (tela preta) para ele não ver dados sensíveis.",Alto (Driver de Vídeo)
+7,Auto-Cleanup Logs,"O app deleta logs de sessões antigas a cada 7 dias, evitando ocupar espaço desnecessário no cliente.",Baixo (Python Patch)
+8,One-Click SOS,"Versão que não tem botão ""Instalar"". Ela abre, conecta e ""morre"" ao fechar. Ideal para suporte avulso.",Baixo (Build Flag)
+9,Headless Terminal Mode,Permite abrir apenas um terminal (CMD/PowerShell) remoto sem carregar a interface gráfica. Muito mais rápido para manutenção de servidores.,Médio (Rust Core)
+10,Auto-Session Recording,Grava automaticamente todas as sessões em vídeo no servidor/técnico para auditoria e segurança (prova do que foi feito no ERP).,Médio (Server/Client)
+11,White-label Tray Menu,"Personaliza o menu de clique direito no ícone da bandeja (perto do relógio) com links: ""Abrir Chamado"", ""Site Trilink"" ou ""Reiniciar Serviço ERP"".",Baixo (Flutter UI)
+12,Silent Install (CLI Flags),Permite instalar o app via linha de comando sem mostrar nenhuma janela. Essencial para scripts de implantação em massa.,Baixo (NSIS/InnoSetup)
+13,Clipboard Policy Control,"Define se o ""Copiar e Colar"" funciona nos dois sentidos ou apenas do técnico para o cliente (evita vazamento de dados do cliente).",Baixo (Rust Patch)
+14,Intelligent Relay Selection,Configura o client para testar latência entre múltiplos servidores Relay e escolher o mais rápido automaticamente.,Alto (Network Layer)
+15,Custom Canned Chat,"Adiciona botões de respostas rápidas no chat (""Iniciando Backup..."", ""Favor reiniciar o sistema"", ""Suporte Trilink concluído"").",Baixo (Flutter UI)
+
+
+#### ZAMMAD CUSTOMIZADO - IDEIAS DE RECURSOS
+1,RustDesk Deep Link,Botão dentro do ticket que abre o seu RustDesk Trilink já conectando no ID do cliente.,Baixo (Custom Object)
+2,Grafana Dashboard,Relatórios visuais avançados que o Zammad nativo não tem (tempo médio de resposta por técnico/ERP).,Médio (SQL/InfluxDB)
+3,AI Ticket Summarizer,Integração com Gemini/OpenAI para resumir tickets longos com 50+ interações para o técnico.,Médio (Webhook/API)
+4,WhatsApp Multi-Instance,Uso de conectores da comunidade para ter vários números de WhatsApp caindo no mesmo painel.,Médio (Docker/API)
+5,Zabbix/CheckMK Bridge,O monitoramento do servidor do cliente gera ticket automático quando o banco de dados para.,Baixo (Triggers)
+6,CMDB (Asset Management),Criar objetos customizados para vincular qual versão do ERP e qual Licença o cliente possui.,Baixo (Custom Objects)
+7,Time Accounting to ERP,Exportação automática do tempo gasto no ticket para o seu sistema de faturamento/cobrança.,Médio (Webhook/API)
+8,Custom CSS Branding,White-label total da interface do cliente com as cores exatas da Trilink (além do logo).,Baixo (CSS Injection)
+9,Auto-Priority Logic,"Aumenta a prioridade do ticket se palavras como ""Parado"", ""Erro Fiscal"" ou ""NF-e"" forem detectadas.",Baixo (Triggers)
+10,Telegram/Signal Bot,"Permite que o cliente abra e responda tickets via Telegram, com status em tempo real.",Baixo (Integration)
+11,Elasticsearch Tuning,Otimização do motor de busca para encontrar soluções em frações de segundo em bases gigantes.,Médio (Config)
+12,SLA Multi-Nível,"Configurar tempos de resposta diferentes para ""Dúvida"" vs. ""Bug Crítico"" vs. ""Treinamento"".",Baixo (SLA Engine)
+13,Knowledge Base Locking,"Criar manuais técnicos que só os seus devs veem, separados do manual do usuário.",Baixo (Permissions)
+14,PWA Mobile Booster,Melhoria nas notificações Push do celular para que o técnico não perca chamados em campo.,Médio (PWA/Manifest)
+15,Auto-Closure Survey,Envio de pesquisa de satisfação automática (NPS) 24h após o fechamento do ticket.,Baixo (Automation)
+
+
+Read [](file:///c%3A/DEV/documentacao-syspro/apps/web/content/docs/manuais-tecnicos/governanca/backlog-infra-monorepo.mdx)
+
+Explore the monorepo structure and current implementation state
+
+Read [](file:///c%3A/DEV/documentacao-syspro/apps/web/content/docs/manuais-tecnicos/governanca/backlog-infra-monorepo.mdx#1-1), lines 1 to 200
+
+Read [](file:///c%3A/DEV/documentacao-syspro/turbo.json)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/package.json#1-1), lines 1 to 50
+
+Searched for text `export` (`**/packages/contracts/src/*.ts`), 20 results
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/contracts/src/index.ts)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/core/src/index.ts)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/database/prisma/schema.prisma#1-1), lines 1 to 150
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/database/prisma/schema.prisma#150-150), lines 150 to 300
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/database/prisma/migrations)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/api/src/routers)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/api/src/index.ts)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/database/prisma/schema.prisma#300-300), lines 300 to 500
+
+Read [](file:///c%3A/DEV/documentacao-syspro/apps/mobile/src/index.ts)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/apps/api/src/server.ts)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/database/prisma/schema.prisma#500-500), lines 500 to 800
+
+Searched for text `model Remote` (`**/packages/database/prisma/schema.prisma`), 4 results
+
+Searched for text `model Conversation` (`**/packages/database/prisma/schema.prisma`), 4 results
+
+Searched for text `remote` (`**/apps/web/src`), no results
+
+Read [](file:///c%3A/DEV/documentacao-syspro/apps/web/src/app)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/packages/api/src/routers/app.ts)
+
+Searched codebase for "remote host registration discovery heartbeat agent token", 19 results
+
+Read [](file:///c%3A/DEV/documentacao-syspro/apps/web/src/app/api)
+
+Read [](file:///c%3A/DEV/documentacao-syspro/apps/web/src/app/%28platform%29)
+
+Searched for text `export const` (`**/packages/api/src/routers/*.ts`), 6 results
+
+Read [](file:///c%3A/DEV/documentacao-syspro/apps/web/src/app/api/remote/hosts/route.ts#1-1), lines 1 to 50
+
+Read [](file:///c%3A/DEV/documentacao-syspro/apps/web/src/app/api/remote/sessions/route.ts#1-1), lines 1 to 50
+
+Read memory [](file:///c%3A/Users/rafael/AppData/Roaming/Code/User/workspaceStorage/d1a46cce944934618b27d2251f678b98/GitHub.copilot-chat/memory-tool/memories/YWZmNTUxZjQtNWIxMy00MGYwLWI4YjQtMzU3NWQ5YWZkOGQ3)
+
+Read [](file:///c%3A/Users/rafael/AppData/Roaming/Code/User/workspaceStorage/d1a46cce944934618b27d2251f678b98/GitHub.copilot-chat/chat-session-resources/aff551f4-5b13-40f0-b8b4-3575d9afd8d7/call_66746450__vscode-1774524164314/content.txt)
+
+Created memory file [](file:///c%3A/Users/rafael/AppData/Roaming/Code/User/workspaceStorage/d1a46cce944934618b27d2251f678b98/GitHub.copilot-chat/memory-tool/memories/YWZmNTUxZjQtNWIxMy00MGYwLWI4YjQtMzU3NWQ5YWZkOGQ3/plan.md)
+
+## Plan: Revisar e Implementar Backlog de Infraestrutura Monorepo
+
+Consolidar o backlog ativo, eliminar duplicidades, integrar ideias adicionais de customização RustDesk/Zammad, e definir plano de implementação priorizado baseado na infraestrutura do monorepo (apps/web, apps/api, apps/mobile, packages compartilhados).
+
+**Steps**
+1. **Revisar e Consolidar Backlog** (Sem dependências)
+   - Remover itens duplicados (ex: FEAT-007, 007A, 007B aparecem duas vezes; FEAT-002A em seções diferentes mas distintos)
+   - Renumerar códigos conflitantes (ex: FEAT-008 usado para itens diferentes)
+   - Integrar ideias de customização RustDesk/Zammad como novos itens ou expansões, priorizando alta/baixa complexidade
+   - Consolidar seções sobrepostas (ex: "Api", "Backend", "Frontend", "Mobile" com itens similares aos de integração progressiva)
+   - Resultado: Backlog limpo em backlog-infra-monorepo.mdx
+
+2. **Aplicar Migrações Pendentes e Validar MVP Remoto** (Depende de 1; paralelo com 3)
+   - Aplicar 45 migrações Prisma em staging/prod
+   - Validar fluxo agente (discover → register → heartbeat) com máquina real
+   - Testar ciclo de vida agentToken (emissão, validação, rotação)
+   - Implementar limpeza TTL para sessões expiradas
+   - Verificar integração Zammad (deep-link rustdesk://, webhook para sessões)
+   - Arquivos: prisma, remote
+
+3. **Endurecer Contratos e Exportar Tipos Faltantes** (Paralelo com 2)
+   - Remover any restantes em parser DANFE e outros pontos críticos
+   - Exportar contratos para Conversation, RemoteHost, RemoteSession de contracts
+   - Aplicar contratos discriminados em auth, documentos, user-access, etc.
+   - Arquivos: src, route.ts
+
+4. **Integrar Apps/API aos Casos de Uso Reais** (Depende de 2 e 3)
+   - Criar routers para remote e WhatsApp em routers
+   - Conectar endpoints de api aos casos de uso de api
+   - Validar contrato compartilhado entre apps/web e apps/api
+   - Arquivos: src, src
+
+5. **Materializar Runtime Mobile** (Depende de 3; paralelo com 4)
+   - Implementar UI real em mobile usando boundaries definidas
+   - Integrar com contracts e api
+   - Validar navegação e view-models
+   - Arquivos: src
+
+6. **Expandir Plataforma Remota (Multi-Servidor, Inventário, Observabilidade)** (Depende de 2)
+   - Implementar multi-instalação Syspro por host (FEAT-002C)
+   - Adicionar inventário técnico e telemetria (FEAT-002D)
+   - Melhorar UX operacional e feedback mobile (FEAT-002A, FEAT-002E)
+   - Arquivos: remote, schema.prisma
+
+7. **Implementar Integração WhatsApp e Zammad** (Depende de 4)
+   - Criar backend dedicado para WhatsApp (FEAT-007A, FEAT-008 renumerado)
+   - Evoluir UX atendimento com mensagens interativas (FEAT-007B)
+   - Integrar três pilares (WhatsApp, RustDesk, Zammad) com auditoria
+   - Arquivos: src, src
+
+8. **Adicionar Funcionalidades Complementares (Backup, Credenciais, Docs)** (Depende de 6; paralelo com 7)
+   - Implementar backup/restore operacional (FEAT-005)
+   - Criar shell de credenciais (FEAT-004)
+   - Melhorar experiência docs (INFRA-028 a 034)
+   - Arquivos: features, content
+
+**Relevant files**
+- backlog-infra-monorepo.mdx — Backlog principal a ser revisado
+- schema.prisma — Schema com entidades prontas para remote/WhatsApp
+- src — Contratos a exportar e endurecer
+- remote — Rotas remote a validar
+- routers — Routers a expandir para remote/WhatsApp
+
+**Verification**
+1. Aplicar migrações e executar testes E2E para fluxo agente fim-a-fim
+2. Verificar typecheck sem any em pontos críticos e contratos exportados
+3. Testar integração apps/api com casos de uso reais via chamadas HTTP
+4. Validar build e runtime mobile em dispositivo/simulador
+5. Executar sessões remotas reais com multi-servidor e inventário
+6. Testar criação de conversas WhatsApp e linkage com Zammad/tickets
+7. Verificar funcionalidades backup, credenciais e melhorias docs em staging
+
+**Decisions**
+- Priorizar validação MVP remoto antes de expansões, pois infraestrutura já suporta
+- Integrar ideias RustDesk/Zammad como expansões de FEAT-002 e FEAT-003, priorizando itens de baixa/média complexidade
+- Manter monorepo structure: implementar em apps usando packages compartilhados
+- Excluir itens já concluídos (INFRA-023 a 025 marcados como [x])
+
+**Further Considerations**
+1. Validar ambiente de produção para migrações e tokens remotos
+2. Considerar impacto de multi-instalação Syspro na UX e scripts agente
+3. Avaliar necessidade de backend dedicado separado para WhatsApp vs integrar em apps/api
