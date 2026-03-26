@@ -188,18 +188,65 @@ function Install-Or-Update-RustDesk {
 }
 
 function Resolve-RustDeskId {
+    $tmpFile = "$env:TEMP\rd_id_capture.txt"
+    $exePath = "C:\Program Files\RustDesk\rustdesk.exe"
+
+    # Try to generate ID by starting RustDesk briefly if not found
+    if (Test-Path $exePath) {
+        try {
+            # Start RustDesk in background for a few seconds to ensure ID is generated
+            $rustdeskProcess = Start-Process -FilePath $exePath -ArgumentList "--silent" -NoNewWindow -PassThru
+            Start-Sleep -Seconds 3
+            if (-not $rustdeskProcess.HasExited) {
+                Stop-Process -Id $rustdeskProcess.Id -Force -ErrorAction SilentlyContinue
+            }
+        } catch {}
+    }
+
+    if (Test-Path $exePath) {
+        try {
+            Start-Process -FilePath $exePath -ArgumentList "--get-id" -RedirectStandardOutput $tmpFile -NoNewWindow -Wait
+            if (Test-Path $tmpFile) {
+                $rawId = Get-Content $tmpFile -Raw
+                Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
+                if ($rawId -match '(\d{7,12})') {
+                    return Normalize-RustDeskId -Value $matches[1]
+                }
+            }
+        } catch {}
+    }
+
+    $regPaths = @(
+        'HKLM:\SOFTWARE\RustDesk',
+        'HKLM:\SOFTWARE\WOW6432Node\RustDesk'
+    )
+
+    foreach ($regPath in $regPaths) {
+        if (Test-Path $regPath) {
+            $val = Get-ItemProperty -Path $regPath -Name 'id' -ErrorAction SilentlyContinue
+            if ($val -and $val.id -match '\d{7,12}') {
+                return Normalize-RustDeskId -Value $val.id.ToString()
+            }
+        }
+    }
+
     $configPaths = @(
-        'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk.toml',
-        'C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Roaming\\RustDesk\\config\\RustDesk2.toml',
+        'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml',
+        'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml',
+        'C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml',
+        'C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml',
+        'C:\ProgramData\RustDesk\config\RustDesk.toml',
+        'C:\ProgramData\RustDesk\config\RustDesk2.toml',
         "$env:APPDATA\\RustDesk\\config\\RustDesk.toml",
         "$env:APPDATA\\RustDesk\\config\\RustDesk2.toml"
     )
 
     foreach ($configPath in $configPaths) {
         if (Test-Path $configPath) {
-            $content = Get-Content $configPath -Raw
-            if ($content -match "id\\s*=\\s*'(\d{7,12})'") {
-                return Normalize-RustDeskId -Value $matches[1]
+            $content = Get-Content $configPath -Raw -Encoding UTF8
+            # Try different regex patterns for ID
+            if ($content -match "id\s*=\s*['\""]?(\d{7,12})['\""]?") {
+                return Normalize-RustDeskId -Value $Matches[1]
             }
         }
     }
@@ -420,21 +467,70 @@ Get-ChildItem -Path 'C:\Trilink\Agent' -Filter '*.log' -ErrorAction SilentlyCont
 function Normalize-RustDeskId {
     param([string]$Value)
     if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
-    $normalized = (($Value -replace '\s+', '').Trim())
+    $normalized = (($Value -replace '\\s+', '').Trim())
     if ($normalized -match '^\d{7,12}$') { return $normalized }
     return $null
 }
 
 function Resolve-RustDeskId {
+    $tmpFile = "$env:TEMP\rd_id_capture.txt"
+    $exePath = "C:\Program Files\RustDesk\rustdesk.exe"
+
+    # Try to generate ID by starting RustDesk briefly if not found
+    if (Test-Path $exePath) {
+        try {
+            # Start RustDesk in background for a few seconds to ensure ID is generated
+            $rustdeskProcess = Start-Process -FilePath $exePath -ArgumentList "--silent" -NoNewWindow -PassThru
+            Start-Sleep -Seconds 3
+            if (-not $rustdeskProcess.HasExited) {
+                Stop-Process -Id $rustdeskProcess.Id -Force -ErrorAction SilentlyContinue
+            }
+        } catch {}
+    }
+
+    if (Test-Path $exePath) {
+        try {
+            Start-Process -FilePath $exePath -ArgumentList "--get-id" -RedirectStandardOutput $tmpFile -NoNewWindow -Wait
+            if (Test-Path $tmpFile) {
+                $rawId = Get-Content $tmpFile -Raw
+                Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
+                if ($rawId -match '(\d{7,12})') {
+                    return Normalize-RustDeskId -Value $matches[1]
+                }
+            }
+        } catch {}
+    }
+
+    $regPaths = @(
+        'HKLM:\SOFTWARE\RustDesk',
+        'HKLM:\SOFTWARE\WOW6432Node\RustDesk'
+    )
+
+    foreach ($regPath in $regPaths) {
+        if (Test-Path $regPath) {
+            $val = Get-ItemProperty -Path $regPath -Name 'id' -ErrorAction SilentlyContinue
+            if ($val -and $val.id -match '\d{7,12}') {
+                return Normalize-RustDeskId -Value $val.id.ToString()
+            }
+        }
+    }
+
     $configPaths = @(
         'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml',
-        'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml'
+        'C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml',
+        'C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml',
+        'C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml',
+        'C:\ProgramData\RustDesk\config\RustDesk.toml',
+        'C:\ProgramData\RustDesk\config\RustDesk2.toml',
+        "$env:APPDATA\\RustDesk\\config\\RustDesk.toml",
+        "$env:APPDATA\\RustDesk\\config\\RustDesk2.toml"
     )
 
     foreach ($configPath in $configPaths) {
         if (Test-Path $configPath) {
             $content = Get-Content $configPath -Raw -Encoding UTF8
-            if ($content -match "id\s*=\s*'(\d{7,12})'") {
+            # Try different regex patterns for ID
+            if ($content -match "id\s*=\s*['\""]?(\d{7,12})['\""]?") {
                 return Normalize-RustDeskId -Value $Matches[1]
             }
         }
@@ -596,7 +692,7 @@ export async function GET(request: Request) {
     discoveryToken,
     rustDeskServerHost: settings.rustDeskServerHost,
     rustDeskServerConfig: settings.rustDeskServerConfig,
-    rustDeskPublicKey: settings.rustDeskPublicKey,
+    rustDeskPublicKey: settings.rustDeskPublicKey || "6FpnQH+KbbpX0qw6XxF0xqnIO0QnHImwbvQ5Lv7q6gU=",
     rustDeskVersion: settings.rustDeskVersion,
     heartbeatIntervalMinutes: settings.heartbeatIntervalMinutes,
     defaultPassword: settings.defaultPassword,
