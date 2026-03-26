@@ -230,6 +230,8 @@ export type RemoteConfiguredHostItem = {
   lastKnownIp: string | null;
   lastRegisterAt: string | null;
   lastRegisterSource: string | null;
+  agentTokenIssuedAt: string | null;
+  agentTokenLastUsedAt: string | null;
   openSessionCount: number;
   operationalStatus: RemoteOperationalStatus;
   lastSessionAt: string | null;
@@ -247,6 +249,8 @@ export type RemoteConfiguredHostItem = {
     lastKnownIp: string | null;
     lastRegisterAt: string | null;
     lastRegisterSource: string | null;
+    agentTokenIssuedAt: string | null;
+    agentTokenLastUsedAt: string | null;
     lifecycleStatus: RemoteAgentLifecycleStatus;
     installStages: RemoteAgentInstallStage[];
     installerPath: string;

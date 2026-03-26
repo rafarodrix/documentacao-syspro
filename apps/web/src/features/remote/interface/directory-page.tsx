@@ -90,12 +90,15 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
 function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
   const normalized = lastHeartbeatErrorMessage?.toLowerCase() ?? "";
 
-  if (
-    normalized.includes("agenttoken invalido") ||
-    normalized.includes("agenttoken expirado") ||
-    normalized.includes("agenttoken rotacionado") ||
-    normalized.includes("agenttoken indisponivel")
-  ) {
+  if (normalized.includes("agenttoken expirado")) {
+    return {
+      label: "Token expirado",
+      className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+      needsBootstrap: true,
+    };
+  }
+
+  if (normalized.includes("agenttoken invalido") || normalized.includes("agenttoken rotacionado") || normalized.includes("agenttoken indisponivel")) {
     return {
       label: "Rebootstrap necessario",
       className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",

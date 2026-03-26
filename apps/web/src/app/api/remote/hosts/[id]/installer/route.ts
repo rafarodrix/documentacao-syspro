@@ -624,7 +624,7 @@ try {
 } catch {
     $apiError = Get-ApiErrorDetails -ErrorRecord $_
     Write-Host "Falha ao enviar heartbeat inicial: $($apiError.message)" -ForegroundColor Red
-    if ($apiError.statusCode -eq 401 -and ($apiError.responseBody -like '*AGENT_TOKEN_INVALID*')) {
+    if ($apiError.statusCode -eq 401 -and (($apiError.responseBody -like '*AGENT_TOKEN_INVALID*') -or ($apiError.responseBody -like '*AGENT_TOKEN_EXPIRED*'))) {
         Write-InstallError -Message 'agentToken invalido ou expirado no heartbeat inicial. Execute o bootstrap novamente para emitir nova credencial.'
     } elseif ($apiError.statusCode) {
         Write-InstallError -Message "Falha no heartbeat inicial. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
@@ -842,7 +842,7 @@ try {
     Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body ($payloadHeartbeat | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
 } catch {
     $apiError = Get-ApiErrorDetails -ErrorRecord $_
-    if ($apiError.statusCode -eq 401 -and ($apiError.responseBody -like '*AGENT_TOKEN_INVALID*')) {
+    if ($apiError.statusCode -eq 401 -and (($apiError.responseBody -like '*AGENT_TOKEN_INVALID*') -or ($apiError.responseBody -like '*AGENT_TOKEN_EXPIRED*'))) {
         try {
             if (Test-Path $agentTokenPath) {
                 Remove-Item -Path $agentTokenPath -Force -ErrorAction SilentlyContinue

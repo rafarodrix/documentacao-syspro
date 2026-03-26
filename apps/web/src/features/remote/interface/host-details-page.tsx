@@ -42,6 +42,11 @@ function formatRelativeHeartbeat(value: string | null) {
   return `${diffDays}d atras`;
 }
 
+function formatDateOnly(value: string | null) {
+  if (!value) return "Sem registro";
+  return new Date(value).toLocaleDateString("pt-BR");
+}
+
 function getServiceStatusMeta(value: string | null) {
   if (!value) {
     return {
@@ -91,7 +96,16 @@ const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
 function getAgentTokenMeta(value: string | null) {
   const normalized = value?.toLowerCase() ?? "";
 
-  if (normalized.includes("agenttoken invalido") || normalized.includes("agenttoken expirado")) {
+  if (normalized.includes("agenttoken expirado")) {
+    return {
+      label: "agentToken expirado",
+      tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+      description: "A credencial do agente expirou por politica do portal. Execute o bootstrap novamente neste host.",
+      needsBootstrap: true,
+    };
+  }
+
+  if (normalized.includes("agenttoken invalido")) {
     return {
       label: "agentToken invalido",
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
@@ -199,6 +213,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
   const agentTokenMeta = useMemo(() => getAgentTokenMeta(host.lastHeartbeatErrorMessage), [host.lastHeartbeatErrorMessage]);
+  const agentTokenExpiresAt = useMemo(() => {
+    if (!host.agent.agentTokenIssuedAt) return null;
+    const issuedAt = new Date(host.agent.agentTokenIssuedAt);
+    issuedAt.setDate(issuedAt.getDate() + 30);
+    return issuedAt.toISOString();
+  }, [host.agent.agentTokenIssuedAt]);
   const operationalMeta = useMemo(
     () =>
       getOperationalMeta({
@@ -879,6 +899,18 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo IP reportado</p>
                   <p className="mt-1 text-sm text-foreground">{host.agent.lastKnownIp ?? "Sem leitura"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Emissao do agentToken</p>
+                  <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.agentTokenIssuedAt)}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo uso do agentToken</p>
+                  <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.agentTokenLastUsedAt)}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Expiracao prevista</p>
+                  <p className="mt-1 text-sm text-foreground">{formatDateOnly(agentTokenExpiresAt)}</p>
                 </div>
               </div>
 

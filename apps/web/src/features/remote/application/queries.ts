@@ -93,6 +93,8 @@ function mapDirectoryItem(host: {
   lastKnownIp?: string | null;
   lastRegisterAt?: Date | null;
   lastRegisterSource?: string | null;
+  agentTokenIssuedAt?: Date | null;
+  agentTokenLastUsedAt?: Date | null;
   company: { nomeFantasia: string | null; razaoSocial: string };
   sessions: Array<{ createdAt: Date; status: string; ticketNumber: string | null }>;
 }): RemoteConfiguredHostItem {
@@ -145,6 +147,8 @@ function mapDirectoryItem(host: {
     lastKnownIp: host.lastKnownIp ?? null,
     lastRegisterAt: host.lastRegisterAt?.toISOString() ?? null,
     lastRegisterSource: host.lastRegisterSource ?? null,
+    agentTokenIssuedAt: host.agentTokenIssuedAt?.toISOString() ?? null,
+    agentTokenLastUsedAt: host.agentTokenLastUsedAt?.toISOString() ?? null,
     openSessionCount,
     operationalStatus: resolveRemoteOperationalStatus({
       rustdeskId: host.agentExternalId,
@@ -167,6 +171,8 @@ function mapDirectoryItem(host: {
       lastKnownIp: host.lastKnownIp ?? null,
       lastRegisterAt: host.lastRegisterAt?.toISOString() ?? null,
       lastRegisterSource: host.lastRegisterSource ?? null,
+      agentTokenIssuedAt: host.agentTokenIssuedAt?.toISOString() ?? null,
+      agentTokenLastUsedAt: host.agentTokenLastUsedAt?.toISOString() ?? null,
       lifecycleStatus,
       installStages,
       installerPath: `/api/remote/hosts/${host.id}/installer`,

@@ -9,6 +9,7 @@ import {
   normalizeSysproUpdates,
   syncRemoteHostSysproUpdates,
 } from "@/features/remote/application/agent-payload";
+import { getRemoteAgentTokenExpiresAt, isRemoteAgentTokenExpired } from "@/features/remote/application/agent-token";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,7 @@ export async function POST(request: Request) {
       id: true,
       companyId: true,
       agentTokenHash: true,
+      agentTokenIssuedAt: true,
       company: {
         select: {
           nomeFantasia: true,
@@ -93,6 +95,36 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(
       { success: false, error: "agentToken invalido ou expirado.", code: "AGENT_TOKEN_INVALID" },
+      { status: 401, headers: responseHeaders }
+    );
+  }
+
+  const tokenExpired = isRemoteAgentTokenExpired(host.agentTokenIssuedAt);
+  if (tokenExpired) {
+    const heartbeatAt = new Date();
+    const expiresAt = getRemoteAgentTokenExpiresAt(host.agentTokenIssuedAt);
+    const errorMessage = expiresAt
+      ? `agentToken expirado em ${expiresAt.toISOString()}. Execute o bootstrap novamente para emitir nova credencial.`
+      : "agentToken expirado. Execute o bootstrap novamente para emitir nova credencial.";
+
+    await prisma.remoteHost.update({
+      where: { id: host.id },
+      data: {
+        agentTokenHash: null,
+        agentTokenIssuedAt: null,
+        agentTokenLastUsedAt: null,
+        lastHeartbeatErrorAt: heartbeatAt,
+        lastHeartbeatErrorMessage: errorMessage,
+      },
+    });
+
+    logger.warn("remote.agent.heartbeat.expired_agent_token", {
+      hostId: host.id,
+      expiresAt: expiresAt?.toISOString() ?? null,
+    });
+
+    return NextResponse.json(
+      { success: false, error: "agentToken expirado.", code: "AGENT_TOKEN_EXPIRED" },
       { status: 401, headers: responseHeaders }
     );
   }
