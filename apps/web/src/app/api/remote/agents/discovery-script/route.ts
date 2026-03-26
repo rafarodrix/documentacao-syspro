@@ -48,7 +48,11 @@ if (-not $isAdmin) {
         if ([string]::IsNullOrWhiteSpace($scriptPath)) {
             throw 'Caminho do script nao identificado.'
         }
-        Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -File \`"$scriptPath\`""
+        Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList "-NoExit -ExecutionPolicy Bypass -File \`"$scriptPath\`""
+        Write-Host 'Uma nova janela administrativa foi aberta.' -ForegroundColor Green
+        Write-Host 'Aprove o UAC e acompanhe a instalacao nela.' -ForegroundColor Cyan
+        Write-Host 'Pressione qualquer tecla para fechar esta janela auxiliar.' -ForegroundColor DarkGray
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     } catch {
         Write-Host "Nao foi possivel solicitar elevacao automatica: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host 'Clique com o botao direito no arquivo e execute como administrador.' -ForegroundColor Yellow
