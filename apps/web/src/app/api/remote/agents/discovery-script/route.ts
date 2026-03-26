@@ -91,25 +91,43 @@ function Normalize-RustDeskId {
     return $null
 }
 
+function Resolve-ExecutablePathCandidate {
+    param([string]$RawValue)
+
+    if ([string]::IsNullOrWhiteSpace($RawValue)) { return $null }
+
+    $value = $RawValue.Trim() -replace '^\\\\\?\\', ''
+    $patterns = @(
+        '"([^"]+?\\.exe)"',
+        '([A-Za-z]:\\[^"]+?\\.exe)',
+        '([A-Za-z]:\\[^\\r\\n]+?\\.exe)'
+    )
+
+    foreach ($pattern in $patterns) {
+        if ($value -match $pattern) {
+            $candidate = $matches[1].Trim().Trim('"')
+            if ($candidate -match '(?i)rustdesk\\.exe$') {
+                return $candidate
+            }
+        }
+    }
+
+    return $null
+}
+
 function Find-RustDeskExecutable {
     $paths = @(
         'C:\\Program Files\\RustDesk\\rustdesk.exe',
         'C:\\Program Files (x86)\\RustDesk\\rustdesk.exe'
     )
     foreach ($path in $paths) {
-        if (Test-Path $path) { return $path }
+        if (Test-Path -LiteralPath $path) { return $path }
     }
 
     $service = Get-CimInstance Win32_Service -Filter "Name = 'RustDesk'" -ErrorAction SilentlyContinue
     if ($service -and $service.PathName) {
-        $servicePath = $service.PathName.Trim()
-        if ($servicePath.StartsWith('"')) {
-            $servicePath = $servicePath.Split('"')[1]
-        } else {
-            $servicePath = $servicePath.Split(' ')[0]
-        }
-
-        if (Test-Path $servicePath) {
+        $servicePath = Resolve-ExecutablePathCandidate -RawValue ([string]$service.PathName)
+        if ($servicePath -and (Test-Path -LiteralPath $servicePath)) {
             return $servicePath
         }
     }
@@ -124,16 +142,15 @@ function Find-RustDeskExecutable {
         foreach ($entry in $entries) {
             if (($entry.DisplayName -like 'RustDesk*') -or ($entry.Publisher -like '*RustDesk*')) {
                 if ($entry.DisplayIcon) {
-                    $displayIcon = [string]$entry.DisplayIcon
-                    $candidate = $displayIcon.Split(',')[0].Trim('"')
-                    if (Test-Path $candidate) {
+                    $candidate = Resolve-ExecutablePathCandidate -RawValue ([string]$entry.DisplayIcon)
+                    if ($candidate -and (Test-Path -LiteralPath $candidate)) {
                         return $candidate
                     }
                 }
 
                 if ($entry.InstallLocation) {
                     $candidate = Join-Path ([string]$entry.InstallLocation) 'rustdesk.exe'
-                    if (Test-Path $candidate) {
+                    if (Test-Path -LiteralPath $candidate) {
                         return $candidate
                     }
                 }
@@ -146,7 +163,7 @@ function Find-RustDeskExecutable {
 
 function Get-RustDeskVersion {
     param([string]$ExecutablePath)
-    if (-not (Test-Path $ExecutablePath)) { return $null }
+    if (-not (Test-Path -LiteralPath $ExecutablePath)) { return $null }
     return (Get-Item $ExecutablePath).VersionInfo.ProductVersion
 }
 
@@ -194,9 +211,9 @@ function Install-Or-Update-RustDesk {
 
 function Resolve-RustDeskId {
     $tmpFile = "$env:TEMP\rd_id_capture.txt"
-    $exePath = "C:\Program Files\RustDesk\rustdesk.exe"
+    $exePath = Find-RustDeskExecutable
 
-    if (Test-Path $exePath) {
+    if ($exePath -and (Test-Path -LiteralPath $exePath)) {
         try {
             Start-Process -FilePath $exePath -ArgumentList "--get-id" -RedirectStandardOutput $tmpFile -NoNewWindow -Wait
             if (Test-Path $tmpFile) {

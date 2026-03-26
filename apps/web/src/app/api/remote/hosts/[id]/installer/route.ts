@@ -19,6 +19,13 @@ function escapePowerShell(value: string | null | undefined) {
   return (value ?? "").replace(/'/g, "''");
 }
 
+function escapePowerShellComment(value: string | null | undefined) {
+  return (value ?? "")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/`/g, "'")
+    .trim();
+}
+
 function buildInstallToken() {
   return `rhost_${randomBytes(12).toString("hex")}`;
 }
@@ -62,6 +69,9 @@ function buildInstallerScript(input: {
   const escapedPublicKey = escapePowerShell(input.rustDeskPublicKey);
   const escapedRustDeskVersion = escapePowerShell(input.rustDeskVersion);
   const escapedDefaultPassword = escapePowerShell(input.defaultPassword);
+  const commentCompanyName = escapePowerShellComment(input.companyName);
+  const commentHostName = escapePowerShellComment(input.hostName);
+  const commentDescription = escapePowerShellComment(description);
   const heartbeatIntervalMinutes = Math.max(1, Math.min(120, input.heartbeatIntervalMinutes));
 
   return `param(
@@ -69,9 +79,9 @@ function buildInstallerScript(input: {
 )
 
 # Trilink Remote Agent OSS - Agente Completo
-# Empresa: ${input.companyName}
-# Host: ${input.hostName}
-# Descricao da maquina: ${description}
+# Empresa: ${commentCompanyName}
+# Host: ${commentHostName}
+# Descricao da maquina: ${commentDescription}
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -148,6 +158,30 @@ function Normalize-RustDeskId {
     return $null
 }
 
+function Resolve-ExecutablePathCandidate {
+    param([string]$RawValue)
+
+    if ([string]::IsNullOrWhiteSpace($RawValue)) { return $null }
+
+    $value = $RawValue.Trim() -replace '^\\\\\?\\', ''
+    $patterns = @(
+        '"([^"]+?\\.exe)"',
+        '([A-Za-z]:\\[^"]+?\\.exe)',
+        '([A-Za-z]:\\[^\\r\\n]+?\\.exe)'
+    )
+
+    foreach ($pattern in $patterns) {
+        if ($value -match $pattern) {
+            $candidate = $matches[1].Trim().Trim('"')
+            if ($candidate -match '(?i)rustdesk\\.exe$') {
+                return $candidate
+            }
+        }
+    }
+
+    return $null
+}
+
 function Find-RustDeskExecutable {
     $paths = @(
         'C:\\Program Files\\RustDesk\\rustdesk.exe',
@@ -155,19 +189,13 @@ function Find-RustDeskExecutable {
     )
 
     foreach ($path in $paths) {
-        if (Test-Path $path) { return $path }
+        if (Test-Path -LiteralPath $path) { return $path }
     }
 
     $service = Get-CimInstance Win32_Service -Filter "Name = 'RustDesk'" -ErrorAction SilentlyContinue
     if ($service -and $service.PathName) {
-        $servicePath = $service.PathName.Trim()
-        if ($servicePath.StartsWith('"')) {
-            $servicePath = $servicePath.Split('"')[1]
-        } else {
-            $servicePath = $servicePath.Split(' ')[0]
-        }
-
-        if (Test-Path $servicePath) {
+        $servicePath = Resolve-ExecutablePathCandidate -RawValue ([string]$service.PathName)
+        if ($servicePath -and (Test-Path -LiteralPath $servicePath)) {
             return $servicePath
         }
     }
@@ -182,16 +210,15 @@ function Find-RustDeskExecutable {
         foreach ($entry in $entries) {
             if (($entry.DisplayName -like 'RustDesk*') -or ($entry.Publisher -like '*RustDesk*')) {
                 if ($entry.DisplayIcon) {
-                    $displayIcon = [string]$entry.DisplayIcon
-                    $candidate = $displayIcon.Split(',')[0].Trim('"')
-                    if (Test-Path $candidate) {
+                    $candidate = Resolve-ExecutablePathCandidate -RawValue ([string]$entry.DisplayIcon)
+                    if ($candidate -and (Test-Path -LiteralPath $candidate)) {
                         return $candidate
                     }
                 }
 
                 if ($entry.InstallLocation) {
                     $candidate = Join-Path ([string]$entry.InstallLocation) 'rustdesk.exe'
-                    if (Test-Path $candidate) {
+                    if (Test-Path -LiteralPath $candidate) {
                         return $candidate
                     }
                 }
@@ -204,7 +231,7 @@ function Find-RustDeskExecutable {
 
 function Get-RustDeskVersion {
     param([string]$ExecutablePath)
-    if (-not (Test-Path $ExecutablePath)) { return $null }
+    if (-not (Test-Path -LiteralPath $ExecutablePath)) { return $null }
     return (Get-Item $ExecutablePath).VersionInfo.ProductVersion
 }
 
@@ -681,7 +708,7 @@ function Resolve-RustDeskId {
         if (Test-Path $configPath) {
             $content = Get-Content $configPath -Raw -Encoding UTF8
             # Try different regex patterns for ID
-            if ($content -match "id\s*=\s*['\""]?(\d{7,12})['\""]?") {
+            if ($content -match 'id\s*=\s*[''""]?(\d{7,12})[''""]?') {
                 return Normalize-RustDeskId -Value $Matches[1]
             }
         }
