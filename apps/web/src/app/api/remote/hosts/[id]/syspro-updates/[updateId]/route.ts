@@ -28,7 +28,7 @@ export async function PATCH(
 
   const tenantScope = await getRemoteTenantScope();
   const { id, updateId } = await params;
-  const body = (await request.json()) as { companyId?: string | null };
+  const body = (await request.json()) as { companyId?: string | null; mode?: "replace" | "add" };
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
   const host = await prisma.remoteHost.findFirst({
@@ -48,7 +48,13 @@ export async function PATCH(
       id: updateId,
       hostId: id,
     },
-    select: { id: true, companyLabel: true },
+    select: {
+      id: true,
+      companyLabel: true,
+      path: true,
+      lastFileWriteAt: true,
+      lastHeartbeatAt: true,
+    },
   });
 
   if (!update) {
@@ -56,6 +62,7 @@ export async function PATCH(
   }
 
   let nextCompanyId: string | null = null;
+  let nextCompanyLabel: string | null = null;
   if (body.companyId?.trim()) {
     const company = await prisma.company.findFirst({
       where: {
@@ -63,7 +70,7 @@ export async function PATCH(
         deletedAt: null,
         ...(tenantScope.isGlobalView ? {} : { id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } }),
       },
-      select: { id: true },
+      select: { id: true, nomeFantasia: true, razaoSocial: true },
     });
 
     if (!company) {
@@ -71,12 +78,53 @@ export async function PATCH(
     }
 
     nextCompanyId = company.id;
+    nextCompanyLabel = company.nomeFantasia ?? company.razaoSocial;
+  }
+
+  const mode = body.mode === "add" ? "add" : "replace";
+
+  if (mode === "add" && nextCompanyId) {
+    const existingLink = await prisma.remoteHostSysproUpdate.findFirst({
+      where: {
+        hostId: id,
+        path: update.path,
+        OR: [
+          { companyId: nextCompanyId },
+          { companyLabel: nextCompanyLabel ?? update.companyLabel },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (existingLink) {
+      return NextResponse.json({ success: true, data: existingLink });
+    }
+
+    const saved = await prisma.remoteHostSysproUpdate.create({
+      data: {
+        hostId: id,
+        companyId: nextCompanyId,
+        companyLabel: nextCompanyLabel ?? update.companyLabel,
+        path: update.path,
+        lastFileWriteAt: update.lastFileWriteAt,
+        lastHeartbeatAt: update.lastHeartbeatAt,
+      },
+      select: {
+        id: true,
+        companyId: true,
+        companyLabel: true,
+        path: true,
+      },
+    });
+
+    return NextResponse.json({ success: true, data: saved });
   }
 
   const saved = await prisma.remoteHostSysproUpdate.update({
     where: { id: updateId },
     data: {
       companyId: nextCompanyId,
+      companyLabel: nextCompanyLabel ?? update.companyLabel,
     },
     select: {
       id: true,

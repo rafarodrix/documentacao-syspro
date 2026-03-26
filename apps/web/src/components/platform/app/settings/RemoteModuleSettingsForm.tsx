@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { KeyRound, Loader2, MonitorCog, Save, TimerReset } from "lucide-react";
+import { AlertCircle, Loader2, MonitorCog, Save, TimerReset } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -172,21 +172,17 @@ export function RemoteModuleSettingsForm() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
-              <KeyRound className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Segredo de descoberta</CardTitle>
-              <CardDescription>
-                O `REMOTE_DISCOVERY_TOKEN` continua vindo do ambiente. A tela global controla infraestrutura RustDesk e defaults do agente.
-              </CardDescription>
-            </div>
+      <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-medium">Segredo de descoberta</p>
+            <p className="mt-1 text-xs text-amber-700/90 dark:text-amber-200/80">
+              O `REMOTE_DISCOVERY_TOKEN` continua vindo do ambiente. Esta tela controla apenas infraestrutura RustDesk e defaults operacionais do agente.
+            </p>
           </div>
-        </CardHeader>
-      </Card>
+        </div>
+      </div>
 
       <div className="flex justify-end pb-6">
         <Button type="submit" size="lg" disabled={isSaving || !form.formState.isDirty} className="min-w-[190px]">

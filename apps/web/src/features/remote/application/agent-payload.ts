@@ -119,10 +119,12 @@ export async function syncRemoteHostSysproUpdates(
     existingUpdates.map((entry) => [`${entry.companyLabel}::${entry.path}`.toLowerCase(), entry.id])
   );
   const incomingKeys = new Set<string>();
+  const incomingPaths = new Set<string>();
 
   for (const entry of input.sysproUpdates) {
     const compositeKey = `${entry.companyLabel}::${entry.path}`.toLowerCase();
     incomingKeys.add(compositeKey);
+    incomingPaths.add(entry.path.toLowerCase());
     const existingId = existingKeyMap.get(compositeKey);
     const normalizedLabel = normalizeCompareValue(entry.companyLabel);
     const resolvedCompanyId =
@@ -146,6 +148,15 @@ export async function syncRemoteHostSysproUpdates(
           "lastHeartbeatAt" = ${input.heartbeatAt},
           "updatedAt" = ${input.heartbeatAt}
         WHERE "id" = ${existingId}
+      `;
+      await tx.$executeRaw`
+        UPDATE "remote_host_syspro_update"
+        SET
+          "lastFileWriteAt" = ${entry.lastFileWriteAt},
+          "lastHeartbeatAt" = ${input.heartbeatAt},
+          "updatedAt" = ${input.heartbeatAt}
+        WHERE "hostId" = ${input.hostId}
+          AND LOWER("path") = ${entry.path.toLowerCase()}
       `;
       continue;
     }
@@ -173,10 +184,20 @@ export async function syncRemoteHostSysproUpdates(
         ${input.heartbeatAt}
       )
     `;
+
+    await tx.$executeRaw`
+      UPDATE "remote_host_syspro_update"
+      SET
+        "lastFileWriteAt" = ${entry.lastFileWriteAt},
+        "lastHeartbeatAt" = ${input.heartbeatAt},
+        "updatedAt" = ${input.heartbeatAt}
+      WHERE "hostId" = ${input.hostId}
+        AND LOWER("path") = ${entry.path.toLowerCase()}
+    `;
   }
 
   const staleIds = existingUpdates
-    .filter((entry) => !incomingKeys.has(`${entry.companyLabel}::${entry.path}`.toLowerCase()))
+    .filter((entry) => !incomingPaths.has(entry.path.toLowerCase()))
     .map((entry) => entry.id);
 
   for (const staleId of staleIds) {

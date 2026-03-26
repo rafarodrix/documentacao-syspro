@@ -338,8 +338,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const activePendingCount = filteredPendingItems.length;
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-border/50 bg-muted/10 p-3">
+        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
         <a
           href="/portal/configuracoes?tab=remote"
           className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 sm:w-auto sm:justify-start"
@@ -416,11 +417,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             </DialogContent>
           </Dialog>
         ) : null}
+        </div>
       </div>
 
-      <section className={cn("grid gap-3", canCreateHosts ? "md:grid-cols-3 xl:grid-cols-5" : "md:grid-cols-2 xl:grid-cols-4")}>
+      <section className={cn("grid gap-3", canCreateHosts ? "grid-cols-2 xl:grid-cols-5" : "grid-cols-2 xl:grid-cols-4")}>
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-1">
+          <CardHeader className="pb-1 space-y-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
               Prontos para acesso
@@ -428,12 +430,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-2xl font-semibold text-foreground">{directoryStats.ready}</p>
-            <p className="text-xs text-muted-foreground">Hosts com ID valido e heartbeat recente.</p>
+            <p className="text-[11px] text-muted-foreground">ID valido e heartbeat recente</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-1">
+          <CardHeader className="pb-1 space-y-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <TimerReset className="h-4 w-4 text-amber-500" />
               Exigem revisao
@@ -441,12 +443,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-2xl font-semibold text-foreground">{directoryStats.attention}</p>
-            <p className="text-xs text-muted-foreground">Hosts com heartbeat antigo ou sinais de instabilidade.</p>
+            <p className="text-[11px] text-muted-foreground">Heartbeat antigo ou sinais de instabilidade</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-1">
+          <CardHeader className="pb-1 space-y-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Monitor className="h-4 w-4 text-sky-500" />
               Em atendimento
@@ -454,12 +456,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-2xl font-semibold text-foreground">{directoryStats.openSessions}</p>
-            <p className="text-xs text-muted-foreground">Hosts com sessao aberta ou solicitacao ativa.</p>
+            <p className="text-[11px] text-muted-foreground">Sessao aberta ou solicitacao ativa</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-1">
+          <CardHeader className="pb-1 space-y-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Wrench className="h-4 w-4 text-rose-500" />
               Aguardam bootstrap
@@ -467,13 +469,13 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-2xl font-semibold text-foreground">{directoryStats.pendingSetup}</p>
-            <p className="text-xs text-muted-foreground">Hosts ainda sem ciclo completo de agente e heartbeat.</p>
+            <p className="text-[11px] text-muted-foreground">Sem ciclo completo de agente e heartbeat</p>
           </CardContent>
         </Card>
 
         {canCreateHosts ? (
           <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-            <CardHeader className="pb-1">
+            <CardHeader className="pb-1 space-y-1">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Monitor className="h-4 w-4 text-violet-500" />
                 Maquinas em triagem
@@ -481,7 +483,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-2xl font-semibold text-foreground">{directory.stats.pendingDiscovery}</p>
-              <p className="text-xs text-muted-foreground">Descobertas pelo script padrao e aguardando vinculo.</p>
+              <p className="text-[11px] text-muted-foreground">Descobertas e aguardando vinculo</p>
             </CardContent>
           </Card>
         ) : null}
@@ -492,7 +494,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              Filtros de operacao
+              Filtros
             </div>
             <div className="mt-4 flex flex-col gap-3">
               <div className="relative flex-1">
@@ -508,7 +510,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div className="flex-1 space-y-3">
                   <div>
-                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Leitura rapida</p>
+                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Atalhos</p>
                     <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
                       <Button type="button" variant={heartbeatFilter === "recent" ? "default" : "outline"} onClick={() => setHeartbeatFilter("recent")} className="justify-center xl:justify-start">
                         Online agora
@@ -526,7 +528,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                   </div>
 
                   <div>
-                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Filtros detalhados</p>
+                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Detalhados</p>
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                       <select
                         value={statusFilter}

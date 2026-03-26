@@ -409,6 +409,31 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
+  function handleAddCompanyToInstallation(updateId: string) {
+    startLinkingUpdateId(async () => {
+      try {
+        const response = await fetch(`/api/remote/hosts/${host.id}/syspro-updates/${updateId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            companyId: pendingUpdateCompanyById[updateId] || null,
+            mode: "add",
+          }),
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Falha ao adicionar empresa nesta instalacao.");
+        }
+
+        toast.success("Empresa adicional vinculada a esta instalacao.");
+        window.location.reload();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Falha ao adicionar empresa nesta instalacao.");
+      }
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -762,7 +787,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           </div>
                         </div>
                         {details.permissions.canRelinkInstallations ? (
-                          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
+                          <div className="mt-4 space-y-3">
+                            <p className="text-xs text-muted-foreground">
+                              Use `Trocar empresa` para corrigir o vinculo atual ou `Adicionar empresa` quando a mesma instalacao atender mais de uma empresa.
+                            </p>
+                            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
                             <select
                               value={pendingUpdateCompanyById[entry.id] ?? entry.companyId ?? details.company.id}
                               onChange={(event) =>
@@ -776,9 +805,13 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                                 </option>
                               ))}
                             </select>
-                            <Button className="w-full lg:w-auto" onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
-                              Vincular empresa
-                            </Button>
+                              <Button className="w-full lg:w-auto" onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
+                                Trocar empresa
+                              </Button>
+                              <Button variant="outline" className="w-full lg:w-auto" onClick={() => handleAddCompanyToInstallation(entry.id)} disabled={linkingUpdateId}>
+                                Adicionar empresa
+                              </Button>
+                            </div>
                           </div>
                         ) : null}
                       </div>
