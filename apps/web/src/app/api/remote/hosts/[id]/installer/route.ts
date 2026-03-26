@@ -158,6 +158,22 @@ function Normalize-RustDeskId {
     return $null
 }
 
+function Prompt-RustDeskId {
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        Write-Host 'Informe o RustDesk ID (apenas numeros, 7-12 digitos):' -ForegroundColor Cyan
+        $rawInput = Read-Host '> '
+        $digitsOnly = (($rawInput ?? '') -replace '\D', '').Trim()
+        $normalized = Normalize-RustDeskId -Value $digitsOnly
+        if ($normalized) {
+            return $normalized
+        }
+
+        Write-Host 'RustDesk ID invalido. Informe apenas numeros com 7 a 12 digitos.' -ForegroundColor Yellow
+    }
+
+    return $null
+}
+
 function Resolve-ExecutablePathCandidate {
     param([string]$RawValue)
 
@@ -552,9 +568,7 @@ for ($attempt = 1; $attempt -le 5; $attempt++) {
 
 if ([string]::IsNullOrWhiteSpace($normalizedRustDeskId)) {
     Write-Host 'Nao foi possivel descobrir o RustDesk ID automaticamente.' -ForegroundColor Yellow
-    Write-Host 'Informe o RustDesk ID (apenas numeros, 7-12 digitos):' -ForegroundColor Cyan
-    $userInput = Read-Host '> '
-    $normalizedRustDeskId = Normalize-RustDeskId -Value $userInput
+    $normalizedRustDeskId = Prompt-RustDeskId
 }
 
 if ([string]::IsNullOrWhiteSpace($normalizedRustDeskId)) {
