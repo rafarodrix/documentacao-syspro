@@ -191,18 +191,6 @@ function Resolve-RustDeskId {
     $tmpFile = "$env:TEMP\rd_id_capture.txt"
     $exePath = "C:\Program Files\RustDesk\rustdesk.exe"
 
-    # Try to generate ID by starting RustDesk briefly if not found
-    if (Test-Path $exePath) {
-        try {
-            # Start RustDesk in background for a few seconds to ensure ID is generated
-            $rustdeskProcess = Start-Process -FilePath $exePath -ArgumentList "--silent" -NoNewWindow -PassThru
-            Start-Sleep -Seconds 3
-            if (-not $rustdeskProcess.HasExited) {
-                Stop-Process -Id $rustdeskProcess.Id -Force -ErrorAction SilentlyContinue
-            }
-        } catch {}
-    }
-
     if (Test-Path $exePath) {
         try {
             Start-Process -FilePath $exePath -ArgumentList "--get-id" -RedirectStandardOutput $tmpFile -NoNewWindow -Wait
@@ -210,7 +198,8 @@ function Resolve-RustDeskId {
                 $rawId = Get-Content $tmpFile -Raw
                 Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
                 if ($rawId -match '(\d{7,12})') {
-                    return Normalize-RustDeskId -Value $matches[1]
+                    $cleanId = $matches[1].Replace(" ", "").Trim()
+                    return Normalize-RustDeskId -Value $cleanId
                 }
             }
         } catch {}
@@ -225,7 +214,8 @@ function Resolve-RustDeskId {
         if (Test-Path $regPath) {
             $val = Get-ItemProperty -Path $regPath -Name 'id' -ErrorAction SilentlyContinue
             if ($val -and $val.id -match '\d{7,12}') {
-                return Normalize-RustDeskId -Value $val.id.ToString()
+                $cleanId = $val.id.ToString().Replace(" ", "").Trim()
+                return Normalize-RustDeskId -Value $cleanId
             }
         }
     }
@@ -244,9 +234,9 @@ function Resolve-RustDeskId {
     foreach ($configPath in $configPaths) {
         if (Test-Path $configPath) {
             $content = Get-Content $configPath -Raw -Encoding UTF8
-            # Try different regex patterns for ID
             if ($content -match "id\s*=\s*['\""]?(\d{7,12})['\""]?") {
-                return Normalize-RustDeskId -Value $Matches[1]
+                $cleanId = $Matches[1].Replace(" ", "").Trim()
+                return Normalize-RustDeskId -Value $cleanId
             }
         }
     }

@@ -504,11 +504,26 @@ try {
 # 6. DESCOBERTA DO RUSTDESK ID E AUTO-REGISTRO
 # ==========================================
 Write-Host '[3/5] Validando RustDesk ID e registrando host...' -ForegroundColor Cyan
-$normalizedRustDeskId = Resolve-RustDeskId -FallbackValue $rustDeskId
+$normalizedRustDeskId = $null
+
+# Try multiple times to auto-discover the ID
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+    $normalizedRustDeskId = Resolve-RustDeskId -FallbackValue $rustDeskId
+    if ($normalizedRustDeskId) {
+        Write-InstallLog -Message "RustDesk ID descoberto na tentativa $attempt"
+        break
+    }
+    if ($attempt -lt 5) {
+        Write-Host "Tentativa $attempt: Aguardando geracao do RustDesk ID..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 5
+    }
+}
 
 if ([string]::IsNullOrWhiteSpace($normalizedRustDeskId)) {
     Write-Host 'Nao foi possivel descobrir o RustDesk ID automaticamente.' -ForegroundColor Yellow
-    $normalizedRustDeskId = Normalize-RustDeskId -Value (Read-Host 'Informe o RustDesk ID manualmente')
+    Write-Host 'Informe o RustDesk ID (apenas numeros, 7-12 digitos):' -ForegroundColor Cyan
+    $userInput = Read-Host '> '
+    $normalizedRustDeskId = Normalize-RustDeskId -Value $userInput
 }
 
 if ([string]::IsNullOrWhiteSpace($normalizedRustDeskId)) {
@@ -625,7 +640,8 @@ function Resolve-RustDeskId {
                 $rawId = Get-Content $tmpFile -Raw
                 Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
                 if ($rawId -match '(\d{7,12})') {
-                    return Normalize-RustDeskId -Value $matches[1]
+                    $cleanId = $matches[1].Replace(" ", "").Trim()
+                    return Normalize-RustDeskId -Value $cleanId
                 }
             }
         } catch {}
@@ -640,7 +656,8 @@ function Resolve-RustDeskId {
         if (Test-Path $regPath) {
             $val = Get-ItemProperty -Path $regPath -Name 'id' -ErrorAction SilentlyContinue
             if ($val -and $val.id -match '\d{7,12}') {
-                return Normalize-RustDeskId -Value $val.id.ToString()
+                $cleanId = $val.id.ToString().Replace(" ", "").Trim()
+                return Normalize-RustDeskId -Value $cleanId
             }
         }
     }
