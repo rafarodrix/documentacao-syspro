@@ -14,6 +14,11 @@ import type {
 } from "@/features/remote/domain/model";
 import { Prisma } from "@prisma/client";
 
+type RemoteConnectionItem = {
+  type: "DDNS_NOIP" | "RADMIN_VPN";
+  details: string;
+};
+
 function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
   return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
 }
@@ -248,7 +253,7 @@ function mapCompanyRemoteConnections(input: {
   remoteConnections?: unknown;
   remoteConnectionType?: unknown;
   remoteConnectionDetails?: unknown;
-}) {
+}): RemoteConnectionItem[] {
   if (Array.isArray(input.remoteConnections)) {
     return input.remoteConnections
       .filter(
@@ -268,7 +273,7 @@ function mapCompanyRemoteConnections(input: {
   if (input.remoteConnectionType === "DDNS_NOIP" || input.remoteConnectionType === "RADMIN_VPN") {
     return [
       {
-        type: input.remoteConnectionType,
+        type: input.remoteConnectionType as RemoteConnectionItem["type"],
         details: typeof input.remoteConnectionDetails === "string" ? input.remoteConnectionDetails : "",
       },
     ];

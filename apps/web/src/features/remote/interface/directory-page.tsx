@@ -6,8 +6,6 @@ import {
   ArrowUpRight,
   Copy,
   ExternalLink,
-  Flame,
-  Filter,
   Monitor,
   Plus,
   Search,
@@ -499,10 +497,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
       <Card className="border-border/50 overflow-hidden">
         <CardContent className="space-y-4 p-5 sm:p-6">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <Flame className="h-4 w-4 text-amber-500" />
-            Observabilidade dos comandos do agente
-          </div>
+          <details className="rounded-2xl border border-border/50 bg-muted/10 p-4">
+            <summary className="cursor-pointer text-sm font-medium text-foreground">
+              Observabilidade dos comandos do agente
+            </summary>
+            <div className="mt-4 space-y-4">
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
@@ -617,18 +616,15 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <p className="mt-4 text-sm text-muted-foreground">Sem eventos recentes de comandos para timeline operacional.</p>
             )}
           </div>
+            </div>
+          </details>
         </CardContent>
       </Card>
 
       <Card className="border-border/50 overflow-hidden">
         <CardContent className="space-y-4 p-5 sm:p-6">
           <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              Filtros
-            </div>
-            <div className="mt-4 flex flex-col gap-3">
-              <div className="relative flex-1">
+            <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchTerm}
@@ -636,28 +632,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 placeholder="Pesquisar empresa, host, instalacao, ambiente, ticket ou RustDesk ID"
                 className="pl-9"
               />
-              </div>
+            </div>
 
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <details className="mt-4 rounded-xl border border-border/50 bg-background/40 p-3">
+              <summary className="cursor-pointer text-sm font-medium text-foreground">Filtros avancados</summary>
+              <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div className="flex-1 space-y-3">
-                  <div>
-                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Atalhos</p>
-                    <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
-                      <Button type="button" variant={heartbeatFilter === "recent" ? "default" : "outline"} onClick={() => setHeartbeatFilter("recent")} className="justify-center xl:justify-start">
-                        Online agora
-                      </Button>
-                      <Button type="button" variant={heartbeatFilter === "stale" ? "default" : "outline"} onClick={() => setHeartbeatFilter("stale")} className="justify-center xl:justify-start">
-                        Heartbeat antigo
-                      </Button>
-                      <Button type="button" variant={agentFilter === "pending" ? "default" : "outline"} onClick={() => setAgentFilter("pending")} className="justify-center xl:justify-start">
-                        Bootstrap pendente
-                      </Button>
-                      <Button type="button" variant={agentFilter === "stale" ? "default" : "outline"} onClick={() => setAgentFilter("stale")} className="justify-center xl:justify-start">
-                        Exige revisao
-                      </Button>
-                    </div>
-                  </div>
-
                   <div>
                     <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Detalhados</p>
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -752,7 +732,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                   ) : null}
                 </div>
               </div>
-            </div>
+            </details>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -772,9 +752,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </div>
 
           {canCreateHosts && filteredPendingItems.length ? (
-            <div className="space-y-3">
+            <details className="space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4" open={false}>
+              <summary className="cursor-pointer text-sm font-semibold text-foreground">Maquinas pendentes de vinculacao</summary>
+              <div className="mt-3 space-y-3">
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                <p className="text-sm font-semibold text-foreground">Maquinas pendentes de vinculacao</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Maquinas que chegaram pelo script padrao. Escolha a empresa e transforme cada uma em host operacional nesta mesma tela.
                 </p>
@@ -842,7 +823,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            </details>
           ) : null}
 
           {filteredItems.length ? (
@@ -889,48 +871,51 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           <p className="text-sm text-muted-foreground">
                             Maquina: {item.machineName ?? item.name}
                           </p>
-                          <div className="flex flex-wrap gap-2 text-[11px]">
-                            <span
-                              className={cn(
-                                "rounded-full border px-2.5 py-1",
-                                operational.hostOperational
-                                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                  : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                              )}
-                            >
-                              {operational.hostOperational ? "Host operacional" : "Host exige revisao"}
-                            </span>
-                            <span
-                              className={cn(
-                                "rounded-full border px-2.5 py-1",
-                                operational.heartbeatRecent
-                                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                  : "border-border/60 bg-background/70 text-muted-foreground"
-                              )}
-                            >
-                              {operational.heartbeatRecent ? "Heartbeat ativo" : "Heartbeat pendente"}
-                            </span>
-                            <span
-                              className={cn(
-                                "rounded-full border px-2.5 py-1",
-                                operational.bootstrapComplete
-                                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                  : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                              )}
-                            >
-                              {operational.bootstrapComplete ? "Bootstrap concluido" : "Bootstrap pendente"}
-                            </span>
-                          </div>
-                          {agentToken.needsBootstrap ? (
-                            <p className="text-xs text-rose-600 dark:text-rose-300">
-                              O agentToken deste host precisa de novo bootstrap antes do proximo heartbeat valido. Abra os detalhes e baixe o `.ps1` dedicado.
-                            </p>
-                          ) : null}
-                          {item.installationCompanies.length > 1 ? (
-                            <p className="text-xs text-muted-foreground">
-                              Multiplas empresas vinculadas nesta maquina.
-                            </p>
-                          ) : null}
+                          <details className="rounded-lg border border-border/50 bg-background/40 p-2 text-xs">
+                            <summary className="cursor-pointer text-muted-foreground">Diagnostico rapido</summary>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span
+                                className={cn(
+                                  "rounded-full border px-2.5 py-1",
+                                  operational.hostOperational
+                                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                    : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                )}
+                              >
+                                {operational.hostOperational ? "Host operacional" : "Host exige revisao"}
+                              </span>
+                              <span
+                                className={cn(
+                                  "rounded-full border px-2.5 py-1",
+                                  operational.heartbeatRecent
+                                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                    : "border-border/60 bg-background/70 text-muted-foreground"
+                                )}
+                              >
+                                {operational.heartbeatRecent ? "Heartbeat ativo" : "Heartbeat pendente"}
+                              </span>
+                              <span
+                                className={cn(
+                                  "rounded-full border px-2.5 py-1",
+                                  operational.bootstrapComplete
+                                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                    : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                )}
+                              >
+                                {operational.bootstrapComplete ? "Bootstrap concluido" : "Bootstrap pendente"}
+                              </span>
+                            </div>
+                            {agentToken.needsBootstrap ? (
+                              <p className="mt-2 text-rose-600 dark:text-rose-300">
+                                Rebootstrap necessario antes do proximo heartbeat valido.
+                              </p>
+                            ) : null}
+                            {item.installationCompanies.length > 1 ? (
+                              <p className="mt-2 text-muted-foreground">
+                                Multiplas empresas vinculadas nesta maquina.
+                              </p>
+                            ) : null}
+                          </details>
                         </div>
                       </div>
 

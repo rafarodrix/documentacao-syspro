@@ -774,38 +774,48 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Resumo de conexao</CardTitle>
-              <CardDescription>Somente os dados tecnicos que ainda valem consulta depois do bloco inicial.</CardDescription>
+              <CardDescription>Visao enxuta para operacao rapida. Detalhes tecnicos ficam recolhidos.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Machine name</p>
-                <p className="mt-1 text-sm text-foreground">{machineName || "Nao registrada"}</p>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Machine name</p>
+                  <p className="mt-1 text-sm text-foreground">{machineName || "Nao registrada"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao do agente</p>
+                  <p className="mt-1 text-sm text-foreground">{host.agentVersion ?? "Nao registrada"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo sucesso</p>
+                  <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatSuccessAt)}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo IP</p>
+                  <p className="mt-1 text-sm text-foreground">{host.lastKnownIp ?? "Sem leitura"}</p>
+                </div>
               </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao do agente</p>
-                <p className="mt-1 text-sm text-foreground">{host.agentVersion ?? "Nao registrada"}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Token de instalacao</p>
-                <p className="mt-1 font-mono text-sm text-foreground">{host.installToken ?? "Nao configurado"}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
-                <p className="mt-1 text-sm text-foreground">{host.provider ?? "Nao definido"}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo sucesso</p>
-                <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatSuccessAt)}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo IP</p>
-                <p className="mt-1 text-sm text-foreground">{host.lastKnownIp ?? "Sem leitura"}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 md:col-span-2 xl:col-span-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo erro do heartbeat</p>
-                <p className="mt-1 text-sm text-foreground">{host.lastHeartbeatErrorMessage ?? "Sem erro recente registrado"}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatErrorAt)}</p>
-              </div>
+
+              <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
+                  Diagnostico tecnico complementar
+                </summary>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Token de instalacao</p>
+                    <p className="mt-1 break-all font-mono text-sm text-foreground">{host.installToken ?? "Nao configurado"}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
+                    <p className="mt-1 text-sm text-foreground">{host.provider ?? "Nao definido"}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4 md:col-span-2">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo erro do heartbeat</p>
+                    <p className="mt-1 text-sm text-foreground">{host.lastHeartbeatErrorMessage ?? "Sem erro recente registrado"}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatErrorAt)}</p>
+                  </div>
+                </div>
+              </details>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1184,7 +1194,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
+                  Compliance e convergencia do cliente
+                </summary>
+                <div className="mt-4 rounded-xl border border-border/50 bg-muted/15 p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-foreground">Compliance do cliente RustDesk</p>
@@ -1220,9 +1234,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     </div>
                   ))}
                 </div>
-              </div>
+                </div>
+              </details>
 
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
+                  Fila de acoes e telemetria de execucao
+                </summary>
+                <div className="mt-4 rounded-xl border border-border/50 bg-muted/15 p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-foreground">Fila de acoes do agente</p>
@@ -1274,24 +1293,29 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     Nenhuma acao pendente. O cliente reportado esta aderente ao que o portal espera neste momento.
                   </div>
                 )}
-              </div>
+                </div>
+              </details>
 
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 24h</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window24h}%</p>
+              <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
+                  Observabilidade operacional do host
+                </summary>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 24h</p>
+                    <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window24h}%</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 7d</p>
+                    <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window7d}%</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 30d</p>
+                    <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window30d}%</p>
+                  </div>
                 </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 7d</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window7d}%</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 30d</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window30d}%</p>
-                </div>
-              </div>
 
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <div className="mt-3 rounded-xl border border-border/50 bg-muted/15 p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-foreground">Timeline operacional do host</p>
@@ -1327,31 +1351,37 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 ) : (
                   <p className="mt-4 text-sm text-muted-foreground">Sem eventos recentes para timeline deste host.</p>
                 )}
-              </div>
+                </div>
+              </details>
 
-              <div className="grid gap-3 md:grid-cols-2">
-                {details.installGuide.map((step) => (
-                  <div key={step.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-foreground">{step.title}</p>
-                      <Badge variant="outline" className={step.done ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"}>
-                        {step.done ? "OK" : "Pendente"}
-                      </Badge>
+              <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
+                  Guia tecnico e checklist de campo
+                </summary>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {details.installGuide.map((step) => (
+                    <div key={step.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground">{step.title}</p>
+                        <Badge variant="outline" className={step.done ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"}>
+                          {step.done ? "OK" : "Pendente"}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
                     </div>
-                    <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                <p>1. Baixe o script dedicado deste host.</p>
-                <p>2. Execute na maquina do cliente e confirme o RustDesk ID devolvido.</p>
-                <p>3. O bootstrap emite `agentToken` e o heartbeat continuo passa a preferir essa credencial.</p>
-                <p>4. Se rotacionar o `agentToken` ou se ele expirar, execute o bootstrap novamente neste host.</p>
-                <p>5. O script padrao de descoberta nao substitui este fluxo e nao reativa heartbeat autenticado em host ja vinculado.</p>
-                <p>6. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
-                {isMobileClient ? <p>7. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
-              </div>
+                <div className="mt-3 rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  <p>1. Baixe o script dedicado deste host.</p>
+                  <p>2. Execute na maquina do cliente e confirme o RustDesk ID devolvido.</p>
+                  <p>3. O bootstrap emite `agentToken` e o heartbeat continuo passa a preferir essa credencial.</p>
+                  <p>4. Se rotacionar o `agentToken` ou se ele expirar, execute o bootstrap novamente neste host.</p>
+                  <p>5. O script padrao de descoberta nao substitui este fluxo e nao reativa heartbeat autenticado em host ja vinculado.</p>
+                  <p>6. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
+                  {isMobileClient ? <p>7. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
+                </div>
+              </details>
             </CardContent>
           </Card>
         </TabsContent>
