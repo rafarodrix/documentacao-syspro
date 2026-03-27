@@ -17,7 +17,6 @@ import { SYSTEM_ROLES } from '@dosc-syspro/core';
 import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 import { DocsHomePage } from '@/components/docs/DocsHomePage';
 import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
-import { DocsNextSteps } from '@/components/docs/DocsNextSteps';
 import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
 import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
 import { DocsReadingTime } from '@/components/docs/DocsReadingTime';
@@ -25,6 +24,7 @@ import { DocsKeyboardShortcuts } from '@/components/docs/DocsKeyboardShortcuts';
 import { DocsTocScrollSpy } from '@/components/docs/DocsTocScrollSpy';
 import { DocsSurface } from '@/components/docs/DocsSurface';
 import { DocsReadingProgress } from '@/components/docs/DocsReadingProgress';
+import SuporteSection from '@/components/docs/SuporteSection';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 
 function estimateReadingTimeMinutes(content: string): number {
@@ -136,39 +136,6 @@ export default async function Page(props: {
     [{ href: '/docs', label: 'Documentacao' }],
   );
 
-  const allPages = source.getPages().filter((item) => item.url !== docSlug);
-  const sameSectionPrefix = slug[0] ? `/docs/${slug[0]}` : '/docs';
-  const contextPages = allPages
-    .filter((item) => item.url.startsWith(sameSectionPrefix))
-    .slice(0, 30);
-
-  const visibility = await Promise.all(
-    contextPages.map(async (item) => {
-      if (!SYSTEM_ROLES.includes(session.role) && item.url.startsWith('/docs/manuais-tecnicos')) return false;
-      if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
-        const relativeSlug = item.url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
-        const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
-        if (requiredSegments.length === 0) return true;
-        return canAccessByCompanySegment(session.userId, requiredSegments);
-      }
-      return true;
-    }),
-  );
-
-  const visibleContextPages = contextPages.filter((_, index) => visibility[index]);
-
-  const nextSteps = visibleContextPages
-    .slice(0, 4)
-    .map((item) => ({
-      href: item.url,
-      title: String(item.data.title),
-      description: typeof item.data.description === 'string' ? item.data.description : undefined,
-      featureStatus: typeof item.data.featureStatus === 'string'
-        ? item.data.featureStatus as FeatureStatus
-        : undefined,
-      sinceVersion: typeof item.data.sinceVersion === 'string' ? item.data.sinceVersion : undefined,
-    }));
-
   const navigationPool = source.getPages().filter((item) => item.url !== '/docs');
   const navigationVisibility = await Promise.all(
     navigationPool.map(async (item) => {
@@ -257,11 +224,11 @@ export default async function Page(props: {
             }}
           />
         </DocsSurface>
-        <DocsNextSteps items={nextSteps} />
         <DocsKeyboardShortcuts previousHref={previousPage?.url} nextHref={nextPage?.url} />
         <DocsTocScrollSpy />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
         <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
+        <SuporteSection modulo={String(page.data.title)} />
         {lastUpdateDate ? (
           <DocsSurface className="border-border/35 bg-background/25 px-3 py-2 md:px-3.5 md:py-2.5">
             <PageLastUpdate date={lastUpdateDate} className="text-xs text-muted-foreground/85" />
