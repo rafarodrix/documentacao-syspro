@@ -28,7 +28,12 @@ export function DocsNextSteps({ items }: { items: NextStepItem[] }) {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <p className="line-clamp-1 font-medium">{item.title}</p>
-                <DocsFeatureBadge status={item.featureStatus} version={item.sinceVersion} className="text-[10px]" />
+                <DocsFeatureBadge
+                  status={item.featureStatus}
+                  version={item.sinceVersion}
+                  tone="soft"
+                  className="h-4 px-1.5 text-[9px] leading-none"
+                />
               </div>
               {item.description ? (
                 <p className="mt-1 line-clamp-2 text-xs text-muted-foreground/95">{item.description}</p>
