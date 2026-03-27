@@ -181,7 +181,7 @@ Contrato de transicao (`discover.v2`):
 
 - `bootstrapFlow = pending_link`: triagem ativa, pode manter heartbeat de descoberta ate o vinculo manual.
 - `bootstrapFlow = linked_host_detected`: host ja vinculado e operando em `bootstrap/sync`; discovery heartbeat deve ser interrompido.
-- `bootstrapFlow = host_installer_required`: host vinculado sem credencial valida; operador deve baixar o `.ps1` dedicado do host e executar `bootstrap`.
+- `bootstrapFlow = host_bootstrap_required`: host vinculado sem credencial valida; operador deve executar o bootstrap autenticado do host para emitir/renovar `agentToken`.
 - `transition.allowDiscoveryHeartbeat` e o campo formal que define se o script deve agendar ou nao a rotina recorrente de `discover`.
 
 ### Bootstrap inicial em host operacional
@@ -316,6 +316,39 @@ Parametros atualmente centralizados:
 Esses valores alimentam:
 
 - `GET /api/remote/rustdesk/client-profile`
+
+## Segredos de CI/CD (GitHub Actions)
+
+Para build e operacao de descoberta no pipeline, configure os secrets no repositorio:
+
+```text
+Repo > Settings > Secrets and variables > Actions > New repository secret
+```
+
+### Secrets recomendados
+
+1. `REMOTE_DISCOVERY_TOKEN` (**obrigatorio**)
+- token usado pelo agente em `POST /api/remote/agents/discover`
+- deve ser o mesmo valor usado no portal para `REMOTE_DISCOVERY_TOKEN`
+
+2. `PORTAL_API_BASE_URL` (**opcional**)
+- URL base do portal (sem `/` no final)
+- exemplo: `https://ajuda.trilinksoftware.com.br`
+
+3. `PORTAL_API_TOKEN` (**opcional**, junto com `PORTAL_API_BASE_URL`)
+- bearer token para publicar metadata de build em:
+  - `POST /api/remote/rustdesk/build-metadata`
+- header esperado:
+  - `Authorization: Bearer <PORTAL_API_TOKEN>`
+
+### Comportamento no pipeline
+
+- sem `REMOTE_DISCOVERY_TOKEN`: fluxo atual de descoberta fica inconsistente/indisponivel
+- sem `PORTAL_API_TOKEN`: o build continua funcionando, apenas pula o envio automatico de metadata ao portal
+
+<Callout type="warning" title="Seguranca">
+  Nunca versionar token real em `.mdx`, `.env` comitado ou arquivo de script. Manter apenas em `GitHub Actions Secrets`.
+</Callout>
 
 ## Perfil do cliente customizado
 

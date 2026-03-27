@@ -69,10 +69,10 @@ export async function processDiscover(
         hostId: linkedHost.id,
         hostName: linkedHost.name,
         heartbeatAuth: "agentToken",
-        bootstrapFlow: bootstrapRequired ? "host_installer_required" : "linked_host_detected",
-        transition: bootstrapRequired ? transitions.host_installer_required : transitions.linked_host_detected,
+        bootstrapFlow: bootstrapRequired ? "host_bootstrap_required" : "linked_host_detected",
+        transition: bootstrapRequired ? transitions.host_bootstrap_required : transitions.linked_host_detected,
         message: bootstrapRequired
-          ? "Esta maquina ja esta vinculada a um host do portal. O fluxo discover nao emite agentToken; execute o instalador dedicado do host para concluir o bootstrap."
+          ? "Esta maquina ja esta vinculada a um host do portal. O fluxo discover nao emite agentToken; execute o bootstrap autenticado do host para concluir o pareamento do agente."
           : "Esta maquina ja esta vinculada a um host do portal. O fluxo discover continua apenas como descoberta e nao substitui o heartbeat autenticado do host.",
       };
     }
@@ -103,6 +103,6 @@ export async function processDiscover(
     bootstrapFlow: "pending_link",
     transition: transitions.pending_link,
     message:
-      "Maquina descoberta com sucesso. Este fluxo serve apenas para triagem inicial; depois do vinculo, use o instalador do host para emitir agentToken.",
+      "Maquina descoberta com sucesso. Este fluxo serve apenas para triagem inicial; depois do vinculo, use o bootstrap autenticado do host para emitir agentToken.",
   };
 }

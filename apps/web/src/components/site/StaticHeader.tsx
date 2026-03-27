@@ -56,7 +56,7 @@ export function StaticSiteHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl supports-backdrop-filter:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-8">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
@@ -94,7 +94,7 @@ export function StaticSiteHeader() {
             <DropdownMenuContent
               align="center"
               sideOffset={10}
-              className="w-[620px] rounded-2xl border-border/60 bg-background/95 p-3 shadow-2xl backdrop-blur-xl"
+              className="w-155 rounded-2xl border-border/60 bg-background/95 p-3 shadow-2xl backdrop-blur-xl"
             >
               <div className="grid grid-cols-2 gap-2">
                 {docsNavItems.map((item) => {
@@ -162,7 +162,7 @@ export function StaticSiteHeader() {
                 <span className="sr-only">Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+            <SheetContent side="right" className="w-75 sm:w-100">
               <div className="mt-6 flex h-full flex-col gap-6">
                 <Link href="/" className="text-lg font-bold">Trilink Software</Link>
 

@@ -13,21 +13,21 @@ const DISCOVER_TRANSITIONS = {
     nextStep: "link_discovered_host_then_bootstrap",
     nextEndpoint: "/api/remote/discovered-hosts/:id/link",
     allowDiscoveryHeartbeat: true,
-    requiresHostInstaller: false,
+    requiresAuthenticatedBootstrap: false,
   },
   linked_host_detected: {
     state: "DISCOVERY_LINKED_HOST",
     nextStep: "host_already_linked_keep_bootstrap_sync_flow",
     nextEndpoint: "/api/remote/rustdesk/sync",
     allowDiscoveryHeartbeat: false,
-    requiresHostInstaller: false,
+    requiresAuthenticatedBootstrap: false,
   },
-  host_installer_required: {
+  host_bootstrap_required: {
     state: "DISCOVERY_LINKED_HOST_BOOTSTRAP_REQUIRED",
     nextStep: "run_authenticated_bootstrap",
     nextEndpoint: "/api/remote/rustdesk/bootstrap",
     allowDiscoveryHeartbeat: false,
-    requiresHostInstaller: false,
+    requiresAuthenticatedBootstrap: false,
   },
 } as const;
 

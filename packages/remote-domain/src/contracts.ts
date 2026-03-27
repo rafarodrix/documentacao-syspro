@@ -221,14 +221,14 @@ export type ProcessAckOutput = {
   executedAt: string;
 };
 
-export type DiscoverTransitionKey = "pending_link" | "linked_host_detected" | "host_installer_required";
+export type DiscoverTransitionKey = "pending_link" | "linked_host_detected" | "host_bootstrap_required";
 
 export type DiscoverTransition = {
   state: string;
   nextStep: string;
   nextEndpoint: string;
   allowDiscoveryHeartbeat: boolean;
-  requiresHostInstaller: boolean;
+  requiresAuthenticatedBootstrap: boolean;
 };
 
 export type ProcessDiscoverOutput = {

@@ -1,330 +1,402 @@
-import { NextResponse } from 'next/server';
-import { XMLParser } from 'fast-xml-parser';
+import { NextResponse } from "next/server";
+import { XMLParser } from "fast-xml-parser";
 
-// region 1: TIPAGEM E INTERFACES (Melhora a organização e segurança)
-// =============================================================
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
+type JsonObject = { [key: string]: JsonValue | undefined };
 
 interface Danfe {
   meta: {
     versao: string;
     chave: string;
   };
-  ide: any; // Idealmente, tipar cada seção
-  emit: any;
-  dest: any;
-  transp: any;
-  cobr: any;
-  pag: any;
-  total: any;
-  infAdic: any;
-  det: any[];
-  raw: any; // Mantém o nó original para debug
+  ide: Record<string, unknown>;
+  emit: Record<string, unknown>;
+  dest: Record<string, unknown>;
+  transp: Record<string, unknown>;
+  cobr: Record<string, unknown>;
+  pag: Record<string, unknown>;
+  total: Record<string, unknown>;
+  infAdic: Record<string, unknown>;
+  det: Array<Record<string, unknown>>;
+  raw: JsonObject;
 }
 
-// endregion
-
-// region 2: CONSTANTES E MAPAS (Centraliza dados estáticos)
-// =============================================================
-
 const modFreteMap: Record<string, string> = {
-  '0': '0 - Por conta do Emitente (CIF)',
-  '1': '1 - Por conta do Destinatário (FOB)',
-  '2': '2 - Por conta de Terceiros',
-  '3': '3 - Transporte Próprio (Remetente)',
-  '4': '4 - Transporte Próprio (Destinatário)',
-  '9': '9 - Sem Transporte',
+  "0": "0 - Por conta do Emitente (CIF)",
+  "1": "1 - Por conta do Destinatario (FOB)",
+  "2": "2 - Por conta de Terceiros",
+  "3": "3 - Transporte Proprio (Remetente)",
+  "4": "4 - Transporte Proprio (Destinatario)",
+  "9": "9 - Sem Transporte",
 };
 
-const tpNFMap: Record<string, string> = { '0': '0 - Entrada', '1': '1 - Saída' };
-const indPagMap: Record<string, string> = { '0': 'À vista', '1': 'A prazo', '2': 'Outros' };
+const tpNFMap: Record<string, string> = { "0": "0 - Entrada", "1": "1 - Saida" };
+const indPagMap: Record<string, string> = { "0": "A vista", "1": "A prazo", "2": "Outros" };
 
-// endregion
-
-// region 3: FUNÇÕES AUXILIARES (Utilitários reutilizáveis)
-// =============================================================
-
-/** Garante que um valor não é nulo ou indefinido, retornando um fallback. */
 const safe = <T>(value: T | null | undefined, fallback: T): T =>
   value === undefined || value === null ? fallback : value;
 
-/** Garante que um valor seja sempre um array, útil para tags XML que podem ser únicas ou múltiplas. */
-const asArray = (value: any): any[] => {
-  if (value === undefined || value === null) return [];
-  return Array.isArray(value) ? value : [value];
-};
-
-/** Formata um objeto de endereço em uma string legível. */
-const formatAddress = (ender: any): string => {
-  if (!ender) return '';
-  const parts = [
-    safe(ender.xLgr, ''),
-    safe(ender.nro, ''),
-    ender.xCpl ? `(${ender.xCpl})` : '',
-    safe(ender.xBairro, ''),
-    ender.xMun ? `${ender.xMun}/${safe(ender.UF, '')}` : '',
-    ender.CEP ? `CEP: ${ender.CEP}` : '',
-  ];
-  return parts.filter(Boolean).join(', ');
-};
-
-/** Converte um valor para número, tratando vírgula decimal e retornando null em caso de falha. */
-const normalizeNumber = (value: any): number | null => {
-  if (value === undefined || value === null || value === '') return null;
-  const n = Number(String(value).replace(',', '.'));
-  return Number.isNaN(n) ? null : n;
-};
-
-/**
- * Encontra o nó principal `infNFe` dentro do objeto XML parseado,
- * lidando com as estruturas mais comuns (`nfeProc` ou `NFe` na raiz).
- */
-const findNfeRoot = (parsedXml: any): any => {
-    return parsedXml?.nfeProc?.NFe?.infNFe || parsedXml?.NFe?.infNFe || parsedXml?.infNFe || null;
+function isObject(value: unknown): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// endregion
+function asObject(value: unknown): JsonObject | null {
+  return isObject(value) ? value : null;
+}
 
-// region 4: FUNÇÕES DE PARSING MODULARES (Separa as responsabilidades)
-// =============================================================
+function asArray(value: unknown): unknown[] {
+  if (value === undefined || value === null) return [];
+  return Array.isArray(value) ? value : [value];
+}
 
-const parseIde = (ideNode: any) => {
-  if (!ideNode) return {};
+function readString(node: unknown, key: string): string {
+  const obj = asObject(node);
+  if (!obj) return "";
+  const value = obj[key];
+  return typeof value === "string" ? value : "";
+}
+
+function readNode(node: unknown, key: string): unknown {
+  const obj = asObject(node);
+  return obj ? obj[key] : undefined;
+}
+
+function normalizeNumber(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") return null;
+  const n = Number(String(value).replace(",", "."));
+  return Number.isNaN(n) ? null : n;
+}
+
+function formatAddress(ender: unknown): string {
+  const node = asObject(ender);
+  if (!node) return "";
+
+  const xLgr = readString(node, "xLgr");
+  const nro = readString(node, "nro");
+  const xCpl = readString(node, "xCpl");
+  const xBairro = readString(node, "xBairro");
+  const xMun = readString(node, "xMun");
+  const uf = readString(node, "UF");
+  const cep = readString(node, "CEP");
+
+  const parts = [
+    xLgr,
+    nro,
+    xCpl ? `(${xCpl})` : "",
+    xBairro,
+    xMun ? `${xMun}/${uf}` : "",
+    cep ? `CEP: ${cep}` : "",
+  ];
+
+  return parts.filter(Boolean).join(", ");
+}
+
+function readPath(root: unknown, path: string[]): unknown {
+  let current: unknown = root;
+  for (const part of path) {
+    if (!isObject(current)) return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+function findNfeRoot(parsedXml: unknown): JsonObject | null {
+  const candidates = [
+    readPath(parsedXml, ["nfeProc", "NFe", "infNFe"]),
+    readPath(parsedXml, ["NFe", "infNFe"]),
+    readPath(parsedXml, ["infNFe"]),
+  ];
+
+  for (const candidate of candidates) {
+    const node = asObject(candidate);
+    if (node) return node;
+  }
+
+  return null;
+}
+
+function firstObjectInNode(value: unknown): JsonObject {
+  if (!isObject(value)) return {};
+  for (const node of Object.values(value)) {
+    const obj = asObject(node);
+    if (obj) return obj;
+  }
+  return {};
+}
+
+function parseIde(ideNode: unknown): Record<string, unknown> {
+  const node = asObject(ideNode);
+  if (!node) return {};
+
+  const tpNfRaw = readString(node, "tpNF");
   return {
-    cUF: safe(ideNode.cUF, ''),
-    cNF: safe(ideNode.cNF, ''),
-    natOp: safe(ideNode.natOp, ''),
-    mod: safe(ideNode.mod, ''),
-    serie: safe(ideNode.serie, ''),
-    nNF: safe(ideNode.nNF, ''),
-    dhEmi: safe(ideNode.dhEmi, '') || safe(ideNode.dEmi, ''),
-    dhSaiEnt: safe(ideNode.dhSaiEnt, '') || safe(ideNode.dSaiEnt, ''),
-    tpNF: tpNFMap[safe(ideNode.tpNF, '')] || safe(ideNode.tpNF, ''),
-    idDest: safe(ideNode.idDest, ''),
-    finNFe: safe(ideNode.finNFe, ''),
-    NFref: asArray(ideNode.NFref),
-    raw: ideNode,
+    cUF: readString(node, "cUF"),
+    cNF: readString(node, "cNF"),
+    natOp: readString(node, "natOp"),
+    mod: readString(node, "mod"),
+    serie: readString(node, "serie"),
+    nNF: readString(node, "nNF"),
+    dhEmi: readString(node, "dhEmi") || readString(node, "dEmi"),
+    dhSaiEnt: readString(node, "dhSaiEnt") || readString(node, "dSaiEnt"),
+    tpNF: tpNFMap[safe(tpNfRaw, "")] || tpNfRaw,
+    idDest: readString(node, "idDest"),
+    finNFe: readString(node, "finNFe"),
+    NFref: asArray(readNode(node, "NFref")),
+    raw: node,
   };
-};
+}
 
-const parseEmitente = (emitNode: any) => {
-  if (!emitNode) return {};
+function parseEmitente(emitNode: unknown): Record<string, unknown> {
+  const node = asObject(emitNode);
+  if (!node) return {};
+
   return {
-    CNPJ: safe(emitNode.CNPJ, ''),
-    CPF: safe(emitNode.CPF, ''),
-    xNome: safe(emitNode.xNome, ''),
-    xFant: safe(emitNode.xFant, ''),
-    IE: safe(emitNode.IE, ''),
-    CRT: safe(emitNode.CRT, ''),
-    enderEmit: formatAddress(emitNode.enderEmit),
-    raw: emitNode,
+    CNPJ: readString(node, "CNPJ"),
+    CPF: readString(node, "CPF"),
+    xNome: readString(node, "xNome"),
+    xFant: readString(node, "xFant"),
+    IE: readString(node, "IE"),
+    CRT: readString(node, "CRT"),
+    enderEmit: formatAddress(readNode(node, "enderEmit")),
+    raw: node,
   };
-};
+}
 
-const parseDestinatario = (destNode: any) => {
-    if (!destNode) return {};
+function parseDestinatario(destNode: unknown): Record<string, unknown> {
+  const node = asObject(destNode);
+  if (!node) return {};
+
+  return {
+    CNPJ: readString(node, "CNPJ"),
+    CPF: readString(node, "CPF"),
+    idEstrangeiro: readString(node, "idEstrangeiro"),
+    xNome: readString(node, "xNome"),
+    indIEDest: readString(node, "indIEDest"),
+    IE: readString(node, "IE"),
+    email: readString(node, "email"),
+    enderDest: formatAddress(readNode(node, "enderDest")),
+    raw: node,
+  };
+}
+
+function parseTotais(totalNode: unknown): Record<string, unknown> {
+  const icmsTot = asObject(readNode(totalNode, "ICMSTot"));
+  if (!icmsTot) return {};
+
+  return {
+    vBC: normalizeNumber(readNode(icmsTot, "vBC")),
+    vICMS: normalizeNumber(readNode(icmsTot, "vICMS")),
+    vICMSDeson: normalizeNumber(readNode(icmsTot, "vICMSDeson")),
+    vBCST: normalizeNumber(readNode(icmsTot, "vBCST")),
+    vST: normalizeNumber(readNode(icmsTot, "vST")),
+    vProd: normalizeNumber(readNode(icmsTot, "vProd")),
+    vFrete: normalizeNumber(readNode(icmsTot, "vFrete")),
+    vSeg: normalizeNumber(readNode(icmsTot, "vSeg")),
+    vDesc: normalizeNumber(readNode(icmsTot, "vDesc")),
+    vII: normalizeNumber(readNode(icmsTot, "vII")),
+    vIPI: normalizeNumber(readNode(icmsTot, "vIPI")),
+    vPIS: normalizeNumber(readNode(icmsTot, "vPIS")),
+    vCOFINS: normalizeNumber(readNode(icmsTot, "vCOFINS")),
+    vOutro: normalizeNumber(readNode(icmsTot, "vOutro")),
+    vNF: normalizeNumber(readNode(icmsTot, "vNF")),
+    raw: asObject(totalNode) ?? {},
+  };
+}
+
+function parseItens(detList: unknown): Array<Record<string, unknown>> {
+  return asArray(detList).map((det): Record<string, unknown> => {
+    const detObj = asObject(det) ?? {};
+    const prod = asObject(readNode(detObj, "prod")) ?? {};
+    const imposto = asObject(readNode(detObj, "imposto")) ?? {};
+
+    const icmsObj = firstObjectInNode(readNode(imposto, "ICMS"));
+    const ipiNode = asObject(readNode(imposto, "IPI")) ?? {};
+    const ipiObj = asObject(readNode(ipiNode, "IPITrib")) ?? asObject(readNode(ipiNode, "IPINT")) ?? {};
+    const pisNode = asObject(readNode(imposto, "PIS")) ?? {};
+    const pisObj =
+      asObject(readNode(pisNode, "PISAliq")) ??
+      asObject(readNode(pisNode, "PISOutr")) ??
+      asObject(readNode(pisNode, "PISNT")) ??
+      {};
+    const cofinsNode = asObject(readNode(imposto, "COFINS")) ?? {};
+    const cofinsObj =
+      asObject(readNode(cofinsNode, "COFINSAliq")) ??
+      asObject(readNode(cofinsNode, "COFINSOutr")) ??
+      asObject(readNode(cofinsNode, "COFINSNT")) ??
+      {};
+
     return {
-        CNPJ: safe(destNode.CNPJ, ''),
-        CPF: safe(destNode.CPF, ''),
-        idEstrangeiro: safe(destNode.idEstrangeiro, ''),
-        xNome: safe(destNode.xNome, ''),
-        indIEDest: safe(destNode.indIEDest, ''),
-        IE: safe(destNode.IE, ''),
-        email: safe(destNode.email, ''),
-        enderDest: formatAddress(destNode.enderDest),
-        raw: destNode,
+      nItem: readString(detObj, "@_nItem"),
+      cProd: readString(prod, "cProd"),
+      cEAN: readString(prod, "cEAN"),
+      xProd: readString(prod, "xProd"),
+      NCM: readString(prod, "NCM"),
+      CFOP: readString(prod, "CFOP"),
+      uCom: readString(prod, "uCom"),
+      qCom: normalizeNumber(readNode(prod, "qCom")),
+      vUnCom: normalizeNumber(readNode(prod, "vUnCom")),
+      vProd: normalizeNumber(readNode(prod, "vProd")),
+      vFrete: normalizeNumber(readNode(prod, "vFrete")),
+      vSeg: normalizeNumber(readNode(prod, "vSeg")),
+      vDesc: normalizeNumber(readNode(prod, "vDesc")),
+      indTot: readString(prod, "indTot"),
+      infAdProd: readString(detObj, "infAdProd"),
+      impostos: {
+        vTotTrib: normalizeNumber(readNode(imposto, "vTotTrib")),
+        ICMS: {
+          orig: readString(icmsObj, "orig") || null,
+          CST: readString(icmsObj, "CST") || readString(icmsObj, "CSOSN") || null,
+          vBC: normalizeNumber(readNode(icmsObj, "vBC")),
+          pICMS: normalizeNumber(readNode(icmsObj, "pICMS")),
+          vICMS: normalizeNumber(readNode(icmsObj, "vICMS")),
+        },
+        IPI: {
+          CST: readString(ipiObj, "CST") || null,
+          vIPI: normalizeNumber(readNode(ipiObj, "vIPI")),
+        },
+        PIS: {
+          CST: readString(pisObj, "CST") || null,
+          vBC: normalizeNumber(readNode(pisObj, "vBC")),
+          pPIS: normalizeNumber(readNode(pisObj, "pPIS")),
+          vPIS: normalizeNumber(readNode(pisObj, "vPIS")),
+        },
+        COFINS: {
+          CST: readString(cofinsObj, "CST") || null,
+          vBC: normalizeNumber(readNode(cofinsObj, "vBC")),
+          pCOFINS: normalizeNumber(readNode(cofinsObj, "pCOFINS")),
+          vCOFINS: normalizeNumber(readNode(cofinsObj, "vCOFINS")),
+        },
+      },
+      raw: detObj,
     };
-};
+  });
+}
 
-const parseTotais = (totalNode: any) => {
-    const icmsTot = totalNode?.ICMSTot;
-    if (!icmsTot) return {};
-    return {
-        vBC: normalizeNumber(icmsTot.vBC),
-        vICMS: normalizeNumber(icmsTot.vICMS),
-        vICMSDeson: normalizeNumber(icmsTot.vICMSDeson),
-        vBCST: normalizeNumber(icmsTot.vBCST),
-        vST: normalizeNumber(icmsTot.vST),
-        vProd: normalizeNumber(icmsTot.vProd),
-        vFrete: normalizeNumber(icmsTot.vFrete),
-        vSeg: normalizeNumber(icmsTot.vSeg),
-        vDesc: normalizeNumber(icmsTot.vDesc),
-        vII: normalizeNumber(icmsTot.vII),
-        vIPI: normalizeNumber(icmsTot.vIPI),
-        vPIS: normalizeNumber(icmsTot.vPIS),
-        vCOFINS: normalizeNumber(icmsTot.vCOFINS),
-        vOutro: normalizeNumber(icmsTot.vOutro),
-        vNF: normalizeNumber(icmsTot.vNF),
-        raw: totalNode,
-    };
-};
+function parseTransporte(transpNode: unknown): Record<string, unknown> {
+  const node = asObject(transpNode);
+  if (!node) return {};
 
-const parseItens = (detList: any) => {
-    return asArray(detList).map((det: any) => {
-        const prod = det.prod || {};
-        const imposto = det.imposto || {};
+  const modFreteRaw = readString(node, "modFrete");
+  return {
+    modFrete: modFreteMap[safe(modFreteRaw, "")] || modFreteRaw,
+    transporta: asObject(readNode(node, "transporta")) ?? {},
+    veicTransp: asObject(readNode(node, "veicTransp")) ?? {},
+    vol: asArray(readNode(node, "vol")),
+    raw: node,
+  };
+}
 
-        // A estrutura de impostos pode variar (ex: ICMS00, ICMS10, PISAliq, PISNT).
-        // Esta lógica encontra o objeto de dados dentro da tag principal do imposto.
-        const icmsObj = imposto.ICMS ? Object.values(imposto.ICMS).find(v => typeof v === 'object') || {} : {};
-        const ipiObj = imposto.IPI ? (imposto.IPI.IPITrib || imposto.IPI.IPINT || {}) : {};
-        const pisObj = imposto.PIS ? (imposto.PIS.PISAliq || imposto.PIS.PISOutr || imposto.PIS.PISNT || {}) : {};
-        const cofinsObj = imposto.COFINS ? (imposto.COFINS.COFINSAliq || imposto.COFINS.COFINSOutr || imposto.COFINS.COFINSNT || {}) : {};
+function parseCobranca(cobrNode: unknown): Record<string, unknown> {
+  const node = asObject(cobrNode);
+  if (!node) return {};
 
-        return {
-            nItem: safe(det['@_nItem'], ''),
-            cProd: safe(prod.cProd, ''),
-            cEAN: safe(prod.cEAN, ''),
-            xProd: safe(prod.xProd, ''),
-            NCM: safe(prod.NCM, ''),
-            CFOP: safe(prod.CFOP, ''),
-            uCom: safe(prod.uCom, ''),
-            qCom: normalizeNumber(prod.qCom),
-            vUnCom: normalizeNumber(prod.vUnCom),
-            vProd: normalizeNumber(prod.vProd),
-            vFrete: normalizeNumber(prod.vFrete),
-            vSeg: normalizeNumber(prod.vSeg),
-            vDesc: normalizeNumber(prod.vDesc),
-            indTot: safe(prod.indTot, ''),
-            infAdProd: safe(det.infAdProd, ''),
+  return {
+    fat: asObject(readNode(node, "fat")) ?? {},
+    dup: asArray(readNode(node, "dup")).map((d): Record<string, unknown> => {
+      const dupObj = asObject(d) ?? {};
+      return {
+        nDup: readString(dupObj, "nDup"),
+        dVenc: readString(dupObj, "dVenc"),
+        vDup: normalizeNumber(readNode(dupObj, "vDup")),
+      };
+    }),
+    raw: node,
+  };
+}
 
-            impostos: {
-                vTotTrib: normalizeNumber(imposto.vTotTrib),
-                ICMS: {
-                    orig: safe((icmsObj as any).orig, null),
-                    CST: safe((icmsObj as any).CST, null) || safe((icmsObj as any).CSOSN, null),
-                    vBC: normalizeNumber((icmsObj as any).vBC),
-                    pICMS: normalizeNumber((icmsObj as any).pICMS),
-                    vICMS: normalizeNumber((icmsObj as any).vICMS),
-                },
-                IPI: {
-                    CST: safe((ipiObj as any).CST, null),
-                    vIPI: normalizeNumber((ipiObj as any).vIPI),
-                },
-                PIS: {
-                    CST: safe((pisObj as any).CST, null),
-                    vBC: normalizeNumber((pisObj as any).vBC),
-                    pPIS: normalizeNumber((pisObj as any).pPIS),
-                    vPIS: normalizeNumber((pisObj as any).vPIS),
-                },
-                COFINS: {
-                    CST: safe((cofinsObj as any).CST, null),
-                    vBC: normalizeNumber((cofinsObj as any).vBC),
-                    pCOFINS: normalizeNumber((cofinsObj as any).pCOFINS),
-                    vCOFINS: normalizeNumber((cofinsObj as any).vCOFINS),
-                },
-            },
-            raw: det,
-        };
-    });
-};
+function parsePagamento(pagNode: unknown): Record<string, unknown> {
+  const node = asObject(pagNode);
+  if (!node) return {};
 
-const parseTransporte = (transpNode: any) => {
-    if (!transpNode) return {};
-    return {
-        modFrete: modFreteMap[safe(transpNode.modFrete, '')] || safe(transpNode.modFrete, ''),
-        transporta: transpNode.transporta || {},
-        veicTransp: transpNode.veicTransp || {},
-        vol: asArray(transpNode.vol),
-        raw: transpNode,
-    };
-};
+  const detPag = asArray(readNode(node, "detPag"));
+  return {
+    detPag: detPag.map((p): Record<string, unknown> => {
+      const pObj = asObject(p) ?? {};
+      const indPagRaw = readString(pObj, "indPag");
+      return {
+        indPag: indPagMap[safe(indPagRaw, "")] || indPagRaw,
+        tPag: readString(pObj, "tPag"),
+        vPag: normalizeNumber(readNode(pObj, "vPag")),
+        card: asObject(readNode(pObj, "card")) ?? null,
+      };
+    }),
+    vTroco: normalizeNumber(readNode(node, "vTroco")),
+    raw: node,
+  };
+}
 
-const parseCobranca = (cobrNode: any) => {
-    if (!cobrNode) return {};
-    return {
-        fat: cobrNode.fat || {},
-        dup: asArray(cobrNode.dup).map((d: any) => ({
-            nDup: safe(d.nDup, ''),
-            dVenc: safe(d.dVenc, ''),
-            vDup: normalizeNumber(d.vDup),
-        })),
-        raw: cobrNode,
-    };
-};
+function parseInfoAdicional(infAdicNode: unknown): Record<string, unknown> {
+  const node = asObject(infAdicNode);
+  if (!node) return {};
 
-const parsePagamento = (pagNode: any) => {
-    if (!pagNode) return {};
-    const detPag = asArray(pagNode.detPag);
-    return {
-        detPag: detPag.map((p: any) => ({
-            indPag: indPagMap[safe(p.indPag, '')] || safe(p.indPag, ''), // indPag pode estar no detalhe
-            tPag: safe(p.tPag, ''),
-            vPag: normalizeNumber(p.vPag),
-            card: p.card || null,
-        })),
-        vTroco: normalizeNumber(pagNode.vTroco),
-        raw: pagNode,
-    };
-};
-
-const parseInfoAdicional = (infAdicNode: any) => {
-    if (!infAdicNode) return {};
-    return {
-        infCpl: safe(infAdicNode.infCpl, ''),
-        infAdFisco: safe(infAdicNode.infAdFisco, ''),
-        obsCont: asArray(infAdicNode.obsCont).map((o: any) => ({ xCampo: o.xCampo, xTexto: o.xTexto })),
-        obsFisco: asArray(infAdicNode.obsFisco).map((o: any) => ({ xCampo: o.xCampo, xTexto: o.xTexto })),
-        raw: infAdicNode,
-    };
-};
-
-// endregion
-
-// region 5: ROTA DA API (Ponto de entrada principal)
-// =============================================================
+  return {
+    infCpl: readString(node, "infCpl"),
+    infAdFisco: readString(node, "infAdFisco"),
+    obsCont: asArray(readNode(node, "obsCont")).map((o): Record<string, unknown> => {
+      const obj = asObject(o) ?? {};
+      return { xCampo: readString(obj, "xCampo"), xTexto: readString(obj, "xTexto") };
+    }),
+    obsFisco: asArray(readNode(node, "obsFisco")).map((o): Record<string, unknown> => {
+      const obj = asObject(o) ?? {};
+      return { xCampo: readString(obj, "xCampo"), xTexto: readString(obj, "xTexto") };
+    }),
+    raw: node,
+  };
+}
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File | null;
+    const file = formData.get("file");
 
-    if (!file) {
-      return NextResponse.json({ error: 'Nenhum arquivo enviado.' }, { status: 400 });
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
     }
 
     const xml = await file.text();
 
     const parser = new XMLParser({
       ignoreAttributes: false,
-      attributeNamePrefix: '@_',
+      attributeNamePrefix: "@_",
       removeNSPrefix: true,
       parseTagValue: false,
     });
 
-    const parsedXml = parser.parse(xml);
+    const parsedXml = parser.parse(xml) as unknown;
     const nfeRoot = findNfeRoot(parsedXml);
 
     if (!nfeRoot) {
-      return NextResponse.json({ error: 'Estrutura de XML de NF-e não reconhecida.' }, { status: 400 });
+      return NextResponse.json({ error: "Estrutura de XML de NF-e nao reconhecida." }, { status: 400 });
     }
 
-    const chave = String(safe(nfeRoot['@_Id'], '')).replace(/^NFe/i, '');
+    const chave = String(safe(readNode(nfeRoot, "@_Id"), "")).replace(/^NFe/i, "");
+    const versao = readString(nfeRoot, "@_versao");
 
-    // Monta o objeto final chamando as funções de parsing modulares
     const danfeData: Danfe = {
       meta: {
-        versao: safe(nfeRoot['@_versao'], ''),
+        versao,
         chave,
       },
-      ide: parseIde(nfeRoot.ide),
-      emit: parseEmitente(nfeRoot.emit),
-      dest: parseDestinatario(nfeRoot.dest),
-      transp: parseTransporte(nfeRoot.transp),
-      cobr: parseCobranca(nfeRoot.cobr),
-      pag: parsePagamento(nfeRoot.pag),
-      total: parseTotais(nfeRoot.total),
-      infAdic: parseInfoAdicional(nfeRoot.infAdic),
-      det: parseItens(nfeRoot.det),
-      raw: nfeRoot, // Inclui o nó raiz parseado para fins de debug ou dados não mapeados
+      ide: parseIde(readNode(nfeRoot, "ide")),
+      emit: parseEmitente(readNode(nfeRoot, "emit")),
+      dest: parseDestinatario(readNode(nfeRoot, "dest")),
+      transp: parseTransporte(readNode(nfeRoot, "transp")),
+      cobr: parseCobranca(readNode(nfeRoot, "cobr")),
+      pag: parsePagamento(readNode(nfeRoot, "pag")),
+      total: parseTotais(readNode(nfeRoot, "total")),
+      infAdic: parseInfoAdicional(readNode(nfeRoot, "infAdic")),
+      det: parseItens(readNode(nfeRoot, "det")),
+      raw: nfeRoot,
     };
 
     return NextResponse.json(danfeData);
-  } catch (error: any) {
-    console.error('Erro ao processar XML da NF-e:', error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    console.error("Erro ao processar XML da NF-e:", error);
     return NextResponse.json(
-      { error: 'Falha ao processar o arquivo XML.', details: error.message },
+      { error: "Falha ao processar o arquivo XML.", details: message },
       { status: 500 }
     );
   }
 }
-// endregion

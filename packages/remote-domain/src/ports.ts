@@ -242,13 +242,13 @@ export interface RemoteSyncPort {
 }
 
 export type RemoteDiscoverTransitionMap = Record<
-  "pending_link" | "linked_host_detected" | "host_installer_required",
+  "pending_link" | "linked_host_detected" | "host_bootstrap_required",
   {
     state: string;
     nextStep: string;
     nextEndpoint: string;
     allowDiscoveryHeartbeat: boolean;
-    requiresHostInstaller: boolean;
+    requiresAuthenticatedBootstrap: boolean;
   }
 >;
 

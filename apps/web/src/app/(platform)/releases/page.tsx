@@ -73,7 +73,7 @@ export default async function ReleasesIndexPage({
 
             {/* 1. Hero Section */}
             <div className="text-center space-y-4 py-8">
-                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight lg:text-6xl bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight lg:text-6xl bg-linear-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
                     Novidades
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -110,7 +110,7 @@ export default async function ReleasesIndexPage({
                         <section key={year} className="relative">
 
                             {/* Marcador de Ano */}
-                            <div className="flex items-center gap-4 mb-8 sticky top-[70px] z-10 py-2 bg-background/95 backdrop-blur-sm">
+                            <div className="flex items-center gap-4 mb-8 sticky top-17.5 z-10 py-2 bg-background/95 backdrop-blur-sm">
                                 <span className="text-3xl font-bold tracking-tight text-foreground/80 border-l-4 border-primary pl-4">
                                     {year}
                                 </span>
@@ -137,7 +137,7 @@ export default async function ReleasesIndexPage({
 
                                                 {/* Efeito Glow para o card mais recente */}
                                                 {isLatest && (
-                                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+                                                    <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500" />
                                                 )}
 
                                                 <CardContent className="p-6 flex flex-col h-full">
@@ -152,7 +152,7 @@ export default async function ReleasesIndexPage({
                                                         </div>
 
                                                         {isLatest && (
-                                                            <Badge className="bg-gradient-to-r from-indigo-600 to-purple-600 border-0 shadow-sm animate-pulse">
+                                                            <Badge className="bg-linear-to-r from-indigo-600 to-purple-600 border-0 shadow-sm animate-pulse">
                                                                 <Sparkles className="w-3 h-3 mr-1" /> Novo
                                                             </Badge>
                                                         )}
