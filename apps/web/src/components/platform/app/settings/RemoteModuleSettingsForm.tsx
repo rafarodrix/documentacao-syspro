@@ -5,7 +5,8 @@ import { z } from "zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { AlertCircle, Copy, KeyRound, Loader2, MonitorCog, RefreshCw, Save, TimerReset, Trash2 } from "lucide-react";
+import { AlertCircle, Copy, KeyRound, Link2, Loader2, MonitorCog, RefreshCw, Save, TimerReset, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,28 @@ type AddressBookCredentialItem = {
   revokedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  createdBy?: { id: string; name: string | null; email: string } | null;
+  rotatedBy?: { id: string; name: string | null; email: string } | null;
+  revokedBy?: { id: string; name: string | null; email: string } | null;
+};
+
+type RemoteClientProfile = {
+  contractVersion: string;
+  profile: {
+    serverIdRelay: string;
+    serverApi: string;
+    key: string;
+    serverConfig: string;
+    targetVersion: string;
+    defaultPassword: string;
+  };
+  commands: {
+    hostInstallerTemplate: string;
+    bootstrapEndpoint: string;
+    syncEndpoint: string;
+    ackEndpoint: string;
+  };
+  notes: string[];
 };
 
 const defaultValues: RemoteModuleSettings = {
@@ -60,7 +83,12 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
   const [credentialScope, setCredentialScope] = useState<"GLOBAL" | "COMPANY">("GLOBAL");
   const [credentialCompanyId, setCredentialCompanyId] = useState(companyOptions[0]?.id ?? "");
   const [credentialExpiresDays, setCredentialExpiresDays] = useState("");
+  const [credentialStatusFilter, setCredentialStatusFilter] = useState<"ALL" | "ACTIVE" | "REVOKED">("ALL");
+  const [credentialScopeFilter, setCredentialScopeFilter] = useState<"ALL" | "GLOBAL" | "COMPANY">("ALL");
+  const [credentialQuery, setCredentialQuery] = useState("");
   const [latestIssuedToken, setLatestIssuedToken] = useState<{ token: string; preview: string } | null>(null);
+  const [clientProfile, setClientProfile] = useState<RemoteClientProfile | null>(null);
+  const [clientProfileLoading, setClientProfileLoading] = useState(true);
 
   const form = useForm<RemoteModuleSettingsFormValues>({
     resolver: zodResolver(remoteModuleSettingsSchema),
@@ -121,12 +149,57 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
     loadCredentials();
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadClientProfile() {
+      try {
+        setClientProfileLoading(true);
+        const response = await fetch("/api/remote/rustdesk/client-profile", { method: "GET" });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Falha ao carregar perfil do cliente RustDesk.");
+        }
+        if (!mounted) return;
+        setClientProfile(payload?.data ?? null);
+      } catch (error) {
+        if (!mounted) return;
+        toast.error(error instanceof Error ? error.message : "Falha ao carregar perfil do cliente RustDesk.");
+      } finally {
+        if (mounted) setClientProfileLoading(false);
+      }
+    }
+
+    loadClientProfile();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const sortedCredentials = useMemo(() => {
-    return [...credentials].sort((a, b) => {
+    const normalizedQuery = credentialQuery.trim().toLowerCase();
+    return [...credentials]
+      .filter((item) => {
+        if (credentialStatusFilter !== "ALL" && item.status !== credentialStatusFilter) return false;
+        if (credentialScopeFilter !== "ALL" && item.scope !== credentialScopeFilter) return false;
+        if (!normalizedQuery) return true;
+        const searchText = [
+          item.label,
+          item.integrationKey,
+          item.tokenPreview,
+          item.companyName ?? "",
+          item.createdBy?.name ?? "",
+          item.createdBy?.email ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return searchText.includes(normalizedQuery);
+      })
+      .sort((a, b) => {
       if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [credentials]);
+      });
+  }, [credentials, credentialQuery, credentialScopeFilter, credentialStatusFilter]);
 
   async function copyText(value: string, label: string) {
     try {
@@ -234,6 +307,29 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
     });
   }
 
+  function formatDateTime(value: string | null) {
+    if (!value) return "Sem registro";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Sem registro";
+    return date.toLocaleString("pt-BR");
+  }
+
+  function resolveExpiryBadge(credential: AddressBookCredentialItem) {
+    if (!credential.expiresAt) {
+      return { label: "Sem expiracao", className: "border-border/60 bg-background/70 text-foreground" };
+    }
+    const expires = new Date(credential.expiresAt);
+    const now = new Date();
+    if (expires.getTime() <= now.getTime()) {
+      return { label: "Expirada", className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300" };
+    }
+    const hoursLeft = (expires.getTime() - now.getTime()) / (1000 * 60 * 60);
+    if (hoursLeft <= 48) {
+      return { label: "Expira em breve", className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300" };
+    }
+    return { label: "Valida", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" };
+  }
+
   const onSubmit: SubmitHandler<RemoteModuleSettingsFormValues> = async (data) => {
     startTransition(async () => {
       const parsed = remoteModuleSettingsSchema.parse(data);
@@ -335,6 +431,81 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <Label htmlFor="defaultPassword">Senha padrao</Label>
             <Input id="defaultPassword" {...form.register("defaultPassword")} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
+              <Link2 className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Perfil para instalador customizado</CardTitle>
+              <CardDescription>
+                Dados oficiais para cliente RustDesk customizado, com servidor proprio e integracao direta com `bootstrap/sync/ack`.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {clientProfileLoading ? (
+            <p className="text-sm text-muted-foreground">Carregando perfil de cliente...</p>
+          ) : clientProfile ? (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                  {clientProfile.contractVersion}
+                </Badge>
+                <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                  Servidor: {clientProfile.profile.serverIdRelay || "nao configurado"}
+                </Badge>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Servidor ID/Relay</p>
+                  <p className="mt-1 break-all text-sm font-medium text-foreground">{clientProfile.profile.serverIdRelay || "Nao configurado"}</p>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Servidor da API</p>
+                  <p className="mt-1 break-all text-sm font-medium text-foreground">{clientProfile.profile.serverApi || "Nao configurado"}</p>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Key publica</p>
+                  <p className="mt-1 break-all text-xs font-mono text-foreground">{clientProfile.profile.key || "Nao configurado"}</p>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Versao alvo</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{clientProfile.profile.targetVersion || "Nao configurado"}</p>
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Endpoints operacionais</p>
+                <div className="mt-2 grid gap-2 text-xs text-muted-foreground">
+                  <p><span className="font-medium text-foreground">Bootstrap:</span> {clientProfile.commands.bootstrapEndpoint}</p>
+                  <p><span className="font-medium text-foreground">Sync:</span> {clientProfile.commands.syncEndpoint}</p>
+                  <p><span className="font-medium text-foreground">Ack:</span> {clientProfile.commands.ackEndpoint}</p>
+                  <p><span className="font-medium text-foreground">Instalador host:</span> {clientProfile.commands.hostInstallerTemplate}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => copyText(clientProfile.profile.serverIdRelay, "Servidor ID/Relay")} disabled={!clientProfile.profile.serverIdRelay}>
+                  <Copy className="mr-2 h-3.5 w-3.5" />
+                  Copiar servidor
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => copyText(clientProfile.profile.key, "Key publica")} disabled={!clientProfile.profile.key}>
+                  <Copy className="mr-2 h-3.5 w-3.5" />
+                  Copiar key
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => copyText(clientProfile.profile.serverConfig, "Configuracao exportada")} disabled={!clientProfile.profile.serverConfig}>
+                  <Copy className="mr-2 h-3.5 w-3.5" />
+                  Copiar serverConfig
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Perfil do cliente indisponivel.</p>
+          )}
         </CardContent>
       </Card>
 
@@ -456,6 +627,43 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             </Button>
           </div>
 
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={credentialStatusFilter} onValueChange={(value) => setCredentialStatusFilter(value as "ALL" | "ACTIVE" | "REVOKED")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos</SelectItem>
+                  <SelectItem value="ACTIVE">Ativas</SelectItem>
+                  <SelectItem value="REVOKED">Revogadas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Escopo</Label>
+              <Select value={credentialScopeFilter} onValueChange={(value) => setCredentialScopeFilter(value as "ALL" | "GLOBAL" | "COMPANY")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos</SelectItem>
+                  <SelectItem value="GLOBAL">GLOBAL</SelectItem>
+                  <SelectItem value="COMPANY">COMPANY</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Busca</Label>
+              <Input
+                value={credentialQuery}
+                onChange={(event) => setCredentialQuery(event.target.value)}
+                placeholder="Label, integration key, empresa..."
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             {credentialsLoading ? (
               <p className="text-sm text-muted-foreground">Carregando credenciais...</p>
@@ -464,16 +672,40 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
                 <div key={credential.id} className="rounded-lg border border-border/50 bg-muted/10 p-3">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {credential.label} ({credential.tokenPreview})
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {credential.label} ({credential.tokenPreview})
+                        </p>
+                        <Badge variant="outline" className={credential.status === "ACTIVE" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border/60 bg-background/70 text-muted-foreground"}>
+                          {credential.status}
+                        </Badge>
+                        <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                          {credential.scope}
+                        </Badge>
+                        <Badge variant="outline" className={resolveExpiryBadge(credential).className}>
+                          {resolveExpiryBadge(credential).label}
+                        </Badge>
+                      </div>
                       <p className="text-xs text-muted-foreground">
-                        {credential.scope}
-                        {credential.companyName ? ` | ${credential.companyName}` : ""}
-                        {credential.lastUsedAt ? ` | ultimo uso: ${new Date(credential.lastUsedAt).toLocaleString("pt-BR")}` : " | sem uso"}
+                        integrationKey: {credential.integrationKey}
+                        {credential.companyName ? ` | empresa: ${credential.companyName}` : ""}
+                        {credential.lastUsedAt ? ` | ultimo uso: ${formatDateTime(credential.lastUsedAt)}` : " | sem uso"}
+                        {credential.expiresAt ? ` | expira: ${formatDateTime(credential.expiresAt)}` : ""}
+                        {credential.createdBy ? ` | criado por: ${credential.createdBy.name || credential.createdBy.email}` : ""}
+                        {credential.revokedBy ? ` | revogado por: ${credential.revokedBy.name || credential.revokedBy.email}` : ""}
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => copyText(credential.integrationKey, "Integration key")}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        Copiar key
+                      </Button>
                       <Button
                         type="button"
                         variant="outline"

@@ -31,6 +31,7 @@ Padronizar como uma maquina remota deve ser:
   - `POST /api/remote/rustdesk/bootstrap`
   - `POST /api/remote/rustdesk/sync`
   - `POST /api/remote/rustdesk/ack`
+  - `GET /api/remote/rustdesk/client-profile`
   - `POST /api/remote/discovered-hosts/:id/link`
 - o `RustDesk ID` deve ser persistido sem espacos
 - a leitura operacional do host hoje segue a matriz:
@@ -326,6 +327,21 @@ Esses valores alimentam:
 
 - `GET /api/remote/agents/discovery-script`
 - `GET /api/remote/hosts/:id/installer`
+- `GET /api/remote/rustdesk/client-profile`
+
+## Perfil do cliente customizado
+
+Endpoint:
+
+```text
+GET /api/remote/rustdesk/client-profile
+```
+
+Uso:
+
+- expor parametros oficiais do cliente RustDesk customizado (`serverIdRelay`, `serverApi`, `key`, `serverConfig`, `targetVersion`)
+- padronizar endpoints operacionais (`bootstrap`, `sync`, `ack`) fora do `.ps1`
+- reduzir dependencia do script ao permitir instalacao customizada com defaults do portal
 
 ## Checklist de validacao
 
