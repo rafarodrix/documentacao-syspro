@@ -17,7 +17,6 @@
     "---Backlog e Pendencias---",
     "backlog-e-pendencias/backlog-infra-monorepo",
     "backlog-e-pendencias/operacao-backup-agendado-remoto",
-    "backlog-e-pendencias/arquitetura-canal-whatsapp",
-    "backlog-e-pendencias/monorepo-turborepo-analise"
+    "backlog-e-pendencias/arquitetura-canal-whatsapp"
   ]
 }

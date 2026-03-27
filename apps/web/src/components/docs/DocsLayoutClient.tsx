@@ -8,6 +8,7 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsLayout as NotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { DocsSidebarItem } from '@/components/docs/DocsSidebarItem';
+import { DocsSidebarInlineCollapse } from '@/components/docs/DocsSidebarInlineCollapse';
 
 const ADMIN_LAYOUT_STORAGE_KEY = 'docs:admin:layout-mode';
 
@@ -61,7 +62,8 @@ export function DocsLayoutClient({
         }}
         sidebar={{
           defaultOpenLevel: 0,
-          collapsible: true,
+          collapsible: false,
+          banner: <DocsSidebarInlineCollapse />,
           components: {
             Item: DocsSidebarItem,
           },
@@ -88,7 +90,8 @@ export function DocsLayoutClient({
       sidebar={{
         enabled: !isDocsHome,
         defaultOpenLevel: 0,
-        collapsible: true,
+        collapsible: false,
+        banner: <DocsSidebarInlineCollapse />,
         components: {
           Item: DocsSidebarItem,
         },
