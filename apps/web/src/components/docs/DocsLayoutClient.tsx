@@ -58,7 +58,7 @@ export function DocsLayoutClient({
           enabled: false,
         }}
         searchToggle={{
-          enabled: false,
+          enabled: true,
         }}
         sidebar={{
           className: 'docs-sidebar-shell',
@@ -86,7 +86,7 @@ export function DocsLayoutClient({
         enabled: false,
       }}
       searchToggle={{
-        enabled: false,
+        enabled: true,
       }}
       sidebar={{
         enabled: !isDocsHome,

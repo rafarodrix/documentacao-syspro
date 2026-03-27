@@ -252,9 +252,24 @@
 }
 
 @layer components {
+  #nd-subnav {
+    background: hsl(var(--background) / 0.86);
+    border-bottom-color: hsl(var(--border) / 0.7);
+    backdrop-filter: blur(12px);
+  }
+
   #nd-sidebar.docs-sidebar-shell,
   #nd-sidebar-mobile.docs-sidebar-shell {
     background: linear-gradient(180deg, hsl(var(--card) / 0.88) 0%, hsl(var(--background) / 0.94) 100%);
+  }
+
+  #nd-sidebar.docs-sidebar-shell > div:first-child,
+  #nd-sidebar-mobile.docs-sidebar-shell > div:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: linear-gradient(180deg, hsl(var(--card) / 0.96) 0%, hsl(var(--card) / 0.86) 100%);
+    border-bottom: 1px solid hsl(var(--border) / 0.58);
   }
 
   #nd-sidebar.docs-sidebar-shell [data-active='true'] {
@@ -316,6 +331,53 @@
 
   .docs-content-surface {
     background: linear-gradient(180deg, hsl(var(--background) / 0.7) 0%, hsl(var(--card) / 0.58) 100%);
+  }
+
+  #nd-tocnav {
+    background: hsl(var(--background) / 0.82);
+    border-bottom-color: hsl(var(--border) / 0.58);
+    backdrop-filter: blur(10px);
+  }
+
+  #nd-toc > div {
+    border: 1px solid hsl(var(--border) / 0.34);
+    border-radius: 0.9rem;
+    background: linear-gradient(180deg, hsl(var(--background) / 0.28) 0%, hsl(var(--card) / 0.22) 100%);
+    padding: 0.7rem 0.7rem 0.75rem 0.7rem;
+  }
+
+  #nd-toc h3 {
+    margin-bottom: 0.2rem;
+    font-size: 0.9rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: hsl(var(--muted-foreground) / 0.86);
+  }
+
+  #nd-toc a[href^='#'],
+  [data-toc-popover] a[href^='#'] {
+    border-radius: 0.45rem;
+    padding-top: 0.28rem;
+    padding-bottom: 0.28rem;
+    font-size: 0.9rem;
+    line-height: 1.3rem;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground) / 0.84);
+    transition: background-color 140ms ease, color 140ms ease;
+  }
+
+  #nd-toc a[href^='#']:hover,
+  [data-toc-popover] a[href^='#']:hover {
+    background: hsl(var(--accent) / 0.22);
+    color: hsl(var(--foreground) / 0.9);
+  }
+
+  #nd-toc a[href^='#'][data-active='true'],
+  [data-toc-popover] a[href^='#'][data-active='true'] {
+    background: hsl(var(--accent) / 0.28);
+    color: hsl(var(--foreground) / 0.95);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.36);
   }
 
   #nd-page article h2,

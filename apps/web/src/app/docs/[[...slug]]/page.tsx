@@ -1,4 +1,5 @@
 import { source } from '@/lib/source';
+import Link from 'next/link';
 import {
   DocsPage,
   DocsBody,
@@ -17,11 +18,9 @@ import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 import { DocsHomePage } from '@/components/docs/DocsHomePage';
 import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
 import { DocsNextSteps } from '@/components/docs/DocsNextSteps';
-import { DocsSectionLinks } from '@/components/docs/DocsSectionLinks';
 import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
 import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
 import { DocsReadingTime } from '@/components/docs/DocsReadingTime';
-import { DocsPrevNextPreview } from '@/components/docs/DocsPrevNextPreview';
 import { DocsKeyboardShortcuts } from '@/components/docs/DocsKeyboardShortcuts';
 import { DocsTocScrollSpy } from '@/components/docs/DocsTocScrollSpy';
 import { DocsSurface } from '@/components/docs/DocsSurface';
@@ -31,6 +30,12 @@ import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from 
 function estimateReadingTimeMinutes(content: string): number {
   const words = content.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 220));
+}
+
+function formatSlugLabel(value: string): string {
+  return value
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export default async function Page(props: {
@@ -110,11 +115,26 @@ export default async function Page(props: {
     ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(lastUpdated))
     : null;
   const lastUpdateDate = lastUpdated ? new Date(lastUpdated) : null;
-  const showCategory = slug.length === 1;
 
   const structuredData = (page.data as { structuredData?: { contents?: Array<{ content?: string }> } }).structuredData;
   const bodyText = structuredData?.contents?.map((item) => item.content ?? '').join(' ') ?? page.data.description ?? '';
   const readingTimeMinutes = estimateReadingTimeMinutes(`${String(page.data.title ?? '')} ${bodyText}`);
+  const breadcrumbItems = slug.reduce<Array<{ href: string; label: string }>>(
+    (acc, segment) => {
+      const parentPath = acc.length === 1 ? '' : acc[acc.length - 1].href.replace(/^\/docs/, '');
+      const nextPath = `${parentPath}/${segment}`.replace(/^\/+/, '');
+      const targetSlug = nextPath.split('/').filter(Boolean);
+      const targetPage = source.getPage(targetSlug);
+
+      acc.push({
+        href: `/docs/${nextPath}`,
+        label: targetPage ? String(targetPage.data.title) : formatSlugLabel(segment),
+      });
+
+      return acc;
+    },
+    [{ href: '/docs', label: 'Documentacao' }],
+  );
 
   const allPages = source.getPages().filter((item) => item.url !== docSlug);
   const sameSectionPrefix = slug[0] ? `/docs/${slug[0]}` : '/docs';
@@ -136,18 +156,6 @@ export default async function Page(props: {
   );
 
   const visibleContextPages = contextPages.filter((_, index) => visibility[index]);
-
-  const sectionLinks = visibleContextPages
-    .slice(0, 8)
-    .map((item) => ({
-      href: item.url,
-      title: String(item.data.title),
-      description: typeof item.data.description === 'string' ? item.data.description : undefined,
-      featureStatus: typeof item.data.featureStatus === 'string'
-        ? item.data.featureStatus as FeatureStatus
-        : undefined,
-      sinceVersion: typeof item.data.sinceVersion === 'string' ? item.data.sinceVersion : undefined,
-    }));
 
   const nextSteps = visibleContextPages
     .slice(0, 4)
@@ -186,19 +194,47 @@ export default async function Page(props: {
     <DocsPage
       toc={page.data.toc}
       full={page.data.full}
-      breadcrumb={{ full: true }}
+      breadcrumb={{ enabled: false }}
       tableOfContent={{ style: 'clerk' }}
     >
       <DocsReadingProgress />
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground/90">
+        {breadcrumbItems.map((item, index) => (
+          <div key={item.href} className="inline-flex items-center gap-1.5">
+            {index > 0 ? <span className="text-muted-foreground/50">/</span> : null}
+            <Link
+              href={item.href}
+              className="rounded-sm px-1 py-0.5 transition-colors hover:bg-accent/35 hover:text-foreground"
+            >
+              {item.label}
+            </Link>
+          </div>
+        ))}
+      </div>
       <DocsTitle>{page.data.title}</DocsTitle>
       <div className="mt-3">
-        <DocsSurface className="p-4 md:p-5">
+        <DocsSurface className="p-3 md:p-4">
           <div className="flex flex-wrap items-center gap-2">
             <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
             <DocsReadingTime minutes={readingTimeMinutes} />
           </div>
           <div className="mt-3">
             <DocsDescription>{page.data.description}</DocsDescription>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-3">
+            <div className="rounded-lg border border-border/40 bg-background/45 px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Navegacao</p>
+              <p className="mt-1 text-xs text-muted-foreground/85">Use o menu lateral para navegar entre modulos e guias.</p>
+            </div>
+            <div className="rounded-lg border border-border/40 bg-background/45 px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Busca Rapida</p>
+              <p className="mt-1 text-xs font-medium">Ctrl + K</p>
+              <p className="text-xs text-muted-foreground/85">Encontre paginas e secoes sem sair da leitura.</p>
+            </div>
+            <div className="rounded-lg border border-border/40 bg-background/45 px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Leitura</p>
+              <p className="mt-1 text-xs text-muted-foreground/85">Use o indice da direita para ir direto ao bloco da secao.</p>
+            </div>
           </div>
           <div className="mt-3">
             <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
@@ -221,25 +257,16 @@ export default async function Page(props: {
             }}
           />
         </DocsSurface>
-        {showCategory ? <DocsSectionLinks items={sectionLinks} /> : null}
         <DocsNextSteps items={nextSteps} />
-        <DocsPrevNextPreview
-          previous={previousPage ? {
-            href: previousPage.url,
-            title: String(previousPage.data.title),
-            description: typeof previousPage.data.description === 'string' ? previousPage.data.description : undefined,
-          } : undefined}
-          next={nextPage ? {
-            href: nextPage.url,
-            title: String(nextPage.data.title),
-            description: typeof nextPage.data.description === 'string' ? nextPage.data.description : undefined,
-          } : undefined}
-        />
         <DocsKeyboardShortcuts previousHref={previousPage?.url} nextHref={nextPage?.url} />
         <DocsTocScrollSpy />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
         <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
-        {lastUpdateDate ? <PageLastUpdate date={lastUpdateDate} /> : null}
+        {lastUpdateDate ? (
+          <DocsSurface className="border-border/35 bg-background/25 px-3 py-2 md:px-3.5 md:py-2.5">
+            <PageLastUpdate date={lastUpdateDate} className="text-xs text-muted-foreground/85" />
+          </DocsSurface>
+        ) : null}
       </DocsBody>
     </DocsPage>
   );
