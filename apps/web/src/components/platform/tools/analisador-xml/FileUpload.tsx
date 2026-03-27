@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { ChangeEvent, FormEvent, DragEvent, useState } from 'react';
 import { X, FileArchive, FolderUp, UploadCloud } from 'lucide-react';

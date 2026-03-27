@@ -1,4 +1,4 @@
-﻿# @dosc-syspro/app-api
+# @dosc-syspro/app-api
 
 Shell HTTP dedicado do monorepo.
 

@@ -1,4 +1,4 @@
-﻿# packages/core
+# packages/core
 
 Pacote de dominio, entidades e servicos puros sem dependencia de Next.js.
 

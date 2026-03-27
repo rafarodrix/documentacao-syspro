@@ -1,4 +1,4 @@
-﻿# packages/shared
+# packages/shared
 
 Pacote de utilitarios puros, constantes e helpers compartilhados.
 

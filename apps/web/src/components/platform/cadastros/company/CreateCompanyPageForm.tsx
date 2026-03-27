@@ -418,11 +418,11 @@ export function CreateCompanyPageForm({
     if (!email) return;
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!valid) {
-      toast.error("Informe um e-mail vÃƒÂ¡lido para integraÃƒÂ§ÃƒÂ£o Zammad.");
+      toast.error("Informe um e-mail valido para integracao Zammad.");
       return;
     }
     if (zammadEmails.some((item) => item.email === email)) {
-      toast.error("Este e-mail jÃƒÂ¡ foi adicionado.");
+      toast.error("Este e-mail já foi adicionado.");
       return;
     }
     setZammadEmails((prev) => [
@@ -1107,5 +1107,4 @@ export function CreateCompanyPageForm({
     </div>
   );
 }
-
 

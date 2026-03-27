@@ -1,4 +1,4 @@
-﻿# packages/contracts
+# packages/contracts
 
 Pacote de DTOs e schemas de fronteira reutilizaveis entre web, API e futuros consumers.
 

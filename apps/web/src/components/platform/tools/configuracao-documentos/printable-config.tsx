@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { DocumentoFormValues } from "@dosc-syspro/contracts";
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
 import { COMPORTAMENTOS_DOCUMENTO } from "@dosc-syspro/contracts";

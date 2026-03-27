@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { Info, FileCode, Database, AlertTriangle, X, LucideIcon } from "lucide-react";
 import { FIELD_METADATA } from "@dosc-syspro/contracts";

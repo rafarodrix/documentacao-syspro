@@ -1,4 +1,4 @@
-﻿# packages/ui
+# packages/ui
 
 Pacote de primitives e componentes reutilizaveis sem dependencia de regra de negocio.
 

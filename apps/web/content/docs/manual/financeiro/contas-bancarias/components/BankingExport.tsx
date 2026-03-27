@@ -17,22 +17,22 @@ const BankingExport = () => {
         const margin = 14;
         const primaryColor: [number, number, number] = [51, 122, 183];
 
-        // --- CABEÇALHO ---
+        // --- CABE?ALHO ---
         doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         doc.rect(0, 0, pageWidth, 15, 'F');
 
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(40, 40, 40);
-        doc.text("Check-list de Dados para Homologação de Boleto ", margin, 25);
+        doc.text("Check-list de Dados para Homologa??o de Boleto ", margin, 25);
 
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(80, 80, 80);
-        const introText = "Para realizarmos a homologação junto ao banco e configurar a emissão de boletos, preencha os dados abaixo:";
+        const introText = "Para realizarmos a homologa??o junto ao banco e configurar a emiss?o de boletos, preencha os dados abaixo:";
         doc.text(doc.splitTextToSize(introText, pageWidth - (margin * 2)), margin, 40);
 
-        // --- FUNÇÃO AUXILIAR PARA CRIAR SEÇÕES ---
+        // --- FUN??O AUXILIAR PARA CRIAR SE??ES ---
         const createFormTable = (title: string, data: string[][], startY: number) => {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(11);
@@ -56,30 +56,30 @@ const BankingExport = () => {
         // --- 1. DADOS DA CONTA ---
         let nextY = createFormTable("Dados da Conta", [
             ['Banco', ''],
-            ['Agência', ''],
-            ['Dígito da Agência', ''],
+            ['Ag?ncia', ''],
+            ['D?gito da Ag?ncia', ''],
             ['Conta', ''],
-            ['Dígito da Conta', ''],
+            ['D?gito da Conta', ''],
             ['CNPJ', ''],
-            ['Razão Social', '']
+            ['Raz?o Social', '']
         ], 50);
 
         // --- 2. DADOS DO BOLETO ---
-        nextY = createFormTable("Dados Técnicos do Boleto", [
-            ['Código do Cedente', ''],
-            ['Código do Convênio', ''],
+        nextY = createFormTable("Dados T?cnicos do Boleto", [
+            ['C?digo do Cedente', ''],
+            ['C?digo do Conv?nio', ''],
             ['Modalidade', ''],
             ['Carteira', ''],
-            ['Código Transmissão', ''],
+            ['C?digo Transmiss?o', ''],
         ], nextY);
 
-        // --- 3. INSTRUÇÕES E FAIXAS ---
-        nextY = createFormTable("Configurações e Instruções", [
-            ['Taxa Juros ao Mês (%)', ''],
+        // --- 3. INSTRU??ES E FAIXAS ---
+        nextY = createFormTable("Configura??es e Instru??es", [
+            ['Taxa Juros ao M?s (%)', ''],
             ['Taxa Multa (%)', ''],
-            ['Envia para protesto?', '[   ] Não [   ] Sim [          ] dias (Obs: Caso seja informado "Sim" é obrigatório informar o prazo em dias)'],
-            ['Nosso Número (Início)/(Fim)', ''],
-            ['Layout Remessa', ' [   ] 240 [   ] 400 [   ] 444 (Obs: O layout remessa 444 é exclusivo para inclusão da chave da NF-e no arquivo)'],
+            ['Envia para protesto?', '[   ] N?o [   ] Sim [          ] dias (Obs: Caso seja informado "Sim" ? obrigat?rio informar o prazo em dias)'],
+            ['Nosso N?mero (In?cio)/(Fim)', ''],
+            ['Layout Remessa', ' [   ] 240 [   ] 400 [   ] 444 (Obs: O layout remessa 444 ? exclusivo para inclus?o da chave da NF-e no arquivo)'],
         ], nextY);
 
         // --- MENSAGEM FIXA ---
@@ -89,9 +89,9 @@ const BankingExport = () => {
         doc.rect(margin, nextY + 2, pageWidth - (margin * 2), 15);
         doc.setFont("helvetica", "italic");
         doc.setFontSize(8);
-        doc.text("Ex: Após o vencimento, o título poderá ser encaminhado a protesto.", margin + 2, nextY + 6);
+        doc.text("Ex: Ap?s o vencimento, o t?tulo poder? ser encaminhado a protesto.", margin + 2, nextY + 6);
 
-        // --- RODAPÉ ---
+        // --- RODAP? ---
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);

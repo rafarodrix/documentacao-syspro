@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
@@ -228,7 +228,7 @@ function normalizePathForCompare(value: string | null) {
 
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
-  const [machineName, setMachineName] = useState(host.machineName ?? "");
+  const [projectedHostName, setProjectedHostName] = useState(host.name);
   const [pendingUpdateCompanyById, setPendingUpdateCompanyById] = useState<Record<string, string>>({});
   const [companyContextDrafts, setCompanyContextDrafts] = useState<Record<string, CompanyContextDraft>>({});
   const [savingCompanyContextId, setSavingCompanyContextId] = useState<string | null>(null);
@@ -237,6 +237,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
   const [linkingUpdateId, startLinkingUpdateId] = useTransition();
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
+  const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
@@ -450,7 +451,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     }, 600);
   }
 
-  function handleSaveMachineName() {
+  function handleSaveProjectedHostName() {
     startSavingMachineName(async () => {
       try {
         const response = await fetch(`/api/remote/hosts/${host.id}`, {
@@ -458,8 +459,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             companyId: host.companyId,
-            name: host.name,
-            machineName,
+            name: projectedHostName,
+            machineName: host.machineName,
             environment: host.environment,
             provider: host.provider,
             description: host.description,
@@ -471,12 +472,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
         const payload = await response.json().catch(() => null);
         if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao salvar nome da maquina.");
+          throw new Error(payload?.error ?? "Falha ao salvar nome projetado da maquina.");
         }
 
         toast.success("Nome da maquina atualizado.");
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao salvar nome da maquina.");
+        toast.error(error instanceof Error ? error.message : "Falha ao salvar nome projetado da maquina.");
       }
     });
   }
@@ -639,7 +640,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             </div>
 
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">{host.name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{projectedHostName}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {installations.length
                   ? `${installations.length} instalacao(oes) vinculada(s) nesta maquina`
@@ -650,6 +651,19 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 {operationalMeta.label}. Detalhes de bootstrap, token e instalacao ficam concentrados na aba `Agente`.
               </p>
             </div>
+            {installations.length ? (
+              <div className="grid gap-2 md:grid-cols-2">
+                {installations.map((installation, installationIndex) => (
+                  <div key={installation.id} className="rounded-lg border border-border/50 bg-muted/15 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Instalacao {installationIndex + 1}</p>
+                    <p className="mt-1 text-sm font-medium text-foreground">
+                      {installation.resolvedCompanyName ?? installation.companyLabel}
+                    </p>
+                    <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{installation.path}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             {agentTokenMeta.needsBootstrap ? (
               <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4">
@@ -702,18 +716,26 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
               <div className="space-y-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da maquina</p>
-                <Input value={machineName} onChange={(event) => setMachineName(event.target.value)} placeholder="SERVIDOR-01" />
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da maquina (projetado)</p>
+                <Input value={projectedHostName} onChange={(event) => setProjectedHostName(event.target.value)} placeholder="CASA DO PRODUTOR | SERVIDOR" />
+                <p className="text-xs text-muted-foreground">
+                  Nome exibido no portal, editavel para organizacao operacional.
+                </p>
               </div>
               <div className="flex items-end">
                 <Button
                   className="w-full lg:w-auto"
-                  onClick={handleSaveMachineName}
-                  disabled={isSavingMachineName || machineName === (host.machineName ?? "")}
+                  onClick={handleSaveProjectedHostName}
+                  disabled={isSavingMachineName || projectedHostName.trim() === host.name.trim()}
                 >
                   Salvar nome
                 </Button>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome do computador (Windows)</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{windowsComputerName ?? "Sem leitura do agente"}</p>
             </div>
 
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -779,8 +801,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Machine name</p>
-                  <p className="mt-1 text-sm text-foreground">{machineName || "Nao registrada"}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da maquina (projetado)</p>
+                  <p className="mt-1 text-sm text-foreground">{projectedHostName || "Nao registrado"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome do computador (Windows)</p>
+                  <p className="mt-1 text-sm text-foreground">{windowsComputerName ?? "Sem leitura do agente"}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao do agente</p>

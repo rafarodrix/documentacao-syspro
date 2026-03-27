@@ -1,7 +1,7 @@
 ---
-title: 'Rejeicão 306: IE do destinatario nao esta ativa na UF'
-description: 'Como corrigir a rejeição "IE do destinatário não está ativa na UF" ao transmitir NFe no Syspro ERP.'
-causa_do_erro: 'A Inscrição Estadual (IE) do cliente/destinatário está inativa, suspensa, cancelada ou é inexistente na Sefaz.'
+title: 'Rejeic?o 306: IE do destinatario nao esta ativa na UF'
+description: 'Como corrigir a rejei??o "IE do destinat?rio n?o est? ativa na UF" ao transmitir NFe no Syspro ERP.'
+causa_do_erro: 'A Inscri??o Estadual (IE) do cliente/destinat?rio est? inativa, suspensa, cancelada ou ? inexistente na Sefaz.'
 lastUpdated: 2026-03-22
 owner: Equipe de Documentacao
 status: published
@@ -13,57 +13,57 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 
 ---
 
-## Identificação do Problema
+## Identifica??o do Problema
 
-Ao tentar transmitir uma Nota Fiscal Eletrônica (NFe), o sistema retorna uma rejeição da Sefaz com a seguinte mensagem:
+Ao tentar transmitir uma Nota Fiscal Eletr?nica (NFe), o sistema retorna uma rejei??o da Sefaz com a seguinte mensagem:
 
 <Callout type="error" title="Erro Apresentado">
   Rejeicao: 306 IE do destinatario nao esta ativa na UF
 </Callout>
 
 <Callout type="info" title="Causa do Erro">
-  A **Sefaz** (Secretaria da Fazenda) validou a Inscrição Estadual (IE) do destinatário e constatou que ela está **inativa**, **suspensa**, **cancelada** ou é **inexistente**. A solução é ajustar o cadastro do cliente para indicar que ele é um **"Não Contribuinte"** do ICMS.
+  A **Sefaz** (Secretaria da Fazenda) validou a Inscri??o Estadual (IE) do destinat?rio e constatou que ela est? **inativa**, **suspensa**, **cancelada** ou ? **inexistente**. A solu??o ? ajustar o cadastro do cliente para indicar que ele ? um **"N?o Contribuinte"** do ICMS.
 </Callout>
 
-## Pré-requisitos
+## Pr?-requisitos
 
-Antes de iniciar, certifique-se de que você possui:
+Antes de iniciar, certifique-se de que voc? possui:
 
-- Acesso ao módulo de **Cadastro de Participantes** no Syspro ERP.
-- Permissão para **editar** o cadastro de clientes/destinatários.
+- Acesso ao m?dulo de **Cadastro de Participantes** no Syspro ERP.
+- Permiss?o para **editar** o cadastro de clientes/destinat?rios.
 - A NFe que foi rejeitada para identificar o participante correto.
 
-## Passo a Passo da Solução
+## Passo a Passo da Solu??o
 
 <Steps>
   <Step title="Acessar e Editar o Cadastro do Cliente">
-    <p>Primeiro, vamos localizar e abrir o cadastro do destinatário da NFe.</p>
+    <p>Primeiro, vamos localizar e abrir o cadastro do destinat?rio da NFe.</p>
     1. No Syspro, acesse o **Cadastro de Participantes**.
-    2. Pesquise pelo cliente (destinatário) da nota que foi rejeitada.
+    2. Pesquise pelo cliente (destinat?rio) da nota que foi rejeitada.
     3. Selecione o cadastro e clique em **Editar**.
-    4. Na tela de edição, vá para a aba **Endereço**.
-    5. Selecione o endereço principal e clique em **Editar** novamente para abrir a janela de detalhes do endereço.
+    4. Na tela de edi??o, v? para a aba **Endere?o**.
+    5. Selecione o endere?o principal e clique em **Editar** novamente para abrir a janela de detalhes do endere?o.
   </Step>
 
   <Step title="Ajustar os Dados Fiscais">
-    <p>Na janela de edição do endereço, vamos corrigir as informações de contribuinte.</p>
-    1. Localize o campo **`Indicador Insc.Estadual`** e altere seu valor para **`NÃO CONTRIBUINTE`**.
-    2. Encontre o campo **`Insc.Estadual`** e **apague completamente** qualquer número, deixando-o **em branco**.
+    <p>Na janela de edi??o do endere?o, vamos corrigir as informa??es de contribuinte.</p>
+    1. Localize o campo **`Indicador Insc.Estadual`** e altere seu valor para **`N?O CONTRIBUINTE`**.
+    2. Encontre o campo **`Insc.Estadual`** e **apague completamente** qualquer n?mero, deixando-o **em branco**.
     
 
-    <Callout type="warn" title="Verificação Adicional">
-      Na tela principal do cadastro do participante (aba "Principal"), confirme se o campo **`Classificação`** está definido como **`ISENTO`**. Geralmente, esta configuração acompanha o ajuste de "Não Contribuinte".
+    <Callout type="warn" title="Verifica??o Adicional">
+      Na tela principal do cadastro do participante (aba "Principal"), confirme se o campo **`Classifica??o`** est? definido como **`ISENTO`**. Geralmente, esta configura??o acompanha o ajuste de "N?o Contribuinte".
     </Callout>
   </Step>
 
   <Step title="Salvar e Retransmitir a NFe">
-    <p>Após corrigir o cadastro, salve as alterações e envie a nota novamente.</p>
-    1. Clique em **Salvar** na janela "Participante - Endereço Editando".
+    <p>Ap?s corrigir o cadastro, salve as altera??es e envie a nota novamente.</p>
+    1. Clique em **Salvar** na janela "Participante - Endere?o Editando".
     2. Clique em **Salvar** na tela principal do "Participante Editando".
-    3. Retorne ao módulo de notas fiscais e **retransmita a NFe** que havia sido rejeitada.
+    3. Retorne ao m?dulo de notas fiscais e **retransmita a NFe** que havia sido rejeitada.
 
     <Callout type="success" title="Problema Resolvido">
-      Se os passos foram seguidos corretamente, a NFe será enviada com a informação de "Não Contribuinte" e será autorizada pela Sefaz!
+      Se os passos foram seguidos corretamente, a NFe ser? enviada com a informa??o de "N?o Contribuinte" e ser? autorizada pela Sefaz!
     </Callout>
   </Step>
 </Steps>

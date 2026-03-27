@@ -1,4 +1,4 @@
-﻿# @dosc-syspro/web
+# @dosc-syspro/web
 
 Aplicacao principal do workspace.
 

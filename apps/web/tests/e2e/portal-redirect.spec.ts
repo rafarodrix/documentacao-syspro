@@ -1,4 +1,4 @@
-﻿import { expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("protected portal redirects", () => {
   test("/portal redirects unauthenticated users to login preserving callback", async ({ page }) => {

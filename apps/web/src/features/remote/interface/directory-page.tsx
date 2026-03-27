@@ -835,9 +835,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 const agentToken = getAgentTokenMeta(item.lastHeartbeatErrorMessage);
                 const operational = getOperationalHighlights(item);
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
-                const companyLine = item.installationCompanies.length
-                  ? item.installationCompanies.join(" | ")
-                  : item.companyName ?? "Sem empresa";
+                const installationNames = item.installationCompanies.length
+                  ? item.installationCompanies
+                  : item.companyName
+                    ? [item.companyName]
+                    : [];
 
                 return (
                   <div
@@ -867,10 +869,28 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         </div>
 
                         <div className="space-y-2">
-                          <p className="text-lg font-semibold text-foreground">{companyLine}</p>
                           <p className="text-sm text-muted-foreground">
-                            Maquina: {item.machineName ?? item.name}
+                            Nome da maquina: <span className="font-medium text-foreground">{item.name}</span>
                           </p>
+                          <p className="text-sm text-muted-foreground">
+                            Nome do computador (Windows):{" "}
+                            <span className="font-medium text-foreground">{item.machineName ?? "Sem leitura do agente"}</span>
+                          </p>
+                          {installationNames.length ? (
+                            <div className="flex flex-wrap gap-2">
+                              {installationNames.map((installationName, installationIndex) => (
+                                <Badge
+                                  key={`${item.id}-installation-${installationIndex}-${installationName}`}
+                                  variant="outline"
+                                  className="border-border/60 bg-background/70 text-foreground"
+                                >
+                                  Instalacao {installationIndex + 1}: {installationName}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Sem instalacoes reportadas no heartbeat.</p>
+                          )}
                           <details className="rounded-lg border border-border/50 bg-background/40 p-2 text-xs">
                             <summary className="cursor-pointer text-muted-foreground">Diagnostico rapido</summary>
                             <div className="mt-2 flex flex-wrap gap-2">

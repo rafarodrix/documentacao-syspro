@@ -15,7 +15,7 @@ export function SefazNationalGrid({ data }: { data: SefazStatusItem[] }) {
     return data?.find(d => d.uf === uf && d.service === service);
   };
 
-  // Pegamos a lista ÃƒÂºnica de UFs das suas constantes
+  // Pegamos a lista única de UFs das suas constantes
   const ufs = Array.from(new Set(SEFAZ_ENDPOINTS.map(e => e.uf)));
 
   return (

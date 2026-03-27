@@ -1,4 +1,4 @@
-﻿# @dosc-syspro/app-mobile
+# @dosc-syspro/app-mobile
 
 Shell estrutural do app mobile do monorepo.
 

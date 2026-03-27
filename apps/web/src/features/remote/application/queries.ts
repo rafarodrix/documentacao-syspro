@@ -658,10 +658,14 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
 
   const installationMap = new Map<string, string[]>();
   for (const row of installationRows) {
-    const label = row.companyName ?? row.companyLabel;
-    if (!label) continue;
+    const labels = [row.companyName, row.companyLabel]
+      .map((label) => label?.trim())
+      .filter((label): label is string => !!label);
+    if (!labels.length) continue;
     const current = installationMap.get(row.hostId) ?? [];
-    if (!current.includes(label)) current.push(label);
+    for (const label of labels) {
+      if (!current.includes(label)) current.push(label);
+    }
     installationMap.set(row.hostId, current);
   }
 
