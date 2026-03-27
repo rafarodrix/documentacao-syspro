@@ -250,3 +250,27 @@
     }
   }
 }
+
+@layer components {
+  #nd-sidebar.docs-sidebar-shell,
+  #nd-sidebar-mobile.docs-sidebar-shell {
+    background: linear-gradient(180deg, hsl(var(--card) / 0.88) 0%, hsl(var(--background) / 0.94) 100%);
+  }
+
+  #nd-sidebar.docs-sidebar-shell [data-active='true'] {
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.55);
+  }
+
+  #nd-sidebar.docs-sidebar-shell [data-active='true'] [data-active='true'] {
+    box-shadow: none;
+  }
+
+  #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor {
+    z-index: 2;
+  }
+
+  #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor button:focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.35);
+    outline-offset: 1px;
+  }
+}

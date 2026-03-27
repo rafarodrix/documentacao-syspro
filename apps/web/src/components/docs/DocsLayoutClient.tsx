@@ -61,6 +61,7 @@ export function DocsLayoutClient({
           enabled: false,
         }}
         sidebar={{
+          className: 'docs-sidebar-shell',
           defaultOpenLevel: 0,
           collapsible: false,
           banner: <DocsSidebarInlineCollapse />,
@@ -89,6 +90,7 @@ export function DocsLayoutClient({
       }}
       sidebar={{
         enabled: !isDocsHome,
+        className: 'docs-sidebar-shell',
         defaultOpenLevel: 0,
         collapsible: false,
         banner: <DocsSidebarInlineCollapse />,
