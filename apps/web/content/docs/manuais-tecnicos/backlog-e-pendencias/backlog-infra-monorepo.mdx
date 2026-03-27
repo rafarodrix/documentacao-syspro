@@ -40,16 +40,11 @@ Ordem recomendada:
 
 #### Backlog de implementacao
 
-- [x] `INFRA-022C` [Alta] Endurecer contratos entre `actions`, `hooks`, `forms` e componentes, removendo `any`, casts frouxos e respostas inconsistentes. Concluido com recortes em `auth`, `documentos`, `user-access`, `company`, `tickets`, `contracts`, `settings`, `site`, `components + features` e parser legado DANFE em `apps/web/src/app/api/visualizar-danfe/route.ts` (substituicao de `any` por `unknown` + narrowing, tipagem explicita de resposta e tratamento de erro tipado).
-- [x] `INFRA-023` [Alta] Pipeline CI com `lint`, `typecheck`, `test` e `build` por PR. O workflow em `.github/workflows/ci.yml` agora executa `check:utf8`, `docs:check`, `lint`, `typecheck` do `web`, `app-api` e `app-mobile`, bateria de testes do `web` e etapa separada de `build` para `web`, `app-api` e `app-mobile`.
-- [x] `INFRA-024` [Alta] Verificacao de contrato/schema em PR, cobrindo Prisma, contratos compartilhados e surfaces criticas do app. O CI agora valida `prisma/schema.prisma`, executa `prisma generate` como smoke check e roda `typecheck` dedicado de `packages/contracts` antes das etapas de build.
-- [x] `INFRA-025` [Alta] Logs estruturados e `correlationId` para rotas criticas, integracoes e jobs. O app agora tem logger estruturado compartilhado em `src/lib/observability/logger.ts`, com `correlationId` extraido ou gerado por request e propagado em `x-correlation-id`; o padrao ja foi aplicado nas rotas criticas de `remote` (registro, heartbeat, listagem/criacao/inicio/encerramento de sessao), nas integracoes de `Zammad` (webhook e sync), na verificacao `SEFAZ` e no job de `tax sync chunk`.
 - [ ] `INFRA-026` [Media] Metricas minimas por rota critica, jobs e integracoes externas.
 - [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs. A base de Playwright ja foi aberta em `apps/web`, com config, scripts, smoke de landing page, redirect de rotas protegidas (`/portal` e `/docs`) e fluxo autenticado opcional por credenciais de ambiente; faltam integrar execucao ao CI, instalar browsers no pipeline e ampliar a cobertura para fluxos autenticados e operacionais mais profundos.
 - [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`.
 - [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
 - [ ] `INFRA-027C` [Media] Revisar o que ainda deve sair de `apps/web/src/lib` para consumo compartilhado via `packages/*`.
-- [x] `INFRA-027D` [Alta] Extrair dominio remoto para package compartilhado e transformar `route.ts` em adapter HTTP fino. **Concluido no recorte arquitetural principal**: (1) `apps/web/src/app/api/remote/**/route.ts` migrado para adapter fino (`parse + delegate + response`) com casos de uso em `packages/remote-domain` e gateways em `apps/web/src/features/remote/infrastructure/gateways/remote-domain/*`; (2) consumo de `@dosc-syspro/remote-domain` integrado ao `apps/api`; (3) padrao unico de erro tipado (`code`, `message`, `httpStatus`) aplicado nos endpoints remotos e no shell HTTP do `apps/api`; (4) mapeador central de erro de dominio consolidado em `packages/remote-domain/src/errors.ts` e helper compartilhado em `apps/web/src/app/api/remote/_shared/remote-domain-error.ts`. Pendencia operacional residual: manter validacao em CI (`typecheck/build`) e regressao de contratos remotos em PR.
 
 #### Ideias de implementacao
 
@@ -167,7 +162,6 @@ Ordem recomendada:
 
 #### Backlog de implementacao
 
-- [x] `FEAT-008` [Media] Evoluir cadastro de empresa com guia `Parametros Servidor`. A nova guia permite definir `tipo de servidor` entre `Syspro Server` e `IIS`; quando o tipo for `IIS`, abre configuracoes especificas do servidor (`porta`, `protocolo`, `servidor` e `url path / ISAPI`). O mesmo recorte tambem inclui o cadastro de `tipo de conexao remota` entre `DDNS (NoIP)` e `Radmin VPN`, alem da `descricao da maquina`.
 - [ ] `FEAT-009` [Media] Criar shell inicial de `apps/api` com endpoints de exemplo e contrato de API compartilhado. O esqueleto do app, configuracao de rota, autenticacao basica por token, logger estruturado e endpoint de exemplo ja existem; faltam definir contrato compartilhado, aplicar a esse contrato em endpoints reais, integrar casos de uso do `apps/web` e validar o comportamento em ambiente real.
 - [ ] `FEAT-009A` [Media] Criar shell inicial de backend dedicado para o canal de WhatsApp, com endpoints de exemplo e contrato compartilhado. O esqueleto do app, configuracao de rota, autenticacao basica por token, logger estruturado e endpoint de exemplo ja existem; faltam definir contrato compartilhado, aplicar a esse contrato em endpoints reais, integrar casos de uso do `apps/web` e validar o comportamento em ambiente real.
 - [ ] `UI-001` [Media] Reforcar a consistencia visual do app com o tema compartilhado, aplicando-o integralmente e eliminando hardcodes. O tema compartilhado ja existe em `packages/ui`, foi integrado ao `apps/web` e aplicado em diversos componentes e telas, mas ainda existem pontos de inconsistencia visual e hardcodes de cor, tipografia e espacamento que precisam ser eliminados para garantir uma experiencia visual coesa e aderente ao design system.
@@ -185,11 +179,11 @@ Ordem recomendada:
 1. `FEAT-001`
    aplicar migrations pendentes, `prisma generate` no ambiente e validar o fluxo completo por perfil
 2. `FEAT-002B`
-   validar `discover`, `bootstrap`, `sync`, `ack`, auto-vinculo por `installToken` e metadata real do agente
+   validar `discover`, `bootstrap`, `sync`, `ack`, auto-vinculo por `installToken` e metadata real do agente (foco tecnico em campo)
 3. `FEAT-002E`
-   validar `agentToken`, expiracao por politica e observabilidade minima do agente em maquina real
+   validar `agentToken`, expiracao por politica e observabilidade minima do agente em maquina real (foco tecnico em campo)
 4. `FEAT-002F`
-   validar em campo o ciclo `bootstrap -> sync -> ack` com fila de comandos, compliance e telemetria por host
+   validar em campo o ciclo `bootstrap -> sync -> ack` com fila de comandos, compliance e telemetria por host (foco tecnico em campo)
 5. `FEAT-003`
    materializar job de expiracao, persistir auditoria por sessao e validar `REQUESTED -> STARTED -> ENDED`
 6. `FEAT-003A`
@@ -199,22 +193,39 @@ Ordem recomendada:
 
 ### Sprint 2 - Estabilizacao do agente e UX
 
-1. `FEAT-002A`
-   fechar consistencia visual entre configuracao, diretorio e detalhe e revisar responsividade
-2. `FEAT-002G`
+1. `FEAT-002G`
    alinhar `/portal/configuracoes?tab=remote` ao contrato tipado (`code/message/httpStatus`) e copy OSS-first
-3. `FEAT-002H`
+2. `FEAT-002H`
    alinhar `/portal/plataforma-remota` ao contrato tipado, estados de token e UX de rate limit/retry
-4. `FEAT-002I`
+3. `FEAT-002I`
    limpar copy residual legado e padronizar nomenclatura do modulo remoto
-5. `FEAT-002B`
-   validar reconfiguracao de maquina ja instalada e endurecer segredos do agente
+4. `FEAT-002A`
+   fechar consistencia visual entre configuracao, diretorio e detalhe e revisar responsividade
+5. `FEAT-002F`
+   fechar UX operacional das credenciais do `address-book` e consolidar onboarding 100% via bootstrap autenticado
 6. `FEAT-002E`
-   validar rotacao, rebootstrap e expiracao em campo e amadurecer a UX operacional e mobile
-7. `FEAT-002F`
-   fechar UX operacional das credenciais do `address-book`, validar ciclo em campo com agente customizado e consolidar onboarding 100% via bootstrap autenticado
+   amadurecer UX operacional/mobile para rotacao, rebootstrap e expiracao de token
+7. `FEAT-002B`
+   validar reconfiguracao de maquina ja instalada e endurecer segredos do agente (frente de produto/UX)
 8. `INFRA-027`
    E2E dos fluxos criticos do portal e docs
+
+Quebra por tela para implementacao:
+
+1. `/portal/configuracoes?tab=remote` (`FEAT-002G`)
+2. `/portal/plataforma-remota` (`FEAT-002H`)
+3. Copys transversais do modulo remoto (`FEAT-002I`)
+
+Checklist objetivo por componente:
+
+1. `settings-tab.tsx`: tratar `code/message/httpStatus` em salvar configuracoes, com estado de erro por codigo.
+2. `settings-tab.tsx`: remover termos legados de script/installer e manter linguagem `bootstrap/sync/ack`.
+3. `directory-page.tsx`: mapear erros de `create/update/delete/link/relink` por `code` e exibir feedback acionavel.
+4. `host-details-page.tsx`: mapear estados de token (`valid`, `expired`, `rotated`, `revoked`) com CTA de rebootstrap.
+5. `remote-controls.tsx`: unificar toasts e mensagens de erro para contrato tipado remoto.
+6. `actions`/`hooks` de remoto: normalizar parsing de erro para sempre priorizar `message` e `code` do backend.
+7. `copy UX`: remover termos residuais (`register`, `installer legado`, `.ps1` como fluxo principal).
+8. `E2E`: cobrir ao menos um fluxo feliz e um fluxo de erro tipado para `configuracoes` e `plataforma-remota`.
 
 ### Sprint 3 - Multi-instalacao e observabilidade
 
