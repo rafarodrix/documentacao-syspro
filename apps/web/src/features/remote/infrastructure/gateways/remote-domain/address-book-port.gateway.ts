@@ -75,7 +75,7 @@ export function createRemoteAddressBookPort(): RemoteAddressBookPort {
         });
 
       return {
-        items: items as unknown as Record<string, unknown>[],
+        items,
         total: items.length,
       };
     },
@@ -152,7 +152,7 @@ export function createRemoteAddressBookPort(): RemoteAddressBookPort {
                 email: item.revokedByUser.email,
               }
             : null,
-        })) as unknown as Record<string, unknown>[],
+        })),
       };
     },
 
@@ -289,3 +289,4 @@ export function createRemoteAddressBookPort(): RemoteAddressBookPort {
     },
   };
 }
+

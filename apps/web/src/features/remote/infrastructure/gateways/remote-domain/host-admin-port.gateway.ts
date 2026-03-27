@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   normalizeCompareValue,
@@ -98,7 +97,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
             serviceStatus: discoveredHost.serviceStatus?.trim() || null,
             lastHeartbeatAt: heartbeatAt,
             status: "ACTIVE",
-          } as Prisma.RemoteHostUncheckedCreateInput,
+          },
           select: { id: true, companyId: true },
         });
 
@@ -178,7 +177,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         },
       });
 
-      return { host: host as unknown as Record<string, unknown> };
+      return { host };
     },
 
     async updateHost(input: UpdateHostInput): Promise<UpdateHostOutput> {
@@ -248,7 +247,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         },
       });
 
-      return { host: host as unknown as Record<string, unknown> };
+      return { host };
     },
 
     async deleteHost(input: DeleteHostInput): Promise<DeleteHostOutput> {
@@ -344,7 +343,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
       });
 
       return {
-        host: host as unknown as Record<string, unknown>,
+        host,
         message: "agentToken rotacionado. Execute o bootstrap novamente no host para emitir nova credencial.",
       };
     },
@@ -412,7 +411,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
       });
 
       return {
-        host: host as unknown as Record<string, unknown>,
+        host,
         message: "agentToken revogado. Execute o bootstrap novamente para emitir nova credencial.",
       };
     },
@@ -484,7 +483,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         });
 
         if (existingLink) {
-          return { update: existingLink as unknown as Record<string, unknown> };
+          return { update: existingLink };
         }
 
         let saved;
@@ -524,7 +523,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
           });
         }
 
-        return { update: saved as unknown as Record<string, unknown> };
+        return { update: saved };
       }
 
       const saved = await prisma.remoteHostSysproUpdate.update({
@@ -536,7 +535,9 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         select: { id: true, companyId: true, companyLabel: true, path: true },
       });
 
-      return { update: saved as unknown as Record<string, unknown> };
+      return { update: saved };
     },
   };
 }
+
+
