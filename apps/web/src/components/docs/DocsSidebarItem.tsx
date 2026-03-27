@@ -32,13 +32,14 @@ export function DocsSidebarItem({ item }: { item: Item }) {
       icon={item.icon}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'rounded-md border border-transparent bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-accent/45',
+        'rounded-lg border border-transparent bg-transparent text-[0.95rem] leading-5 transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
+        'hover:bg-accent/40',
         isVisited && !isActive && 'text-muted-foreground/80',
-        isActive && 'border-primary/20 bg-primary/10 text-foreground font-semibold',
+        isActive && 'border-primary/15 bg-primary/8 text-foreground font-medium',
       )}
     >
       <span className="flex items-center gap-2.5">
-        {isVisited && !isActive ? <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" aria-hidden /> : null}
         <span>{item.name}</span>
       </span>
     </SidebarItem>

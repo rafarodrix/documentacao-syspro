@@ -258,7 +258,7 @@
   }
 
   #nd-sidebar.docs-sidebar-shell [data-active='true'] {
-    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.55);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.45);
   }
 
   #nd-sidebar.docs-sidebar-shell [data-active='true'] [data-active='true'] {
@@ -272,5 +272,45 @@
   #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor button:focus-visible {
     outline: 2px solid hsl(var(--ring) / 0.35);
     outline-offset: 1px;
+  }
+
+  /* Densidade mais proxima do layout nativo do Fumadocs */
+  #nd-sidebar.docs-sidebar-shell .overscroll-contain,
+  #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain {
+    padding: 0.75rem;
+  }
+
+  #nd-sidebar.docs-sidebar-shell a[data-active],
+  #nd-sidebar.docs-sidebar-shell button[data-state],
+  #nd-sidebar-mobile.docs-sidebar-shell a[data-active],
+  #nd-sidebar-mobile.docs-sidebar-shell button[data-state] {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+
+  #nd-sidebar.docs-sidebar-shell [data-radix-collapsible-content] {
+    margin-top: 0.12rem;
+  }
+
+  #nd-sidebar.docs-sidebar-shell p.inline-flex.items-center.gap-2,
+  #nd-sidebar-mobile.docs-sidebar-shell p.inline-flex.items-center.gap-2 {
+    margin-top: 0.95rem;
+    margin-bottom: 0.45rem;
+    padding-top: 0.12rem;
+    padding-bottom: 0.12rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: hsl(var(--muted-foreground) / 0.95);
+  }
+
+  #nd-sidebar.docs-sidebar-shell p.inline-flex.items-center.gap-2:first-of-type,
+  #nd-sidebar-mobile.docs-sidebar-shell p.inline-flex.items-center.gap-2:first-of-type {
+    margin-top: 0.35rem;
+  }
+
+  #nd-sidebar.docs-sidebar-shell [data-radix-collapsible-content] > * + *,
+  #nd-sidebar-mobile.docs-sidebar-shell [data-radix-collapsible-content] > * + * {
+    margin-top: 0.1rem;
   }
 }
