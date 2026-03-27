@@ -1,7 +1,7 @@
 ---
 title: Estrategia de AgentToken e Observabilidade Remota
 description: Desenho tecnico inicial para evoluir o agente remoto com token pos-bootstrap e telemetria operacional coerente com servidor RustDesk proprio.
-lastUpdated: "2026-03-25"
+lastUpdated: "2026-03-26"
 owner: Equipe de Arquitetura
 status: draft
 ---
@@ -28,12 +28,13 @@ Com servidor RustDesk proprio em `acesso.trilinksoftware.com.br`, o maior ganho 
 
 ## Situacao atual
 
-Hoje o fluxo esta assim:
+Hoje o fluxo ja evoluiu para:
 
-1. instalador por host envia `installToken` para `register`
-2. heartbeats seguintes continuam usando `installToken`
-3. o portal persiste `serviceStatus`, `machineName`, `agentVersion` e `sysproUpdates[]`
-4. a observabilidade do agente ainda e limitada ao heartbeat e a alguns logs locais
+1. instalador por host usa `POST /api/remote/rustdesk/bootstrap` para emitir `agentToken`
+2. ciclo recorrente do agente usa `POST /api/remote/rustdesk/sync` com `agentToken`
+3. execucao de comandos operacionais fecha por `POST /api/remote/rustdesk/ack`
+4. o portal persiste sinais de compliance do cliente (`alias`, `version`, `serverHost`, `apiHost`, `publicKeyHash`) e telemetria da fila de comandos
+5. o `discover` permanece como triagem sem virar contrato oficial de operacao autenticada
 
 ## Problemas do modelo atual
 
@@ -49,13 +50,13 @@ Hoje o fluxo esta assim:
 `installToken` permanece com escopo restrito a:
 
 - download do instalador por host
-- primeiro `POST /api/remote/agents/register`
+- primeiro `POST /api/remote/rustdesk/bootstrap`
 
 Ele nao deve ser exigido para heartbeat continuo depois da emissao do token definitivo do agente.
 
 ### 2. Token operacional do agente
 
-Depois do `register`, o backend passa a emitir:
+Depois do `bootstrap`, o backend passa a emitir:
 
 - `agentToken` em texto plano, devolvido uma unica vez ao script
 - `agentTokenHash` persistido no banco
@@ -64,7 +65,8 @@ Depois do `register`, o backend passa a emitir:
 
 O `agentToken` passa a ser exigido em:
 
-- `POST /api/remote/agents/heartbeat`
+- `POST /api/remote/rustdesk/sync`
+- `POST /api/remote/rustdesk/ack`
 - futuras rotas de polling/telemetria
 - futuras rotas de job local do agente
 
@@ -92,7 +94,7 @@ O backend deve passar a registrar no host:
 <Steps>
   <Step>
     ### 1. Bootstrap
-    O script por host usa `installToken` em `POST /api/remote/agents/register`.
+    O script por host usa `installToken` em `POST /api/remote/rustdesk/bootstrap`.
   </Step>
   <Step>
     ### 2. Emissao do agentToken
@@ -103,8 +105,8 @@ O backend deve passar a registrar no host:
     O script grava o `agentToken` localmente com protecao minima adequada ao ambiente Windows.
   </Step>
   <Step>
-    ### 4. Heartbeat continuo
-    O script passa a chamar `POST /api/remote/agents/heartbeat` com `agentToken`.
+    ### 4. Sync continuo
+    O agente passa a chamar `POST /api/remote/rustdesk/sync` com `agentToken`, recebendo `expectedConfig`, `compliance` e `commandQueue`.
   </Step>
   <Step>
     ### 5. Rotacao
@@ -119,7 +121,7 @@ O backend deve passar a registrar no host:
 Endpoint:
 
 ```text
-POST /api/remote/agents/register
+POST /api/remote/rustdesk/bootstrap
 ```
 
 Resposta proposta:
@@ -135,12 +137,12 @@ Resposta proposta:
 }
 ```
 
-### Heartbeat continuo
+### Sync continuo
 
 Endpoint:
 
 ```text
-POST /api/remote/agents/heartbeat
+POST /api/remote/rustdesk/sync
 ```
 
 Payload proposto:
@@ -177,19 +179,25 @@ Campos sugeridos:
 - `lastKnownIp`
 - `lastRegisterAt`
 - `lastRegisterSource`
+- `lastKnownRustDeskAlias`
+- `lastKnownRustDeskVersion`
+- `lastKnownRustDeskServerHost`
+- `lastKnownRustDeskApiHost`
+- `lastKnownRustDeskPublicKeyHash`
+- `lastRustDeskConfigSyncAt`
 
-### Opcional em tabela dedicada
+### Em tabela dedicada de comandos do agente
 
-Se o recorte crescer, extrair para algo como:
+O recorte ja materializou uma tabela dedicada para fila/telemetria de comando:
 
-`RemoteHostAgent`
+`RemoteAgentCommand`
 
 para separar:
 
-- identidade do host
-- identidade do agente
-- historico de token
-- ultimos erros
+- tipo de acao
+- status de entrega e execucao
+- tentativas, erro e payload de resultado
+- trilha temporal por comando
 
 ## UI recomendada
 
@@ -231,8 +239,7 @@ Esses pontos entram depois, principalmente no backlog de `FEAT-002D`.
 
 ## Proximo passo recomendado
 
-1. abrir modelagem Prisma do `agentToken` e observabilidade minima
-2. ajustar `register` para emitir `agentToken`
-3. ajustar `heartbeat` para aceitar `agentToken`
-4. adaptar os dois scripts oficiais
-5. mostrar os novos sinais no detalhe do host
+1. validar rotacao e rebootstrap em ambiente real com o contrato `bootstrap -> sync -> ack`
+2. consolidar instalador customizado para reduzir dependencia de `.ps1`
+3. revisar definitivamente o papel do `discover` como triagem controlada
+4. fechar UX de credenciais do `address-book` no portal

@@ -88,10 +88,7 @@ export async function PATCH(
       where: {
         hostId: id,
         path: update.path,
-        OR: [
-          { companyId: nextCompanyId },
-          { companyLabel: nextCompanyLabel ?? update.companyLabel },
-        ],
+        companyId: nextCompanyId,
       },
       select: { id: true },
     });
@@ -100,22 +97,53 @@ export async function PATCH(
       return NextResponse.json({ success: true, data: existingLink });
     }
 
-    const saved = await prisma.remoteHostSysproUpdate.create({
-      data: {
-        hostId: id,
-        companyId: nextCompanyId,
-        companyLabel: nextCompanyLabel ?? update.companyLabel,
-        path: update.path,
-        lastFileWriteAt: update.lastFileWriteAt,
-        lastHeartbeatAt: update.lastHeartbeatAt,
-      },
-      select: {
-        id: true,
-        companyId: true,
-        companyLabel: true,
-        path: true,
-      },
-    });
+    let saved;
+    try {
+      saved = await prisma.remoteHostSysproUpdate.create({
+        data: {
+          hostId: id,
+          companyId: nextCompanyId,
+          companyLabel: nextCompanyLabel ?? update.companyLabel,
+          path: update.path,
+          lastFileWriteAt: update.lastFileWriteAt,
+          lastHeartbeatAt: update.lastHeartbeatAt,
+        },
+        select: {
+          id: true,
+          companyId: true,
+          companyLabel: true,
+          path: true,
+        },
+      });
+    } catch (error) {
+      const isUniqueViolation =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: string }).code === "P2002";
+
+      if (!isUniqueViolation) {
+        throw error;
+      }
+
+      // Legacy unique key still includes companyLabel; avoid false collision when two companies share the same label.
+      saved = await prisma.remoteHostSysproUpdate.create({
+        data: {
+          hostId: id,
+          companyId: nextCompanyId,
+          companyLabel: `${nextCompanyLabel ?? update.companyLabel} [${nextCompanyId.slice(0, 8)}]`,
+          path: update.path,
+          lastFileWriteAt: update.lastFileWriteAt,
+          lastHeartbeatAt: update.lastHeartbeatAt,
+        },
+        select: {
+          id: true,
+          companyId: true,
+          companyLabel: true,
+          path: true,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, data: saved });
   }

@@ -8,9 +8,7 @@ import {
   ExternalLink,
   Fingerprint,
   HardDriveDownload,
-  TimerReset,
   UserRound,
-  Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -348,6 +346,13 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         ]
       : [];
   }, [details.sysproUpdates, host.companyId, host.companyName]);
+  const primaryMonitoredPath = details.sysproUpdates[0]?.path ?? null;
+  const companyOptionLabelCount = useMemo(() => {
+    return details.companyOptions.reduce<Record<string, number>>((acc, option) => {
+      acc[option.label] = (acc[option.label] ?? 0) + 1;
+      return acc;
+    }, {});
+  }, [details.companyOptions]);
 
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
@@ -748,51 +753,35 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Contexto operacional da maquina</CardTitle>
-              <CardDescription>Instalacoes detectadas, parametros definidos na empresa e observacoes manuais no mesmo lugar.</CardDescription>
+              <CardDescription>Servidor, caminhos monitorados e observacoes no mesmo bloco operacional.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-              <div className="space-y-4">
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2 font-medium text-foreground">
-                    <Wrench className="h-4 w-4 text-muted-foreground" />
-                    Host
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    <p><span className="font-medium text-foreground">Descricao:</span> {host.description || "Sem descricao operacional."}</p>
-                    <p><span className="font-medium text-foreground">Observacoes:</span> {host.notes ?? "Sem observacoes do host."}</p>
-                  </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.company.nomeFantasia ?? details.company.razaoSocial}</p>
                 </div>
-
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2 font-medium text-foreground">
-                    <TimerReset className="h-4 w-4 text-muted-foreground" />
-                    Empresa
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    <p><span className="font-medium text-foreground">Empresa:</span> {details.company.nomeFantasia ?? details.company.razaoSocial}</p>
-                    <div className="space-y-2">
-                      <p className="font-medium text-foreground">Observacoes da empresa</p>
-                      <Textarea
-                        rows={5}
-                        value={companyObservacoes}
-                        onChange={(event) => setCompanyObservacoes(event.target.value)}
-                        placeholder="Registre orientacoes operacionais desta empresa para futuros acessos remotos."
-                      />
-                    </div>
-                  </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Host</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{host.name}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado atual</p>
+                  <p className="mt-1 break-all font-mono text-xs text-foreground">{primaryMonitoredPath ?? "Sem leitura do agente"}</p>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2 font-medium text-foreground">
-                    <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
-                    Configuracoes do servidor
-                  </p>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                <p className="flex items-center gap-2 font-medium text-foreground">
+                  <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
+                  Servidor e instalacoes monitoradas
+                </p>
+
+                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3" open>
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Configuracoes do servidor da empresa</summary>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor da empresa</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
                       {details.permissions.canEditCompanyContext ? (
                         <select
                           value={companyServerType}
@@ -809,15 +798,18 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       )}
                     </div>
                     <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao da empresa</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho principal monitorado</p>
                       {details.permissions.canEditCompanyContext ? (
                         <Input value={companyInstallationDirectory} onChange={(event) => setCompanyInstallationDirectory(event.target.value)} />
                       ) : (
                         <p className="mt-1 break-all text-sm text-foreground">{details.company.installationDirectory || "Nao configurado"}</p>
                       )}
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Este caminho deve refletir o executavel monitorado no heartbeat.
+                      </p>
                     </div>
                     <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor da empresa</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor</p>
                       {details.permissions.canEditCompanyContext ? (
                         <Input value={companyServerHost} onChange={(event) => setCompanyServerHost(event.target.value)} />
                       ) : (
@@ -825,15 +817,17 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       )}
                     </div>
                     <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta da empresa</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta</p>
                       {details.permissions.canEditCompanyContext ? (
                         <Input value={companyServerPort} onChange={(event) => setCompanyServerPort(event.target.value)} />
                       ) : (
-                        <p className="mt-1 text-sm text-foreground">{details.company.serverPort ? String(details.company.serverPort) : "Nao configurado"}</p>
+                        <p className="mt-1 text-sm text-foreground">
+                          {details.company.serverPort ? String(details.company.serverPort) : "Nao configurado"}
+                        </p>
                       )}
                     </div>
                     <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conexao da empresa</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conexao</p>
                       {details.permissions.canEditCompanyContext ? (
                         <select
                           value={companyServerProtocol}
@@ -848,7 +842,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       )}
                     </div>
                     <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Url Path (ISAPI) da empresa</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Url Path (ISAPI)</p>
                       {details.permissions.canEditCompanyContext ? (
                         <Input value={companyIisIsapiPath} onChange={(event) => setCompanyIisIsapiPath(event.target.value)} />
                       ) : (
@@ -856,20 +850,101 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       )}
                     </div>
                   </div>
-                  {details.permissions.canEditCompanyContext ? (
-                    <div className="mt-3 flex justify-end">
-                      <Button onClick={handleSaveCompanyContext} disabled={isSavingCompanyContext}>
-                        {isSavingCompanyContext ? "Salvando..." : "Salvar configuracoes da empresa"}
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
+                </details>
 
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2 font-medium text-foreground">
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    Conexoes remotas
+                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3" open>
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Instalacoes detectadas na maquina</summary>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Use `Trocar empresa` para corrigir o vinculo e `Adicionar empresa` quando a mesma instalacao atender mais de uma empresa.
                   </p>
+                  <div className="mt-3 space-y-3">
+                    {details.sysproUpdates.length ? (
+                      details.sysproUpdates.map((entry) => (
+                        <div key={entry.id} className="rounded-xl border border-border/50 bg-background/40 p-4">
+                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_180px_180px]">
+                            <div className="min-w-0">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
+                              <p className="mt-1 text-sm font-medium text-foreground">{entry.resolvedCompanyName ?? entry.companyLabel}</p>
+                              {!entry.companyId ? (
+                                <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">Sem vinculo automatico com empresa cadastrada</p>
+                              ) : null}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
+                              <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
+                              <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
+                              <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastHeartbeatAt)}</p>
+                            </div>
+                          </div>
+                          {details.permissions.canRelinkInstallations ? (
+                            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
+                              <select
+                                value={pendingUpdateCompanyById[entry.id] ?? entry.companyId ?? details.company.id}
+                                onChange={(event) =>
+                                  setPendingUpdateCompanyById((current) => ({ ...current, [entry.id]: event.target.value }))
+                                }
+                                className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                              >
+                                {details.companyOptions.map((company) => (
+                                  <option key={company.id} value={company.id}>
+                                    {companyOptionLabelCount[company.label] > 1
+                                      ? `${company.label} (${company.id.slice(0, 8)})`
+                                      : company.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <Button className="w-full lg:w-auto" onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
+                                Trocar empresa
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="w-full lg:w-auto"
+                                onClick={() => handleAddCompanyToInstallation(entry.id)}
+                                disabled={linkingUpdateId}
+                              >
+                                Adicionar empresa
+                              </Button>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Esta maquina ainda nao enviou instalacoes no heartbeat.</p>
+                    )}
+                  </div>
+                </details>
+
+                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Observacoes operacionais</summary>
+                  <div className="mt-3 space-y-3">
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Descricao do host</p>
+                      <p className="mt-1 text-sm text-foreground">{host.description || "Sem descricao operacional."}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Observacoes do host</p>
+                      <p className="mt-1 text-sm text-foreground">{host.notes ?? "Sem observacoes do host."}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Observacoes da empresa</p>
+                      <Textarea
+                        rows={5}
+                        value={companyObservacoes}
+                        onChange={(event) => setCompanyObservacoes(event.target.value)}
+                        placeholder="Registre orientacoes operacionais desta empresa para futuros acessos remotos."
+                      />
+                    </div>
+                  </div>
+                </details>
+
+                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Conexoes remotas</summary>
                   <div className="mt-3 space-y-3">
                     {details.company.remoteConnections.length ? (
                       details.company.remoteConnections.map((connection, index) => (
@@ -886,76 +961,15 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
-              </div>
+                </details>
 
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Instalacoes detectadas na maquina</p>
-                  <p className="text-sm text-muted-foreground">Cada linha representa um caminho monitorado e a empresa associada a esta maquina.</p>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {details.sysproUpdates.length ? (
-                    details.sysproUpdates.map((entry) => (
-                      <div key={entry.id} className="rounded-xl border border-border/50 bg-background/40 p-4">
-                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_180px_180px]">
-                          <div className="min-w-0">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
-                            <p className="mt-1 text-sm font-medium text-foreground">{entry.resolvedCompanyName ?? entry.companyLabel}</p>
-                            {!entry.companyId ? (
-                              <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">Sem vinculo automatico com empresa cadastrada</p>
-                            ) : null}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
-                            <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
-                            <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
-                            <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastHeartbeatAt)}</p>
-                          </div>
-                        </div>
-                        {details.permissions.canRelinkInstallations ? (
-                          <div className="mt-4 space-y-3">
-                            <p className="text-xs text-muted-foreground">
-                              Use `Trocar empresa` para corrigir o vinculo atual ou `Adicionar empresa` quando a mesma instalacao atender mais de uma empresa.
-                            </p>
-                            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
-                            <select
-                              value={pendingUpdateCompanyById[entry.id] ?? entry.companyId ?? details.company.id}
-                              onChange={(event) =>
-                                setPendingUpdateCompanyById((current) => ({ ...current, [entry.id]: event.target.value }))
-                              }
-                              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
-                            >
-                              {details.companyOptions.map((company) => (
-                                <option key={company.id} value={company.id}>
-                                  {company.label}
-                                </option>
-                              ))}
-                            </select>
-                              <Button className="w-full lg:w-auto" onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
-                                Trocar empresa
-                              </Button>
-                              <Button variant="outline" className="w-full lg:w-auto" onClick={() => handleAddCompanyToInstallation(entry.id)} disabled={linkingUpdateId}>
-                                Adicionar empresa
-                              </Button>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Esta maquina ainda nao enviou instalacoes no heartbeat.
-                    </p>
-                  )}
-                </div>
+                {details.permissions.canEditCompanyContext ? (
+                  <div className="mt-3 flex justify-end">
+                    <Button onClick={handleSaveCompanyContext} disabled={isSavingCompanyContext}>
+                      {isSavingCompanyContext ? "Salvando..." : "Salvar contexto da empresa"}
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </CardContent>
           </Card>

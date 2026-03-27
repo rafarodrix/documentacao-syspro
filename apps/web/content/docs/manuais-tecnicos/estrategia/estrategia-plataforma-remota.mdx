@@ -2,7 +2,7 @@
 title: Estrategia de Plataforma Remota
 description: Direcao tecnica vigente da plataforma remota com RustDesk, Zammad, tenant scope e evolucao operacional controlada.
 full: true
-lastUpdated: "2026-03-25"
+lastUpdated: "2026-03-26"
 owner: Equipe de Arquitetura
 status: published
 ---
@@ -30,9 +30,16 @@ Consolidar a direcao da plataforma remota sem repetir backlog operacional ou man
 - entidades `RemoteHost` e `RemoteSession`
 - segregacao por `companyId`
 - vinculo de sessao com `ticketId` e `ticketNumber`
-- endpoints base de hosts, sessoes, register e heartbeat
+- endpoints base de hosts e sessoes, mais contratos oficiais de sincronizacao do agente
+- contratos oficiais de sincronizacao RustDesk:
+  - `POST /api/remote/rustdesk/bootstrap`
+  - `POST /api/remote/rustdesk/sync`
+  - `POST /api/remote/rustdesk/ack`
+  - `GET /api/remote/rustdesk/address-book`
 - deep-link controlado para `rustdesk://`
 - webhook inicial com o Zammad
+- fila persistida de comandos do agente com telemetria e timeline operacional
+- autenticacao do `address-book` por credencial persistida com escopo, rotacao e revogacao
 - separacao entre configuracao e operacao:
   - `/portal/configuracoes?tab=remote`
   - `/portal/plataforma-remota`
@@ -105,12 +112,19 @@ persistencia
 3. sessao e aberta ou reutilizada com deduplicacao minima
 4. deep-link e liberado apenas no fluxo permitido
 
+### Compliance e automacao do agente
+
+1. agente autentica por `agentToken` no `sync`
+2. portal compara configuracao reportada x configuracao esperada
+3. fila de comandos entrega `reapply_alias`, `reapply_config`, `upgrade_client` e `rotate_token_required`
+4. agente executa e fecha o comando via `ack`
+
 ## Evolucao recomendada
 
 <Steps>
   <Step>
     ### Fase 1 - Estabilizacao operacional
-    Validar discover, register, heartbeat, start/stop, TTL e bloqueios com ambiente real.
+    Validar discover, bootstrap, sync, ack, start/stop, TTL e bloqueios com ambiente real.
   </Step>
   <Step>
     ### Fase 2 - Endurecimento

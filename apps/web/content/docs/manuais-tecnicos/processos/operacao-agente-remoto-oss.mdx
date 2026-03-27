@@ -1,7 +1,7 @@
 ---
 title: Operacao do Agente Remoto OSS
 description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat e validacao operacional do agente remoto no modelo RustDesk self-hosted com portal proprio.
-lastUpdated: 2026-03-25
+lastUpdated: 2026-03-26
 owner: Engenharia de Plataforma
 status: published
 ---
@@ -28,8 +28,9 @@ Padronizar como uma maquina remota deve ser:
 - o portal expoe:
   - `GET /api/remote/agents/discovery-script`
   - `POST /api/remote/agents/discover`
-  - `POST /api/remote/agents/register`
-  - `POST /api/remote/agents/heartbeat`
+  - `POST /api/remote/rustdesk/bootstrap`
+  - `POST /api/remote/rustdesk/sync`
+  - `POST /api/remote/rustdesk/ack`
   - `POST /api/remote/discovered-hosts/:id/link`
 - o `RustDesk ID` deve ser persistido sem espacos
 - a leitura operacional do host hoje segue a matriz:
@@ -89,7 +90,7 @@ Usado quando a maquina ainda nao existe no portal.
   </Step>
 </Steps>
 
-### 2. Instalacao por host ja cadastrado
+### 2. Instalacao por host ja cadastrado (fluxo oficial)
 
 Usado quando o host ja existe no portal e o agente deve entrar direto no cadastro correto.
 
@@ -104,14 +105,18 @@ Usado quando o host ja existe no portal e o agente deve entrar direto no cadastr
   </Step>
   <Step>
     ### 3. Auto-registro
-    O agente envia `installToken`, `rustdeskId`, `machineName`, `agentVersion` e `environment` para `POST /api/remote/agents/register`.
+    O agente envia `installToken`, `rustdeskId`, `machineName` e versao atual para `POST /api/remote/rustdesk/bootstrap` e recebe `agentToken`.
   </Step>
   <Step>
-    ### 4. Heartbeat
-    O agente envia chamadas periodicas para `POST /api/remote/agents/heartbeat` para manter `lastHeartbeatAt`, `serviceStatus` e `sysproUpdates[]` atualizados.
+    ### 4. Sync recorrente
+    O agente envia chamadas periodicas para `POST /api/remote/rustdesk/sync` com `agentToken`, mantendo heartbeat, compliance e `sysproUpdates[]`.
   </Step>
   <Step>
-    ### 5. Operacao do suporte
+    ### 5. Ack de comandos
+    Quando o portal entregar comandos na `commandQueue`, o agente executa e devolve resultado para `POST /api/remote/rustdesk/ack`.
+  </Step>
+  <Step>
+    ### 6. Operacao do suporte
     O suporte consulta `/portal/plataforma-remota`, usa `Acesso rapido` ou abre o detalhe do host antes da sessao.
   </Step>
 </Steps>
@@ -152,12 +157,12 @@ Resultado esperado:
 - `agentExternalId` preenchido quando o `RustDesk ID` vier valido
 - `serviceStatus` e `sysproUpdates[]` persistidos no host descoberto ou no host ja vinculado
 
-### Registro inicial em host operacional
+### Bootstrap inicial em host operacional
 
 Endpoint:
 
 ```text
-POST /api/remote/agents/register
+POST /api/remote/rustdesk/bootstrap
 ```
 
 Exemplo:
@@ -178,22 +183,27 @@ Resultado esperado:
 - `machineName` preenchido
 - `agentVersion` preenchido
 
-### Heartbeat operacional
+### Sync operacional
 
 Endpoint:
 
 ```text
-POST /api/remote/agents/heartbeat
+POST /api/remote/rustdesk/sync
 ```
 
 Exemplo:
 
 ```json
 {
-  "installToken": "rhost_abc123",
+  "agentToken": "agt_xxx",
   "rustdeskId": "21187620068",
   "machineName": "ERP-MATRIZ-01",
   "agentVersion": "rustdesk-oss-local",
+  "currentAlias": "EMPRESA X | ERP-MATRIZ-01",
+  "currentVersion": "1.4.6",
+  "serverHost": "acesso.trilinksoftware.com.br",
+  "apiHost": "acesso.trilinksoftware.com.br",
+  "publicKey": "6FpnQH+KbbpX0qw6XxF0xqnIO0QnHImwbvQ5Lv7q6gU=",
   "serviceStatus": "running",
   "sysproUpdates": [
     {
@@ -210,6 +220,30 @@ Resultado esperado:
 - `lastHeartbeatAt` atualizado
 - `serviceStatus` refletido no detalhe do host
 - instalacoes monitoradas atualizadas sem duplicar hosts
+- `compliance` retornado pelo portal
+- `commandQueue` entregue para execucao local
+
+### Ack de comando do agente
+
+Endpoint:
+
+```text
+POST /api/remote/rustdesk/ack
+```
+
+Exemplo:
+
+```json
+{
+  "agentToken": "agt_xxx",
+  "commandId": "cmd_abc",
+  "status": "ACKNOWLEDGED",
+  "message": "Alias reaplicado",
+  "details": {
+    "appliedAlias": "EMPRESA X | ERP-MATRIZ-01"
+  }
+}
+```
 
 ## Scripts oficiais
 
@@ -328,7 +362,7 @@ Historicamente isso aconteceu quando `middleware` interceptava `/api/remote/agen
 Tratamento:
 
 - validar se a rota do agente continua publica no middleware
-- confirmar que a chamada chega direto em `discover`, `register` ou `heartbeat`
+- confirmar que a chamada chega direto em `discover`, `bootstrap`, `sync` ou `ack`
 
 ### `Impossivel conectar-se ao servidor remoto`
 
