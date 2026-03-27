@@ -1,4 +1,4 @@
----
+﻿---
 title: Estrutura Atual do Projeto
 description: Visao pratica da estrutura vigente do monorepo e de onde cada tipo de responsabilidade deve ficar.
 lastUpdated: 2026-03-24
@@ -98,15 +98,13 @@ Regra funcional de dominio nao deve nascer aqui se pertencer claramente a uma fe
 ```text
 apps/web/content/docs/
   docs/                 -> documentacao publica e funcional
-  manuais-tecnicos/     -> arquitetura, governanca, processos e estrategia
+  manuais-tecnicos/     -> base interna consolidada
 ```
 
 Dentro de `manuais-tecnicos`, a organizacao correta e:
 
-- `arquitetura/` para fonte de verdade estrutural
-- `governanca/` para checklist, backlog e guardrails
-- `processos/` para manuais operacionais
-- `estrategia/` para direcao futura de modulos relevantes
+- `documentacao-tecnica-arquitetura/` para arquitetura, padroes, processos operacionais e guias tecnicos prontos
+- `backlog-e-pendencias/` para backlog vivo, itens em desenvolvimento, drafts e analises arquivadas
 
 ## Onde colocar codigo novo
 
@@ -140,6 +138,7 @@ Avaliar `packages/ui` ou `apps/web/src/components/ui`, conforme o escopo de reus
 
 ## Documentos complementares
 
-- [`/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo`](/docs/manuais-tecnicos/arquitetura/arquitetura-aplicacao-monorepo)
-- [`/docs/manuais-tecnicos/arquitetura/arquitetura-referencia-por-fluxo`](/docs/manuais-tecnicos/arquitetura/arquitetura-referencia-por-fluxo)
-- [`/docs/manuais-tecnicos/governanca/backlog-infra-monorepo`](/docs/manuais-tecnicos/governanca/backlog-infra-monorepo)
+- [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-aplicacao-monorepo`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-aplicacao-monorepo)
+- [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-referencia-por-fluxo`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-referencia-por-fluxo)
+- [`/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo`](/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo)
+
