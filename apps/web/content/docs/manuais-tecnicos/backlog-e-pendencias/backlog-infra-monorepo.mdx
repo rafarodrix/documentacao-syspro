@@ -1,4 +1,4 @@
----
+﻿---
 title: Backlog de Infraestrutura e Estabilizacao
 description: Backlog priorizado com os itens pendentes para estabilizacao do app, consolidacao arquitetural e evolucao das novas funcionalidades.
 lastUpdated: 2026-03-26
@@ -49,7 +49,7 @@ Ordem recomendada:
 - [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`.
 - [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
 - [ ] `INFRA-027C` [Media] Revisar o que ainda deve sair de `apps/web/src/lib` para consumo compartilhado via `packages/*`.
-- [ ] `INFRA-027D` [Alta] Extrair dominio remoto para package compartilhado e transformar `route.ts` em adapter HTTP fino. Regra alvo: a camada HTTP deve apenas receber JSON, validar contrato (Zod) e delegar para casos de uso puros no dominio compartilhado (ex.: `await TrilinkRemote.processHeartbeat(payload)`). Criterios de aceite: (1) sem regra de negocio em `apps/web/src/app/api/remote/**/route.ts`, (2) casos de uso de `discover/bootstrap/sync/ack` centralizados em package compartilhado consumivel por `apps/web`, `apps/api` e `apps/mobile`, (3) contratos tipados unicos para request/response e erros.
+- [ ] `INFRA-027D` [Alta] Extrair dominio remoto para package compartilhado e transformar `route.ts` em adapter HTTP fino. Status atual: **parcialmente concluido**. Ja entregue: `packages/remote-domain` com contratos Zod e casos de uso para `discover/bootstrap/sync/ack`, facade `createTrilinkRemote` e migracao dos endpoints Web para parse + delegate + response. Pendente para concluir: (1) remover residuo de orquestracao e persistencia acoplada que ainda existe nos adapters HTTP (`apps/web/src/app/api/remote/**/route.ts`) movendo para gateways/repositorios do dominio, (2) integrar consumo real do mesmo dominio em `apps/api` e preparar contrato de consumo para `apps/mobile`, (3) fechar padrao unico de erros tipados (code/message/httpStatus) compartilhado entre os quatro fluxos, (4) validar em CI com `typecheck` e testes de regressao dos contratos remotos.
 
 #### Ideias de implementacao
 
@@ -250,4 +250,5 @@ Ordem recomendada:
 - desenho do `agentToken` e multi-bases remoto: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss)
 - integracao `Zammad + RustDesk`: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad)
 - integracao `Zammad + WhatsApp`: [`/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp`](/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp)
+
 

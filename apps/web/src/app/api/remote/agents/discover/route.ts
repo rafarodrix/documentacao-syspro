@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
-import { prisma } from "@/lib/prisma";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { createRequestLogger } from "@/lib/observability/logger";
-import {
-  normalizeRustdeskId,
-  normalizeSysproUpdates,
-  serializeSysproUpdatesSnapshot,
-} from "@/features/remote/application/agent-payload";
-import { createTrilinkRemote, type RemoteDiscoverPort } from "@dosc-syspro/remote-domain";
+import { createRemoteDiscoverPort } from "@/features/remote/infrastructure/gateways/remote-domain/discover-port.gateway";
+import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 
 export const dynamic = "force-dynamic";
 
@@ -78,113 +72,10 @@ export async function POST(request: Request) {
 
   const body = await request.json();
 
-  const discoverPort: RemoteDiscoverPort = {
-    getExpectedDiscoveryToken() {
-      return process.env.REMOTE_DISCOVERY_TOKEN?.trim() || null;
-    },
-    normalizeRustdeskId(value: string | null | undefined) {
-      return normalizeRustdeskId(value);
-    },
-    normalizeSysproUpdates(value: unknown) {
-      return normalizeSysproUpdates(value).map((entry) => ({
-        companyLabel: entry.companyLabel,
-        path: entry.path,
-        lastFileWriteAt: entry.lastFileWriteAt?.toISOString() ?? null,
-      }));
-    },
-    serializeSysproUpdatesSnapshot(updates) {
-      return serializeSysproUpdatesSnapshot(
-        updates.map((entry) => ({
-          companyLabel: entry.companyLabel,
-          path: entry.path,
-          lastFileWriteAt: entry.lastFileWriteAt ? new Date(entry.lastFileWriteAt) : null,
-        })),
-      ) as unknown;
-    },
-    getTransitions() {
-      return DISCOVER_TRANSITIONS;
-    },
-    async findDiscoveredHost(input) {
-      const discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
-        where: input.rustdeskId
-          ? {
-              OR: [{ agentExternalId: input.rustdeskId }, ...(input.machineName ? [{ machineName: input.machineName }] : [])],
-            }
-          : { machineName: input.machineName ?? undefined },
-        orderBy: [{ updatedAt: "desc" }],
-      });
-
-      if (!discoveredHost) return null;
-
-      return {
-        id: discoveredHost.id,
-        linkedHostId: discoveredHost.linkedHostId,
-        linkedAt: discoveredHost.linkedAt,
-      };
-    },
-    async findLinkedHost(linkedHostId: string) {
-      const linkedHost = await prisma.remoteHost.findFirst({
-        where: { id: linkedHostId },
-        select: {
-          id: true,
-          name: true,
-          agentTokenHash: true,
-          lastHeartbeatErrorMessage: true,
-        },
-      });
-
-      return linkedHost;
-    },
-    async updateDiscoveredHost(id, payload) {
-      const record = await prisma.remoteDiscoveredHost.update({
-        where: { id },
-        data: {
-          machineName: payload.machineName,
-          agentExternalId: payload.agentExternalId,
-          agentVersion: payload.agentVersion,
-          environment: payload.environment,
-          provider: payload.provider,
-          description: payload.description,
-          serviceStatus: payload.serviceStatus,
-          installationsSnapshot: payload.installationsSnapshot as Prisma.InputJsonValue,
-          lastHeartbeatAt: payload.lastHeartbeatAt,
-          linkedAt: payload.linkedAt ?? undefined,
-          status: payload.status,
-        },
-        select: { id: true },
-      });
-
-      return record;
-    },
-    async createDiscoveredHost(payload) {
-      const record = await prisma.remoteDiscoveredHost.create({
-        data: {
-          machineName: payload.machineName,
-          agentExternalId: payload.agentExternalId,
-          agentVersion: payload.agentVersion,
-          environment: payload.environment,
-          provider: payload.provider,
-          description: payload.description,
-          serviceStatus: payload.serviceStatus,
-          installationsSnapshot: payload.installationsSnapshot as Prisma.InputJsonValue,
-          lastHeartbeatAt: payload.lastHeartbeatAt,
-          status: payload.status,
-        },
-        select: { id: true },
-      });
-
-      return record;
-    },
-    async logInfo(event: string, fields: Record<string, unknown>) {
-      logger.info(event, fields);
-    },
-    async logWarning(event: string, fields: Record<string, unknown>) {
-      logger.warn(event, fields);
-    },
-    async logError(event: string, fields?: Record<string, unknown>) {
-      logger.error(event, fields);
-    },
-  };
+  const discoverPort = createRemoteDiscoverPort({
+    logger,
+    transitions: DISCOVER_TRANSITIONS,
+  });
 
   const trilinkRemote = createTrilinkRemote({
     discoverPort,

@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
-import { prisma } from "@/lib/prisma";
 import { createRequestLogger } from "@/lib/observability/logger";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
-import { hashAgentToken } from "@/features/remote/application/rustdesk-sync";
-import { isRemoteAgentTokenExpired } from "@/features/remote/application/agent-token";
-import { createTrilinkRemote, type RemoteAckPort } from "@dosc-syspro/remote-domain";
+import { createRemoteAckPort } from "@/features/remote/infrastructure/gateways/remote-domain/ack-port.gateway";
+import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 
 export const dynamic = "force-dynamic";
 
@@ -46,60 +43,7 @@ export async function POST(request: Request) {
 
   const body = await request.json();
 
-  const ackPort: RemoteAckPort = {
-    async resolveHostByAgentToken(agentToken: string) {
-      const host = await prisma.remoteHost.findFirst({
-        where: {
-          agentTokenHash: hashAgentToken(agentToken),
-        },
-        select: {
-          id: true,
-          agentTokenIssuedAt: true,
-        },
-      });
-
-      if (!host) return null;
-      return {
-        hostId: host.id,
-        agentTokenIssuedAt: host.agentTokenIssuedAt,
-      };
-    },
-    isAgentTokenExpired(issuedAt: Date | null) {
-      return isRemoteAgentTokenExpired(issuedAt);
-    },
-    async findDeliverableCommand(hostId: string, commandId: string) {
-      const command = await prisma.remoteAgentCommand.findFirst({
-        where: {
-          id: commandId,
-          hostId,
-          status: {
-            in: ["PENDING", "DELIVERED"],
-          },
-        },
-        select: {
-          id: true,
-          type: true,
-        },
-      });
-
-      return command;
-    },
-    async persistAck(record) {
-      await prisma.remoteAgentCommand.update({
-        where: { id: record.commandId },
-        data: {
-          status: record.status,
-          executedAt: record.executedAt,
-          resultMessage: record.message,
-          resultPayload: record.details ? (record.details as Prisma.InputJsonValue) : undefined,
-          failedAt: record.status === "FAILED" ? record.executedAt : null,
-        },
-      });
-    },
-    async logInfo(event: string, fields: Record<string, unknown>) {
-      logger.info(event, fields);
-    },
-  };
+  const ackPort = createRemoteAckPort({ logger });
 
   const trilinkRemote = createTrilinkRemote({
     ackPort,

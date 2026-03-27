@@ -1,4 +1,4 @@
----
+﻿---
 title: Operacao do Agente Remoto OSS
 description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat e validacao operacional do agente remoto no modelo RustDesk self-hosted com portal proprio.
 lastUpdated: 2026-03-27
@@ -526,8 +526,10 @@ Modelo consolidado:
 ### Prioridade alta
 
 1. Extrair dominio e servicos remotos para package compartilhado
-- criar package de dominio remoto (casos de uso, validacoes, tipos e contratos)
-- remover regra de negocio dos `route.ts`, mantendo-os como adapters HTTP
+- status atual: **parcialmente concluido**
+- `packages/remote-domain` ja concentra casos de uso e contratos de `discover/bootstrap/sync/ack`
+- pendente mover o residuo de orquestracao/persistencia dos adapters HTTP para gateways/repositorios de dominio
+- pendente conectar o mesmo dominio em `apps/api` e preparar contrato final para `apps/mobile`
 - manter independencia de framework (sem dependencia de Next.js no dominio)
 
 2. Endurecimento de seguranca operacional
@@ -570,3 +572,4 @@ Modelo consolidado:
 1. validar em campo a rotacao/rebootstrap e os dois fluxos de instalacao
 2. iniciar extracao do dominio remoto para package compartilhado
 3. abrir migracao controlada para `packages/api` visando consumo Web + Mobile
+
