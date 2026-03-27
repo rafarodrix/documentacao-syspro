@@ -39,17 +39,15 @@ export async function GET(request: Request) {
         defaultPassword,
       },
       commands: {
-        hostInstallerTemplate: `${portalBaseUrl}/api/remote/hosts/{hostId}/installer`,
         bootstrapEndpoint: `${portalBaseUrl}/api/remote/rustdesk/bootstrap`,
         syncEndpoint: `${portalBaseUrl}/api/remote/rustdesk/sync`,
         ackEndpoint: `${portalBaseUrl}/api/remote/rustdesk/ack`,
       },
       notes: [
-        "Use o instalador por host para emissao de agentToken e agendamento do sync.",
+        "Use o bootstrap autenticado para emissao de agentToken e inicio do ciclo de sync.",
         "No cliente customizado, aplique serverIdRelay/serverApi/key/serverConfig como defaults.",
         "O fluxo discover permanece apenas para triagem sem autenticar operacao recorrente.",
       ],
     },
   });
 }
-

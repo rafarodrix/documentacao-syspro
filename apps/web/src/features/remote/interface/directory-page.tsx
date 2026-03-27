@@ -6,7 +6,6 @@ import {
   ArrowUpRight,
   Copy,
   ExternalLink,
-  Monitor,
   Plus,
   Search,
   Settings,
@@ -32,8 +31,6 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
-import { RemoteInstallGuideDialog } from "@/features/remote/interface/remote-install-guide-dialog";
-import { RemoteScriptDownloadButton } from "@/features/remote/interface/script-download-button";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 
@@ -331,26 +328,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           Configuracoes
         </a>
 
-        <RemoteScriptDownloadButton
-          url="/api/remote/agents/discovery-script"
-          filenameFallback="trilink-remote-discovery.ps1"
-          label="Baixar script padrao"
-          variant="outline"
-          className="w-full gap-2 sm:w-auto"
-        >
-          <Monitor className="h-4 w-4" />
-          Baixar script padrao
-        </RemoteScriptDownloadButton>
-
-        <RemoteInstallGuideDialog
-          moduleSettings={directory.moduleSettings}
-          scriptUrl="/api/remote/agents/discovery-script"
-          scriptFilename="trilink-remote-discovery.ps1"
-          title="Configuracao e instalacao padrao"
-          description="Dados manuais do servidor RustDesk e comandos para instalar o script padrao de descoberta a partir da plataforma."
-          triggerClassName="w-full gap-2 sm:w-auto"
-        />
-
         {canCreateHosts ? (
           <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
             <DialogTrigger asChild>
@@ -401,7 +378,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         ) : null}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          O `script padrao` continua restrito a descoberta e triagem. Para rebootstrap, rotacao de token ou reconfiguracao de host vinculado, use sempre o `.ps1` dedicado do host.
+          O fluxo agora e 100% via integracao RustDesk. Faça vinculacao das maquinas descobertas nesta tela e siga o bootstrap autenticado pelo agente.
         </p>
       </div>
 
@@ -736,7 +713,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <div className="mt-3 space-y-3">
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Maquinas que chegaram pelo script padrao. Escolha a empresa e transforme cada uma em host operacional nesta mesma tela.
+                  Maquinas descobertas por onboarding do agente. Escolha a empresa e transforme cada uma em host operacional nesta mesma tela.
                 </p>
               </div>
 

@@ -7,7 +7,6 @@ import {
   Copy,
   ExternalLink,
   Fingerprint,
-  HardDriveDownload,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,7 +18,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
-import { RemoteScriptDownloadButton } from "@/features/remote/interface/script-download-button";
 
 function formatDateTime(value: string | null) {
   if (!value) return "Sem registro";
@@ -679,20 +677,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">Rebootstrap necessario</p>
                 <p className="mt-1 text-sm text-rose-700/90 dark:text-rose-200/90">{agentTokenMeta.description}</p>
                 <p className="mt-2 text-xs text-rose-700/80 dark:text-rose-200/80">
-                  Baixe e execute o `.ps1` deste host como administrador para concluir o novo bootstrap.
+                  Reexecute o bootstrap autenticado do agente neste host para concluir a renovacao de credencial.
                 </p>
-                <div className="mt-3">
-                  <RemoteScriptDownloadButton
-                    url={host.agent.installerPath}
-                    filenameFallback="trilink-remote-agent.ps1"
-                    label="Baixar .ps1 do host"
-                    variant="outline"
-                    className="w-full justify-center gap-2 border-rose-500/30 bg-background/70 text-rose-700 hover:bg-background dark:text-rose-200 sm:w-auto"
-                  >
-                    <HardDriveDownload className="h-4 w-4" />
-                    Baixar .ps1 do host
-                  </RemoteScriptDownloadButton>
-                </div>
               </div>
             ) : null}
 
@@ -1151,22 +1137,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </p>
                 <p className="mt-1">
                   {agentTokenMeta.needsBootstrap
-                    ? "Baixe o `.ps1` dedicado deste host, execute como administrador, confirme o registro inicial e aguarde o proximo heartbeat valido."
-                    : "Se precisar reinstalar ou reaplicar configuracao, use o `.ps1` dedicado deste host. O script padrao de descoberta fica restrito a triagem inicial."}
+                    ? "Execute novamente o bootstrap autenticado do agente neste host e aguarde o proximo heartbeat valido."
+                    : "Se precisar reinstalar ou reaplicar configuracao, siga o fluxo de bootstrap autenticado no agente."}
                 </p>
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
-                <RemoteScriptDownloadButton
-                  url={host.agent.installerPath}
-                  filenameFallback="trilink-remote-agent.ps1"
-                  label="Baixar .ps1 do host"
-                  variant="outline"
-                  className="w-full gap-2 xl:w-auto"
-                >
-                  <HardDriveDownload className="h-4 w-4" />
-                  Baixar .ps1 do host
-                </RemoteScriptDownloadButton>
                 <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="w-full gap-2 xl:w-auto">
                   <Fingerprint className="h-4 w-4" />
                   Copiar token
@@ -1395,11 +1371,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </div>
 
                 <div className="mt-3 rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p>1. Baixe o script dedicado deste host.</p>
-                  <p>2. Execute na maquina do cliente e confirme o RustDesk ID devolvido.</p>
+                  <p>1. Execute o bootstrap autenticado do agente para este host.</p>
+                  <p>2. Confirme o RustDesk ID devolvido pela maquina do cliente.</p>
                   <p>3. O bootstrap emite `agentToken` e o heartbeat continuo passa a preferir essa credencial.</p>
                   <p>4. Se rotacionar o `agentToken` ou se ele expirar, execute o bootstrap novamente neste host.</p>
-                  <p>5. O script padrao de descoberta nao substitui este fluxo e nao reativa heartbeat autenticado em host ja vinculado.</p>
+                  <p>5. A descoberta e apenas etapa de triagem e nao reativa heartbeat autenticado em host ja vinculado.</p>
                   <p>6. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
                   {isMobileClient ? <p>7. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
                 </div>

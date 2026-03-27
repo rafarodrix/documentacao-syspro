@@ -60,7 +60,7 @@ export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatform
               <p className="text-sm font-medium text-foreground">Politicas do agente</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Intervalo de heartbeat, versao alvo do RustDesk, comportamento do script padrao e defaults operacionais do modulo.
+              Intervalo de heartbeat, versao alvo do RustDesk e defaults operacionais do bootstrap/sync.
             </p>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
@@ -69,7 +69,7 @@ export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatform
               <p className="text-sm font-medium text-foreground">Governanca</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Controle de quem pode operar hosts, baixar scripts e administrar o onboarding tecnico do ambiente remoto.
+              Controle de quem pode operar hosts e administrar o onboarding tecnico do ambiente remoto.
             </p>
           </div>
         </CardContent>

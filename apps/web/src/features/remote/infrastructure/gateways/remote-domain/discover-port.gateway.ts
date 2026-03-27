@@ -34,8 +34,9 @@ export function createRemoteDiscoverPort(params: {
       }));
     },
     serializeSysproUpdatesSnapshot(updates) {
+      const normalizedUpdates = normalizeSysproUpdates(updates);
       return serializeSysproUpdatesSnapshot(
-        updates.map((entry) => ({
+        normalizedUpdates.map((entry) => ({
           companyLabel: entry.companyLabel,
           path: entry.path,
           lastFileWriteAt: entry.lastFileWriteAt ? new Date(entry.lastFileWriteAt) : null,

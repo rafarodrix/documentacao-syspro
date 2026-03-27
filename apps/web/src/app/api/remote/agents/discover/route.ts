@@ -24,10 +24,10 @@ const DISCOVER_TRANSITIONS = {
   },
   host_installer_required: {
     state: "DISCOVERY_LINKED_HOST_BOOTSTRAP_REQUIRED",
-    nextStep: "download_host_installer_and_bootstrap",
+    nextStep: "run_authenticated_bootstrap",
     nextEndpoint: "/api/remote/rustdesk/bootstrap",
     allowDiscoveryHeartbeat: false,
-    requiresHostInstaller: true,
+    requiresHostInstaller: false,
   },
 } as const;
 

@@ -102,11 +102,53 @@ export const processDiscoverInputSchema = z.object({
     .optional(),
 });
 
+
+const sessionScopeSchema = z.object({
+  isGlobalView: z.boolean(),
+  companyIds: z.array(z.string().trim().min(1)).default([]),
+});
+
+const sessionActorSchema = z.object({
+  userId: z.string().trim().min(1),
+  role: z.string().trim().min(1),
+  name: z.string().trim().nullable().optional(),
+  email: z.string().trim().nullable().optional(),
+});
+
+export const listSessionsInputSchema = z.object({
+  scope: sessionScopeSchema,
+});
+
+export const createSessionInputSchema = z.object({
+  actor: sessionActorSchema,
+  scope: sessionScopeSchema,
+  companyId: z.string().trim().min(1),
+  hostId: z.string().trim().min(1),
+  ticketId: z.string().trim().nullable().optional(),
+  ticketNumber: z.string().trim().nullable().optional(),
+  reason: z.string().trim().nullable().optional(),
+});
+
+export const startSessionInputSchema = z.object({
+  actor: sessionActorSchema,
+  scope: sessionScopeSchema,
+  sessionId: z.string().trim().min(1),
+});
+
+export const stopSessionInputSchema = z.object({
+  actor: sessionActorSchema,
+  scope: sessionScopeSchema,
+  sessionId: z.string().trim().min(1),
+});
 export type ProcessHeartbeatInput = z.infer<typeof processHeartbeatInputSchema>;
 export type ProcessBootstrapInput = z.infer<typeof processBootstrapInputSchema>;
 export type ProcessAckInput = z.infer<typeof processAckInputSchema>;
 export type ProcessSyncInput = z.infer<typeof processSyncInputSchema>;
 export type ProcessDiscoverInput = z.infer<typeof processDiscoverInputSchema>;
+export type ListSessionsInput = z.infer<typeof listSessionsInputSchema>;
+export type CreateSessionInput = z.infer<typeof createSessionInputSchema>;
+export type StartSessionInput = z.infer<typeof startSessionInputSchema>;
+export type StopSessionInput = z.infer<typeof stopSessionInputSchema>;
 
 export type DailySnapshotPolicy = {
   dayStartIso: string;
@@ -243,3 +285,21 @@ export type ProcessSyncOutput = {
 };
 
 
+
+export type SessionSerializedRecord = Record<string, unknown>;
+
+export type ListSessionsOutput = {
+  sessions: SessionSerializedRecord[];
+};
+
+export type CreateSessionOutput = {
+  session: SessionSerializedRecord;
+};
+
+export type StartSessionOutput = {
+  session: SessionSerializedRecord;
+};
+
+export type StopSessionOutput = {
+  session: SessionSerializedRecord;
+};

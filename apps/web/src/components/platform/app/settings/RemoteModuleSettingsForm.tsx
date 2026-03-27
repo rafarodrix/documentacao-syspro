@@ -54,7 +54,6 @@ type RemoteClientProfile = {
     defaultPassword: string;
   };
   commands: {
-    hostInstallerTemplate: string;
     bootstrapEndpoint: string;
     syncEndpoint: string;
     ackEndpoint: string;
@@ -365,7 +364,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <div>
               <CardTitle className="text-lg">Servidor RustDesk</CardTitle>
               <CardDescription>
-                Estes valores alimentam o script padrao de descoberta e o instalador por host.
+                Estes valores alimentam o perfil oficial do cliente RustDesk e os endpoints autenticados.
               </CardDescription>
             </div>
           </div>
@@ -405,7 +404,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <div>
               <CardTitle className="text-lg">Politicas do agente</CardTitle>
               <CardDescription>
-                Defaults operacionais aplicados na geracao dos scripts e no heartbeat recorrente.
+                Defaults operacionais aplicados no bootstrap e no heartbeat recorrente.
               </CardDescription>
             </div>
           </div>
@@ -485,7 +484,6 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
                   <p><span className="font-medium text-foreground">Bootstrap:</span> {clientProfile.commands.bootstrapEndpoint}</p>
                   <p><span className="font-medium text-foreground">Sync:</span> {clientProfile.commands.syncEndpoint}</p>
                   <p><span className="font-medium text-foreground">Ack:</span> {clientProfile.commands.ackEndpoint}</p>
-                  <p><span className="font-medium text-foreground">Instalador host:</span> {clientProfile.commands.hostInstallerTemplate}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">

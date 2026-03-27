@@ -1,4 +1,4 @@
-﻿---
+---
 title: Operacao do Agente Remoto OSS
 description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat e validacao operacional do agente remoto no modelo RustDesk self-hosted com portal proprio.
 lastUpdated: 2026-03-27
@@ -34,7 +34,6 @@ Padronizar como uma maquina remota deve ser:
 - a operacao diaria acontece em `/portal/plataforma-remota`
 - as configuracoes globais do modulo remoto ficam em `/portal/configuracoes?tab=remote`
 - o portal expoe:
-  - `GET /api/remote/agents/discovery-script`
   - `POST /api/remote/agents/discover`
   - `POST /api/remote/rustdesk/bootstrap`
   - `POST /api/remote/rustdesk/sync`
@@ -94,12 +93,12 @@ Usado quando a maquina ainda nao existe no portal.
 
 <Steps>
   <Step>
-    ### 1. Baixar script padrao
-    O operador baixa o script em `GET /api/remote/agents/discovery-script` pela tela `/portal/plataforma-remota`.
+    ### 1. Iniciar onboarding do agente
+    O agente inicia descoberta enviando `POST /api/remote/agents/discover` sem pre-cadastro de host.
   </Step>
   <Step>
-    ### 2. Executar na maquina
-    O script instala/atualiza o RustDesk, aplica a configuracao do servidor proprio, tenta autoelevacao, envia a primeira descoberta e agenda heartbeat recorrente.
+    ### 2. Enviar descoberta inicial
+    A maquina envia `rustdeskId`, `machineName`, versao e status para entrar na triagem operacional.
   </Step>
   <Step>
     ### 3. Entrada em triagem
@@ -125,23 +124,19 @@ Usado quando o host ja existe no portal e o agente deve entrar direto no cadastr
     O operador cria ou revisa o host em `/portal/plataforma-remota` ou em `/portal/configuracoes?tab=remote`.
   </Step>
   <Step>
-    ### 2. Download do instalador do host
-    O operador baixa o `.ps1` do host em `GET /api/remote/hosts/:id/installer`.
-  </Step>
-  <Step>
-    ### 3. Auto-registro
+    ### 2. Auto-registro
     O agente envia `installToken`, `rustdeskId`, `machineName` e versao atual para `POST /api/remote/rustdesk/bootstrap` e recebe `agentToken`.
   </Step>
   <Step>
-    ### 4. Sync recorrente
+    ### 3. Sync recorrente
     O agente envia chamadas periodicas para `POST /api/remote/rustdesk/sync` com `agentToken`, mantendo heartbeat e compliance. O envio de `sysproUpdates[]` deve ser incremental (apenas quando houver mudanca de versao/status/base); sem mudanca, enviar array vazio.
   </Step>
   <Step>
-    ### 5. Ack de comandos
+    ### 4. Ack de comandos
     Quando o portal entregar comandos na `commandQueue`, o agente executa e devolve resultado para `POST /api/remote/rustdesk/ack`.
   </Step>
   <Step>
-    ### 6. Operacao do suporte
+    ### 5. Operacao do suporte
     O suporte consulta `/portal/plataforma-remota`, usa `Acesso rapido` ou abre o detalhe do host antes da sessao.
   </Step>
 </Steps>
@@ -301,46 +296,6 @@ Exemplo:
 }
 ```
 
-## Scripts oficiais
-
-### Script padrao
-
-Origem oficial:
-
-```text
-GET /api/remote/agents/discovery-script
-```
-
-Observacoes:
-
-- e o **script oficial de producao**
-- usa `REMOTE_DISCOVERY_TOKEN` do ambiente
-- consome as configuracoes globais do modulo remoto:
-  - servidor RustDesk
-  - config exportada
-  - chave publica
-  - versao alvo
-  - intervalo de heartbeat
-  - senha padrao
-
-### Script estatico em `public`
-
-Arquivo:
-
-```text
-public/downloads/trilink-instalador-padrao.ps1
-```
-
-Uso recomendado:
-
-- documentacao interna
-- referencia tecnica
-- nao tratar como fonte oficial quando houver divergencia com a rota dinamica
-
-<Callout type="info" title="Regra pratica">
-  Em producao, sempre priorize o script baixado pela rota dinamica. O arquivo estatico em `public` pode ficar defasado se as configuracoes globais do modulo remoto mudarem.
-</Callout>
-
 ## Configuracoes globais que afetam o agente
 
 Tela:
@@ -360,8 +315,6 @@ Parametros atualmente centralizados:
 
 Esses valores alimentam:
 
-- `GET /api/remote/agents/discovery-script`
-- `GET /api/remote/hosts/:id/installer`
 - `GET /api/remote/rustdesk/client-profile`
 
 ## Perfil do cliente customizado
@@ -382,7 +335,6 @@ Uso:
 
 ### Descoberta
 
-- script padrao baixado pela rota dinamica
 - primeira chamada para `discover` concluida
 - maquina aparece em `Maquinas pendentes de vinculacao`
 - vinculacao manual concluida sem erro
@@ -523,13 +475,41 @@ Modelo consolidado:
 
 ## Backlog tecnico unico do remoto
 
+### Mapa atual da extracao por endpoint
+
+Ja esta em adapter HTTP fino (`parse + delegate + response`):
+
+- `POST /api/remote/agents/discover`
+- `POST /api/remote/rustdesk/bootstrap`
+- `POST /api/remote/rustdesk/sync`
+- `POST /api/remote/rustdesk/ack`
+- `GET/POST /api/remote/sessions`
+- `POST /api/remote/sessions/:id/start`
+- `POST /api/remote/sessions/:id/stop`
+
+Ainda com regra de negocio/persistencia relevante no `route.ts`:
+
+- `POST /api/remote/discovered-hosts/:id/link`
+- `POST/DELETE /api/remote/hosts/:id/agent-token`
+- `PATCH /api/remote/hosts/:id/syspro-updates/:updateId`
+- `POST /api/remote/hosts`
+- `PATCH/DELETE /api/remote/hosts/:id`
+- `GET/POST /api/remote/rustdesk/address-book/credentials`
+- `POST /api/remote/rustdesk/address-book/credentials/:id/rotate`
+- `POST /api/remote/rustdesk/address-book/credentials/:id/revoke`
+- `GET /api/remote/rustdesk/address-book`
+
+Pontos de atencao:
+
+- ha duplicacao de normalizacao de `RustDesk ID` entre rotas
+- existe inconsistencia entre `hosts create` (valida 7-12 digitos) e `hosts update/delete` (hoje remove apenas espacos)
 ### Prioridade alta
 
 1. Extrair dominio e servicos remotos para package compartilhado
 - status atual: **parcialmente concluido**
 - `packages/remote-domain` ja concentra casos de uso e contratos de `discover/bootstrap/sync/ack`
 - `discover/bootstrap/sync/ack` no `apps/web` ja operam em adapter HTTP fino (`parse + delegate + response`), com persistencia/orquestracao movida para gateways em `apps/web/src/features/remote/infrastructure/gateways/remote-domain/*`
-- pendente expandir o mesmo padrao para os demais endpoints remotos (`sessions`, `hosts`, `discovered-hosts/:id/link`, `hosts/:id/agent-token`, `hosts/:id/syspro-updates/[updateId]`, `rustdesk/address-book*`)
+- pendente expandir o mesmo padrao para os demais endpoints remotos (`hosts`, `discovered-hosts/:id/link`, `hosts/:id/agent-token`, `hosts/:id/syspro-updates/[updateId]`, `rustdesk/address-book*`)
 - pendente conectar o mesmo dominio em `apps/api` e preparar contrato final para `apps/mobile`
 - manter independencia de framework (sem dependencia de Next.js no dominio)
 
@@ -571,6 +551,11 @@ Modelo consolidado:
 ## Proximo passo recomendado
 
 1. validar em campo a rotacao/rebootstrap e os dois fluxos de instalacao
-2. expandir a extracao do dominio remoto para os endpoints remotos ainda fora do padrao de adapter fino
+2. expandir a extracao do dominio remoto no seguinte lote (ordem recomendada):
+
+- extrair `discovered-hosts/:id/link` para `LinkDiscoveredHostUseCase`
+- extrair `hosts/:id/agent-token` e `hosts/:id/syspro-updates/:updateId` para casos de uso de token/inventario
+- extrair CRUD de `hosts`
+- separar onboarding do agente em servico dedicado (sem dependencias em scripts HTTP)
 3. abrir migracao controlada para `packages/api` visando consumo Web + Mobile
 

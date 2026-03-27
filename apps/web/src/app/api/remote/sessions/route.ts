@@ -1,27 +1,19 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
-import { buildRequestedSessionExpiresAt } from "@/features/remote/application/session-policy";
 import { createRequestLogger } from "@/lib/observability/logger";
+import { createRemoteSessionPort } from "@/features/remote/infrastructure/gateways/remote-domain/session-port.gateway";
+import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 
 export const dynamic = "force-dynamic";
-
-function canCreateSession(role: string): boolean {
-  return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER" || role === "CLIENTE_ADMIN";
-}
-
-function buildTicketFilter(ticketId: string | null, ticketNumber: string | null) {
-  if (ticketId) return { ticketId };
-  if (ticketNumber) return { ticketNumber };
-  return {};
-}
 
 export async function GET(request: Request) {
   const { logger, responseHeaders } = createRequestLogger(request, {
     area: "api",
     feature: "remote-sessions",
   });
+
   const session = await getProtectedSession();
   if (!session) {
     logger.warn("remote.sessions.list.unauthorized");
@@ -29,27 +21,27 @@ export async function GET(request: Request) {
   }
 
   const tenantScope = await getRemoteTenantScope();
-  const where = tenantScope.isGlobalView
-    ? {}
-    : { companyId: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } };
+  const sessionPort = createRemoteSessionPort({ logger });
+  const trilinkRemote = createTrilinkRemote({ sessionPort });
 
-  const sessions = await prisma.remoteSession.findMany({
-    where,
-    include: {
-      company: { select: { id: true, nomeFantasia: true, razaoSocial: true } },
-      host: { select: { id: true, name: true } },
-      requestedByUser: { select: { id: true, name: true, email: true } },
-      startedByUser: { select: { id: true, name: true, email: true } },
-    },
-    orderBy: [{ createdAt: "desc" }],
-  });
+  try {
+    const data = await trilinkRemote.listSessions({
+      scope: {
+        isGlobalView: tenantScope.isGlobalView,
+        companyIds: tenantScope.companyIds,
+      },
+    });
 
-  logger.info("remote.sessions.list.succeeded", {
-    count: sessions.length,
-    tenantScope: tenantScope.isGlobalView ? "global" : "scoped",
-  });
+    logger.info("remote.sessions.list.succeeded", {
+      count: data.sessions.length,
+      tenantScope: tenantScope.isGlobalView ? "global" : "scoped",
+    });
 
-  return NextResponse.json({ success: true, data: sessions, tenantScope }, { headers: responseHeaders });
+    return NextResponse.json({ success: true, data: data.sessions, tenantScope }, { headers: responseHeaders });
+  } catch (error) {
+    logger.error("remote.sessions.list.unexpected_error", error);
+    return NextResponse.json({ success: false, error: "Falha inesperada ao listar sessoes." }, { status: 500, headers: responseHeaders });
+  }
 }
 
 export async function POST(request: Request) {
@@ -57,18 +49,11 @@ export async function POST(request: Request) {
     area: "api",
     feature: "remote-sessions",
   });
+
   const session = await getProtectedSession();
   if (!session) {
     logger.warn("remote.sessions.create.unauthorized");
     return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401, headers: responseHeaders });
-  }
-
-  if (!canCreateSession(session.role)) {
-    logger.warn("remote.sessions.create.forbidden", {
-      actorUserId: session.userId,
-      actorRole: session.role,
-    });
-    return NextResponse.json({ success: false, error: "Sem permissao para abrir sessao." }, { status: 403, headers: responseHeaders });
   }
 
   const tenantScope = await getRemoteTenantScope();
@@ -80,90 +65,82 @@ export async function POST(request: Request) {
     reason?: string | null;
   };
 
-  const companyId = body.companyId?.trim();
-  const hostId = body.hostId?.trim();
+  const sessionPort = createRemoteSessionPort({ logger });
+  const trilinkRemote = createTrilinkRemote({ sessionPort });
 
-  if (!companyId || !hostId) {
-    logger.warn("remote.sessions.create.invalid_payload");
-    return NextResponse.json({ success: false, error: "companyId e hostId sao obrigatorios." }, { status: 400, headers: responseHeaders });
-  }
-
-  if (!tenantScope.isGlobalView && !tenantScope.companyIds.includes(companyId)) {
-    logger.warn("remote.sessions.create.company_out_of_scope", {
-      actorUserId: session.userId,
-      companyId,
-    });
-    return NextResponse.json({ success: false, error: "Empresa fora do escopo do usuario." }, { status: 403, headers: responseHeaders });
-  }
-
-  const host = await prisma.remoteHost.findFirst({
-    where: { id: hostId, companyId },
-    select: { id: true, companyId: true, status: true, agentExternalId: true },
-  });
-
-  if (!host) {
-    logger.warn("remote.sessions.create.host_not_found", { companyId, hostId });
-    return NextResponse.json({ success: false, error: "Host remoto nao encontrado para a empresa." }, { status: 404, headers: responseHeaders });
-  }
-
-  if (host.status === "ACTIVE" && !host.agentExternalId) {
-    logger.warn("remote.sessions.create.host_misconfigured", { companyId, hostId });
-    return NextResponse.json(
-      { success: false, error: "Host ativo sem ID RustDesk configurado." },
-      { status: 409, headers: responseHeaders }
-    );
-  }
-
-  const ticketId = body.ticketId?.trim() || null;
-  const ticketNumber = body.ticketNumber?.trim() || null;
-
-  if (ticketId || ticketNumber) {
-    const existingOpenSession = await prisma.remoteSession.findFirst({
-      where: {
-        companyId,
-        hostId,
-        ...buildTicketFilter(ticketId, ticketNumber),
-        status: { in: ["REQUESTED", "STARTED"] },
+  try {
+    const data = await trilinkRemote.createSession({
+      actor: {
+        userId: session.userId,
+        role: session.role,
+        name: session.name ?? null,
+        email: session.email ?? null,
       },
-      orderBy: [{ createdAt: "desc" }],
+      scope: {
+        isGlobalView: tenantScope.isGlobalView,
+        companyIds: tenantScope.companyIds,
+      },
+      companyId: body.companyId,
+      hostId: body.hostId,
+      ticketId: body.ticketId ?? null,
+      ticketNumber: body.ticketNumber ?? null,
+      reason: body.reason ?? null,
     });
 
-    if (existingOpenSession) {
-      logger.warn("remote.sessions.create.duplicate_open_session", {
-        companyId,
-        hostId,
-        ticketId,
-        ticketNumber,
-        existingSessionId: existingOpenSession.id,
-      });
+    return NextResponse.json({ success: true, data: data.session }, { status: 201, headers: responseHeaders });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      logger.warn("remote.sessions.create.invalid_payload");
       return NextResponse.json(
-        { success: false, error: "Ja existe sessao aberta para este ticket e host.", data: existingOpenSession },
-        { status: 409, headers: responseHeaders }
+        { success: false, error: "companyId e hostId sao obrigatorios." },
+        { status: 400, headers: responseHeaders },
       );
     }
+
+    if (error instanceof Error && error.message === "SESSION_CREATE_FORBIDDEN") {
+      logger.warn("remote.sessions.create.forbidden", {
+        actorUserId: session.userId,
+        actorRole: session.role,
+      });
+      return NextResponse.json(
+        { success: false, error: "Sem permissao para abrir sessao." },
+        { status: 403, headers: responseHeaders },
+      );
+    }
+
+    if (error instanceof Error && error.message === "SESSION_COMPANY_OUT_OF_SCOPE") {
+      return NextResponse.json(
+        { success: false, error: "Empresa fora do escopo do usuario." },
+        { status: 403, headers: responseHeaders },
+      );
+    }
+
+    if (error instanceof Error && error.message === "SESSION_HOST_NOT_FOUND") {
+      return NextResponse.json(
+        { success: false, error: "Host remoto nao encontrado para a empresa." },
+        { status: 404, headers: responseHeaders },
+      );
+    }
+
+    if (error instanceof Error && error.message === "SESSION_HOST_MISCONFIGURED") {
+      return NextResponse.json(
+        { success: false, error: "Host ativo sem ID RustDesk configurado." },
+        { status: 409, headers: responseHeaders },
+      );
+    }
+
+    if (error instanceof Error && error.message === "SESSION_DUPLICATE_OPEN") {
+      const duplicate = (error as Error & { data?: unknown }).data;
+      return NextResponse.json(
+        { success: false, error: "Ja existe sessao aberta para este ticket e host.", data: duplicate ?? null },
+        { status: 409, headers: responseHeaders },
+      );
+    }
+
+    logger.error("remote.sessions.create.unexpected_error", error);
+    return NextResponse.json(
+      { success: false, error: "Falha inesperada ao abrir sessao." },
+      { status: 500, headers: responseHeaders },
+    );
   }
-
-  const remoteSession = await prisma.remoteSession.create({
-    data: {
-      companyId,
-      ticketId,
-      ticketNumber,
-      hostId,
-      requestedByUserId: session.userId,
-      reason: body.reason?.trim() || null,
-      status: "REQUESTED",
-      expiresAt: buildRequestedSessionExpiresAt(),
-    },
-  });
-
-  logger.info("remote.sessions.create.succeeded", {
-    sessionId: remoteSession.id,
-    companyId,
-    hostId,
-    actorUserId: session.userId,
-    ticketId,
-    ticketNumber,
-  });
-
-  return NextResponse.json({ success: true, data: remoteSession }, { status: 201, headers: responseHeaders });
 }

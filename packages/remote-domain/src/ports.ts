@@ -1,4 +1,8 @@
 import type {
+  CreateSessionInput,
+  CreateSessionOutput,
+  ListSessionsInput,
+  ListSessionsOutput,
   ProcessAckInput,
   ProcessAckOutput,
   ProcessBootstrapInput,
@@ -8,6 +12,8 @@ import type {
   ProcessHeartbeatInput,
   ProcessHeartbeatOutput,
   ProcessSyncOutput,
+  StartSessionOutput,
+  StopSessionOutput,
   SyncCommandType,
   SyncCompliance,
 } from "./contracts";
@@ -288,10 +294,88 @@ export interface RemoteDiscoverPort {
   logError(event: string, fields?: Record<string, unknown>): Promise<void>;
 }
 
+
+export type RemoteSessionScope = ListSessionsInput["scope"];
+export type RemoteSessionActor = CreateSessionInput["actor"];
+export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED";
+
+export type RemoteSessionListRecord = Record<string, unknown>;
+export type RemoteSessionPersistedRecord = Record<string, unknown>;
+
+export type RemoteHostForSession = {
+  id: string;
+  companyId: string;
+  status: string;
+  agentExternalId: string | null;
+};
+
+export type RemoteOpenSessionConflict = {
+  id: string;
+  ticketNumber: string | null;
+  record: RemoteSessionPersistedRecord;
+};
+
+export type RemoteSessionStartContext = {
+  id: string;
+  status: RemoteSessionStatus;
+  ticketId: string | null;
+  ticketNumber: string | null;
+  host: { id: string; name: string; agentExternalId: string | null; status: string };
+  company: { nomeFantasia: string | null; razaoSocial: string | null };
+};
+
+export type RemoteSessionStopContext = {
+  id: string;
+  status: RemoteSessionStatus;
+  startedAt: Date | null;
+  ticketId: string | null;
+  ticketNumber: string | null;
+  host: { name: string };
+  company: { nomeFantasia: string | null; razaoSocial: string | null };
+};
+
+export interface RemoteSessionPort {
+  listSessions(scope: RemoteSessionScope): Promise<RemoteSessionListRecord[]>;
+  findHostForSessionCreate(input: { companyId: string; hostId: string }): Promise<RemoteHostForSession | null>;
+  findOpenSessionConflict(input: {
+    companyId: string;
+    hostId: string;
+    ticketId: string | null;
+    ticketNumber: string | null;
+  }): Promise<RemoteOpenSessionConflict | null>;
+  createRequestedSession(input: {
+    companyId: string;
+    hostId: string;
+    ticketId: string | null;
+    ticketNumber: string | null;
+    reason: string | null;
+    requestedByUserId: string;
+    requestedAt: Date;
+    expiresAt: Date;
+  }): Promise<RemoteSessionPersistedRecord>;
+  findSessionForStart(input: { sessionId: string; scope: RemoteSessionScope }): Promise<RemoteSessionStartContext | null>;
+  findConcurrentStartedSession(input: { hostId: string; excludeSessionId: string }): Promise<{ id: string; ticketNumber: string | null } | null>;
+  updateSessionStarted(input: {
+    sessionId: string;
+    startedAt: Date;
+    expiresAt: Date;
+    startedByUserId: string;
+  }): Promise<RemoteSessionPersistedRecord>;
+  findSessionForStop(input: { sessionId: string; scope: RemoteSessionScope }): Promise<RemoteSessionStopContext | null>;
+  updateSessionEnded(input: { sessionId: string; endedAt: Date }): Promise<RemoteSessionPersistedRecord>;
+  addInternalTicketNote(input: { ticketId: string; body: string }): Promise<void>;
+  logInfo(event: string, fields: Record<string, unknown>): Promise<void>;
+  logWarning(event: string, fields: Record<string, unknown>): Promise<void>;
+  logError(event: string, error?: unknown, fields?: Record<string, unknown>): Promise<void>;
+}
 export interface TrilinkRemoteDomain {
   processHeartbeat(payload: unknown): Promise<ProcessHeartbeatOutput>;
   processBootstrap(payload: unknown): Promise<ProcessBootstrapOutput>;
   processAck(payload: unknown): Promise<ProcessAckOutput>;
   processSync(payload: unknown): Promise<ProcessSyncOutput>;
   processDiscover(payload: unknown): Promise<ProcessDiscoverOutput>;
+  listSessions(payload: unknown): Promise<ListSessionsOutput>;
+  createSession(payload: unknown): Promise<CreateSessionOutput>;
+  startSession(payload: unknown): Promise<StartSessionOutput>;
+  stopSession(payload: unknown): Promise<StopSessionOutput>;
 }

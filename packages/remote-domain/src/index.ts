@@ -3,6 +3,7 @@ import type {
   RemoteBootstrapPort,
   RemoteDiscoverPort,
   RemoteHeartbeatPort,
+  RemoteSessionPort,
   RemoteSyncPort,
   TrilinkRemoteDomain,
 } from "./ports";
@@ -11,6 +12,10 @@ import { processBootstrap } from "./use-cases/process-bootstrap";
 import { processDiscover } from "./use-cases/process-discover";
 import { processHeartbeat } from "./use-cases/process-heartbeat";
 import { processSync } from "./use-cases/process-sync";
+import { createSession } from "./use-cases/create-session";
+import { listSessions } from "./use-cases/list-sessions";
+import { startSession } from "./use-cases/start-session";
+import { stopSession } from "./use-cases/stop-session";
 
 export function createTrilinkRemote(deps: {
   heartbeatPort?: RemoteHeartbeatPort;
@@ -18,6 +23,7 @@ export function createTrilinkRemote(deps: {
   ackPort?: RemoteAckPort;
   syncPort?: RemoteSyncPort;
   discoverPort?: RemoteDiscoverPort;
+  sessionPort?: RemoteSessionPort;
   now?: () => Date;
 }): TrilinkRemoteDomain {
   return {
@@ -70,6 +76,45 @@ export function createTrilinkRemote(deps: {
         now: deps.now,
       });
     },
+    async listSessions(payload: unknown) {
+      if (!deps.sessionPort) {
+        throw new Error("SESSION_PORT_NOT_CONFIGURED");
+      }
+
+      return listSessions(payload, {
+        port: deps.sessionPort,
+      });
+    },
+    async createSession(payload: unknown) {
+      if (!deps.sessionPort) {
+        throw new Error("SESSION_PORT_NOT_CONFIGURED");
+      }
+
+      return createSession(payload, {
+        port: deps.sessionPort,
+        now: deps.now,
+      });
+    },
+    async startSession(payload: unknown) {
+      if (!deps.sessionPort) {
+        throw new Error("SESSION_PORT_NOT_CONFIGURED");
+      }
+
+      return startSession(payload, {
+        port: deps.sessionPort,
+        now: deps.now,
+      });
+    },
+    async stopSession(payload: unknown) {
+      if (!deps.sessionPort) {
+        throw new Error("SESSION_PORT_NOT_CONFIGURED");
+      }
+
+      return stopSession(payload, {
+        port: deps.sessionPort,
+        now: deps.now,
+      });
+    },
   };
 }
 
@@ -80,3 +125,7 @@ export * from "./use-cases/process-bootstrap";
 export * from "./use-cases/process-ack";
 export * from "./use-cases/process-sync";
 export * from "./use-cases/process-discover";
+export * from "./use-cases/create-session";
+export * from "./use-cases/list-sessions";
+export * from "./use-cases/start-session";
+export * from "./use-cases/stop-session";

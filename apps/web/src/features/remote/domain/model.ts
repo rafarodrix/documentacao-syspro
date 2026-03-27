@@ -61,7 +61,6 @@ export type RemoteSessionAuditAction =
 
 export type RemoteAgentInstallStage =
   | "TOKEN_READY"
-  | "SCRIPT_READY"
   | "RUSTDESK_LINKED"
   | "HEARTBEAT_OK";
 
@@ -265,7 +264,6 @@ export type RemoteConfiguredHostItem = {
     lastRustDeskConfigSyncAt: string | null;
     lifecycleStatus: RemoteAgentLifecycleStatus;
     installStages: RemoteAgentInstallStage[];
-    installerPath: string;
   };
 };
 

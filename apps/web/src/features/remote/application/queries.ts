@@ -70,7 +70,6 @@ function buildInstallStages(input: {
   const stages: RemoteAgentInstallStage[] = [];
 
   if (input.installToken) stages.push("TOKEN_READY");
-  if (input.installToken) stages.push("SCRIPT_READY");
   if (input.rustdeskId) stages.push("RUSTDESK_LINKED");
   if (input.lastHeartbeatAt) stages.push("HEARTBEAT_OK");
 
@@ -193,7 +192,6 @@ function mapDirectoryItem(host: {
       lastRustDeskConfigSyncAt: host.lastRustDeskConfigSyncAt?.toISOString() ?? null,
       lifecycleStatus,
       installStages,
-      installerPath: `/api/remote/hosts/${host.id}/installer`,
     },
   };
 }
@@ -205,12 +203,6 @@ function buildInstallGuide(item: RemoteConfiguredHostItem) {
       title: "Host com token operacional",
       description: "O portal precisa manter installToken valido para bootstrap do agente.",
       done: item.agent.installStages.includes("TOKEN_READY"),
-    },
-    {
-      id: "SCRIPT_READY" as const,
-      title: "Script de instalacao disponivel",
-      description: "Baixe o .ps1 por host para registrar o agente no campo sem preencher payload manual.",
-      done: item.agent.installStages.includes("SCRIPT_READY"),
     },
     {
       id: "RUSTDESK_LINKED" as const,
@@ -489,7 +481,6 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
     endpoints: [
       { method: "GET", path: "/api/remote/hosts", purpose: "Listar hosts remotos no escopo do usuario" },
       { method: "POST", path: "/api/remote/hosts", purpose: "Cadastrar host remoto" },
-      { method: "GET", path: "/api/remote/agents/discovery-script", purpose: "Baixar script padrao para descoberta sem pre-cadastro" },
       { method: "POST", path: "/api/remote/agents/discover", purpose: "Registrar maquina descoberta e manter heartbeat sem host previo" },
       { method: "POST", path: "/api/remote/rustdesk/bootstrap", purpose: "Bootstrap autenticado do host via installToken para emissao de agentToken" },
       { method: "POST", path: "/api/remote/rustdesk/sync", purpose: "Heartbeat autenticado, compliance do cliente e sincronizacao operacional" },
