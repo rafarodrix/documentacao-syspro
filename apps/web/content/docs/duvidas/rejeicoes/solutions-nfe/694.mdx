@@ -1,14 +1,14 @@
 ---
-title: 'Rejeição 694: Não informado o grupo de ICMS para a UF de destino'
-description: 'Como corrigir a rejeição "694 - Não informado o grupo de ICMS para a UF de destino" ao transmitir NFe no Syspro ERP.'
-causa_do_erro: 'A Sefaz rejeita a NFe quando se trata de uma operação interestadual para um consumidor final não contribuinte e o grupo de ICMS para a UF de Destino (ICMSUFDest) não é informado no XML.'
+title: 'RejeiÃ§Ã£o 694: NÃ£o informado o grupo de ICMS para a UF de destino'
+description: 'Como corrigir a rejeiÃ§Ã£o "694 - NÃ£o informado o grupo de ICMS para a UF de destino" ao transmitir NFe no Syspro ERP.'
+causa_do_erro: 'A Sefaz rejeita a NFe quando se trata de uma operaÃ§Ã£o interestadual para um consumidor final nÃ£o contribuinte e o grupo de ICMS para a UF de Destino (ICMSUFDest) nÃ£o Ã© informado no XML.'
 lastUpdated: 2026-03-22
 owner: Equipe de Documentacao
 status: published
 tags:
   - duvidas
   - solutions-nfe
-  - 694
+  - "694"
 audience:
   - cliente_admin
   - cliente_user
@@ -22,103 +22,103 @@ import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
 ---
 
-## Identificação do Problema
+## IdentificaÃ§Ã£o do Problema
 
-Ao tentar transmitir uma Nota Fiscal Eletrônica (NFe), o sistema retorna a seguinte rejeição da Sefaz:
+Ao tentar transmitir uma Nota Fiscal EletrÃ´nica (NFe), o sistema retorna a seguinte rejeiÃ§Ã£o da Sefaz:
 
 <Callout type="error" title="Erro Apresentado">
-  Rejeição: 694 - Não informado o grupo de ICMS para a UF de destino
+  RejeiÃ§Ã£o: 694 - NÃ£o informado o grupo de ICMS para a UF de destino
 </Callout>
 
 <Callout type="info" title="Causa do Erro">
-  Essa rejeição ocorre em operações interestaduais (`idDest=2`) destinadas a um **Consumidor Final** (`indFinal=1`) que **não é contribuinte do ICMS** (`indIEDest=9`). A legislação exige que, nesses casos, seja calculado e informado o Diferencial de Alíquotas (DIFAL). A nota foi rejeitada porque o sistema não gerou o grupo de tributação `ICMSUFDest` no XML.
+  Essa rejeiÃ§Ã£o ocorre em operaÃ§Ãµes interestaduais (`idDest=2`) destinadas a um **Consumidor Final** (`indFinal=1`) que **nÃ£o Ã© contribuinte do ICMS** (`indIEDest=9`). A legislaÃ§Ã£o exige que, nesses casos, seja calculado e informado o Diferencial de AlÃ­quotas (DIFAL). A nota foi rejeitada porque o sistema nÃ£o gerou o grupo de tributaÃ§Ã£o `ICMSUFDest` no XML.
 </Callout>
 
-## Verificação Inicial no Cadastro do Cliente
+## VerificaÃ§Ã£o Inicial no Cadastro do Cliente
 
-Antes de corrigir a nota, é fundamental validar se o cadastro do destinatário está correto para essa operação.
+Antes de corrigir a nota, Ã© fundamental validar se o cadastro do destinatÃ¡rio estÃ¡ correto para essa operaÃ§Ã£o.
 
 <Steps>
-  <Step title="Confirmar se o Cliente é Não Contribuinte">
+  <Step title="Confirmar se o Cliente Ã© NÃ£o Contribuinte">
     1. No Syspro, acesse o **Cadastro de Participantes**.
-    2. Pesquise pelo cliente (destinatário) da nota que foi rejeitada e abra seu cadastro.
-    3. Verifique o campo **"Inscrição Estadual"**. Para ser classificado como "Não Contribuinte", este campo deve estar **em branco**.
+    2. Pesquise pelo cliente (destinatÃ¡rio) da nota que foi rejeitada e abra seu cadastro.
+    3. Verifique o campo **"InscriÃ§Ã£o Estadual"**. Para ser classificado como "NÃ£o Contribuinte", este campo deve estar **em branco**.
 
     <Callout>
-      Se houver uma Inscrição Estadual preenchida, o cliente é um Contribuinte de ICMS, e a classificação do cliente ou a grad tributária podem estar incorretos para a venda.
+      Se houver uma InscriÃ§Ã£o Estadual preenchida, o cliente Ã© um Contribuinte de ICMS, e a classificaÃ§Ã£o do cliente ou a grad tributÃ¡ria podem estar incorretos para a venda.
     </Callout>
   </Step>
-  <Step title="Verificar a Classificação Fiscal do Cliente">
-    1. Ainda no cadastro do participante, localize o campo **"Classificação"**.
-    2. Para operações com "Não Contribuinte", este campo geralmente está definido como **"Pessoa Física"** ou **"Isento"**.
+  <Step title="Verificar a ClassificaÃ§Ã£o Fiscal do Cliente">
+    1. Ainda no cadastro do participante, localize o campo **"ClassificaÃ§Ã£o"**.
+    2. Para operaÃ§Ãµes com "NÃ£o Contribuinte", este campo geralmente estÃ¡ definido como **"Pessoa FÃ­sica"** ou **"Isento"**.
 
-    <Callout type="warn" title="Atenção">
-      Se o cadastro do cliente estiver correto (sem IE e com a classificação adequada), a causa do problema está na falta da configuração de impostos para o cálculo do DIFAL. Prossiga para a solução abaixo.
+    <Callout type="warn" title="AtenÃ§Ã£o">
+      Se o cadastro do cliente estiver correto (sem IE e com a classificaÃ§Ã£o adequada), a causa do problema estÃ¡ na falta da configuraÃ§Ã£o de impostos para o cÃ¡lculo do DIFAL. Prossiga para a soluÃ§Ã£o abaixo.
     </Callout>
   </Step>
 </Steps>
 
-## Passo a Passo da Solução
+## Passo a Passo da SoluÃ§Ã£o
 
-Após confirmar que o cadastro do cliente está correto, escolha a solução que melhor se adapta à sua necessidade.
+ApÃ³s confirmar que o cadastro do cliente estÃ¡ correto, escolha a soluÃ§Ã£o que melhor se adapta Ã  sua necessidade.
 
-<Tabs items={['Solução A: Configuração Padrão (Recomendado)', 'Solução B: Ajuste Manual na Nota (Alternativa)']}>
-  <Tab value="Solução A: Configuração Padrão (Recomendado)">
-    <p>Use esta solução para corrigir a causa raiz do problema, automatizando o cálculo do DIFAL para todas as futuras notas que usarem esta mesma regra de tributação.</p>
+<Tabs items={['SoluÃ§Ã£o A: ConfiguraÃ§Ã£o PadrÃ£o (Recomendado)', 'SoluÃ§Ã£o B: Ajuste Manual na Nota (Alternativa)']}>
+  <Tab value="SoluÃ§Ã£o A: ConfiguraÃ§Ã£o PadrÃ£o (Recomendado)">
+    <p>Use esta soluÃ§Ã£o para corrigir a causa raiz do problema, automatizando o cÃ¡lculo do DIFAL para todas as futuras notas que usarem esta mesma regra de tributaÃ§Ã£o.</p>
     
     <div className='fd-steps [&_h3]:fd-step'>
-      <h3>Acessar o Cadastro de Tributação</h3>
-        <p>1. No menu principal do Syspro, acesse: <strong>Fiscal → Tributação</strong>.</p>
-        {/* <ImageZoom src="/images/nfe/path-tributacao.png" alt="Menu do Syspro destacando o caminho Fiscal > Tributação." /> */}
+      <h3>Acessar o Cadastro de TributaÃ§Ã£o</h3>
+        <p>1. No menu principal do Syspro, acesse: <strong>Fiscal â†’ TributaÃ§Ã£o</strong>.</p>
+        {/* <ImageZoom src="/images/nfe/path-tributacao.png" alt="Menu do Syspro destacando o caminho Fiscal > TributaÃ§Ã£o." /> */}
 
-      <h3>Localizar a Tributação do Produto</h3>
-        <p>1. Na tela de <strong>Tributação</strong>, localize e selecione o grupo de tributação vinculado ao seu produto.</p>
+      <h3>Localizar a TributaÃ§Ã£o do Produto</h3>
+        <p>1. Na tela de <strong>TributaÃ§Ã£o</strong>, localize e selecione o grupo de tributaÃ§Ã£o vinculado ao seu produto.</p>
         <p>2. Clique em <strong>Editar</strong> para ver as regras associadas.</p>
-        <Callout type="warn" title="Não sabe qual é a tributação do item?">
-          Consulte o <strong>Cadastro de Produtos</strong> para verificar qual grupo de tributação está vinculado ao item em questão.
+        <Callout type="warn" title="NÃ£o sabe qual Ã© a tributaÃ§Ã£o do item?">
+          Consulte o <strong>Cadastro de Produtos</strong> para verificar qual grupo de tributaÃ§Ã£o estÃ¡ vinculado ao item em questÃ£o.
         </Callout>
-        {/* <ImageZoom src="/images/nfe/lista-tributacao.png" alt="Tela com a lista de grupos de tributação do Syspro." /> */}
+        {/* <ImageZoom src="/images/nfe/lista-tributacao.png" alt="Tela com a lista de grupos de tributaÃ§Ã£o do Syspro." /> */}
 
-      <h3>Identificar a Regra de Venda para Não Contribuinte</h3>
-        <p>1. Procure na lista por uma regra cuja descrição seja correspondente a <strong>"VENDA NAO CONTRIBUINTE"</strong> para operação interestadual.</p>
+      <h3>Identificar a Regra de Venda para NÃ£o Contribuinte</h3>
+        <p>1. Procure na lista por uma regra cuja descriÃ§Ã£o seja correspondente a <strong>"VENDA NAO CONTRIBUINTE"</strong> para operaÃ§Ã£o interestadual.</p>
         <p>2. Selecione a regra correta e clique em <strong>Editar</strong>.</p>
-        {/* <ImageZoom src="/images/nfe/regras-tributacao.png" alt="Lista de regras dentro de um grupo de tributação." /> */}
+        {/* <ImageZoom src="/images/nfe/regras-tributacao.png" alt="Lista de regras dentro de um grupo de tributaÃ§Ã£o." /> */}
       
-      <h3>Preencher as Alíquotas de Partilha (DIFAL)</h3>
-        <p>1. Na tela de edição da regra, localize os campos de ICMS.</p>
+      <h3>Preencher as AlÃ­quotas de Partilha (DIFAL)</h3>
+        <p>1. Na tela de ediÃ§Ã£o da regra, localize os campos de ICMS.</p>
         <p>2. Preencha os seguintes campos:</p>
         <ul>
-          <li><strong>Alíq. Destino:</strong> Informe a alíquota interna do ICMS no estado de destino.</li>
-          <li><strong>Alíq. Inter:</strong> Informe a alíquota interestadual da operação (ex: 7% ou 12%).</li>
+          <li><strong>AlÃ­q. Destino:</strong> Informe a alÃ­quota interna do ICMS no estado de destino.</li>
+          <li><strong>AlÃ­q. Inter:</strong> Informe a alÃ­quota interestadual da operaÃ§Ã£o (ex: 7% ou 12%).</li>
         </ul>
         <Callout type="info" title="Consulte sua Contabilidade">
-          As alíquotas corretas variam conforme o estado e a operação. Sempre confirme esses valores com seu contador.
+          As alÃ­quotas corretas variam conforme o estado e a operaÃ§Ã£o. Sempre confirme esses valores com seu contador.
         </Callout>
-        {/* <ImageZoom src="/images/nfe/edicao-aliquotas-difal.png" alt="Tela de edição da regra de alíquota, destacando os campos Alíq. Destino e Alíq. Inter." /> */}
+        {/* <ImageZoom src="/images/nfe/edicao-aliquotas-difal.png" alt="Tela de ediÃ§Ã£o da regra de alÃ­quota, destacando os campos AlÃ­q. Destino e AlÃ­q. Inter." /> */}
 
       <h3>Salvar e Retransmitir a NFe</h3>
-        <p>1. Clique em <strong>Salvar</strong> para confirmar as alterações na regra de tributação.</p>
-        <p>2. Retorne à nota fiscal atualize os itens para recalcular o difal e <strong>retransmita</strong>.</p>
+        <p>1. Clique em <strong>Salvar</strong> para confirmar as alteraÃ§Ãµes na regra de tributaÃ§Ã£o.</p>
+        <p>2. Retorne Ã  nota fiscal atualize os itens para recalcular o difal e <strong>retransmita</strong>.</p>
     </div>
   </Tab>
-  <Tab value="Solução B: Ajuste Manual na Nota (Alternativa)">
-    <p>Use esta opção para resolver rapidamente uma única nota fiscal, sem alterar as configurações padrão do sistema.</p>
+  <Tab value="SoluÃ§Ã£o B: Ajuste Manual na Nota (Alternativa)">
+    <p>Use esta opÃ§Ã£o para resolver rapidamente uma Ãºnica nota fiscal, sem alterar as configuraÃ§Ãµes padrÃ£o do sistema.</p>
     <div className='fd-steps [&_h3]:fd-step'>
       <h3>Editar os Dados Fiscais do Item</h3>
         <p>1. Abra a NFe que foi rejeitada no Syspro.</p>
-        <p>2. Selecione o primeiro item da nota e vá para a aba <strong>"Dados Fiscais e Encargos"</strong>.</p>
+        <p>2. Selecione o primeiro item da nota e vÃ¡ para a aba <strong>"Dados Fiscais e Encargos"</strong>.</p>
       
-      <h3>Preencher as Alíquotas do DIFAL</h3>
-        <p>Informe manualmente as alíquotas conforme a orientação da sua contabilidade:</p>
-        <p>1. No campo <strong>"Alíq. Interna Destino"</strong>, informe a alíquota de ICMS do estado de destino.</p>
-        <p>2. No campo <strong>"Alíq. Interestadual"</strong>, informe a alíquota da operação entre os estados.</p>
+      <h3>Preencher as AlÃ­quotas do DIFAL</h3>
+        <p>Informe manualmente as alÃ­quotas conforme a orientaÃ§Ã£o da sua contabilidade:</p>
+        <p>1. No campo <strong>"AlÃ­q. Interna Destino"</strong>, informe a alÃ­quota de ICMS do estado de destino.</p>
+        <p>2. No campo <strong>"AlÃ­q. Interestadual"</strong>, informe a alÃ­quota da operaÃ§Ã£o entre os estados.</p>
       
       <h3>Repetir e Retransmitir</h3>
         <p>1. <strong>Repita o processo</strong> para todos os outros itens da nota.</p>
-        <p>2. Após preencher as alíquotas para todos os itens, <strong>salve</strong> e <strong>retransmita a NFe</strong>.</p>
+        <p>2. ApÃ³s preencher as alÃ­quotas para todos os itens, <strong>salve</strong> e <strong>retransmita a NFe</strong>.</p>
 
       <Callout type="success" title="Problema Resolvido">
-        A NFe será autorizada. Lembre-se que este ajuste é temporário e válido apenas para esta nota.
+        A NFe serÃ¡ autorizada. Lembre-se que este ajuste Ã© temporÃ¡rio e vÃ¡lido apenas para esta nota.
       </Callout>
     </div>
   </Tab>
