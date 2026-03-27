@@ -346,6 +346,7 @@ export async function POST(request: Request) {
     {
       success: true,
       data: {
+        contractVersion: "rustdesk.sync.v1",
         hostId: host.id,
         alias,
         rustdeskId: updatedHost.host.agentExternalId,
@@ -386,6 +387,10 @@ export async function POST(request: Request) {
           createdAt: command.createdAt.toISOString(),
           deliveredAt: command.deliveredAt?.toISOString() ?? null,
         })),
+        flow: {
+          stage: "SYNC_ACTIVE",
+          discoverRole: "triage_only",
+        },
       },
     },
     { headers: responseHeaders }

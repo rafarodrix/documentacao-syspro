@@ -159,6 +159,7 @@ export async function POST(request: Request) {
     {
       success: true,
       data: {
+        contractVersion: "rustdesk.bootstrap.v1",
         bootstrapMode: "host",
         hostId: updatedHost.id,
         companyId: updatedHost.companyId,
@@ -188,6 +189,12 @@ export async function POST(request: Request) {
             configProfile.apiHost.trim().toLowerCase(),
           publicKeyMatch:
             (updatedHost.lastKnownRustDeskPublicKeyHash ?? "") === (configProfile.publicKeyHash ?? ""),
+        },
+        flow: {
+          stage: "BOOTSTRAPPED",
+          nextStep: "call_sync_with_agent_token",
+          nextEndpoint: "/api/remote/rustdesk/sync",
+          discoverRole: "triage_only",
         },
         actions: ["bootstrap_complete"],
       },

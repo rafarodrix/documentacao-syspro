@@ -1,7 +1,7 @@
 ---
 title: Operacao do Agente Remoto OSS
 description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat e validacao operacional do agente remoto no modelo RustDesk self-hosted com portal proprio.
-lastUpdated: 2026-03-26
+lastUpdated: 2026-03-27
 owner: Engenharia de Plataforma
 status: published
 ---
@@ -169,6 +169,13 @@ Resultado esperado:
 - `machineName` preenchido
 - `agentExternalId` preenchido quando o `RustDesk ID` vier valido
 - `serviceStatus` e `sysproUpdates[]` persistidos no host descoberto ou no host ja vinculado
+
+Contrato de transicao (`discover.v2`):
+
+- `bootstrapFlow = pending_link`: triagem ativa, pode manter heartbeat de descoberta ate o vinculo manual.
+- `bootstrapFlow = linked_host_detected`: host ja vinculado e operando em `bootstrap/sync`; discovery heartbeat deve ser interrompido.
+- `bootstrapFlow = host_installer_required`: host vinculado sem credencial valida; operador deve baixar o `.ps1` dedicado do host e executar `bootstrap`.
+- `transition.allowDiscoveryHeartbeat` e o campo formal que define se o script deve agendar ou nao a rotina recorrente de `discover`.
 
 ### Bootstrap inicial em host operacional
 

@@ -10,6 +10,30 @@ import {
 
 export const dynamic = "force-dynamic";
 
+const DISCOVER_TRANSITIONS = {
+  pending_link: {
+    state: "DISCOVERY_PENDING_LINK",
+    nextStep: "link_discovered_host_then_bootstrap",
+    nextEndpoint: "/api/remote/discovered-hosts/:id/link",
+    allowDiscoveryHeartbeat: true,
+    requiresHostInstaller: false,
+  },
+  linked_host_detected: {
+    state: "DISCOVERY_LINKED_HOST",
+    nextStep: "host_already_linked_keep_bootstrap_sync_flow",
+    nextEndpoint: "/api/remote/rustdesk/sync",
+    allowDiscoveryHeartbeat: false,
+    requiresHostInstaller: false,
+  },
+  host_installer_required: {
+    state: "DISCOVERY_LINKED_HOST_BOOTSTRAP_REQUIRED",
+    nextStep: "download_host_installer_and_bootstrap",
+    nextEndpoint: "/api/remote/rustdesk/bootstrap",
+    allowDiscoveryHeartbeat: false,
+    requiresHostInstaller: true,
+  },
+} as const;
+
 export async function POST(request: Request) {
   const { logger, responseHeaders } = createRequestLogger(request, {
     area: "api",
@@ -130,12 +154,16 @@ export async function POST(request: Request) {
         {
           success: true,
           data: {
+            contractVersion: "discover.v2",
             mode: "linked",
             discoveredHostId: discoveredHost.id,
             hostId: linkedHost.id,
             hostName: linkedHost.name,
             heartbeatAuth: "agentToken",
             bootstrapFlow: bootstrapRequired ? "host_installer_required" : "linked_host_detected",
+            transition: bootstrapRequired
+              ? DISCOVER_TRANSITIONS.host_installer_required
+              : DISCOVER_TRANSITIONS.linked_host_detected,
             message: bootstrapRequired
               ? "Esta maquina ja esta vinculada a um host do portal. O fluxo discover nao emite agentToken; execute o instalador dedicado do host para concluir o bootstrap."
               : "Esta maquina ja esta vinculada a um host do portal. O fluxo discover continua apenas como descoberta e nao substitui o heartbeat autenticado do host.",
@@ -172,10 +200,12 @@ export async function POST(request: Request) {
     {
       success: true,
       data: {
+        contractVersion: "discover.v2",
         mode: "pending",
         discoveredHostId: record.id,
         heartbeatAuth: "discoveryToken",
         bootstrapFlow: "pending_link",
+        transition: DISCOVER_TRANSITIONS.pending_link,
         message:
           "Maquina descoberta com sucesso. Este fluxo serve apenas para triagem inicial; depois do vinculo, use o instalador do host para emitir agentToken.",
       },

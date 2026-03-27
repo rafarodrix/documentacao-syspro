@@ -461,6 +461,7 @@ if ([string]::IsNullOrWhiteSpace($rustdeskId)) {
 }
 
 $serviceStatus = Get-ServiceHealthStatus
+$skipDiscoveryHeartbeat = $false
 
 try {
     $discoveryResponse = Invoke-Discovery -RustDeskId $rustdeskId -ServiceStatus $serviceStatus
@@ -473,6 +474,11 @@ try {
     if ($discoveryResponse.data.bootstrapFlow -eq 'host_installer_required') {
         Write-Host 'Esta maquina ja pertence a um host vinculado. Baixe o instalador dedicado desse host no portal para concluir o bootstrap com agentToken.' -ForegroundColor Yellow
         Write-InstallLog -Message 'Discover detectou host vinculado. Orientado uso do instalador dedicado do host.'
+        $skipDiscoveryHeartbeat = $true
+    } elseif ($discoveryResponse.data.bootstrapFlow -eq 'linked_host_detected') {
+        Write-Host 'Host ja vinculado e com bootstrap/sync ativo. Heartbeat de discovery sera desativado nesta maquina.' -ForegroundColor Cyan
+        Write-InstallLog -Message 'Discover detectou host vinculado ativo. Heartbeat de discovery desativado para evitar ruido operacional.'
+        $skipDiscoveryHeartbeat = $true
     } elseif ($discoveryResponse.data.bootstrapFlow -eq 'pending_link') {
         Write-Host 'A maquina foi enviada para triagem. Depois do vinculo no portal, use o instalador dedicado do host para emitir agentToken.' -ForegroundColor Cyan
     }
@@ -488,6 +494,18 @@ try {
 }
 
 Write-Host '[4/5] Gerando heartbeat continuo...' -ForegroundColor Cyan
+
+if ($skipDiscoveryHeartbeat) {
+    Write-Host 'Heartbeat de discovery nao sera agendado para host ja vinculado.' -ForegroundColor Yellow
+    Write-Host '[5/5] Instalacao concluida.' -ForegroundColor Cyan
+    Write-Host 'Use o instalador dedicado do host para bootstrap autenticado quando aplicavel.' -ForegroundColor Green
+    Write-Host "Logs: $discoveryLogPath" -ForegroundColor Gray
+    Write-Host "Erros: $errorLogPath" -ForegroundColor Gray
+    Write-Host ''
+    Write-Host 'Pressione qualquer tecla para fechar...' -ForegroundColor DarkGray
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    exit
+}
 
 $heartbeatScriptContent = @'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
