@@ -6,5 +6,6 @@ export { companyRouter } from "./routers/company";
 export { settingsRouter } from "./routers/settings";
 export { contractsRouter } from "./routers/contracts";
 export { taxRouter } from "./routers/tax";
+export { remoteRouter } from "./routers/remote";
 export type { AppRouter } from "./routers/app";
 export type { ApiContext, ApiLogger, AuthLikeSession, ProcedureDefinition, RouterDefinition } from "./lib/contracts";

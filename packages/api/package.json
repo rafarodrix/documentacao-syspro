@@ -12,6 +12,10 @@
     "./routers/contracts": "./src/routers/contracts.ts",
     "./routers/settings": "./src/routers/settings.ts",
     "./routers/tax": "./src/routers/tax.ts",
-    "./routers/tickets": "./src/routers/tickets.ts"
+    "./routers/tickets": "./src/routers/tickets.ts",
+    "./routers/remote": "./src/routers/remote.ts"
+  },
+  "dependencies": {
+    "@dosc-syspro/remote-domain": "0.0.0"
   }
 }
