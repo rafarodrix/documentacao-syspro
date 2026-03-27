@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+﻿import { NextResponse, type NextRequest } from "next/server";
 import { getCookieCache } from "better-auth/cookies";
 import { APP_ROLES, CADASTROS_ROUTE_RULES, DOCS_ROUTE_RULES, SYSTEM_ROLES, hasAllowedRole, type AppRole } from "@dosc-syspro/core";
 
@@ -19,7 +19,7 @@ globalForRoleCache.__sessionRoleCache = sessionRoleCache;
 
 function isPublicPath(pathname: string): boolean {
   const publicRoutes = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/privacidade", "/termos"];
-  const isReleasesRoute = pathname === "/releases" || pathname.startsWith("/releases/");
+  const isReleasesRoute = pathname === "/releases";
 
   return (
     publicRoutes.includes(pathname) ||
@@ -110,6 +110,13 @@ export async function middleware(request: NextRequest) {
   const isAuthenticated = !!sessionToken;
   const isPublicRoute = isPublicPath(pathname);
   const resolvedRole = isAuthenticated ? await resolveRequestRole(request, sessionToken) : null;
+  if (!isAuthenticated && pathname.startsWith("/releases/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/releases";
+    url.searchParams.set("auth", "required");
+    url.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(url);
+  }
 
   if (!isPublicRoute && !isAuthenticated) {
     const url = request.nextUrl.clone();
@@ -164,3 +171,4 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
+

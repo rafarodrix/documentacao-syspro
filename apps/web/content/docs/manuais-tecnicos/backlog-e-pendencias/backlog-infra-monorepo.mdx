@@ -49,6 +49,7 @@ Ordem recomendada:
 - [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`.
 - [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
 - [ ] `INFRA-027C` [Media] Revisar o que ainda deve sair de `apps/web/src/lib` para consumo compartilhado via `packages/*`.
+- [ ] `INFRA-027D` [Alta] Extrair dominio remoto para package compartilhado e transformar `route.ts` em adapter HTTP fino. Regra alvo: a camada HTTP deve apenas receber JSON, validar contrato (Zod) e delegar para casos de uso puros no dominio compartilhado (ex.: `await TrilinkRemote.processHeartbeat(payload)`). Criterios de aceite: (1) sem regra de negocio em `apps/web/src/app/api/remote/**/route.ts`, (2) casos de uso de `discover/bootstrap/sync/ack` centralizados em package compartilhado consumivel por `apps/web`, `apps/api` e `apps/mobile`, (3) contratos tipados unicos para request/response e erros.
 
 #### Ideias de implementacao
 

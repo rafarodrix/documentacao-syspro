@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { getReleases } from "@/features/releases/application/queries";
-import { Calendar, Rocket, Bug, ArrowRight, Sparkles } from "lucide-react";
+import { Calendar, Rocket, Bug, ArrowRight, Sparkles, Lock } from "lucide-react";
 
 // Componentes UI
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Tipos
 import type { Release } from "@dosc-syspro/core";
@@ -50,9 +51,20 @@ function groupReleases(releases: Release[]) {
 }
 
 // --- Componente da P?gina ---
-export default async function ReleasesIndexPage() {
+export default async function ReleasesIndexPage({
+    searchParams,
+}: {
+    searchParams?: Promise<{ auth?: string; callbackUrl?: string }>;
+}) {
     const releases = await getReleases();
     const timeline = groupReleases(releases);
+
+    const params = searchParams ? await searchParams : undefined;
+    const authRequired = params?.auth === "required";
+    const callbackUrl =
+        params?.callbackUrl && params.callbackUrl.startsWith("/releases/")
+            ? params.callbackUrl
+            : "/releases";
 
     let isFirstCard = true; // Para destacar o card mais recente
 
@@ -70,6 +82,22 @@ export default async function ReleasesIndexPage() {
             </div>
 
             <Separator />
+            {authRequired && (
+                <Alert className="border-amber-500/40 bg-amber-500/10">
+                    <Lock className="h-4 w-4 text-amber-500" />
+                    <AlertTitle>Login necessario para visualizar os tickets do mes</AlertTitle>
+                    <AlertDescription className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                        <span>
+                            O ciclo de atualizacoes continua publico em <strong>/releases</strong>, mas os detalhes mensais exigem autenticacao.
+                        </span>
+                        <Button asChild size="sm" className="w-full sm:w-auto">
+                            <Link href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}>
+                                Entrar para visualizar
+                            </Link>
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {/* 2. Timeline */}
             {timeline.length === 0 ? (
@@ -165,3 +193,6 @@ export default async function ReleasesIndexPage() {
         </div>
     );
 }
+
+
+

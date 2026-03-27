@@ -1,0 +1,19 @@
+{
+  "name": "@dosc-syspro/remote-domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contracts": "./src/contracts.ts",
+    "./ports": "./src/ports.ts",
+    "./heartbeat": "./src/use-cases/process-heartbeat.ts",
+    "./bootstrap": "./src/use-cases/process-bootstrap.ts",
+    "./ack": "./src/use-cases/process-ack.ts",
+    "./sync": "./src/use-cases/process-sync.ts",
+    "./discover": "./src/use-cases/process-discover.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

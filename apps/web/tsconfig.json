@@ -1,4 +1,4 @@
-{
+﻿{
     "extends":  "../../tsconfig.base.json",
     "compilerOptions":  {
                             "baseUrl":  ".",
@@ -35,7 +35,13 @@
                                                                     ],
                                           "@dosc-syspro/database/*":  [
                                                                           "../../packages/database/src/*"
-                                                                      ]
+                                                                      ],
+                                          "@dosc-syspro/remote-domain":  [
+                                                                             "../../packages/remote-domain/src/index.ts"
+                                                                         ],
+                                          "@dosc-syspro/remote-domain/*":  [
+                                                                               "../../packages/remote-domain/src/*"
+                                                                           ]
                                       },
                             "plugins":  [
                                             {

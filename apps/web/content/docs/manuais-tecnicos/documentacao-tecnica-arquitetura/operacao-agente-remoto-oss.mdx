@@ -41,6 +41,9 @@ Padronizar como uma maquina remota deve ser:
   - `POST /api/remote/rustdesk/ack`
   - `GET /api/remote/rustdesk/client-profile`
   - `POST /api/remote/discovered-hosts/:id/link`
+- a rota de descoberta aplica protecao anti-abuso na camada HTTP:
+  - rate limit por IP em `POST /api/remote/agents/discover` (5 req/min)
+  - resposta `429` quando exceder a janela
 - o `RustDesk ID` deve ser persistido sem espacos
 - a leitura operacional do host hoje segue a matriz:
   - `ONLINE`
@@ -383,6 +386,7 @@ Uso:
 - primeira chamada para `discover` concluida
 - maquina aparece em `Maquinas pendentes de vinculacao`
 - vinculacao manual concluida sem erro
+- validar que a maquina nao entra em loop de `discover` (evitar `429` recorrente)
 
 ### Host operacional
 
@@ -509,6 +513,7 @@ Modelo consolidado:
 ## Itens enviados para operacao (estado atual)
 
 - fluxo oficial `discover -> bootstrap -> sync -> ack` ativo
+- protecao anti-abuso no `discover` com rate limit de 5 req/min por IP
 - `agentToken` emitido no bootstrap e usado no ciclo recorrente
 - fila de comandos operacionais com `ack` do agente
 - compliance de cliente RustDesk persistido no host
