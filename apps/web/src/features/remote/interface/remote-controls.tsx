@@ -18,17 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { RemotePlatformOverview } from "@/features/remote/domain/model";
+import { getRemoteApiErrorMessage, parseRemoteApiResponse } from "@/features/remote/interface/remote-api";
 
 type Props = {
   overview: RemotePlatformOverview;
 };
 
 async function parseJson(response: Response) {
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(payload?.error ?? "Falha na operacao.");
-  }
-  return payload;
+  return parseRemoteApiResponse<Record<string, unknown>>(response, "Falha na operacao.");
 }
 
 export function RemotePlatformControls({ overview }: Props) {
@@ -326,7 +323,7 @@ export function RemotePlatformControls({ overview }: Props) {
       resetHostForm();
       queueBackgroundRefresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar host.");
+      toast.error(getRemoteApiErrorMessage(error, "Erro ao salvar host."));
     }
   }
 
@@ -353,7 +350,7 @@ export function RemotePlatformControls({ overview }: Props) {
       toast.success("Host remoto excluido.");
       queueBackgroundRefresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao excluir host.");
+      toast.error(getRemoteApiErrorMessage(error, "Erro ao excluir host."));
     }
   }
 
@@ -410,7 +407,7 @@ export function RemotePlatformControls({ overview }: Props) {
       setSessionReason("");
       queueBackgroundRefresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao solicitar sessao.");
+      toast.error(getRemoteApiErrorMessage(error, "Erro ao solicitar sessao."));
     }
   }
 
@@ -445,7 +442,7 @@ export function RemotePlatformControls({ overview }: Props) {
       );
       queueBackgroundRefresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Falha ao atualizar sessao.");
+      toast.error(getRemoteApiErrorMessage(error, "Falha ao atualizar sessao."));
     }
   }
 

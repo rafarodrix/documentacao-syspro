@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
+import { getRemoteApiErrorMessage, parseRemoteApiResponse } from "@/features/remote/interface/remote-api";
 
 function formatDateTime(value: string | null) {
   if (!value) return "Sem registro";
@@ -475,14 +476,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           }),
         });
 
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao salvar nome projetado da maquina.");
-        }
+        await parseRemoteApiResponse(response, "Falha ao salvar nome projetado da maquina.");
 
         toast.success("Nome da maquina atualizado.");
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao salvar nome projetado da maquina.");
+        toast.error(getRemoteApiErrorMessage(error, "Falha ao salvar nome projetado da maquina."));
       }
     });
   }
@@ -494,15 +492,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           method: "POST",
         });
 
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao rotacionar agentToken.");
-        }
-
-        toast.success(payload?.message ?? "agentToken rotacionado.");
+        const result = await parseRemoteApiResponse<{ message?: string }>(response, "Falha ao rotacionar agentToken.");
+        toast.success(result.message ?? "agentToken rotacionado.");
         window.location.reload();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao rotacionar agentToken.");
+        toast.error(getRemoteApiErrorMessage(error, "Falha ao rotacionar agentToken."));
       }
     });
   }
@@ -555,15 +549,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         }),
       });
 
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Falha ao salvar configuracoes da empresa.");
-      }
+      await parseRemoteApiResponse(response, "Falha ao salvar configuracoes da empresa.");
 
       toast.success("Configuracoes da empresa atualizadas.");
       window.location.reload();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Falha ao salvar configuracoes da empresa.");
+      toast.error(getRemoteApiErrorMessage(error, "Falha ao salvar configuracoes da empresa."));
     } finally {
       setSavingCompanyContextId(null);
     }
@@ -580,15 +571,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           }),
         });
 
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao vincular empresa na instalacao.");
-        }
+        await parseRemoteApiResponse(response, "Falha ao vincular empresa na instalacao.");
 
         toast.success("Empresa vinculada na instalacao monitorada.");
         window.location.reload();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao vincular empresa na instalacao.");
+        toast.error(getRemoteApiErrorMessage(error, "Falha ao vincular empresa na instalacao."));
       }
     });
   }
@@ -605,15 +593,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           }),
         });
 
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao adicionar empresa nesta instalacao.");
-        }
+        await parseRemoteApiResponse(response, "Falha ao adicionar empresa nesta instalacao.");
 
         toast.success("Empresa adicional vinculada a esta instalacao.");
         window.location.reload();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao adicionar empresa nesta instalacao.");
+        toast.error(getRemoteApiErrorMessage(error, "Falha ao adicionar empresa nesta instalacao."));
       }
     });
   }

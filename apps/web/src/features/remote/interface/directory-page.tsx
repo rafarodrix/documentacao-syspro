@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
+import { getRemoteApiErrorMessage, parseRemoteApiResponse } from "@/features/remote/interface/remote-api";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 
@@ -198,10 +199,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         }),
       });
 
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Falha ao cadastrar maquina.");
-      }
+      await parseRemoteApiResponse(response, "Falha ao cadastrar maquina.");
 
       toast.success("Maquina cadastrada.");
       setQuickRustdeskId("");
@@ -209,7 +207,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       setShowQuickCreate(false);
       startTransition(() => router.refresh());
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao cadastrar maquina.");
+      toast.error(getRemoteApiErrorMessage(error, "Erro ao cadastrar maquina."));
     }
   }
 
@@ -232,15 +230,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         }),
       });
 
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Falha ao vincular maquina descoberta.");
-      }
+      await parseRemoteApiResponse(response, "Falha ao vincular maquina descoberta.");
 
       toast.success("Maquina vinculada e convertida em host.");
       startTransition(() => router.refresh());
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao vincular maquina.");
+      toast.error(getRemoteApiErrorMessage(error, "Erro ao vincular maquina."));
     }
   }
 

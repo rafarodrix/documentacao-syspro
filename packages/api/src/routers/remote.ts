@@ -25,8 +25,11 @@ import { ApiError, createRouter, defineMutation, defineQuery } from "../router";
 import type { ApiContext } from "../lib/contracts";
 import {
   createRemoteAckPort,
+  createRemoteAddressBookPort,
   createRemoteBootstrapPort,
   createRemoteDiscoverPort,
+  createRemoteHostAdminPort,
+  createRemoteSessionPort,
   createRemoteSyncPort,
   revokeExpiredSyncAgentToken,
 } from "../remote-domain-ports";
@@ -89,6 +92,9 @@ function createRemoteService(ctx: ApiContext) {
     bootstrapPort: createRemoteBootstrapPort({ logger, requestIp: ctx.requestIp ?? null }),
     syncPort: createRemoteSyncPort({ logger, requestIp: ctx.requestIp ?? null }),
     ackPort: createRemoteAckPort({ logger }),
+    sessionPort: createRemoteSessionPort({ logger }),
+    hostAdminPort: createRemoteHostAdminPort(),
+    addressBookPort: createRemoteAddressBookPort(),
   });
 }
 
@@ -193,12 +199,11 @@ export const remoteRouter = createRouter({
         scope: buildScopeFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "sessionsList",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).listSessions(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -211,12 +216,11 @@ export const remoteRouter = createRouter({
         actor: buildActorFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "sessionsCreate",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).createSession(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -229,12 +233,11 @@ export const remoteRouter = createRouter({
         actor: buildActorFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "sessionsStart",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).startSession(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -247,12 +250,11 @@ export const remoteRouter = createRouter({
         actor: buildActorFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "sessionsStop",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).stopSession(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -265,12 +267,11 @@ export const remoteRouter = createRouter({
         scope: buildScopeFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "linkDiscoveredHost",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).linkDiscoveredHost(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -283,12 +284,11 @@ export const remoteRouter = createRouter({
         scope: buildScopeFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "hostsCreate",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).createHost(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -301,12 +301,11 @@ export const remoteRouter = createRouter({
         scope: buildScopeFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "hostsUpdate",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).updateHost(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -319,12 +318,11 @@ export const remoteRouter = createRouter({
         scope: buildScopeFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "hostsDelete",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).deleteHost(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -337,12 +335,11 @@ export const remoteRouter = createRouter({
         scope: buildScopeFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "hostsRotateAgentToken",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).rotateHostAgentToken(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -355,12 +352,11 @@ export const remoteRouter = createRouter({
         scope: buildScopeFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "hostsRevokeAgentToken",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).revokeHostAgentToken(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -373,12 +369,11 @@ export const remoteRouter = createRouter({
         scope: buildScopeFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "hostsRelinkSysproUpdate",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).relinkHostSysproUpdate(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -390,27 +385,25 @@ export const remoteRouter = createRouter({
         scope: buildScopeFromSession(ctx),
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "addressBookList",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).listAddressBook(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
   addressBookCredentialsList: defineQuery<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER"],
-    handler: async ({ input }) => {
+    handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(listAddressBookCredentialsInputSchema, input.payload);
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "addressBookCredentialsList",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).listAddressBookCredentials(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -423,12 +416,11 @@ export const remoteRouter = createRouter({
         actorUserId: buildActorFromSession(ctx).userId,
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "addressBookCredentialsCreate",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).createAddressBookCredential(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -441,12 +433,11 @@ export const remoteRouter = createRouter({
         actorUserId: buildActorFromSession(ctx).userId,
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "addressBookCredentialsRotate",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).rotateAddressBookCredential(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 
@@ -459,12 +450,11 @@ export const remoteRouter = createRouter({
         actorUserId: buildActorFromSession(ctx).userId,
       });
 
-      return {
-        status: "not-wired",
-        router: "remote",
-        procedure: "addressBookCredentialsRevoke",
-        input: payload,
-      };
+      try {
+        return await createRemoteService(ctx).revokeAddressBookCredential(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
 });

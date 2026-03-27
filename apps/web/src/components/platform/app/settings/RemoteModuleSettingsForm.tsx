@@ -21,6 +21,7 @@ import {
   updateRemoteModuleSettingsAction,
 } from "@/features/remote/application/module-settings-actions";
 import type { RemoteModuleSettings } from "@/features/remote/domain/model";
+import { getRemoteApiErrorMessage, parseRemoteApiResponse } from "@/features/remote/interface/remote-api";
 
 type RemoteModuleSettingsFormValues = z.input<typeof remoteModuleSettingsSchema>;
 type CompanyOption = { id: string; label: string };
@@ -131,14 +132,14 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
     try {
       setCredentialsLoading(true);
       const response = await fetch("/api/remote/rustdesk/address-book/credentials", { method: "GET" });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Falha ao carregar credenciais.");
-      }
-      const items = Array.isArray(payload?.data) ? payload.data : [];
+      const result = await parseRemoteApiResponse<AddressBookCredentialItem[]>(
+        response,
+        "Falha ao carregar credenciais.",
+      );
+      const items = Array.isArray(result.data) ? result.data : [];
       setCredentials(items);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Falha ao carregar credenciais.");
+      toast.error(getRemoteApiErrorMessage(error, "Falha ao carregar credenciais."));
     } finally {
       setCredentialsLoading(false);
     }
@@ -155,15 +156,15 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
       try {
         setClientProfileLoading(true);
         const response = await fetch("/api/remote/rustdesk/client-profile", { method: "GET" });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao carregar perfil do cliente RustDesk.");
-        }
+        const result = await parseRemoteApiResponse<RemoteClientProfile>(
+          response,
+          "Falha ao carregar perfil do cliente RustDesk.",
+        );
         if (!mounted) return;
-        setClientProfile(payload?.data ?? null);
+        setClientProfile(result.data ?? null);
       } catch (error) {
         if (!mounted) return;
-        toast.error(error instanceof Error ? error.message : "Falha ao carregar perfil do cliente RustDesk.");
+        toast.error(getRemoteApiErrorMessage(error, "Falha ao carregar perfil do cliente RustDesk."));
       } finally {
         if (mounted) setClientProfileLoading(false);
       }
@@ -249,19 +250,19 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             expiresInDays: credentialExpiresDays ? Number(credentialExpiresDays) : null,
           }),
         });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao criar credencial.");
-        }
-        toast.success(payload?.message ?? "Credencial criada.");
+        const result = await parseRemoteApiResponse<{ token?: string; tokenPreview?: string }>(
+          response,
+          "Falha ao criar credencial.",
+        );
+        toast.success(result.message ?? "Credencial criada.");
         setLatestIssuedToken({
-          token: payload?.data?.token ?? "",
-          preview: payload?.data?.tokenPreview ?? "",
+          token: result.data?.token ?? "",
+          preview: result.data?.tokenPreview ?? "",
         });
         resetCredentialForm();
         await loadCredentials();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao criar credencial.");
+        toast.error(getRemoteApiErrorMessage(error, "Falha ao criar credencial."));
       }
     });
   }
@@ -272,18 +273,18 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         const response = await fetch(`/api/remote/rustdesk/address-book/credentials/${id}/rotate`, {
           method: "POST",
         });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao rotacionar credencial.");
-        }
-        toast.success(payload?.message ?? "Credencial rotacionada.");
+        const result = await parseRemoteApiResponse<{ token?: string; tokenPreview?: string }>(
+          response,
+          "Falha ao rotacionar credencial.",
+        );
+        toast.success(result.message ?? "Credencial rotacionada.");
         setLatestIssuedToken({
-          token: payload?.data?.token ?? "",
-          preview: payload?.data?.tokenPreview ?? "",
+          token: result.data?.token ?? "",
+          preview: result.data?.tokenPreview ?? "",
         });
         await loadCredentials();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao rotacionar credencial.");
+        toast.error(getRemoteApiErrorMessage(error, "Falha ao rotacionar credencial."));
       }
     });
   }
@@ -294,14 +295,11 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         const response = await fetch(`/api/remote/rustdesk/address-book/credentials/${id}/revoke`, {
           method: "POST",
         });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao revogar credencial.");
-        }
-        toast.success(payload?.message ?? "Credencial revogada.");
+        const result = await parseRemoteApiResponse(response, "Falha ao revogar credencial.");
+        toast.success(result.message ?? "Credencial revogada.");
         await loadCredentials();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao revogar credencial.");
+        toast.error(getRemoteApiErrorMessage(error, "Falha ao revogar credencial."));
       }
     });
   }
