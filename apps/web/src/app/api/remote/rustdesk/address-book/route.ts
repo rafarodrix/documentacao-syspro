@@ -3,6 +3,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { resolveRustDeskAlias } from "@/features/remote/application/rustdesk-sync";
+import { resolveAddressBookCredentialFromRequest } from "@/features/remote/application/address-book-credentials";
 
 export const dynamic = "force-dynamic";
 
@@ -10,32 +11,30 @@ function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
   return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
 }
 
-function hasValidAddressBookBearer(request: Request) {
-  const expectedToken = process.env.REMOTE_ADDRESS_BOOK_TOKEN?.trim();
-  if (!expectedToken) return false;
-
-  const authorization = request.headers.get("authorization")?.trim();
-  if (!authorization?.toLowerCase().startsWith("bearer ")) return false;
-
-  const providedToken = authorization.slice("bearer ".length).trim();
-  return !!providedToken && providedToken === expectedToken;
-}
-
 export async function GET(request: Request) {
   const session = await getProtectedSession();
-  const hasBearerAccess = hasValidAddressBookBearer(request);
-  if (!session && !hasBearerAccess) {
+  const credential = await resolveAddressBookCredentialFromRequest(request);
+  const hasCredentialAccess = !!credential;
+  if (!session && !hasCredentialAccess) {
     return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
   }
 
-  const tenantScope = hasBearerAccess
-    ? {
-        role: "DEVELOPER" as const,
-        isGlobalView: true,
-        companyIds: [],
-        companyCount: 0,
-        summary: "Address book liberado por bearer token.",
-      }
+  const tenantScope = hasCredentialAccess
+    ? credential.scope === "GLOBAL"
+      ? {
+          role: "DEVELOPER" as const,
+          isGlobalView: true,
+          companyIds: [],
+          companyCount: 0,
+          summary: "Address book liberado por credencial global.",
+        }
+      : {
+          role: "CLIENTE_ADMIN" as const,
+          isGlobalView: false,
+          companyIds: credential.companyId ? [credential.companyId] : [],
+          companyCount: credential.companyId ? 1 : 0,
+          summary: "Address book liberado por credencial segmentada por empresa.",
+        }
     : await getRemoteTenantScope();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
   const hosts = await prisma.remoteHost.findMany({

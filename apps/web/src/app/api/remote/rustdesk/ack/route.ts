@@ -4,6 +4,7 @@ import { createRequestLogger } from "@/lib/observability/logger";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { hashAgentToken } from "@/features/remote/application/rustdesk-sync";
 import { isRemoteAgentTokenExpired } from "@/features/remote/application/agent-token";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -106,14 +107,18 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
+  const jsonDetails =
+    body.details && typeof body.details === "object" && !Array.isArray(body.details)
+      ? (body.details as Prisma.InputJsonValue)
+      : undefined;
+
   await prisma.remoteAgentCommand.update({
     where: { id: command.id },
     data: {
       status,
       executedAt: now,
       resultMessage: body.message?.trim() || null,
-      resultPayload:
-        body.details && typeof body.details === "object" && !Array.isArray(body.details) ? body.details : undefined,
+      resultPayload: jsonDetails,
       failedAt: status === "FAILED" ? now : null,
     },
   });

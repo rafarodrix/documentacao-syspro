@@ -222,6 +222,28 @@ function buildInstallGuide(item: RemoteConfiguredHostItem) {
   ];
 }
 
+function resolveCommandDurationSeconds(input: {
+  createdAt: Date;
+  executedAt: Date | null;
+  failedAt: Date | null;
+}) {
+  const endAt = input.failedAt ?? input.executedAt;
+  if (!endAt) return null;
+  const diffMs = endAt.getTime() - input.createdAt.getTime();
+  return diffMs >= 0 ? Math.floor(diffMs / 1000) : 0;
+}
+
+function resolveSuccessRate(
+  rows: Array<{ status: "PENDING" | "DELIVERED" | "ACKNOWLEDGED" | "CANCELLED" | "FAILED"; updatedAt: Date }>,
+  since: Date
+) {
+  const success = rows.filter((row) => row.updatedAt >= since && row.status === "ACKNOWLEDGED").length;
+  const failed = rows.filter((row) => row.updatedAt >= since && row.status === "FAILED").length;
+  const total = success + failed;
+  if (!total) return 0;
+  return Math.round((success / total) * 100);
+}
+
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
   const tenantScope = await getRemoteTenantScope();
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
@@ -518,6 +540,8 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const last30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const [hosts, totalHosts, activeHosts, companies, companyOptions, discoveredHosts] = await Promise.all([
     prisma.remoteHost.findMany({
@@ -560,13 +584,21 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
     ? await prisma.remoteAgentCommand.findMany({
         where: {
           hostId: { in: hostIds },
-          OR: [{ status: "PENDING" }, { updatedAt: { gte: last24h } }],
+          OR: [{ status: "PENDING" }, { updatedAt: { gte: last30d } }],
         },
         select: {
+          id: true,
           hostId: true,
+          type: true,
           status: true,
+          createdAt: true,
           updatedAt: true,
+          deliveredAt: true,
+          executedAt: true,
+          failedAt: true,
         },
+        orderBy: [{ updatedAt: "desc" }],
+        take: 500,
       })
     : [];
 
@@ -638,6 +670,33 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
     .sort((a, b) => (b.pendingCount + b.failedCount * 2) - (a.pendingCount + a.failedCount * 2))
     .slice(0, 5);
 
+  const timeline = commandRows
+    .filter((row) => row.status !== "PENDING")
+    .map((row) => ({
+      commandId: row.id,
+      hostId: row.hostId,
+      hostName: hostMap.get(row.hostId)?.hostName ?? "Host remoto",
+      companyName: hostMap.get(row.hostId)?.companyName ?? null,
+      type: row.type,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      deliveredAt: row.deliveredAt?.toISOString() ?? null,
+      executedAt: row.executedAt?.toISOString() ?? null,
+      failedAt: row.failedAt?.toISOString() ?? null,
+      durationSeconds: resolveCommandDurationSeconds({
+        createdAt: row.createdAt,
+        executedAt: row.executedAt,
+        failedAt: row.failedAt,
+      }),
+    }))
+    .slice(0, 20);
+
+  const successRates = {
+    window24h: resolveSuccessRate(commandRows, last24h),
+    window7d: resolveSuccessRate(commandRows, last7d),
+    window30d: resolveSuccessRate(commandRows, last30d),
+  };
+
   const pendingItems: RemoteDiscoveredHostItem[] = discoveredHosts.map((host) => {
     const snapshot = Array.isArray(host.installationsSnapshot) ? host.installationsSnapshot : [];
     const installationCompanies = snapshot
@@ -693,6 +752,8 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       acknowledgedLast24h,
       deliveredLast24h,
       hotspots,
+      successRates,
+      timeline,
     },
     companyOptions: companyOptions.map((company) => ({
       id: company.id,
@@ -784,6 +845,9 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
   });
 
   if (!host) return null;
+  const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const last30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const sysproUpdates = await prisma.$queryRaw<
     Array<{
@@ -818,6 +882,14 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       },
     orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
     take: 12,
+  });
+  const timelineCommands = await prisma.remoteAgentCommand.findMany({
+    where: {
+      hostId: host.id,
+      OR: [{ status: "PENDING" }, { updatedAt: { gte: last30d } }],
+    },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    take: 60,
   });
 
   const hostServiceStatus = await prisma.$queryRaw<Array<{ serviceStatus: string | null }>>`
@@ -953,6 +1025,25 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       deliveredAt: command.deliveredAt?.toISOString() ?? null,
       executedAt: command.executedAt?.toISOString() ?? null,
       failedAt: command.failedAt?.toISOString() ?? null,
+    })),
+    commandSuccessRates: {
+      window24h: resolveSuccessRate(timelineCommands, last24h),
+      window7d: resolveSuccessRate(timelineCommands, last7d),
+      window30d: resolveSuccessRate(timelineCommands, last30d),
+    },
+    commandTimeline: timelineCommands.map((command) => ({
+      id: command.id,
+      type: command.type,
+      status: command.status,
+      createdAt: command.createdAt.toISOString(),
+      deliveredAt: command.deliveredAt?.toISOString() ?? null,
+      executedAt: command.executedAt?.toISOString() ?? null,
+      failedAt: command.failedAt?.toISOString() ?? null,
+      durationSeconds: resolveCommandDurationSeconds({
+        createdAt: command.createdAt,
+        executedAt: command.executedAt,
+        failedAt: command.failedAt,
+      }),
     })),
     sysproUpdates: sysproUpdates.map((entry) => ({
       id: entry.id,

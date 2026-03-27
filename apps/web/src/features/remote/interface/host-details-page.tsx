@@ -1140,6 +1140,59 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 )}
               </div>
 
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 24h</p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window24h}%</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 7d</p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window7d}%</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 30d</p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window30d}%</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Timeline operacional do host</p>
+                    <p className="text-sm text-muted-foreground">
+                      Linha temporal por comando com criacao, entrega, execucao, falha e duracao.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
+                    {details.commandTimeline.length} evento(s)
+                  </Badge>
+                </div>
+
+                {details.commandTimeline.length ? (
+                  <div className="mt-4 space-y-2">
+                    {details.commandTimeline.map((entry) => (
+                      <div key={entry.id} className="rounded-xl border border-border/50 bg-background/60 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-medium text-foreground">{AGENT_COMMAND_LABEL[entry.type]}</p>
+                          <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                            {entry.status}
+                          </Badge>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          criado: {formatDateTime(entry.createdAt)}
+                          {entry.deliveredAt ? ` | entregue: ${formatDateTime(entry.deliveredAt)}` : ""}
+                          {entry.executedAt ? ` | executado: ${formatDateTime(entry.executedAt)}` : ""}
+                          {entry.failedAt ? ` | falhou: ${formatDateTime(entry.failedAt)}` : ""}
+                          {entry.durationSeconds !== null ? ` | duracao: ${entry.durationSeconds}s` : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-muted-foreground">Sem eventos recentes para timeline deste host.</p>
+                )}
+              </div>
+
               <div className="grid gap-3 md:grid-cols-2">
                 {details.installGuide.map((step) => (
                   <div key={step.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">

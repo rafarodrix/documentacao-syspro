@@ -316,6 +316,24 @@ export type RemotePlatformDirectory = {
       pendingCount: number;
       failedCount: number;
     }>;
+    successRates: {
+      window24h: number;
+      window7d: number;
+      window30d: number;
+    };
+    timeline: Array<{
+      commandId: string;
+      hostId: string;
+      hostName: string;
+      companyName: string | null;
+      type: RemoteAgentCommandType;
+      status: RemoteAgentCommandStatus;
+      createdAt: string;
+      deliveredAt: string | null;
+      executedAt: string | null;
+      failedAt: string | null;
+      durationSeconds: number | null;
+    }>;
   };
   companyOptions: Array<{
     id: string;
@@ -408,6 +426,21 @@ export type RemoteHostDetails = {
     deliveredAt: string | null;
     executedAt: string | null;
     failedAt: string | null;
+  }>;
+  commandSuccessRates: {
+    window24h: number;
+    window7d: number;
+    window30d: number;
+  };
+  commandTimeline: Array<{
+    id: string;
+    type: RemoteAgentCommandType;
+    status: RemoteAgentCommandStatus;
+    createdAt: string;
+    deliveredAt: string | null;
+    executedAt: string | null;
+    failedAt: string | null;
+    durationSeconds: number | null;
   }>;
   sysproUpdates: RemoteHostSysproUpdateItem[];
 };

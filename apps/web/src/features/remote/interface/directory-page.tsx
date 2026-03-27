@@ -527,6 +527,21 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             </div>
           </div>
 
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 24h</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.successRates.window24h}%</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 7d</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.successRates.window7d}%</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 30d</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.successRates.window30d}%</p>
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -560,6 +575,46 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <p className="mt-4 text-sm text-muted-foreground">
                 Nenhum host com backlog ou falha recente de comando. A fila do agente esta estavel neste momento.
               </p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Timeline recente de comandos</p>
+                <p className="text-xs text-muted-foreground">Historico por host/comando com janela temporal e duracao.</p>
+              </div>
+            </div>
+
+            {commandObservability.timeline.length ? (
+              <div className="mt-4 space-y-2">
+                {commandObservability.timeline.map((entry) => (
+                  <Link
+                    key={entry.commandId}
+                    href={`/portal/plataforma-remota/${entry.hostId}`}
+                    className="block rounded-xl border border-border/50 bg-background/60 p-3 transition hover:border-primary/30 hover:bg-background"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-foreground">
+                        {entry.hostName} - {entry.type}
+                      </p>
+                      <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                        {entry.status}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{entry.companyName ?? "Sem empresa resolvida"}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      criado: {new Date(entry.createdAt).toLocaleString("pt-BR")}
+                      {entry.deliveredAt ? ` | entregue: ${new Date(entry.deliveredAt).toLocaleString("pt-BR")}` : ""}
+                      {entry.executedAt ? ` | executado: ${new Date(entry.executedAt).toLocaleString("pt-BR")}` : ""}
+                      {entry.failedAt ? ` | falhou: ${new Date(entry.failedAt).toLocaleString("pt-BR")}` : ""}
+                      {entry.durationSeconds !== null ? ` | duracao: ${entry.durationSeconds}s` : ""}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">Sem eventos recentes de comandos para timeline operacional.</p>
             )}
           </div>
         </CardContent>
