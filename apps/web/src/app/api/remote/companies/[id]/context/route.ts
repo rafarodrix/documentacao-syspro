@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 
 export const dynamic = "force-dynamic";
+const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
 
 function canEditCompanyContext(role: string) {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
@@ -70,7 +71,7 @@ export async function PATCH(
     where: { id },
     data: {
       serverType: body.serverType ?? undefined,
-      installationDirectory: installationDirectoryValue ? installationDirectoryValue : null,
+      installationDirectory: installationDirectoryValue ? installationDirectoryValue : DEFAULT_INSTALLATION_DIRECTORY,
       serverHost: serverHostValue || "localhost",
       serverPort: serverPortValue ?? undefined,
       serverProtocol: serverProtocolValue,

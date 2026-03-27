@@ -353,6 +353,23 @@ export type RemoteHostSysproUpdateItem = {
   lastHeartbeatAt: string;
 };
 
+export type RemoteCompanyContextItem = {
+  id: string;
+  razaoSocial: string;
+  nomeFantasia: string | null;
+  serverType: "SYSPRO_SERVER" | "IIS" | null;
+  serverPort: number | null;
+  serverHost: string | null;
+  serverProtocol: "HTTP" | "HTTPS" | null;
+  iisIsapiPath: string | null;
+  installationDirectory: string | null;
+  remoteConnections: Array<{
+    type: "DDNS_NOIP" | "RADMIN_VPN";
+    details: string;
+  }>;
+  observacoes: string | null;
+};
+
 export type RemoteHostDetails = {
   host: RemoteConfiguredHostItem;
   permissions: {
@@ -396,6 +413,10 @@ export type RemoteHostDetails = {
     }>;
     observacoes: string | null;
   };
+  installationContexts: Array<{
+    update: RemoteHostSysproUpdateItem;
+    company: RemoteCompanyContextItem | null;
+  }>;
   linkedUsers: Array<{
     id: string;
     name: string | null;

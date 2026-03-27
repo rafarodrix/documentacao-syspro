@@ -90,6 +90,17 @@ const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
   DDNS_NOIP: "DDNS (NoIP)",
   RADMIN_VPN: "Radmin VPN",
 };
+const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
+
+type CompanyContextDraft = {
+  serverType: string;
+  installationDirectory: string;
+  serverHost: string;
+  serverPort: string;
+  serverProtocol: string;
+  iisIsapiPath: string;
+  observacoes: string;
+};
 
 const AGENT_COMMAND_LABEL: Record<
   "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED",
@@ -211,21 +222,19 @@ function resolveExpectedRustDeskAlias(input: {
   return input.hostName;
 }
 
+function normalizePathForCompare(value: string | null) {
+  return value ? value.trim().replace(/\//g, "\\").toLowerCase() : "";
+}
+
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const [machineName, setMachineName] = useState(host.machineName ?? "");
-  const [companyObservacoes, setCompanyObservacoes] = useState(details.company.observacoes ?? "");
-  const [companyServerType, setCompanyServerType] = useState(details.company.serverType ?? "SYSPRO_SERVER");
-  const [companyInstallationDirectory, setCompanyInstallationDirectory] = useState(details.company.installationDirectory ?? "");
-  const [companyServerHost, setCompanyServerHost] = useState(details.company.serverHost ?? "");
-  const [companyServerPort, setCompanyServerPort] = useState(details.company.serverPort ? String(details.company.serverPort) : "");
-  const [companyServerProtocol, setCompanyServerProtocol] = useState(details.company.serverProtocol ?? "HTTP");
-  const [companyIisIsapiPath, setCompanyIisIsapiPath] = useState(details.company.iisIsapiPath ?? "");
   const [pendingUpdateCompanyById, setPendingUpdateCompanyById] = useState<Record<string, string>>({});
+  const [companyContextDrafts, setCompanyContextDrafts] = useState<Record<string, CompanyContextDraft>>({});
+  const [savingCompanyContextId, setSavingCompanyContextId] = useState<string | null>(null);
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
-  const [isSavingCompanyContext, startSavingCompanyContext] = useTransition();
   const [linkingUpdateId, startLinkingUpdateId] = useTransition();
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
@@ -346,7 +355,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         ]
       : [];
   }, [details.sysproUpdates, host.companyId, host.companyName]);
-  const primaryMonitoredPath = details.sysproUpdates[0]?.path ?? null;
   const companyOptionLabelCount = useMemo(() => {
     return details.companyOptions.reduce<Record<string, number>>((acc, option) => {
       acc[option.label] = (acc[option.label] ?? 0) + 1;
@@ -394,6 +402,27 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     const userAgent = window.navigator.userAgent.toLowerCase();
     setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
   }, []);
+
+  useEffect(() => {
+    setCompanyContextDrafts((current) => {
+      const next = { ...current };
+      for (const context of details.installationContexts) {
+        if (!context.company) continue;
+        const companyId = context.company.id;
+        if (next[companyId]) continue;
+        next[companyId] = {
+          serverType: context.company.serverType ?? "SYSPRO_SERVER",
+          installationDirectory: context.company.installationDirectory ?? DEFAULT_INSTALLATION_DIRECTORY,
+          serverHost: context.company.serverHost ?? "localhost",
+          serverPort: context.company.serverPort ? String(context.company.serverPort) : "",
+          serverProtocol: context.company.serverProtocol ?? "HTTP",
+          iisIsapiPath: context.company.iisIsapiPath ?? "",
+          observacoes: context.company.observacoes ?? "",
+        };
+      }
+      return next;
+    });
+  }, [details.installationContexts]);
 
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
@@ -472,34 +501,66 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
-  function handleSaveCompanyContext() {
-    startSavingCompanyContext(async () => {
-      try {
-        const response = await fetch(`/api/remote/companies/${details.company.id}/context`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            serverType: companyServerType,
-            installationDirectory: companyInstallationDirectory,
-            serverHost: companyServerHost,
-            serverPort: companyServerPort,
-            serverProtocol: companyServerProtocol,
-            iisIsapiPath: companyIisIsapiPath,
-            observacoes: companyObservacoes,
-          }),
-        });
-
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Falha ao salvar configuracoes da empresa.");
-        }
-
-        toast.success("Configuracoes da empresa atualizadas.");
-        window.location.reload();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Falha ao salvar configuracoes da empresa.");
-      }
+  function handleCompanyContextDraftChange(
+    companyId: string,
+    field: keyof CompanyContextDraft,
+    value: string
+  ) {
+    setCompanyContextDrafts((current) => {
+      const previous = current[companyId] ?? {
+        serverType: "SYSPRO_SERVER",
+        installationDirectory: DEFAULT_INSTALLATION_DIRECTORY,
+        serverHost: "localhost",
+        serverPort: "",
+        serverProtocol: "HTTP",
+        iisIsapiPath: "",
+        observacoes: "",
+      };
+      return {
+        ...current,
+        [companyId]: {
+          ...previous,
+          [field]: value,
+        },
+      };
     });
+  }
+
+  async function handleSaveCompanyContextByInstallation(companyId: string) {
+    const draft = companyContextDrafts[companyId];
+    if (!draft) {
+      toast.error("Configuracao da empresa nao carregada.");
+      return;
+    }
+
+    try {
+      setSavingCompanyContextId(companyId);
+      const response = await fetch(`/api/remote/companies/${companyId}/context`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serverType: draft.serverType === "IIS" ? "IIS" : "SYSPRO_SERVER",
+          installationDirectory: draft.installationDirectory.trim() || DEFAULT_INSTALLATION_DIRECTORY,
+          serverHost: draft.serverHost,
+          serverPort: draft.serverPort,
+          serverProtocol: draft.serverProtocol === "HTTPS" ? "HTTPS" : "HTTP",
+          iisIsapiPath: draft.iisIsapiPath,
+          observacoes: draft.observacoes,
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Falha ao salvar configuracoes da empresa.");
+      }
+
+      toast.success("Configuracoes da empresa atualizadas.");
+      window.location.reload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao salvar configuracoes da empresa.");
+    } finally {
+      setSavingCompanyContextId(null);
+    }
   }
 
   function handleRelinkInstallation(updateId: string) {
@@ -753,224 +814,285 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Contexto operacional da maquina</CardTitle>
-              <CardDescription>Servidor, caminhos monitorados e observacoes no mesmo bloco operacional.</CardDescription>
+              <CardDescription>Cada instalacao exibe sua empresa e configuracoes operacionais no mesmo nivel.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal</p>
                   <p className="mt-1 text-sm font-medium text-foreground">{details.company.nomeFantasia ?? details.company.razaoSocial}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Host</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Host / Instalacoes detectadas</p>
                   <p className="mt-1 text-sm font-medium text-foreground">{host.name}</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado atual</p>
-                  <p className="mt-1 break-all font-mono text-xs text-foreground">{primaryMonitoredPath ?? "Sem leitura do agente"}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{details.installationContexts.length} instalacao(oes)</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2 font-medium text-foreground">
-                  <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
-                  Servidor e instalacoes monitoradas
-                </p>
+              {details.installationContexts.length ? (
+                <div className="space-y-4">
+                  {details.installationContexts.map((context, index) => {
+                    const entry = context.update;
+                    const companyContext = context.company;
+                    const companyName = companyContext?.nomeFantasia ?? companyContext?.razaoSocial ?? entry.resolvedCompanyName ?? entry.companyLabel;
+                    const serverType = companyContext?.serverType ? COMPANY_SERVER_TYPE_LABEL[companyContext.serverType] : "Nao configurado";
+                    const draft = companyContext ? companyContextDrafts[companyContext.id] : null;
+                    const installationDirectory =
+                      draft?.installationDirectory?.trim() ||
+                      companyContext?.installationDirectory ||
+                      DEFAULT_INSTALLATION_DIRECTORY;
+                    const pathDivergent =
+                      normalizePathForCompare(installationDirectory) !== normalizePathForCompare(entry.path);
 
-                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3" open>
-                  <summary className="cursor-pointer text-sm font-medium text-foreground">Configuracoes do servidor da empresa</summary>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
-                      {details.permissions.canEditCompanyContext ? (
-                        <select
-                          value={companyServerType}
-                          onChange={(event) => setCompanyServerType(event.target.value as "SYSPRO_SERVER" | "IIS")}
-                          className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                        >
-                          <option value="SYSPRO_SERVER">Syspro Server</option>
-                          <option value="IIS">IIS</option>
-                        </select>
-                      ) : (
-                        <p className="mt-1 text-sm text-foreground">
-                          {details.company.serverType ? COMPANY_SERVER_TYPE_LABEL[details.company.serverType] : "Nao configurado"}
+                    return (
+                      <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                        <p className="flex items-center gap-2 font-medium text-foreground">
+                          <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
+                          Instalacao {index + 1}
                         </p>
-                      )}
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho principal monitorado</p>
-                      {details.permissions.canEditCompanyContext ? (
-                        <Input value={companyInstallationDirectory} onChange={(event) => setCompanyInstallationDirectory(event.target.value)} />
-                      ) : (
-                        <p className="mt-1 break-all text-sm text-foreground">{details.company.installationDirectory || "Nao configurado"}</p>
-                      )}
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Este caminho deve refletir o executavel monitorado no heartbeat.
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor</p>
-                      {details.permissions.canEditCompanyContext ? (
-                        <Input value={companyServerHost} onChange={(event) => setCompanyServerHost(event.target.value)} />
-                      ) : (
-                        <p className="mt-1 text-sm text-foreground">{details.company.serverHost || "Nao configurado"}</p>
-                      )}
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta</p>
-                      {details.permissions.canEditCompanyContext ? (
-                        <Input value={companyServerPort} onChange={(event) => setCompanyServerPort(event.target.value)} />
-                      ) : (
-                        <p className="mt-1 text-sm text-foreground">
-                          {details.company.serverPort ? String(details.company.serverPort) : "Nao configurado"}
-                        </p>
-                      )}
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conexao</p>
-                      {details.permissions.canEditCompanyContext ? (
-                        <select
-                          value={companyServerProtocol}
-                          onChange={(event) => setCompanyServerProtocol(event.target.value as "HTTP" | "HTTPS")}
-                          className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                        >
-                          <option value="HTTP">HTTP</option>
-                          <option value="HTTPS">HTTPS</option>
-                        </select>
-                      ) : (
-                        <p className="mt-1 text-sm text-foreground">{details.company.serverProtocol || "Nao configurado"}</p>
-                      )}
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Url Path (ISAPI)</p>
-                      {details.permissions.canEditCompanyContext ? (
-                        <Input value={companyIisIsapiPath} onChange={(event) => setCompanyIisIsapiPath(event.target.value)} />
-                      ) : (
-                        <p className="mt-1 break-all text-sm text-foreground">{details.company.iisIsapiPath || "Nao configurado"}</p>
-                      )}
-                    </div>
-                  </div>
-                </details>
+                        <div className="mt-3 grid gap-3 md:grid-cols-3">
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da empresa</p>
+                            <p className="mt-1 text-sm font-medium text-foreground">{companyName}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
+                            <p className="mt-1 text-sm text-foreground">{serverType}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao</p>
+                            <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "mt-2",
+                                pathDivergent
+                                  ? "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                              )}
+                            >
+                              {pathDivergent ? "Divergente do caminho monitorado" : "Conforme caminho monitorado"}
+                            </Badge>
+                          </div>
+                        </div>
 
-                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3" open>
-                  <summary className="cursor-pointer text-sm font-medium text-foreground">Instalacoes detectadas na maquina</summary>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Use `Trocar empresa` para corrigir o vinculo e `Adicionar empresa` quando a mesma instalacao atender mais de uma empresa.
-                  </p>
-                  <div className="mt-3 space-y-3">
-                    {details.sysproUpdates.length ? (
-                      details.sysproUpdates.map((entry) => (
-                        <div key={entry.id} className="rounded-xl border border-border/50 bg-background/40 p-4">
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_180px_180px]">
-                            <div className="min-w-0">
-                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
-                              <p className="mt-1 text-sm font-medium text-foreground">{entry.resolvedCompanyName ?? entry.companyLabel}</p>
-                              {!entry.companyId ? (
-                                <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">Sem vinculo automatico com empresa cadastrada</p>
-                              ) : null}
+                        <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3" open>
+                          <summary className="cursor-pointer text-sm font-medium text-foreground">Informacoes do servidor</summary>
+                          <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
+                              {companyContext && details.permissions.canEditCompanyContext ? (
+                                <select
+                                  value={draft?.serverType ?? (companyContext.serverType ?? "SYSPRO_SERVER")}
+                                  onChange={(event) =>
+                                    handleCompanyContextDraftChange(
+                                      companyContext.id,
+                                      "serverType",
+                                      event.target.value
+                                    )
+                                  }
+                                  className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                                >
+                                  <option value="SYSPRO_SERVER">Syspro Server</option>
+                                  <option value="IIS">IIS</option>
+                                </select>
+                              ) : (
+                                <p className="mt-1 text-sm text-foreground">{serverType}</p>
+                              )}
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
-                              <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
+                            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao (fonte de verdade)</p>
+                              {companyContext && details.permissions.canEditCompanyContext ? (
+                                <Input
+                                  value={draft?.installationDirectory ?? companyContext.installationDirectory ?? DEFAULT_INSTALLATION_DIRECTORY}
+                                  onChange={(event) =>
+                                    handleCompanyContextDraftChange(
+                                      companyContext.id,
+                                      "installationDirectory",
+                                      event.target.value
+                                    )
+                                  }
+                                />
+                              ) : (
+                                <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
+                              )}
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Padrao recomendado: <span className="font-mono">{DEFAULT_INSTALLATION_DIRECTORY}</span>
+                              </p>
                             </div>
-                            <div>
-                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
-                              <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
+                            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor</p>
+                              {companyContext && details.permissions.canEditCompanyContext ? (
+                                <Input
+                                  value={draft?.serverHost ?? companyContext.serverHost ?? "localhost"}
+                                  onChange={(event) =>
+                                    handleCompanyContextDraftChange(companyContext.id, "serverHost", event.target.value)
+                                  }
+                                />
+                              ) : (
+                                <p className="mt-1 text-sm text-foreground">{companyContext?.serverHost ?? "Nao configurado"}</p>
+                              )}
                             </div>
-                            <div>
-                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
-                              <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastHeartbeatAt)}</p>
+                            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta</p>
+                              {companyContext && details.permissions.canEditCompanyContext ? (
+                                <Input
+                                  value={draft?.serverPort ?? (companyContext.serverPort ? String(companyContext.serverPort) : "")}
+                                  onChange={(event) =>
+                                    handleCompanyContextDraftChange(companyContext.id, "serverPort", event.target.value)
+                                  }
+                                />
+                              ) : (
+                                <p className="mt-1 text-sm text-foreground">
+                                  {companyContext?.serverPort ? String(companyContext.serverPort) : "Nao configurado"}
+                                </p>
+                              )}
+                            </div>
+                            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conexao</p>
+                              {companyContext && details.permissions.canEditCompanyContext ? (
+                                <select
+                                  value={draft?.serverProtocol ?? (companyContext.serverProtocol ?? "HTTP")}
+                                  onChange={(event) =>
+                                    handleCompanyContextDraftChange(
+                                      companyContext.id,
+                                      "serverProtocol",
+                                      event.target.value
+                                    )
+                                  }
+                                  className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                                >
+                                  <option value="HTTP">HTTP</option>
+                                  <option value="HTTPS">HTTPS</option>
+                                </select>
+                              ) : (
+                                <p className="mt-1 text-sm text-foreground">{companyContext?.serverProtocol ?? "Nao configurado"}</p>
+                              )}
+                            </div>
+                            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Url Path (ISAPI)</p>
+                              {companyContext && details.permissions.canEditCompanyContext ? (
+                                <Input
+                                  value={draft?.iisIsapiPath ?? (companyContext.iisIsapiPath ?? "")}
+                                  onChange={(event) =>
+                                    handleCompanyContextDraftChange(companyContext.id, "iisIsapiPath", event.target.value)
+                                  }
+                                />
+                              ) : (
+                                <p className="mt-1 break-all text-sm text-foreground">{companyContext?.iisIsapiPath ?? "Nao configurado"}</p>
+                              )}
                             </div>
                           </div>
-                          {details.permissions.canRelinkInstallations ? (
-                            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
-                              <select
-                                value={pendingUpdateCompanyById[entry.id] ?? entry.companyId ?? details.company.id}
+                        </details>
+
+                        <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                          <summary className="cursor-pointer text-sm font-medium text-foreground">Observacoes</summary>
+                          <div className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                            {companyContext && details.permissions.canEditCompanyContext ? (
+                              <Textarea
+                                rows={4}
+                                value={draft?.observacoes ?? (companyContext.observacoes ?? "")}
                                 onChange={(event) =>
-                                  setPendingUpdateCompanyById((current) => ({ ...current, [entry.id]: event.target.value }))
+                                  handleCompanyContextDraftChange(companyContext.id, "observacoes", event.target.value)
                                 }
-                                className="h-10 rounded-md border border-border bg-background px-3 text-sm"
-                              >
-                                {details.companyOptions.map((company) => (
-                                  <option key={company.id} value={company.id}>
-                                    {companyOptionLabelCount[company.label] > 1
-                                      ? `${company.label} (${company.id.slice(0, 8)})`
-                                      : company.label}
-                                  </option>
-                                ))}
-                              </select>
-                              <Button className="w-full lg:w-auto" onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
-                                Trocar empresa
-                              </Button>
+                                placeholder="Observacoes operacionais da empresa."
+                              />
+                            ) : (
+                              <p className="whitespace-pre-wrap text-sm text-foreground">
+                                {companyContext?.observacoes ?? "Sem observacoes operacionais para esta empresa."}
+                              </p>
+                            )}
+                          </div>
+                          {companyContext && details.permissions.canEditCompanyContext ? (
+                            <div className="mt-3 flex justify-end">
                               <Button
-                                variant="outline"
-                                className="w-full lg:w-auto"
-                                onClick={() => handleAddCompanyToInstallation(entry.id)}
-                                disabled={linkingUpdateId}
+                                onClick={() => handleSaveCompanyContextByInstallation(companyContext.id)}
+                                disabled={savingCompanyContextId === companyContext.id}
                               >
-                                Adicionar empresa
+                                {savingCompanyContextId === companyContext.id ? "Salvando..." : "Salvar configuracoes da empresa"}
                               </Button>
                             </div>
                           ) : null}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Esta maquina ainda nao enviou instalacoes no heartbeat.</p>
-                    )}
-                  </div>
-                </details>
+                        </details>
 
-                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-                  <summary className="cursor-pointer text-sm font-medium text-foreground">Observacoes operacionais</summary>
-                  <div className="mt-3 space-y-3">
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Descricao do host</p>
-                      <p className="mt-1 text-sm text-foreground">{host.description || "Sem descricao operacional."}</p>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Observacoes do host</p>
-                      <p className="mt-1 text-sm text-foreground">{host.notes ?? "Sem observacoes do host."}</p>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Observacoes da empresa</p>
-                      <Textarea
-                        rows={5}
-                        value={companyObservacoes}
-                        onChange={(event) => setCompanyObservacoes(event.target.value)}
-                        placeholder="Registre orientacoes operacionais desta empresa para futuros acessos remotos."
-                      />
-                    </div>
-                  </div>
-                </details>
+                        <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                          <summary className="cursor-pointer text-sm font-medium text-foreground">Conexao remota</summary>
+                          <div className="mt-3 space-y-3">
+                            {companyContext?.remoteConnections.length ? (
+                              companyContext.remoteConnections.map((connection, connectionIndex) => (
+                                <div key={`${connection.type}-${connectionIndex}`} className="rounded-lg border border-border/40 bg-background/40 p-3">
+                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo</p>
+                                  <p className="mt-1 text-sm font-medium text-foreground">{REMOTE_CONNECTION_LABEL[connection.type]}</p>
+                                  <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Nome/IP/identificacao</p>
+                                  <p className="mt-1 break-all text-sm text-foreground">{connection.details || "Sem detalhe informado"}</p>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="rounded-lg border border-dashed border-border/50 bg-background/30 p-3">
+                                Nenhuma conexao remota cadastrada para esta empresa.
+                              </div>
+                            )}
+                          </div>
+                        </details>
 
-                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-                  <summary className="cursor-pointer text-sm font-medium text-foreground">Conexoes remotas</summary>
-                  <div className="mt-3 space-y-3">
-                    {details.company.remoteConnections.length ? (
-                      details.company.remoteConnections.map((connection, index) => (
-                        <div key={`${connection.type}-${index}`} className="rounded-lg border border-border/40 bg-background/40 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo</p>
-                          <p className="mt-1 text-sm font-medium text-foreground">{REMOTE_CONNECTION_LABEL[connection.type]}</p>
-                          <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Nome/IP/identificacao</p>
-                          <p className="mt-1 break-all text-sm text-foreground">{connection.details || "Sem detalhe informado"}</p>
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
+                            <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
+                            <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
+                            <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastHeartbeatAt)}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa vinculada</p>
+                            <p className="mt-1 text-sm text-foreground">{entry.companyId ? "Vinculada" : "Sem vinculo"}</p>
+                          </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-border/50 bg-background/30 p-3">
-                        Nenhuma conexao remota cadastrada na empresa.
+
+                        {details.permissions.canRelinkInstallations ? (
+                          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
+                            <select
+                              value={pendingUpdateCompanyById[entry.id] ?? entry.companyId ?? details.company.id}
+                              onChange={(event) =>
+                                setPendingUpdateCompanyById((current) => ({ ...current, [entry.id]: event.target.value }))
+                              }
+                              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                            >
+                              {details.companyOptions.map((company) => (
+                                <option key={company.id} value={company.id}>
+                                  {companyOptionLabelCount[company.label] > 1
+                                    ? `${company.label} (${company.id.slice(0, 8)})`
+                                    : company.label}
+                                </option>
+                              ))}
+                            </select>
+                            <Button className="w-full lg:w-auto" onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
+                              Trocar empresa
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="w-full lg:w-auto"
+                              onClick={() => handleAddCompanyToInstallation(entry.id)}
+                              disabled={linkingUpdateId}
+                            >
+                              Adicionar empresa
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
-                    )}
-                  </div>
-                </details>
-
-                {details.permissions.canEditCompanyContext ? (
-                  <div className="mt-3 flex justify-end">
-                    <Button onClick={handleSaveCompanyContext} disabled={isSavingCompanyContext}>
-                      {isSavingCompanyContext ? "Salvando..." : "Salvar contexto da empresa"}
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  Esta maquina ainda nao enviou instalacoes no heartbeat.
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

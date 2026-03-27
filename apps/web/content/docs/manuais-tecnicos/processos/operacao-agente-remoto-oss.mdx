@@ -44,6 +44,19 @@ Padronizar como uma maquina remota deve ser:
   No recorte OSS-first, o portal da Trilink continua sendo a fonte de verdade para `installToken`, metadata do agente, heartbeat, multi-instalacoes e relacao entre empresa, host e sessao. O RustDesk nao substitui essa camada.
 </Callout>
 
+## Fluxo oficial consolidado
+
+Sequencia oficial unica para operacao de agente remoto:
+
+1. `POST /api/remote/agents/discover` (triagem inicial sem pre-cadastro)
+2. `POST /api/remote/rustdesk/bootstrap` (bootstrap autenticado por host e emissao de `agentToken`)
+3. `POST /api/remote/rustdesk/sync` (heartbeat operacional recorrente com compliance e fila de comandos)
+4. `POST /api/remote/rustdesk/ack` (retorno de execucao dos comandos recebidos em `commandQueue`)
+
+<Callout type="info" title="Regra operacional">
+  O fluxo legado `agents/register` e `agents/heartbeat` nao faz parte do processo oficial. Em campo, use apenas `discover` para triagem e `bootstrap/sync/ack` para operacao autenticada.
+</Callout>
+
 ## Campos operacionais do host
 
 - `companyId`

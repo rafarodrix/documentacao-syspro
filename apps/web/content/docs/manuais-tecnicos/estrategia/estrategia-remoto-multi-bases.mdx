@@ -27,7 +27,7 @@ Resumo:
 
 - `RemoteHost` continua sendo a maquina fisica / acesso remoto
 - `agentExternalId` continua sendo o `RustDesk ID` da maquina
-- `installToken` continua sendo o segredo do agente
+- `installToken` continua sendo o segredo de bootstrap
 - uma nova tabela guarda as leituras por empresa/caminho monitorado
 
 Isso evita:
@@ -45,7 +45,7 @@ Isso evita:
 Responsabilidade:
 
 - identidade da maquina
-- token de instalacao
+- token de bootstrap por host
 - `RustDesk ID`
 - heartbeat global da maquina
 - status operacional do host
@@ -113,13 +113,13 @@ Cada item de `sysproUpdates[]` representa:
 
 ## Contrato da API
 
-### Payload novo
+### Payload novo (`POST /api/remote/rustdesk/sync`)
 
-O heartbeat passa a aceitar:
+Depois do bootstrap, o `sync` autenticado por `agentToken` passa a aceitar:
 
 ```json
 {
-  "installToken": "rhost_x",
+  "agentToken": "agt_xxx",
   "rustdeskId": "164126438",
   "machineName": "SERVIDOR-01",
   "agentVersion": "rustdesk-oss-local",
@@ -140,18 +140,17 @@ O heartbeat passa a aceitar:
 
 ### Compatibilidade
 
-A rota `/api/remote/agents/heartbeat` deve continuar aceitando o payload antigo.
-
 Regras:
 
-- se `sysproUpdates` nao vier, o fluxo atual continua
+- bootstrap inicial permanece em `POST /api/remote/rustdesk/bootstrap` com `installToken`
+- ciclo recorrente deve usar apenas `POST /api/remote/rustdesk/sync` com `agentToken`
 - se `sysproUpdates` vier, alem do update do host, sincroniza as linhas filhas
 
-## Comportamento da rota de heartbeat
+## Comportamento da rota de sync
 
 Fluxo recomendado:
 
-1. validar `installToken`
+1. validar `agentToken`
 2. localizar `RemoteHost`
 3. atualizar metadados globais do host
 4. fazer upsert da lista `sysproUpdates[]`

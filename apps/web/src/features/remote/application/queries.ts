@@ -244,6 +244,39 @@ function resolveSuccessRate(
   return Math.round((success / total) * 100);
 }
 
+function mapCompanyRemoteConnections(input: {
+  remoteConnections?: unknown;
+  remoteConnectionType?: unknown;
+  remoteConnectionDetails?: unknown;
+}) {
+  if (Array.isArray(input.remoteConnections)) {
+    return input.remoteConnections
+      .filter(
+        (entry): entry is { type: "DDNS_NOIP" | "RADMIN_VPN"; details?: string } =>
+          !!entry &&
+          typeof entry === "object" &&
+          "type" in entry &&
+          (((entry as { type?: string }).type ?? "") === "DDNS_NOIP" ||
+            ((entry as { type?: string }).type ?? "") === "RADMIN_VPN")
+      )
+      .map((entry) => ({
+        type: entry.type,
+        details: entry.details ?? "",
+      }));
+  }
+
+  if (input.remoteConnectionType === "DDNS_NOIP" || input.remoteConnectionType === "RADMIN_VPN") {
+    return [
+      {
+        type: input.remoteConnectionType,
+        details: typeof input.remoteConnectionDetails === "string" ? input.remoteConnectionDetails : "",
+      },
+    ];
+  }
+
+  return [];
+}
+
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
   const tenantScope = await getRemoteTenantScope();
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
@@ -453,8 +486,9 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
       { method: "POST", path: "/api/remote/hosts", purpose: "Cadastrar host remoto" },
       { method: "GET", path: "/api/remote/agents/discovery-script", purpose: "Baixar script padrao para descoberta sem pre-cadastro" },
       { method: "POST", path: "/api/remote/agents/discover", purpose: "Registrar maquina descoberta e manter heartbeat sem host previo" },
-      { method: "POST", path: "/api/remote/agents/register", purpose: "Registrar agente OSS no host via installToken" },
-      { method: "POST", path: "/api/remote/agents/heartbeat", purpose: "Atualizar heartbeat e metadata minima do agente" },
+      { method: "POST", path: "/api/remote/rustdesk/bootstrap", purpose: "Bootstrap autenticado do host via installToken para emissao de agentToken" },
+      { method: "POST", path: "/api/remote/rustdesk/sync", purpose: "Heartbeat autenticado, compliance do cliente e sincronizacao operacional" },
+      { method: "POST", path: "/api/remote/rustdesk/ack", purpose: "Ack de comandos executados pelo agente no host" },
       { method: "GET", path: "/api/remote/sessions", purpose: "Listar sessoes remotas no escopo do usuario" },
       { method: "POST", path: "/api/remote/sessions", purpose: "Solicitar sessao remota" },
       { method: "POST", path: "/api/remote/sessions/:id/start", purpose: "Iniciar sessao remota solicitada" },
@@ -873,6 +907,49 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     WHERE u."hostId" = ${host.id}
     ORDER BY u."companyLabel" ASC, u."path" ASC
   `;
+  const companyIdsFromInstallations = Array.from(new Set(sysproUpdates.map((entry) => entry.companyId).filter((id): id is string => !!id)));
+  const installationCompanies = companyIdsFromInstallations.length
+    ? await prisma.company.findMany({
+        where: { id: { in: companyIdsFromInstallations } },
+        select: {
+          id: true,
+          razaoSocial: true,
+          nomeFantasia: true,
+          serverType: true,
+          serverPort: true,
+          serverHost: true,
+          serverProtocol: true,
+          iisIsapiPath: true,
+          installationDirectory: true,
+          remoteConnections: true,
+          remoteConnectionType: true,
+          remoteConnectionDetails: true,
+          observacoes: true,
+        },
+      })
+    : [];
+  const companyContextById = new Map(
+    installationCompanies.map((company) => [
+      company.id,
+      {
+        id: company.id,
+        razaoSocial: company.razaoSocial,
+        nomeFantasia: company.nomeFantasia,
+        serverType: ((company as any).serverType ?? null) as "SYSPRO_SERVER" | "IIS" | null,
+        serverPort: company.serverPort ?? null,
+        serverHost: company.serverHost ?? null,
+        serverProtocol: ((company as any).serverProtocol ?? null) as "HTTP" | "HTTPS" | null,
+        iisIsapiPath: company.iisIsapiPath ?? null,
+        installationDirectory: company.installationDirectory ?? null,
+        remoteConnections: mapCompanyRemoteConnections({
+          remoteConnections: (company as any).remoteConnections,
+          remoteConnectionType: (company as any).remoteConnectionType,
+          remoteConnectionDetails: (company as any).remoteConnectionDetails,
+        }),
+        observacoes: company.observacoes ?? null,
+      },
+    ])
+  );
   const agentCommands = await prisma.remoteAgentCommand.findMany({
       where: {
         hostId: host.id,
@@ -898,21 +975,20 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     WHERE "id" = ${host.id}
   `;
   const serviceStatus = hostServiceStatus[0]?.serviceStatus ?? null;
-  const remoteConnections = Array.isArray((host.company as any).remoteConnections)
-    ? ((host.company as any).remoteConnections as Array<{ type?: string; details?: string }>)
-        .filter((entry) => typeof entry?.type === "string" && typeof entry?.details === "string")
-        .map((entry) => ({
-          type: entry.type as "DDNS_NOIP" | "RADMIN_VPN",
-          details: entry.details ?? "",
-        }))
-    : (host.company as any).remoteConnectionType
-      ? [
-          {
-            type: (host.company as any).remoteConnectionType as "DDNS_NOIP" | "RADMIN_VPN",
-            details: ((host.company as any).remoteConnectionDetails ?? "") as string,
-          },
-        ]
-      : [];
+  const remoteConnections = mapCompanyRemoteConnections({
+    remoteConnections: (host.company as any).remoteConnections,
+    remoteConnectionType: (host.company as any).remoteConnectionType,
+    remoteConnectionDetails: (host.company as any).remoteConnectionDetails,
+  });
+  const mappedSysproUpdates = sysproUpdates.map((entry) => ({
+    id: entry.id,
+    companyId: entry.companyId,
+    companyLabel: entry.companyLabel,
+    resolvedCompanyName: entry.resolvedCompanyName,
+    path: entry.path,
+    lastFileWriteAt: entry.lastFileWriteAt?.toISOString() ?? null,
+    lastHeartbeatAt: entry.lastHeartbeatAt.toISOString(),
+  }));
 
   return {
     host: mapDirectoryItem({
@@ -983,6 +1059,10 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       remoteConnections,
       observacoes: host.company.observacoes,
     },
+    installationContexts: mappedSysproUpdates.map((update) => ({
+      update,
+      company: update.companyId ? companyContextById.get(update.companyId) ?? null : null,
+    })),
     linkedUsers: host.company.memberships.map((membership) => ({
       id: membership.user.id,
       name: membership.user.name,
@@ -1045,14 +1125,6 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         failedAt: command.failedAt,
       }),
     })),
-    sysproUpdates: sysproUpdates.map((entry) => ({
-      id: entry.id,
-      companyId: entry.companyId,
-      companyLabel: entry.companyLabel,
-      resolvedCompanyName: entry.resolvedCompanyName,
-      path: entry.path,
-      lastFileWriteAt: entry.lastFileWriteAt?.toISOString() ?? null,
-      lastHeartbeatAt: entry.lastHeartbeatAt.toISOString(),
-    })),
+    sysproUpdates: mappedSysproUpdates,
   };
 }
