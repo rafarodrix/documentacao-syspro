@@ -297,7 +297,7 @@ export interface RemoteDiscoverPort {
 
 export type RemoteSessionScope = ListSessionsInput["scope"];
 export type RemoteSessionActor = CreateSessionInput["actor"];
-export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED";
+export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED" | "FAILED";
 
 export type RemoteSessionListRecord = Record<string, unknown>;
 export type RemoteSessionPersistedRecord = Record<string, unknown>;
