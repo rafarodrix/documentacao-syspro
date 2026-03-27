@@ -14,7 +14,7 @@ import {
   normalizeSysproUpdates,
   syncRemoteHostSysproUpdates,
 } from "@/features/remote/application/agent-payload";
-import type { RemoteSyncPort } from "@dosc-syspro/remote-domain";
+import type { PersistedSyncResult, RemoteSyncPort } from "@dosc-syspro/remote-domain";
 
 type RemoteLogger = {
   info(event: string, fields?: Record<string, unknown>): void;
@@ -26,6 +26,31 @@ const COMMAND_TYPE_MAP = {
   reapply_config: "REAPPLY_CONFIG",
   upgrade_client: "UPGRADE_CLIENT",
 } as const;
+
+type CommandTypeValue = (typeof COMMAND_TYPE_MAP)[keyof typeof COMMAND_TYPE_MAP];
+
+function isCommandTypeValue(value: string): value is CommandTypeValue {
+  return value === "REAPPLY_ALIAS" || value === "REAPPLY_CONFIG" || value === "UPGRADE_CLIENT";
+}
+
+function toJsonValue(value: Record<string, unknown>): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function mapDeliveredCommandType(value: string): "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED" {
+  if (value === "REAPPLY_ALIAS" || value === "REAPPLY_CONFIG" || value === "UPGRADE_CLIENT" || value === "ROTATE_TOKEN_REQUIRED") {
+    return value;
+  }
+
+  return "REAPPLY_CONFIG";
+}
+
+function toRecordPayload(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const normalized = JSON.parse(JSON.stringify(value));
+  if (!normalized || typeof normalized !== "object" || Array.isArray(normalized)) return null;
+  return normalized as Record<string, unknown>;
+}
 
 export async function revokeExpiredSyncAgentToken(agentToken: string | null | undefined) {
   const token = agentToken?.trim();
@@ -79,8 +104,8 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
         hostName: host.name,
         companyName,
         companyPrimaryNames: [normalizeCompareValue(host.company.nomeFantasia), normalizeCompareValue(host.company.razaoSocial)].filter(
-          Boolean,
-        ) as string[],
+          (name): name is string => Boolean(name),
+        ),
         agentExternalId: host.agentExternalId,
         machineName: host.machineName,
         agentVersion: host.agentVersion,
@@ -204,16 +229,10 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
           },
         });
 
-        const desiredTypeByAction = new Map(
-          record.syncDirectives.map((directive) => [directive.action, COMMAND_TYPE_MAP[directive.action]]),
-        );
-        const desiredTypes = new Set(Array.from(desiredTypeByAction.values()));
+        const desiredTypes: string[] = record.syncDirectives.map((directive) => COMMAND_TYPE_MAP[directive.action]);
 
         for (const command of existingCommands) {
-          if (
-            command.status === "PENDING" &&
-            !desiredTypes.has(command.type as (typeof COMMAND_TYPE_MAP)[keyof typeof COMMAND_TYPE_MAP])
-          ) {
+          if (command.status === "PENDING" && (!isCommandTypeValue(command.type) || !desiredTypes.includes(command.type))) {
             await tx.remoteAgentCommand.update({
               where: { id: command.id },
               data: {
@@ -238,7 +257,7 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
               type,
               status: "PENDING",
               reason: directive.reason,
-              payload: directive.payload ? (directive.payload as Prisma.InputJsonValue) : Prisma.JsonNull,
+              payload: directive.payload ? toJsonValue(directive.payload) : Prisma.JsonNull,
             },
           });
         }
@@ -279,21 +298,20 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
           take: 20,
         });
 
+        const pendingCommands: PersistedSyncResult["pendingCommands"] = returnedCommands.map((command) => ({
+          id: command.id,
+          type: mapDeliveredCommandType(command.type),
+          status: "DELIVERED",
+          reason: command.reason,
+          payload: toRecordPayload(command.payload),
+          attemptCount: command.attemptCount,
+          createdAt: command.createdAt,
+          deliveredAt: command.deliveredAt,
+        }));
+
         return {
           host: saved,
-          pendingCommands: returnedCommands.map((command) => ({
-            id: command.id,
-            type: command.type as "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED",
-            status: command.status as "DELIVERED",
-            reason: command.reason,
-            payload:
-              command.payload && typeof command.payload === "object" && !Array.isArray(command.payload)
-                ? (command.payload as Record<string, unknown>)
-                : null,
-            attemptCount: command.attemptCount,
-            createdAt: command.createdAt,
-            deliveredAt: command.deliveredAt,
-          })),
+          pendingCommands,
         };
       });
 

@@ -8,6 +8,10 @@ type RemoteLogger = {
   info(event: string, fields?: Record<string, unknown>): void;
 };
 
+function toJsonValue(value: Record<string, unknown>): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value));
+}
+
 export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAckPort {
   const { logger } = params;
 
@@ -56,7 +60,7 @@ export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAck
           status: record.status,
           executedAt: record.executedAt,
           resultMessage: record.message,
-          resultPayload: record.details ? (record.details as Prisma.InputJsonValue) : undefined,
+          resultPayload: record.details ? toJsonValue(record.details) : undefined,
           failedAt: record.status === "FAILED" ? record.executedAt : null,
         },
       });

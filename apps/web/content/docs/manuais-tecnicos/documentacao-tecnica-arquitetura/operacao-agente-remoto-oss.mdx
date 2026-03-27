@@ -182,7 +182,7 @@ Contrato de transicao (`discover.v2`):
 - `bootstrapFlow = pending_link`: triagem ativa, pode manter heartbeat de descoberta ate o vinculo manual.
 - `bootstrapFlow = linked_host_detected`: host ja vinculado e operando em `bootstrap/sync`; discovery heartbeat deve ser interrompido.
 - `bootstrapFlow = host_bootstrap_required`: host vinculado sem credencial valida; operador deve executar o bootstrap autenticado do host para emitir/renovar `agentToken`.
-- `transition.allowDiscoveryHeartbeat` e o campo formal que define se o script deve agendar ou nao a rotina recorrente de `discover`.
+- `transition.allowDiscoveryHeartbeat` e o campo formal que define se o agente deve manter ou nao a rotina recorrente de `discover`.
 
 ### Bootstrap inicial em host operacional
 
@@ -274,6 +274,27 @@ Exemplo de `sync` sem mudancas de instalacao:
 }
 ```
 
+### Coleta multi-disco de `sysproUpdates[]` (Smart Scan)
+
+Diretriz oficial para hosts com ERP em `C:\`, `D:\`, `E:\`:
+
+- evitar varredura cega de disco (`Get-ChildItem <drive> -Recurse` na raiz)
+- mapear discos de filesystem e procurar apenas pastas com padrao `*Syspro*`
+- limitar profundidade de busca inicial (ex.: ate nivel 2) para proteger CPU e I/O
+- apos achar pasta candidata, buscar `SysproServer.exe` de forma localizada
+- deduplicar por `empresa + caminho` antes de enviar
+- manter politica incremental: enviar lista completa so quando houver mudanca + snapshot completo diario
+
+Regra atual de protecao no backend:
+
+- normalizacao com deduplicacao por `companyLabel::path`
+- limite de ate `200` itens por ciclo de `sync` para evitar payload excessivo
+- truncamento defensivo de tamanho de campos (`companyLabel` e `path`) para reduzir risco de abuso
+
+<Callout type="info" title="Nome da empresa">
+  Quando nao houver fonte confiavel de metadado, usar nome da pasta como `empresa` e aceitavel (`Syspro_Matriz`, `Syspro_Filial_02`). Se houver arquivo de configuracao oficial do ERP com nome real da base, priorize essa fonte.
+</Callout>
+
 ### Ack de comando do agente
 
 Endpoint:
@@ -361,8 +382,8 @@ GET /api/remote/rustdesk/client-profile
 Uso:
 
 - expor parametros oficiais do cliente RustDesk customizado (`serverIdRelay`, `serverApi`, `key`, `serverConfig`, `targetVersion`)
-- padronizar endpoints operacionais (`bootstrap`, `sync`, `ack`) fora do `.ps1`
-- reduzir dependencia do script ao permitir instalacao customizada com defaults do portal
+- padronizar endpoints operacionais (`bootstrap`, `sync`, `ack`) para onboarding sem dependencia de script HTTP
+- reduzir acoplamento da instalacao ao permitir bootstrap nativo com defaults do portal
 
 ## Checklist de validacao
 
@@ -408,9 +429,9 @@ O `discoveryToken` enviado nao bate com `REMOTE_DISCOVERY_TOKEN`.
 
 Tratamento:
 
-- baixar novamente o script pela rota dinamica
-- validar a variavel de ambiente
-- evitar usar copia antiga do script
+- validar se `REMOTE_DISCOVERY_TOKEN` no agente e no portal sao identicos
+- conferir se o token nao foi revogado/rotacionado
+- validar se o agente esta apontando para a URL correta do portal
 
 ### `429` na descoberta
 
@@ -423,7 +444,7 @@ Regra atual:
 Tratamento:
 
 - validar se o agente entrou em loop de chamadas
-- reduzir frequencia de retries no script
+- reduzir frequencia de retries no agente
 - aguardar janela de rate limit e reenviar
 
 ### `405` na chamada do agente
@@ -450,10 +471,10 @@ O agente nao registrou atividade recente no portal.
 
 Tratamento:
 
-- validar script/tarefa agendada
+- validar processo/servico do agente em execucao
 - validar conectividade com o portal
 - validar `installToken` ou `discoveryToken`
-- validar permissao do PowerShell
+- validar permissao de execucao do agente no host
 
 ### `about:blank#blocked`
 
@@ -504,7 +525,7 @@ Modelo consolidado:
 - compliance de cliente RustDesk persistido no host
 - sincronizacao de `sysproUpdates[]` por host e por leitura filha
 - envio incremental de `sysproUpdates[]` no `sync` para reduzir payload em ciclos recorrentes
-- configuracao global do modulo remoto aplicada nos scripts dinamicos
+- configuracao global do modulo remoto aplicada no ciclo autenticado (`bootstrap/sync/client-profile`)
 
 ## Backlog tecnico unico do remoto
 
@@ -539,10 +560,10 @@ Pontos de atencao:
 ### Prioridade alta
 
 1. Extrair dominio e servicos remotos para package compartilhado
-- status atual: **parcialmente concluido**
+- status atual: **quase concluido no apps/web**
 - `packages/remote-domain` ja concentra casos de uso e contratos de `discover/bootstrap/sync/ack`
 - `discover/bootstrap/sync/ack` no `apps/web` ja operam em adapter HTTP fino (`parse + delegate + response`), com persistencia/orquestracao movida para gateways em `apps/web/src/features/remote/infrastructure/gateways/remote-domain/*`
-- pendente expandir o mesmo padrao para os demais endpoints remotos (`hosts`, `discovered-hosts/:id/link`, `hosts/:id/agent-token`, `hosts/:id/syspro-updates/[updateId]`, `rustdesk/address-book*`)
+- recorte principal de `hosts`, `discovered-hosts/:id/link`, `hosts/:id/agent-token`, `hosts/:id/syspro-updates/[updateId]` e `rustdesk/address-book*` ja migrado no `apps/web`
 - pendente conectar o mesmo dominio em `apps/api` e preparar contrato final para `apps/mobile`
 - manter independencia de framework (sem dependencia de Next.js no dominio)
 
@@ -565,7 +586,7 @@ Pontos de atencao:
 5. Contrato remoto para cliente mobile
 - versionar DTOs de request/response
 - consolidar contrato estavel de `bootstrap/sync/ack/discover`
-- separar claramente fluxo de host script e fluxo de app mobile
+- separar claramente onboarding de host e fluxo de app mobile
 
 6. Observabilidade e performance
 - ampliar trilha de auditoria de sessao/comando

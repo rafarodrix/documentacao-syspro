@@ -18,7 +18,15 @@ function buildScopeWhere(scope: RemoteSessionScope) {
   return { companyId: { in: scope.companyIds.length ? scope.companyIds : ["__none__"] } };
 }
 
-function serializeSessionRecord(record: Record<string, unknown>): RemoteSessionPersistedRecord {
+function serializeSessionRecord(
+  record: {
+    createdAt?: Date | null;
+    updatedAt?: Date | null;
+    startedAt?: Date | null;
+    endedAt?: Date | null;
+    expiresAt?: Date | null;
+  } & Record<string, unknown>,
+): RemoteSessionPersistedRecord {
   return {
     ...record,
     createdAt: record.createdAt instanceof Date ? record.createdAt.toISOString() : record.createdAt,
@@ -46,7 +54,7 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }): Remot
         orderBy: [{ createdAt: "desc" }],
       });
 
-      return sessions.map((session) => serializeSessionRecord(session as unknown as Record<string, unknown>));
+      return sessions.map((session) => serializeSessionRecord(session));
     },
     async findHostForSessionCreate(input) {
       const host = await prisma.remoteHost.findFirst({
@@ -75,7 +83,7 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }): Remot
       const conflict: RemoteOpenSessionConflict = {
         id: existingOpenSession.id,
         ticketNumber: existingOpenSession.ticketNumber,
-        record: serializeSessionRecord(existingOpenSession as unknown as Record<string, unknown>),
+        record: serializeSessionRecord(existingOpenSession),
       };
 
       return conflict;
@@ -96,7 +104,7 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }): Remot
         },
       });
 
-      return serializeSessionRecord(session as unknown as Record<string, unknown>);
+      return serializeSessionRecord(session);
     },
     async findSessionForStart(input) {
       const where = buildScopeWhere(input.scope);
@@ -138,7 +146,7 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }): Remot
         },
       });
 
-      return serializeSessionRecord(updated as unknown as Record<string, unknown>);
+      return serializeSessionRecord(updated);
     },
     async findSessionForStop(input) {
       const where = buildScopeWhere(input.scope);
@@ -170,7 +178,7 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }): Remot
         },
       });
 
-      return serializeSessionRecord(updated as unknown as Record<string, unknown>);
+      return serializeSessionRecord(updated);
     },
     async addInternalTicketNote(input) {
       await ZammadGateway.addInternalTicketNote(input.ticketId, input.body);

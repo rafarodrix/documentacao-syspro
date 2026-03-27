@@ -13,6 +13,10 @@ type RemoteLogger = {
   error(event: string, fields?: Record<string, unknown>): void;
 };
 
+function toJsonValue(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value));
+}
+
 export function createRemoteDiscoverPort(params: {
   logger: RemoteLogger;
   transitions: RemoteDiscoverTransitionMap;
@@ -41,7 +45,7 @@ export function createRemoteDiscoverPort(params: {
           path: entry.path,
           lastFileWriteAt: entry.lastFileWriteAt ? new Date(entry.lastFileWriteAt) : null,
         })),
-      ) as unknown;
+      );
     },
     getTransitions() {
       return transitions;
@@ -88,7 +92,7 @@ export function createRemoteDiscoverPort(params: {
           provider: payload.provider,
           description: payload.description,
           serviceStatus: payload.serviceStatus,
-          installationsSnapshot: payload.installationsSnapshot as Prisma.InputJsonValue,
+          installationsSnapshot: toJsonValue(payload.installationsSnapshot),
           lastHeartbeatAt: payload.lastHeartbeatAt,
           linkedAt: payload.linkedAt ?? undefined,
           status: payload.status,
@@ -108,7 +112,7 @@ export function createRemoteDiscoverPort(params: {
           provider: payload.provider,
           description: payload.description,
           serviceStatus: payload.serviceStatus,
-          installationsSnapshot: payload.installationsSnapshot as Prisma.InputJsonValue,
+          installationsSnapshot: toJsonValue(payload.installationsSnapshot),
           lastHeartbeatAt: payload.lastHeartbeatAt,
           status: payload.status,
         },

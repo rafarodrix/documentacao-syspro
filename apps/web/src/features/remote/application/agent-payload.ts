@@ -6,6 +6,10 @@ export type NormalizedSysproUpdate = {
   lastFileWriteAt: Date | null;
 };
 
+const MAX_SYSPRO_UPDATES_PER_CYCLE = 200;
+const MAX_SYSPRO_LABEL_LENGTH = 120;
+const MAX_SYSPRO_PATH_LENGTH = 1024;
+
 type ExistingSysproRow = {
   id: string;
   companyLabel: string;
@@ -38,38 +42,54 @@ export function normalizeCompareValue(value?: string | null) {
 
 export function normalizeSysproUpdates(value: unknown): NormalizedSysproUpdate[] {
   if (!Array.isArray(value)) return [];
+  const unique = new Map<string, NormalizedSysproUpdate>();
 
-  return value
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+
+    const rawCompany =
+      "empresa" in entry && typeof entry.empresa === "string"
+        ? entry.empresa
+        : "companyLabel" in entry && typeof entry.companyLabel === "string"
+          ? entry.companyLabel
+          : "";
+    const rawPath =
+      "caminho" in entry && typeof entry.caminho === "string"
+        ? entry.caminho
+        : "path" in entry && typeof entry.path === "string"
+          ? entry.path
+          : "";
+    const rawLastFileWriteAt =
+      "ultimaAtualizacao" in entry && typeof entry.ultimaAtualizacao === "string"
+        ? entry.ultimaAtualizacao
+        : "lastFileWriteAt" in entry && typeof entry.lastFileWriteAt === "string"
+          ? entry.lastFileWriteAt
+          : null;
+
+    const companyLabel = rawCompany.trim().slice(0, MAX_SYSPRO_LABEL_LENGTH);
+    const path = rawPath.trim().slice(0, MAX_SYSPRO_PATH_LENGTH);
+    if (!companyLabel || !path) continue;
+
+    const key = `${companyLabel.toLowerCase()}::${path.toLowerCase()}`;
+    if (unique.has(key)) continue;
+
+    unique.set(key, {
+      companyLabel,
+      path,
+      lastFileWriteAt: parseSysproDate(rawLastFileWriteAt),
+    });
+
+    if (unique.size >= MAX_SYSPRO_UPDATES_PER_CYCLE) {
+      break;
+    }
+  }
+
+  return Array.from(unique.values())
     .map((entry) => {
-      if (!entry || typeof entry !== "object") return null;
-
-      const rawCompany =
-        "empresa" in entry && typeof entry.empresa === "string"
-          ? entry.empresa
-          : "companyLabel" in entry && typeof entry.companyLabel === "string"
-            ? entry.companyLabel
-            : "";
-      const rawPath =
-        "caminho" in entry && typeof entry.caminho === "string"
-          ? entry.caminho
-          : "path" in entry && typeof entry.path === "string"
-            ? entry.path
-            : "";
-      const rawLastFileWriteAt =
-        "ultimaAtualizacao" in entry && typeof entry.ultimaAtualizacao === "string"
-          ? entry.ultimaAtualizacao
-          : "lastFileWriteAt" in entry && typeof entry.lastFileWriteAt === "string"
-            ? entry.lastFileWriteAt
-            : null;
-
-      const companyLabel = rawCompany.trim();
-      const path = rawPath.trim();
-      if (!companyLabel || !path) return null;
-
       return {
-        companyLabel,
-        path,
-        lastFileWriteAt: parseSysproDate(rawLastFileWriteAt),
+        companyLabel: entry.companyLabel,
+        path: entry.path,
+        lastFileWriteAt: entry.lastFileWriteAt,
       };
     })
     .filter((entry): entry is NormalizedSysproUpdate => !!entry);
