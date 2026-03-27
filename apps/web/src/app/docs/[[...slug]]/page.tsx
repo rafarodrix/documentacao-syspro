@@ -25,6 +25,7 @@ import { DocsPrevNextPreview } from '@/components/docs/DocsPrevNextPreview';
 import { DocsKeyboardShortcuts } from '@/components/docs/DocsKeyboardShortcuts';
 import { DocsTocScrollSpy } from '@/components/docs/DocsTocScrollSpy';
 import { DocsSurface } from '@/components/docs/DocsSurface';
+import { DocsReadingProgress } from '@/components/docs/DocsReadingProgress';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 
 function estimateReadingTimeMinutes(content: string): number {
@@ -188,6 +189,7 @@ export default async function Page(props: {
       breadcrumb={{ full: true }}
       tableOfContent={{ style: 'clerk' }}
     >
+      <DocsReadingProgress />
       <DocsTitle>{page.data.title}</DocsTitle>
       <div className="mt-3">
         <DocsSurface className="p-4 md:p-5">
@@ -203,8 +205,8 @@ export default async function Page(props: {
           </div>
         </DocsSurface>
       </div>
-      <DocsBody>
-        <DocsSurface className="p-5 md:p-7">
+      <DocsBody className="space-y-8">
+        <DocsSurface className="p-5 md:p-7 docs-content-surface">
           <MDXContent
             components={{
               ...defaultMdxComponents,

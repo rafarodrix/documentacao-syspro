@@ -313,4 +313,13 @@
   #nd-sidebar-mobile.docs-sidebar-shell [data-radix-collapsible-content] > * + * {
     margin-top: 0.1rem;
   }
+
+  .docs-content-surface {
+    background: linear-gradient(180deg, hsl(var(--background) / 0.7) 0%, hsl(var(--card) / 0.58) 100%);
+  }
+
+  #nd-page article h2,
+  #nd-page article h3 {
+    scroll-margin-top: 88px;
+  }
 }
