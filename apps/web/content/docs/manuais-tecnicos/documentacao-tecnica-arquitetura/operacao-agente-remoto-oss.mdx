@@ -29,6 +29,20 @@ Padronizar como uma maquina remota deve ser:
 - mantida online via heartbeat recorrente
 - validada antes do uso pelo suporte
 
+## Nomenclatura oficial (UI x Backend)
+
+Para manter a experiencia intuitiva para suporte e cliente final, a interface deve usar termos operacionais amigaveis, enquanto backend/contratos mantem nomenclatura tecnica.
+
+Padrao oficial:
+
+- UI: **Vinculacao de Maquina**
+  - backend/contrato: `bootstrap`, `POST /api/remote/rustdesk/bootstrap`
+- UI: **Renovacao de Credencial**
+  - backend/contrato: rotacao/revogacao de `agentToken`
+
+<Callout type="info" title="Convencao de linguagem">
+  No frontend e nos textos operacionais do portal, evitar jargoes como `bootstrap` e `agentToken` quando houver alternativa clara. Em logs tecnicos, payloads, codigo e contratos de API, manter os termos tecnicos para rastreabilidade.
+</Callout>
 ## Premissas
 
 - a operacao diaria acontece em `/portal/plataforma-remota`
@@ -659,4 +673,6 @@ Rotas remotas fora do nucleo `remote-domain` por escopo atual:
 1. validar em campo a rotacao/rebootstrap e os dois fluxos de instalacao
 2. consolidar testes de regressao de contrato remoto (`code/message/httpStatus`) em CI
 3. abrir migracao controlada para `packages/api` e contrato mobile, mantendo o mesmo nucleo em `packages/remote-domain`
+
+
 

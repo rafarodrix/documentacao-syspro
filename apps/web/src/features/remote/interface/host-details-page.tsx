@@ -109,7 +109,7 @@ const AGENT_COMMAND_LABEL: Record<
   REAPPLY_ALIAS: "Reaplicar alias",
   REAPPLY_CONFIG: "Reaplicar configuracao",
   UPGRADE_CLIENT: "Atualizar cliente",
-  ROTATE_TOKEN_REQUIRED: "Rotacao de token obrigatoria",
+  ROTATE_TOKEN_REQUIRED: "Renovacao de credencial obrigatoria",
 };
 
 function getAgentTokenMeta(value: string | null) {
@@ -117,42 +117,42 @@ function getAgentTokenMeta(value: string | null) {
 
   if (normalized.includes("agenttoken expirado")) {
     return {
-      label: "agentToken expirado",
+      label: "Credencial expirada",
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      description: "A credencial do agente expirou por politica do portal. Execute o bootstrap novamente neste host.",
+      description: "A credencial do agente expirou por politica do portal. Execute a vinculacao de maquina novamente neste host.",
       needsBootstrap: true,
     };
   }
 
   if (normalized.includes("agenttoken invalido")) {
     return {
-      label: "agentToken invalido",
+      label: "Credencial invalida",
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      description: "O heartbeat foi recusado. Execute o bootstrap novamente neste host para emitir nova credencial.",
+      description: "O heartbeat foi recusado. Execute a vinculacao de maquina novamente neste host para emitir nova credencial.",
       needsBootstrap: true,
     };
   }
 
   if (normalized.includes("agenttoken rotacionado")) {
     return {
-      label: "agentToken rotacionado",
+      label: "Credencial renovada",
       tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      description: "A credencial anterior foi invalidada pelo portal. O host precisa de novo bootstrap.",
+      description: "A credencial anterior foi invalidada pelo portal. O host precisa de nova vinculacao de maquina.",
       needsBootstrap: true,
     };
   }
 
   if (normalized.includes("agenttoken indisponivel")) {
     return {
-      label: "agentToken ausente",
+      label: "Credencial ausente",
       tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      description: "O heartbeat local nao encontrou a credencial do agente. Reexecute o bootstrap autenticado neste host.",
+      description: "O heartbeat local nao encontrou a credencial do agente. Reexecute a vinculacao de maquina autenticada neste host.",
       needsBootstrap: true,
     };
   }
 
   return {
-    label: "agentToken valido",
+    label: "Credencial valida",
     tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
     description: "O host possui credencial operacional para heartbeat recorrente.",
     needsBootstrap: false,
@@ -206,7 +206,7 @@ function getOperationalMeta(input: { rustdeskId: string | null; lastHeartbeatAt:
 
   return {
     label: "Host exige revisao",
-    description: "Valide ID, heartbeat ou bootstrap antes de tratar este host como pronto para acesso.",
+    description: "Valide ID, heartbeat ou vinculacao de maquina antes de tratar este host como pronto para acesso remoto.",
     tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   };
 }
@@ -492,11 +492,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           method: "POST",
         });
 
-        const result = await parseRemoteApiResponse<{ message?: string }>(response, "Falha ao rotacionar agentToken.");
-        toast.success(result.message ?? "agentToken rotacionado.");
+        const result = await parseRemoteApiResponse<{ message?: string }>(response, "Falha ao renovar credencial.");
+        toast.success(result.message ?? "Credencial renovada.");
         window.location.reload();
       } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error, "Falha ao rotacionar agentToken."));
+        toast.error(getRemoteApiErrorMessage(error, "Falha ao renovar credencial."));
       }
     });
   }
@@ -660,10 +660,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
             {agentTokenMeta.needsBootstrap ? (
               <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4">
-                <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">Rebootstrap necessario</p>
+                <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">Renovacao de credencial necessaria</p>
                 <p className="mt-1 text-sm text-rose-700/90 dark:text-rose-200/90">{agentTokenMeta.description}</p>
                 <p className="mt-2 text-xs text-rose-700/80 dark:text-rose-200/80">
-                  Reexecute o bootstrap autenticado do agente neste host para concluir a renovacao de credencial.
+                  Reexecute a vinculacao de maquina autenticada neste host para concluir a renovacao de credencial.
                 </p>
               </div>
             ) : null}
@@ -736,7 +736,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           <div className="space-y-3">
             {agentTokenMeta.needsBootstrap ? (
               <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
-                <p className="font-medium text-foreground">Agente exige novo bootstrap</p>
+                <p className="font-medium text-foreground">Agente exige nova vinculacao de maquina</p>
                 <p className="mt-1 text-sm text-muted-foreground">{agentTokenMeta.description}</p>
               </div>
             ) : null}
@@ -1118,20 +1118,20 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               >
                 <p className="font-medium">
                   {agentTokenMeta.needsBootstrap
-                    ? "Este host precisa de novo bootstrap autenticado"
-                    : "Este host esta no fluxo autenticado por agentToken"}
+                    ? "Este host precisa de nova vinculacao de maquina autenticada"
+                    : "Este host esta no fluxo autenticado por credencial"}
                 </p>
                 <p className="mt-1">
                   {agentTokenMeta.needsBootstrap
-                    ? "Execute novamente o bootstrap autenticado do agente neste host e aguarde o proximo heartbeat valido."
-                    : "Se precisar reinstalar ou reaplicar configuracao, siga o fluxo de bootstrap autenticado no agente."}
+                    ? "Execute novamente a vinculacao de maquina autenticada neste host e aguarde o proximo heartbeat valido."
+                    : "Se precisar reinstalar ou reaplicar configuracao, siga o fluxo de vinculacao de maquina autenticada no agente."}
                 </p>
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
                 <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="w-full gap-2 xl:w-auto">
                   <Fingerprint className="h-4 w-4" />
-                  Copiar token
+                  Copiar credencial
                 </Button>
                 <Button variant="outline" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")} className="w-full gap-2 xl:w-auto">
                   <Copy className="h-4 w-4" />
@@ -1139,21 +1139,21 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </Button>
                 <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 xl:w-auto">
                   <Fingerprint className="h-4 w-4" />
-                  {isRevokingAgentToken ? "Rotacionando..." : "Rotacionar agentToken"}
+                  {isRevokingAgentToken ? "Renovando..." : "Renovar credencial"}
                 </Button>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estado do agentToken</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estado da credencial</p>
                   <p className="mt-1 text-sm text-foreground">{agentTokenMeta.label}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bootstrap inicial</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vinculacao inicial</p>
                   <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.lastRegisterAt)}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Origem do bootstrap</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Origem da vinculacao</p>
                   <p className="mt-1 text-sm text-foreground">{host.agent.lastRegisterSource ?? "Sem leitura"}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
@@ -1165,11 +1165,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <p className="mt-1 text-sm text-foreground">{host.agent.lastKnownIp ?? "Sem leitura"}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Emissao do agentToken</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Emissao da credencial</p>
                   <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.agentTokenIssuedAt)}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo uso do agentToken</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo uso da credencial</p>
                   <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.agentTokenLastUsedAt)}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
@@ -1357,10 +1357,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </div>
 
                 <div className="mt-3 rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p>1. Execute o bootstrap autenticado do agente para este host.</p>
+                  <p>1. Execute a vinculacao de maquina autenticada para este host.</p>
                   <p>2. Confirme o RustDesk ID devolvido pela maquina do cliente.</p>
-                  <p>3. O bootstrap emite `agentToken` e o heartbeat continuo passa a preferir essa credencial.</p>
-                  <p>4. Se rotacionar o `agentToken` ou se ele expirar, execute o bootstrap novamente neste host.</p>
+                  <p>3. A vinculacao de maquina emite a credencial operacional e o heartbeat continuo passa a usar essa credencial.</p>
+                  <p>4. Se a credencial for renovada ou expirar, execute a vinculacao de maquina novamente neste host.</p>
                   <p>5. A descoberta e apenas etapa de triagem e nao reativa heartbeat autenticado em host ja vinculado.</p>
                   <p>6. Se o heartbeat nao vier, valide conectividade, tarefa do agente e URL do portal.</p>
                   {isMobileClient ? <p>7. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
@@ -1436,3 +1436,5 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     </div>
   );
 }
+
+

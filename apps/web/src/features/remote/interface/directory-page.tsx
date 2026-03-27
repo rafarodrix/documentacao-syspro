@@ -85,7 +85,7 @@ function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
 
   if (normalized.includes("agenttoken expirado")) {
     return {
-      label: "Token expirado",
+      label: "Credencial expirada",
       className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
       needsBootstrap: true,
     };
@@ -93,7 +93,7 @@ function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
 
   if (normalized.includes("agenttoken invalido") || normalized.includes("agenttoken rotacionado") || normalized.includes("agenttoken indisponivel")) {
     return {
-      label: "Rebootstrap necessario",
+      label: "Renovacao de credencial necessaria",
       className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
       needsBootstrap: true,
     };
@@ -374,7 +374,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         ) : null}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          O fluxo agora e 100% via integracao RustDesk. Faca a vinculacao das maquinas descobertas nesta tela e siga o bootstrap autenticado pelo agente.
+          O fluxo agora e 100% via integracao RustDesk. Faca a vinculacao das maquinas descobertas nesta tela e siga a vinculacao de maquina autenticada do agente.
         </p>
       </div>
 
@@ -422,7 +422,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           <CardHeader className="pb-1 space-y-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Wrench className="h-4 w-4 text-rose-500" />
-              Aguardam bootstrap
+              Aguardam vinculacao de maquina
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -634,7 +634,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
                       >
                         <option value="all">Qualquer agente</option>
-                        <option value="pending">Bootstrap pendente</option>
+                        <option value="pending">Vinculacao pendente</option>
                         <option value="linked">Agente vinculado</option>
                         <option value="online">Heartbeat confirmado</option>
                         <option value="stale">Exige revisao</option>
@@ -907,5 +907,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     </div>
   );
 }
+
+
 
 
