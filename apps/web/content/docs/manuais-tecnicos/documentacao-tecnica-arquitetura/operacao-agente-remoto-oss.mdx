@@ -371,6 +371,50 @@ Repo > Settings > Secrets and variables > Actions > New repository secret
   Nunca versionar token real em `.mdx`, `.env` comitado ou arquivo de script. Manter apenas em `GitHub Actions Secrets`.
 </Callout>
 
+### Pipeline de release (estado atual)
+
+- secrets sensiveis nao ficam mais no `env` global do job
+- `REMOTE_DISCOVERY_TOKEN` e `PORTAL_API_BASE_URL` sao injetados apenas no step `Build NSIS Installer`
+- `PORTAL_API_TOKEN` fica restrito ao step `Publish Build Metadata to Portal`
+- `cancel-in-progress` nao cancela builds de tag (`refs/tags/*`)
+- diagnostics/checksum/summary executam com `if: always()`
+- upload/publicacao de artefatos foi consolidado para evitar duplicidade
+
+## Contrato do instalador NSIS
+
+O instalador e a fonte unica de configuracao inicial do agente.
+
+Defines obrigatorias no build:
+
+- `/DDISCOVERY_TOKEN`
+- `/DPORTAL_BASE_URL`
+
+Comportamento de instalacao:
+
+- aborta se token ou base URL vierem vazios
+- grava no Registry:
+  - `HKLM\Software\Trilink\RemoteAgent\DiscoveryToken`
+  - `HKLM\Software\Trilink\RemoteAgent\PortalBaseUrl`
+- agenda tarefa `TrilinkRemoteAgent` a cada 5 minutos como `SYSTEM`
+- executa uma chamada inicial do agente logo apos instalar
+
+Comportamento de desinstalacao:
+
+- remove tarefa agendada `TrilinkRemoteAgent`
+- remove `HKLM\Software\Trilink\RemoteAgent`
+- remove pasta de instalacao e atalhos
+
+## Agente PowerShell (`trilink-agente.ps1`)
+
+Comportamento operacional vigente:
+
+- nao usa token/base URL hardcoded em codigo
+- le `DiscoveryToken` e `PortalBaseUrl` do Registry (`HKLM:\SOFTWARE\Trilink\RemoteAgent`)
+- falha com log explicito quando chave obrigatoria nao esta configurada
+- mantem retentativa segura para obter `RustDesk ID` antes do `discover`
+- mantem retry HTTP com backoff para falhas de rede, `429` e `5xx`
+- mantem estado local para envio incremental de `sysproUpdates[]`
+
 ## Perfil do cliente customizado
 
 Endpoint:
@@ -432,6 +476,16 @@ Tratamento:
 - validar se `REMOTE_DISCOVERY_TOKEN` no agente e no portal sao identicos
 - conferir se o token nao foi revogado/rotacionado
 - validar se o agente esta apontando para a URL correta do portal
+
+### `DiscoveryToken` ou `PortalBaseUrl` ausente no host
+
+O agente nao consegue montar a chamada de descoberta quando o Registry local nao foi preenchido.
+
+Tratamento:
+
+- validar chaves em `HKLM\Software\Trilink\RemoteAgent`
+- confirmar se a instalacao foi feita pelo `.exe` NSIS oficial
+- reinstalar/atualizar o cliente quando as chaves estiverem ausentes ou corrompidas
 
 ### `429` na descoberta
 
