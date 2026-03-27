@@ -12,8 +12,6 @@ import {
   Settings,
   ShieldCheck,
   TimerReset,
-  Wifi,
-  WifiOff,
   Wrench,
   X,
 } from "lucide-react";
@@ -62,7 +60,6 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
       shortLabel: "Offline",
       className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
       bucket: "missing" as const,
-      icon: WifiOff,
     };
   }
 
@@ -73,7 +70,6 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
       shortLabel: "Online",
       className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
       bucket: "recent" as const,
-      icon: Wifi,
     };
   }
 
@@ -82,7 +78,6 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
     shortLabel: "Instavel",
     className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     bucket: "stale" as const,
-    icon: WifiOff,
   };
 }
 
@@ -112,10 +107,6 @@ function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
   };
 }
 
-function hasNumericRustDeskId(value: string | null) {
-  return !!value && /^\d{7,12}$/.test(value.replace(/\s+/g, ""));
-}
-
 async function copyTextWithFallback(value: string) {
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
@@ -142,18 +133,6 @@ async function copyTextWithFallback(value: string) {
   if (!copied) {
     throw new Error("copy_failed");
   }
-}
-
-function getOperationalHighlights(item: DirectoryItem) {
-  const heartbeatRecent = !!item.lastHeartbeatSuccessAt && Date.now() - new Date(item.lastHeartbeatSuccessAt).getTime() <= 10 * 60 * 1000;
-  const bootstrapComplete = !!item.lastRegisterAt && !getAgentTokenMeta(item.lastHeartbeatErrorMessage).needsBootstrap;
-  const hostOperational = heartbeatRecent && bootstrapComplete && hasNumericRustDeskId(item.rustdeskId);
-
-  return {
-    hostOperational,
-    heartbeatRecent,
-    bootstrapComplete,
-  };
 }
 
 export function RemotePlatformDirectoryPanel({ directory }: { directory: RemotePlatformDirectory }) {
@@ -831,156 +810,111 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             <div className="space-y-4">
               {filteredItems.map((item) => {
                 const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
-                const HeartbeatIcon = heartbeat.icon;
                 const agentToken = getAgentTokenMeta(item.lastHeartbeatErrorMessage);
-                const operational = getOperationalHighlights(item);
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
                 const installationNames = item.installationCompanies.length
                   ? item.installationCompanies
-                  : item.companyName
+                    : item.companyName
                     ? [item.companyName]
                     : [];
 
                 return (
                   <div
                     key={item.id}
-                    className="rounded-2xl border border-border/50 bg-linear-to-r from-background via-background to-muted/20 p-5 shadow-sm transition-colors hover:border-primary/20"
+                    className="rounded-xl border border-border/55 bg-background/45 p-4 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/20 hover:bg-muted/10"
                   >
-                    <div className="grid gap-4 xl:grid-cols-[1.6fr_0.8fr_0.7fr]">
-                      <div className="space-y-4">
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_240px_auto] lg:items-center">
+                      <div className="min-w-0 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className={heartbeat.className}>
-                            <HeartbeatIcon className="mr-1 h-3.5 w-3.5" />
                             {heartbeat.shortLabel}
                           </Badge>
                           <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                             {getStatusLabel(item.status)}
                           </Badge>
-                          {agentToken.needsBootstrap ? (
-                            <Badge variant="outline" className={agentToken.className}>
-                              {agentToken.label}
-                            </Badge>
-                          ) : null}
                           {item.environment ? (
                             <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
                               {item.environment}
                             </Badge>
                           ) : null}
+                          {agentToken.needsBootstrap ? (
+                            <Badge variant="outline" className={agentToken.className}>
+                              {agentToken.label}
+                            </Badge>
+                          ) : null}
                         </div>
 
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">
-                            Nome da maquina: <span className="font-medium text-foreground">{item.name}</span>
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Nome do computador (Windows):{" "}
-                            <span className="font-medium text-foreground">{item.machineName ?? "Sem leitura do agente"}</span>
+                        <div className="space-y-1">
+                          <p className="truncate text-base font-semibold text-foreground">{item.name}</p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            Maquina: <span className="text-foreground/95">{item.machineName ?? "Sem leitura do agente"}</span>
                           </p>
                           {installationNames.length ? (
-                            <div className="flex flex-wrap gap-2">
-                              {installationNames.map((installationName, installationIndex) => (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-xs text-muted-foreground">Empresas:</span>
+                              {installationNames.slice(0, 2).map((installationName, installationIndex) => (
                                 <Badge
                                   key={`${item.id}-installation-${installationIndex}-${installationName}`}
                                   variant="outline"
-                                  className="border-border/60 bg-background/70 text-foreground"
+                                  className="border-border/55 bg-background/70 text-xs text-foreground"
                                 >
-                                  Instalacao {installationIndex + 1}: {installationName}
+                                  {installationName}
                                 </Badge>
                               ))}
+                              {installationNames.length > 2 ? (
+                                <Badge variant="outline" className="border-border/55 bg-background/70 text-xs text-muted-foreground">
+                                  +{installationNames.length - 2}
+                                </Badge>
+                              ) : null}
                             </div>
                           ) : (
-                            <p className="text-xs text-muted-foreground">Sem instalacoes reportadas no heartbeat.</p>
+                            <p className="text-xs text-muted-foreground">Sem empresa reportada no heartbeat.</p>
                           )}
-                          <details className="rounded-lg border border-border/50 bg-background/40 p-2 text-xs">
-                            <summary className="cursor-pointer text-muted-foreground">Diagnostico rapido</summary>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <span
-                                className={cn(
-                                  "rounded-full border px-2.5 py-1",
-                                  operational.hostOperational
-                                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                    : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                )}
-                              >
-                                {operational.hostOperational ? "Host operacional" : "Host exige revisao"}
-                              </span>
-                              <span
-                                className={cn(
-                                  "rounded-full border px-2.5 py-1",
-                                  operational.heartbeatRecent
-                                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                    : "border-border/60 bg-background/70 text-muted-foreground"
-                                )}
-                              >
-                                {operational.heartbeatRecent ? "Heartbeat ativo" : "Heartbeat pendente"}
-                              </span>
-                              <span
-                                className={cn(
-                                  "rounded-full border px-2.5 py-1",
-                                  operational.bootstrapComplete
-                                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                    : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                )}
-                              >
-                                {operational.bootstrapComplete ? "Bootstrap concluido" : "Bootstrap pendente"}
-                              </span>
-                            </div>
-                            {agentToken.needsBootstrap ? (
-                              <p className="mt-2 text-rose-600 dark:text-rose-300">
-                                Rebootstrap necessario antes do proximo heartbeat valido.
-                              </p>
-                            ) : null}
-                            {item.installationCompanies.length > 1 ? (
-                              <p className="mt-2 text-muted-foreground">
-                                Multiplas empresas vinculadas nesta maquina.
-                              </p>
-                            ) : null}
-                          </details>
                         </div>
                       </div>
 
-                      <div className="min-w-0 space-y-2">
-                        <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
-                          <p className="mt-1 break-all font-mono text-sm text-foreground">{item.rustdeskId ?? "Nao configurado"}</p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCopyRustDeskId(item.rustdeskId)}
-                          className="w-full justify-center gap-2 sm:justify-start"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                          Copiar RustDesk ID
-                        </Button>
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <div className="space-y-1 rounded-xl border border-border/50 bg-muted/10 p-1">
-                          {rustdeskHref ? (
-                            <a
-                              href={rustdeskHref}
-                              className="flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 sm:justify-start"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                              {isMobileClient ? "Abrir no app" : "Acesso rapido"}
-                            </a>
-                          ) : null}
-                          <Link
-                            href={`/portal/plataforma-remota/${item.id}`}
-                            className="flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 sm:justify-start"
+                      <div className="min-w-0">
+                        <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
+                        <div className="flex items-center gap-1.5 rounded-lg border border-border/55 bg-muted/10 p-1">
+                          <code className="min-w-0 flex-1 truncate px-2 text-sm text-foreground">
+                            {item.rustdeskId ?? "Nao configurado"}
+                          </code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleCopyRustDeskId(item.rustdeskId)}
+                            disabled={!item.rustdeskId}
+                            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                            aria-label="Copiar RustDesk ID"
                           >
-                            <ArrowUpRight className="h-3.5 w-3.5" />
-                            Visualizar detalhes
-                          </Link>
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
+                        {rustdeskHref ? (
+                          <a
+                            href={rustdeskHref}
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/35"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            {isMobileClient ? "Abrir app" : "Acesso"}
+                          </a>
+                        ) : null}
+                        <Link
+                          href={`/portal/plataforma-remota/${item.id}`}
+                          className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/35"
+                        >
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                          Detalhes
+                        </Link>
                       </div>
 
                       {isMobileClient ? (
-                        <p className="text-xs text-muted-foreground xl:col-span-3">
-                          No celular, use `Abrir no app`. Se o RustDesk nao abrir automaticamente, copie o ID e cole manualmente no aplicativo.
-                          {agentToken.needsBootstrap ? " Se o card pedir rebootstrap, abra os detalhes antes de tentar o acesso." : ""}
+                        <p className="text-xs text-muted-foreground lg:col-span-3">
+                          Se o app RustDesk nao abrir automaticamente, copie o ID e conecte manualmente.
                         </p>
                       ) : null}
                     </div>

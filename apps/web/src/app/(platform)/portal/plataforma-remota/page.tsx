@@ -12,9 +12,18 @@ export default async function RemotePlatformPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-3 border-b border-border/40 pb-5">
-        <Monitor className="h-8 w-8 text-primary/80" />
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Plataforma Remota</h1>
+      <div className="rounded-2xl border border-border/55 bg-background/55 px-5 py-4 shadow-sm backdrop-blur-sm">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg border border-border/60 bg-muted/20 p-2">
+            <Monitor className="h-5 w-5 text-primary/85" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Plataforma Remota</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Lista de acessos otimizada para entrada rapida. Use `Acesso` para conectar e `Detalhes` para diagnostico completo.
+            </p>
+          </div>
+        </div>
       </div>
 
       <RemotePlatformDirectoryPanel directory={directory} />
