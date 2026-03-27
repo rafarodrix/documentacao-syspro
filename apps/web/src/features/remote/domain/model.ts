@@ -303,6 +303,20 @@ export type RemotePlatformDirectory = {
     onlineAgents: number;
     pendingDiscovery: number;
   };
+  commandObservability: {
+    pendingTotal: number;
+    pendingHosts: number;
+    failedLast24h: number;
+    acknowledgedLast24h: number;
+    deliveredLast24h: number;
+    hotspots: Array<{
+      hostId: string;
+      hostName: string;
+      companyName: string | null;
+      pendingCount: number;
+      failedCount: number;
+    }>;
+  };
   companyOptions: Array<{
     id: string;
     label: string;

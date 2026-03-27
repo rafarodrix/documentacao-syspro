@@ -517,6 +517,7 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
   const tenantScope = await getRemoteTenantScope();
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const [hosts, totalHosts, activeHosts, companies, companyOptions, discoveredHosts] = await Promise.all([
     prisma.remoteHost.findMany({
@@ -555,6 +556,20 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
   ]);
 
   const hostIds = hosts.map((host) => host.id);
+  const commandRows = hostIds.length
+    ? await prisma.remoteAgentCommand.findMany({
+        where: {
+          hostId: { in: hostIds },
+          OR: [{ status: "PENDING" }, { updatedAt: { gte: last24h } }],
+        },
+        select: {
+          hostId: true,
+          status: true,
+          updatedAt: true,
+        },
+      })
+    : [];
+
   const installationRows = hostIds.length
     ? await prisma.$queryRaw<Array<{ hostId: string; companyName: string | null; companyLabel: string }>>(
         Prisma.sql`
@@ -578,6 +593,50 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
     if (!current.includes(label)) current.push(label);
     installationMap.set(row.hostId, current);
   }
+
+  const pendingHosts = new Set<string>();
+  const failedHosts = new Set<string>();
+  let pendingTotal = 0;
+  let failedLast24h = 0;
+  let acknowledgedLast24h = 0;
+  let deliveredLast24h = 0;
+  const perHostCommandStats = new Map<string, { pendingCount: number; failedCount: number }>();
+
+  for (const row of commandRows) {
+    const current = perHostCommandStats.get(row.hostId) ?? { pendingCount: 0, failedCount: 0 };
+    if (row.status === "PENDING") {
+      pendingTotal += 1;
+      pendingHosts.add(row.hostId);
+      current.pendingCount += 1;
+    }
+    if (row.status === "FAILED" && row.updatedAt >= last24h) {
+      failedLast24h += 1;
+      failedHosts.add(row.hostId);
+      current.failedCount += 1;
+    }
+    if (row.status === "ACKNOWLEDGED" && row.updatedAt >= last24h) {
+      acknowledgedLast24h += 1;
+    }
+    if (row.status === "DELIVERED" && row.updatedAt >= last24h) {
+      deliveredLast24h += 1;
+    }
+    perHostCommandStats.set(row.hostId, current);
+  }
+
+  const hostMap = new Map(
+    hosts.map((host) => [host.id, { hostName: host.name, companyName: host.company.nomeFantasia ?? host.company.razaoSocial }])
+  );
+  const hotspots = Array.from(perHostCommandStats.entries())
+    .map(([hostId, stats]) => ({
+      hostId,
+      hostName: hostMap.get(hostId)?.hostName ?? "Host remoto",
+      companyName: hostMap.get(hostId)?.companyName ?? null,
+      pendingCount: stats.pendingCount,
+      failedCount: stats.failedCount,
+    }))
+    .filter((entry) => entry.pendingCount > 0 || entry.failedCount > 0)
+    .sort((a, b) => (b.pendingCount + b.failedCount * 2) - (a.pendingCount + a.failedCount * 2))
+    .slice(0, 5);
 
   const pendingItems: RemoteDiscoveredHostItem[] = discoveredHosts.map((host) => {
     const snapshot = Array.isArray(host.installationsSnapshot) ? host.installationsSnapshot : [];
@@ -626,6 +685,14 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       linkedAgents: hosts.filter((host) => !!host.agentExternalId).length,
       onlineAgents: hosts.filter((host) => !!host.lastHeartbeatAt).length,
       pendingDiscovery: pendingItems.length,
+    },
+    commandObservability: {
+      pendingTotal,
+      pendingHosts: pendingHosts.size,
+      failedLast24h,
+      acknowledgedLast24h,
+      deliveredLast24h,
+      hotspots,
     },
     companyOptions: companyOptions.map((company) => ({
       id: company.id,

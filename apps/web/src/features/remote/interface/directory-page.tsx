@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Copy,
   ExternalLink,
+  Flame,
   Filter,
   Monitor,
   Plus,
@@ -184,6 +185,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     const values = Array.from(new Set(directory.items.map((item) => item.environment).filter(Boolean))) as string[];
     return values.sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [directory.items]);
+  const commandObservability = directory.commandObservability;
 
   async function handleCopyRustDeskId(value: string | null) {
     if (!value) {
@@ -494,6 +496,74 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </Card>
         ) : null}
       </section>
+
+      <Card className="border-border/50 overflow-hidden">
+        <CardContent className="space-y-4 p-5 sm:p-6">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <Flame className="h-4 w-4 text-amber-500" />
+            Observabilidade dos comandos do agente
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Backlog pendente</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.pendingTotal}</p>
+              <p className="text-[11px] text-muted-foreground">{commandObservability.pendingHosts} host(s) com fila aberta</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Falhas 24h</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.failedLast24h}</p>
+              <p className="text-[11px] text-muted-foreground">Comandos encerrados com erro no ultimo dia</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Entregas 24h</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.deliveredLast24h}</p>
+              <p className="text-[11px] text-muted-foreground">Comandos entregues ao agente recentemente</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucessos 24h</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.acknowledgedLast24h}</p>
+              <p className="text-[11px] text-muted-foreground">Acks de sucesso recebidos pelo portal</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Hosts com maior pressao operacional</p>
+                <p className="text-xs text-muted-foreground">Fila acumulada e falhas recentes de comando por host.</p>
+              </div>
+            </div>
+
+            {commandObservability.hotspots.length ? (
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                {commandObservability.hotspots.map((entry) => (
+                  <Link
+                    key={entry.hostId}
+                    href={`/portal/plataforma-remota/${entry.hostId}`}
+                    className="rounded-xl border border-border/50 bg-background/60 p-4 transition hover:border-primary/30 hover:bg-background"
+                  >
+                    <p className="text-sm font-medium text-foreground">{entry.hostName}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{entry.companyName ?? "Sem empresa resolvida"}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                        {entry.pendingCount} pendente(s)
+                      </Badge>
+                      <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300">
+                        {entry.failedCount} falha(s)
+                      </Badge>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Nenhum host com backlog ou falha recente de comando. A fila do agente esta estavel neste momento.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-border/50 overflow-hidden">
         <CardContent className="space-y-4 p-5 sm:p-6">
