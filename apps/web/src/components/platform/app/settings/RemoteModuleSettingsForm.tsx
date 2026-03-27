@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { z } from "zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { AlertCircle, Loader2, MonitorCog, Save, TimerReset } from "lucide-react";
+import { AlertCircle, Copy, KeyRound, Loader2, MonitorCog, RefreshCw, Save, TimerReset, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,22 @@ import {
 import type { RemoteModuleSettings } from "@/features/remote/domain/model";
 
 type RemoteModuleSettingsFormValues = z.input<typeof remoteModuleSettingsSchema>;
+type CompanyOption = { id: string; label: string };
+type AddressBookCredentialItem = {
+  id: string;
+  label: string;
+  integrationKey: string;
+  scope: "GLOBAL" | "COMPANY";
+  status: "ACTIVE" | "REVOKED";
+  companyId: string | null;
+  companyName: string | null;
+  tokenPreview: string;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 const defaultValues: RemoteModuleSettings = {
   rustDeskServerHost: "acesso.trilinksoftware.com.br",
@@ -32,9 +48,18 @@ const defaultValues: RemoteModuleSettings = {
   defaultPassword: "Trilink098",
 };
 
-export function RemoteModuleSettingsForm() {
+export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: CompanyOption[] }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, startTransition] = useTransition();
+  const [credentials, setCredentials] = useState<AddressBookCredentialItem[]>([]);
+  const [credentialsLoading, setCredentialsLoading] = useState(true);
+  const [isSubmittingCredential, startSubmittingCredential] = useTransition();
+  const [credentialLabel, setCredentialLabel] = useState("");
+  const [credentialIntegrationKey, setCredentialIntegrationKey] = useState("");
+  const [credentialScope, setCredentialScope] = useState<"GLOBAL" | "COMPANY">("GLOBAL");
+  const [credentialCompanyId, setCredentialCompanyId] = useState(companyOptions[0]?.id ?? "");
+  const [credentialExpiresDays, setCredentialExpiresDays] = useState("");
+  const [latestIssuedToken, setLatestIssuedToken] = useState<{ token: string; preview: string } | null>(null);
 
   const form = useForm<RemoteModuleSettingsFormValues>({
     resolver: zodResolver(remoteModuleSettingsSchema),
@@ -67,6 +92,146 @@ export function RemoteModuleSettingsForm() {
       isMounted = false;
     };
   }, [form]);
+
+  useEffect(() => {
+    if (!credentialCompanyId && companyOptions[0]?.id) {
+      setCredentialCompanyId(companyOptions[0].id);
+    }
+  }, [companyOptions, credentialCompanyId]);
+
+  async function loadCredentials() {
+    try {
+      setCredentialsLoading(true);
+      const response = await fetch("/api/remote/rustdesk/address-book/credentials", { method: "GET" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Falha ao carregar credenciais.");
+      }
+      const items = Array.isArray(payload?.data) ? payload.data : [];
+      setCredentials(items);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao carregar credenciais.");
+    } finally {
+      setCredentialsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadCredentials();
+  }, []);
+
+  const sortedCredentials = useMemo(() => {
+    return [...credentials].sort((a, b) => {
+      if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [credentials]);
+
+  async function copyText(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copiado.`);
+    } catch {
+      toast.error(`Falha ao copiar ${label.toLowerCase()}.`);
+    }
+  }
+
+  function resetCredentialForm() {
+    setCredentialLabel("");
+    setCredentialIntegrationKey("");
+    setCredentialScope("GLOBAL");
+    setCredentialCompanyId(companyOptions[0]?.id ?? "");
+    setCredentialExpiresDays("");
+  }
+
+  function normalizeIntegrationKey(value: string) {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 60);
+  }
+
+  async function handleCreateCredential() {
+    if (!credentialLabel.trim()) {
+      toast.error("Informe o nome da credencial.");
+      return;
+    }
+    if (credentialScope === "COMPANY" && !credentialCompanyId) {
+      toast.error("Selecione a empresa da credencial.");
+      return;
+    }
+
+    startSubmittingCredential(async () => {
+      try {
+        const response = await fetch("/api/remote/rustdesk/address-book/credentials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            label: credentialLabel.trim(),
+            integrationKey: normalizeIntegrationKey(credentialIntegrationKey || credentialLabel),
+            scope: credentialScope,
+            companyId: credentialScope === "COMPANY" ? credentialCompanyId : null,
+            expiresInDays: credentialExpiresDays ? Number(credentialExpiresDays) : null,
+          }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Falha ao criar credencial.");
+        }
+        toast.success(payload?.message ?? "Credencial criada.");
+        setLatestIssuedToken({
+          token: payload?.data?.token ?? "",
+          preview: payload?.data?.tokenPreview ?? "",
+        });
+        resetCredentialForm();
+        await loadCredentials();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Falha ao criar credencial.");
+      }
+    });
+  }
+
+  async function handleRotateCredential(id: string) {
+    startSubmittingCredential(async () => {
+      try {
+        const response = await fetch(`/api/remote/rustdesk/address-book/credentials/${id}/rotate`, {
+          method: "POST",
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Falha ao rotacionar credencial.");
+        }
+        toast.success(payload?.message ?? "Credencial rotacionada.");
+        setLatestIssuedToken({
+          token: payload?.data?.token ?? "",
+          preview: payload?.data?.tokenPreview ?? "",
+        });
+        await loadCredentials();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Falha ao rotacionar credencial.");
+      }
+    });
+  }
+
+  async function handleRevokeCredential(id: string) {
+    startSubmittingCredential(async () => {
+      try {
+        const response = await fetch(`/api/remote/rustdesk/address-book/credentials/${id}/revoke`, {
+          method: "POST",
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Falha ao revogar credencial.");
+        }
+        toast.success(payload?.message ?? "Credencial revogada.");
+        await loadCredentials();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Falha ao revogar credencial.");
+      }
+    });
+  }
 
   const onSubmit: SubmitHandler<RemoteModuleSettingsFormValues> = async (data) => {
     startTransition(async () => {
@@ -183,6 +348,163 @@ export function RemoteModuleSettingsForm() {
           </div>
         </div>
       </div>
+
+      <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Credenciais do Address Book</CardTitle>
+              <CardDescription>
+                Operacao de credenciais autenticadas para consumo do endpoint `/api/remote/rustdesk/address-book`.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {latestIssuedToken?.token ? (
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3">
+              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                Token novo emitido ({latestIssuedToken.preview})
+              </p>
+              <p className="mt-1 break-all font-mono text-xs text-emerald-800 dark:text-emerald-100">
+                {latestIssuedToken.token}
+              </p>
+              <div className="mt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyText(latestIssuedToken.token, "Token")}
+                  className="gap-2"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copiar token
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Nome da credencial</Label>
+              <Input
+                value={credentialLabel}
+                onChange={(event) => setCredentialLabel(event.target.value)}
+                placeholder="Address Book - Operacao"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Integration key</Label>
+              <Input
+                value={credentialIntegrationKey}
+                onChange={(event) => setCredentialIntegrationKey(event.target.value)}
+                placeholder="address-book-operacao"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Escopo</Label>
+              <Select value={credentialScope} onValueChange={(value) => setCredentialScope(value as "GLOBAL" | "COMPANY")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GLOBAL">GLOBAL</SelectItem>
+                  <SelectItem value="COMPANY">COMPANY</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Expira em (dias)</Label>
+              <Input
+                type="number"
+                min={1}
+                value={credentialExpiresDays}
+                onChange={(event) => setCredentialExpiresDays(event.target.value)}
+                placeholder="Sem expiracao"
+              />
+            </div>
+            {credentialScope === "COMPANY" ? (
+              <div className="space-y-2 md:col-span-2">
+                <Label>Empresa</Label>
+                <Select value={credentialCompanyId} onValueChange={setCredentialCompanyId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a empresa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companyOptions.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex gap-2">
+            <Button type="button" onClick={handleCreateCredential} disabled={isSubmittingCredential}>
+              Criar credencial
+            </Button>
+            <Button type="button" variant="outline" onClick={() => loadCredentials()} disabled={credentialsLoading}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Atualizar lista
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {credentialsLoading ? (
+              <p className="text-sm text-muted-foreground">Carregando credenciais...</p>
+            ) : sortedCredentials.length ? (
+              sortedCredentials.map((credential) => (
+                <div key={credential.id} className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {credential.label} ({credential.tokenPreview})
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {credential.scope}
+                        {credential.companyName ? ` | ${credential.companyName}` : ""}
+                        {credential.lastUsedAt ? ` | ultimo uso: ${new Date(credential.lastUsedAt).toLocaleString("pt-BR")}` : " | sem uso"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => handleRotateCredential(credential.id)}
+                        disabled={isSubmittingCredential || credential.status !== "ACTIVE"}
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Rotacionar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => handleRevokeCredential(credential.id)}
+                        disabled={isSubmittingCredential || credential.status !== "ACTIVE"}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Revogar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhuma credencial cadastrada ainda.</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="flex justify-end pb-6">
         <Button type="submit" size="lg" disabled={isSaving || !form.formState.isDirty} className="min-w-[190px]">

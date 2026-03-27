@@ -75,7 +75,7 @@ export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatform
         </CardContent>
       </Card>
 
-      <RemoteModuleSettingsForm />
+      <RemoteModuleSettingsForm companyOptions={overview.companyOptions} />
 
       <RemotePlatformControls overview={overview} />
     </div>

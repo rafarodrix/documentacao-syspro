@@ -222,10 +222,6 @@ function resolveExpectedRustDeskAlias(input: {
   return input.hostName;
 }
 
-function normalizePathForCompare(value: string | null) {
-  return value ? value.trim().replace(/\//g, "\\").toLowerCase() : "";
-}
-
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const [projectedHostName, setProjectedHostName] = useState(host.name);
@@ -648,7 +644,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </p>
               <p className="mt-2 text-sm text-muted-foreground">{host.description || "Sem descricao operacional."}</p>
               <p className="mt-2 text-xs text-muted-foreground">
-                {operationalMeta.label}. Detalhes de bootstrap, token e instalacao ficam concentrados na aba `Agente`.
+                {operationalMeta.label}. Use os botoes principais para acesso rapido e abra as abas apenas quando precisar de detalhes.
               </p>
             </div>
             {installations.length ? (
@@ -670,7 +666,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">Rebootstrap necessario</p>
                 <p className="mt-1 text-sm text-rose-700/90 dark:text-rose-200/90">{agentTokenMeta.description}</p>
                 <p className="mt-2 text-xs text-rose-700/80 dark:text-rose-200/80">
-                  Use sempre o `.ps1` dedicado deste host. O `discover` continua apenas para triagem e nao reativa heartbeat autenticado por `agentToken`.
+                  Baixe e execute o `.ps1` deste host como administrador para concluir o novo bootstrap.
                 </p>
                 <div className="mt-3">
                   <RemoteScriptDownloadButton
@@ -777,7 +773,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             <div className="rounded-xl border border-border/50 bg-muted/15 p-3 text-sm text-muted-foreground">
               <p>
                 Use <span className="font-medium text-foreground">{isMobileClient ? "Abrir no app" : "Abrir acesso remoto"}</span> como acao principal.
-                Se precisar de instalacao, token ou rotacao, avance para a aba <span className="font-medium text-foreground">Agente</span>.
+                Quando precisar de configuracoes da empresa e instalacoes, use a aba <span className="font-medium text-foreground">Empresa</span>.
               </p>
             </div>
           </div>
@@ -787,7 +783,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       <Tabs defaultValue="conexao" className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-4">
           <TabsTrigger value="conexao">{isMobileClient ? "Acesso" : "Conexao"}</TabsTrigger>
-          <TabsTrigger value="contexto">Contexto</TabsTrigger>
+          <TabsTrigger value="contexto">Empresa</TabsTrigger>
           <TabsTrigger value="agente">Agente</TabsTrigger>
           <TabsTrigger value="clientes">{isMobileClient ? "Pessoas" : "Clientes"}</TabsTrigger>
         </TabsList>
@@ -849,8 +845,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         <TabsContent value="contexto">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Contexto operacional da maquina</CardTitle>
-              <CardDescription>Cada instalacao exibe sua empresa e configuracoes operacionais no mesmo nivel.</CardDescription>
+              <CardTitle className="text-lg">Empresa e instalacoes da maquina</CardTitle>
+              <CardDescription>Dados operacionais por instalacao, com o diretorio da instalacao como fonte unica do caminho monitorado.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
@@ -877,8 +873,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       draft?.installationDirectory?.trim() ||
                       companyContext?.installationDirectory ||
                       DEFAULT_INSTALLATION_DIRECTORY;
-                    const pathDivergent =
-                      normalizePathForCompare(installationDirectory) !== normalizePathForCompare(entry.path);
 
                     return (
                       <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
@@ -896,23 +890,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                             <p className="mt-1 text-sm text-foreground">{serverType}</p>
                           </div>
                           <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao</p>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado (diretorio da instalacao)</p>
                             <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "mt-2",
-                                pathDivergent
-                                  ? "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                              )}
-                            >
-                              {pathDivergent ? "Divergente do caminho monitorado" : "Conforme caminho monitorado"}
-                            </Badge>
                           </div>
                         </div>
 
-                        <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3" open>
+                        <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
                           <summary className="cursor-pointer text-sm font-medium text-foreground">Informacoes do servidor</summary>
                           <div className="mt-3 grid gap-3 md:grid-cols-2">
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
@@ -1072,10 +1055,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         </details>
 
                         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
-                            <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
-                          </div>
+                            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
+                              <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
+                            </div>
                           <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
                             <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
