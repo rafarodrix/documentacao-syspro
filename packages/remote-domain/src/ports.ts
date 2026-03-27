@@ -16,6 +16,29 @@ import type {
   StopSessionOutput,
   SyncCommandType,
   SyncCompliance,
+  LinkDiscoveredHostInput,
+  LinkDiscoveredHostOutput,
+  CreateHostInput,
+  CreateHostOutput,
+  UpdateHostInput,
+  UpdateHostOutput,
+  DeleteHostInput,
+  DeleteHostOutput,
+  HostAgentTokenInput,
+  RotateHostAgentTokenOutput,
+  RevokeHostAgentTokenOutput,
+  RelinkHostSysproUpdateInput,
+  RelinkHostSysproUpdateOutput,
+  ListAddressBookInput,
+  ListAddressBookOutput,
+  ListAddressBookCredentialsInput,
+  ListAddressBookCredentialsOutput,
+  CreateAddressBookCredentialInput,
+  CreateAddressBookCredentialOutput,
+  RotateAddressBookCredentialInput,
+  RotateAddressBookCredentialOutput,
+  RevokeAddressBookCredentialInput,
+  RevokeAddressBookCredentialOutput,
 } from "./contracts";
 
 export type RemoteHostContext = {
@@ -368,6 +391,25 @@ export interface RemoteSessionPort {
   logWarning(event: string, fields: Record<string, unknown>): Promise<void>;
   logError(event: string, error?: unknown, fields?: Record<string, unknown>): Promise<void>;
 }
+
+export interface RemoteHostAdminPort {
+  linkDiscoveredHost(input: LinkDiscoveredHostInput): Promise<LinkDiscoveredHostOutput>;
+  createHost(input: CreateHostInput): Promise<CreateHostOutput>;
+  updateHost(input: UpdateHostInput): Promise<UpdateHostOutput>;
+  deleteHost(input: DeleteHostInput): Promise<DeleteHostOutput>;
+  rotateHostAgentToken(input: HostAgentTokenInput): Promise<RotateHostAgentTokenOutput>;
+  revokeHostAgentToken(input: HostAgentTokenInput): Promise<RevokeHostAgentTokenOutput>;
+  relinkHostSysproUpdate(input: RelinkHostSysproUpdateInput): Promise<RelinkHostSysproUpdateOutput>;
+}
+
+export interface RemoteAddressBookPort {
+  listAddressBook(input: ListAddressBookInput): Promise<ListAddressBookOutput>;
+  listAddressBookCredentials(input: ListAddressBookCredentialsInput): Promise<ListAddressBookCredentialsOutput>;
+  createAddressBookCredential(input: CreateAddressBookCredentialInput): Promise<CreateAddressBookCredentialOutput>;
+  rotateAddressBookCredential(input: RotateAddressBookCredentialInput): Promise<RotateAddressBookCredentialOutput>;
+  revokeAddressBookCredential(input: RevokeAddressBookCredentialInput): Promise<RevokeAddressBookCredentialOutput>;
+}
+
 export interface TrilinkRemoteDomain {
   processHeartbeat(payload: unknown): Promise<ProcessHeartbeatOutput>;
   processBootstrap(payload: unknown): Promise<ProcessBootstrapOutput>;
@@ -378,4 +420,18 @@ export interface TrilinkRemoteDomain {
   createSession(payload: unknown): Promise<CreateSessionOutput>;
   startSession(payload: unknown): Promise<StartSessionOutput>;
   stopSession(payload: unknown): Promise<StopSessionOutput>;
+  linkDiscoveredHost(payload: unknown): Promise<LinkDiscoveredHostOutput>;
+  createHost(payload: unknown): Promise<CreateHostOutput>;
+  updateHost(payload: unknown): Promise<UpdateHostOutput>;
+  deleteHost(payload: unknown): Promise<DeleteHostOutput>;
+  rotateHostAgentToken(payload: unknown): Promise<RotateHostAgentTokenOutput>;
+  revokeHostAgentToken(payload: unknown): Promise<RevokeHostAgentTokenOutput>;
+  relinkHostSysproUpdate(payload: unknown): Promise<RelinkHostSysproUpdateOutput>;
+  listAddressBook(payload: unknown): Promise<ListAddressBookOutput>;
+  listAddressBookCredentials(payload: unknown): Promise<ListAddressBookCredentialsOutput>;
+  createAddressBookCredential(payload: unknown): Promise<CreateAddressBookCredentialOutput>;
+  rotateAddressBookCredential(payload: unknown): Promise<RotateAddressBookCredentialOutput>;
+  revokeAddressBookCredential(payload: unknown): Promise<RevokeAddressBookCredentialOutput>;
 }
+
+

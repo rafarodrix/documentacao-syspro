@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { randomBytes } from "node:crypto";
+import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
-import {
-  normalizeCompareValue,
-  normalizeSysproUpdates,
-  syncRemoteHostSysproUpdates,
-} from "@/features/remote/application/agent-payload";
+import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { createRemoteHostAdminPort } from "@/features/remote/infrastructure/gateways/remote-domain/host-admin-port.gateway";
+import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +11,7 @@ function canManageHost(role: string): boolean {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
 }
 
-function buildInstallToken() {
-  return `rhost_${randomBytes(12).toString("hex")}`;
-}
-
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getProtectedSession();
   if (!session) {
     return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
@@ -31,96 +21,46 @@ export async function POST(
     return NextResponse.json({ success: false, error: "Sem permissao para vincular maquina descoberta." }, { status: 403 });
   }
 
+  const tenantScope = await getRemoteTenantScope();
   const { id } = await params;
-  const body = (await request.json()) as {
-    companyId?: string;
-    name?: string;
-    description?: string | null;
-  };
+  const body = (await request.json()) as { companyId?: string; name?: string; description?: string | null };
 
-  const companyId = body.companyId?.trim();
-  const name = body.name?.trim();
+  const hostAdminPort = createRemoteHostAdminPort();
+  const trilinkRemote = createTrilinkRemote({ hostAdminPort });
 
-  if (!companyId || !name) {
-    return NextResponse.json({ success: false, error: "companyId e name sao obrigatorios." }, { status: 400 });
-  }
+  try {
+    const data = await trilinkRemote.linkDiscoveredHost({
+      scope: {
+        isGlobalView: tenantScope.isGlobalView,
+        companyIds: tenantScope.companyIds,
+      },
+      discoveredHostId: id,
+      companyId: body.companyId,
+      name: body.name,
+      description: body.description ?? null,
+    });
 
-  const [company, discoveredHost] = await Promise.all([
-    prisma.company.findFirst({
-      where: { id: companyId, deletedAt: null },
-      select: { id: true, nomeFantasia: true, razaoSocial: true },
-    }),
-    prisma.remoteDiscoveredHost.findFirst({
-      where: { id },
-    }),
-  ]);
-
-  if (!company) {
-    return NextResponse.json({ success: false, error: "Empresa nao encontrada." }, { status: 404 });
-  }
-
-  if (!discoveredHost) {
-    return NextResponse.json({ success: false, error: "Maquina descoberta nao encontrada." }, { status: 404 });
-  }
-
-  if (discoveredHost.linkedHostId) {
     return NextResponse.json(
-      { success: true, data: { hostId: discoveredHost.linkedHostId, discoveredHostId: discoveredHost.id } },
-      { status: 200 }
+      { success: true, data: { hostId: data.hostId, discoveredHostId: data.discoveredHostId } },
+      { status: data.created ? 201 : 200 },
     );
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ success: false, error: "companyId e name sao obrigatorios." }, { status: 400 });
+    }
+
+    if (error instanceof Error && error.message === "HOST_COMPANY_OUT_OF_SCOPE") {
+      return NextResponse.json({ success: false, error: "Empresa fora do escopo remoto do usuario." }, { status: 403 });
+    }
+
+    if (error instanceof Error && error.message === "HOST_COMPANY_NOT_FOUND") {
+      return NextResponse.json({ success: false, error: "Empresa nao encontrada." }, { status: 404 });
+    }
+
+    if (error instanceof Error && error.message === "DISCOVERED_HOST_NOT_FOUND") {
+      return NextResponse.json({ success: false, error: "Maquina descoberta nao encontrada." }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: false, error: "Falha inesperada ao vincular maquina descoberta." }, { status: 500 });
   }
-
-  const heartbeatAt = discoveredHost.lastHeartbeatAt ?? new Date();
-  const normalizedPrimaryNames = [
-    normalizeCompareValue(company.nomeFantasia),
-    normalizeCompareValue(company.razaoSocial),
-  ].filter(Boolean);
-  const sysproUpdates = normalizeSysproUpdates(discoveredHost.installationsSnapshot);
-
-  const host = await prisma.$transaction(async (tx) => {
-    const createdHost = await tx.remoteHost.create({
-      data: {
-        companyId,
-        name,
-        provider: discoveredHost.provider?.trim() || "RustDesk",
-        environment: discoveredHost.environment?.trim() || null,
-        description: body.description?.trim() || discoveredHost.description?.trim() || null,
-        agentExternalId: discoveredHost.agentExternalId?.trim() || null,
-        installToken: buildInstallToken(),
-        machineName: discoveredHost.machineName?.trim() || null,
-        agentVersion: discoveredHost.agentVersion?.trim() || null,
-        serviceStatus: discoveredHost.serviceStatus?.trim() || null,
-        lastHeartbeatAt: heartbeatAt,
-        status: "ACTIVE",
-      } as any,
-      select: {
-        id: true,
-        companyId: true,
-      },
-    });
-
-    await syncRemoteHostSysproUpdates(tx, {
-      hostId: createdHost.id,
-      hostCompanyId: companyId,
-      hostCompanyNames: normalizedPrimaryNames,
-      heartbeatAt,
-      sysproUpdates,
-    });
-
-    await tx.remoteDiscoveredHost.update({
-      where: { id: discoveredHost.id },
-      data: {
-        linkedHostId: createdHost.id,
-        linkedAt: new Date(),
-        status: "LINKED",
-      },
-    });
-
-    return createdHost;
-  });
-
-  return NextResponse.json(
-    { success: true, data: { hostId: host.id, discoveredHostId: discoveredHost.id } },
-    { status: 201 }
-  );
 }

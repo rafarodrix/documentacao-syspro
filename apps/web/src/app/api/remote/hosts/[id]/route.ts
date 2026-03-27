@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { createRemoteHostAdminPort } from "@/features/remote/infrastructure/gateways/remote-domain/host-admin-port.gateway";
+import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 
 export const dynamic = "force-dynamic";
 
@@ -9,20 +11,7 @@ function canManageHost(role: string): boolean {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
 }
 
-function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
-
-function normalizeRustdeskId(value?: string | null) {
-  const trimmed = value?.trim();
-  if (!trimmed) return null;
-  return trimmed.replace(/\s+/g, "");
-}
-
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getProtectedSession();
   if (!session) {
     return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
@@ -46,57 +35,66 @@ export async function PATCH(
     status?: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
   };
 
-  const companyId = body.companyId?.trim();
-  const name = body.name?.trim();
+  const hostAdminPort = createRemoteHostAdminPort();
+  const trilinkRemote = createTrilinkRemote({ hostAdminPort });
 
-  if (!companyId || !name) {
-    return NextResponse.json({ success: false, error: "companyId e name sao obrigatorios." }, { status: 400 });
+  try {
+    const data = await trilinkRemote.updateHost({
+      scope: {
+        isGlobalView: tenantScope.isGlobalView,
+        companyIds: tenantScope.companyIds,
+      },
+      hostId: id,
+      companyId: body.companyId,
+      name: body.name,
+      machineName: body.machineName ?? null,
+      environment: body.environment ?? null,
+      provider: body.provider ?? null,
+      description: body.description ?? null,
+      notes: body.notes ?? null,
+      agentExternalId: body.agentExternalId ?? null,
+      status: body.status,
+    });
+
+    return NextResponse.json({ success: true, data: data.host });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ success: false, error: "companyId e name sao obrigatorios." }, { status: 400 });
+    }
+
+    if (error instanceof Error && error.message === "HOST_COMPANY_OUT_OF_SCOPE") {
+      return NextResponse.json({ success: false, error: "Empresa fora do escopo remoto do usuario." }, { status: 403 });
+    }
+
+    if (error instanceof Error && error.message === "HOST_NOT_FOUND") {
+      return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
+    }
+
+    if (error instanceof Error && error.message === "HOST_COMPANY_NOT_FOUND") {
+      return NextResponse.json({ success: false, error: "Empresa nao encontrada." }, { status: 404 });
+    }
+
+    if (error instanceof Error && error.message === "HOST_AGENT_EXTERNAL_ID_INVALID") {
+      return NextResponse.json(
+        { success: false, error: "RustDesk ID invalido. Informe apenas numeros com 7 a 12 digitos." },
+        { status: 400 },
+      );
+    }
+
+    if (error instanceof Error && error.message === "HOST_AGENT_EXTERNAL_ID_CONFLICT") {
+      const data = (error as Error & { data?: { companyLabel?: string } }).data;
+      const companyLabel = data?.companyLabel ?? "empresa";
+      return NextResponse.json(
+        { success: false, error: `Ja existe um host remoto com este RustDesk ID vinculado a ${companyLabel}.` },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: false, error: "Falha inesperada ao atualizar host remoto." }, { status: 500 });
   }
-
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
-  const existingHost = await prisma.remoteHost.findFirst({
-    where: {
-      id,
-      ...scopedWhere,
-    },
-    select: { id: true },
-  });
-
-  if (!existingHost) {
-    return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
-  }
-
-  const company = await prisma.company.findFirst({
-    where: { id: companyId, deletedAt: null },
-    select: { id: true },
-  });
-
-  if (!company) {
-    return NextResponse.json({ success: false, error: "Empresa nao encontrada." }, { status: 404 });
-  }
-
-  const host = await prisma.remoteHost.update({
-    where: { id },
-    data: {
-      companyId,
-      name,
-      machineName: body.machineName?.trim() || null,
-      environment: body.environment?.trim() || null,
-      provider: body.provider?.trim() || null,
-      description: body.description?.trim() || null,
-      notes: body.notes?.trim() || null,
-      agentExternalId: normalizeRustdeskId(body.agentExternalId),
-      status: body.status ?? "ACTIVE",
-    },
-  });
-
-  return NextResponse.json({ success: true, data: host });
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getProtectedSession();
   if (!session) {
     return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
@@ -108,38 +106,36 @@ export async function DELETE(
 
   const tenantScope = await getRemoteTenantScope();
   const { id } = await params;
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
-  const existingHost = await prisma.remoteHost.findFirst({
-    where: {
-      id,
-      ...scopedWhere,
-    },
-    include: {
-      sessions: {
-        where: {
-          status: { in: ["REQUESTED", "STARTED"] },
-        },
-        select: { id: true },
-        take: 1,
+  const hostAdminPort = createRemoteHostAdminPort();
+  const trilinkRemote = createTrilinkRemote({ hostAdminPort });
+
+  try {
+    await trilinkRemote.deleteHost({
+      scope: {
+        isGlobalView: tenantScope.isGlobalView,
+        companyIds: tenantScope.companyIds,
       },
-    },
-  });
+      hostId: id,
+    });
 
-  if (!existingHost) {
-    return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ success: false, error: "Host remoto invalido." }, { status: 400 });
+    }
+
+    if (error instanceof Error && error.message === "HOST_NOT_FOUND") {
+      return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
+    }
+
+    if (error instanceof Error && error.message === "HOST_DELETE_HAS_ACTIVE_SESSION") {
+      return NextResponse.json(
+        { success: false, error: "Host possui sessao remota aberta e nao pode ser excluido." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: false, error: "Falha inesperada ao excluir host remoto." }, { status: 500 });
   }
-
-  if (existingHost.sessions.length) {
-    return NextResponse.json(
-      { success: false, error: "Host possui sessao remota aberta e nao pode ser excluido." },
-      { status: 409 }
-    );
-  }
-
-  await prisma.remoteHost.delete({
-    where: { id },
-  });
-
-  return NextResponse.json({ success: true });
 }

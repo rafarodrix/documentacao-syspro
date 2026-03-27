@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { createRemoteHostAdminPort } from "@/features/remote/infrastructure/gateways/remote-domain/host-admin-port.gateway";
+import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 
 export const dynamic = "force-dynamic";
 
@@ -9,28 +11,7 @@ function canManageHost(role: string): boolean {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
 }
 
-function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
-
-async function loadScopedHost(id: string, scopedWhere: Record<string, unknown>) {
-  return prisma.remoteHost.findFirst({
-    where: {
-      id,
-      ...scopedWhere,
-    },
-    select: {
-      id: true,
-      name: true,
-      agentTokenHash: true,
-    },
-  });
-}
-
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getProtectedSession();
   if (!session) {
     return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
@@ -42,78 +23,41 @@ export async function POST(
 
   const tenantScope = await getRemoteTenantScope();
   const { id } = await params;
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
-  const existingHost = await loadScopedHost(id, scopedWhere);
 
-  if (!existingHost) {
-    return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
-  }
+  const hostAdminPort = createRemoteHostAdminPort();
+  const trilinkRemote = createTrilinkRemote({ hostAdminPort });
 
-  if (!existingHost.agentTokenHash) {
-    return NextResponse.json(
-      { success: false, error: "Este host ainda nao possui agentToken ativo para rotacionar." },
-      { status: 409 }
-    );
-  }
-
-  const rotatedAt = new Date();
-  const host = await prisma.$transaction(async (tx) => {
-    const updatedHost = await tx.remoteHost.update({
-      where: { id },
-      data: {
-        agentTokenHash: null,
-        agentTokenIssuedAt: null,
-        agentTokenLastUsedAt: null,
-        lastHeartbeatErrorAt: rotatedAt,
-        lastHeartbeatErrorMessage: "agentToken rotacionado pelo portal. Execute o bootstrap novamente para emitir nova credencial do agente.",
+  try {
+    const data = await trilinkRemote.rotateHostAgentToken({
+      scope: {
+        isGlobalView: tenantScope.isGlobalView,
+        companyIds: tenantScope.companyIds,
       },
-      select: {
-        id: true,
-        name: true,
-        agentTokenHash: true,
-        lastHeartbeatErrorAt: true,
-        lastHeartbeatErrorMessage: true,
-      },
+      hostId: id,
     });
 
-    const existingPending = await tx.remoteAgentCommand.findFirst({
-      where: {
-        hostId: id,
-        type: "ROTATE_TOKEN_REQUIRED",
-        status: "PENDING",
-      },
-      select: { id: true },
-    });
-
-    if (!existingPending) {
-      await tx.remoteAgentCommand.create({
-        data: {
-          hostId: id,
-          type: "ROTATE_TOKEN_REQUIRED",
-          status: "PENDING",
-          reason: "O portal invalidou a credencial atual. Execute novo bootstrap autenticado neste host.",
-          payload: {
-            source: "portal",
-            rotatedAt: rotatedAt.toISOString(),
-          },
-        },
-      });
+    return NextResponse.json({ success: true, data: data.host, message: data.message });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ success: false, error: "Host remoto invalido." }, { status: 400 });
     }
 
-    return updatedHost;
-  });
+    if (error instanceof Error && error.message === "HOST_NOT_FOUND") {
+      return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
+    }
 
-  return NextResponse.json({
-    success: true,
-    data: host,
-    message: "agentToken rotacionado. Execute o bootstrap novamente no host para emitir nova credencial.",
-  });
+    if (error instanceof Error && error.message === "HOST_AGENT_TOKEN_NOT_ACTIVE") {
+      return NextResponse.json(
+        { success: false, error: "Este host ainda nao possui agentToken ativo para rotacionar." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: false, error: "Falha inesperada ao rotacionar agentToken." }, { status: 500 });
+  }
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getProtectedSession();
   if (!session) {
     return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
@@ -125,70 +69,36 @@ export async function DELETE(
 
   const tenantScope = await getRemoteTenantScope();
   const { id } = await params;
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
-  const existingHost = await loadScopedHost(id, scopedWhere);
 
-  if (!existingHost) {
-    return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
-  }
+  const hostAdminPort = createRemoteHostAdminPort();
+  const trilinkRemote = createTrilinkRemote({ hostAdminPort });
 
-  if (!existingHost.agentTokenHash) {
-    return NextResponse.json(
-      { success: false, error: "Este host ainda nao possui agentToken ativo." },
-      { status: 409 }
-    );
-  }
-
-  const revokedAt = new Date();
-  const host = await prisma.$transaction(async (tx) => {
-    const updatedHost = await tx.remoteHost.update({
-      where: { id },
-      data: {
-        agentTokenHash: null,
-        agentTokenIssuedAt: null,
-        agentTokenLastUsedAt: null,
-        lastHeartbeatErrorAt: revokedAt,
-        lastHeartbeatErrorMessage: "agentToken revogado manualmente pelo portal. Executar bootstrap novamente no host.",
+  try {
+    const data = await trilinkRemote.revokeHostAgentToken({
+      scope: {
+        isGlobalView: tenantScope.isGlobalView,
+        companyIds: tenantScope.companyIds,
       },
-      select: {
-        id: true,
-        name: true,
-        agentTokenHash: true,
-        lastHeartbeatErrorAt: true,
-        lastHeartbeatErrorMessage: true,
-      },
+      hostId: id,
     });
 
-    const existingPending = await tx.remoteAgentCommand.findFirst({
-      where: {
-        hostId: id,
-        type: "ROTATE_TOKEN_REQUIRED",
-        status: "PENDING",
-      },
-      select: { id: true },
-    });
-
-    if (!existingPending) {
-      await tx.remoteAgentCommand.create({
-        data: {
-          hostId: id,
-          type: "ROTATE_TOKEN_REQUIRED",
-          status: "PENDING",
-          reason: "O portal revogou a credencial atual. Execute novo bootstrap autenticado neste host.",
-          payload: {
-            source: "portal",
-            revokedAt: revokedAt.toISOString(),
-          },
-        },
-      });
+    return NextResponse.json({ success: true, data: data.host, message: data.message });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ success: false, error: "Host remoto invalido." }, { status: 400 });
     }
 
-    return updatedHost;
-  });
+    if (error instanceof Error && error.message === "HOST_NOT_FOUND") {
+      return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
+    }
 
-  return NextResponse.json({
-    success: true,
-    data: host,
-    message: "agentToken revogado. Execute o bootstrap novamente para emitir nova credencial.",
-  });
+    if (error instanceof Error && error.message === "HOST_AGENT_TOKEN_NOT_ACTIVE") {
+      return NextResponse.json(
+        { success: false, error: "Este host ainda nao possui agentToken ativo." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: false, error: "Falha inesperada ao revogar agentToken." }, { status: 500 });
+  }
 }

@@ -303,3 +303,159 @@ export type StartSessionOutput = {
 export type StopSessionOutput = {
   session: SessionSerializedRecord;
 };
+
+// -----------------------------------------------------------------------------
+// Host/Admin + Address Book (INFRA-027D)
+// -----------------------------------------------------------------------------
+
+const hostStatusSchema = z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE"]);
+
+export const linkDiscoveredHostInputSchema = z.object({
+  scope: sessionScopeSchema,
+  discoveredHostId: z.string().trim().min(1),
+  companyId: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  description: z.string().trim().nullable().optional(),
+});
+
+export const createHostInputSchema = z.object({
+  scope: sessionScopeSchema,
+  companyId: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  machineName: z.string().trim().nullable().optional(),
+  environment: z.string().trim().nullable().optional(),
+  provider: z.string().trim().nullable().optional(),
+  description: z.string().trim().nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
+  agentExternalId: z.string().trim().nullable().optional(),
+  status: hostStatusSchema.optional(),
+});
+
+export const updateHostInputSchema = z.object({
+  scope: sessionScopeSchema,
+  hostId: z.string().trim().min(1),
+  companyId: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  machineName: z.string().trim().nullable().optional(),
+  environment: z.string().trim().nullable().optional(),
+  provider: z.string().trim().nullable().optional(),
+  description: z.string().trim().nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
+  agentExternalId: z.string().trim().nullable().optional(),
+  status: hostStatusSchema.optional(),
+});
+
+export const deleteHostInputSchema = z.object({
+  scope: sessionScopeSchema,
+  hostId: z.string().trim().min(1),
+});
+
+export const hostAgentTokenInputSchema = z.object({
+  scope: sessionScopeSchema,
+  hostId: z.string().trim().min(1),
+});
+
+export const relinkHostSysproUpdateInputSchema = z.object({
+  scope: sessionScopeSchema,
+  hostId: z.string().trim().min(1),
+  updateId: z.string().trim().min(1),
+  companyId: z.string().trim().nullable().optional(),
+  mode: z.enum(["replace", "add"]).optional(),
+});
+
+export const listAddressBookInputSchema = z.object({
+  scope: sessionScopeSchema,
+});
+
+export const listAddressBookCredentialsInputSchema = z.object({});
+
+export const createAddressBookCredentialInputSchema = z.object({
+  label: z.string().trim().min(1),
+  integrationKey: z.string().trim().nullable().optional(),
+  scope: z.enum(["GLOBAL", "COMPANY"]).optional(),
+  companyId: z.string().trim().nullable().optional(),
+  expiresInDays: z.number().nullable().optional(),
+  actorUserId: z.string().trim().min(1),
+});
+
+export const rotateAddressBookCredentialInputSchema = z.object({
+  credentialId: z.string().trim().min(1),
+  actorUserId: z.string().trim().min(1),
+});
+
+export const revokeAddressBookCredentialInputSchema = z.object({
+  credentialId: z.string().trim().min(1),
+  actorUserId: z.string().trim().min(1),
+});
+
+export type LinkDiscoveredHostInput = z.infer<typeof linkDiscoveredHostInputSchema>;
+export type CreateHostInput = z.infer<typeof createHostInputSchema>;
+export type UpdateHostInput = z.infer<typeof updateHostInputSchema>;
+export type DeleteHostInput = z.infer<typeof deleteHostInputSchema>;
+export type HostAgentTokenInput = z.infer<typeof hostAgentTokenInputSchema>;
+export type RelinkHostSysproUpdateInput = z.infer<typeof relinkHostSysproUpdateInputSchema>;
+export type ListAddressBookInput = z.infer<typeof listAddressBookInputSchema>;
+export type ListAddressBookCredentialsInput = z.infer<typeof listAddressBookCredentialsInputSchema>;
+export type CreateAddressBookCredentialInput = z.infer<typeof createAddressBookCredentialInputSchema>;
+export type RotateAddressBookCredentialInput = z.infer<typeof rotateAddressBookCredentialInputSchema>;
+export type RevokeAddressBookCredentialInput = z.infer<typeof revokeAddressBookCredentialInputSchema>;
+
+export type HostSerializedRecord = Record<string, unknown>;
+export type SysproUpdateSerializedRecord = Record<string, unknown>;
+export type AddressBookItem = Record<string, unknown>;
+export type AddressBookCredentialSerializedRecord = Record<string, unknown>;
+
+export type LinkDiscoveredHostOutput = {
+  hostId: string;
+  discoveredHostId: string;
+  created: boolean;
+};
+
+export type CreateHostOutput = {
+  host: HostSerializedRecord;
+};
+
+export type UpdateHostOutput = {
+  host: HostSerializedRecord;
+};
+
+export type DeleteHostOutput = {
+  deleted: true;
+};
+
+export type RotateHostAgentTokenOutput = {
+  host: HostSerializedRecord;
+  message: string;
+};
+
+export type RevokeHostAgentTokenOutput = {
+  host: HostSerializedRecord;
+  message: string;
+};
+
+export type RelinkHostSysproUpdateOutput = {
+  update: SysproUpdateSerializedRecord;
+};
+
+export type ListAddressBookOutput = {
+  items: AddressBookItem[];
+  total: number;
+};
+
+export type ListAddressBookCredentialsOutput = {
+  credentials: AddressBookCredentialSerializedRecord[];
+};
+
+export type CreateAddressBookCredentialOutput = {
+  credential: AddressBookCredentialSerializedRecord;
+};
+
+export type RotateAddressBookCredentialOutput = {
+  credential: AddressBookCredentialSerializedRecord;
+};
+
+export type RevokeAddressBookCredentialOutput = {
+  revoked: boolean;
+  alreadyRevoked: boolean;
+  message: string;
+};

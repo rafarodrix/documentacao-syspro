@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
+import { createRemoteAddressBookPort } from "@/features/remote/infrastructure/gateways/remote-domain/address-book-port.gateway";
+import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 
 function canManageCredentials(role: string) {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
@@ -16,26 +18,26 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   }
 
   const { id } = await context.params;
-  const credential = await prisma.remoteAddressBookCredential.findUnique({
-    where: { id },
-    select: { id: true, status: true },
-  });
 
-  if (!credential) {
-    return NextResponse.json({ success: false, error: "Credencial nao encontrada." }, { status: 404 });
+  const addressBookPort = createRemoteAddressBookPort();
+  const trilinkRemote = createTrilinkRemote({ addressBookPort });
+
+  try {
+    const data = await trilinkRemote.revokeAddressBookCredential({
+      credentialId: id,
+      actorUserId: session.userId,
+    });
+
+    return NextResponse.json({ success: true, message: data.message });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ success: false, error: "Credencial invalida." }, { status: 400 });
+    }
+
+    if (error instanceof Error && error.message === "ADDRESS_BOOK_CREDENTIAL_NOT_FOUND") {
+      return NextResponse.json({ success: false, error: "Credencial nao encontrada." }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: false, error: "Falha inesperada ao revogar credencial." }, { status: 500 });
   }
-  if (credential.status === "REVOKED") {
-    return NextResponse.json({ success: true, message: "Credencial ja estava revogada." });
-  }
-
-  await prisma.remoteAddressBookCredential.update({
-    where: { id: credential.id },
-    data: {
-      status: "REVOKED",
-      revokedAt: new Date(),
-      revokedByUserId: session.userId,
-    },
-  });
-
-  return NextResponse.json({ success: true, message: "Credencial revogada." });
 }

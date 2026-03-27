@@ -49,7 +49,7 @@ Ordem recomendada:
 - [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`.
 - [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
 - [ ] `INFRA-027C` [Media] Revisar o que ainda deve sair de `apps/web/src/lib` para consumo compartilhado via `packages/*`.
-- [ ] `INFRA-027D` [Alta] Extrair dominio remoto para package compartilhado e transformar `route.ts` em adapter HTTP fino. Status atual: **parcialmente concluido**. Ja entregue: `packages/remote-domain` com contratos Zod e casos de uso para `discover/bootstrap/sync/ack`, facade `createTrilinkRemote`, gateways dedicados em `apps/web/src/features/remote/infrastructure/gateways/remote-domain/*` e migracao de `discover/bootstrap/sync/ack` para `parse + delegate + response`. Pendente para concluir: (1) aplicar o mesmo padrao aos endpoints remotos restantes (`hosts`, `discovered-hosts/:id/link`, `hosts/:id/agent-token`, `hosts/:id/syspro-updates/[updateId]`, `rustdesk/address-book*`), (2) integrar consumo real do mesmo dominio em `apps/api` e preparar contrato de consumo para `apps/mobile`, (3) fechar padrao unico de erros tipados (code/message/httpStatus) compartilhado entre os fluxos remotos, (4) validar em CI com `typecheck` e testes de regressao dos contratos remotos.
+- [ ] `INFRA-027D` [Alta] Extrair dominio remoto para package compartilhado e transformar `route.ts` em adapter HTTP fino. Status atual: **parcialmente concluido**. Ja entregue: `packages/remote-domain` com contratos Zod e casos de uso para `discover/bootstrap/sync/ack`, facade `createTrilinkRemote`, gateways dedicados em `apps/web/src/features/remote/infrastructure/gateways/remote-domain/*` e migracao de `discover/bootstrap/sync/ack` para `parse + delegate + response`. Pendente para concluir: (1) **concluido no `apps/web`** para `hosts`, `discovered-hosts/:id/link`, `hosts/:id/agent-token`, `hosts/:id/syspro-updates/[updateId]` e `rustdesk/address-book*` via `remote-domain`; resta consolidar e endurecer contratos/erros desses fluxos, (2) integrar consumo real do mesmo dominio em `apps/api` e preparar contrato de consumo para `apps/mobile`, (3) fechar padrao unico de erros tipados (code/message/httpStatus) compartilhado entre os fluxos remotos, (4) validar em CI com `typecheck` e testes de regressao dos contratos remotos.
 
 #### Ideias de implementacao
 
@@ -250,5 +250,6 @@ Ordem recomendada:
 - desenho do `agentToken` e multi-bases remoto: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss)
 - integracao `Zammad + RustDesk`: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad)
 - integracao `Zammad + WhatsApp`: [`/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp`](/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp)
+
 
 
