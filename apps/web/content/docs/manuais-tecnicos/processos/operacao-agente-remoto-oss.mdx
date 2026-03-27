@@ -429,21 +429,92 @@ Tratamento:
 - testar `rustdesk://<id>` no `Win + R`
 - copiar o `RustDesk ID` e abrir manualmente no app
 
-## Relacao com o backlog
+## Fonte unica de verdade
 
-Este manual cobre principalmente:
+Este documento e a fonte unica de verdade para acesso remoto no projeto atual.
+
+Escopo consolidado aqui:
+
+- operacao do agente (`discover`, `bootstrap`, `sync`, `ack`)
+- estrategia da plataforma remota
+- endurecimento de `agentToken` e observabilidade
+- desenho multi-bases
+- backlog tecnico do modulo remoto (incluindo extracao para `packages` e suporte a mobile)
+
+## Arquitetura consolidada do modulo remoto
+
+### Diretriz de plataforma
+
+- o portal governa host, sessao, autorizacao e auditoria
+- RustDesk fornece conectividade, nao dominio de negocio
+- segregacao por tenant e obrigatoria em consulta, acao e sessao
+- a operacao atual de API remota esta em `apps/web/src/app/api/remote/**/route.ts`
+- a camada `packages/api` ainda nao centraliza o modulo remoto
+
+### Multi-bases no mesmo host
+
+Modelo consolidado:
+
+- `RemoteHost` representa a maquina fisica e o acesso remoto
+- `RemoteHostSysproUpdate` representa cada empresa/base monitorada na mesma maquina
+- chave natural de sincronizacao: `hostId + companyLabel + path`
+- nao duplicar host por empresa quando o `RustDesk ID` for da mesma maquina
+
+## Itens enviados para operacao (estado atual)
+
+- fluxo oficial `discover -> bootstrap -> sync -> ack` ativo
+- `agentToken` emitido no bootstrap e usado no ciclo recorrente
+- fila de comandos operacionais com `ack` do agente
+- compliance de cliente RustDesk persistido no host
+- sincronizacao de `sysproUpdates[]` por host e por leitura filha
+- configuracao global do modulo remoto aplicada nos scripts dinamicos
+
+## Backlog tecnico unico do remoto
+
+### Prioridade alta
+
+1. Extrair dominio e servicos remotos para package compartilhado
+- criar package de dominio remoto (casos de uso, validacoes, tipos e contratos)
+- remover regra de negocio dos `route.ts`, mantendo-os como adapters HTTP
+- manter independencia de framework (sem dependencia de Next.js no dominio)
+
+2. Endurecimento de seguranca operacional
+- reforcar politica de token e rotacao/rebootstrap em campo
+- blindar exposicao de segredo em logs e scripts
+- endurecer validacoes de entrada e contratos de payload
+
+3. Isolamento e autorizacao por tenant
+- consolidar guardas por `companyId` nas operacoes sensiveis
+- padronizar checagem de escopo em host/sessao/comando
+
+### Prioridade media
+
+4. Introduzir `remoteRouter` em `packages/api`
+- consumir os casos de uso extraidos do package de dominio
+- manter compatibilidade com endpoints HTTP atuais durante transicao
+- reduzir divergencia entre camada HTTP e router compartilhado
+
+5. Contrato remoto para cliente mobile
+- versionar DTOs de request/response
+- consolidar contrato estavel de `bootstrap/sync/ack/discover`
+- separar claramente fluxo de host script e fluxo de app mobile
+
+6. Observabilidade e performance
+- ampliar trilha de auditoria de sessao/comando
+- evoluir politica de cache para payloads estaveis (`client-profile`)
+- revisar ritmo de heartbeat e protecoes de carga conforme volume real
+
+## Relacao com features
 
 - `FEAT-001`
 - `FEAT-002`
 - `FEAT-002A`
 - `FEAT-002B`
-- parte operacional de `FEAT-002C`
-- parte operacional de `FEAT-003`
+- `FEAT-002C`
+- `FEAT-003`
 
-## Proximo endurecimento recomendado
+## Proximo passo recomendado
 
-Depois da validacao em ambiente real, a evolucao recomendada e:
-
-1. validar os dois fluxos em maquina real de ponta a ponta
-2. endurecer observabilidade do agente com inventario tecnico e rede
-3. decidir se `installToken` continua apenas como bootstrap antes de evoluir para `agentToken`
+1. validar em campo a rotacao/rebootstrap e os dois fluxos de instalacao
+2. iniciar extracao do dominio remoto para package compartilhado
+3. abrir migracao controlada para `packages/api` visando consumo Web + Mobile
