@@ -1,7 +1,7 @@
-﻿import { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { normalizeRustdeskId } from "@/features/remote/application/rustdesk-sync";
 import {
-  normalizeRustdeskId,
   normalizeSysproUpdates,
   serializeSysproUpdatesSnapshot,
 } from "@/features/remote/application/agent-payload";

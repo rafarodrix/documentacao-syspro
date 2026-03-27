@@ -25,12 +25,18 @@ const COMMAND_TYPE_MAP = {
   reapply_alias: "REAPPLY_ALIAS",
   reapply_config: "REAPPLY_CONFIG",
   upgrade_client: "UPGRADE_CLIENT",
+  rotate_token_required: "ROTATE_TOKEN_REQUIRED",
 } as const;
 
 type CommandTypeValue = (typeof COMMAND_TYPE_MAP)[keyof typeof COMMAND_TYPE_MAP];
 
 function isCommandTypeValue(value: string): value is CommandTypeValue {
-  return value === "REAPPLY_ALIAS" || value === "REAPPLY_CONFIG" || value === "UPGRADE_CLIENT";
+  return (
+    value === "REAPPLY_ALIAS" ||
+    value === "REAPPLY_CONFIG" ||
+    value === "UPGRADE_CLIENT" ||
+    value === "ROTATE_TOKEN_REQUIRED"
+  );
 }
 
 function toJsonValue(value: Record<string, unknown>): Prisma.InputJsonValue {
@@ -229,10 +235,14 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
           },
         });
 
-        const desiredTypes: string[] = record.syncDirectives.map((directive) => COMMAND_TYPE_MAP[directive.action]);
+        const desiredTypes = record.syncDirectives.map((directive) => COMMAND_TYPE_MAP[directive.action]) as CommandTypeValue[];
 
         for (const command of existingCommands) {
-          if (command.status === "PENDING" && (!isCommandTypeValue(command.type) || !desiredTypes.includes(command.type))) {
+          if (
+            command.status === "PENDING" &&
+            (!isCommandTypeValue(command.type) ||
+              (command.type !== "ROTATE_TOKEN_REQUIRED" && !desiredTypes.includes(command.type as CommandTypeValue)))
+          ) {
             await tx.remoteAgentCommand.update({
               where: { id: command.id },
               data: {

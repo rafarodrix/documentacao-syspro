@@ -1,5 +1,6 @@
 export type ApiLogger = {
   info: (event: string, meta?: Record<string, unknown>) => void;
+  warn: (event: string, meta?: Record<string, unknown>) => void;
   error: (event: string, meta?: Record<string, unknown>) => void;
 };
 
@@ -12,6 +13,8 @@ export type AuthLikeSession = {
 export type ApiContext = {
   requestId: string;
   session: AuthLikeSession;
+  requestIp?: string | null;
+  userAgent?: string | null;
   logger: ApiLogger;
 };
 

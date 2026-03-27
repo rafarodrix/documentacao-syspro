@@ -16,6 +16,16 @@ function getRequestId(request: Request) {
   return request.headers.get("x-request-id")?.trim() || undefined;
 }
 
+function getRequestIp(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.trim();
+  if (forwardedFor) {
+    const first = forwardedFor.split(",")[0]?.trim();
+    if (first) return first;
+  }
+
+  return request.headers.get("x-real-ip")?.trim() || null;
+}
+
 function getSessionFromHeaders(request: Request) {
   const userId = request.headers.get("x-user-id")?.trim();
   const role = request.headers.get("x-user-role")?.trim();
@@ -104,9 +114,12 @@ export async function handleApiRequest(request: Request) {
   const ctx = createApiContext({
     requestId: getRequestId(request),
     session: getSessionFromHeaders(request),
+    requestIp: getRequestIp(request),
+    userAgent: request.headers.get("user-agent")?.trim() || null,
     logger: {
-      info: (event: string, meta?: unknown) => console.info(event, meta),
-      error: (event: string, meta?: unknown) => console.error(event, meta),
+      info: (event: string, meta?: Record<string, unknown>) => console.info(event, meta),
+      warn: (event: string, meta?: Record<string, unknown>) => console.warn(event, meta),
+      error: (event: string, meta?: Record<string, unknown>) => console.error(event, meta),
     },
   });
 
@@ -161,7 +174,4 @@ export async function handleApiRequest(request: Request) {
     );
   }
 }
-
-
-
 

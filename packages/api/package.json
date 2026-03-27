@@ -16,6 +16,7 @@
     "./routers/remote": "./src/routers/remote.ts"
   },
   "dependencies": {
-    "@dosc-syspro/remote-domain": "0.0.0"
+    "@dosc-syspro/remote-domain": "0.0.0",
+    "@dosc-syspro/database": "0.0.0"
   }
 }

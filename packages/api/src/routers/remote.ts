@@ -20,9 +20,77 @@ import {
   stopSessionInputSchema,
   updateHostInputSchema,
 } from "@dosc-syspro/remote-domain/contracts";
+import { createTrilinkRemote, mapRemoteDomainError } from "@dosc-syspro/remote-domain";
 import { ApiError, createRouter, defineMutation, defineQuery } from "../router";
+import type { ApiContext } from "../lib/contracts";
+import {
+  createRemoteAckPort,
+  createRemoteBootstrapPort,
+  createRemoteDiscoverPort,
+  createRemoteSyncPort,
+  revokeExpiredSyncAgentToken,
+} from "../remote-domain-ports";
+
+const GLOBAL_SCOPE_ROLES = new Set(["ADMIN", "SUPORTE", "DEVELOPER"]);
+
+const DISCOVER_TRANSITIONS = {
+  pending_link: {
+    state: "DISCOVERY_PENDING_LINK",
+    nextStep: "link_discovered_host_then_bootstrap",
+    nextEndpoint: "/api/remote/discovered-hosts/:id/link",
+    allowDiscoveryHeartbeat: true,
+    requiresAuthenticatedBootstrap: false,
+  },
+  linked_host_detected: {
+    state: "DISCOVERY_LINKED_HOST",
+    nextStep: "host_already_linked_keep_bootstrap_sync_flow",
+    nextEndpoint: "/api/remote/rustdesk/sync",
+    allowDiscoveryHeartbeat: false,
+    requiresAuthenticatedBootstrap: false,
+  },
+  host_bootstrap_required: {
+    state: "DISCOVERY_LINKED_HOST_BOOTSTRAP_REQUIRED",
+    nextStep: "run_authenticated_bootstrap",
+    nextEndpoint: "/api/remote/rustdesk/bootstrap",
+    allowDiscoveryHeartbeat: false,
+    requiresAuthenticatedBootstrap: false,
+  },
+};
 
 type ZodSchema<T> = z.ZodType<T>;
+
+function mapRemoteErrorToApiError(error: unknown): never {
+  const mapped = mapRemoteDomainError(error, {
+    validationMessage: "Payload remoto invalido.",
+    defaultMessage: "Erro interno do dominio remoto.",
+  });
+
+  const code =
+    mapped.httpStatus === 401
+      ? "UNAUTHORIZED"
+      : mapped.httpStatus === 403
+        ? "FORBIDDEN"
+        : mapped.httpStatus >= 400 && mapped.httpStatus < 500
+          ? "BAD_REQUEST"
+          : "INTERNAL_ERROR";
+
+  throw new ApiError(mapped.message, code, error);
+}
+
+function createRemoteService(ctx: ApiContext) {
+  const logger = {
+    info: (event: string, fields?: Record<string, unknown>) => ctx.logger.info(event, fields),
+    warn: (event: string, fields?: Record<string, unknown>) => ctx.logger.warn(event, fields),
+    error: (event: string, fields?: Record<string, unknown>) => ctx.logger.error(event, fields),
+  };
+
+  return createTrilinkRemote({
+    discoverPort: createRemoteDiscoverPort({ logger, transitions: DISCOVER_TRANSITIONS }),
+    bootstrapPort: createRemoteBootstrapPort({ logger, requestIp: ctx.requestIp ?? null }),
+    syncPort: createRemoteSyncPort({ logger, requestIp: ctx.requestIp ?? null }),
+    ackPort: createRemoteAckPort({ logger }),
+  });
+}
 
 function parseOrThrow<T>(schema: ZodSchema<T>, input: unknown): T {
   const parsed = schema.safeParse(input);
@@ -35,131 +103,308 @@ function parseOrThrow<T>(schema: ZodSchema<T>, input: unknown): T {
   return parsed.data;
 }
 
+function asObject(input: unknown): Record<string, unknown> {
+  return input && typeof input === "object" && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+}
+
+function buildScopeFromSession(ctx: ApiContext) {
+  if (!ctx.session) {
+    throw new ApiError("Nao autenticado.", "UNAUTHORIZED");
+  }
+
+  const isGlobalView = GLOBAL_SCOPE_ROLES.has(ctx.session.role);
+  return {
+    isGlobalView,
+    companyIds: isGlobalView ? [] : (ctx.session.companyIds ?? []),
+  };
+}
+
+function buildActorFromSession(ctx: ApiContext) {
+  if (!ctx.session) {
+    throw new ApiError("Nao autenticado.", "UNAUTHORIZED");
+  }
+
+  return {
+    userId: ctx.session.userId,
+    role: ctx.session.role,
+    name: null,
+    email: null,
+  };
+}
+
 export const remoteRouter = createRouter({
   discover: defineMutation<{ payload: unknown }, unknown>({
     auth: "public",
-    handler: async ({ input }) => {
+    handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(processDiscoverInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "discover", input: payload };
+      try {
+        return await createRemoteService(ctx).processDiscover(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
+
   bootstrap: defineMutation<{ payload: unknown }, unknown>({
     auth: "public",
-    handler: async ({ input }) => {
+    handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(processBootstrapInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "bootstrap", input: payload };
+      try {
+        return await createRemoteService(ctx).processBootstrap(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
+
   sync: defineMutation<{ payload: unknown }, unknown>({
     auth: "public",
-    handler: async ({ input }) => {
+    handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(processSyncInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "sync", input: payload };
+
+      try {
+        return await createRemoteService(ctx).processSync(payload);
+      } catch (error) {
+        if (error instanceof Error && error.message === "AGENT_TOKEN_EXPIRED") {
+          await revokeExpiredSyncAgentToken(payload.agentToken);
+        }
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
+
   ack: defineMutation<{ payload: unknown }, unknown>({
     auth: "public",
-    handler: async ({ input }) => {
+    handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(processAckInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "ack", input: payload };
+      try {
+        return await createRemoteService(ctx).processAck(payload);
+      } catch (error) {
+        mapRemoteErrorToApiError(error);
+      }
     },
   }),
+
   sessionsList: defineQuery<{ payload: unknown }, unknown>({
     auth: "authenticated",
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(listSessionsInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "sessionsList", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(listSessionsInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "sessionsList",
+        input: payload,
+      };
     },
   }),
+
   sessionsCreate: defineMutation<{ payload: unknown }, unknown>({
     auth: "authenticated",
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(createSessionInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "sessionsCreate", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(createSessionInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+        actor: buildActorFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "sessionsCreate",
+        input: payload,
+      };
     },
   }),
+
   sessionsStart: defineMutation<{ payload: unknown }, unknown>({
     auth: "authenticated",
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(startSessionInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "sessionsStart", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(startSessionInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+        actor: buildActorFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "sessionsStart",
+        input: payload,
+      };
     },
   }),
+
   sessionsStop: defineMutation<{ payload: unknown }, unknown>({
     auth: "authenticated",
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(stopSessionInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "sessionsStop", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(stopSessionInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+        actor: buildActorFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "sessionsStop",
+        input: payload,
+      };
     },
   }),
+
   linkDiscoveredHost: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(linkDiscoveredHostInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "linkDiscoveredHost", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(linkDiscoveredHostInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "linkDiscoveredHost",
+        input: payload,
+      };
     },
   }),
+
   hostsCreate: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(createHostInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "hostsCreate", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(createHostInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "hostsCreate",
+        input: payload,
+      };
     },
   }),
+
   hostsUpdate: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(updateHostInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "hostsUpdate", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(updateHostInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "hostsUpdate",
+        input: payload,
+      };
     },
   }),
+
   hostsDelete: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(deleteHostInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "hostsDelete", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(deleteHostInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "hostsDelete",
+        input: payload,
+      };
     },
   }),
+
   hostsRotateAgentToken: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(hostAgentTokenInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "hostsRotateAgentToken", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(hostAgentTokenInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "hostsRotateAgentToken",
+        input: payload,
+      };
     },
   }),
+
   hostsRevokeAgentToken: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(hostAgentTokenInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "hostsRevokeAgentToken", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(hostAgentTokenInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "hostsRevokeAgentToken",
+        input: payload,
+      };
     },
   }),
+
   hostsRelinkSysproUpdate: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(relinkHostSysproUpdateInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "hostsRelinkSysproUpdate", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(relinkHostSysproUpdateInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "hostsRelinkSysproUpdate",
+        input: payload,
+      };
     },
   }),
+
   addressBookList: defineQuery<{ payload: unknown }, unknown>({
     auth: "authenticated",
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(listAddressBookInputSchema, input.payload);
-      return { status: "not-wired", router: "remote", procedure: "addressBookList", input: payload };
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(listAddressBookInputSchema, {
+        ...asObject(input.payload),
+        scope: buildScopeFromSession(ctx),
+      });
+
+      return {
+        status: "not-wired",
+        router: "remote",
+        procedure: "addressBookList",
+        input: payload,
+      };
     },
   }),
+
   addressBookCredentialsList: defineQuery<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER"],
     handler: async ({ input }) => {
       const payload = parseOrThrow(listAddressBookCredentialsInputSchema, input.payload);
+
       return {
         status: "not-wired",
         router: "remote",
@@ -168,11 +413,16 @@ export const remoteRouter = createRouter({
       };
     },
   }),
+
   addressBookCredentialsCreate: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(createAddressBookCredentialInputSchema, input.payload);
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(createAddressBookCredentialInputSchema, {
+        ...asObject(input.payload),
+        actorUserId: buildActorFromSession(ctx).userId,
+      });
+
       return {
         status: "not-wired",
         router: "remote",
@@ -181,11 +431,16 @@ export const remoteRouter = createRouter({
       };
     },
   }),
+
   addressBookCredentialsRotate: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(rotateAddressBookCredentialInputSchema, input.payload);
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(rotateAddressBookCredentialInputSchema, {
+        ...asObject(input.payload),
+        actorUserId: buildActorFromSession(ctx).userId,
+      });
+
       return {
         status: "not-wired",
         router: "remote",
@@ -194,11 +449,16 @@ export const remoteRouter = createRouter({
       };
     },
   }),
+
   addressBookCredentialsRevoke: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER"],
-    handler: async ({ input }) => {
-      const payload = parseOrThrow(revokeAddressBookCredentialInputSchema, input.payload);
+    handler: async ({ ctx, input }) => {
+      const payload = parseOrThrow(revokeAddressBookCredentialInputSchema, {
+        ...asObject(input.payload),
+        actorUserId: buildActorFromSession(ctx).userId,
+      });
+
       return {
         status: "not-wired",
         router: "remote",
@@ -208,6 +468,3 @@ export const remoteRouter = createRouter({
     },
   }),
 });
-
-
-

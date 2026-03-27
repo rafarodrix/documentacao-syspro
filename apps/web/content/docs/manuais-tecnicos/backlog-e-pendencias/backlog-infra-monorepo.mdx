@@ -42,7 +42,7 @@ Ordem recomendada:
 
 - [ ] `INFRA-026` [Media] Metricas minimas por rota critica, jobs e integracoes externas.
 - [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs. A base de Playwright ja foi aberta em `apps/web`, com config, scripts, smoke de landing page, redirect de rotas protegidas (`/portal` e `/docs`) e fluxo autenticado opcional por credenciais de ambiente; faltam integrar execucao ao CI, instalar browsers no pipeline e ampliar a cobertura para fluxos autenticados e operacionais mais profundos.
-- [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`.
+- [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`. Status atual: **parcial**. O `remoteRouter` ja foi conectado ao `appRouter` no `packages/api`, com contrato remoto parseado por schema e mapeamento de erro tipado; `discover/bootstrap/sync/ack` ja delegam para `remote-domain` com `requestIp` e logger reais vindos do contexto HTTP. Pendencias para fechamento: (1) manter `scope/actor` 100% derivados da sessao em todos os endpoints autenticados, sem confiar no payload do cliente, (2) concluir ligacao real de `sessions/hosts/address-book` no `apps/api` (hoje ainda em `not-wired`), (3) criar suite automatizada minima do `remoteRouter` (fluxo feliz + erro tipado + autorizacao), (4) reduzir duplicacao entre `apps/web` e `packages/api` nos gateways/ports do remoto.
 - [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
 - [ ] `INFRA-027C` [Media] Revisar o que ainda deve sair de `apps/web/src/lib` para consumo compartilhado via `packages/*`.
 
@@ -270,3 +270,4 @@ Checklist objetivo por componente:
 - desenho do `agentToken` e multi-bases remoto: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss)
 - integracao `Zammad + RustDesk`: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad)
 - integracao `Zammad + WhatsApp`: [`/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp`](/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp)
+
