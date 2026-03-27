@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { remoteErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";
 const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
@@ -20,11 +21,15 @@ export async function PATCH(
 ) {
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
   }
 
   if (!canEditCompanyContext(session.role)) {
-    return NextResponse.json({ success: false, error: "Sem permissao para editar configuracoes da empresa." }, { status: 403 });
+    return remoteErrorResponse({
+      code: "FORBIDDEN",
+      message: "Sem permissao para editar configuracoes da empresa.",
+      httpStatus: 403,
+    });
   }
 
   const tenantScope = await getRemoteTenantScope();
@@ -50,7 +55,7 @@ export async function PATCH(
   });
 
   if (!company) {
-    return NextResponse.json({ success: false, error: "Empresa nao encontrada." }, { status: 404 });
+    return remoteErrorResponse({ code: "COMPANY_NOT_FOUND", message: "Empresa nao encontrada.", httpStatus: 404 });
   }
 
   const serverPortValue =
@@ -64,7 +69,7 @@ export async function PATCH(
   const observacoesValue = body.observacoes?.trim();
 
   if (serverPortValue !== null && (!Number.isFinite(serverPortValue) || serverPortValue <= 0)) {
-    return NextResponse.json({ success: false, error: "Porta invalida." }, { status: 400 });
+    return remoteErrorResponse({ code: "BAD_REQUEST", message: "Porta invalida.", httpStatus: 400 });
   }
 
   const updated = await prisma.company.update({

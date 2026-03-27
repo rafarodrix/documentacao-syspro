@@ -1,4 +1,5 @@
 import { ApiError, appRouter, callProcedure, createApiContext } from "@dosc-syspro/api";
+import { mapRemoteDomainError } from "@dosc-syspro/remote-domain";
 
 type JsonObject = Record<string, unknown>;
 
@@ -57,6 +58,26 @@ function getStatusCode(error: ApiError) {
   }
 }
 
+function getApiCode(error: ApiError) {
+  switch (error.code) {
+    case "UNAUTHORIZED":
+      return "UNAUTHORIZED";
+    case "FORBIDDEN":
+      return "FORBIDDEN";
+    case "BAD_REQUEST":
+      return "BAD_REQUEST";
+    default:
+      return "INTERNAL_ERROR";
+  }
+}
+
+function isApiError(error: unknown): error is ApiError {
+  if (!error || typeof error !== "object") return false;
+
+  const candidate = error as { code?: unknown; message?: unknown };
+  return typeof candidate.code === "string" && typeof candidate.message === "string";
+}
+
 export async function handleApiRequest(request: Request) {
   const url = new URL(request.url);
 
@@ -84,8 +105,8 @@ export async function handleApiRequest(request: Request) {
     requestId: getRequestId(request),
     session: getSessionFromHeaders(request),
     logger: {
-      info: (event, meta) => console.info(event, meta),
-      error: (event, meta) => console.error(event, meta),
+      info: (event: string, meta?: unknown) => console.info(event, meta),
+      error: (event: string, meta?: unknown) => console.error(event, meta),
     },
   });
 
@@ -105,26 +126,42 @@ export async function handleApiRequest(request: Request) {
       data,
     });
   } catch (error) {
-    if (error instanceof ApiError) {
+    if (isApiError(error)) {
+      const httpStatus = getStatusCode(error);
+      const code = getApiCode(error);
       return json(
         {
           ok: false,
           requestId: ctx.requestId,
           error: error.message,
-          code: error.code,
+          message: error.message,
+          code,
+          httpStatus,
         },
-        { status: getStatusCode(error) },
+        { status: httpStatus },
       );
     }
+
+    const mapped = mapRemoteDomainError(error, {
+      defaultMessage: "Unhandled error.",
+    });
 
     console.error("api.unhandled", { requestId: ctx.requestId, error });
     return json(
       {
         ok: false,
         requestId: ctx.requestId,
-        error: "Unhandled error.",
+        error: mapped.message,
+        message: mapped.message,
+        code: mapped.code,
+        httpStatus: mapped.httpStatus,
+        ...(mapped.data !== undefined ? { data: mapped.data } : {}),
       },
-      { status: 500 },
+      { status: mapped.httpStatus },
     );
   }
 }
+
+
+
+

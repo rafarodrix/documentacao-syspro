@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@dosc-syspro/remote-domain",
   "version": "0.0.0",
   "private": true,
@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./contracts": "./src/contracts.ts",
     "./ports": "./src/ports.ts",
+    "./errors": "./src/errors.ts",
     "./heartbeat": "./src/use-cases/process-heartbeat.ts",
     "./bootstrap": "./src/use-cases/process-bootstrap.ts",
     "./ack": "./src/use-cases/process-ack.ts",

@@ -265,3 +265,9 @@ export * from "./use-cases/list-address-book-credentials";
 export * from "./use-cases/create-address-book-credential";
 export * from "./use-cases/rotate-address-book-credential";
 export * from "./use-cases/revoke-address-book-credential";
+
+export type { RemoteDomainHttpError } from "./errors";
+export { mapRemoteDomainError } from "./errors";
+
+
+

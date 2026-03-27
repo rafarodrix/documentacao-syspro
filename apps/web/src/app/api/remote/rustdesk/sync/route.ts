@@ -7,6 +7,7 @@ import {
   revokeExpiredSyncAgentToken,
 } from "@/features/remote/infrastructure/gateways/remote-domain/sync-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";
 
@@ -32,16 +33,15 @@ export async function POST(request: Request) {
     windowMs: 60_000,
   });
   if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { success: false, error: "Rate limit excedido para sync remoto." },
-      {
-        status: 429,
-        headers: {
-          ...responseHeaders,
-          "Retry-After": String(rateLimit.retryAfterSeconds),
-        },
+    return remoteErrorResponse({
+      code: "RATE_LIMIT",
+      message: "Rate limit excedido para sync remoto.",
+      httpStatus: 429,
+      headers: {
+        ...responseHeaders,
+        "Retry-After": String(rateLimit.retryAfterSeconds),
       },
-    );
+    });
   }
 
   const body = await request.json();
@@ -78,36 +78,19 @@ export async function POST(request: Request) {
       { headers: responseHeaders },
     );
   } catch (error) {
-    if (error instanceof ZodError) {
-      const missingAgentToken = error.issues.some((issue) => issue.path.join(".") === "agentToken");
-      return NextResponse.json(
-        { success: false, error: missingAgentToken ? "agentToken e obrigatorio." : "Payload de sync invalido." },
-        { status: 400, headers: responseHeaders },
-      );
-    }
-
-    if (error instanceof Error && error.message === "AGENT_TOKEN_INVALID") {
-      return NextResponse.json(
-        { success: false, error: "agentToken invalido ou expirado.", code: "AGENT_TOKEN_INVALID" },
-        { status: 401, headers: responseHeaders },
-      );
-    }
-
     if (error instanceof Error && error.message === "AGENT_TOKEN_EXPIRED") {
       await revokeExpiredSyncAgentToken((body as { agentToken?: string } | null)?.agentToken);
-      return NextResponse.json(
-        { success: false, error: "agentToken expirado.", code: "AGENT_TOKEN_EXPIRED" },
-        { status: 401, headers: responseHeaders },
-      );
     }
 
     logger.error("remote.rustdesk.sync.unexpected_error", {
       error: error instanceof Error ? error.message : "unknown",
     });
-
-    return NextResponse.json(
-      { success: false, error: "Falha inesperada no sync remoto." },
-      { status: 500, headers: responseHeaders },
-    );
+    const missingAgentToken =
+      error instanceof ZodError && error.issues.some((issue) => issue.path.join(".") === "agentToken");
+    return toRemoteDomainErrorResponse(error, {
+      headers: responseHeaders,
+      validationMessage: missingAgentToken ? "agentToken e obrigatorio." : "Payload de sync invalido.",
+      defaultMessage: "Falha inesperada no sync remoto.",
+    });
   }
 }

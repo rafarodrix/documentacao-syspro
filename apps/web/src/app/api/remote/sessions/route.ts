@@ -5,6 +5,7 @@ import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { createRequestLogger } from "@/lib/observability/logger";
 import { createRemoteSessionPort } from "@/features/remote/infrastructure/gateways/remote-domain/session-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,12 @@ export async function GET(request: Request) {
   const session = await getProtectedSession();
   if (!session) {
     logger.warn("remote.sessions.list.unauthorized");
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401, headers: responseHeaders });
+    return remoteErrorResponse({
+      code: "UNAUTHORIZED",
+      message: "Nao autorizado.",
+      httpStatus: 401,
+      headers: responseHeaders,
+    });
   }
 
   const tenantScope = await getRemoteTenantScope();
@@ -40,7 +46,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: true, data: data.sessions, tenantScope }, { headers: responseHeaders });
   } catch (error) {
     logger.error("remote.sessions.list.unexpected_error", error);
-    return NextResponse.json({ success: false, error: "Falha inesperada ao listar sessoes." }, { status: 500, headers: responseHeaders });
+    return remoteErrorResponse({
+      code: "INTERNAL_ERROR",
+      message: "Falha inesperada ao listar sessoes.",
+      httpStatus: 500,
+      headers: responseHeaders,
+    });
   }
 }
 
@@ -53,7 +64,12 @@ export async function POST(request: Request) {
   const session = await getProtectedSession();
   if (!session) {
     logger.warn("remote.sessions.create.unauthorized");
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401, headers: responseHeaders });
+    return remoteErrorResponse({
+      code: "UNAUTHORIZED",
+      message: "Nao autorizado.",
+      httpStatus: 401,
+      headers: responseHeaders,
+    });
   }
 
   const tenantScope = await getRemoteTenantScope();
@@ -89,58 +105,21 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: data.session }, { status: 201, headers: responseHeaders });
   } catch (error) {
-    if (error instanceof ZodError) {
-      logger.warn("remote.sessions.create.invalid_payload");
-      return NextResponse.json(
-        { success: false, error: "companyId e hostId sao obrigatorios." },
-        { status: 400, headers: responseHeaders },
-      );
-    }
-
     if (error instanceof Error && error.message === "SESSION_CREATE_FORBIDDEN") {
       logger.warn("remote.sessions.create.forbidden", {
         actorUserId: session.userId,
         actorRole: session.role,
       });
-      return NextResponse.json(
-        { success: false, error: "Sem permissao para abrir sessao." },
-        { status: 403, headers: responseHeaders },
-      );
-    }
-
-    if (error instanceof Error && error.message === "SESSION_COMPANY_OUT_OF_SCOPE") {
-      return NextResponse.json(
-        { success: false, error: "Empresa fora do escopo do usuario." },
-        { status: 403, headers: responseHeaders },
-      );
-    }
-
-    if (error instanceof Error && error.message === "SESSION_HOST_NOT_FOUND") {
-      return NextResponse.json(
-        { success: false, error: "Host remoto nao encontrado para a empresa." },
-        { status: 404, headers: responseHeaders },
-      );
-    }
-
-    if (error instanceof Error && error.message === "SESSION_HOST_MISCONFIGURED") {
-      return NextResponse.json(
-        { success: false, error: "Host ativo sem ID RustDesk configurado." },
-        { status: 409, headers: responseHeaders },
-      );
-    }
-
-    if (error instanceof Error && error.message === "SESSION_DUPLICATE_OPEN") {
-      const duplicate = (error as Error & { data?: unknown }).data;
-      return NextResponse.json(
-        { success: false, error: "Ja existe sessao aberta para este ticket e host.", data: duplicate ?? null },
-        { status: 409, headers: responseHeaders },
-      );
     }
 
     logger.error("remote.sessions.create.unexpected_error", error);
-    return NextResponse.json(
-      { success: false, error: "Falha inesperada ao abrir sessao." },
-      { status: 500, headers: responseHeaders },
-    );
+    if (error instanceof ZodError) {
+      logger.warn("remote.sessions.create.invalid_payload");
+    }
+    return toRemoteDomainErrorResponse(error, {
+      headers: responseHeaders,
+      validationMessage: "companyId e hostId sao obrigatorios.",
+      defaultMessage: "Falha inesperada ao abrir sessao.",
+    });
   }
 }

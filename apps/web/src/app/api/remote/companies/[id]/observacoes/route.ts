@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { remoteErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,15 @@ export async function PATCH(
 ) {
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
   }
 
   if (!canEditCompanyObservacoes(session.role)) {
-    return NextResponse.json({ success: false, error: "Sem permissao para editar observacoes da empresa." }, { status: 403 });
+    return remoteErrorResponse({
+      code: "FORBIDDEN",
+      message: "Sem permissao para editar observacoes da empresa.",
+      httpStatus: 403,
+    });
   }
 
   const tenantScope = await getRemoteTenantScope();
@@ -41,7 +46,7 @@ export async function PATCH(
   });
 
   if (!company) {
-    return NextResponse.json({ success: false, error: "Empresa nao encontrada." }, { status: 404 });
+    return remoteErrorResponse({ code: "COMPANY_NOT_FOUND", message: "Empresa nao encontrada.", httpStatus: 404 });
   }
 
   const updated = await prisma.company.update({

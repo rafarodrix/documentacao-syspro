@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-import { ZodError } from "zod";
+﻿import { NextResponse } from "next/server";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { createRequestLogger } from "@/lib/observability/logger";
 import { createRemoteDiscoverPort } from "@/features/remote/infrastructure/gateways/remote-domain/discover-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";
 
@@ -58,16 +58,15 @@ export async function POST(request: Request) {
       retryAfterSeconds: rateLimit.retryAfterSeconds,
     });
 
-    return NextResponse.json(
-      { success: false, error: "Rate limit excedido para descoberta do agente." },
-      {
-        status: 429,
-        headers: {
-          ...responseHeaders,
-          "Retry-After": String(rateLimit.retryAfterSeconds),
-        },
+    return remoteErrorResponse({
+      code: "RATE_LIMIT",
+      message: "Rate limit excedido para descoberta do agente.",
+      httpStatus: 429,
+      headers: {
+        ...responseHeaders,
+        "Retry-After": String(rateLimit.retryAfterSeconds),
       },
-    );
+    });
   }
 
   const body = await request.json();
@@ -99,53 +98,18 @@ export async function POST(request: Request) {
       { headers: responseHeaders },
     );
   } catch (error) {
-    if (error instanceof ZodError) {
-      const hasDiscoveryTokenIssue = error.issues.some((issue) => issue.path.join(".") === "discoveryToken");
-      if (hasDiscoveryTokenIssue) {
-        logger.warn("remote.agent.discover.invalid_token");
-        return NextResponse.json(
-          { success: false, error: "Token de descoberta invalido." },
-          { status: 403, headers: responseHeaders },
-        );
-      }
-
-      return NextResponse.json(
-        { success: false, error: "Payload de descoberta invalido." },
-        { status: 400, headers: responseHeaders },
-      );
-    }
-
-    if (error instanceof Error && error.message === "DISCOVERY_TOKEN_NOT_CONFIGURED") {
-      logger.error("remote.agent.discover.token_missing");
-      return NextResponse.json(
-        { success: false, error: "REMOTE_DISCOVERY_TOKEN nao configurado." },
-        { status: 503, headers: responseHeaders },
-      );
-    }
-
-    if (error instanceof Error && error.message === "DISCOVERY_TOKEN_INVALID") {
-      logger.warn("remote.agent.discover.invalid_token");
-      return NextResponse.json(
-        { success: false, error: "Token de descoberta invalido." },
-        { status: 403, headers: responseHeaders },
-      );
-    }
-
-    if (error instanceof Error && error.message === "DISCOVERY_ID_OR_MACHINE_REQUIRED") {
-      return NextResponse.json(
-        { success: false, error: "machineName ou rustdeskId e obrigatorio." },
-        { status: 400, headers: responseHeaders },
-      );
-    }
-
-    logger.error("remote.agent.discover.unexpected_error", {
-      error: error instanceof Error ? error.message : "unknown",
+    const response = toRemoteDomainErrorResponse(error, {
+      headers: responseHeaders,
+      validationMessage: "Payload de descoberta invalido.",
+      defaultMessage: "Falha inesperada na descoberta do agente.",
     });
 
-    return NextResponse.json(
-      { success: false, error: "Falha inesperada na descoberta do agente." },
-      { status: 500, headers: responseHeaders },
-    );
+    if (response.status >= 500) {
+      logger.error("remote.agent.discover.unexpected_error", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+
+    return response;
   }
 }
-

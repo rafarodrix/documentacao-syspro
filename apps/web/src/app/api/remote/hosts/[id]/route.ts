@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { createRemoteHostAdminPort } from "@/features/remote/infrastructure/gateways/remote-domain/host-admin-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +14,15 @@ function canManageHost(role: string): boolean {
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
   }
 
   if (!canManageHost(session.role)) {
-    return NextResponse.json({ success: false, error: "Sem permissao para editar host." }, { status: 403 });
+    return remoteErrorResponse({
+      code: "FORBIDDEN",
+      message: "Sem permissao para editar host.",
+      httpStatus: 403,
+    });
   }
 
   const tenantScope = await getRemoteTenantScope();
@@ -58,50 +62,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json({ success: true, data: data.host });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ success: false, error: "companyId e name sao obrigatorios." }, { status: 400 });
-    }
-
-    if (error instanceof Error && error.message === "HOST_COMPANY_OUT_OF_SCOPE") {
-      return NextResponse.json({ success: false, error: "Empresa fora do escopo remoto do usuario." }, { status: 403 });
-    }
-
-    if (error instanceof Error && error.message === "HOST_NOT_FOUND") {
-      return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
-    }
-
-    if (error instanceof Error && error.message === "HOST_COMPANY_NOT_FOUND") {
-      return NextResponse.json({ success: false, error: "Empresa nao encontrada." }, { status: 404 });
-    }
-
-    if (error instanceof Error && error.message === "HOST_AGENT_EXTERNAL_ID_INVALID") {
-      return NextResponse.json(
-        { success: false, error: "RustDesk ID invalido. Informe apenas numeros com 7 a 12 digitos." },
-        { status: 400 },
-      );
-    }
-
-    if (error instanceof Error && error.message === "HOST_AGENT_EXTERNAL_ID_CONFLICT") {
-      const data = (error as Error & { data?: { companyLabel?: string } }).data;
-      const companyLabel = data?.companyLabel ?? "empresa";
-      return NextResponse.json(
-        { success: false, error: `Ja existe um host remoto com este RustDesk ID vinculado a ${companyLabel}.` },
-        { status: 409 },
-      );
-    }
-
-    return NextResponse.json({ success: false, error: "Falha inesperada ao atualizar host remoto." }, { status: 500 });
+    return toRemoteDomainErrorResponse(error, {
+      validationMessage: "companyId e name sao obrigatorios.",
+      defaultMessage: "Falha inesperada ao atualizar host remoto.",
+    });
   }
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
   }
 
   if (!canManageHost(session.role)) {
-    return NextResponse.json({ success: false, error: "Sem permissao para excluir host." }, { status: 403 });
+    return remoteErrorResponse({
+      code: "FORBIDDEN",
+      message: "Sem permissao para excluir host.",
+      httpStatus: 403,
+    });
   }
 
   const tenantScope = await getRemoteTenantScope();
@@ -121,21 +100,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ success: false, error: "Host remoto invalido." }, { status: 400 });
-    }
-
-    if (error instanceof Error && error.message === "HOST_NOT_FOUND") {
-      return NextResponse.json({ success: false, error: "Host remoto nao encontrado." }, { status: 404 });
-    }
-
-    if (error instanceof Error && error.message === "HOST_DELETE_HAS_ACTIVE_SESSION") {
-      return NextResponse.json(
-        { success: false, error: "Host possui sessao remota aberta e nao pode ser excluido." },
-        { status: 409 },
-      );
-    }
-
-    return NextResponse.json({ success: false, error: "Falha inesperada ao excluir host remoto." }, { status: 500 });
+    return toRemoteDomainErrorResponse(error, {
+      validationMessage: "Host remoto invalido.",
+      defaultMessage: "Falha inesperada ao excluir host remoto.",
+    });
   }
 }
+

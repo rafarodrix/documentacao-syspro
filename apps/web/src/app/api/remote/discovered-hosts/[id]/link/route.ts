@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { createRemoteHostAdminPort } from "@/features/remote/infrastructure/gateways/remote-domain/host-admin-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +14,15 @@ function canManageHost(role: string): boolean {
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
   }
 
   if (!canManageHost(session.role)) {
-    return NextResponse.json({ success: false, error: "Sem permissao para vincular maquina descoberta." }, { status: 403 });
+    return remoteErrorResponse({
+      code: "FORBIDDEN",
+      message: "Sem permissao para vincular maquina descoberta.",
+      httpStatus: 403,
+    });
   }
 
   const tenantScope = await getRemoteTenantScope();
@@ -45,22 +49,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       { status: data.created ? 201 : 200 },
     );
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ success: false, error: "companyId e name sao obrigatorios." }, { status: 400 });
-    }
-
-    if (error instanceof Error && error.message === "HOST_COMPANY_OUT_OF_SCOPE") {
-      return NextResponse.json({ success: false, error: "Empresa fora do escopo remoto do usuario." }, { status: 403 });
-    }
-
-    if (error instanceof Error && error.message === "HOST_COMPANY_NOT_FOUND") {
-      return NextResponse.json({ success: false, error: "Empresa nao encontrada." }, { status: 404 });
-    }
-
-    if (error instanceof Error && error.message === "DISCOVERED_HOST_NOT_FOUND") {
-      return NextResponse.json({ success: false, error: "Maquina descoberta nao encontrada." }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: false, error: "Falha inesperada ao vincular maquina descoberta." }, { status: 500 });
+    return toRemoteDomainErrorResponse(error, {
+      validationMessage: "companyId e name sao obrigatorios.",
+      defaultMessage: "Falha inesperada ao vincular maquina descoberta.",
+    });
   }
 }
+

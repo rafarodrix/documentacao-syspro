@@ -505,3 +505,4 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
 }
 
 
+

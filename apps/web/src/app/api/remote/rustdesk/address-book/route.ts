@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { resolveAddressBookCredentialFromRequest } from "@/features/remote/application/address-book-credentials";
 import { createRemoteAddressBookPort } from "@/features/remote/infrastructure/gateways/remote-domain/address-book-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const hasCredentialAccess = !!credential;
 
   if (!session && !hasCredentialAccess) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
   }
 
   const tenantScope = hasCredentialAccess
@@ -42,10 +42,10 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ success: false, error: "Escopo de consulta invalido." }, { status: 400 });
-    }
-
-    return NextResponse.json({ success: false, error: "Falha inesperada ao listar address book." }, { status: 500 });
+    return toRemoteDomainErrorResponse(error, {
+      validationMessage: "Escopo de consulta invalido.",
+      defaultMessage: "Falha inesperada ao listar address book.",
+    });
   }
 }
+

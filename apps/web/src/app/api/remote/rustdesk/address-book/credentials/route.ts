@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { createRemoteAddressBookPort } from "@/features/remote/infrastructure/gateways/remote-domain/address-book-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 function canManageCredentials(role: string) {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
@@ -11,10 +11,10 @@ function canManageCredentials(role: string) {
 export async function GET() {
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
   }
   if (!canManageCredentials(session.role)) {
-    return NextResponse.json({ success: false, error: "Acesso negado." }, { status: 403 });
+    return remoteErrorResponse({ code: "FORBIDDEN", message: "Acesso negado.", httpStatus: 403 });
   }
 
   const addressBookPort = createRemoteAddressBookPort();
@@ -23,18 +23,20 @@ export async function GET() {
   try {
     const data = await trilinkRemote.listAddressBookCredentials({});
     return NextResponse.json({ success: true, data: data.credentials });
-  } catch {
-    return NextResponse.json({ success: false, error: "Falha inesperada ao listar credenciais." }, { status: 500 });
+  } catch (error) {
+    return toRemoteDomainErrorResponse(error, {
+      defaultMessage: "Falha inesperada ao listar credenciais.",
+    });
   }
 }
 
 export async function POST(request: Request) {
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
   }
   if (!canManageCredentials(session.role)) {
-    return NextResponse.json({ success: false, error: "Acesso negado." }, { status: 403 });
+    return remoteErrorResponse({ code: "FORBIDDEN", message: "Acesso negado.", httpStatus: 403 });
   }
 
   const body = await request.json().catch(() => null);
@@ -58,22 +60,10 @@ export async function POST(request: Request) {
       data: data.credential,
     });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ success: false, error: "Informe o label da credencial." }, { status: 400 });
-    }
-
-    if (error instanceof Error && error.message === "ADDRESS_BOOK_COMPANY_REQUIRED") {
-      return NextResponse.json({ success: false, error: "Selecione a empresa para credencial segmentada." }, { status: 400 });
-    }
-
-    if (error instanceof Error && error.message === "ADDRESS_BOOK_COMPANY_NOT_FOUND") {
-      return NextResponse.json({ success: false, error: "Empresa nao encontrada para esta credencial." }, { status: 404 });
-    }
-
-    if (error instanceof Error && error.message === "ADDRESS_BOOK_INTEGRATION_KEY_INVALID") {
-      return NextResponse.json({ success: false, error: "Integration key invalida." }, { status: 400 });
-    }
-
-    return NextResponse.json({ success: false, error: "Falha inesperada ao criar credencial." }, { status: 500 });
+    return toRemoteDomainErrorResponse(error, {
+      validationMessage: "Informe o label da credencial.",
+      defaultMessage: "Falha inesperada ao criar credencial.",
+    });
   }
 }
+

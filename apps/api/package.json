@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@dosc-syspro/api": "0.0.0"
+    "@dosc-syspro/api": "0.0.0",
+    "@dosc-syspro/remote-domain": "0.0.0"
   }
 }

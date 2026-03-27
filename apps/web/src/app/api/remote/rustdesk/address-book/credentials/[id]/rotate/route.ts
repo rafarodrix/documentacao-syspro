@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { createRemoteAddressBookPort } from "@/features/remote/infrastructure/gateways/remote-domain/address-book-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 function canManageCredentials(role: string) {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
@@ -11,10 +11,10 @@ function canManageCredentials(role: string) {
 export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await getProtectedSession();
   if (!session) {
-    return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
+    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
   }
   if (!canManageCredentials(session.role)) {
-    return NextResponse.json({ success: false, error: "Acesso negado." }, { status: 403 });
+    return remoteErrorResponse({ code: "FORBIDDEN", message: "Acesso negado.", httpStatus: 403 });
   }
 
   const { id } = await context.params;
@@ -34,14 +34,10 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       data: data.credential,
     });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ success: false, error: "Credencial invalida." }, { status: 400 });
-    }
-
-    if (error instanceof Error && error.message === "ADDRESS_BOOK_CREDENTIAL_NOT_FOUND") {
-      return NextResponse.json({ success: false, error: "Credencial nao encontrada." }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: false, error: "Falha inesperada ao rotacionar credencial." }, { status: 500 });
+    return toRemoteDomainErrorResponse(error, {
+      validationMessage: "Credencial invalida.",
+      defaultMessage: "Falha inesperada ao rotacionar credencial.",
+    });
   }
 }
+
