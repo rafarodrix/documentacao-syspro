@@ -253,14 +253,19 @@
 
 @layer components {
   #nd-subnav {
+    position: sticky;
+    top: var(--fd-banner-height);
+    z-index: 45;
     background: hsl(var(--background) / 0.86);
     border-bottom-color: hsl(var(--border) / 0.7);
     backdrop-filter: blur(12px);
+    box-shadow: 0 1px 0 hsl(var(--border) / 0.42);
   }
 
   #nd-sidebar.docs-sidebar-shell,
   #nd-sidebar-mobile.docs-sidebar-shell {
-    background: linear-gradient(180deg, hsl(var(--card) / 0.88) 0%, hsl(var(--background) / 0.94) 100%);
+    background: linear-gradient(180deg, hsl(var(--card) / 0.86) 0%, hsl(var(--background) / 0.95) 100%);
+    border-right: 1px solid hsl(var(--border) / 0.36);
   }
 
   #nd-sidebar.docs-sidebar-shell > div:first-child,
@@ -268,7 +273,7 @@
     position: sticky;
     top: 0;
     z-index: 4;
-    background: linear-gradient(180deg, hsl(var(--card) / 0.96) 0%, hsl(var(--card) / 0.86) 100%);
+    background: linear-gradient(180deg, hsl(var(--card) / 0.95) 0%, hsl(var(--card) / 0.84) 100%);
     border-bottom: 1px solid hsl(var(--border) / 0.58);
   }
 
@@ -330,7 +335,7 @@
   }
 
   .docs-content-surface {
-    background: linear-gradient(180deg, hsl(var(--background) / 0.7) 0%, hsl(var(--card) / 0.58) 100%);
+    background: linear-gradient(180deg, hsl(var(--background) / 0.66) 0%, hsl(var(--card) / 0.54) 100%);
   }
 
   #nd-tocnav {

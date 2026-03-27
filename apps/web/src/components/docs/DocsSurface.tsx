@@ -13,8 +13,8 @@ export function DocsSurface({
   return (
     <div
       className={cn(
-        'group relative overflow-hidden rounded-xl border border-border/60 bg-background/50 shadow-lg backdrop-blur-xl',
-        hoverable && 'transition-all hover:border-primary/20 hover:shadow-xl',
+        'group relative overflow-hidden rounded-xl border border-border/60 bg-background/50 shadow-md backdrop-blur-xl',
+        hoverable && 'transition-all hover:border-primary/20 hover:shadow-lg',
         className,
       )}
     >
@@ -23,4 +23,3 @@ export function DocsSurface({
     </div>
   );
 }
-

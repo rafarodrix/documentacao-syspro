@@ -37,6 +37,27 @@ function formatSlugLabel(value: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+async function canUserSeeDocUrl({
+  url,
+  role,
+  userId,
+}: {
+  url: string;
+  role: Role;
+  userId: string;
+}) {
+  if (!SYSTEM_ROLES.includes(role) && url.startsWith('/docs/manuais-tecnicos')) return false;
+
+  if (role === Role.CLIENTE_ADMIN || role === Role.CLIENTE_USER) {
+    const relativeSlug = url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
+    const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
+    if (requiredSegments.length === 0) return true;
+    return canAccessByCompanySegment(userId, requiredSegments);
+  }
+
+  return true;
+}
+
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
@@ -63,18 +84,7 @@ export default async function Page(props: {
     const allPages = source.getPages().filter((item) => item.url !== '/docs');
 
     const visibility = await Promise.all(
-      allPages.map(async (item) => {
-        if (!SYSTEM_ROLES.includes(session.role) && item.url.startsWith('/docs/manuais-tecnicos')) return false;
-
-        if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
-          const relativeSlug = item.url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
-          const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
-          if (requiredSegments.length === 0) return true;
-          return canAccessByCompanySegment(session.userId, requiredSegments);
-        }
-
-        return true;
-      }),
+      allPages.map((item) => canUserSeeDocUrl({ url: item.url, role: session.role, userId: session.userId })),
     );
 
     const visiblePages = allPages
@@ -137,16 +147,7 @@ export default async function Page(props: {
 
   const navigationPool = source.getPages().filter((item) => item.url !== '/docs');
   const navigationVisibility = await Promise.all(
-    navigationPool.map(async (item) => {
-      if (!SYSTEM_ROLES.includes(session.role) && item.url.startsWith('/docs/manuais-tecnicos')) return false;
-      if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
-        const relativeSlug = item.url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
-        const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
-        if (requiredSegments.length === 0) return true;
-        return canAccessByCompanySegment(session.userId, requiredSegments);
-      }
-      return true;
-    }),
+    navigationPool.map((item) => canUserSeeDocUrl({ url: item.url, role: session.role, userId: session.userId })),
   );
 
   const visibleNavigationPages = navigationPool.filter((_, index) => navigationVisibility[index]);
@@ -164,33 +165,33 @@ export default async function Page(props: {
       tableOfContent={{ style: 'clerk' }}
     >
       <DocsReadingProgress />
-      <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground/90">
-        {breadcrumbItems.map((item, index) => (
-          <div key={item.href} className="inline-flex items-center gap-1.5">
-            {index > 0 ? <span className="text-muted-foreground/50">/</span> : null}
-            <Link
-              href={item.href}
-              className="rounded-sm px-1 py-0.5 transition-colors hover:bg-accent/35 hover:text-foreground"
-            >
-              {item.label}
-            </Link>
-          </div>
-        ))}
-      </div>
-      <DocsTitle>{page.data.title}</DocsTitle>
+      <DocsSurface className="border-border/45 bg-background/35 p-3.5 md:p-5">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground/90">
+          {breadcrumbItems.map((item, index) => (
+            <div key={item.href} className="inline-flex items-center gap-1.5">
+              {index > 0 ? <span className="text-muted-foreground/45">/</span> : null}
+              <Link
+                href={item.href}
+                className="rounded-sm px-1 py-0.5 transition-colors hover:bg-accent/35 hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2.5">
+          <DocsTitle>{page.data.title}</DocsTitle>
+        </div>
+        <div className="mt-2.5">
+          <DocsDescription>{page.data.description}</DocsDescription>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
+          <DocsReadingTime minutes={readingTimeMinutes} />
+        </div>
+      </DocsSurface>
       <div className="mt-3">
-        <DocsSurface className="p-3 md:p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
-            <DocsReadingTime minutes={readingTimeMinutes} />
-          </div>
-          <div className="mt-3">
-            <DocsDescription>{page.data.description}</DocsDescription>
-          </div>
-          <div className="mt-3">
-            <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
-          </div>
-        </DocsSurface>
+        <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
       </div>
       <DocsBody className="space-y-8">
         <DocsSurface className="p-5 md:p-7 docs-content-surface">
