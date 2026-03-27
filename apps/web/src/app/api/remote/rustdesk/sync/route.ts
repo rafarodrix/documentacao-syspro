@@ -46,6 +46,10 @@ function getRequestIp(request: Request) {
   return request.headers.get("cf-connecting-ip")?.trim() || null;
 }
 
+function getStartOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
+
 export async function POST(request: Request) {
   const { logger, responseHeaders } = createRequestLogger(request, {
     area: "api",
@@ -141,6 +145,7 @@ export async function POST(request: Request) {
     companyName: host.company.nomeFantasia ?? host.company.razaoSocial,
   });
   const heartbeatAt = new Date();
+  const dayStart = getStartOfDay(heartbeatAt);
   const sysproUpdates = normalizeSysproUpdates(body.sysproUpdates);
   const normalizedPrimaryNames = [
     normalizeCompareValue(host.company.nomeFantasia),
@@ -178,6 +183,40 @@ export async function POST(request: Request) {
     desiredActions.push("reapply_config");
   }
   if (!compliance.versionMatch) desiredActions.push("upgrade_client");
+
+  const [inventorySnapshot] = await prisma.$queryRaw<
+    Array<{ lastFullSyncAt: Date | null; knownInstallations: bigint }>
+  >`
+    SELECT
+      MAX("lastHeartbeatAt") AS "lastFullSyncAt",
+      COUNT(*)::bigint AS "knownInstallations"
+    FROM "remote_host_syspro_update"
+    WHERE "hostId" = ${host.id}
+  `;
+
+  const knownInstallations = Number(inventorySnapshot?.knownInstallations ?? 0);
+  const lastFullSyncAt = inventorySnapshot?.lastFullSyncAt ?? null;
+  const requiresDailySnapshot = knownInstallations > 0 && (!lastFullSyncAt || lastFullSyncAt < dayStart);
+  const isEmptySysproPayload = sysproUpdates.length === 0;
+  const dailySnapshotMissing = requiresDailySnapshot && isEmptySysproPayload;
+
+  if (dailySnapshotMissing) {
+    logger.warn("remote.rustdesk.sync.syspro_updates.daily_snapshot_missing", {
+      hostId: host.id,
+      knownInstallations,
+      dayStart: dayStart.toISOString(),
+      lastFullSyncAt: lastFullSyncAt?.toISOString() ?? null,
+      lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt?.toISOString() ?? null,
+      machineName: body.machineName?.trim() || host.machineName,
+    });
+  } else if (requiresDailySnapshot && !isEmptySysproPayload) {
+    logger.info("remote.rustdesk.sync.syspro_updates.daily_snapshot_received", {
+      hostId: host.id,
+      knownInstallations,
+      dayStart: dayStart.toISOString(),
+      sysproUpdatesCount: sysproUpdates.length,
+    });
+  }
 
   const updatedHost = await prisma.$transaction(async (tx) => {
     const saved = await tx.remoteHost.update({
@@ -373,6 +412,11 @@ export async function POST(request: Request) {
           lastSyncAt: updatedHost.host.lastRustDeskConfigSyncAt?.toISOString() ?? null,
         },
         compliance,
+        syncPolicy: {
+          dailySysproSnapshotRequired: dailySnapshotMissing,
+          dayStart: dayStart.toISOString(),
+          lastFullSysproSnapshotAt: lastFullSyncAt?.toISOString() ?? null,
+        },
         actions: updatedHost.pendingCommands.map((command) => COMMAND_RESPONSE_MAP[command.type]),
         commandQueue: updatedHost.pendingCommands.map((command) => ({
           id: command.id,

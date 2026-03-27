@@ -34,19 +34,33 @@ const DISCOVER_TRANSITIONS = {
   },
 } as const;
 
+function getRequestIp(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0]?.trim() || null;
+  }
+
+  return request.headers.get("cf-connecting-ip")?.trim() || null;
+}
+
 export async function POST(request: Request) {
   const { logger, responseHeaders } = createRequestLogger(request, {
     area: "api",
     feature: "remote-agent-discover",
   });
-  const ip = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for");
+  const ip = getRequestIp(request);
   const rateLimit = consumeActionRateLimit({
     action: "remote-agent-discover",
     ip,
-    max: 30,
+    max: 5,
     windowMs: 60_000,
   });
   if (!rateLimit.allowed) {
+    logger.warn("remote.agent.discover.rate_limited", {
+      ip,
+      retryAfterSeconds: rateLimit.retryAfterSeconds,
+    });
+
     return NextResponse.json(
       { success: false, error: "Rate limit excedido para descoberta do agente." },
       {

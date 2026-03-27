@@ -22,6 +22,39 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function StaticSiteHeader() {
+  const docsNavItems = [
+    {
+      href: "/docs",
+      title: "Central de Ajuda",
+      description: "Entrada principal com guias e acessos rapidos.",
+      icon: BookOpen,
+    },
+    {
+      href: "/docs/manual",
+      title: "Manual de Uso",
+      description: "Fluxos operacionais e rotinas do sistema.",
+      icon: BookOpen,
+    },
+    {
+      href: "/docs/duvidas",
+      title: "Duvidas Frequentes",
+      description: "Respostas diretas para problemas comuns.",
+      icon: HelpCircle,
+    },
+    {
+      href: "/docs/treinamento",
+      title: "Treinamentos",
+      description: "Trilhas de capacitacao por modulo.",
+      icon: GraduationCap,
+    },
+    {
+      href: "/docs/suporte",
+      title: "Suporte",
+      description: "Canais e orientacoes de atendimento.",
+      icon: LifeBuoy,
+    },
+  ];
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-8">
@@ -54,41 +87,33 @@ export function StaticSiteHeader() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
-                Documentação
+                Documentacao
                 <ChevronDown className="h-3.5 w-3.5 opacity-70" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-72">
-              <DropdownMenuItem asChild>
-                <Link href="/docs" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Central de Ajuda
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/docs/manual" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Manual de Uso
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/docs/duvidas" className="flex items-center gap-2">
-                  <HelpCircle className="h-4 w-4" />
-                  Dúvidas Frequentes
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/docs/treinamento" className="flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4" />
-                  Treinamentos
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/docs/suporte" className="flex items-center gap-2">
-                  <LifeBuoy className="h-4 w-4" />
-                  Suporte
-                </Link>
-              </DropdownMenuItem>
+            <DropdownMenuContent
+              align="center"
+              sideOffset={10}
+              className="w-[620px] rounded-2xl border-border/60 bg-background/95 p-3 shadow-2xl backdrop-blur-xl"
+            >
+              <div className="grid grid-cols-2 gap-2">
+                {docsNavItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="group rounded-xl border border-border/55 bg-muted/10 p-3.5 transition-colors hover:border-primary/35 hover:bg-primary/5"
+                    >
+                      <div className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border/50 bg-background/80 text-muted-foreground transition-colors group-hover:text-primary">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.description}</p>
+                    </Link>
+                  );
+                })}
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -144,7 +169,7 @@ export function StaticSiteHeader() {
                 <div className="flex flex-col gap-2">
                   <MobileNavLink href="/docs">Central</MobileNavLink>
                   <MobileNavLink href="/docs/manual">Manual de uso</MobileNavLink>
-                  <MobileNavLink href="/docs/duvidas">Dúvidas frequentes</MobileNavLink>
+                  <MobileNavLink href="/docs/duvidas">Duvidas frequentes</MobileNavLink>
                   <MobileNavLink href="/docs/treinamento">Treinamentos</MobileNavLink>
                   <MobileNavLink href="/docs/suporte">Suporte</MobileNavLink>
                   <MobileNavLink href="/releases">Releases</MobileNavLink>

@@ -131,7 +131,7 @@ Usado quando o host ja existe no portal e o agente deve entrar direto no cadastr
   </Step>
   <Step>
     ### 4. Sync recorrente
-    O agente envia chamadas periodicas para `POST /api/remote/rustdesk/sync` com `agentToken`, mantendo heartbeat, compliance e `sysproUpdates[]`.
+    O agente envia chamadas periodicas para `POST /api/remote/rustdesk/sync` com `agentToken`, mantendo heartbeat e compliance. O envio de `sysproUpdates[]` deve ser incremental (apenas quando houver mudanca de versao/status/base); sem mudanca, enviar array vazio.
   </Step>
   <Step>
     ### 5. Ack de comandos
@@ -252,6 +252,30 @@ Resultado esperado:
 - `compliance` retornado pelo portal
 - `commandQueue` entregue para execucao local
 
+### Otimizacao de payload no sync (obrigatoria)
+
+Para reduzir overhead de rede em hosts com muitas bases monitoradas:
+
+- o agente deve manter hash local do snapshot de `sysproUpdates[]` (por exemplo, hash de empresa + caminho + ultimaAtualizacao)
+- no ciclo de `sync`, enviar `sysproUpdates[]` completo somente quando o hash mudar
+- se nao houve mudanca desde o ultimo envio, enviar `sysproUpdates: []`
+- o heartbeat e os campos operacionais (`serviceStatus`, `agentVersion`, `machineName`, compliance) continuam sendo enviados normalmente
+- politica diaria: enviar ao menos 1 snapshot completo por dia por host (primeiro `sync` apos ligar e primeiro `sync` apos meia-noite)
+- apos cumprir o snapshot diario, pode enviar `sysproUpdates: []` no restante do dia enquanto nao houver mudanca
+
+Exemplo de `sync` sem mudancas de instalacao:
+
+```json
+{
+  "agentToken": "agt_xxx",
+  "rustdeskId": "21187620068",
+  "machineName": "ERP-MATRIZ-01",
+  "agentVersion": "rustdesk-oss-local",
+  "serviceStatus": "running",
+  "sysproUpdates": []
+}
+```
+
 ### Ack de comando do agente
 
 Endpoint:
@@ -371,7 +395,7 @@ Uso:
 
 - heartbeat periodico ativo
 - `serviceStatus` atualizado
-- `sysproUpdates[]` refletindo as instalacoes detectadas
+- `sysproUpdates[]` enviado apenas quando houver mudanca (array vazio quando nao houver alteracao)
 
 ### Operacao
 
@@ -398,6 +422,20 @@ Tratamento:
 - baixar novamente o script pela rota dinamica
 - validar a variavel de ambiente
 - evitar usar copia antiga do script
+
+### `429` na descoberta
+
+A rota `POST /api/remote/agents/discover` aplica rate limit por IP para reduzir risco de abuso/lixo de banco.
+
+Regra atual:
+
+- maximo de 5 requisicoes por minuto por IP
+
+Tratamento:
+
+- validar se o agente entrou em loop de chamadas
+- reduzir frequencia de retries no script
+- aguardar janela de rate limit e reenviar
 
 ### `405` na chamada do agente
 
@@ -475,6 +513,7 @@ Modelo consolidado:
 - fila de comandos operacionais com `ack` do agente
 - compliance de cliente RustDesk persistido no host
 - sincronizacao de `sysproUpdates[]` por host e por leitura filha
+- envio incremental de `sysproUpdates[]` no `sync` para reduzir payload em ciclos recorrentes
 - configuracao global do modulo remoto aplicada nos scripts dinamicos
 
 ## Backlog tecnico unico do remoto
