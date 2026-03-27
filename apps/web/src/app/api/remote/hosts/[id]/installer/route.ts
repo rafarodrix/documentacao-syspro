@@ -667,6 +667,8 @@ $currentVersion = 'CURRENT_VERSION'
 $serverHost = 'SERVER_HOST'
 $apiHost = 'API_HOST'
 $publicKey = 'PUBLIC_KEY'
+$serverConfig = 'SERVER_CONFIG'
+$targetVersion = 'TARGET_VERSION'
 $rustDeskIdFallback = 'RUSTDESK_ID_FALLBACK'
 $heartbeatErrorLogPath = 'HEARTBEAT_ERROR_LOG_PATH'
 $listaServidores = ConvertFrom-Json 'SERVIDORES_JSON'
@@ -754,6 +756,28 @@ function Resolve-RustDeskId {
     return Normalize-RustDeskId -Value $FallbackValue
 }
 
+function Find-RustDeskExecutable {
+    $paths = @(
+        'C:\Program Files\RustDesk\rustdesk.exe',
+        'C:\Program Files (x86)\RustDesk\rustdesk.exe'
+    )
+
+    foreach ($path in $paths) {
+        if (Test-Path -LiteralPath $path) {
+            return $path
+        }
+    }
+
+    return $null
+}
+
+function Get-RustDeskVersion {
+    param([string]$ExecutablePath)
+    if ([string]::IsNullOrWhiteSpace($ExecutablePath)) { return $null }
+    if (-not (Test-Path -LiteralPath $ExecutablePath)) { return $null }
+    return (Get-Item $ExecutablePath).VersionInfo.ProductVersion
+}
+
 function Get-RustDeskProcess {
     return Get-Process -Name 'rustdesk' -ErrorAction SilentlyContinue | Select-Object -First 1
 }
@@ -793,6 +817,152 @@ function Get-ApiErrorDetails {
         statusCode = $statusCode
         responseBody = $responseBody
         message = $ErrorRecord.Exception.Message
+    }
+}
+
+function Invoke-AgentAck {
+    param(
+        [string]$ResolvedAgentToken,
+        [string]$CommandId,
+        [string]$Status,
+        [string]$Message,
+        $Details = $null
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ResolvedAgentToken) -or [string]::IsNullOrWhiteSpace($CommandId)) {
+        return
+    }
+
+    $payload = @{
+        agentToken = $ResolvedAgentToken
+        commandId = $CommandId
+        status = $Status
+        message = $Message
+    }
+    if ($null -ne $Details) {
+        $payload.details = $Details
+    }
+
+    try {
+        Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/rustdesk/ack" -ContentType 'application/json' -Body ($payload | ConvertTo-Json -Depth 4) -TimeoutSec 30 -ErrorAction Stop | Out-Null
+    } catch {
+        $apiError = Get-ApiErrorDetails -ErrorRecord $_
+        Write-HeartbeatError -Message "Falha ao enviar ack do comando $CommandId. Status: $Status. Detalhe: $($apiError.message)"
+    }
+}
+
+function Invoke-RustDeskSilentUpgrade {
+    param(
+        [string]$ExecutablePath,
+        [string]$DesiredVersion
+    )
+
+    if ([string]::IsNullOrWhiteSpace($DesiredVersion)) {
+        throw 'Versao alvo nao informada para upgrade.'
+    }
+
+    $currentInstalledVersion = Get-RustDeskVersion -ExecutablePath $ExecutablePath
+    if ($currentInstalledVersion -and $currentInstalledVersion.Trim() -eq $DesiredVersion.Trim()) {
+        return "RustDesk ja esta na versao alvo $DesiredVersion."
+    }
+
+    $downloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$DesiredVersion/rustdesk-$DesiredVersion-x86_64.msi"
+    $tempInstaller = "$env:TEMP\rustdesk_agent_upgrade.msi"
+
+    try {
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $tempInstaller -UseBasicParsing -TimeoutSec 120
+        $msiArgs = '/i "' + $tempInstaller + '" /qn /norestart'
+        $upgradeProcess = Start-Process -FilePath 'msiexec.exe' -ArgumentList $msiArgs -Wait -WindowStyle Hidden -PassThru
+        if ($upgradeProcess.ExitCode -ne 0) {
+            throw "MSI retornou codigo $($upgradeProcess.ExitCode)."
+        }
+    } finally {
+        if (Test-Path -LiteralPath $tempInstaller) {
+            Remove-Item -LiteralPath $tempInstaller -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    return "Upgrade executado para $DesiredVersion."
+}
+
+function Invoke-AgentCommand {
+    param(
+        [object]$Command,
+        [string]$ResolvedAgentToken
+    )
+
+    $commandType = [string]$Command.type
+    $commandId = [string]$Command.id
+    $commandPayload = $Command.payload
+    $rustdeskExe = Find-RustDeskExecutable
+
+    try {
+        switch ($commandType) {
+            'REAPPLY_ALIAS' {
+                if (-not $rustdeskExe) { throw 'RustDesk nao encontrado para reaplicar alias.' }
+                $expectedAlias = if ($commandPayload -and $commandPayload.expectedAlias) { [string]$commandPayload.expectedAlias } else { $currentAlias }
+                $aliasArgs = '--option custom-alias "' + $expectedAlias + '"'
+                Start-Process -FilePath $rustdeskExe -ArgumentList $aliasArgs -Wait -WindowStyle Hidden
+                Invoke-AgentAck -ResolvedAgentToken $ResolvedAgentToken -CommandId $commandId -Status 'ACKNOWLEDGED' -Message "Alias reaplicado: $expectedAlias" -Details @{
+                    expectedAlias = $expectedAlias
+                    appliedAlias = $expectedAlias
+                }
+            }
+            'REAPPLY_CONFIG' {
+                if (-not $rustdeskExe) { throw 'RustDesk nao encontrado para reaplicar configuracao.' }
+                if (-not [string]::IsNullOrWhiteSpace($serverConfig)) {
+                    Start-Process -FilePath $rustdeskExe -ArgumentList "--config $serverConfig" -Wait -WindowStyle Hidden
+                }
+                if (-not [string]::IsNullOrWhiteSpace($serverHost)) {
+                    Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-rendezvous-server $serverHost" -Wait -WindowStyle Hidden
+                }
+                if (-not [string]::IsNullOrWhiteSpace($apiHost)) {
+                    Start-Process -FilePath $rustdeskExe -ArgumentList "--option api-server $apiHost" -Wait -WindowStyle Hidden
+                }
+                if (-not [string]::IsNullOrWhiteSpace($publicKey)) {
+                    Start-Process -FilePath $rustdeskExe -ArgumentList "--option key $publicKey" -Wait -WindowStyle Hidden
+                }
+
+                $svc = Get-RustDeskService
+                if ($svc) {
+                    Restart-Service -InputObject $svc -Force -ErrorAction SilentlyContinue
+                }
+
+                Invoke-AgentAck -ResolvedAgentToken $ResolvedAgentToken -CommandId $commandId -Status 'ACKNOWLEDGED' -Message 'Configuracao RustDesk reaplicada pelo agente.' -Details @{
+                    serverHost = $serverHost
+                    apiHost = $apiHost
+                    targetVersion = $targetVersion
+                    appliedServerConfig = (-not [string]::IsNullOrWhiteSpace($serverConfig))
+                }
+            }
+            'UPGRADE_CLIENT' {
+                $upgradeMessage = Invoke-RustDeskSilentUpgrade -ExecutablePath $rustdeskExe -DesiredVersion $targetVersion
+                $upgradedVersion = Get-RustDeskVersion -ExecutablePath (Find-RustDeskExecutable)
+                Invoke-AgentAck -ResolvedAgentToken $ResolvedAgentToken -CommandId $commandId -Status 'ACKNOWLEDGED' -Message $upgradeMessage -Details @{
+                    targetVersion = $targetVersion
+                    installedVersion = $upgradedVersion
+                }
+            }
+            'ROTATE_TOKEN_REQUIRED' {
+                try {
+                    if (Test-Path -LiteralPath $agentTokenPath) {
+                        Remove-Item -LiteralPath $agentTokenPath -Force -ErrorAction SilentlyContinue
+                    }
+                } catch {}
+                Invoke-AgentAck -ResolvedAgentToken $ResolvedAgentToken -CommandId $commandId -Status 'ACKNOWLEDGED' -Message 'agentToken local removido; aguardando novo bootstrap.' -Details @{
+                    removedLocalToken = $true
+                }
+            }
+            default {
+                throw "Tipo de comando nao suportado: $commandType"
+            }
+        }
+    } catch {
+        Invoke-AgentAck -ResolvedAgentToken $ResolvedAgentToken -CommandId $commandId -Status 'FAILED' -Message $_.Exception.Message -Details @{
+            commandType = $commandType
+            exception = $_.Exception.Message
+        }
+        Write-HeartbeatError -Message "Falha ao executar comando $commandType ($commandId): $($_.Exception.Message)"
     }
 }
 
@@ -867,7 +1037,12 @@ if ([string]::IsNullOrWhiteSpace($resolvedAgentToken)) {
 $payloadSync.agentToken = $resolvedAgentToken
 
 try {
-    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/rustdesk/sync" -ContentType 'application/json' -Body ($payloadSync | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
+    $syncResponse = Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/rustdesk/sync" -ContentType 'application/json' -Body ($payloadSync | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
+    if ($syncResponse -and $syncResponse.data -and $syncResponse.data.commandQueue) {
+        foreach ($command in $syncResponse.data.commandQueue) {
+            Invoke-AgentCommand -Command $command -ResolvedAgentToken $resolvedAgentToken
+        }
+    }
 } catch {
     $apiError = Get-ApiErrorDetails -ErrorRecord $_
     if ($apiError.statusCode -eq 401 -and (($apiError.responseBody -like '*AGENT_TOKEN_INVALID*') -or ($apiError.responseBody -like '*AGENT_TOKEN_EXPIRED*'))) {
@@ -895,6 +1070,8 @@ try {
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVER_HOST', "$customRendezvousServer")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('API_HOST', "$customApiServer")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('PUBLIC_KEY', "$customServerKey")
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVER_CONFIG', "${escapedServerConfig}")
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('TARGET_VERSION', "${escapedRustDeskVersion}")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('RUSTDESK_ID_FALLBACK', "$normalizedRustDeskId")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('HEARTBEAT_ERROR_LOG_PATH', "$heartbeatErrorLogPath")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVIDORES_JSON', ($servidoresJson -replace "'", "''"))

@@ -585,10 +585,14 @@ model RemoteAgentCommand {
   status RemoteAgentCommandStatus @default(PENDING)
   payload Json?
   reason String? @db.Text
+  attemptCount Int @default(0)
+  resultMessage String? @db.Text
+  resultPayload Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deliveredAt DateTime?
   executedAt DateTime?
+  failedAt DateTime?
 
   @@index([hostId, status, createdAt])
   @@index([hostId, type, status])

@@ -229,13 +229,15 @@ export async function POST(request: Request) {
     const existingCommands = await tx.remoteAgentCommand.findMany({
       where: {
         hostId: host.id,
-        status: "PENDING",
+        status: {
+          in: ["PENDING", "DELIVERED"],
+        },
       },
     });
     const desiredTypes = new Set(desiredActions.map((action) => COMMAND_TYPE_MAP[action]));
 
     for (const command of existingCommands) {
-      if (!desiredTypes.has(command.type as (typeof COMMAND_TYPE_MAP)[RustDeskActionName])) {
+      if (command.status === "PENDING" && !desiredTypes.has(command.type as (typeof COMMAND_TYPE_MAP)[RustDeskActionName])) {
         await tx.remoteAgentCommand.update({
           where: { id: command.id },
           data: {
@@ -246,7 +248,9 @@ export async function POST(request: Request) {
       }
     }
 
-    const existingPendingTypes = new Set(existingCommands.map((command) => command.type));
+    const existingPendingTypes = new Set(
+      existingCommands.filter((command) => command.status === "PENDING").map((command) => command.type)
+    );
     for (const action of desiredActions) {
       const type = COMMAND_TYPE_MAP[action];
       if (existingPendingTypes.has(type)) continue;
@@ -291,10 +295,37 @@ export async function POST(request: Request) {
       });
     }
 
-    const pendingCommands = await tx.remoteAgentCommand.findMany({
+    const deliverableCommands = await tx.remoteAgentCommand.findMany({
       where: {
         hostId: host.id,
-        status: "PENDING",
+        status: {
+          in: ["PENDING", "DELIVERED"],
+        },
+      },
+      orderBy: [{ createdAt: "asc" }],
+      take: 20,
+    });
+
+    for (const command of deliverableCommands) {
+      if (command.status !== "PENDING") continue;
+      await tx.remoteAgentCommand.update({
+        where: { id: command.id },
+        data: {
+          status: "DELIVERED",
+          deliveredAt: command.deliveredAt ?? heartbeatAt,
+          attemptCount: {
+            increment: 1,
+          },
+        },
+      });
+    }
+
+    const returnedCommands = await tx.remoteAgentCommand.findMany({
+      where: {
+        hostId: host.id,
+        status: {
+          in: ["DELIVERED"],
+        },
       },
       orderBy: [{ createdAt: "asc" }],
       take: 20,
@@ -302,7 +333,7 @@ export async function POST(request: Request) {
 
     return {
       host: saved,
-      pendingCommands,
+      pendingCommands: returnedCommands,
     };
   });
 
@@ -345,8 +376,15 @@ export async function POST(request: Request) {
         commandQueue: updatedHost.pendingCommands.map((command) => ({
           id: command.id,
           type: command.type,
+          status: command.status,
           reason: command.reason,
+          payload:
+            command.payload && typeof command.payload === "object" && !Array.isArray(command.payload)
+              ? command.payload
+              : null,
+          attemptCount: command.attemptCount,
           createdAt: command.createdAt.toISOString(),
+          deliveredAt: command.deliveredAt?.toISOString() ?? null,
         })),
       },
     },

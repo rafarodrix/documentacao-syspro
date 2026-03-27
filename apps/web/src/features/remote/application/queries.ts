@@ -743,13 +743,13 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     ORDER BY u."companyLabel" ASC, u."path" ASC
   `;
   const agentCommands = await prisma.remoteAgentCommand.findMany({
-    where: {
-      hostId: host.id,
-      status: {
-        in: ["PENDING", "DELIVERED", "ACKNOWLEDGED"],
+      where: {
+        hostId: host.id,
+        status: {
+          in: ["PENDING", "DELIVERED", "ACKNOWLEDGED", "FAILED"],
+        },
       },
-    },
-    orderBy: [{ createdAt: "desc" }],
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
     take: 12,
   });
 
@@ -875,10 +875,17 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         command.payload && typeof command.payload === "object" && !Array.isArray(command.payload)
           ? (command.payload as Record<string, unknown>)
           : null,
+      attemptCount: command.attemptCount,
+      resultMessage: command.resultMessage ?? null,
+      resultPayload:
+        command.resultPayload && typeof command.resultPayload === "object" && !Array.isArray(command.resultPayload)
+          ? (command.resultPayload as Record<string, unknown>)
+          : null,
       createdAt: command.createdAt.toISOString(),
       updatedAt: command.updatedAt.toISOString(),
       deliveredAt: command.deliveredAt?.toISOString() ?? null,
       executedAt: command.executedAt?.toISOString() ?? null,
+      failedAt: command.failedAt?.toISOString() ?? null,
     })),
     sysproUpdates: sysproUpdates.map((entry) => ({
       id: entry.id,

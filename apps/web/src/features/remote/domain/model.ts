@@ -386,10 +386,14 @@ export type RemoteHostDetails = {
     status: RemoteAgentCommandStatus;
     reason: string | null;
     payload: Record<string, unknown> | null;
+    attemptCount: number;
+    resultMessage: string | null;
+    resultPayload: Record<string, unknown> | null;
     createdAt: string;
     updatedAt: string;
     deliveredAt: string | null;
     executedAt: string | null;
+    failedAt: string | null;
   }>;
   sysproUpdates: RemoteHostSysproUpdateItem[];
 };

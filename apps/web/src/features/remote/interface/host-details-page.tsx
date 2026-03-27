@@ -1112,10 +1112,24 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         <p className="mt-2 text-sm text-muted-foreground">
                           {command.reason ?? "Sem justificativa adicional registrada."}
                         </p>
+                        {command.resultMessage ? (
+                          <p className="mt-2 text-sm text-foreground">Resultado: {command.resultMessage}</p>
+                        ) : null}
                         <p className="mt-3 text-xs text-muted-foreground">
                           Criado em {formatDateTime(command.createdAt)}
                           {command.deliveredAt ? ` | entregue em ${formatDateTime(command.deliveredAt)}` : ""}
+                          {command.executedAt ? ` | executado em ${formatDateTime(command.executedAt)}` : ""}
+                          {command.failedAt ? ` | falhou em ${formatDateTime(command.failedAt)}` : ""}
                         </p>
+                        <p className="mt-1 text-xs text-muted-foreground">Tentativas de entrega: {command.attemptCount}</p>
+                        {command.resultPayload ? (
+                          <div className="mt-3 rounded-lg border border-border/50 bg-muted/20 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Telemetria do agente</p>
+                            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
+                              {JSON.stringify(command.resultPayload, null, 2)}
+                            </pre>
+                          </div>
+                        ) : null}
                       </div>
                     ))}
                   </div>
