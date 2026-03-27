@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { DocsSurface } from '@/components/docs/DocsSurface';
 
 type Vote = 'yes' | 'no';
@@ -16,9 +17,11 @@ const NO_REASONS: Array<{ value: FeedbackReason; label: string }> = [
 export function DocsPageFeedback({
   slug,
   title,
+  variant = 'card',
 }: {
   slug: string;
   title: string;
+  variant?: 'card' | 'inline';
 }) {
   const storageKey = useMemo(() => `docs:feedback:${slug}`, [slug]);
 
@@ -78,15 +81,25 @@ export function DocsPageFeedback({
     }
   }
 
+  const inline = variant === 'inline';
+
   return (
-    <DocsSurface className="mt-10 border-border/35 bg-background/25 p-3 md:p-3.5" hoverable>
-      <p className="text-sm font-medium">Esse conteudo ajudou?</p>
+    <DocsSurface
+      className={cn(
+        'border-border/35 bg-background/25 p-3 md:p-3.5',
+        inline ? 'mt-4' : 'mt-10',
+      )}
+      hoverable={!inline}
+    >
+      <p className={cn(inline ? 'text-xs font-semibold uppercase tracking-wide text-muted-foreground' : 'text-sm font-medium')}>
+        Esse conteudo ajudou?
+      </p>
       <div className="mt-2.5 flex items-center gap-2">
         <button
           type="button"
           onClick={() => submit('yes')}
           disabled={sending}
-          className={`rounded-md border px-2.5 py-1.5 text-sm transition-all ${
+          className={`rounded-md border px-2.5 py-1.5 ${inline ? 'text-xs' : 'text-sm'} transition-all ${
             vote === 'yes'
               ? 'border-primary/35 bg-primary/10 text-foreground'
               : 'border-border/45 bg-background/60 hover:border-primary/20 hover:bg-accent/35'
@@ -98,7 +111,7 @@ export function DocsPageFeedback({
           type="button"
           onClick={() => setAwaitingReason(true)}
           disabled={sending}
-          className={`rounded-md border px-2.5 py-1.5 text-sm transition-all ${
+          className={`rounded-md border px-2.5 py-1.5 ${inline ? 'text-xs' : 'text-sm'} transition-all ${
             vote === 'no'
               ? 'border-red-500/35 bg-red-500/10 text-red-500'
               : 'border-border/45 bg-background/60 hover:border-primary/20 hover:bg-accent/35'

@@ -14,7 +14,6 @@ import { requireSession } from '@/lib/auth-helpers';
 import { canAccessByCompanySegment } from '@/features/company/application/company-segment-access';
 import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/app/docs/docs-access';
 import { SYSTEM_ROLES } from '@dosc-syspro/core';
-import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
 import { DocsHomePage } from '@/components/docs/DocsHomePage';
 import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
 import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
@@ -188,21 +187,6 @@ export default async function Page(props: {
           <div className="mt-3">
             <DocsDescription>{page.data.description}</DocsDescription>
           </div>
-          <div className="mt-4 grid gap-2 md:grid-cols-3">
-            <div className="rounded-lg border border-border/40 bg-background/45 px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Navegacao</p>
-              <p className="mt-1 text-xs text-muted-foreground/85">Use o menu lateral para navegar entre modulos e guias.</p>
-            </div>
-            <div className="rounded-lg border border-border/40 bg-background/45 px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Busca Rapida</p>
-              <p className="mt-1 text-xs font-medium">Ctrl + K</p>
-              <p className="text-xs text-muted-foreground/85">Encontre paginas e secoes sem sair da leitura.</p>
-            </div>
-            <div className="rounded-lg border border-border/40 bg-background/45 px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Leitura</p>
-              <p className="mt-1 text-xs text-muted-foreground/85">Use o indice da direita para ir direto ao bloco da secao.</p>
-            </div>
-          </div>
           <div className="mt-3">
             <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
           </div>
@@ -227,8 +211,11 @@ export default async function Page(props: {
         <DocsKeyboardShortcuts previousHref={previousPage?.url} nextHref={nextPage?.url} />
         <DocsTocScrollSpy />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
-        <DocsPageFeedback slug={docSlug} title={String(page.data.title)} />
-        <SuporteSection modulo={String(page.data.title)} />
+        <SuporteSection
+          modulo={String(page.data.title)}
+          moduleDescription={typeof page.data.description === 'string' ? page.data.description : undefined}
+          feedback={{ slug: docSlug, title: String(page.data.title) }}
+        />
         {lastUpdateDate ? (
           <DocsSurface className="border-border/35 bg-background/25 px-3 py-2 md:px-3.5 md:py-2.5">
             <PageLastUpdate date={lastUpdateDate} className="text-xs text-muted-foreground/85" />
