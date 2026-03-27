@@ -162,7 +162,7 @@ function Prompt-RustDeskId {
     for ($attempt = 1; $attempt -le 3; $attempt++) {
         Write-Host 'Informe o RustDesk ID (apenas numeros, 7-12 digitos):' -ForegroundColor Cyan
         $rawInput = Read-Host '> '
-        $digitsOnly = (($rawInput ?? '') -replace '\D', '').Trim()
+        $digitsOnly = (([string]$rawInput) -replace '\D', '').Trim()
         $normalized = Normalize-RustDeskId -Value $digitsOnly
         if ($normalized) {
             return $normalized

@@ -493,6 +493,28 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </p>
             </div>
 
+            {agentTokenMeta.needsBootstrap ? (
+              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4">
+                <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">Rebootstrap necessario</p>
+                <p className="mt-1 text-sm text-rose-700/90 dark:text-rose-200/90">{agentTokenMeta.description}</p>
+                <p className="mt-2 text-xs text-rose-700/80 dark:text-rose-200/80">
+                  Use sempre o `.ps1` dedicado deste host. O `discover` continua apenas para triagem e nao reativa heartbeat autenticado por `agentToken`.
+                </p>
+                <div className="mt-3">
+                  <RemoteScriptDownloadButton
+                    url={host.agent.installerPath}
+                    filenameFallback="trilink-remote-agent.ps1"
+                    label="Baixar .ps1 do host"
+                    variant="outline"
+                    className="w-full justify-center gap-2 border-rose-500/30 bg-background/70 text-rose-700 hover:bg-background dark:text-rose-200 sm:w-auto"
+                  >
+                    <HardDriveDownload className="h-4 w-4" />
+                    Baixar .ps1 do host
+                  </RemoteScriptDownloadButton>
+                </div>
+              </div>
+            ) : null}
+
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
@@ -584,10 +606,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
       <Tabs defaultValue="conexao" className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-4">
-          <TabsTrigger value="conexao">Conexao</TabsTrigger>
+          <TabsTrigger value="conexao">{isMobileClient ? "Acesso" : "Conexao"}</TabsTrigger>
           <TabsTrigger value="contexto">Contexto</TabsTrigger>
           <TabsTrigger value="agente">Agente</TabsTrigger>
-          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="clientes">{isMobileClient ? "Pessoas" : "Clientes"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="conexao">
@@ -854,6 +876,26 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <CardDescription>Recorte operacional do FEAT-002 para nao depender de memoria do tecnico em campo.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div
+                className={cn(
+                  "rounded-xl border p-4 text-sm",
+                  agentTokenMeta.needsBootstrap
+                    ? "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-200"
+                    : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
+                )}
+              >
+                <p className="font-medium">
+                  {agentTokenMeta.needsBootstrap
+                    ? "Este host precisa de novo bootstrap autenticado"
+                    : "Este host esta no fluxo autenticado por agentToken"}
+                </p>
+                <p className="mt-1">
+                  {agentTokenMeta.needsBootstrap
+                    ? "Baixe o `.ps1` dedicado deste host, execute como administrador, confirme o registro inicial e aguarde o proximo heartbeat valido."
+                    : "Se precisar reinstalar ou reaplicar configuracao, use o `.ps1` dedicado deste host. O script padrao de descoberta fica restrito a triagem inicial."}
+                </p>
+              </div>
+
               <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
                 <RemoteScriptDownloadButton
                   url={host.agent.installerPath}
@@ -933,8 +975,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <p>2. Execute na maquina do cliente e confirme o RustDesk ID devolvido.</p>
                 <p>3. O bootstrap emite `agentToken` e o heartbeat continuo passa a preferir essa credencial.</p>
                 <p>4. Se rotacionar o `agentToken` ou se ele expirar, execute o bootstrap novamente neste host.</p>
-                <p>5. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
-                {isMobileClient ? <p>6. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
+                <p>5. O script padrao de descoberta nao substitui este fluxo e nao reativa heartbeat autenticado em host ja vinculado.</p>
+                <p>6. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
+                {isMobileClient ? <p>7. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
               </div>
             </CardContent>
           </Card>

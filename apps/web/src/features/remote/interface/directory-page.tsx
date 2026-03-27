@@ -421,6 +421,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </Dialog>
         ) : null}
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          O `script padrao` continua restrito a descoberta e triagem. Para rebootstrap, rotacao de token ou reconfiguracao de host vinculado, use sempre o `.ps1` dedicado do host.
+        </p>
       </div>
 
       <section className={cn("grid gap-3", canCreateHosts ? "grid-cols-2 xl:grid-cols-5" : "grid-cols-2 xl:grid-cols-4")}>
@@ -795,7 +798,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           </div>
                           {agentToken.needsBootstrap ? (
                             <p className="text-xs text-rose-600 dark:text-rose-300">
-                              O agentToken deste host precisa de novo bootstrap antes do proximo heartbeat valido.
+                              O agentToken deste host precisa de novo bootstrap antes do proximo heartbeat valido. Abra os detalhes e baixe o `.ps1` dedicado.
                             </p>
                           ) : null}
                           {item.installationCompanies.length > 1 ? (

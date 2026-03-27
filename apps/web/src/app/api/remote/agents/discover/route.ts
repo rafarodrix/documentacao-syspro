@@ -3,11 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { createRequestLogger } from "@/lib/observability/logger";
 import {
-  normalizeCompareValue,
   normalizeRustdeskId,
   normalizeSysproUpdates,
   serializeSysproUpdatesSnapshot,
-  syncRemoteHostSysproUpdates,
 } from "@/features/remote/application/agent-payload";
 
 export const dynamic = "force-dynamic";
@@ -94,7 +92,9 @@ export async function POST(request: Request) {
       where: { id: discoveredHost.linkedHostId },
       select: {
         id: true,
-        companyId: true,
+        name: true,
+        agentTokenHash: true,
+        lastHeartbeatErrorMessage: true,
         company: {
           select: {
             nomeFantasia: true,
@@ -105,60 +105,42 @@ export async function POST(request: Request) {
     });
 
     if (linkedHost) {
-      const normalizedPrimaryNames = [
-        normalizeCompareValue(linkedHost.company.nomeFantasia),
-        normalizeCompareValue(linkedHost.company.razaoSocial),
-      ].filter(Boolean);
-
-      await prisma.$transaction(async (tx) => {
-        await tx.remoteHost.update({
-          where: { id: linkedHost.id },
-          data: {
-            agentExternalId: rustdeskId,
-            machineName,
-            agentVersion: body.agentVersion?.trim() || undefined,
-            environment: body.environment?.trim() || undefined,
-            provider: body.provider?.trim() || undefined,
-            description: body.description?.trim() || undefined,
-            lastHeartbeatAt: heartbeatAt,
-            status: "ACTIVE",
-          },
-        });
-
-        await tx.$executeRaw`
-          UPDATE "remote_host"
-          SET "serviceStatus" = ${serviceStatus}
-          WHERE "id" = ${linkedHost.id}
-        `;
-
-        await syncRemoteHostSysproUpdates(tx, {
-          hostId: linkedHost.id,
-          hostCompanyId: linkedHost.companyId,
-          hostCompanyNames: normalizedPrimaryNames,
-          heartbeatAt,
-          sysproUpdates,
-        });
-
-        await tx.remoteDiscoveredHost.update({
-          where: { id: discoveredHost.id },
-          data: {
-            machineName,
-            agentExternalId: rustdeskId,
-            agentVersion: body.agentVersion?.trim() || null,
-            environment: body.environment?.trim() || null,
-            provider: body.provider?.trim() || "RustDesk",
-            description: body.description?.trim() || null,
-            serviceStatus,
-            installationsSnapshot: serializeSysproUpdatesSnapshot(sysproUpdates) as any,
-            lastHeartbeatAt: heartbeatAt,
-            linkedAt: discoveredHost.linkedAt ?? heartbeatAt,
-            status: "LINKED",
-          },
-        });
+      await prisma.remoteDiscoveredHost.update({
+        where: { id: discoveredHost.id },
+        data: {
+          machineName,
+          agentExternalId: rustdeskId,
+          agentVersion: body.agentVersion?.trim() || null,
+          environment: body.environment?.trim() || null,
+          provider: body.provider?.trim() || "RustDesk",
+          description: body.description?.trim() || null,
+          serviceStatus,
+          installationsSnapshot: serializeSysproUpdatesSnapshot(sysproUpdates) as any,
+          lastHeartbeatAt: heartbeatAt,
+          linkedAt: discoveredHost.linkedAt ?? heartbeatAt,
+          status: "LINKED",
+        },
       });
 
+      const bootstrapRequired =
+        !linkedHost.agentTokenHash ||
+        !!linkedHost.lastHeartbeatErrorMessage?.toLowerCase().match(/agenttoken (invalido|expirado|rotacionado|indisponivel)/);
+
       return NextResponse.json(
-        { success: true, data: { mode: "linked", discoveredHostId: discoveredHost.id, hostId: linkedHost.id } },
+        {
+          success: true,
+          data: {
+            mode: "linked",
+            discoveredHostId: discoveredHost.id,
+            hostId: linkedHost.id,
+            hostName: linkedHost.name,
+            heartbeatAuth: "agentToken",
+            bootstrapFlow: bootstrapRequired ? "host_installer_required" : "linked_host_detected",
+            message: bootstrapRequired
+              ? "Esta maquina ja esta vinculada a um host do portal. O fluxo discover nao emite agentToken; execute o instalador dedicado do host para concluir o bootstrap."
+              : "Esta maquina ja esta vinculada a um host do portal. O fluxo discover continua apenas como descoberta e nao substitui o heartbeat autenticado do host.",
+          },
+        },
         { headers: responseHeaders }
       );
     }
@@ -187,7 +169,17 @@ export async function POST(request: Request) {
       });
 
   return NextResponse.json(
-    { success: true, data: { mode: "pending", discoveredHostId: record.id } },
+    {
+      success: true,
+      data: {
+        mode: "pending",
+        discoveredHostId: record.id,
+        heartbeatAuth: "discoveryToken",
+        bootstrapFlow: "pending_link",
+        message:
+          "Maquina descoberta com sucesso. Este fluxo serve apenas para triagem inicial; depois do vinculo, use o instalador do host para emitir agentToken.",
+      },
+    },
     { headers: responseHeaders }
   );
 }

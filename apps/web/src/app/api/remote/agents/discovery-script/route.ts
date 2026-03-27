@@ -94,7 +94,7 @@ function Normalize-RustDeskId {
 function Prompt-RustDeskId {
     for ($attempt = 1; $attempt -le 3; $attempt++) {
         $rawInput = Read-Host 'Informe o RustDesk ID manualmente'
-        $digitsOnly = (($rawInput ?? '') -replace '\D', '').Trim()
+        $digitsOnly = (([string]$rawInput) -replace '\D', '').Trim()
         $normalized = Normalize-RustDeskId -Value $digitsOnly
         if ($normalized) {
             return $normalized
@@ -466,6 +466,16 @@ try {
     $discoveryResponse = Invoke-Discovery -RustDeskId $rustdeskId -ServiceStatus $serviceStatus
     Write-Host "Primeiro envio concluido com sucesso. RustDesk ID: $rustdeskId" -ForegroundColor Green
     Write-InstallLog -Message "Descoberta inicial enviada com sucesso. RustDesk ID: $rustdeskId"
+    if ($discoveryResponse.data.message) {
+        Write-Host $discoveryResponse.data.message -ForegroundColor Cyan
+        Write-InstallLog -Message $discoveryResponse.data.message
+    }
+    if ($discoveryResponse.data.bootstrapFlow -eq 'host_installer_required') {
+        Write-Host 'Esta maquina ja pertence a um host vinculado. Baixe o instalador dedicado desse host no portal para concluir o bootstrap com agentToken.' -ForegroundColor Yellow
+        Write-InstallLog -Message 'Discover detectou host vinculado. Orientado uso do instalador dedicado do host.'
+    } elseif ($discoveryResponse.data.bootstrapFlow -eq 'pending_link') {
+        Write-Host 'A maquina foi enviada para triagem. Depois do vinculo no portal, use o instalador dedicado do host para emitir agentToken.' -ForegroundColor Cyan
+    }
 } catch {
     $apiError = Get-ApiErrorDetails -ErrorRecord $_
     Write-Host "Falha ao enviar descoberta inicial: $($apiError.message)" -ForegroundColor Red
@@ -651,7 +661,10 @@ $payload = @{
 }
 
 try {
-    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/discover" -ContentType 'application/json' -Body ($payload | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
+    $response = Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/discover" -ContentType 'application/json' -Body ($payload | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
+    if ($response.data.bootstrapFlow -eq 'host_installer_required') {
+        Write-HeartbeatError -Message 'Discover detectou host vinculado. Este fluxo nao substitui o bootstrap autenticado por agentToken; use o instalador dedicado do host.'
+    }
 } catch {
     $apiError = Get-ApiErrorDetails -ErrorRecord $_
     if ($apiError.statusCode) {
