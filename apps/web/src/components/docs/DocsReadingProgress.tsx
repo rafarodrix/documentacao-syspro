@@ -35,7 +35,7 @@ export function DocsReadingProgress() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed left-0 right-0 top-[calc(var(--fd-banner-height)+var(--fd-nav-height))] z-[60] h-[2px] bg-transparent md:top-0"
+      className="pointer-events-none fixed left-0 right-0 top-[calc(var(--fd-banner-height)+var(--fd-nav-height))] z-60 h-0.5 bg-transparent md:top-0"
     >
       <div
         className="h-full bg-linear-to-r from-primary/40 via-primary to-primary/40 transition-[width] duration-150"

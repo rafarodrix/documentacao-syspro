@@ -8,19 +8,22 @@ const lastUpdatedSchema = z.preprocess(
     if (value instanceof Date) return value.toISOString().slice(0, 10);
     return value;
   },
-  z.string(),
-).optional();
+  z.string().min(1),
+);
 
 export const docs = defineDocs({
   dir: 'content/docs',
   docs: {
     schema: frontmatterSchema.extend({
+      title: z.string().min(1),
+      description: z.string().min(1),
       lastUpdated: lastUpdatedSchema,
-      owner: z.string().optional(),
-      status: z.enum(['draft', 'review', 'published', 'archived']).optional(),
+      owner: z.string().min(1),
+      status: z.enum(['draft', 'review', 'published', 'archived']),
       featureStatus: z.enum(['new', 'deprecated', 'beta', 'experimental']).optional(),
       sinceVersion: z.string().optional(),
-      tags: z.array(z.string()).optional(),
+      tags: z.array(z.string().min(1)).min(1),
+      audience: z.array(z.string().min(1)).min(1),
     }),
   },
 });

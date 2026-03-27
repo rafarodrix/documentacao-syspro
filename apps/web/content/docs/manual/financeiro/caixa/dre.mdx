@@ -4,12 +4,19 @@ description: "Entenda a estrutura do DRE no Syspro ERP e como cada etapa do resu
 lastUpdated: 2026-03-22
 owner: Equipe de Documentacao
 status: published
+tags:
+  - manual
+  - caixa
+  - dre
+audience:
+  - cliente_admin
+  - cliente_user
+  - suporte
 ---
 
 import 'katex/dist/katex.min.css';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Callout } from 'fumadocs-ui/components/callout';
-;
 import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { BarChart, PiggyBank, Factory, Target, Calculator, Trophy } from 'lucide-react';
@@ -59,43 +66,29 @@ Para emitir o relatório no Syspro ERP, siga as etapas abaixo.
 
 A estrutura do DRE segue uma ordem lógica de subtrações para apurar o resultado. Abaixo, apresentamos um exemplo simplificado seguido da explicação de seus principais componentes.
 
-$$
-\begin{array}{l r}
-\text{(+) Receita Operacional Bruta} & \text{R\$ 500.000,00} \\
-\quad \text{Receita de Vendas de Produtos e Serviços} \\
-\\
-\text{(-) Deduções da Receita Bruta} & \text{(R\$ 50.000,00)} \\
-\quad \text{Impostos sobre Vendas (ICMS, PIS, COFINS)} \\
-\quad \text{Vendas Canceladas e Devoluções} \\
-\hline
-\textbf{(=) Receita Operacional Líquida} & \textbf{R\$ 450.000,00} \\
-\\
-\text{(-) Custo das Mercadorias Vendidas (CMV)} & \text{(R\$ 200.000,00)} \\
-\hline
-\textbf{(=) Lucro Bruto} & \textbf{R\$ 250.000,00} \\
-\\
-\text{(-) Despesas Operacionais} & \text{(R\$ 120.000,00)} \\
-\quad \text{Despesas com Vendas (Comissões, Marketing)} \\
-\quad \text{Despesas Administrativas (Salários, Aluguel)} \\
-\hline
-\textbf{(=) EBITDA*} & \textbf{R\$ 130.000,00} \\
-\quad \text{*Lucro antes de Juros, Impostos, Depreciação e Amortização} \\
-\\
-\text{(-) Depreciação e Amortização} & \text{(R\$ 10.000,00)} \\
-\hline
-\textbf{(=) Resultado Operacional (EBIT)} & \textbf{R\$ 120.000,00} \\
-\\
-\text{(+/-) Resultado Financeiro} & \text{(R\$ 18.000,00)} \\
-\quad \text{Receitas Financeiras} & \text{R\$ 2.000,00} \\
-\quad \text{Despesas Financeiras (Juros, Taxas de Cartão)} & \text{(R\$ 20.000,00)} \\
-\hline
-\textbf{(=) Resultado Antes dos Impostos (LAIR)} & \textbf{R\$ 102.000,00} \\
-\\
-\text{(-) IRPJ e CSLL} & \text{(R\$ 30.600,00)} \\
-\hline
-\textbf{(=) Resultado Líquido do Exercício} & \textbf{R\$ 71.400,00} \\
-\end{array}
-$$
+| Estrutura Simplificada do DRE | Valor |
+| --- | ---: |
+| (+) Receita Operacional Bruta | R$ 500.000,00 |
+| Receita de Vendas de Produtos e Serviços |  |
+| (-) Deduções da Receita Bruta | (R$ 50.000,00) |
+| Impostos sobre Vendas (ICMS, PIS, COFINS) |  |
+| Vendas Canceladas e Devoluções |  |
+| **(=) Receita Operacional Líquida** | **R$ 450.000,00** |
+| (-) Custo das Mercadorias Vendidas (CMV) | (R$ 200.000,00) |
+| **(=) Lucro Bruto** | **R$ 250.000,00** |
+| (-) Despesas Operacionais | (R$ 120.000,00) |
+| Despesas com Vendas (Comissões, Marketing) |  |
+| Despesas Administrativas (Salários, Aluguel) |  |
+| **(=) EBITDA*** | **R$ 130.000,00** |
+| *Lucro antes de Juros, Impostos, Depreciação e Amortização* |  |
+| (-) Depreciação e Amortização | (R$ 10.000,00) |
+| **(=) Resultado Operacional (EBIT)** | **R$ 120.000,00** |
+| (+/-) Resultado Financeiro | (R$ 18.000,00) |
+| Receitas Financeiras | R$ 2.000,00 |
+| Despesas Financeiras (Juros, Taxas de Cartão) | (R$ 20.000,00) |
+| **(=) Resultado Antes dos Impostos (LAIR)** | **R$ 102.000,00** |
+| (-) IRPJ e CSLL | (R$ 30.600,00) |
+| **(=) Resultado Líquido do Exercício** | **R$ 71.400,00** |
 
 ### Explicação dos Principais Indicadores
 
