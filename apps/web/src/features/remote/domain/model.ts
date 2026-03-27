@@ -42,6 +42,12 @@ export type RemoteDiscoveredHostStatus = "PENDING_LINK" | "LINKED" | "IGNORED";
 
 export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";
 export type RemoteOperationalStatus = "ONLINE" | "RECENT" | "OFFLINE" | "MISCONFIGURED" | "SESSION_BUSY";
+export type RemoteAgentCommandType =
+  | "REAPPLY_ALIAS"
+  | "REAPPLY_CONFIG"
+  | "UPGRADE_CLIENT"
+  | "ROTATE_TOKEN_REQUIRED";
+export type RemoteAgentCommandStatus = "PENDING" | "DELIVERED" | "ACKNOWLEDGED" | "CANCELLED" | "FAILED";
 export type RemoteSessionAuditSource = "UI" | "WEBHOOK" | "JOB" | "AGENT" | "API";
 export type RemoteSessionAuditAction =
   | "REQUESTED"
@@ -251,6 +257,12 @@ export type RemoteConfiguredHostItem = {
     lastRegisterSource: string | null;
     agentTokenIssuedAt: string | null;
     agentTokenLastUsedAt: string | null;
+    lastKnownRustDeskAlias: string | null;
+    lastKnownRustDeskVersion: string | null;
+    lastKnownRustDeskServerHost: string | null;
+    lastKnownRustDeskApiHost: string | null;
+    lastKnownRustDeskPublicKeyHash: string | null;
+    lastRustDeskConfigSyncAt: string | null;
     lifecycleStatus: RemoteAgentLifecycleStatus;
     installStages: RemoteAgentInstallStage[];
     installerPath: string;
@@ -278,6 +290,7 @@ export type RemotePlatformDirectory = {
     rustDeskServerHost: string;
     rustDeskServerConfig: string;
     rustDeskPublicKey: string;
+    rustDeskPublicKeyHash: string | null;
     rustDeskVersion: string;
     defaultPassword: string;
   };
@@ -318,6 +331,7 @@ export type RemoteHostDetails = {
     rustDeskServerHost: string;
     rustDeskServerConfig: string;
     rustDeskPublicKey: string;
+    rustDeskPublicKeyHash: string | null;
     rustDeskVersion: string;
     defaultPassword: string;
   };
@@ -366,5 +380,16 @@ export type RemoteHostDetails = {
       endedAt: string | null;
     }
   >;
+  agentCommands: Array<{
+    id: string;
+    type: RemoteAgentCommandType;
+    status: RemoteAgentCommandStatus;
+    reason: string | null;
+    payload: Record<string, unknown> | null;
+    createdAt: string;
+    updatedAt: string;
+    deliveredAt: string | null;
+    executedAt: string | null;
+  }>;
   sysproUpdates: RemoteHostSysproUpdateItem[];
 };

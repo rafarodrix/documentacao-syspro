@@ -124,6 +124,21 @@ enum RemoteSessionStatus {
   CANCELLED
 }
 
+enum RemoteAgentCommandType {
+  REAPPLY_ALIAS
+  REAPPLY_CONFIG
+  UPGRADE_CLIENT
+  ROTATE_TOKEN_REQUIRED
+}
+
+enum RemoteAgentCommandStatus {
+  PENDING
+  DELIVERED
+  ACKNOWLEDGED
+  CANCELLED
+  FAILED
+}
+
 enum ConversationChannel {
   WHATSAPP
   EMAIL
@@ -536,6 +551,12 @@ model RemoteHost {
   lastRegisterSource String?
   agentTokenIssuedAt DateTime?
   agentTokenLastUsedAt DateTime?
+  lastKnownRustDeskAlias String?
+  lastKnownRustDeskVersion String?
+  lastKnownRustDeskServerHost String?
+  lastKnownRustDeskApiHost String?
+  lastKnownRustDeskPublicKeyHash String?
+  lastRustDeskConfigSyncAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -543,13 +564,35 @@ model RemoteHost {
   sessions RemoteSession[]
   sysproUpdates RemoteHostSysproUpdate[]
   discoveryRecord RemoteDiscoveredHost?
+  agentCommands RemoteAgentCommand[]
 
   @@index([companyId, status])
   @@index([agentExternalId])
   @@index([installToken])
   @@index([agentTokenHash])
   @@index([lastHeartbeatSuccessAt])
+  @@index([lastRustDeskConfigSyncAt])
   @@map("remote_host")
+}
+
+model RemoteAgentCommand {
+  id String @id @default(cuid())
+
+  hostId String
+  host RemoteHost @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  type RemoteAgentCommandType
+  status RemoteAgentCommandStatus @default(PENDING)
+  payload Json?
+  reason String? @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deliveredAt DateTime?
+  executedAt DateTime?
+
+  @@index([hostId, status, createdAt])
+  @@index([hostId, type, status])
+  @@map("remote_agent_command")
 }
 
 model RemoteDiscoveredHost {

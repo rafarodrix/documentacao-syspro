@@ -6,6 +6,7 @@ import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/m
 import {
   buildAgentToken,
   buildRustDeskConfigProfile,
+  hashRustDeskPublicKey,
   hashAgentToken,
   normalizeRustdeskId,
   resolveRustDeskAlias,
@@ -55,6 +56,10 @@ export async function POST(request: Request) {
     agentVersion?: string | null;
     environment?: string | null;
     currentAlias?: string | null;
+    currentVersion?: string | null;
+    serverHost?: string | null;
+    apiHost?: string | null;
+    publicKey?: string | null;
   };
 
   const installToken = body.installToken?.trim();
@@ -99,6 +104,7 @@ export async function POST(request: Request) {
     machineName,
     companyName: host.company.nomeFantasia ?? host.company.razaoSocial,
   });
+  const reportedPublicKeyHash = body.publicKey?.trim() ? hashRustDeskPublicKey(body.publicKey) : null;
 
   const updatedHost = await prisma.remoteHost.update({
     where: { id: host.id },
@@ -117,6 +123,12 @@ export async function POST(request: Request) {
       lastKnownIp: ip || host.lastKnownIp,
       lastRegisterAt: registerAt,
       lastRegisterSource: "rustdesk.bootstrap",
+      lastKnownRustDeskAlias: body.currentAlias?.trim() || alias,
+      lastKnownRustDeskVersion: body.currentVersion?.trim() || configProfile.targetVersion,
+      lastKnownRustDeskServerHost: body.serverHost?.trim() || configProfile.serverHost,
+      lastKnownRustDeskApiHost: body.apiHost?.trim() || configProfile.apiHost,
+      lastKnownRustDeskPublicKeyHash: reportedPublicKeyHash ?? configProfile.publicKeyHash,
+      lastRustDeskConfigSyncAt: registerAt,
       status: "ACTIVE",
     },
     select: {
@@ -128,6 +140,12 @@ export async function POST(request: Request) {
       agentVersion: true,
       environment: true,
       agentTokenIssuedAt: true,
+      lastKnownRustDeskAlias: true,
+      lastKnownRustDeskVersion: true,
+      lastKnownRustDeskServerHost: true,
+      lastKnownRustDeskApiHost: true,
+      lastKnownRustDeskPublicKeyHash: true,
+      lastRustDeskConfigSyncAt: true,
     },
   });
 
@@ -157,10 +175,23 @@ export async function POST(request: Request) {
         serverConfig: configProfile.serverConfig,
         targetVersion: configProfile.targetVersion,
         defaultPassword: configProfile.defaultPassword,
+        compliance: {
+          aliasMatch: updatedHost.lastKnownRustDeskAlias?.trim().toLowerCase() === alias.trim().toLowerCase(),
+          versionMatch:
+            (updatedHost.lastKnownRustDeskVersion ?? "").trim().toLowerCase() ===
+            configProfile.targetVersion.trim().toLowerCase(),
+          serverHostMatch:
+            (updatedHost.lastKnownRustDeskServerHost ?? "").trim().toLowerCase() ===
+            configProfile.serverHost.trim().toLowerCase(),
+          apiHostMatch:
+            (updatedHost.lastKnownRustDeskApiHost ?? "").trim().toLowerCase() ===
+            configProfile.apiHost.trim().toLowerCase(),
+          publicKeyMatch:
+            (updatedHost.lastKnownRustDeskPublicKeyHash ?? "") === (configProfile.publicKeyHash ?? ""),
+        },
         actions: ["bootstrap_complete"],
       },
     },
     { headers: responseHeaders }
   );
 }
-

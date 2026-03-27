@@ -118,6 +118,7 @@ $ErrorActionPreference = 'Stop'
 $expectedRustDeskVersion = '${escapedRustDeskVersion}'
 $rustDeskDownloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$expectedRustDeskVersion/rustdesk-$expectedRustDeskVersion-x86_64.msi"
 $customRendezvousServer = '${escapedServerHost}'
+$customApiServer = '${escapedServerHost}'
 $serverConfig = '${escapedServerConfig}'
 $customServerKey = '${escapedPublicKey}'
 
@@ -450,28 +451,35 @@ function Get-SysproUpdates {
     return $resultadosUpdates
 }
 
-function Invoke-InitialHeartbeat {
+function Invoke-InitialSync {
     param(
         [string]$NormalizedRustDeskId,
         [string]$ServiceStatus,
-        [string]$AgentToken
+        [string]$AgentToken,
+        [string]$CurrentVersion,
+        [string]$CurrentAlias
     )
 
-    $payloadHeartbeat = @{
+    $payloadSync = @{
         rustdeskId = $NormalizedRustDeskId
         machineName = $machineName
         agentVersion = $agentVersion
+        currentVersion = $CurrentVersion
+        currentAlias = $CurrentAlias
+        serverHost = $customRendezvousServer
+        apiHost = $customApiServer
+        publicKey = $customServerKey
         serviceStatus = $ServiceStatus
         sysproUpdates = Get-SysproUpdates
     }
 
     if ([string]::IsNullOrWhiteSpace($AgentToken)) {
-        throw 'agentToken nao disponivel para heartbeat inicial.'
+        throw 'agentToken nao disponivel para sync inicial.'
     }
 
-    $payloadHeartbeat.agentToken = $AgentToken
+    $payloadSync.agentToken = $AgentToken
 
-    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body ($payloadHeartbeat | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
+    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/rustdesk/sync" -ContentType 'application/json' -Body ($payloadSync | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
 }
 
 if (-not (Test-Path $agentDir)) {
@@ -531,6 +539,10 @@ try {
         Start-Process -FilePath $rustdeskExe -ArgumentList "--option custom-rendezvous-server $customRendezvousServer" -Wait -WindowStyle Hidden
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($customApiServer)) {
+        Start-Process -FilePath $rustdeskExe -ArgumentList "--option api-server $customApiServer" -Wait -WindowStyle Hidden
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($customServerKey)) {
         Start-Process -FilePath $rustdeskExe -ArgumentList "--option key $customServerKey" -Wait -WindowStyle Hidden
     } else {
@@ -584,52 +596,58 @@ $payloadRegister = @{
     machineName = $machineName
     agentVersion = $agentVersion
     environment = $environment
+    currentAlias = $aliasMaquina
+    currentVersion = (Get-RustDeskVersion -ExecutablePath $rustdeskExe)
+    serverHost = $customRendezvousServer
+    apiHost = $customApiServer
+    publicKey = $customServerKey
 }
 $agentToken = ''
 
-Write-Host 'Registrando agente no portal...' -ForegroundColor Cyan
+Write-Host 'Executando bootstrap do agente no portal...' -ForegroundColor Cyan
 
 try {
-    $registerResponse = Invoke-PortalJsonPost -Url "$portalBaseUrl/api/remote/agents/register" -Body $payloadRegister
+    $registerResponse = Invoke-PortalJsonPost -Url "$portalBaseUrl/api/remote/rustdesk/bootstrap" -Body $payloadRegister
     if ($registerResponse -and $registerResponse.data -and $registerResponse.data.agentToken) {
         $agentToken = [string]$registerResponse.data.agentToken
         Set-Content -Path $agentTokenPath -Value $agentToken -Force -Encoding UTF8
         Write-InstallLog -Message 'agentToken emitido e persistido localmente.'
     } else {
-        throw 'Resposta de register sem agentToken.'
+        throw 'Resposta de bootstrap sem agentToken.'
     }
-    Write-Host 'Registro concluido com sucesso.' -ForegroundColor Green
-    Write-InstallLog -Message "Registro concluido com sucesso. RustDesk ID: $normalizedRustDeskId"
+    Write-Host 'Bootstrap concluido com sucesso.' -ForegroundColor Green
+    Write-InstallLog -Message "Bootstrap concluido com sucesso. RustDesk ID: $normalizedRustDeskId"
 } catch {
     $apiError = Get-ApiErrorDetails -ErrorRecord $_
-    Write-Host "Falha ao registrar o agente: $($apiError.message)" -ForegroundColor Red
+    Write-Host "Falha ao executar bootstrap do agente: $($apiError.message)" -ForegroundColor Red
     if ($apiError.statusCode) {
-        Write-InstallError -Message "Falha no registro inicial. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
+        Write-InstallError -Message "Falha no bootstrap inicial. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
     } else {
-        Write-InstallError -Message "Falha no registro inicial: $($apiError.message)"
+        Write-InstallError -Message "Falha no bootstrap inicial: $($apiError.message)"
     }
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
 }
 
 # ==========================================
-# 7. HEARTBEAT INICIAL E CONTINUO
+# 7. SYNC INICIAL E CONTINUO
 # ==========================================
-Write-Host '[4/5] Enviando heartbeat inicial...' -ForegroundColor Cyan
+Write-Host '[4/5] Enviando sync inicial...' -ForegroundColor Cyan
 $serviceStatus = Get-ServiceHealthStatus
+$currentRustDeskVersion = Get-RustDeskVersion -ExecutablePath $rustdeskExe
 try {
-    Invoke-InitialHeartbeat -NormalizedRustDeskId $normalizedRustDeskId -ServiceStatus $serviceStatus -AgentToken $agentToken
-    Write-Host 'Heartbeat inicial enviado com sucesso.' -ForegroundColor Green
-    Write-InstallLog -Message 'Heartbeat inicial enviado com sucesso.'
+    Invoke-InitialSync -NormalizedRustDeskId $normalizedRustDeskId -ServiceStatus $serviceStatus -AgentToken $agentToken -CurrentVersion $currentRustDeskVersion -CurrentAlias $aliasMaquina
+    Write-Host 'Sync inicial enviado com sucesso.' -ForegroundColor Green
+    Write-InstallLog -Message 'Sync inicial enviado com sucesso.'
 } catch {
     $apiError = Get-ApiErrorDetails -ErrorRecord $_
-    Write-Host "Falha ao enviar heartbeat inicial: $($apiError.message)" -ForegroundColor Red
+    Write-Host "Falha ao enviar sync inicial: $($apiError.message)" -ForegroundColor Red
     if ($apiError.statusCode -eq 401 -and (($apiError.responseBody -like '*AGENT_TOKEN_INVALID*') -or ($apiError.responseBody -like '*AGENT_TOKEN_EXPIRED*'))) {
-        Write-InstallError -Message 'agentToken invalido ou expirado no heartbeat inicial. Execute o bootstrap novamente para emitir nova credencial.'
+        Write-InstallError -Message 'agentToken invalido ou expirado no sync inicial. Execute o bootstrap novamente para emitir nova credencial.'
     } elseif ($apiError.statusCode) {
-        Write-InstallError -Message "Falha no heartbeat inicial. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
+        Write-InstallError -Message "Falha no sync inicial. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
     } else {
-        Write-InstallError -Message "Falha no heartbeat inicial: $($apiError.message)"
+        Write-InstallError -Message "Falha no sync inicial: $($apiError.message)"
     }
 }
 
@@ -644,6 +662,11 @@ $agentToken = 'AGENT_TOKEN'
 $agentTokenPath = 'AGENT_TOKEN_PATH'
 $machineName = 'MACHINE_NAME'
 $agentVersion = 'AGENT_VERSION'
+$currentAlias = 'CURRENT_ALIAS'
+$currentVersion = 'CURRENT_VERSION'
+$serverHost = 'SERVER_HOST'
+$apiHost = 'API_HOST'
+$publicKey = 'PUBLIC_KEY'
 $rustDeskIdFallback = 'RUSTDESK_ID_FALLBACK'
 $heartbeatErrorLogPath = 'HEARTBEAT_ERROR_LOG_PATH'
 $listaServidores = ConvertFrom-Json 'SERVIDORES_JSON'
@@ -823,23 +846,28 @@ foreach ($srv in $listaServidores) {
     }
 }
 
-$payloadHeartbeat = @{
+$payloadSync = @{
     rustdeskId = $normalizedRustDeskId
     machineName = $machineName
     agentVersion = $agentVersion
+    currentAlias = $currentAlias
+    currentVersion = $currentVersion
+    serverHost = $serverHost
+    apiHost = $apiHost
+    publicKey = $publicKey
     serviceStatus = $serviceStatus
     sysproUpdates = $resultadosUpdates
 }
 
 if ([string]::IsNullOrWhiteSpace($resolvedAgentToken)) {
-    Write-HeartbeatError -Message 'agentToken indisponivel. Execute o bootstrap novamente para restabelecer o heartbeat.'
+    Write-HeartbeatError -Message 'agentToken indisponivel. Execute o bootstrap novamente para restabelecer o sync autenticado.'
     exit
 }
 
-$payloadHeartbeat.agentToken = $resolvedAgentToken
+$payloadSync.agentToken = $resolvedAgentToken
 
 try {
-    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/agents/heartbeat" -ContentType 'application/json' -Body ($payloadHeartbeat | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
+    Invoke-RestMethod -Method Post -Uri "$portalBaseUrl/api/remote/rustdesk/sync" -ContentType 'application/json' -Body ($payloadSync | ConvertTo-Json -Depth 6) -TimeoutSec 30 -ErrorAction Stop
 } catch {
     $apiError = Get-ApiErrorDetails -ErrorRecord $_
     if ($apiError.statusCode -eq 401 -and (($apiError.responseBody -like '*AGENT_TOKEN_INVALID*') -or ($apiError.responseBody -like '*AGENT_TOKEN_EXPIRED*'))) {
@@ -850,9 +878,9 @@ try {
         } catch {}
         Write-HeartbeatError -Message 'agentToken invalido ou expirado. Credencial local removida; execute o bootstrap novamente no host.'
     } elseif ($apiError.statusCode) {
-        Write-HeartbeatError -Message "Erro no heartbeat. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
+        Write-HeartbeatError -Message "Erro no sync autenticado. Status HTTP: $($apiError.statusCode). Resposta: $($apiError.responseBody)"
     } else {
-        Write-HeartbeatError -Message "Erro no heartbeat: $($apiError.message)"
+        Write-HeartbeatError -Message "Erro no sync autenticado: $($apiError.message)"
     }
 }
 '@
@@ -862,6 +890,11 @@ try {
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_TOKEN_PATH', "$agentTokenPath")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('MACHINE_NAME', "$machineName")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('AGENT_VERSION', "$agentVersion")
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('CURRENT_ALIAS', "$aliasMaquina")
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('CURRENT_VERSION', "$currentRustDeskVersion")
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVER_HOST', "$customRendezvousServer")
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('API_HOST', "$customApiServer")
+    $heartbeatScriptContent = $heartbeatScriptContent.Replace('PUBLIC_KEY', "$customServerKey")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('RUSTDESK_ID_FALLBACK', "$normalizedRustDeskId")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('HEARTBEAT_ERROR_LOG_PATH', "$heartbeatErrorLogPath")
     $heartbeatScriptContent = $heartbeatScriptContent.Replace('SERVIDORES_JSON', ($servidoresJson -replace "'", "''"))

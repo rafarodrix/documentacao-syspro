@@ -57,22 +57,50 @@ export async function POST(
   }
 
   const rotatedAt = new Date();
-  const host = await prisma.remoteHost.update({
-    where: { id },
-    data: {
-      agentTokenHash: null,
-      agentTokenIssuedAt: null,
-      agentTokenLastUsedAt: null,
-      lastHeartbeatErrorAt: rotatedAt,
-      lastHeartbeatErrorMessage: "agentToken rotacionado pelo portal. Execute o bootstrap novamente para emitir nova credencial do agente.",
-    },
-    select: {
-      id: true,
-      name: true,
-      agentTokenHash: true,
-      lastHeartbeatErrorAt: true,
-      lastHeartbeatErrorMessage: true,
-    },
+  const host = await prisma.$transaction(async (tx) => {
+    const updatedHost = await tx.remoteHost.update({
+      where: { id },
+      data: {
+        agentTokenHash: null,
+        agentTokenIssuedAt: null,
+        agentTokenLastUsedAt: null,
+        lastHeartbeatErrorAt: rotatedAt,
+        lastHeartbeatErrorMessage: "agentToken rotacionado pelo portal. Execute o bootstrap novamente para emitir nova credencial do agente.",
+      },
+      select: {
+        id: true,
+        name: true,
+        agentTokenHash: true,
+        lastHeartbeatErrorAt: true,
+        lastHeartbeatErrorMessage: true,
+      },
+    });
+
+    const existingPending = await tx.remoteAgentCommand.findFirst({
+      where: {
+        hostId: id,
+        type: "ROTATE_TOKEN_REQUIRED",
+        status: "PENDING",
+      },
+      select: { id: true },
+    });
+
+    if (!existingPending) {
+      await tx.remoteAgentCommand.create({
+        data: {
+          hostId: id,
+          type: "ROTATE_TOKEN_REQUIRED",
+          status: "PENDING",
+          reason: "O portal invalidou a credencial atual. Execute novo bootstrap autenticado neste host.",
+          payload: {
+            source: "portal",
+            rotatedAt: rotatedAt.toISOString(),
+          },
+        },
+      });
+    }
+
+    return updatedHost;
   });
 
   return NextResponse.json({
@@ -111,22 +139,51 @@ export async function DELETE(
     );
   }
 
-  const host = await prisma.remoteHost.update({
-    where: { id },
-    data: {
-      agentTokenHash: null,
-      agentTokenIssuedAt: null,
-      agentTokenLastUsedAt: null,
-      lastHeartbeatErrorAt: new Date(),
-      lastHeartbeatErrorMessage: "agentToken revogado manualmente pelo portal. Executar bootstrap novamente no host.",
-    },
-    select: {
-      id: true,
-      name: true,
-      agentTokenHash: true,
-      lastHeartbeatErrorAt: true,
-      lastHeartbeatErrorMessage: true,
-    },
+  const revokedAt = new Date();
+  const host = await prisma.$transaction(async (tx) => {
+    const updatedHost = await tx.remoteHost.update({
+      where: { id },
+      data: {
+        agentTokenHash: null,
+        agentTokenIssuedAt: null,
+        agentTokenLastUsedAt: null,
+        lastHeartbeatErrorAt: revokedAt,
+        lastHeartbeatErrorMessage: "agentToken revogado manualmente pelo portal. Executar bootstrap novamente no host.",
+      },
+      select: {
+        id: true,
+        name: true,
+        agentTokenHash: true,
+        lastHeartbeatErrorAt: true,
+        lastHeartbeatErrorMessage: true,
+      },
+    });
+
+    const existingPending = await tx.remoteAgentCommand.findFirst({
+      where: {
+        hostId: id,
+        type: "ROTATE_TOKEN_REQUIRED",
+        status: "PENDING",
+      },
+      select: { id: true },
+    });
+
+    if (!existingPending) {
+      await tx.remoteAgentCommand.create({
+        data: {
+          hostId: id,
+          type: "ROTATE_TOKEN_REQUIRED",
+          status: "PENDING",
+          reason: "O portal revogou a credencial atual. Execute novo bootstrap autenticado neste host.",
+          payload: {
+            source: "portal",
+            revokedAt: revokedAt.toISOString(),
+          },
+        },
+      });
+    }
+
+    return updatedHost;
   });
 
   return NextResponse.json({

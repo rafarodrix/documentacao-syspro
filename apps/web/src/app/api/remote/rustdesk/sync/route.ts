@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { createRequestLogger } from "@/lib/observability/logger";
@@ -7,6 +8,7 @@ import { getRemoteAgentTokenExpiresAt, isRemoteAgentTokenExpired } from "@/featu
 import {
   buildRustDeskConfigProfile,
   hashAgentToken,
+  hashRustDeskPublicKey,
   normalizeComparableValue,
   normalizeRustdeskId,
   resolveRustDeskAlias,
@@ -18,6 +20,22 @@ import {
 } from "@/features/remote/application/agent-payload";
 
 export const dynamic = "force-dynamic";
+
+const COMMAND_TYPE_MAP = {
+  reapply_alias: "REAPPLY_ALIAS",
+  reapply_config: "REAPPLY_CONFIG",
+  upgrade_client: "UPGRADE_CLIENT",
+  rotate_token_required: "ROTATE_TOKEN_REQUIRED",
+} as const;
+
+const COMMAND_RESPONSE_MAP = {
+  REAPPLY_ALIAS: "reapply_alias",
+  REAPPLY_CONFIG: "reapply_config",
+  UPGRADE_CLIENT: "upgrade_client",
+  ROTATE_TOKEN_REQUIRED: "rotate_token_required",
+} as const;
+
+type RustDeskActionName = keyof typeof COMMAND_TYPE_MAP;
 
 function getRequestIp(request: Request) {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -152,13 +170,14 @@ export async function POST(request: Request) {
     apiHostMatch: !reported.apiHost || reported.apiHost === expected.apiHost,
     publicKeyMatch: !reported.publicKey || reported.publicKey === expected.publicKey,
   };
+  const reportedPublicKeyHash = body.publicKey?.trim() ? hashRustDeskPublicKey(body.publicKey) : null;
 
-  const actions: Array<"reapply_alias" | "reapply_config" | "upgrade_client" | "rotate_token_required"> = [];
-  if (!compliance.aliasMatch) actions.push("reapply_alias");
+  const desiredActions: RustDeskActionName[] = [];
+  if (!compliance.aliasMatch) desiredActions.push("reapply_alias");
   if (!compliance.serverHostMatch || !compliance.apiHostMatch || !compliance.publicKeyMatch) {
-    actions.push("reapply_config");
+    desiredActions.push("reapply_config");
   }
-  if (!compliance.versionMatch) actions.push("upgrade_client");
+  if (!compliance.versionMatch) desiredActions.push("upgrade_client");
 
   const updatedHost = await prisma.$transaction(async (tx) => {
     const saved = await tx.remoteHost.update({
@@ -174,6 +193,12 @@ export async function POST(request: Request) {
         lastKnownIp: ip || host.lastKnownIp,
         agentTokenLastUsedAt: heartbeatAt,
         serviceStatus: body.serviceStatus?.trim() || host.serviceStatus,
+        lastKnownRustDeskAlias: body.currentAlias?.trim() || host.lastKnownRustDeskAlias,
+        lastKnownRustDeskVersion: body.currentVersion?.trim() || host.lastKnownRustDeskVersion,
+        lastKnownRustDeskServerHost: body.serverHost?.trim() || host.lastKnownRustDeskServerHost,
+        lastKnownRustDeskApiHost: body.apiHost?.trim() || host.lastKnownRustDeskApiHost,
+        lastKnownRustDeskPublicKeyHash: reportedPublicKeyHash ?? host.lastKnownRustDeskPublicKeyHash,
+        lastRustDeskConfigSyncAt: heartbeatAt,
         status: "ACTIVE",
       },
       select: {
@@ -184,6 +209,12 @@ export async function POST(request: Request) {
         lastHeartbeatSuccessAt: true,
         agentTokenIssuedAt: true,
         agentTokenLastUsedAt: true,
+        lastKnownRustDeskAlias: true,
+        lastKnownRustDeskVersion: true,
+        lastKnownRustDeskServerHost: true,
+        lastKnownRustDeskApiHost: true,
+        lastKnownRustDeskPublicKeyHash: true,
+        lastRustDeskConfigSyncAt: true,
       },
     });
 
@@ -195,12 +226,89 @@ export async function POST(request: Request) {
       sysproUpdates,
     });
 
-    return saved;
+    const existingCommands = await tx.remoteAgentCommand.findMany({
+      where: {
+        hostId: host.id,
+        status: "PENDING",
+      },
+    });
+    const desiredTypes = new Set(desiredActions.map((action) => COMMAND_TYPE_MAP[action]));
+
+    for (const command of existingCommands) {
+      if (!desiredTypes.has(command.type as (typeof COMMAND_TYPE_MAP)[RustDeskActionName])) {
+        await tx.remoteAgentCommand.update({
+          where: { id: command.id },
+          data: {
+            status: "CANCELLED",
+            reason: "Comando cancelado porque a divergencia deixou de existir no ultimo sync.",
+          },
+        });
+      }
+    }
+
+    const existingPendingTypes = new Set(existingCommands.map((command) => command.type));
+    for (const action of desiredActions) {
+      const type = COMMAND_TYPE_MAP[action];
+      if (existingPendingTypes.has(type)) continue;
+
+      const payload =
+        action === "reapply_alias"
+          ? {
+              expectedAlias: alias,
+              reportedAlias: body.currentAlias?.trim() || null,
+            }
+          : action === "reapply_config"
+            ? {
+                expectedServerHost: configProfile.serverHost,
+                expectedApiHost: configProfile.apiHost,
+                expectedPublicKeyHash: configProfile.publicKeyHash,
+                reportedServerHost: body.serverHost?.trim() || null,
+                reportedApiHost: body.apiHost?.trim() || null,
+                reportedPublicKeyHash,
+              }
+            : action === "upgrade_client"
+              ? {
+                  targetVersion: configProfile.targetVersion,
+                  reportedVersion: body.currentVersion?.trim() || null,
+                }
+              : Prisma.JsonNull;
+
+      await tx.remoteAgentCommand.create({
+        data: {
+          hostId: host.id,
+          type,
+          status: "PENDING",
+          reason:
+            action === "reapply_alias"
+              ? "Alias reportado pelo cliente diverge do alias esperado pelo portal."
+              : action === "reapply_config"
+                ? "Configuracao do cliente diverge do servidor, API ou key publica esperados."
+                : action === "upgrade_client"
+                  ? "Versao reportada do cliente diverge da versao alvo configurada no portal."
+                  : "Acao remota pendente para este host.",
+          payload,
+        },
+      });
+    }
+
+    const pendingCommands = await tx.remoteAgentCommand.findMany({
+      where: {
+        hostId: host.id,
+        status: "PENDING",
+      },
+      orderBy: [{ createdAt: "asc" }],
+      take: 20,
+    });
+
+    return {
+      host: saved,
+      pendingCommands,
+    };
   });
 
   logger.info("remote.rustdesk.sync.succeeded", {
     hostId: host.id,
-    actionCount: actions.length,
+    actionCount: updatedHost.pendingCommands.length,
   });
 
   return NextResponse.json(
@@ -209,13 +317,13 @@ export async function POST(request: Request) {
       data: {
         hostId: host.id,
         alias,
-        rustdeskId: updatedHost.agentExternalId,
-        machineName: updatedHost.machineName,
-        currentAgentVersion: updatedHost.agentVersion,
-        lastHeartbeatSuccessAt: updatedHost.lastHeartbeatSuccessAt?.toISOString() ?? null,
-        agentTokenIssuedAt: updatedHost.agentTokenIssuedAt?.toISOString() ?? null,
-        agentTokenLastUsedAt: updatedHost.agentTokenLastUsedAt?.toISOString() ?? null,
-        agentTokenExpiresAt: getRemoteAgentTokenExpiresAt(updatedHost.agentTokenIssuedAt)?.toISOString() ?? null,
+        rustdeskId: updatedHost.host.agentExternalId,
+        machineName: updatedHost.host.machineName,
+        currentAgentVersion: updatedHost.host.agentVersion,
+        lastHeartbeatSuccessAt: updatedHost.host.lastHeartbeatSuccessAt?.toISOString() ?? null,
+        agentTokenIssuedAt: updatedHost.host.agentTokenIssuedAt?.toISOString() ?? null,
+        agentTokenLastUsedAt: updatedHost.host.agentTokenLastUsedAt?.toISOString() ?? null,
+        agentTokenExpiresAt: getRemoteAgentTokenExpiresAt(updatedHost.host.agentTokenIssuedAt)?.toISOString() ?? null,
         expectedConfig: {
           serverHost: configProfile.serverHost,
           apiHost: configProfile.apiHost,
@@ -224,11 +332,24 @@ export async function POST(request: Request) {
           serverConfig: configProfile.serverConfig,
           targetVersion: configProfile.targetVersion,
         },
+        reportedConfig: {
+          alias: updatedHost.host.lastKnownRustDeskAlias,
+          version: updatedHost.host.lastKnownRustDeskVersion,
+          serverHost: updatedHost.host.lastKnownRustDeskServerHost,
+          apiHost: updatedHost.host.lastKnownRustDeskApiHost,
+          publicKeyHash: updatedHost.host.lastKnownRustDeskPublicKeyHash,
+          lastSyncAt: updatedHost.host.lastRustDeskConfigSyncAt?.toISOString() ?? null,
+        },
         compliance,
-        actions,
+        actions: updatedHost.pendingCommands.map((command) => COMMAND_RESPONSE_MAP[command.type]),
+        commandQueue: updatedHost.pendingCommands.map((command) => ({
+          id: command.id,
+          type: command.type,
+          reason: command.reason,
+          createdAt: command.createdAt.toISOString(),
+        })),
       },
     },
     { headers: responseHeaders }
   );
 }
-

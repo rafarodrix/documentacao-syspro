@@ -93,6 +93,16 @@ const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
   RADMIN_VPN: "Radmin VPN",
 };
 
+const AGENT_COMMAND_LABEL: Record<
+  "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED",
+  string
+> = {
+  REAPPLY_ALIAS: "Reaplicar alias",
+  REAPPLY_CONFIG: "Reaplicar configuracao",
+  UPGRADE_CLIENT: "Atualizar cliente",
+  ROTATE_TOKEN_REQUIRED: "Rotacao de token obrigatoria",
+};
+
 function getAgentTokenMeta(value: string | null) {
   const normalized = value?.toLowerCase() ?? "";
 
@@ -192,6 +202,17 @@ function getOperationalMeta(input: { rustdeskId: string | null; lastHeartbeatAt:
   };
 }
 
+function resolveExpectedRustDeskAlias(input: {
+  hostName: string;
+  machineName: string | null;
+  companyName: string | null;
+}) {
+  const machineName = input.machineName?.trim();
+  if (machineName) return machineName;
+  if (input.companyName?.trim()) return `${input.companyName.trim()} | ${input.hostName}`;
+  return input.hostName;
+}
+
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const { host } = details;
   const [machineName, setMachineName] = useState(host.machineName ?? "");
@@ -228,6 +249,77 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       }),
     [agentTokenMeta.needsBootstrap, host.lastHeartbeatAt, host.rustdeskId]
   );
+  const rustDeskCompliance = useMemo(() => {
+    const expectedAlias = resolveExpectedRustDeskAlias({
+      hostName: host.name,
+      machineName: host.machineName,
+      companyName: host.companyName,
+    });
+    const expectedServerHost = details.moduleSettings.rustDeskServerHost.trim() || "Sem configuracao";
+    const expectedApiHost = details.moduleSettings.rustDeskServerHost.trim() || "Sem configuracao";
+    const expectedVersion = details.moduleSettings.rustDeskVersion.trim() || "Sem configuracao";
+    const expectedPublicKeyHash = details.moduleSettings.rustDeskPublicKeyHash;
+
+    const reportedAlias = host.agent.lastKnownRustDeskAlias;
+    const reportedVersion = host.agent.lastKnownRustDeskVersion;
+    const reportedServerHost = host.agent.lastKnownRustDeskServerHost;
+    const reportedApiHost = host.agent.lastKnownRustDeskApiHost;
+    const reportedPublicKeyHash = host.agent.lastKnownRustDeskPublicKeyHash;
+
+    return {
+      lastSyncAt: host.agent.lastRustDeskConfigSyncAt,
+      items: [
+        {
+          id: "alias",
+          label: "Alias",
+          expected: expectedAlias,
+          reported: reportedAlias,
+          match: !!reportedAlias && reportedAlias.trim().toLowerCase() === expectedAlias.trim().toLowerCase(),
+        },
+        {
+          id: "version",
+          label: "Versao",
+          expected: expectedVersion,
+          reported: reportedVersion,
+          match: !!reportedVersion && reportedVersion.trim().toLowerCase() === expectedVersion.trim().toLowerCase(),
+        },
+        {
+          id: "serverHost",
+          label: "Servidor ID/Relay",
+          expected: expectedServerHost,
+          reported: reportedServerHost,
+          match: !!reportedServerHost && reportedServerHost.trim().toLowerCase() === expectedServerHost.trim().toLowerCase(),
+        },
+        {
+          id: "apiHost",
+          label: "Servidor da API",
+          expected: expectedApiHost,
+          reported: reportedApiHost,
+          match: !!reportedApiHost && reportedApiHost.trim().toLowerCase() === expectedApiHost.trim().toLowerCase(),
+        },
+        {
+          id: "publicKey",
+          label: "Key publica",
+          expected: expectedPublicKeyHash ? "Hash oficial carregado" : "Sem configuracao",
+          reported: reportedPublicKeyHash ? "Hash reportado pelo agente" : null,
+          match: !!reportedPublicKeyHash && !!expectedPublicKeyHash && reportedPublicKeyHash === expectedPublicKeyHash,
+        },
+      ],
+    };
+  }, [
+    details.moduleSettings.rustDeskPublicKeyHash,
+    details.moduleSettings.rustDeskServerHost,
+    details.moduleSettings.rustDeskVersion,
+    host.agent.lastKnownRustDeskAlias,
+    host.agent.lastKnownRustDeskApiHost,
+    host.agent.lastKnownRustDeskPublicKeyHash,
+    host.agent.lastKnownRustDeskServerHost,
+    host.agent.lastKnownRustDeskVersion,
+    host.agent.lastRustDeskConfigSyncAt,
+    host.companyName,
+    host.machineName,
+    host.name,
+  ]);
   const installations = useMemo(() => {
     const seen = new Set<string>();
     const items = details.sysproUpdates
@@ -954,6 +1046,84 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Expiracao prevista</p>
                   <p className="mt-1 text-sm text-foreground">{formatDateOnly(agentTokenExpiresAt)}</p>
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Compliance do cliente RustDesk</p>
+                    <p className="text-sm text-muted-foreground">
+                      O portal compara o que espera do cliente com o que o agente reportou no ultimo `sync`.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
+                    Ultima sync: {formatDateTime(rustDeskCompliance.lastSyncAt)}
+                  </Badge>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  {rustDeskCompliance.items.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-border/50 bg-background/60 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                        <Badge
+                          variant="outline"
+                          className={
+                            item.match
+                              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                              : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                          }
+                        >
+                          {item.match ? "Conforme" : item.reported ? "Divergente" : "Sem leitura"}
+                        </Badge>
+                      </div>
+                      <p className="mt-3 text-[11px] uppercase tracking-wide text-muted-foreground">Esperado</p>
+                      <p className="mt-1 break-all text-sm text-foreground">{item.expected}</p>
+                      <p className="mt-3 text-[11px] uppercase tracking-wide text-muted-foreground">Reportado</p>
+                      <p className="mt-1 break-all text-sm text-foreground">{item.reported ?? "Sem leitura do agente"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Fila de acoes do agente</p>
+                    <p className="text-sm text-muted-foreground">
+                      Comandos pendentes calculados a partir da divergencia entre o portal e o cliente RustDesk.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
+                    {details.agentCommands.length} item(ns)
+                  </Badge>
+                </div>
+
+                {details.agentCommands.length ? (
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {details.agentCommands.map((command) => (
+                      <div key={command.id} className="rounded-xl border border-border/50 bg-background/60 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-foreground">{AGENT_COMMAND_LABEL[command.type]}</p>
+                          <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                            {command.status}
+                          </Badge>
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {command.reason ?? "Sem justificativa adicional registrada."}
+                        </p>
+                        <p className="mt-3 text-xs text-muted-foreground">
+                          Criado em {formatDateTime(command.createdAt)}
+                          {command.deliveredAt ? ` | entregue em ${formatDateTime(command.deliveredAt)}` : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+                    Nenhuma acao pendente. O cliente reportado esta aderente ao que o portal espera neste momento.
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">

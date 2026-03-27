@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings";
+import { hashRustDeskPublicKey } from "@/features/remote/application/rustdesk-sync";
 import { resolveRemoteOperationalStatus } from "@/features/remote/domain/operational-status";
 import type {
   RemoteConfiguredHostItem,
@@ -95,6 +96,12 @@ function mapDirectoryItem(host: {
   lastRegisterSource?: string | null;
   agentTokenIssuedAt?: Date | null;
   agentTokenLastUsedAt?: Date | null;
+  lastKnownRustDeskAlias?: string | null;
+  lastKnownRustDeskVersion?: string | null;
+  lastKnownRustDeskServerHost?: string | null;
+  lastKnownRustDeskApiHost?: string | null;
+  lastKnownRustDeskPublicKeyHash?: string | null;
+  lastRustDeskConfigSyncAt?: Date | null;
   company: { nomeFantasia: string | null; razaoSocial: string };
   sessions: Array<{ createdAt: Date; status: string; ticketNumber: string | null }>;
 }): RemoteConfiguredHostItem {
@@ -173,6 +180,12 @@ function mapDirectoryItem(host: {
       lastRegisterSource: host.lastRegisterSource ?? null,
       agentTokenIssuedAt: host.agentTokenIssuedAt?.toISOString() ?? null,
       agentTokenLastUsedAt: host.agentTokenLastUsedAt?.toISOString() ?? null,
+      lastKnownRustDeskAlias: host.lastKnownRustDeskAlias ?? null,
+      lastKnownRustDeskVersion: host.lastKnownRustDeskVersion ?? null,
+      lastKnownRustDeskServerHost: host.lastKnownRustDeskServerHost ?? null,
+      lastKnownRustDeskApiHost: host.lastKnownRustDeskApiHost ?? null,
+      lastKnownRustDeskPublicKeyHash: host.lastKnownRustDeskPublicKeyHash ?? null,
+      lastRustDeskConfigSyncAt: host.lastRustDeskConfigSyncAt?.toISOString() ?? null,
       lifecycleStatus,
       installStages,
       installerPath: `/api/remote/hosts/${host.id}/installer`,
@@ -599,6 +612,9 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       rustDeskServerHost: moduleSettings.rustDeskServerHost,
       rustDeskServerConfig: moduleSettings.rustDeskServerConfig,
       rustDeskPublicKey: moduleSettings.rustDeskPublicKey,
+      rustDeskPublicKeyHash: moduleSettings.rustDeskPublicKey.trim()
+        ? hashRustDeskPublicKey(moduleSettings.rustDeskPublicKey)
+        : null,
       rustDeskVersion: moduleSettings.rustDeskVersion,
       defaultPassword: moduleSettings.defaultPassword,
     },
@@ -726,6 +742,16 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     WHERE u."hostId" = ${host.id}
     ORDER BY u."companyLabel" ASC, u."path" ASC
   `;
+  const agentCommands = await prisma.remoteAgentCommand.findMany({
+    where: {
+      hostId: host.id,
+      status: {
+        in: ["PENDING", "DELIVERED", "ACKNOWLEDGED"],
+      },
+    },
+    orderBy: [{ createdAt: "desc" }],
+    take: 12,
+  });
 
   const hostServiceStatus = await prisma.$queryRaw<Array<{ serviceStatus: string | null }>>`
     SELECT "serviceStatus"
@@ -775,6 +801,9 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       rustDeskServerHost: moduleSettings.rustDeskServerHost,
       rustDeskServerConfig: moduleSettings.rustDeskServerConfig,
       rustDeskPublicKey: moduleSettings.rustDeskPublicKey,
+      rustDeskPublicKeyHash: moduleSettings.rustDeskPublicKey.trim()
+        ? hashRustDeskPublicKey(moduleSettings.rustDeskPublicKey)
+        : null,
       rustDeskVersion: moduleSettings.rustDeskVersion,
       defaultPassword: moduleSettings.defaultPassword,
     },
@@ -836,6 +865,20 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       createdAt: session.createdAt.toISOString(),
       startedAt: session.startedAt?.toISOString() ?? null,
       endedAt: session.endedAt?.toISOString() ?? null,
+    })),
+    agentCommands: agentCommands.map((command) => ({
+      id: command.id,
+      type: command.type,
+      status: command.status,
+      reason: command.reason ?? null,
+      payload:
+        command.payload && typeof command.payload === "object" && !Array.isArray(command.payload)
+          ? (command.payload as Record<string, unknown>)
+          : null,
+      createdAt: command.createdAt.toISOString(),
+      updatedAt: command.updatedAt.toISOString(),
+      deliveredAt: command.deliveredAt?.toISOString() ?? null,
+      executedAt: command.executedAt?.toISOString() ?? null,
     })),
     sysproUpdates: sysproUpdates.map((entry) => ({
       id: entry.id,
