@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Copy,
   ExternalLink,
+  Monitor,
   Plus,
   Search,
   Settings,
@@ -378,7 +379,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         ) : null}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          O fluxo agora e 100% via integracao RustDesk. Faça vinculacao das maquinas descobertas nesta tela e siga o bootstrap autenticado pelo agente.
+          O fluxo agora e 100% via integracao RustDesk. Faca a vinculacao das maquinas descobertas nesta tela e siga o bootstrap autenticado pelo agente.
         </p>
       </div>
 

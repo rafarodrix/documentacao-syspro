@@ -51,7 +51,7 @@ export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatform
               <p className="text-sm font-medium text-foreground">Tokens e segredos</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              `REMOTE_DISCOVERY_TOKEN`, chave publica do RustDesk e defaults do instalador devem ficar centralizados aqui.
+              `REMOTE_DISCOVERY_TOKEN`, chave publica do RustDesk e defaults do bootstrap devem ficar centralizados aqui.
             </p>
           </div>
           <div className="rounded-lg border border-border/50 bg-muted/20 p-4">

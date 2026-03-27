@@ -7,6 +7,7 @@ import {
   Copy,
   ExternalLink,
   Fingerprint,
+  HardDriveDownload,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -144,7 +145,7 @@ function getAgentTokenMeta(value: string | null) {
     return {
       label: "agentToken ausente",
       tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      description: "O heartbeat local nao encontrou a credencial do agente. Reexecute o instalador deste host.",
+      description: "O heartbeat local nao encontrou a credencial do agente. Reexecute o bootstrap autenticado neste host.",
       needsBootstrap: true,
     };
   }
@@ -398,7 +399,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     return {
       label: "Sem resposta recente",
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      description: "Ultimo contato muito antigo. Validar a instalacao do agente.",
+      description: "Ultimo contato muito antigo. Validar o onboarding e a conectividade do agente.",
     };
   }, [host.lastHeartbeatAt]);
 
@@ -1118,7 +1119,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         <TabsContent value="agente">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Fluxo de instalacao do agente</CardTitle>
+              <CardTitle className="text-lg">Fluxo operacional do agente</CardTitle>
               <CardDescription>Recorte operacional do FEAT-002 para nao depender de memoria do tecnico em campo.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1376,7 +1377,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <p>3. O bootstrap emite `agentToken` e o heartbeat continuo passa a preferir essa credencial.</p>
                   <p>4. Se rotacionar o `agentToken` ou se ele expirar, execute o bootstrap novamente neste host.</p>
                   <p>5. A descoberta e apenas etapa de triagem e nao reativa heartbeat autenticado em host ja vinculado.</p>
-                  <p>6. Se o heartbeat nao vier, valide conectividade, permissao do PowerShell e URL do portal.</p>
+                  <p>6. Se o heartbeat nao vier, valide conectividade, tarefa do agente e URL do portal.</p>
                   {isMobileClient ? <p>7. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
                 </div>
               </details>

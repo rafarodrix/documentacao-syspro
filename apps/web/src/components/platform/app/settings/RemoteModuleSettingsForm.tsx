@@ -373,7 +373,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           <div className="space-y-2">
             <Label htmlFor="rustDeskServerHost">Host do servidor</Label>
             <Input id="rustDeskServerHost" placeholder="acesso.trilinksoftware.com.br" {...form.register("rustDeskServerHost")} />
-            <p className="text-xs text-muted-foreground">Usado como `custom-rendezvous-server` nos scripts do agente.</p>
+            <p className="text-xs text-muted-foreground">Usado como `custom-rendezvous-server` no onboarding do agente.</p>
           </div>
 
           <div className="space-y-2">
@@ -390,7 +390,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               placeholder="Cole aqui a string exportada do RustDesk self-hosted"
               {...form.register("rustDeskServerConfig")}
             />
-            <p className="text-xs text-muted-foreground">Essa string e aplicada no instalador para alinhar o cliente ao seu servidor proprio.</p>
+            <p className="text-xs text-muted-foreground">Essa string e aplicada no cliente para alinhar o acesso ao seu servidor proprio.</p>
           </div>
         </CardContent>
       </Card>
@@ -440,7 +440,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               <Link2 className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg">Perfil para instalador customizado</CardTitle>
+              <CardTitle className="text-lg">Perfil para cliente customizado</CardTitle>
               <CardDescription>
                 Dados oficiais para cliente RustDesk customizado, com servidor proprio e integracao direta com `bootstrap/sync/ack`.
               </CardDescription>
