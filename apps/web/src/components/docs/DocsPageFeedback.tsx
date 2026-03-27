@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { DocsSurface } from '@/components/docs/DocsSurface';
 
 type Vote = 'yes' | 'no';
 type FeedbackReason = 'desatualizado' | 'incompleto' | 'dificil' | 'nao-encontrei';
@@ -8,8 +9,8 @@ type FeedbackReason = 'desatualizado' | 'incompleto' | 'dificil' | 'nao-encontre
 const NO_REASONS: Array<{ value: FeedbackReason; label: string }> = [
   { value: 'desatualizado', label: 'Desatualizado' },
   { value: 'incompleto', label: 'Incompleto' },
-  { value: 'dificil', label: 'Difícil de entender' },
-  { value: 'nao-encontrei', label: 'Não encontrei o que precisava' },
+  { value: 'dificil', label: 'Dificil de entender' },
+  { value: 'nao-encontrei', label: 'Nao encontrei o que precisava' },
 ];
 
 export function DocsPageFeedback({
@@ -78,17 +79,17 @@ export function DocsPageFeedback({
   }
 
   return (
-    <div className="mt-10 rounded-lg border border-border/70 bg-card/40 p-4">
-      <p className="text-sm font-medium">Esse conteúdo ajudou?</p>
+    <DocsSurface className="mt-10 p-4 md:p-5" hoverable>
+      <p className="text-sm font-medium">Esse conteudo ajudou?</p>
       <div className="mt-3 flex items-center gap-2">
         <button
           type="button"
           onClick={() => submit('yes')}
           disabled={sending}
-          className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+          className={`rounded-md border px-3 py-1.5 text-sm transition-all ${
             vote === 'yes'
-              ? 'border-green-500/60 bg-green-500/15 text-green-600'
-              : 'border-border/70 hover:bg-accent'
+              ? 'border-primary/60 bg-primary/15 text-foreground'
+              : 'border-border/70 bg-background/80 hover:border-primary/25 hover:bg-accent'
           }`}
         >
           Sim
@@ -97,13 +98,13 @@ export function DocsPageFeedback({
           type="button"
           onClick={() => setAwaitingReason(true)}
           disabled={sending}
-          className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+          className={`rounded-md border px-3 py-1.5 text-sm transition-all ${
             vote === 'no'
               ? 'border-red-500/60 bg-red-500/15 text-red-600'
-              : 'border-border/70 hover:bg-accent'
+              : 'border-border/70 bg-background/80 hover:border-primary/25 hover:bg-accent'
           }`}
         >
-          Não
+          Nao
         </button>
       </div>
 
@@ -117,10 +118,10 @@ export function DocsPageFeedback({
                 type="button"
                 disabled={sending}
                 onClick={() => submit('no', item.value)}
-                className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
+                className={`rounded-md border px-2.5 py-1.5 text-xs transition-all ${
                   reason === item.value
                     ? 'border-primary/60 bg-primary/15 text-foreground'
-                    : 'border-border/70 hover:bg-accent'
+                    : 'border-border/70 bg-background/80 hover:border-primary/25 hover:bg-accent'
                 }`}
               >
                 {item.label}
@@ -133,6 +134,7 @@ export function DocsPageFeedback({
       {vote ? (
         <p className="mt-2 text-xs text-muted-foreground">Obrigado pelo feedback. Vamos usar isso para priorizar melhorias.</p>
       ) : null}
-    </div>
+    </DocsSurface>
   );
 }
+

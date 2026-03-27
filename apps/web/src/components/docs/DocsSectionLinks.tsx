@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, FolderOpen } from 'lucide-react';
 import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
+import { DocsSurface } from '@/components/docs/DocsSurface';
 
 type SectionLinkItem = {
   href: string;
@@ -22,7 +23,7 @@ export function DocsSectionLinks({
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-8 rounded-lg border border-border/70 bg-card/40 p-4">
+    <DocsSurface className="mt-8 p-4 md:p-5" hoverable>
       <div className="mb-3 flex items-start gap-2">
         <FolderOpen className="mt-0.5 h-4 w-4 text-muted-foreground" />
         <div>
@@ -36,7 +37,7 @@ export function DocsSectionLinks({
           <Link
             key={item.href}
             href={item.href}
-            className="group rounded-md border border-border/70 bg-background px-3 py-2 transition-all duration-150 hover:border-primary/30 hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            className="group rounded-md border border-border/70 bg-background/80 px-3 py-2 transition-all duration-150 hover:border-primary/30 hover:bg-accent/70 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -53,6 +54,6 @@ export function DocsSectionLinks({
           </Link>
         ))}
       </div>
-    </section>
+    </DocsSurface>
   );
 }

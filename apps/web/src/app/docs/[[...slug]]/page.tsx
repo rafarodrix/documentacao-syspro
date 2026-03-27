@@ -24,6 +24,7 @@ import { DocsReadingTime } from '@/components/docs/DocsReadingTime';
 import { DocsPrevNextPreview } from '@/components/docs/DocsPrevNextPreview';
 import { DocsKeyboardShortcuts } from '@/components/docs/DocsKeyboardShortcuts';
 import { DocsTocScrollSpy } from '@/components/docs/DocsTocScrollSpy';
+import { DocsSurface } from '@/components/docs/DocsSurface';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 
 function estimateReadingTimeMinutes(content: string): number {
@@ -188,26 +189,36 @@ export default async function Page(props: {
       tableOfContent={{ style: 'clerk' }}
     >
       <DocsTitle>{page.data.title}</DocsTitle>
-      <div className="mt-2">
-        <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
+      <div className="mt-3">
+        <DocsSurface className="p-4 md:p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
+            <DocsReadingTime minutes={readingTimeMinutes} />
+          </div>
+          <div className="mt-3">
+            <DocsDescription>{page.data.description}</DocsDescription>
+          </div>
+          <div className="mt-3">
+            <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
+          </div>
+        </DocsSurface>
       </div>
-      <DocsReadingTime minutes={readingTimeMinutes} />
-      <DocsDescription>{page.data.description}</DocsDescription>
-      <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
       <DocsBody>
-        <MDXContent
-          components={{
-            ...defaultMdxComponents,
-            a: createRelativeLink(source, page),
-            Tip,
-            Note,
-            Warning,
-            Danger,
-            CodeTabs,
-            CodeTab,
-            PlaygroundInline,
-          }}
-        />
+        <DocsSurface className="p-5 md:p-7">
+          <MDXContent
+            components={{
+              ...defaultMdxComponents,
+              a: createRelativeLink(source, page),
+              Tip,
+              Note,
+              Warning,
+              Danger,
+              CodeTabs,
+              CodeTab,
+              PlaygroundInline,
+            }}
+          />
+        </DocsSurface>
         {showCategory ? <DocsSectionLinks items={sectionLinks} /> : null}
         <DocsNextSteps items={nextSteps} />
         <DocsPrevNextPreview

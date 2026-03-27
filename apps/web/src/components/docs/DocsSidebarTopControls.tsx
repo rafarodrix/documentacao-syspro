@@ -23,15 +23,15 @@ export function DocsSidebarTopControls({
 
   return (
     <div className="hidden w-full items-center gap-2 md:flex">
-      <LargeSearchToggle hideIfDisabled className="flex-1" />
+      <LargeSearchToggle hideIfDisabled className="flex-1 rounded-md border border-border/60 bg-background/70 shadow-sm backdrop-blur-sm" />
       {showAdminToggle ? (
         <button
           type="button"
           onClick={onToggleAdminLayout}
-          className="inline-flex h-9 items-center rounded-md border border-border/60 px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-          title="Alternar entre visão Cliente e Suporte"
+          className="inline-flex h-9 items-center rounded-md border border-border/60 bg-background/70 px-2.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+          title="Alternar entre visao Cliente e Suporte"
         >
-          {adminLayoutMode === 'notebook' ? 'Visão Suporte' : 'Visão Cliente'}
+          {adminLayoutMode === 'notebook' ? 'Visao Suporte' : 'Visao Cliente'}
         </button>
       ) : null}
       <TooltipProvider delayDuration={120}>
@@ -42,8 +42,8 @@ export function DocsSidebarTopControls({
               title={actionLabel}
               className={cn(
                 'inline-flex h-9 w-9 items-center justify-center rounded-md border border-border/60',
-                'text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
-                collapsed && 'bg-primary/15 text-primary border-primary/40',
+                'bg-background/70 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-accent hover:text-accent-foreground',
+                collapsed && 'border-primary/40 bg-primary/15 text-primary shadow-md',
               )}
             >
               <PanelLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
@@ -55,3 +55,4 @@ export function DocsSidebarTopControls({
     </div>
   );
 }
+
