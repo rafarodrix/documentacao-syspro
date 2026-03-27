@@ -36,14 +36,14 @@ export function TicketSheet() {
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-                <Button className="h-10 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-gradient-to-r from-primary to-primary/90 gap-2">
+                <Button className="h-10 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-linear-to-r from-primary to-primary/90 gap-2">
                     <PlusCircle className="h-4 w-4" />
                     <span className="hidden sm:inline">Abrir Novo Chamado</span>
                     <span className="sm:hidden">Novo</span>
                 </Button>
             </SheetTrigger>
 
-            <SheetContent className="sm:max-w-[600px] w-full p-0 flex flex-col bg-background/95 backdrop-blur-xl border-l-border/50">
+            <SheetContent className="sm:max-w-150 w-full p-0 flex flex-col bg-background/95 backdrop-blur-xl border-l-border/50">
 
                 {/* HEADER */}
                 <div className="p-6 border-b border-border/40 bg-muted/10">
@@ -129,7 +129,7 @@ export function TicketSheet() {
                                         <FormItem>
                                             <FormLabel>Descricao</FormLabel>
                                             <FormControl>
-                                                <Textarea placeholder="Descreva o passo a passo..." className="min-h-[150px] resize-y bg-muted/30 focus:bg-background" {...field} />
+                                                <Textarea placeholder="Descreva o passo a passo..." className="min-h-37.5 resize-y bg-muted/30 focus:bg-background" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                             <FormDescription className="flex items-center gap-1 text-xs">
@@ -163,7 +163,7 @@ export function TicketSheet() {
                                                                 <FileText className="h-4 w-4" />
                                                             </div>
                                                             <div className="flex flex-col truncate">
-                                                                <span className="truncate max-w-[200px] font-medium">{file.name}</span>
+                                                                <span className="truncate max-w-50 font-medium">{file.name}</span>
                                                                 <span className="text-[10px] text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</span>
                                                             </div>
                                                         </div>
@@ -189,7 +189,7 @@ export function TicketSheet() {
                         </Button>
                         <div className="flex gap-3 w-full sm:w-auto">
                             <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending} className="flex-1 sm:flex-none">Cancelar</Button>
-                            <Button type="submit" form="ticket-form" disabled={isPending} className="flex-1 sm:flex-none shadow-md min-w-[140px]">
+                            <Button type="submit" form="ticket-form" disabled={isPending} className="flex-1 sm:flex-none shadow-md min-w-35">
                                 {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...</> : <><Send className="mr-2 h-4 w-4" /> Abrir Chamado</>}
                             </Button>
                         </div>

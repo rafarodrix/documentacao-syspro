@@ -328,17 +328,26 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     const seen = new Set<string>();
     const items = details.sysproUpdates
       .map((entry) => {
-        const companyName = entry.resolvedCompanyName ?? entry.companyLabel;
-        const key = `${companyName}::${entry.companyId ?? "unlinked"}`;
+        const key = `${entry.companyLabel}::${entry.path}`.toLowerCase();
         if (seen.has(key)) return null;
         seen.add(key);
         return {
           companyId: entry.companyId,
-          companyName,
-          sourceLabel: entry.companyLabel,
+          resolvedCompanyName: entry.resolvedCompanyName,
+          companyLabel: entry.companyLabel,
+          path: entry.path,
         };
       })
-      .filter((entry): entry is { companyId: string | null; companyName: string; sourceLabel: string } => !!entry);
+      .filter(
+        (
+          entry
+        ): entry is {
+          companyId: string | null;
+          resolvedCompanyName: string | null;
+          companyLabel: string;
+          path: string;
+        } => !!entry
+      );
 
     if (items.length) return items;
 
@@ -346,8 +355,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       ? [
           {
             companyId: host.companyId,
-            companyName: host.companyName,
-            sourceLabel: host.companyName,
+            resolvedCompanyName: host.companyName,
+            companyLabel: host.companyName,
+            path: DEFAULT_INSTALLATION_DIRECTORY,
           },
         ]
       : [];
@@ -649,8 +659,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             </div>
             {installations.length ? (
               <div className="grid gap-2 md:grid-cols-2">
-                {installations.map((installation, installationIndex) => (
-                  <div key={installation.id} className="rounded-lg border border-border/50 bg-muted/15 p-3">
+	                {installations.map((installation, installationIndex) => (
+	                  <div
+	                    key={`${installation.companyId ?? "unlinked"}::${installation.companyLabel}::${installation.path}::${installationIndex}`}
+	                    className="rounded-lg border border-border/50 bg-muted/15 p-3"
+	                  >
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Instalacao {installationIndex + 1}</p>
                     <p className="mt-1 text-sm font-medium text-foreground">
                       {installation.resolvedCompanyName ?? installation.companyLabel}

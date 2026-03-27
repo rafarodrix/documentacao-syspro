@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import type { Item } from 'fumadocs-core/page-tree';
 import { SidebarItem } from 'fumadocs-ui/components/layout/sidebar';
-import { CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type VisitedMap = Record<string, number>;
@@ -33,13 +32,13 @@ export function DocsSidebarItem({ item }: { item: Item }) {
       icon={item.icon}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'transition-colors',
+        'transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
         isVisited && !isActive && 'text-muted-foreground/80',
-        isActive && 'bg-primary/15 text-foreground border border-primary/30 font-semibold',
+        isActive && 'bg-primary/12 text-foreground border border-primary/25 font-semibold',
       )}
     >
-      <span className="flex items-center gap-2">
-        {isVisited && !isActive ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500/80" /> : null}
+      <span className="flex items-center gap-2.5">
+        {isVisited && !isActive ? <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" aria-hidden /> : null}
         <span>{item.name}</span>
       </span>
     </SidebarItem>

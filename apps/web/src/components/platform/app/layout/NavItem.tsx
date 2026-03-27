@@ -53,8 +53,6 @@ export function NavItem({ item, isActive, onClick, collapsed = false }: NavItemP
           >
             {item.badge}
           </Badge>
-        ) : !collapsed && isActive ? (
-          <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
         ) : null}
       </span>
     </Link>

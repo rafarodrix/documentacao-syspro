@@ -36,7 +36,7 @@ export function DocsSectionLinks({
           <Link
             key={item.href}
             href={item.href}
-            className="group rounded-md border border-border/70 bg-background px-3 py-2 transition-colors hover:bg-accent"
+            className="group rounded-md border border-border/70 bg-background px-3 py-2 transition-all duration-150 hover:border-primary/30 hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

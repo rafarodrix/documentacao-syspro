@@ -151,7 +151,7 @@ export default function DocumentosContainer() {
         </Button>
       </div>
 
-      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden min-h-[300px]">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden min-h-75">
         {isLoading ? (
           <div className="flex flex-col justify-center items-center h-64 text-muted-foreground gap-3">
             <Loader2 className="animate-spin h-8 w-8 text-primary/50" />
@@ -204,7 +204,7 @@ export default function DocumentosContainer() {
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
                                 {doc.grupoDocumento}
                               </span>
-                              <span className="text-xs text-muted-foreground truncate max-w-[280px]" title={grupoLabel}>
+                              <span className="text-xs text-muted-foreground truncate max-w-70" title={grupoLabel}>
                                 {grupoLabel || "Grupo não identificado"}
                               </span>
                             </div>

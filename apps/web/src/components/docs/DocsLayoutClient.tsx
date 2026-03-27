@@ -60,8 +60,8 @@ export function DocsLayoutClient({
           enabled: false,
         }}
         sidebar={{
-          defaultOpenLevel: 2,
-          collapsible: false,
+          defaultOpenLevel: 0,
+          collapsible: true,
           components: {
             Item: DocsSidebarItem,
           },
@@ -87,8 +87,8 @@ export function DocsLayoutClient({
       }}
       sidebar={{
         enabled: !isDocsHome,
-        defaultOpenLevel: 2,
-        collapsible: false,
+        defaultOpenLevel: 0,
+        collapsible: true,
         components: {
           Item: DocsSidebarItem,
         },

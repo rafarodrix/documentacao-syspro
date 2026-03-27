@@ -398,19 +398,19 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
             </Dialog>
 
             <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
-                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="absolute top-0 left-0 w-full h-0.5 bg-linear-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader className="bg-muted/20">
                             <TableRow className="hover:bg-transparent border-b border-border/60">
-                                <TableHead className="w-[300px] text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 h-12">Empresa / Parceiro</TableHead>
+                                <TableHead className="w-75 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 h-12">Empresa / Parceiro</TableHead>
                                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Vigencia</TableHead>
                                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Base (Sal. Min)</TableHead>
                                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Aliq.</TableHead>
                                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Status</TableHead>
                                 <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Liquido (Final)</TableHead>
-                                <TableHead className="w-[50px]" />
+                                <TableHead className="w-12.5" />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -453,7 +453,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                                                         <Building2 className="h-4 w-4" />
                                                     </div>
                                                     <div className="flex flex-col gap-0.5">
-                                                        <span className="font-medium text-sm text-foreground truncate max-w-[200px]">
+                                                        <span className="font-medium text-sm text-foreground truncate max-w-50">
                                                             {contract.company.razaoSocial}
                                                         </span>
                                                         <span className="text-[10px] text-muted-foreground font-mono tracking-tight">
