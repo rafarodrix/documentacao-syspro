@@ -8,6 +8,12 @@ export function normalizeRustdeskId(value?: string | null) {
   return /^\d{7,12}$/.test(normalized) ? normalized : null;
 }
 
+export function normalizeRustdeskIdStrict(value?: string | null) {
+  const digitsOnly = (value ?? "").replace(/\D/g, "").trim();
+  if (!digitsOnly) return null;
+  return /^\d{7,12}$/.test(digitsOnly) ? digitsOnly : null;
+}
+
 export function buildAgentToken() {
   return `ragent_${randomBytes(24).toString("hex")}`;
 }
@@ -49,4 +55,3 @@ export function buildRustDeskConfigProfile(settings: RemoteModuleSettings) {
 export function normalizeComparableValue(value?: string | null) {
   return (value ?? "").trim().toLowerCase();
 }
-

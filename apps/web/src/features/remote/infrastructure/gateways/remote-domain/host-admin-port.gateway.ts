@@ -5,6 +5,7 @@ import {
   normalizeSysproUpdates,
   syncRemoteHostSysproUpdates,
 } from "@/features/remote/application/agent-payload";
+import { normalizeRustdeskIdStrict } from "@/features/remote/application/rustdesk-sync";
 import type {
   CreateHostInput,
   CreateHostOutput,
@@ -28,12 +29,6 @@ function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
 
 function buildInstallToken() {
   return `rhost_${randomBytes(12).toString("hex")}`;
-}
-
-function normalizeRustdeskIdStrict(value?: string | null) {
-  const digitsOnly = (value ?? "").replace(/\D/g, "").trim();
-  if (!digitsOnly) return null;
-  return /^\d{7,12}$/.test(digitsOnly) ? digitsOnly : null;
 }
 
 function withDataError(message: string, data?: unknown) {

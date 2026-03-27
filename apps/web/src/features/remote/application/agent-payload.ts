@@ -16,12 +16,6 @@ type ExistingSysproRow = {
   path: string;
 };
 
-export function normalizeRustdeskId(value?: string | null) {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  return trimmed.replace(/\s+/g, "");
-}
-
 function parseSysproDate(value?: string | null) {
   const trimmed = value?.trim();
   if (!trimmed) return null;

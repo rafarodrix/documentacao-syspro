@@ -3,6 +3,7 @@ import {
   buildRequestedSessionExpiresAt,
   isSessionExpired,
 } from "@/features/remote/application/session-policy";
+import { normalizeRustdeskId } from "@/features/remote/application/rustdesk-sync";
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 
 type ZammadRemoteContext = {
@@ -19,11 +20,6 @@ type ZammadRemoteContext = {
 
 function toStringOrNull(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function normalizeRustdeskId(value: string | null): string | null {
-  if (!value) return null;
-  return value.replace(/\s+/g, "");
 }
 
 function normalizeTags(value: unknown): string[] {

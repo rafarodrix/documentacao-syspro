@@ -585,7 +585,7 @@ Modelo consolidado:
 
 ### Mapa atual da extracao por endpoint
 
-Ja esta em adapter HTTP fino (`parse + delegate + response`):
+Ja esta em adapter HTTP fino (`parse + delegate + response`) no `apps/web`:
 
 - `POST /api/remote/agents/discover`
 - `POST /api/remote/rustdesk/bootstrap`
@@ -594,31 +594,29 @@ Ja esta em adapter HTTP fino (`parse + delegate + response`):
 - `GET/POST /api/remote/sessions`
 - `POST /api/remote/sessions/:id/start`
 - `POST /api/remote/sessions/:id/stop`
-
-Ainda com regra de negocio/persistencia relevante no `route.ts`:
-
 - `POST /api/remote/discovered-hosts/:id/link`
-- `POST/DELETE /api/remote/hosts/:id/agent-token`
-- `PATCH /api/remote/hosts/:id/syspro-updates/:updateId`
 - `POST /api/remote/hosts`
 - `PATCH/DELETE /api/remote/hosts/:id`
+- `POST/DELETE /api/remote/hosts/:id/agent-token`
+- `PATCH /api/remote/hosts/:id/syspro-updates/:updateId`
+- `GET /api/remote/rustdesk/address-book`
 - `GET/POST /api/remote/rustdesk/address-book/credentials`
 - `POST /api/remote/rustdesk/address-book/credentials/:id/rotate`
 - `POST /api/remote/rustdesk/address-book/credentials/:id/revoke`
-- `GET /api/remote/rustdesk/address-book`
 
-Pontos de atencao:
+Rotas remotas fora do nucleo `remote-domain` por escopo atual:
 
-- ha duplicacao de normalizacao de `RustDesk ID` entre rotas
-- existe inconsistencia entre `hosts create` (valida 7-12 digitos) e `hosts update/delete` (hoje remove apenas espacos)
+- `PATCH /api/remote/companies/:id/context`
+- `PATCH /api/remote/companies/:id/observacoes`
+- `GET /api/remote/rustdesk/client-profile`
+
 ### Prioridade alta
 
 1. Extrair dominio e servicos remotos para package compartilhado
-- status atual: **quase concluido no apps/web**
-- `packages/remote-domain` ja concentra casos de uso e contratos de `discover/bootstrap/sync/ack`
-- `discover/bootstrap/sync/ack` no `apps/web` ja operam em adapter HTTP fino (`parse + delegate + response`), com persistencia/orquestracao movida para gateways em `apps/web/src/features/remote/infrastructure/gateways/remote-domain/*`
-- recorte principal de `hosts`, `discovered-hosts/:id/link`, `hosts/:id/agent-token`, `hosts/:id/syspro-updates/[updateId]` e `rustdesk/address-book*` ja migrado no `apps/web`
-- pendente conectar o mesmo dominio em `apps/api` e preparar contrato final para `apps/mobile`
+- status atual: **concluido no recorte principal**
+- `packages/remote-domain` concentra casos de uso e contratos do modulo remoto
+- `apps/web` opera os endpoints remotos em adapter HTTP fino (`parse + delegate + response`) com gateways dedicados
+- `apps/api` ja consome `@dosc-syspro/remote-domain` e usa o mesmo mapeamento de erro tipado para o shell HTTP
 - manter independencia de framework (sem dependencia de Next.js no dominio)
 
 2. Endurecimento de seguranca operacional
@@ -659,11 +657,6 @@ Pontos de atencao:
 ## Proximo passo recomendado
 
 1. validar em campo a rotacao/rebootstrap e os dois fluxos de instalacao
-2. expandir a extracao do dominio remoto no seguinte lote (ordem recomendada):
-
-- extrair `discovered-hosts/:id/link` para `LinkDiscoveredHostUseCase`
-- extrair `hosts/:id/agent-token` e `hosts/:id/syspro-updates/:updateId` para casos de uso de token/inventario
-- extrair CRUD de `hosts`
-- separar onboarding do agente em servico dedicado (sem dependencias em scripts HTTP)
-3. abrir migracao controlada para `packages/api` visando consumo Web + Mobile
+2. consolidar testes de regressao de contrato remoto (`code/message/httpStatus`) em CI
+3. abrir migracao controlada para `packages/api` e contrato mobile, mantendo o mesmo nucleo em `packages/remote-domain`
 
