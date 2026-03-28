@@ -370,22 +370,11 @@ export type RemoteCompanyContextItem = {
 
 export type RemoteHostDetails = {
   host: RemoteConfiguredHostItem;
-  permissions: {
-    canEditCompanyContext: boolean;
-    canRelinkInstallations: boolean;
-  };
   moduleSettings: {
     rustDeskServerHost: string;
-    rustDeskServerConfig: string;
-    rustDeskPublicKey: string;
     rustDeskPublicKeyHash: string | null;
     rustDeskVersion: string;
-    defaultPassword: string;
   };
-  companyOptions: Array<{
-    id: string;
-    label: string;
-  }>;
   installGuide: Array<{
     id: RemoteAgentInstallStage;
     title: string;
@@ -396,20 +385,7 @@ export type RemoteHostDetails = {
     id: string;
     razaoSocial: string;
     nomeFantasia: string | null;
-    cnpj: string;
-    emailContato: string | null;
-    telefone: string | null;
-    serverType: "SYSPRO_SERVER" | "IIS" | null;
-    serverPort: number | null;
-    serverHost: string | null;
-    serverProtocol: "HTTP" | "HTTPS" | null;
-    iisIsapiPath: string | null;
     installationDirectory: string | null;
-    remoteConnections: Array<{
-      type: "DDNS_NOIP" | "RADMIN_VPN";
-      details: string;
-    }>;
-    observacoes: string | null;
   };
   installationContexts: Array<{
     update: RemoteHostSysproUpdateItem;
@@ -461,5 +437,4 @@ export type RemoteHostDetails = {
     failedAt: string | null;
     durationSeconds: number | null;
   }>;
-  sysproUpdates: RemoteHostSysproUpdateItem[];
 };

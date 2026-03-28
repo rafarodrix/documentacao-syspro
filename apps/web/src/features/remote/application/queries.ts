@@ -816,18 +816,6 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
   const tenantScope = await getRemoteTenantScope();
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
-  const companyOptions = await prisma.company.findMany({
-    where: tenantScope.isGlobalView
-      ? { deletedAt: null }
-      : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
-    select: {
-      id: true,
-      nomeFantasia: true,
-      razaoSocial: true,
-    },
-    orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
-    take: 200,
-  });
 
   const host = await prisma.remoteHost.findFirst({
     where: {
@@ -840,9 +828,6 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
           id: true,
           nomeFantasia: true,
           razaoSocial: true,
-          cnpj: true,
-          emailContato: true,
-          telefone: true,
           serverType: true,
           serverPort: true,
           serverHost: true,
@@ -1026,11 +1011,6 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     WHERE "id" = ${host.id}
   `;
   const serviceStatus = hostServiceStatus[0]?.serviceStatus ?? null;
-  const remoteConnections = mapCompanyRemoteConnections({
-    remoteConnections: (host.company as any).remoteConnections,
-    remoteConnectionType: (host.company as any).remoteConnectionType,
-    remoteConnectionDetails: (host.company as any).remoteConnectionDetails,
-  });
   const mappedSysproUpdates = sysproUpdates.map((entry) => ({
     id: entry.id,
     companyId: entry.companyId,
@@ -1057,26 +1037,13 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         ticketNumber: session.ticketNumber,
       })),
     }),
-    permissions: {
-      canEditCompanyContext:
-        tenantScope.role === "ADMIN" || tenantScope.role === "SUPORTE" || tenantScope.role === "DEVELOPER",
-      canRelinkInstallations:
-        tenantScope.role === "ADMIN" || tenantScope.role === "SUPORTE" || tenantScope.role === "DEVELOPER",
-    },
     moduleSettings: {
       rustDeskServerHost: moduleSettings.rustDeskServerHost,
-      rustDeskServerConfig: moduleSettings.rustDeskServerConfig,
-      rustDeskPublicKey: moduleSettings.rustDeskPublicKey,
       rustDeskPublicKeyHash: moduleSettings.rustDeskPublicKey.trim()
         ? hashRustDeskPublicKey(moduleSettings.rustDeskPublicKey)
         : null,
       rustDeskVersion: moduleSettings.rustDeskVersion,
-      defaultPassword: moduleSettings.defaultPassword,
     },
-    companyOptions: companyOptions.map((company) => ({
-      id: company.id,
-      label: company.nomeFantasia ?? company.razaoSocial,
-    })),
     installGuide: buildInstallGuide(
       mapDirectoryItem({
         ...host,
@@ -1098,17 +1065,7 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       id: host.company.id,
       razaoSocial: host.company.razaoSocial,
       nomeFantasia: host.company.nomeFantasia,
-      cnpj: host.company.cnpj,
-      emailContato: host.company.emailContato,
-      telefone: host.company.telefone,
-      serverType: ((host.company as any).serverType ?? null) as "SYSPRO_SERVER" | "IIS" | null,
-      serverPort: host.company.serverPort ?? null,
-      serverHost: host.company.serverHost ?? null,
-      serverProtocol: ((host.company as any).serverProtocol ?? null) as "HTTP" | "HTTPS" | null,
-      iisIsapiPath: host.company.iisIsapiPath ?? null,
       installationDirectory: host.company.installationDirectory ?? null,
-      remoteConnections,
-      observacoes: host.company.observacoes,
     },
     installationContexts: mappedSysproUpdates.map((update) => {
       const linkedCompanyContext = update.companyId ? companyContextById.get(update.companyId) ?? null : null;
@@ -1209,6 +1166,5 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         failedAt: command.failedAt,
       }),
     })),
-    sysproUpdates: mappedSysproUpdates,
   };
 }
