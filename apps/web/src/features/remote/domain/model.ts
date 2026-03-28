@@ -370,6 +370,21 @@ export type RemoteCompanyContextItem = {
 
 export type RemoteHostDetails = {
   host: RemoteConfiguredHostItem;
+  agentHealth: {
+    lastDiscoverAt: string | null;
+    lastSyncAt: string | null;
+    bootstrapFlow:
+      | "pending_link"
+      | "linked_host_detected"
+      | "host_bootstrap_required"
+      | "triagem_await_install_token"
+      | "body_parse_failed"
+      | "unknown";
+    consecutiveFailures: number;
+    agentVersion: string | null;
+    tokenSource: string | null;
+    serviceStatus: string | null;
+  };
   moduleSettings: {
     rustDeskServerHost: string;
     rustDeskPublicKeyHash: string | null;

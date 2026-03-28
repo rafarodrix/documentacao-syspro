@@ -278,6 +278,23 @@ function getAgentTokenMeta(value: string | null) {
   };
 }
 
+function getBootstrapFlowLabel(
+  value:
+    | "pending_link"
+    | "linked_host_detected"
+    | "host_bootstrap_required"
+    | "triagem_await_install_token"
+    | "body_parse_failed"
+    | "unknown"
+) {
+  if (value === "pending_link") return "pending_link";
+  if (value === "linked_host_detected") return "linked_host_detected";
+  if (value === "host_bootstrap_required") return "host_bootstrap_required";
+  if (value === "triagem_await_install_token") return "triagem_await_install_token";
+  if (value === "body_parse_failed") return "body_parse_failed";
+  return "unknown";
+}
+
 async function copyTextWithFallback(value: string) {
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
@@ -325,6 +342,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
   const [isRotatingInstallToken, startRotatingInstallToken] = useTransition();
+  const [isRequestingResendConfig, startRequestingResendConfig] = useTransition();
+  const [isRequestingSelfHeal, startRequestingSelfHeal] = useTransition();
+  const [isRequestingRebootstrap, startRequestingRebootstrap] = useTransition();
   const [latestInstallToken, setLatestInstallToken] = useState<string | null>(null);
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
@@ -577,6 +597,38 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   );
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
+  const bootstrapFlowLabel = useMemo(
+    () => getBootstrapFlowLabel(details.agentHealth.bootstrapFlow),
+    [details.agentHealth.bootstrapFlow]
+  );
+  const shouldShowDiagnosticsPlaybook = useMemo(
+    () =>
+      details.agentHealth.bootstrapFlow === "triagem_await_install_token" ||
+      details.agentHealth.bootstrapFlow === "body_parse_failed",
+    [details.agentHealth.bootstrapFlow]
+  );
+  const diagnosticsPlaybookScript = useMemo(() => {
+    const discoveryToken = "<DISCOVERY_TOKEN>";
+    const installToken = host.installToken ?? "<INSTALL_TOKEN>";
+    const rustdeskId = normalizedRustdeskId ?? "<RUSTDESK_ID>";
+    return [
+      "$reg = \"HKLM:\\SOFTWARE\\Trilink\\RemoteAgent\"",
+      "if (-not (Test-Path $reg)) { New-Item -Path $reg -Force | Out-Null }",
+      `Set-ItemProperty -Path $reg -Name "DiscoveryToken" -Value "${discoveryToken}"`,
+      `Set-ItemProperty -Path $reg -Name "InstallToken" -Value "${installToken}"`,
+      `Set-ItemProperty -Path $reg -Name "PortalBaseUrl" -Value "https://ajuda.trilinksoftware.com.br"`,
+      "",
+      "$body = @{",
+      `  installToken = "${installToken}"`,
+      `  rustdeskId   = "${rustdeskId}"`,
+      "  machineName  = $env:COMPUTERNAME",
+      "  agentVersion = \"trilink-agent-v1\"",
+      "  environment  = \"Producao\"",
+      "} | ConvertTo-Json",
+      "",
+      "Invoke-WebRequest -Method Post -Uri \"https://ajuda.trilinksoftware.com.br/api/remote/rustdesk/bootstrap\" -ContentType \"application/json\" -Body $body -UseBasicParsing",
+    ].join("\n");
+  }, [host.installToken, normalizedRustdeskId]);
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
       return {
@@ -703,6 +755,34 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         toast.error(getRemoteApiErrorMessage(error));
       }
     });
+  }
+
+  function handleRequestRemoteAction(action: "REBOOTSTRAP" | "RESEND_CONFIG" | "SELF_HEAL") {
+    const run = async () => {
+      try {
+        const result = await requestRemoteMutation<Record<string, unknown>>({
+          url: `/api/remote/hosts/${host.id}/actions`,
+          method: "POST",
+          body: { action },
+        });
+        toast.success(result.message ?? "Acao remota enfileirada.");
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    };
+
+    if (action === "REBOOTSTRAP") {
+      startRequestingRebootstrap(run);
+      return;
+    }
+
+    if (action === "RESEND_CONFIG") {
+      startRequestingResendConfig(run);
+      return;
+    }
+
+    startRequestingSelfHeal(run);
   }
 
   return (
@@ -1118,6 +1198,24 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     </div>
                   </div>
                 </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo discover</p>
+                    <p className="mt-2 text-sm text-foreground">{formatDateTime(details.agentHealth.lastDiscoverAt)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo sync</p>
+                    <p className="mt-2 text-sm text-foreground">{formatDateTime(details.agentHealth.lastSyncAt)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bootstrap flow</p>
+                    <p className="mt-2 break-all font-mono text-xs text-foreground">{bootstrapFlowLabel}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Falhas consecutivas</p>
+                    <p className="mt-2 text-sm text-foreground">{details.agentHealth.consecutiveFailures}</p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -1144,7 +1242,59 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     Nova Vinculacao de Maquina pendente
                   </div>
                 )}
+                <Button
+                  variant="outline"
+                  onClick={() => handleRequestRemoteAction("REBOOTSTRAP")}
+                  disabled={isRequestingRebootstrap}
+                  className="w-full gap-2 sm:w-auto"
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  {isRequestingRebootstrap ? "Solicitando..." : "Rebootstrap"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleRequestRemoteAction("RESEND_CONFIG")}
+                  disabled={isRequestingResendConfig}
+                  className="w-full gap-2 sm:w-auto"
+                >
+                  <Copy className="h-4 w-4" />
+                  {isRequestingResendConfig ? "Solicitando..." : "Reenviar configuracao"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleRequestRemoteAction("SELF_HEAL")}
+                  disabled={isRequestingSelfHeal}
+                  className="w-full gap-2 sm:w-auto"
+                >
+                  <HardDriveDownload className="h-4 w-4" />
+                  {isRequestingSelfHeal ? "Solicitando..." : "Pedir self-heal"}
+                </Button>
               </div>
+
+              {shouldShowDiagnosticsPlaybook ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    Playbook automatico de diagnostico
+                  </p>
+                  <p className="mt-1 text-sm text-amber-800 dark:text-amber-100">
+                    Estado atual do host: <span className="font-mono">{bootstrapFlowLabel}</span>. Copie o script para o suporte executar no servidor.
+                  </p>
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-amber-500/30 bg-background/60 p-3 text-xs text-foreground">
+                    {diagnosticsPlaybookScript}
+                  </pre>
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopy(diagnosticsPlaybookScript, "Script de diagnostico")}
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copiar script de diagnostico
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
 
               {latestInstallToken ? (
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">

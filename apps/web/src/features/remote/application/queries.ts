@@ -823,6 +823,14 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       ...scopedWhere,
     },
     include: {
+      discoveryRecord: {
+        select: {
+          status: true,
+          lastHeartbeatAt: true,
+          updatedAt: true,
+          agentVersion: true,
+        },
+      },
       company: {
         select: {
           id: true,
@@ -1020,6 +1028,22 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     lastFileWriteAt: entry.lastFileWriteAt?.toISOString() ?? null,
     lastHeartbeatAt: entry.lastHeartbeatAt.toISOString(),
   }));
+  const mostRecentFailureStreak = agentCommands.reduce((acc, command) => {
+    if (acc.stopped) return acc;
+    if (command.status === "FAILED") {
+      return { count: acc.count + 1, stopped: false };
+    }
+    return { count: acc.count, stopped: true };
+  }, { count: 0, stopped: false }).count;
+  const failureMessage = (host.lastHeartbeatErrorMessage ?? "").toLowerCase();
+  const bootstrapFlow: RemoteHostDetails["agentHealth"]["bootstrapFlow"] = (() => {
+    if (failureMessage.includes("body_parse_failed")) return "body_parse_failed";
+    if (!host.installToken) return "triagem_await_install_token";
+    if (host.discoveryRecord?.status === "PENDING_LINK") return "pending_link";
+    if (!host.agentTokenHash) return "host_bootstrap_required";
+    if (host.discoveryRecord?.status === "LINKED") return "linked_host_detected";
+    return "unknown";
+  })();
 
   return {
     host: mapDirectoryItem({
@@ -1037,6 +1061,18 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         ticketNumber: session.ticketNumber,
       })),
     }),
+    agentHealth: {
+      lastDiscoverAt:
+        host.discoveryRecord?.lastHeartbeatAt?.toISOString() ??
+        host.discoveryRecord?.updatedAt?.toISOString() ??
+        null,
+      lastSyncAt: host.lastHeartbeatAt?.toISOString() ?? null,
+      bootstrapFlow,
+      consecutiveFailures: mostRecentFailureStreak,
+      agentVersion: host.agentVersion ?? host.discoveryRecord?.agentVersion ?? null,
+      tokenSource: host.lastRegisterSource ?? null,
+      serviceStatus,
+    },
     moduleSettings: {
       rustDeskServerHost: moduleSettings.rustDeskServerHost,
       rustDeskPublicKeyHash: moduleSettings.rustDeskPublicKey.trim()
