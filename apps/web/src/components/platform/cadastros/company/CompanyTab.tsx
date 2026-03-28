@@ -34,6 +34,7 @@ import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/compa
 
 interface CompanyTabProps {
   data: CompanyListItem[]
+  initialSearchTerm?: string
   canCreate: boolean
   canEdit: boolean
   canToggleStatus: boolean
@@ -47,6 +48,7 @@ const normalizeSearch = (value: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim()
+const COMPANY_NAME_COLLATOR = new Intl.Collator("pt-BR", { sensitivity: "base", numeric: true })
 
 const STATUS_CONFIG: Record<CompanyStatus, { label: string; dot: string; badge: string }> = {
   ACTIVE: {
@@ -159,9 +161,9 @@ function CompanyActionsMenu({
   )
 }
 
-export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelete }: CompanyTabProps) {
+export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, canToggleStatus, canDelete }: CompanyTabProps) {
   const [items, setItems] = useState(data)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm)
   const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">("ALL")
   const [filterBlocked, setFilterBlocked] = useState<"ALL" | "BLOCKED">("ALL")
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -175,6 +177,10 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
     setItems(data)
   }, [data])
 
+  useEffect(() => {
+    setSearchTerm(initialSearchTerm)
+  }, [initialSearchTerm])
+
   const filteredData = useMemo(() => {
     const term = normalizeSearch(searchTerm)
     const cnpjRaw = searchTerm.replace(/\D/g, "")
@@ -182,7 +188,13 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
     const filtered = items.filter((company) => {
       const normalizedRazao = normalizeSearch(company.razaoSocial)
       const normalizedFantasia = normalizeSearch(company.nomeFantasia ?? "")
-      const matchesSearch = !term || normalizedRazao.includes(term) || normalizedFantasia.includes(term) || company.cnpj.includes(cnpjRaw)
+      const normalizedId = normalizeSearch(company.id)
+      const matchesSearch =
+        !term ||
+        normalizedRazao.includes(term) ||
+        normalizedFantasia.includes(term) ||
+        normalizedId.includes(term) ||
+        company.cnpj.includes(cnpjRaw)
 
       const matchesStatus = filterStatus === "ALL" || company.status === filterStatus
       const matchesBlocked = filterBlocked === "ALL" || company.isBlockedByContract
@@ -190,9 +202,9 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
     })
 
     return filtered.sort((a, b) => {
-      const aName = (a.nomeFantasia?.trim() || a.razaoSocial).toLocaleLowerCase("pt-BR")
-      const bName = (b.nomeFantasia?.trim() || b.razaoSocial).toLocaleLowerCase("pt-BR")
-      return aName.localeCompare(bName, "pt-BR")
+      const aName = a.nomeFantasia?.trim() || a.razaoSocial.trim()
+      const bName = b.nomeFantasia?.trim() || b.razaoSocial.trim()
+      return COMPANY_NAME_COLLATOR.compare(aName, bName)
     })
   }, [items, searchTerm, filterStatus, filterBlocked])
 

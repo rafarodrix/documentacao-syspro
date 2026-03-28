@@ -1,4 +1,4 @@
----
+﻿---
 title: Manuais Tecnicos
 description: Base tecnica restrita para administracao, suporte e desenvolvimento.
 lastUpdated: 2026-03-28
@@ -45,34 +45,34 @@ Este indice centraliza:
 
 ### Arquitetura
 
-1. [Arquitetura da aplicacao monorepo](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-aplicacao-monorepo)
+1. [Arquitetura da aplicacao monorepo](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/arquitetura-aplicacao-monorepo)
    material: visao de camadas, boundaries entre apps/packages e regras de acoplamento.
-2. [Arquitetura de referencia por fluxo](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-referencia-por-fluxo)
+2. [Arquitetura de referencia por fluxo](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/arquitetura-referencia-por-fluxo)
    material: fluxos transversais de negocio e referencia de ponta a ponta.
-3. [Estrutura do projeto](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/estrutura-projeto)
+3. [Estrutura do projeto](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/estrutura-projeto)
    material: arvore principal e responsabilidades por diretorio.
-4. [Checklist de PR de arquitetura/feature](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/checklist-pr-arquitetura-feature)
+4. [Checklist de PR de arquitetura/feature](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/checklist-pr-arquitetura-feature)
    material: checklist de revisao tecnica antes de merge/deploy.
-5. [Homologacao e producao](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/homologcao-producao)
+5. [Homologacao e producao](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/homologacao-producao)
    material: fluxo de validacao, liberacao e controles por ambiente.
 
 ### Portal Web
 
-1. [Arquitetura da documentacao Fumadocs](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-documentacao-fumadocs)
+1. [Arquitetura da documentacao Fumadocs](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/portal-web/arquitetura-documentacao-fumadocs)
    material: padrao da base docs, estrutura de conteudo e convencoes de navegacao.
-2. [Padrao de componentes MDX](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/padrao-componentes-mdx)
+2. [Padrao de componentes MDX](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/portal-web/padrao-componentes-mdx)
    material: componentes permitidos no conteudo e padrao de escrita tecnica.
-3. [Diff highlighting (Shiki)](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/diff-highlighting-shiki)
+3. [Diff highlighting (Shiki)](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/portal-web/diff-highlighting-shiki)
    material: padrao para blocos de codigo com destaque de alteracoes.
 
 ### Zammad
 
-1. [Integracao Zammad](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad)
+1. [Integracao Zammad](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/zammad/integracao-zammad)
    material: contratos, fluxo de ticket e integracao com sessao remota.
 
 ### Acesso Remoto
 
-1. [Operacao do agente remoto OSS](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss)
+1. [Operacao do agente remoto OSS](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote)
     material: fluxo oficial `discover -> bootstrap -> sync -> ack`, seguranca e operacao de campo.
 
 ### Templates de conteudo
@@ -170,6 +170,7 @@ npm run test:e2e:headed
 ## Uso recomendado deste indice
 
 1. Comece por arquitetura (`arquitetura-aplicacao-monorepo` + `estrutura-projeto`).
-2. Para remoto, siga `operacao-agente-remoto-oss` e depois backlog.
+2. Para remoto, siga `arquitetura-remote` e depois backlog.
 3. Para entrega, use os comandos desta pagina como baseline de execucao.
+
 

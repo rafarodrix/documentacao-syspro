@@ -32,7 +32,11 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
-import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
+import {
+  RemoteApiClientError,
+  getRemoteApiErrorMessage,
+  requestRemoteMutation,
+} from "@/features/remote/interface/remote-api";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 
@@ -44,6 +48,17 @@ function normalizeSearchValue(value: string | null | undefined) {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeRustDeskId(value: string) {
+  const compact = value.replace(/\s+/g, "").trim();
+  if (!compact) return { normalized: null, isValid: true };
+  if (!/^\d{7,12}$/.test(compact)) return { normalized: null, isValid: false };
+  return { normalized: compact, isValid: true };
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 }
 
 function getStatusLabel(status: "ACTIVE" | "MAINTENANCE" | "INACTIVE") {
@@ -183,6 +198,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       return;
     }
 
+    const rustdeskId = normalizeRustDeskId(quickRustdeskId);
+    if (!rustdeskId.isValid || !rustdeskId.normalized) {
+      toast.error("RustDesk ID invalido. Informe apenas numeros com 7 a 12 digitos.");
+      return;
+    }
+
     try {
       const companyLabel = directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Host remoto";
       const name = `${companyLabel} - Acesso remoto`;
@@ -194,7 +215,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           name,
           provider: "RustDesk",
           description: quickDescription,
-          agentExternalId: quickRustdeskId,
+          agentExternalId: rustdeskId.normalized,
           status: "ACTIVE",
         },
       });
@@ -218,8 +239,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       return;
     }
 
-    try {
-      await requestRemoteMutation({
+    const tryLink = () =>
+      requestRemoteMutation({
         url: `/api/remote/discovered-hosts/${id}/link`,
         method: "POST",
         body: {
@@ -228,9 +249,29 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         },
       });
 
+    try {
+      await tryLink();
+
       toast.success("Maquina vinculada e convertida em host.");
       startTransition(() => router.refresh());
     } catch (error) {
+      if (
+        error instanceof RemoteApiClientError &&
+        (error.httpStatus === 429 || error.code === "RATE_LIMITED")
+      ) {
+        toast("Limite temporario na triagem. Nova tentativa automatica em 5 segundos.");
+        await delay(5000);
+        try {
+          await tryLink();
+          toast.success("Maquina vinculada e convertida em host.");
+          startTransition(() => router.refresh());
+          return;
+        } catch (retryError) {
+          toast.error(getRemoteApiErrorMessage(retryError));
+          return;
+        }
+      }
+
       toast.error(getRemoteApiErrorMessage(error));
     }
   }

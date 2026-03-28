@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
@@ -221,16 +220,6 @@ const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
 };
 const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
 
-type CompanyContextDraft = {
-  serverType: string;
-  installationDirectory: string;
-  serverHost: string;
-  serverPort: string;
-  serverProtocol: string;
-  iisIsapiPath: string;
-  observacoes: string;
-};
-
 const AGENT_COMMAND_LABEL: Record<
   "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED",
   string
@@ -331,8 +320,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const { host } = details;
   const [projectedHostName, setProjectedHostName] = useState(host.name);
   const [pendingUpdateCompanyById, setPendingUpdateCompanyById] = useState<Record<string, string>>({});
-  const [companyContextDrafts, setCompanyContextDrafts] = useState<Record<string, CompanyContextDraft>>({});
-  const [savingCompanyContextId, setSavingCompanyContextId] = useState<string | null>(null);
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
@@ -627,27 +614,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
   }, []);
 
-  useEffect(() => {
-    setCompanyContextDrafts((current) => {
-      const next = { ...current };
-      for (const context of details.installationContexts) {
-        if (!context.company) continue;
-        const companyId = context.company.id;
-        if (next[companyId]) continue;
-        next[companyId] = {
-          serverType: context.company.serverType ?? "SYSPRO_SERVER",
-          installationDirectory: context.company.installationDirectory ?? DEFAULT_INSTALLATION_DIRECTORY,
-          serverHost: context.company.serverHost ?? "localhost",
-          serverPort: context.company.serverPort ? String(context.company.serverPort) : "",
-          serverProtocol: context.company.serverProtocol ?? "HTTP",
-          iisIsapiPath: context.company.iisIsapiPath ?? "",
-          observacoes: context.company.observacoes ?? "",
-        };
-      }
-      return next;
-    });
-  }, [details.installationContexts]);
-
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
       toast.error(`${label} nao configurado.`);
@@ -713,63 +679,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         toast.error(getRemoteApiErrorMessage(error));
       }
     });
-  }
-
-  function handleCompanyContextDraftChange(
-    companyId: string,
-    field: keyof CompanyContextDraft,
-    value: string
-  ) {
-    setCompanyContextDrafts((current) => {
-      const previous = current[companyId] ?? {
-        serverType: "SYSPRO_SERVER",
-        installationDirectory: DEFAULT_INSTALLATION_DIRECTORY,
-        serverHost: "localhost",
-        serverPort: "",
-        serverProtocol: "HTTP",
-        iisIsapiPath: "",
-        observacoes: "",
-      };
-      return {
-        ...current,
-        [companyId]: {
-          ...previous,
-          [field]: value,
-        },
-      };
-    });
-  }
-
-  async function handleSaveCompanyContextByInstallation(companyId: string) {
-    const draft = companyContextDrafts[companyId];
-    if (!draft) {
-      toast.error("Configuracao da empresa nao carregada.");
-      return;
-    }
-
-    try {
-      setSavingCompanyContextId(companyId);
-      await requestRemoteMutation({
-        url: `/api/remote/companies/${companyId}/context`,
-        method: "PATCH",
-        body: {
-          serverType: draft.serverType === "IIS" ? "IIS" : "SYSPRO_SERVER",
-          installationDirectory: draft.installationDirectory.trim() || DEFAULT_INSTALLATION_DIRECTORY,
-          serverHost: draft.serverHost,
-          serverPort: draft.serverPort,
-          serverProtocol: draft.serverProtocol === "HTTPS" ? "HTTPS" : "HTTP",
-          iisIsapiPath: draft.iisIsapiPath,
-          observacoes: draft.observacoes,
-        },
-      });
-
-      toast.success("Configuracoes da empresa atualizadas.");
-      window.location.reload();
-    } catch (error) {
-      toast.error(getRemoteApiErrorMessage(error));
-    } finally {
-      setSavingCompanyContextId(null);
-    }
   }
 
   function handleRelinkInstallation(updateId: string) {
@@ -1005,7 +914,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Empresa e instalacoes da maquina</CardTitle>
-              <CardDescription>Dados operacionais por instalacao, com o diretorio da instalacao como fonte unica do caminho monitorado.</CardDescription>
+              <CardDescription>
+                Dados operacionais por instalacao, com o diretorio da instalacao como fonte unica do caminho monitorado.
+                Edicoes de cadastro da empresa devem ser feitas apenas no modulo de Empresas.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
@@ -1028,11 +940,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     const primaryCompanyDirectory = details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
                     const companyName = companyContext?.nomeFantasia ?? companyContext?.razaoSocial ?? entry.resolvedCompanyName ?? entry.companyLabel;
                     const serverType = companyContext?.serverType ? COMPANY_SERVER_TYPE_LABEL[companyContext.serverType] : "Nao configurado";
-                    const draft = companyContext ? companyContextDrafts[companyContext.id] : null;
-                    const draftDirectory = draft?.installationDirectory?.trim();
                     const companyDirectory = companyContext?.installationDirectory?.trim();
                     const installationDirectory =
-                      draftDirectory ||
                       companyDirectory ||
                       primaryCompanyDirectory ||
                       DEFAULT_INSTALLATION_DIRECTORY;
@@ -1065,111 +974,32 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           <div className="mt-3 grid gap-3 md:grid-cols-2">
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
-                              {companyContext && details.permissions.canEditCompanyContext ? (
-                                <select
-                                  value={draft?.serverType ?? (companyContext.serverType ?? "SYSPRO_SERVER")}
-                                  onChange={(event) =>
-                                    handleCompanyContextDraftChange(
-                                      companyContext.id,
-                                      "serverType",
-                                      event.target.value
-                                    )
-                                  }
-                                  className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                                >
-                                  <option value="SYSPRO_SERVER">Syspro Server</option>
-                                  <option value="IIS">IIS</option>
-                                </select>
-                              ) : (
-                                <p className="mt-1 text-sm text-foreground">{serverType}</p>
-                              )}
+                              <p className="mt-1 text-sm text-foreground">{serverType}</p>
                             </div>
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao (fonte de verdade)</p>
-                              {companyContext && details.permissions.canEditCompanyContext ? (
-                                <Input
-                                  value={
-                                    draft?.installationDirectory ??
-                                    companyContext.installationDirectory ??
-                                    primaryCompanyDirectory ??
-                                    DEFAULT_INSTALLATION_DIRECTORY
-                                  }
-                                  onChange={(event) =>
-                                    handleCompanyContextDraftChange(
-                                      companyContext.id,
-                                      "installationDirectory",
-                                      event.target.value
-                                    )
-                                  }
-                                />
-                              ) : (
-                                <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
-                              )}
+                              <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
                               <p className="mt-2 text-xs text-muted-foreground">
                                 Padrao recomendado: <span className="font-mono">{DEFAULT_INSTALLATION_DIRECTORY}</span>
                               </p>
                             </div>
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor</p>
-                              {companyContext && details.permissions.canEditCompanyContext ? (
-                                <Input
-                                  value={draft?.serverHost ?? companyContext.serverHost ?? "localhost"}
-                                  onChange={(event) =>
-                                    handleCompanyContextDraftChange(companyContext.id, "serverHost", event.target.value)
-                                  }
-                                />
-                              ) : (
-                                <p className="mt-1 text-sm text-foreground">{companyContext?.serverHost ?? "Nao configurado"}</p>
-                              )}
+                              <p className="mt-1 text-sm text-foreground">{companyContext?.serverHost ?? "Nao configurado"}</p>
                             </div>
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta</p>
-                              {companyContext && details.permissions.canEditCompanyContext ? (
-                                <Input
-                                  value={draft?.serverPort ?? (companyContext.serverPort ? String(companyContext.serverPort) : "")}
-                                  onChange={(event) =>
-                                    handleCompanyContextDraftChange(companyContext.id, "serverPort", event.target.value)
-                                  }
-                                />
-                              ) : (
-                                <p className="mt-1 text-sm text-foreground">
-                                  {companyContext?.serverPort ? String(companyContext.serverPort) : "Nao configurado"}
-                                </p>
-                              )}
+                              <p className="mt-1 text-sm text-foreground">
+                                {companyContext?.serverPort ? String(companyContext.serverPort) : "Nao configurado"}
+                              </p>
                             </div>
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conexao</p>
-                              {companyContext && details.permissions.canEditCompanyContext ? (
-                                <select
-                                  value={draft?.serverProtocol ?? (companyContext.serverProtocol ?? "HTTP")}
-                                  onChange={(event) =>
-                                    handleCompanyContextDraftChange(
-                                      companyContext.id,
-                                      "serverProtocol",
-                                      event.target.value
-                                    )
-                                  }
-                                  className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                                >
-                                  <option value="HTTP">HTTP</option>
-                                  <option value="HTTPS">HTTPS</option>
-                                </select>
-                              ) : (
-                                <p className="mt-1 text-sm text-foreground">{companyContext?.serverProtocol ?? "Nao configurado"}</p>
-                              )}
+                              <p className="mt-1 text-sm text-foreground">{companyContext?.serverProtocol ?? "Nao configurado"}</p>
                             </div>
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Url Path (ISAPI)</p>
-                              {companyContext && details.permissions.canEditCompanyContext ? (
-                                <Input
-                                  value={draft?.iisIsapiPath ?? (companyContext.iisIsapiPath ?? "")}
-                                  onChange={(event) =>
-                                    handleCompanyContextDraftChange(companyContext.id, "iisIsapiPath", event.target.value)
-                                  }
-                                />
-                              ) : (
-                                <p className="mt-1 break-all text-sm text-foreground">{companyContext?.iisIsapiPath ?? "Nao configurado"}</p>
-                              )}
+                              <p className="mt-1 break-all text-sm text-foreground">{companyContext?.iisIsapiPath ?? "Nao configurado"}</p>
                             </div>
                           </div>
                         </details>
@@ -1177,31 +1007,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
                           <summary className="cursor-pointer text-sm font-medium text-foreground">Observacoes</summary>
                           <div className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-                            {companyContext && details.permissions.canEditCompanyContext ? (
-                              <Textarea
-                                rows={4}
-                                value={draft?.observacoes ?? (companyContext.observacoes ?? "")}
-                                onChange={(event) =>
-                                  handleCompanyContextDraftChange(companyContext.id, "observacoes", event.target.value)
-                                }
-                                placeholder="Observacoes operacionais da empresa."
-                              />
-                            ) : (
-                              <p className="whitespace-pre-wrap text-sm text-foreground">
-                                {companyContext?.observacoes ?? "Sem observacoes operacionais para esta empresa."}
-                              </p>
-                            )}
+                            <p className="whitespace-pre-wrap text-sm text-foreground">
+                              {companyContext?.observacoes ?? "Sem observacoes operacionais para esta empresa."}
+                            </p>
                           </div>
-                          {companyContext && details.permissions.canEditCompanyContext ? (
-                            <div className="mt-3 flex justify-end">
-                              <Button
-                                onClick={() => handleSaveCompanyContextByInstallation(companyContext.id)}
-                                disabled={savingCompanyContextId === companyContext.id}
-                              >
-                                {savingCompanyContextId === companyContext.id ? "Salvando..." : "Salvar configuracoes da empresa"}
-                              </Button>
-                            </div>
-                          ) : null}
                         </details>
 
                         <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">

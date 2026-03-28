@@ -274,6 +274,15 @@ function mapCompanyRemoteConnections(input: {
   return [];
 }
 
+function normalizeCompanyIdentity(value: string | null | undefined) {
+  if (!value) return "";
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
   const tenantScope = await getRemoteTenantScope();
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
@@ -950,6 +959,29 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       },
     ])
   );
+  const primaryCompanyContext = {
+    id: host.company.id,
+    razaoSocial: host.company.razaoSocial,
+    nomeFantasia: host.company.nomeFantasia,
+    serverType: ((host.company as any).serverType ?? null) as "SYSPRO_SERVER" | "IIS" | null,
+    serverPort: host.company.serverPort ?? null,
+    serverHost: host.company.serverHost ?? null,
+    serverProtocol: ((host.company as any).serverProtocol ?? null) as "HTTP" | "HTTPS" | null,
+    iisIsapiPath: host.company.iisIsapiPath ?? null,
+    installationDirectory: host.company.installationDirectory ?? null,
+    remoteConnections: mapCompanyRemoteConnections({
+      remoteConnections: (host.company as any).remoteConnections,
+      remoteConnectionType: (host.company as any).remoteConnectionType,
+      remoteConnectionDetails: (host.company as any).remoteConnectionDetails,
+    }),
+    observacoes: host.company.observacoes ?? null,
+  };
+  companyContextById.set(host.company.id, primaryCompanyContext);
+  const primaryCompanyLabels = new Set(
+    [host.company.nomeFantasia, host.company.razaoSocial]
+      .map((entry) => normalizeCompanyIdentity(entry))
+      .filter((entry) => !!entry)
+  );
   const agentCommands = await prisma.remoteAgentCommand.findMany({
       where: {
         hostId: host.id,
@@ -1059,10 +1091,25 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       remoteConnections,
       observacoes: host.company.observacoes,
     },
-    installationContexts: mappedSysproUpdates.map((update) => ({
-      update,
-      company: update.companyId ? companyContextById.get(update.companyId) ?? null : null,
-    })),
+    installationContexts: mappedSysproUpdates.map((update) => {
+      const linkedCompanyContext = update.companyId ? companyContextById.get(update.companyId) ?? null : null;
+      if (linkedCompanyContext) {
+        return {
+          update,
+          company: linkedCompanyContext,
+        };
+      }
+
+      const updateLabels = [update.resolvedCompanyName, update.companyLabel]
+        .map((entry) => normalizeCompanyIdentity(entry))
+        .filter((entry) => !!entry);
+      const belongsToPrimaryCompany = updateLabels.some((entry) => primaryCompanyLabels.has(entry));
+
+      return {
+        update,
+        company: belongsToPrimaryCompany ? primaryCompanyContext : null,
+      };
+    }),
     linkedUsers: host.company.memberships.map((membership) => ({
       id: membership.user.id,
       name: membership.user.name,

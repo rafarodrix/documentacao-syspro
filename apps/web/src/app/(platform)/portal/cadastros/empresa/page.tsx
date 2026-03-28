@@ -7,7 +7,20 @@ import { CompanyTab } from "@/features/company/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
-export default async function CadastrosEmpresaPage() {
+interface CadastrosEmpresaPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEmpresaPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const empresaParam = params?.empresa;
+  const initialCompanySearch =
+    typeof empresaParam === "string"
+      ? empresaParam
+      : Array.isArray(empresaParam)
+        ? empresaParam[0] ?? ""
+        : "";
+
   const session = await requireRole(
     [...CADASTROS_ROUTE_RULES.empresa.allowed] as Role[],
     CADASTROS_ROUTE_RULES.empresa.redirectIfBlocked,
@@ -27,6 +40,7 @@ export default async function CadastrosEmpresaPage() {
       />
       <CompanyTab
         data={result.companies}
+        initialSearchTerm={initialCompanySearch}
         canCreate={hasPermission(session.role, "companies:create")}
         canEdit={hasPermission(session.role, "companies:edit")}
         canToggleStatus={hasPermission(session.role, "companies:status")}

@@ -7,7 +7,7 @@ status: published
 tags:
   - manuais-tecnicos
   - documentacao-tecnica-arquitetura
-  - operacao-agente-remoto-oss
+  - arquitetura-remote
 audience:
   - admin
   - developer
@@ -599,7 +599,7 @@ Escopo consolidado aqui:
 - RustDesk fornece conectividade, nao dominio de negocio
 - segregacao por tenant e obrigatoria em consulta, acao e sessao
 - a operacao atual de API remota esta em `apps/web/src/app/api/remote/**/route.ts`
-- a camada `packages/api` ainda nao centraliza o modulo remoto
+- o nucleo remoto esta centralizado em `packages/remote-domain`, com consumo compartilhado por `apps/web` e `apps/api`
 
 ### Multi-bases no mesmo host
 
@@ -671,10 +671,10 @@ Rotas remotas fora do nucleo `remote-domain` por escopo atual:
 
 ### Prioridade media
 
-4. Introduzir `remoteRouter` em `packages/api`
-- consumir os casos de uso extraidos do package de dominio
-- manter compatibilidade com endpoints HTTP atuais durante transicao
-- reduzir divergencia entre camada HTTP e router compartilhado
+4. Consolidar uso de `remoteRouter` em `packages/api`
+- status atual: **concluido no recorte principal**
+- manter compatibilidade dos endpoints HTTP atuais durante evolucoes do contrato remoto
+- ampliar cobertura automatizada para reduzir divergencia entre shell HTTP e router compartilhado
 
 5. Contrato remoto para cliente mobile
 - versionar DTOs de request/response

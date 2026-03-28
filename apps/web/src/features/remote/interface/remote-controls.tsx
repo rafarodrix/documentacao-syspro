@@ -24,6 +24,13 @@ type Props = {
   overview: RemotePlatformOverview;
 };
 
+function normalizeRustDeskId(value: string) {
+  const compact = value.replace(/\s+/g, "").trim();
+  if (!compact) return { normalized: null, isValid: true };
+  if (!/^\d{7,12}$/.test(compact)) return { normalized: null, isValid: false };
+  return { normalized: compact, isValid: true };
+}
+
 export function RemotePlatformControls({ overview }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -251,6 +258,12 @@ export function RemotePlatformControls({ overview }: Props) {
       return;
     }
 
+    const rustdeskId = normalizeRustDeskId(agentExternalId);
+    if (!rustdeskId.isValid) {
+      toast.error("RustDesk ID invalido. Informe apenas numeros com 7 a 12 digitos.");
+      return;
+    }
+
     try {
       const payload = await requestRemoteMutation<Record<string, unknown>>({
         url: isEditing ? `/api/remote/hosts/${editingHostId}` : "/api/remote/hosts",
@@ -262,7 +275,7 @@ export function RemotePlatformControls({ overview }: Props) {
           provider,
           description,
           notes,
-          agentExternalId,
+          agentExternalId: rustdeskId.normalized,
           status: hostStatus,
         },
       });

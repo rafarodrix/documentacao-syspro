@@ -1,22 +1,22 @@
-{
+﻿{
   "title": "Manuais Tecnicos",
   "description": "Conteudo tecnico restrito para administracao, suporte e equipe interna.",
   "pages": [
     "index",
     "---Arquitetura---",
-    "documentacao-tecnica-arquitetura/arquitetura-aplicacao-monorepo",
-    "documentacao-tecnica-arquitetura/arquitetura-referencia-por-fluxo",
-    "documentacao-tecnica-arquitetura/estrutura-projeto",
-    "documentacao-tecnica-arquitetura/checklist-pr-arquitetura-feature",
-    "documentacao-tecnica-arquitetura/homologcao-producao",
+    "documentacao-tecnica-arquitetura/arquitetura/arquitetura-aplicacao-monorepo",
+    "documentacao-tecnica-arquitetura/arquitetura/arquitetura-referencia-por-fluxo",
+    "documentacao-tecnica-arquitetura/arquitetura/estrutura-projeto",
+    "documentacao-tecnica-arquitetura/arquitetura/checklist-pr-arquitetura-feature",
+    "documentacao-tecnica-arquitetura/arquitetura/homologacao-producao",
     "---Portal Web---",
-    "documentacao-tecnica-arquitetura/arquitetura-documentacao-fumadocs",
-    "documentacao-tecnica-arquitetura/padrao-componentes-mdx",
-    "documentacao-tecnica-arquitetura/diff-highlighting-shiki",
+    "documentacao-tecnica-arquitetura/portal-web/arquitetura-documentacao-fumadocs",
+    "documentacao-tecnica-arquitetura/portal-web/padrao-componentes-mdx",
+    "documentacao-tecnica-arquitetura/portal-web/diff-highlighting-shiki",
     "---Zammad---",
-    "documentacao-tecnica-arquitetura/integracao-zammad",
+    "documentacao-tecnica-arquitetura/zammad/integracao-zammad",
     "---Acesso Remoto---",
-    "documentacao-tecnica-arquitetura/operacao-agente-remoto-oss",
+    "documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote",
     "---Templates de Conteudo---",
     "documentacao-tecnica-arquitetura/modulo-documentacao/templates/guia-templates-mdx",
     "documentacao-tecnica-arquitetura/modulo-documentacao/templates/template-geral-frontmatter-tags",
@@ -31,3 +31,5 @@
     "backlog-e-pendencias/arquitetura-canal-whatsapp"
   ]
 }
+
+
