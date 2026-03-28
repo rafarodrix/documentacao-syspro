@@ -1,9 +1,9 @@
-import { Badge } from "@/components/ui/badge";
+﻿import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import type { RemotePlatformOverview, RemotePlatformStatus } from "@/features/remote/domain/model";
 import { RemotePlatformControls } from "@/features/remote/interface/remote-controls";
-import { Building2, ChevronDown, Database, KeyRound, LaptopMinimal } from "lucide-react";
+import { Building2, Database, KeyRound, LaptopMinimal } from "lucide-react";
 
 const statusLabel: Record<RemotePlatformStatus, string> = {
   planned: "Planejado",
@@ -277,12 +277,12 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
       </section>
 
       <section>
-        <Collapsible>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-muted/10 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/20 transition-colors">
+        <Accordion type="single" collapsible>
+          <AccordionItem value="technical-reference" className="rounded-lg border border-border/50 bg-muted/10 px-4">
+            <AccordionTrigger className="py-3 text-sm font-medium text-foreground hover:no-underline">
             Referência técnica — contratos de modelo
-            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 data-[state=open]:rotate-180" />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
+            </AccordionTrigger>
+            <AccordionContent>
             <div className="mt-3 grid gap-6 lg:grid-cols-2">
               <Card className="border-border/50">
                 <CardHeader>
@@ -362,9 +362,11 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
                 </CardContent>
               </Card>
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </section>
     </div>
   );
 }
+

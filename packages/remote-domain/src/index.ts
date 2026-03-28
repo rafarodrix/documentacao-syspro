@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   RemoteAckPort,
   RemoteAddressBookPort,
   RemoteBootstrapPort,
@@ -23,6 +23,7 @@ import { createHost } from "./use-cases/create-host";
 import { updateHost } from "./use-cases/update-host";
 import { deleteHost } from "./use-cases/delete-host";
 import { rotateHostAgentToken } from "./use-cases/rotate-host-agent-token";
+import { rotateHostInstallToken } from "./use-cases/rotate-host-install-token";
 import { revokeHostAgentToken } from "./use-cases/revoke-host-agent-token";
 import { relinkHostSysproUpdate } from "./use-cases/relink-host-syspro-update";
 import { listAddressBook } from "./use-cases/list-address-book";
@@ -176,6 +177,15 @@ export function createTrilinkRemote(deps: {
         port: deps.hostAdminPort,
       });
     },
+    async rotateHostInstallToken(payload: unknown) {
+      if (!deps.hostAdminPort) {
+        throw new Error("HOST_ADMIN_PORT_NOT_CONFIGURED");
+      }
+
+      return rotateHostInstallToken(payload, {
+        port: deps.hostAdminPort,
+      });
+    },
     async revokeHostAgentToken(payload: unknown) {
       if (!deps.hostAdminPort) {
         throw new Error("HOST_ADMIN_PORT_NOT_CONFIGURED");
@@ -258,6 +268,7 @@ export * from "./use-cases/create-host";
 export * from "./use-cases/update-host";
 export * from "./use-cases/delete-host";
 export * from "./use-cases/rotate-host-agent-token";
+export * from "./use-cases/rotate-host-install-token";
 export * from "./use-cases/revoke-host-agent-token";
 export * from "./use-cases/relink-host-syspro-update";
 export * from "./use-cases/list-address-book";
@@ -268,6 +279,9 @@ export * from "./use-cases/revoke-address-book-credential";
 
 export type { RemoteDomainHttpError } from "./errors";
 export { mapRemoteDomainError } from "./errors";
+
+
+
 
 
 

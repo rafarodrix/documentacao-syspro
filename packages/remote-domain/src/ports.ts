@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CreateSessionInput,
   CreateSessionOutput,
   ListSessionsInput,
@@ -26,6 +26,7 @@ import type {
   DeleteHostOutput,
   HostAgentTokenInput,
   RotateHostAgentTokenOutput,
+  RotateHostInstallTokenOutput,
   RevokeHostAgentTokenOutput,
   RelinkHostSysproUpdateInput,
   RelinkHostSysproUpdateOutput,
@@ -398,6 +399,7 @@ export interface RemoteHostAdminPort {
   updateHost(input: UpdateHostInput): Promise<UpdateHostOutput>;
   deleteHost(input: DeleteHostInput): Promise<DeleteHostOutput>;
   rotateHostAgentToken(input: HostAgentTokenInput): Promise<RotateHostAgentTokenOutput>;
+  rotateHostInstallToken(input: HostAgentTokenInput): Promise<RotateHostInstallTokenOutput>;
   revokeHostAgentToken(input: HostAgentTokenInput): Promise<RevokeHostAgentTokenOutput>;
   relinkHostSysproUpdate(input: RelinkHostSysproUpdateInput): Promise<RelinkHostSysproUpdateOutput>;
 }
@@ -425,6 +427,7 @@ export interface TrilinkRemoteDomain {
   updateHost(payload: unknown): Promise<UpdateHostOutput>;
   deleteHost(payload: unknown): Promise<DeleteHostOutput>;
   rotateHostAgentToken(payload: unknown): Promise<RotateHostAgentTokenOutput>;
+  rotateHostInstallToken(payload: unknown): Promise<RotateHostInstallTokenOutput>;
   revokeHostAgentToken(payload: unknown): Promise<RevokeHostAgentTokenOutput>;
   relinkHostSysproUpdate(payload: unknown): Promise<RelinkHostSysproUpdateOutput>;
   listAddressBook(payload: unknown): Promise<ListAddressBookOutput>;
@@ -433,5 +436,9 @@ export interface TrilinkRemoteDomain {
   rotateAddressBookCredential(payload: unknown): Promise<RotateAddressBookCredentialOutput>;
   revokeAddressBookCredential(payload: unknown): Promise<RevokeAddressBookCredentialOutput>;
 }
+
+
+
+
 
 

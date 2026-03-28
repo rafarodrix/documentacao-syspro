@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
@@ -164,6 +164,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [pendingCompanyById, setPendingCompanyById] = useState<Record<string, string>>({});
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [latestQuickInstallToken, setLatestQuickInstallToken] = useState<{ hostName: string; token: string } | null>(null);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
 
   useEffect(() => {
@@ -207,7 +208,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     try {
       const companyLabel = directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Host remoto";
       const name = `${companyLabel} - Acesso remoto`;
-      await requestRemoteMutation({
+      const payload = await requestRemoteMutation<Record<string, unknown>>({
         url: "/api/remote/hosts",
         method: "POST",
         body: {
@@ -219,6 +220,14 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           status: "ACTIVE",
         },
       });
+
+      const savedHost = payload.data as { name?: string | null; installToken?: string | null };
+      if (savedHost?.installToken) {
+        setLatestQuickInstallToken({
+          hostName: savedHost.name?.trim() || name,
+          token: savedHost.installToken,
+        });
+      }
 
       toast.success("Maquina cadastrada.");
       setQuickRustdeskId("");
@@ -414,6 +423,37 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           O fluxo agora e 100% via integracao RustDesk. Faca a vinculacao das maquinas descobertas nesta tela e siga a vinculacao de maquina autenticada do agente.
         </p>
       </div>
+      {latestQuickInstallToken ? (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+            InstallToken gerado para {latestQuickInstallToken.hostName}
+          </p>
+          <p className="mt-1 break-all font-mono text-xs text-amber-800 dark:text-amber-100">
+            {latestQuickInstallToken.token}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await copyTextWithFallback(latestQuickInstallToken.token);
+                  toast.success("InstallToken copiado.");
+                } catch {
+                  toast.error("Falha ao copiar installToken.");
+                }
+              }}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Copiar installToken
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setLatestQuickInstallToken(null)}>
+              Fechar
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <section className={cn("grid gap-3", canCreateHosts ? "grid-cols-2 xl:grid-cols-5" : "grid-cols-2 xl:grid-cols-4")}>
         <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
@@ -971,3 +1011,4 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     </div>
   );
 }
+

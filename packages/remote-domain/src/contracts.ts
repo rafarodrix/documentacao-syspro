@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 export const sysproUpdateSchema = z.object({
   companyLabel: z.string().min(1),
@@ -428,6 +428,11 @@ export type RotateHostAgentTokenOutput = {
   message: string;
 };
 
+export type RotateHostInstallTokenOutput = {
+  host: HostSerializedRecord;
+  message: string;
+};
+
 export type RevokeHostAgentTokenOutput = {
   host: HostSerializedRecord;
   message: string;
@@ -459,3 +464,6 @@ export type RevokeAddressBookCredentialOutput = {
   alreadyRevoked: boolean;
   message: string;
 };
+
+
+

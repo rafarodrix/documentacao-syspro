@@ -326,7 +326,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
+  const [isRotatingInstallToken, startRotatingInstallToken] = useTransition();
   const [linkingUpdateId, startLinkingUpdateId] = useTransition();
+  const [latestInstallToken, setLatestInstallToken] = useState<string | null>(null);
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
@@ -681,11 +683,31 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   function handleRotateAgentToken() {
     startRevokingAgentToken(async () => {
       try {
-        const result = await requestRemoteMutation<{ message?: string }>({
+        const result = await requestRemoteMutation<Record<string, unknown>>({
           url: `/api/remote/hosts/${host.id}/agent-token`,
           method: "POST",
         });
         toast.success(result.message ?? "Credencial renovada.");
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
+  function handleRotateInstallToken() {
+    startRotatingInstallToken(async () => {
+      try {
+        const result = await requestRemoteMutation<{ installToken?: string | null }>({
+          url: `/api/remote/hosts/${host.id}/install-token`,
+          method: "POST",
+        });
+        const token = result.data?.installToken?.trim() ?? null;
+        if (token) {
+          setLatestInstallToken(token);
+          await handleCopy(token, "InstallToken");
+        }
+        toast.success(result.message ?? "Token de instalacao regenerado.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -1174,6 +1196,15 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <Fingerprint className="h-4 w-4" />
                   Copiar credencial
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleRotateInstallToken}
+                  disabled={isRotatingInstallToken}
+                  className="w-full gap-2 sm:w-auto"
+                >
+                  <Fingerprint className="h-4 w-4" />
+                  {isRotatingInstallToken ? "Gerando..." : "Regenerar installToken"}
+                </Button>
                 {!agentTokenMeta.needsBootstrap ? (
                   <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
                     <Fingerprint className="h-4 w-4" />
@@ -1185,6 +1216,28 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   </div>
                 )}
               </div>
+
+              {latestInstallToken ? (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    Novo installToken gerado para este host
+                  </p>
+                  <p className="mt-2 break-all font-mono text-xs text-amber-800 dark:text-amber-100">
+                    {latestInstallToken}
+                  </p>
+                  <div className="mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopy(latestInstallToken, "InstallToken")}
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copiar installToken
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">

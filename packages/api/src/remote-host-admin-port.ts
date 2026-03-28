@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+﻿import { randomBytes } from "node:crypto";
 import { prisma, buildScopedWhere, normalizeCompareValue, normalizeRustdeskIdStrict, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
 import type {
   CreateHostInput,
@@ -12,6 +12,7 @@ import type {
   RelinkHostSysproUpdateOutput,
   RevokeHostAgentTokenOutput,
   RotateHostAgentTokenOutput,
+  RotateHostInstallTokenOutput,
   UpdateHostInput,
   UpdateHostOutput,
   RemoteHostAdminPort,
@@ -158,6 +159,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
           description: input.description?.trim() || null,
           notes: input.notes?.trim() || null,
           agentExternalId,
+          installToken: buildInstallToken(),
           status: input.status ?? "ACTIVE",
         },
       });
@@ -331,6 +333,54 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         host,
         message: "agentToken rotacionado. Execute o bootstrap novamente no host para emitir nova credencial.",
       };
+    },
+
+
+    async rotateHostInstallToken(input: HostAgentTokenInput): Promise<RotateHostInstallTokenOutput> {
+      const scopedWhere = buildScopedWhere(input.scope.companyIds, input.scope.isGlobalView);
+      const existingHost = await prisma.remoteHost.findFirst({
+        where: { id: input.hostId, ...scopedWhere },
+        select: { id: true, name: true },
+      });
+
+      if (!existingHost) {
+        throw new Error("HOST_NOT_FOUND");
+      }
+
+      let installToken = buildInstallToken();
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const host = await prisma.remoteHost.update({
+            where: { id: input.hostId },
+            data: { installToken },
+            select: {
+              id: true,
+              name: true,
+              installToken: true,
+              updatedAt: true,
+            },
+          });
+
+          return {
+            host,
+            message: "Token de instalacao regenerado. Use este valor no bootstrap da maquina.",
+          };
+        } catch (error) {
+          const isUniqueViolation =
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            (error as { code?: string }).code === "P2002";
+
+          if (!isUniqueViolation || attempt === 3) {
+            throw error;
+          }
+
+          installToken = buildInstallToken();
+        }
+      }
+
+      throw new Error("HOST_INSTALL_TOKEN_ROTATE_FAILED");
     },
 
     async revokeHostAgentToken(input: HostAgentTokenInput): Promise<RevokeHostAgentTokenOutput> {
@@ -524,6 +574,12 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
     },
   };
 }
+
+
+
+
+
+
 
 
 

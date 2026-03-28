@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -55,6 +55,7 @@ export function RemotePlatformControls({ overview }: Props) {
   const [recentHosts, setRecentHosts] = useState(overview.recentHosts);
   const [recentSessions, setRecentSessions] = useState(overview.recentSessions);
   const [hostOptionsState, setHostOptionsState] = useState(overview.hostOptions);
+  const [latestInstallToken, setLatestInstallToken] = useState<{ hostName: string; token: string } | null>(null);
 
   const canCreateHosts = overview.tenantScope.role !== "CLIENTE_ADMIN";
   const isEditing = Boolean(editingHostId);
@@ -316,6 +317,9 @@ export function RemotePlatformControls({ overview }: Props) {
       };
 
       toast.success(isEditing ? "Host remoto atualizado." : "Host remoto criado.");
+      if (!isEditing && savedHost.installToken) {
+        setLatestInstallToken({ hostName: savedHost.name, token: savedHost.installToken });
+      }
       setRecentHosts((current) => {
         const next = [mappedHost, ...current.filter((host) => host.id !== mappedHost.id)];
         return next.slice(0, 6);
@@ -476,6 +480,31 @@ export function RemotePlatformControls({ overview }: Props) {
                   </Button>
                 ) : null}
               </div>
+
+              {latestInstallToken ? (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    InstallToken gerado para {latestInstallToken.hostName}
+                  </p>
+                  <p className="mt-1 break-all font-mono text-xs text-amber-800 dark:text-amber-100">
+                    {latestInstallToken.token}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopy(latestInstallToken.token, "InstallToken")}
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copiar installToken
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setLatestInstallToken(null)}>
+                      Fechar
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label>Empresa</Label>
@@ -882,3 +911,7 @@ export function RemotePlatformControls({ overview }: Props) {
     </section>
   );
 }
+
+
+
+
