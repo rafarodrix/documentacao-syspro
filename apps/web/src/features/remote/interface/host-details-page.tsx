@@ -921,19 +921,18 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="conexao" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-4">
-          <TabsTrigger value="conexao">{isMobileClient ? "Acesso" : "Conexao"}</TabsTrigger>
-          <TabsTrigger value="contexto">Empresa</TabsTrigger>
+      <Tabs defaultValue="infra" className="space-y-4">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-3">
+          <TabsTrigger value="infra">{isMobileClient ? "Acesso" : "Infra"}</TabsTrigger>
+          <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="agente">Agente</TabsTrigger>
-          <TabsTrigger value="clientes">{isMobileClient ? "Pessoas" : "Clientes"}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="conexao">
+        <TabsContent value="infra">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Conexao da maquina</CardTitle>
-              <CardDescription>Somente sinais operacionais essenciais. Detalhes tecnicos ficam no diagnostico.</CardDescription>
+              <CardTitle className="text-lg">Infraestrutura da maquina</CardTitle>
+              <CardDescription>Conexao, hardware e rede em um unico painel tecnico.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
@@ -975,23 +974,76 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   </div>
                 </div>
               </details>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-sm font-medium text-foreground">Hardware e conectividade reportados pelo agente</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sistema operacional</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      {typeof systemSnapshot?.osCaption === "string" && systemSnapshot.osCaption.trim()
+                        ? systemSnapshot.osCaption
+                        : "Sem leitura"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.systemSnapshotAt)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Memoria / Disco</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      RAM livre: {typeof systemSnapshot?.freeRamMb === "number" ? `${systemSnapshot.freeRamMb} MB` : "-"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Disco livre C: {typeof systemSnapshot?.diskFreeGb === "number" ? `${systemSnapshot.diskFreeGb} GB` : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Rede</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      Gateway: {typeof networkSnapshot?.defaultGateway === "string" && networkSnapshot.defaultGateway.trim()
+                        ? networkSnapshot.defaultGateway
+                        : "Sem leitura"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.networkSnapshotAt)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Software inventariado</p>
+                    <p className="mt-2 text-sm text-foreground">{softwareSnapshot.length} item(ns)</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.softwareSnapshotAt)}</p>
+                  </div>
+                </div>
+                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Snapshots raw (hardware/rede/software)</summary>
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
+                    {JSON.stringify(
+                      {
+                        systemSnapshot: systemSnapshot ?? { status: "Sem leitura" },
+                        networkSnapshot: networkSnapshot ?? { status: "Sem leitura" },
+                        softwareSnapshot: softwareSnapshot.length ? softwareSnapshot : [{ status: "Sem leitura" }],
+                      },
+                      null,
+                      2
+                    )}
+                  </pre>
+                </details>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="contexto">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg">Empresa e instalacoes da maquina</CardTitle>
-              <CardDescription>
-                Dados operacionais por instalacao, com o diretorio da instalacao como fonte unica do caminho monitorado.
-                Edicoes de cadastro da empresa devem ser feitas apenas no modulo de Empresas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {details.installationContexts.length ? (
-                <div className="space-y-4">
-                  {details.installationContexts.map((context, index) => {
+        <TabsContent value="empresa">
+          <div className="space-y-4">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-lg">Empresa e instalacoes da maquina</CardTitle>
+                <CardDescription>
+                  Dados operacionais por instalacao, com o diretorio da instalacao como fonte unica do caminho monitorado.
+                  Edicoes de cadastro da empresa devem ser feitas apenas no modulo de Empresas.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {details.installationContexts.length ? (
+                  <div className="space-y-4">
+                    {details.installationContexts.map((context, index) => {
                     const entry = context.update;
                     const companyContext = context.company;
                     const primaryCompanyDirectory = details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
@@ -1115,15 +1167,77 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  Esta maquina ainda nao enviou instalacoes no heartbeat.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                    Esta maquina ainda nao enviou instalacoes no heartbeat.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-lg">Pessoas vinculadas</CardTitle>
+                <CardDescription>
+                  Usuarios ativos da empresa base do cadastro. Para maquinas multiempresa, a leitura principal agora esta em `Empresa e instalacoes`.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {details.linkedUsers.length ? (
+                  details.linkedUsers.map((user) => (
+                    <div key={user.id} className="flex items-start justify-between gap-3 rounded-xl border border-border/50 bg-muted/15 p-4">
+                      <div className="space-y-1">
+                        <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                          <UserRound className="h-4 w-4 text-muted-foreground" />
+                          {user.name ?? user.email}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                      <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                        {user.role}
+                      </Badge>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Nenhum usuario ativo vinculado a esta empresa.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-lg">Sessoes recentes</CardTitle>
+                <CardDescription>Historico recente do host com contexto de ticket e status.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {details.recentSessions.length ? (
+                  details.recentSessions.map((session) => (
+                    <div key={session.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-foreground">{session.hostName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Solicitado por {session.requestedByName ?? session.requestedByUserId}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Ticket: {session.ticketNumber ? `#${session.ticketNumber}` : "Nao informado"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Criada em {formatDateTime(session.createdAt)}</p>
+                        </div>
+                        <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                          {session.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Nenhuma sessao registrada para este host ainda.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="agente">
@@ -1222,68 +1336,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-sm font-medium text-foreground">Inventario tecnico projetado pelo agente</p>
-                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sistema operacional</p>
-                    <p className="mt-2 text-sm text-foreground">
-                      {typeof systemSnapshot?.osCaption === "string" && systemSnapshot.osCaption.trim()
-                        ? systemSnapshot.osCaption
-                        : "Sem leitura"}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.systemSnapshotAt)}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Memoria / Disco</p>
-                    <p className="mt-2 text-sm text-foreground">
-                      RAM livre: {typeof systemSnapshot?.freeRamMb === "number" ? `${systemSnapshot.freeRamMb} MB` : "-"}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Disco livre C: {typeof systemSnapshot?.diskFreeGb === "number" ? `${systemSnapshot.diskFreeGb} GB` : "-"}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Rede</p>
-                    <p className="mt-2 text-sm text-foreground">
-                      Gateway: {typeof networkSnapshot?.defaultGateway === "string" && networkSnapshot.defaultGateway.trim()
-                        ? networkSnapshot.defaultGateway
-                        : "Sem leitura"}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.networkSnapshotAt)}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Software inventariado</p>
-                    <p className="mt-2 text-sm text-foreground">{softwareSnapshot.length} item(ns)</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.softwareSnapshotAt)}</p>
-                  </div>
-                </div>
-
-                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-                  <summary className="cursor-pointer text-sm font-medium text-foreground">Métricas do agente</summary>
-                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
-                    {JSON.stringify(agentMetrics ?? { status: "Sem leitura" }, null, 2)}
-                  </pre>
-                </details>
-                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-                  <summary className="cursor-pointer text-sm font-medium text-foreground">Snapshot de sistema (raw)</summary>
-                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
-                    {JSON.stringify(systemSnapshot ?? { status: "Sem leitura" }, null, 2)}
-                  </pre>
-                </details>
-                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-                  <summary className="cursor-pointer text-sm font-medium text-foreground">Snapshot de rede (raw)</summary>
-                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
-                    {JSON.stringify(networkSnapshot ?? { status: "Sem leitura" }, null, 2)}
-                  </pre>
-                </details>
-                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-                  <summary className="cursor-pointer text-sm font-medium text-foreground">Snapshot de software (raw)</summary>
-                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
-                    {JSON.stringify(softwareSnapshot.length ? softwareSnapshot : [{ status: "Sem leitura" }], null, 2)}
-                  </pre>
-                </details>
-              </div>
+              <details className="rounded-lg border border-border/40 bg-background/40 p-3">
+                <summary className="cursor-pointer text-sm font-medium text-foreground">Métricas do agente (raw)</summary>
+                <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
+                  {JSON.stringify(agentMetrics ?? { status: "Sem leitura" }, null, 2)}
+                </pre>
+              </details>
 
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => handleCopy(host.installToken, "Credencial do host")} className="w-full gap-2 sm:w-auto">
@@ -1604,70 +1662,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           </Card>
         </TabsContent>
 
-        <TabsContent value="clientes">
-          <div className="space-y-4">
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle className="text-lg">Pessoas vinculadas</CardTitle>
-                <CardDescription>
-                  Usuarios ativos da empresa base do cadastro. Para maquinas multiempresa, a leitura principal agora esta em `Contexto`.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {details.linkedUsers.length ? (
-                  details.linkedUsers.map((user) => (
-                    <div key={user.id} className="flex items-start justify-between gap-3 rounded-xl border border-border/50 bg-muted/15 p-4">
-                      <div className="space-y-1">
-                        <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                          <UserRound className="h-4 w-4 text-muted-foreground" />
-                          {user.name ?? user.email}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                      </div>
-                      <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                        {user.role}
-                      </Badge>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">Nenhum usuario ativo vinculado a esta empresa.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle className="text-lg">Sessoes recentes</CardTitle>
-                <CardDescription>Historico recente do host com contexto de ticket e status.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {details.recentSessions.length ? (
-                  details.recentSessions.map((session) => (
-                    <div key={session.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">{session.hostName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Solicitado por {session.requestedByName ?? session.requestedByUserId}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Ticket: {session.ticketNumber ? `#${session.ticketNumber}` : "Nao informado"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">Criada em {formatDateTime(session.createdAt)}</p>
-                        </div>
-                        <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                          {session.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">Nenhuma sessao registrada para este host ainda.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );
