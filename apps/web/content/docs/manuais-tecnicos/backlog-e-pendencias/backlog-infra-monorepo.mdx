@@ -80,6 +80,24 @@ Ordem recomendada:
     - `npm run db:generate`
     - `npm run db:migrate` (dev)
     - `npm run db:deploy` (producao)
+  - matriz E2E por perfil (evidencia obrigatoria):
+
+    | Cenario E2E | ADMIN | SUPORTE | CLIENTE_ADMIN | CLIENTE_USER | Evidencia |
+    | --- | --- | --- | --- | --- | --- |
+    | Acesso a `/portal/plataforma-remota` | PENDENTE | PENDENTE | PENDENTE | PENDENTE | print/link |
+    | Listagem de hosts (escopo correto por perfil) | PENDENTE | PENDENTE | PENDENTE | PENDENTE | print/link |
+    | `POST /api/remote/agents/discover` (triagem) | PENDENTE | PENDENTE | N/A | N/A | log/request id |
+    | `POST /api/remote/rustdesk/bootstrap` (vinculacao) | PENDENTE | PENDENTE | PENDENTE | N/A | log/request id |
+    | `POST /api/remote/rustdesk/sync` (heartbeat recorrente) | PENDENTE | PENDENTE | PENDENTE | N/A | log/request id |
+    | `POST /api/remote/rustdesk/ack` (retorno de comando) | PENDENTE | PENDENTE | PENDENTE | N/A | log/request id |
+    | Criar host (`hosts create`) | PENDENTE | PENDENTE | KO esperado | KO esperado | print/link |
+    | Atualizar host (`hosts update`) | PENDENTE | PENDENTE | PENDENTE | KO esperado | print/link |
+    | Sessao remota (`REQUESTED -> STARTED -> ENDED`) | PENDENTE | PENDENTE | PENDENTE | KO esperado | print/link |
+    | Erro tipado remoto (`401/403/409/429`) com mensagem acionavel | PENDENTE | PENDENTE | PENDENTE | PENDENTE | print/link |
+
+  - regra de preenchimento da matriz:
+    - usar `OK`, `KO esperado` ou `N/A` em cada celula.
+    - para cada linha, anexar ao menos uma evidencia em `Evidencia` (print, log ou link do run).
 - [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, observacoes manuais do host, token de instalacao, heartbeat, metadata basica do agente, configuracoes globais do modulo remoto e regeneracao automatica de `installToken` legado ja existem; falta validar auto-registro/heartbeat em ambiente real, materializar instalacao em campo com ciclo recorrente e decidir se a entidade de agente vira tabela propria quando o recorte OSS-first estabilizar.
 - [ ] `FEAT-002A` [Media] Consolidar UX operacional de hosts e agentes. Grid operacional simplificada, cadastro rapido por modal, filtros por status/ambiente/heartbeat, copia rapida de `RustDesk ID`, labels amigaveis, indicadores de prontidao, acesso direto, simplificacao do detalhe do host, edicao de `machineName`, separacao entre observacoes do host vs empresa e matriz compartilhada de status operacional (`ONLINE`, `RECENT`, `OFFLINE`, `MISCONFIGURED`, `SESSION_BUSY`) ja existem; falta fechar consistencia visual entre configuracao, diretorio e detalhe, revisar mobile e reforcar feedback de bloqueios por host.
 - [ ] `FEAT-002G` [Media] Refatorar frontend da aba `/portal/configuracoes?tab=remote` para contrato remoto tipado. Status atual: **parcial**. Ja existe parser unico de resposta remota no frontend (`code/message/httpStatus`) aplicado no formulario de configuracoes e nas acoes de credenciais/address-book, incluindo mensagens acionaveis para `401/403/429`. Pendencias para fechar: (1) aplicar o mesmo parser em 100% das actions restantes da aba, (2) validar inputs com a mesma regra do backend para `RustDesk ID` (7-12 digitos), (3) revisar copy final para remover qualquer linguagem residual de onboarding legado.
