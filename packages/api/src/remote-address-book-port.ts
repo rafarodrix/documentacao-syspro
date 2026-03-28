@@ -1,28 +1,10 @@
-import { createHash, randomBytes } from "node:crypto";
-import { prisma } from "@dosc-syspro/database";
-import { resolveRustDeskAlias } from "./remote-domain-ports";
+import { prisma, buildAddressBookToken, buildScopedWhere, resolveRustDeskAlias } from "@dosc-syspro/database";
+
 import type {
   ListAddressBookCredentialsOutput,
   ListAddressBookOutput,
   RemoteAddressBookPort,
 } from "@dosc-syspro/remote-domain";
-
-const ADDRESS_BOOK_TOKEN_PREFIX = "trlabk_";
-
-function buildAddressBookToken() {
-  const raw = randomBytes(24).toString("base64url");
-  const token = `${ADDRESS_BOOK_TOKEN_PREFIX}${raw}`;
-  const tokenHash = createHash("sha256").update(token, "utf8").digest("hex");
-  return {
-    token,
-    tokenHash,
-    tokenPreview: `${token.slice(0, 14)}...`,
-  };
-}
-
-function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
 
 function normalizeIntegrationKey(input: string) {
   return input
@@ -221,3 +203,4 @@ export function createRemoteAddressBookPort(): RemoteAddressBookPort {
     },
   };
 }
+

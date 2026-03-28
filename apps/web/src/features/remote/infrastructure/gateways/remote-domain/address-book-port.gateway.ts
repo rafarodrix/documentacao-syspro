@@ -1,6 +1,4 @@
-import { prisma } from "@/lib/prisma";
-import { resolveRustDeskAlias } from "@/features/remote/application/rustdesk-sync";
-import { buildAddressBookToken } from "@/features/remote/application/address-book-credentials";
+import { prisma, buildAddressBookToken, buildScopedWhere, resolveRustDeskAlias } from "@dosc-syspro/database";
 import type {
   CreateAddressBookCredentialInput,
   CreateAddressBookCredentialOutput,
@@ -14,10 +12,6 @@ import type {
   RotateAddressBookCredentialInput,
   RotateAddressBookCredentialOutput,
 } from "@dosc-syspro/remote-domain";
-
-function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
 
 function normalizeIntegrationKey(input: string) {
   return input
@@ -289,4 +283,5 @@ export function createRemoteAddressBookPort(): RemoteAddressBookPort {
     },
   };
 }
+
 

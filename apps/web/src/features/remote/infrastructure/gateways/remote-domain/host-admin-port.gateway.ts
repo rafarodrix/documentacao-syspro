@@ -1,11 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { prisma } from "@/lib/prisma";
-import {
-  normalizeCompareValue,
-  normalizeSysproUpdates,
-  syncRemoteHostSysproUpdates,
-} from "@/features/remote/application/agent-payload";
-import { normalizeRustdeskIdStrict } from "@/features/remote/application/rustdesk-sync";
+import { prisma, buildScopedWhere, normalizeCompareValue, normalizeRustdeskIdStrict, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
 import type {
   CreateHostInput,
   CreateHostOutput,
@@ -22,10 +16,6 @@ import type {
   UpdateHostOutput,
   RemoteHostAdminPort,
 } from "@dosc-syspro/remote-domain";
-
-function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
 
 function buildInstallToken() {
   return `rhost_${randomBytes(12).toString("hex")}`;
@@ -534,5 +524,6 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
     },
   };
 }
+
 
 

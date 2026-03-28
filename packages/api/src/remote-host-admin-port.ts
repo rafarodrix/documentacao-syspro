@@ -1,7 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { prisma } from "@dosc-syspro/database";
-import { normalizeCompareValue, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "./remote-domain-ports";
-
+import { prisma, buildScopedWhere, normalizeCompareValue, normalizeRustdeskIdStrict, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
 import type {
   CreateHostInput,
   CreateHostOutput,
@@ -19,18 +17,8 @@ import type {
   RemoteHostAdminPort,
 } from "@dosc-syspro/remote-domain";
 
-function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
-
 function buildInstallToken() {
   return `rhost_${randomBytes(12).toString("hex")}`;
-}
-
-function normalizeRustdeskIdStrict(value?: string | null): string | null {
-  const digitsOnly = (value ?? "").replace(/\D/g, "").trim();
-  if (!digitsOnly) return null;
-  return /^\d{7,12}$/.test(digitsOnly) ? digitsOnly : null;
 }
 
 function withDataError(message: string, data?: unknown) {
@@ -536,6 +524,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
     },
   };
 }
+
 
 
 
