@@ -24,7 +24,7 @@ export function SiteFooter() {
               {/* Logo Tema Claro */}
               <div className="relative h-8 w-36 dark:hidden">
                 <Image
-                  src="/logo/logo-escura.png"
+                  src="/img/logo/logo-escura.png"
                   alt="Trilink Software"
                   fill
                   className="object-contain object-left"
@@ -34,7 +34,7 @@ export function SiteFooter() {
               {/* Logo Tema Escuro */}
               <div className="relative h-8 w-36 hidden dark:block">
                 <Image
-                  src="/logo/logo-clara.png"
+                  src="/img/logo/logo-clara.png"
                   alt="Trilink Software"
                   fill
                   className="object-contain object-left"

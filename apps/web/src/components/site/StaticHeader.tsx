@@ -62,7 +62,7 @@ export function StaticSiteHeader() {
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <div className="relative h-8 w-32 dark:hidden">
               <Image
-                src="/logo/logo-escura.png"
+                src="/img/logo/logo-escura.png"
                 alt="Trilink Software"
                 fill
                 priority
@@ -72,7 +72,7 @@ export function StaticSiteHeader() {
             </div>
             <div className="relative hidden h-8 w-32 dark:block">
               <Image
-                src="/logo/logo-clara.png"
+                src="/img/logo/logo-clara.png"
                 alt="Trilink Software"
                 fill
                 priority

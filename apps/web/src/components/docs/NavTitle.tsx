@@ -5,7 +5,7 @@ export function NavTitle() {
     <>
       <div className="relative h-8 w-32 md:hidden dark:hidden">
         <Image
-          src="/logo/logo-escura.png"
+          src="/img/logo/logo-escura.png"
           alt="Logo Trilink Software"
           fill
           priority
@@ -15,7 +15,7 @@ export function NavTitle() {
       </div>
       <div className="relative hidden h-8 w-32 md:hidden dark:block">
         <Image
-          src="/logo/logo-clara.png"
+          src="/img/logo/logo-clara.png"
           alt="Logo Trilink Software"
           fill
           priority
