@@ -27,7 +27,7 @@ function formatDateTime(value: string | null) {
 }
 
 function formatRelativeHeartbeat(value: string | null) {
-  if (!value) return "Sem heartbeat";
+  if (!value) return "Sem contato";
 
   const diffMinutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000);
   if (diffMinutes < 1) return "Agora";
@@ -159,10 +159,6 @@ function getAgentTokenMeta(value: string | null) {
   };
 }
 
-function hasNumericRustDeskId(value: string | null) {
-  return !!value && /^\d{7,12}$/.test(value.replace(/\s+/g, ""));
-}
-
 async function copyTextWithFallback(value: string) {
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
@@ -189,26 +185,6 @@ async function copyTextWithFallback(value: string) {
   if (!copied) {
     throw new Error("copy_failed");
   }
-}
-
-function getOperationalMeta(input: { rustdeskId: string | null; lastHeartbeatAt: string | null; needsBootstrap: boolean }) {
-  const heartbeatMs = input.lastHeartbeatAt ? Date.now() - new Date(input.lastHeartbeatAt).getTime() : Number.POSITIVE_INFINITY;
-  const heartbeatRecent = heartbeatMs <= 10 * 60 * 1000;
-  const hasValidId = hasNumericRustDeskId(input.rustdeskId);
-
-  if (heartbeatRecent && hasValidId && !input.needsBootstrap) {
-    return {
-      label: "Host operacional",
-      description: "Heartbeat recente, ID valido e credencial operacional liberada.",
-      tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    };
-  }
-
-  return {
-    label: "Host exige revisao",
-    description: "Valide ID, heartbeat ou vinculacao de maquina antes de tratar este host como pronto para acesso remoto.",
-    tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  };
 }
 
 function resolveExpectedRustDeskAlias(input: {
@@ -244,15 +220,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     issuedAt.setDate(issuedAt.getDate() + 30);
     return issuedAt.toISOString();
   }, [host.agent.agentTokenIssuedAt]);
-  const operationalMeta = useMemo(
-    () =>
-      getOperationalMeta({
-        rustdeskId: host.rustdeskId,
-        lastHeartbeatAt: host.lastHeartbeatAt,
-        needsBootstrap: agentTokenMeta.needsBootstrap,
-      }),
-    [agentTokenMeta.needsBootstrap, host.lastHeartbeatAt, host.rustdeskId]
-  );
   const rustDeskCompliance = useMemo(() => {
     const expectedAlias = resolveExpectedRustDeskAlias({
       hostName: host.name,
@@ -372,7 +339,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
       return {
-        label: "Sem heartbeat",
+        label: "Sem contato",
         tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
         description: "O agente ainda nao registrou atividade recente no portal.",
       };
@@ -383,7 +350,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
     if (diffMinutes <= 5) {
       return {
-        label: "Heartbeat recente",
+        label: "Contato recente",
         tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
         description: "Host provavelmente online e apto para acesso imediato.",
       };
@@ -391,7 +358,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
     if (diffMinutes <= 60) {
       return {
-        label: "Heartbeat antigo",
+        label: "Contato intermitente",
         tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
         description: "O host respondeu antes, mas vale confirmar a conectividade.",
       };
@@ -637,12 +604,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   : "Maquina remota vinculada ao portal"}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">{host.description || "Sem descricao operacional."}</p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {operationalMeta.label}. Use os botoes principais para acesso rapido e abra as abas apenas quando precisar de detalhes.
-              </p>
             </div>
             {installations.length ? (
-              <div className="grid gap-2 md:grid-cols-2">
+              <div className="space-y-2">
 	                {installations.map((installation, installationIndex) => (
 	                  <div
 	                    key={`${installation.companyId ?? "unlinked"}::${installation.companyLabel}::${installation.path}::${installationIndex}`}
@@ -655,16 +619,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{installation.path}</p>
                   </div>
                 ))}
-              </div>
-            ) : null}
-
-            {agentTokenMeta.needsBootstrap ? (
-              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4">
-                <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">Renovacao de credencial necessaria</p>
-                <p className="mt-1 text-sm text-rose-700/90 dark:text-rose-200/90">{agentTokenMeta.description}</p>
-                <p className="mt-2 text-xs text-rose-700/80 dark:text-rose-200/80">
-                  Reexecute a vinculacao de maquina autenticada neste host para concluir a renovacao de credencial.
-                </p>
               </div>
             ) : null}
 
@@ -721,7 +675,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
-                Heartbeat: {formatRelativeHeartbeat(host.lastHeartbeatAt)}
+                Ultimo contato: {formatRelativeHeartbeat(host.lastHeartbeatAt)}
               </span>
               <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
                 Sessao: {host.openSessionCount ? `${host.openSessionCount} ativa(s)` : "Nenhuma"}
@@ -734,31 +688,13 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           </div>
 
           <div className="space-y-3">
-            {agentTokenMeta.needsBootstrap ? (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
-                <p className="font-medium text-foreground">Agente exige nova vinculacao de maquina</p>
-                <p className="mt-1 text-sm text-muted-foreground">{agentTokenMeta.description}</p>
-              </div>
-            ) : null}
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-              <p className="font-medium text-foreground">Heartbeat: {heartbeat.label}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{heartbeat.description}</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servico do agente</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{serviceStatus.label}</p>
-              </div>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-3 text-sm text-muted-foreground">
-              <p>
-                Use <span className="font-medium text-foreground">{isMobileClient ? "Abrir no app" : "Abrir acesso remoto"}</span> como acao principal.
-                Quando precisar de configuracoes da empresa e instalacoes, use a aba <span className="font-medium text-foreground">Empresa</span>.
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo contato da maquina</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+              <p className="mt-3 text-sm text-muted-foreground">{heartbeat.description}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Situacao do servico remoto: <span className="font-medium text-foreground">{serviceStatus.label}</span>
               </p>
             </div>
           </div>

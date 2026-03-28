@@ -1,7 +1,7 @@
 ---
 title: Operacao do Agente Remoto OSS
 description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat e validacao operacional do agente remoto no modelo RustDesk self-hosted com portal proprio.
-lastUpdated: 2026-03-27
+lastUpdated: 2026-03-28
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -39,6 +39,10 @@ Padrao oficial:
   - backend/contrato: `bootstrap`, `POST /api/remote/rustdesk/bootstrap`
 - UI: **Renovacao de Credencial**
   - backend/contrato: rotacao/revogacao de `agentToken`
+- UI: **Ultimo contato da maquina** / **Sem contato recente**
+  - backend/contrato: `heartbeat`, `lastHeartbeatAt`
+- UI (detalhe do host): **card unico "Ultimo contato da maquina"** com tempo relativo + data/hora da ultima leitura
+  - backend/contrato: continua baseado em `lastHeartbeatAt` e status de `sync`
 
 <Callout type="info" title="Convencao de linguagem">
   No frontend e nos textos operacionais do portal, evitar jargoes como `bootstrap` e `agentToken` quando houver alternativa clara. Em logs tecnicos, payloads, codigo e contratos de API, manter os termos tecnicos para rastreabilidade.
