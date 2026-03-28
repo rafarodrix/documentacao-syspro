@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
+  AlertTriangle,
   ArrowLeft,
+  CheckCircle2,
+  CircleHelp,
   Copy,
   ExternalLink,
   Fingerprint,
   HardDriveDownload,
   UserRound,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +85,131 @@ function getServiceStatusMeta(value: string | null) {
   };
 }
 
+function getServiceStatusIconMeta(value: string | null) {
+  if (!value) {
+    return {
+      Icon: CircleHelp,
+      tone: "text-muted-foreground",
+      label: "Sem leitura",
+    };
+  }
+
+  const normalized = value.toLowerCase();
+  if (normalized === "running") {
+    return {
+      Icon: CheckCircle2,
+      tone: "text-emerald-600 dark:text-emerald-400",
+      label: "Running",
+    };
+  }
+
+  if (normalized === "restarted_by_agent") {
+    return {
+      Icon: AlertTriangle,
+      tone: "text-amber-600 dark:text-amber-400",
+      label: "Recovered",
+    };
+  }
+
+  if (normalized === "not_found") {
+    return {
+      Icon: XCircle,
+      tone: "text-red-600 dark:text-red-400",
+      label: "Not found",
+    };
+  }
+
+  return {
+    Icon: CircleHelp,
+    tone: "text-foreground",
+    label: value,
+  };
+}
+
+function getAutoHealStatusIconMeta(value: string | null) {
+  if (!value) {
+    return {
+      Icon: CircleHelp,
+      tone: "text-muted-foreground",
+      label: "Sem leitura",
+    };
+  }
+
+  if (value === "ACKNOWLEDGED") {
+    return {
+      Icon: AlertTriangle,
+      tone: "text-amber-600 dark:text-amber-400",
+      label: "Recovered",
+    };
+  }
+
+  if (value === "FAILED") {
+    return {
+      Icon: XCircle,
+      tone: "text-red-600 dark:text-red-400",
+      label: "Falhou",
+    };
+  }
+
+  if (value === "PENDING" || value === "DELIVERED") {
+    return {
+      Icon: CircleHelp,
+      tone: "text-foreground",
+      label: "Em andamento",
+    };
+  }
+
+  return {
+    Icon: CircleHelp,
+    tone: "text-muted-foreground",
+    label: value,
+  };
+}
+
+function formatHourMinute(value: string | null) {
+  if (!value) return "Sem registro";
+  return new Date(value).toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function extractStringFromPayload(
+  payload: Record<string, unknown> | null,
+  preferredKeys: string[]
+) {
+  if (!payload) return null;
+
+  const normalizedPreferredKeys = new Set(preferredKeys.map((key) => key.toLowerCase()));
+  const queue: unknown[] = [payload];
+  const visited = new Set<object>();
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current || typeof current !== "object") continue;
+    if (visited.has(current as object)) continue;
+    visited.add(current as object);
+
+    for (const [key, value] of Object.entries(current as Record<string, unknown>)) {
+      if (
+        normalizedPreferredKeys.has(key.toLowerCase()) &&
+        typeof value === "string" &&
+        value.trim()
+      ) {
+        return value.trim();
+      }
+    }
+
+    for (const value of Object.values(current as Record<string, unknown>)) {
+      if (value && typeof value === "object") {
+        queue.push(value);
+      }
+    }
+  }
+
+  return null;
+}
+
 const COMPANY_SERVER_TYPE_LABEL: Record<"SYSPRO_SERVER" | "IIS", string> = {
   SYSPRO_SERVER: "Syspro Server",
   IIS: "IIS",
@@ -119,7 +248,7 @@ function getAgentTokenMeta(value: string | null) {
     return {
       label: "Credencial expirada",
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      description: "A credencial do agente expirou por politica do portal. Execute a vinculacao de maquina novamente neste host.",
+      description: "A credencial do agente expirou por politica do portal. Execute a Vinculacao de Maquina novamente neste host.",
       needsBootstrap: true,
     };
   }
@@ -128,7 +257,7 @@ function getAgentTokenMeta(value: string | null) {
     return {
       label: "Credencial invalida",
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      description: "O heartbeat foi recusado. Execute a vinculacao de maquina novamente neste host para emitir nova credencial.",
+      description: "O heartbeat foi recusado. Execute a Vinculacao de Maquina novamente neste host para emitir nova credencial.",
       needsBootstrap: true,
     };
   }
@@ -137,7 +266,7 @@ function getAgentTokenMeta(value: string | null) {
     return {
       label: "Credencial renovada",
       tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      description: "A credencial anterior foi invalidada pelo portal. O host precisa de nova vinculacao de maquina.",
+      description: "A credencial anterior foi invalidada pelo portal. O host precisa de nova Vinculacao de Maquina.",
       needsBootstrap: true,
     };
   }
@@ -146,7 +275,7 @@ function getAgentTokenMeta(value: string | null) {
     return {
       label: "Credencial ausente",
       tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      description: "O heartbeat local nao encontrou a credencial do agente. Reexecute a vinculacao de maquina autenticada neste host.",
+      description: "O heartbeat local nao encontrou a credencial do agente. Reexecute a Vinculacao de Maquina autenticada neste host.",
       needsBootstrap: true,
     };
   }
@@ -325,6 +454,131 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   }, [details.company.installationDirectory, details.installationContexts]);
   const installationsPreview = useMemo(() => installations.slice(0, 2), [installations]);
   const hasMoreInstallations = installations.length > installationsPreview.length;
+  const serviceStatusIcon = useMemo(() => getServiceStatusIconMeta(host.serviceStatus), [host.serviceStatus]);
+  const agentHealthCard = useMemo(() => {
+    const latestAutoHealCommand = details.agentCommands.find(
+      (command) => command.type === "REAPPLY_ALIAS" || command.type === "REAPPLY_CONFIG"
+    );
+
+    const autoHealLastAttemptAt =
+      latestAutoHealCommand?.executedAt ??
+      latestAutoHealCommand?.failedAt ??
+      latestAutoHealCommand?.deliveredAt ??
+      latestAutoHealCommand?.updatedAt ??
+      latestAutoHealCommand?.createdAt ??
+      null;
+
+    const autoHealMeta = (() => {
+      if (!latestAutoHealCommand) {
+        return {
+          label: "Sem leitura",
+          status: null,
+        };
+      }
+
+      if (latestAutoHealCommand.status === "ACKNOWLEDGED") {
+        return {
+          label: "Recovered",
+          status: latestAutoHealCommand.status,
+        };
+      }
+
+      if (latestAutoHealCommand.status === "FAILED") {
+        return {
+          label: "Falhou",
+          status: latestAutoHealCommand.status,
+        };
+      }
+
+      return {
+        label: "Em andamento",
+        status: latestAutoHealCommand.status,
+      };
+    })();
+
+    const beforeServiceStatus =
+      (latestAutoHealCommand &&
+        (extractStringFromPayload(latestAutoHealCommand.resultPayload, [
+          "serviceStatusBefore",
+          "lastServiceStatusBefore",
+          "previousServiceStatus",
+          "beforeStatus",
+          "statusBefore",
+        ]) ||
+          extractStringFromPayload(latestAutoHealCommand.payload, [
+            "serviceStatusBefore",
+            "lastServiceStatusBefore",
+            "previousServiceStatus",
+            "beforeStatus",
+            "statusBefore",
+          ]))) ??
+      null;
+
+    const afterServiceStatus =
+      (latestAutoHealCommand &&
+        (extractStringFromPayload(latestAutoHealCommand.resultPayload, [
+          "serviceStatusAfter",
+          "currentServiceStatus",
+          "afterStatus",
+          "statusAfter",
+        ]) ||
+          extractStringFromPayload(latestAutoHealCommand.payload, [
+            "serviceStatusAfter",
+            "currentServiceStatus",
+            "afterStatus",
+            "statusAfter",
+          ]))) ??
+      host.serviceStatus;
+
+    const erpVersionKeys = [
+      "erpVersion",
+      "versionErp",
+      "versaoErp",
+      "sysproVersion",
+      "versionSyspro",
+      "versaoSyspro",
+    ];
+
+    const erpVersion =
+      details.agentCommands
+        .map((command) => {
+          return (
+            extractStringFromPayload(command.resultPayload, erpVersionKeys) ||
+            extractStringFromPayload(command.payload, erpVersionKeys)
+          );
+        })
+        .find((value): value is string => !!value) ?? null;
+
+    const erpPaths = Array.from(
+      new Set(
+        installations
+          .map((entry) => entry.path.trim())
+          .filter((path) => !!path)
+      )
+    );
+    const fallbackPath = details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
+    const resolvedPaths = erpPaths.length ? erpPaths : [fallbackPath];
+
+    return {
+      status: serviceStatus,
+      autoHeal: {
+        ...autoHealMeta,
+        lastAttemptAt: autoHealLastAttemptAt,
+        beforeStatus: beforeServiceStatus ? getServiceStatusMeta(beforeServiceStatus).label : null,
+        afterStatus: getServiceStatusMeta(afterServiceStatus).label,
+      },
+      erp: {
+        version: erpVersion,
+        paths: resolvedPaths,
+      },
+    };
+  }, [details.agentCommands, details.company.installationDirectory, installations, serviceStatus]);
+  const autoHealStatusIcon = useMemo(
+    () => getAutoHealStatusIconMeta(agentHealthCard.autoHeal.status),
+    [agentHealthCard.autoHeal.status]
+  );
+  const ServiceStatusIcon = serviceStatusIcon.Icon;
+  const AutoHealStatusIcon = autoHealStatusIcon.Icon;
   const companyOptionLabelCount = useMemo(() => {
     return details.companyOptions.reduce<Record<string, number>>((acc, option) => {
       acc[option.label] = (acc[option.label] ?? 0) + 1;
@@ -1051,14 +1305,65 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               >
                 <p className="font-medium">
                   {agentTokenMeta.needsBootstrap
-                    ? "Este host precisa de nova vinculacao de maquina autenticada"
+                    ? "Este host precisa de nova Vinculacao de Maquina autenticada"
                     : "Este host esta no fluxo autenticado por credencial"}
                 </p>
                 <p className="mt-1">
                   {agentTokenMeta.needsBootstrap
-                    ? "Execute novamente a vinculacao de maquina autenticada neste host e aguarde o proximo heartbeat valido."
-                    : "Se precisar reinstalar ou reaplicar configuracao, siga o fluxo de vinculacao de maquina autenticada no agente."}
+                    ? "Execute novamente a Vinculacao de Maquina autenticada neste host e aguarde o proximo heartbeat valido."
+                    : "Se precisar reinstalar ou reaplicar configuracao, siga o fluxo de Vinculacao de Maquina autenticada no agente."}
                 </p>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-sm font-medium text-foreground">Saude do agente</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Status atual</p>
+                    <div className="mt-2 flex h-9 items-center" title={serviceStatusIcon.label}>
+                      <ServiceStatusIcon
+                        className={cn("h-6 w-6", serviceStatusIcon.tone)}
+                        aria-label={serviceStatusIcon.label}
+                      />
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estado de Auto-cura</p>
+                    <div className="mt-2 flex h-9 items-center" title={autoHealStatusIcon.label}>
+                      <AutoHealStatusIcon
+                        className={cn("h-6 w-6", autoHealStatusIcon.tone)}
+                        aria-label={autoHealStatusIcon.label}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-foreground">{agentHealthCard.autoHeal.label}</p>
+                    {agentHealthCard.autoHeal.beforeStatus ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Antes: {agentHealthCard.autoHeal.beforeStatus} {"->"} Depois: {agentHealthCard.autoHeal.afterStatus}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Estado atual: {agentHealthCard.autoHeal.afterStatus}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Ultima tentativa as {formatHourMinute(agentHealthCard.autoHeal.lastAttemptAt)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao do ERP</p>
+                    <p className="mt-2 text-sm text-foreground">{agentHealthCard.erp.version ?? "Sem leitura"}</p>
+                    <div className="mt-1 space-y-1">
+                      {agentHealthCard.erp.paths.slice(0, 2).map((path) => (
+                        <p key={path} className="break-all text-xs text-muted-foreground">
+                          {path}
+                        </p>
+                      ))}
+                      {agentHealthCard.erp.paths.length > 2 ? (
+                        <p className="text-xs text-muted-foreground">+{agentHealthCard.erp.paths.length - 2} caminho(s)</p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -1073,11 +1378,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 {!agentTokenMeta.needsBootstrap ? (
                   <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
                     <Fingerprint className="h-4 w-4" />
-                    {isRevokingAgentToken ? "Renovando..." : "Renovar credencial"}
+                    {isRevokingAgentToken ? "Renovando..." : "Renovacao de Credencial"}
                   </Button>
                 ) : (
                   <div className="w-full rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 sm:w-auto">
-                    Nova vinculacao da maquina pendente
+                    Nova Vinculacao de Maquina pendente
                   </div>
                 )}
               </div>
@@ -1288,10 +1593,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </div>
 
                 <div className="mt-3 rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p>1. Execute a vinculacao de maquina autenticada para este host.</p>
+                  <p>1. Execute a Vinculacao de Maquina autenticada para este host.</p>
                   <p>2. Confirme o RustDesk ID devolvido pela maquina do cliente.</p>
-                  <p>3. A vinculacao de maquina emite a credencial operacional e o heartbeat continuo passa a usar essa credencial.</p>
-                  <p>4. Se a credencial for renovada ou expirar, execute a vinculacao de maquina novamente neste host.</p>
+                  <p>3. A Vinculacao de Maquina emite a credencial operacional e o heartbeat continuo passa a usar essa credencial.</p>
+                  <p>4. Se a credencial for renovada ou expirar, execute a Vinculacao de Maquina novamente neste host.</p>
                   <p>5. A descoberta e apenas etapa de triagem e nao reativa heartbeat autenticado em host ja vinculado.</p>
                   <p>6. Se o heartbeat nao vier, valide conectividade, tarefa do agente e URL do portal.</p>
                   {isMobileClient ? <p>7. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}

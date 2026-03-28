@@ -393,7 +393,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <div>
               <CardTitle className="text-lg">Politicas do agente</CardTitle>
               <CardDescription>
-                Defaults operacionais aplicados no bootstrap e no heartbeat recorrente.
+                Defaults operacionais aplicados na Vinculacao de Maquina e no heartbeat recorrente.
               </CardDescription>
             </div>
           </div>
@@ -418,6 +418,11 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           <div className="space-y-2">
             <Label htmlFor="defaultPassword">Senha padrao</Label>
             <Input id="defaultPassword" {...form.register("defaultPassword")} />
+          </div>
+
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground md:col-span-3">
+            Esses parametros impactam diretamente o Card de Saude do Agente em `Detalhes` do host, incluindo status atual,
+            estado de auto-cura e convergencia do cliente.
           </div>
         </CardContent>
       </Card>

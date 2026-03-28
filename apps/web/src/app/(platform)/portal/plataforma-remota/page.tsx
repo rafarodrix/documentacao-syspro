@@ -20,7 +20,7 @@ export default async function RemotePlatformPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">Plataforma Remota</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Lista de acessos otimizada para entrada rapida. Use `Acesso` para conectar e `Detalhes` para diagnostico completo.
+              Lista de acessos otimizada para entrada rapida. Use `Acesso` para conectar e `Detalhes` para diagnostico completo com Saude do Agente, Auto-cura e telemetria.
             </p>
           </div>
         </div>
