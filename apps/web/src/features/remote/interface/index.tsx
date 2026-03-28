@@ -19,6 +19,83 @@ const statusVariant: Record<RemotePlatformStatus, string> = {
   blocked:     "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
 };
 
+type OverviewStat = {
+  label: string;
+  value: number;
+};
+
+type RecentItem = {
+  id: string;
+  primary: string;
+  secondary: string;
+  tertiary?: string;
+  status: string;
+};
+
+const statsGridClassBySize: Record<number, string> = {
+  4: "grid-cols-2 sm:grid-cols-4",
+  5: "grid-cols-2 sm:grid-cols-5",
+};
+
+function StatsStrip({ stats }: { stats: OverviewStat[] }) {
+  const gridClass = statsGridClassBySize[stats.length] ?? "grid-cols-2";
+
+  return (
+    <div className={`grid gap-2 rounded-lg border border-border/50 bg-muted/20 p-3 ${gridClass}`}>
+      {stats.map(({ label, value }) => (
+        <div key={label} className="text-center">
+          <p className="text-lg font-semibold text-foreground">{value}</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RecentItemCard({
+  title,
+  stats,
+  items,
+  emptyMessage,
+}: {
+  title: string;
+  stats: OverviewStat[];
+  items: RecentItem[];
+  emptyMessage: string;
+}) {
+  return (
+    <Card className="border-border/50">
+      <CardHeader>
+        <CardTitle className="text-lg">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <StatsStrip stats={stats} />
+
+        {items.length ? (
+          items.map((item) => (
+            <div key={item.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{item.primary}</p>
+                  <p className="text-xs text-muted-foreground">{item.secondary}</p>
+                  {item.tertiary ? (
+                    <p className="text-xs text-muted-foreground">{item.tertiary}</p>
+                  ) : null}
+                </div>
+                <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                  {item.status}
+                </Badge>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlatformOverview }) {
   return (
     <div className="space-y-8">
@@ -89,7 +166,7 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
           <CardContent className="space-y-4">
             <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold">Escopo efetivo da sessao</h3>
+                <p className="text-sm font-semibold text-foreground">Escopo efetivo da sessao</p>
                 <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                   {overview.tenantScope.isGlobalView ? "Global" : "Por empresa"}
                 </Badge>
@@ -106,7 +183,7 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
             {overview.accessPolicies.map((policy) => (
               <div key={policy.role} className="rounded-lg border border-border/50 bg-muted/20 p-4">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold">{policy.role}</h3>
+                  <p className="text-sm font-semibold text-foreground">{policy.role}</p>
                   <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                     {policy.scope === "global" ? "Global" : "Por empresa"}
                   </Badge>
@@ -147,91 +224,41 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Hosts persistidos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-4 gap-2 rounded-lg border border-border/50 bg-muted/20 p-3">
-              {[
-                { label: "Total", value: overview.hostStats.total },
-                { label: "Ativos", value: overview.hostStats.active },
-                { label: "Manutenção", value: overview.hostStats.maintenance },
-                { label: "Inativos", value: overview.hostStats.inactive },
-              ].map(({ label, value }) => (
-                <div key={label} className="text-center">
-                  <p className="text-lg font-semibold text-foreground">{value}</p>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
+        <RecentItemCard
+          title="Hosts persistidos"
+          stats={[
+            { label: "Total", value: overview.hostStats.total },
+            { label: "Ativos", value: overview.hostStats.active },
+            { label: "Manutenção", value: overview.hostStats.maintenance },
+            { label: "Inativos", value: overview.hostStats.inactive },
+          ]}
+          items={overview.recentHosts.map((host) => ({
+            id: host.id,
+            primary: host.name,
+            secondary: `${host.companyName ?? "Sem empresa"}${host.environment ? ` | ${host.environment}` : ""}`,
+            status: host.status,
+          }))}
+          emptyMessage="Nenhum host remoto persistido ainda."
+        />
 
-            {overview.recentHosts.length ? (
-              overview.recentHosts.map((host) => (
-                <div key={host.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{host.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {host.companyName ?? "Sem empresa"}{host.environment ? ` | ${host.environment}` : ""}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                      {host.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">Nenhum host remoto persistido ainda.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Sessoes persistidas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-5 gap-2 rounded-lg border border-border/50 bg-muted/20 p-3">
-              {[
-                { label: "Total", value: overview.sessionStats.total },
-                { label: "Req.", value: overview.sessionStats.requested },
-                { label: "Init.", value: overview.sessionStats.started },
-                { label: "Ended", value: overview.sessionStats.ended },
-                { label: "Failed", value: overview.sessionStats.failed },
-              ].map(({ label, value }) => (
-                <div key={label} className="text-center">
-                  <p className="text-lg font-semibold text-foreground">{value}</p>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
-
-            {overview.recentSessions.length ? (
-              overview.recentSessions.map((session) => (
-                <div key={session.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{session.hostName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {session.companyName ?? "Sem empresa"} | Solicitado por {session.requestedByName ?? session.requestedByUserId}
-                      </p>
-                      {session.ticketNumber && (
-                        <p className="text-xs text-muted-foreground">Ticket #{session.ticketNumber}</p>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                      {session.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">Nenhuma sessao remota persistida ainda.</p>
-            )}
-          </CardContent>
-        </Card>
+        <RecentItemCard
+          title="Sessoes persistidas"
+          stats={[
+            { label: "Total", value: overview.sessionStats.total },
+            { label: "Req.", value: overview.sessionStats.requested },
+            { label: "Init.", value: overview.sessionStats.started },
+            { label: "Ended", value: overview.sessionStats.ended },
+            { label: "Failed", value: overview.sessionStats.failed },
+          ]}
+          items={overview.recentSessions.map((session) => ({
+            id: session.id,
+            primary: session.hostName,
+            secondary: `${session.companyName ?? "Sem empresa"} | Solicitado por ${session.requestedByName ?? session.requestedByUserId}`,
+            tertiary: session.ticketNumber ? `Ticket #${session.ticketNumber}` : undefined,
+            status: session.status,
+          }))}
+          emptyMessage="Nenhuma sessao remota persistida ainda."
+        />
       </section>
 
       <section className="space-y-4">
@@ -369,4 +396,3 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
     </div>
   );
 }
-
