@@ -603,20 +603,20 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   ? `${installations.length} instalacao(oes) vinculada(s) nesta maquina`
                   : "Maquina remota vinculada ao portal"}
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">{host.description || "Sem descricao operacional."}</p>
             </div>
             {installations.length ? (
               <div className="space-y-2">
-	                {installations.map((installation, installationIndex) => (
-	                  <div
-	                    key={`${installation.companyId ?? "unlinked"}::${installation.companyLabel}::${installation.path}::${installationIndex}`}
-	                    className="rounded-lg border border-border/50 bg-muted/15 p-3"
-	                  >
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Instalacao {installationIndex + 1}</p>
+                {installations.map((installation, installationIndex) => (
+                  <div
+                    key={`${installation.companyId ?? "unlinked"}::${installation.companyLabel}::${installation.path}::${installationIndex}`}
+                    className="rounded-lg border border-border/50 bg-muted/15 p-3"
+                  >
+                    <p className="truncate text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Instalacao {installationIndex + 1} · {installation.path}
+                    </p>
                     <p className="mt-1 text-sm font-medium text-foreground">
                       {installation.resolvedCompanyName ?? installation.companyLabel}
                     </p>
-                    <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{installation.path}</p>
                   </div>
                 ))}
               </div>
@@ -666,11 +666,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   Salvar nome
                 </Button>
               </div>
-            </div>
-
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome do computador (Windows)</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{windowsComputerName ?? "Sem leitura do agente"}</p>
             </div>
 
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">

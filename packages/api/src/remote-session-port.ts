@@ -12,6 +12,8 @@ type RemoteLogger = {
   error(event: string, fields?: Record<string, unknown>): void;
 };
 
+type AddInternalTicketNoteFn = (input: { ticketId: string; body: string }) => Promise<void>;
+
 function buildScopeWhere(scope: RemoteSessionScope) {
   if (scope.isGlobalView) return {};
   return { companyId: { in: scope.companyIds.length ? scope.companyIds : ["__none__"] } };
@@ -49,8 +51,11 @@ function serializeSessionRecord(
   };
 }
 
-export function createRemoteSessionPort(params: { logger: RemoteLogger }): RemoteSessionPort {
-  const { logger } = params;
+export function createRemoteSessionPort(params: {
+  logger: RemoteLogger;
+  addInternalTicketNote?: AddInternalTicketNoteFn;
+}): RemoteSessionPort {
+  const { logger, addInternalTicketNote } = params;
 
   return {
     async listSessions(scope) {
@@ -194,8 +199,9 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }): Remot
 
       return serializeSessionRecord(updated as unknown as Record<string, unknown>);
     },
-    async addInternalTicketNote(_input) {
-      return;
+    async addInternalTicketNote(input) {
+      if (!addInternalTicketNote) return;
+      await addInternalTicketNote({ ticketId: input.ticketId, body: input.body });
     },
     async logInfo(event, fields) {
       logger.info(event, fields);

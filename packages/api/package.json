@@ -13,7 +13,10 @@
     "./routers/settings": "./src/routers/settings.ts",
     "./routers/tax": "./src/routers/tax.ts",
     "./routers/tickets": "./src/routers/tickets.ts",
-    "./routers/remote": "./src/routers/remote.ts"
+    "./routers/remote": "./src/routers/remote.ts",
+    "./remote-host-admin-port": "./src/remote-host-admin-port.ts",
+    "./remote-address-book-port": "./src/remote-address-book-port.ts",
+    "./remote-session-port": "./src/remote-session-port.ts"
   },
   "dependencies": {
     "@dosc-syspro/remote-domain": "0.0.0",
