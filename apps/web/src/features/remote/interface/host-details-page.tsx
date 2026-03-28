@@ -293,16 +293,21 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   ]);
   const installations = useMemo(() => {
     const seen = new Set<string>();
-    const items = details.sysproUpdates
-      .map((entry) => {
-        const key = `${entry.companyLabel}::${entry.path}`.toLowerCase();
+    const items = details.installationContexts
+      .map((context) => {
+        const entry = context.update;
+        const companyContext = context.company;
+        const companyDirectory = companyContext?.installationDirectory?.trim();
+        const displayDirectory = companyDirectory || entry.path;
+        const key = `${entry.companyLabel}::${displayDirectory}`.toLowerCase();
         if (seen.has(key)) return null;
         seen.add(key);
         return {
           companyId: entry.companyId,
           resolvedCompanyName: entry.resolvedCompanyName,
           companyLabel: entry.companyLabel,
-          path: entry.path,
+          path: displayDirectory,
+          directorySource: companyDirectory ? "company" : "agent",
         };
       })
       .filter(
@@ -313,11 +318,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           resolvedCompanyName: string | null;
           companyLabel: string;
           path: string;
+          directorySource: "company" | "agent";
         } => !!entry
       );
 
     return items;
-  }, [details.sysproUpdates]);
+  }, [details.installationContexts]);
   const installationsPreview = useMemo(() => installations.slice(0, 2), [installations]);
   const hasMoreInstallations = installations.length > installationsPreview.length;
   const companyOptionLabelCount = useMemo(() => {
@@ -597,7 +603,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       className="truncate text-[11px] uppercase tracking-wide text-muted-foreground"
                       title={`Instalacao ${installationIndex + 1} (diretorio): ${installation.path}`}
                     >
-                      Instalacao {installationIndex + 1} (diretorio): {installation.path}
+                      Instalacao {installationIndex + 1} (diretorio {installation.directorySource === "company" ? "empresa" : "agente"}): {installation.path}
                     </p>
                     <p className="mt-1 text-sm font-medium text-foreground">
                       {installation.resolvedCompanyName ?? installation.companyLabel}
@@ -769,10 +775,20 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     const companyName = companyContext?.nomeFantasia ?? companyContext?.razaoSocial ?? entry.resolvedCompanyName ?? entry.companyLabel;
                     const serverType = companyContext?.serverType ? COMPANY_SERVER_TYPE_LABEL[companyContext.serverType] : "Nao configurado";
                     const draft = companyContext ? companyContextDrafts[companyContext.id] : null;
+                    const draftDirectory = draft?.installationDirectory?.trim();
+                    const companyDirectory = companyContext?.installationDirectory?.trim();
+                    const agentDirectory = entry.path?.trim();
                     const installationDirectory =
-                      draft?.installationDirectory?.trim() ||
-                      companyContext?.installationDirectory ||
+                      draftDirectory ||
+                      companyDirectory ||
+                      agentDirectory ||
                       DEFAULT_INSTALLATION_DIRECTORY;
+                    const installationDirectorySource =
+                      draftDirectory || companyDirectory
+                        ? "empresa"
+                        : agentDirectory
+                        ? "agente"
+                        : "padrao";
 
                     return (
                       <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
@@ -790,7 +806,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                             <p className="mt-1 text-sm text-foreground">{serverType}</p>
                           </div>
                           <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado (diretorio da instalacao)</p>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                              Caminho monitorado (diretorio {installationDirectorySource})
+                            </p>
                             <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
                           </div>
                         </div>
@@ -823,7 +841,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao (fonte de verdade)</p>
                               {companyContext && details.permissions.canEditCompanyContext ? (
                                 <Input
-                                  value={draft?.installationDirectory ?? companyContext.installationDirectory ?? DEFAULT_INSTALLATION_DIRECTORY}
+                                  value={draft?.installationDirectory ?? companyContext.installationDirectory ?? entry.path ?? DEFAULT_INSTALLATION_DIRECTORY}
                                   onChange={(event) =>
                                     handleCompanyContextDraftChange(
                                       companyContext.id,
@@ -956,7 +974,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
                         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho monitorado</p>
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                Caminho monitorado (diretorio {installationDirectorySource})
+                              </p>
                               <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
                             </div>
                           <div className="rounded-lg border border-border/40 bg-background/40 p-3">
@@ -1043,22 +1063,22 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </p>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
-                <Button variant="outline" onClick={() => handleCopy(host.installToken, "Credencial do host")} className="w-full gap-2 xl:w-auto">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => handleCopy(host.installToken, "Credencial do host")} className="w-full gap-2 sm:w-auto">
                   <Fingerprint className="h-4 w-4" />
                   Copiar credencial
                 </Button>
-                <Button variant="outline" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")} className="w-full gap-2 xl:w-auto">
+                <Button variant="outline" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")} className="w-full gap-2 sm:w-auto">
                   <Copy className="h-4 w-4" />
                   Copiar RustDesk ID
                 </Button>
                 {!agentTokenMeta.needsBootstrap ? (
-                  <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 xl:w-auto">
+                  <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
                     <Fingerprint className="h-4 w-4" />
                     {isRevokingAgentToken ? "Renovando..." : "Renovar credencial"}
                   </Button>
                 ) : (
-                  <div className="flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                  <div className="w-full rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 sm:w-auto">
                     Nova vinculacao da maquina pendente
                   </div>
                 )}
