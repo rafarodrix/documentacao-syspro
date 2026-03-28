@@ -10,21 +10,15 @@ interface YouTubeModalProps {
 
 export function YouTubeModal({ videoId, thumbnailTitle }: YouTubeModalProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState(`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`);
 
-  // Tenta maxresdefault primeiro; se nao existir, cai para hqdefault
-  const [thumbnailUrl, setThumbnailUrl] = useState(
-    `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`
-  );
+  const closeModal = () => setIsOpen(false);
+  const openModal = () => setIsOpen(true);
 
-  // Fecha com Escape
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') closeModal();
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape') closeModal();
   }, []);
 
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
-
-  // Bloqueia scroll enquanto modal aberto
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -64,9 +58,7 @@ export function YouTubeModal({ videoId, thumbnailTitle }: YouTubeModalProps) {
           alt={thumbnailTitle}
           width={1280}
           height={720}
-          onError={() =>
-            setThumbnailUrl(`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`)
-          }
+          onError={() => setThumbnailUrl(`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`)}
           style={{
             width: '100%',
             height: 'auto',
@@ -135,11 +127,11 @@ export function YouTubeModal({ videoId, thumbnailTitle }: YouTubeModalProps) {
               padding: '4px 8px',
             }}
           >
-            ×
+            x
           </button>
 
           <div
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
             style={{
               position: 'relative',
               width: '90%',
