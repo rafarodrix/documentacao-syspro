@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   AlertTriangle,
@@ -19,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
@@ -317,6 +319,7 @@ function resolveExpectedRustDeskAlias(input: {
 }
 
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
+  const router = useRouter();
   const { host } = details;
   const [projectedHostName, setProjectedHostName] = useState(host.name);
   const [pendingUpdateCompanyById, setPendingUpdateCompanyById] = useState<Record<string, string>>({});
@@ -683,7 +686,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           method: "POST",
         });
         toast.success(result.message ?? "Credencial renovada.");
-        window.location.reload();
+        router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
       }
@@ -702,7 +705,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         });
 
         toast.success("Empresa vinculada na instalacao monitorada.");
-        window.location.reload();
+        router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
       }
@@ -722,7 +725,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         });
 
         toast.success("Empresa adicional vinculada a esta instalacao.");
-        window.location.reload();
+        router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
       }
@@ -970,10 +973,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           <summary className="cursor-pointer text-sm font-medium text-foreground">Informacoes do servidor</summary>
                           <div className="mt-3 grid gap-3 md:grid-cols-2">
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
-                              <p className="mt-1 text-sm text-foreground">{serverType}</p>
-                            </div>
-                            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao (fonte de verdade)</p>
                               <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
                               <p className="mt-2 text-xs text-muted-foreground">
@@ -1047,21 +1046,25 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
                         {details.permissions.canRelinkInstallations ? (
                           <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
-                            <select
+                            <Select
                               value={pendingUpdateCompanyById[entry.id] ?? entry.companyId ?? details.company.id}
-                              onChange={(event) =>
-                                setPendingUpdateCompanyById((current) => ({ ...current, [entry.id]: event.target.value }))
+                              onValueChange={(value) =>
+                                setPendingUpdateCompanyById((current) => ({ ...current, [entry.id]: value }))
                               }
-                              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
                             >
-                              {details.companyOptions.map((company) => (
-                                <option key={company.id} value={company.id}>
-                                  {companyOptionLabelCount[company.label] > 1
-                                    ? `${company.label} (${company.id.slice(0, 8)})`
-                                    : company.label}
-                                </option>
-                              ))}
-                            </select>
+                              <SelectTrigger className="h-10">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {details.companyOptions.map((company) => (
+                                  <SelectItem key={company.id} value={company.id}>
+                                    {companyOptionLabelCount[company.label] > 1
+                                      ? `${company.label} (${company.id.slice(0, 8)})`
+                                      : company.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <Button className="w-full lg:w-auto" onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
                               Trocar empresa
                             </Button>
@@ -1170,10 +1173,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <Button variant="outline" onClick={() => handleCopy(host.installToken, "Credencial do host")} className="w-full gap-2 sm:w-auto">
                   <Fingerprint className="h-4 w-4" />
                   Copiar credencial
-                </Button>
-                <Button variant="outline" onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")} className="w-full gap-2 sm:w-auto">
-                  <Copy className="h-4 w-4" />
-                  Copiar RustDesk ID
                 </Button>
                 {!agentTokenMeta.needsBootstrap ? (
                   <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
@@ -1407,68 +1406,70 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         </TabsContent>
 
         <TabsContent value="clientes">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg">Pessoas vinculadas</CardTitle>
-              <CardDescription>
-                Usuarios ativos da empresa base do cadastro. Para maquinas multiempresa, a leitura principal agora esta em `Contexto`.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {details.linkedUsers.length ? (
-                details.linkedUsers.map((user) => (
-                  <div key={user.id} className="flex items-start justify-between gap-3 rounded-xl border border-border/50 bg-muted/15 p-4">
-                    <div className="space-y-1">
-                      <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <UserRound className="h-4 w-4 text-muted-foreground" />
-                        {user.name ?? user.email}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
+          <div className="space-y-4">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-lg">Pessoas vinculadas</CardTitle>
+                <CardDescription>
+                  Usuarios ativos da empresa base do cadastro. Para maquinas multiempresa, a leitura principal agora esta em `Contexto`.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {details.linkedUsers.length ? (
+                  details.linkedUsers.map((user) => (
+                    <div key={user.id} className="flex items-start justify-between gap-3 rounded-xl border border-border/50 bg-muted/15 p-4">
+                      <div className="space-y-1">
+                        <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                          <UserRound className="h-4 w-4 text-muted-foreground" />
+                          {user.name ?? user.email}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                      <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                        {user.role}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                      {user.role}
-                    </Badge>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Nenhum usuario ativo vinculado a esta empresa.</p>
-              )}
-            </CardContent>
-          </Card>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Nenhum usuario ativo vinculado a esta empresa.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-lg">Sessoes recentes</CardTitle>
+                <CardDescription>Historico recente do host com contexto de ticket e status.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {details.recentSessions.length ? (
+                  details.recentSessions.map((session) => (
+                    <div key={session.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-foreground">{session.hostName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Solicitado por {session.requestedByName ?? session.requestedByUserId}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Ticket: {session.ticketNumber ? `#${session.ticketNumber}` : "Nao informado"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Criada em {formatDateTime(session.createdAt)}</p>
+                        </div>
+                        <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                          {session.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Nenhuma sessao registrada para este host ainda.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
-
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="text-lg">Sessoes recentes</CardTitle>
-          <CardDescription>Historico recente do host com contexto de ticket e status.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {details.recentSessions.length ? (
-            details.recentSessions.map((session) => (
-              <div key={session.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">{session.hostName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Solicitado por {session.requestedByName ?? session.requestedByUserId}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Ticket: {session.ticketNumber ? `#${session.ticketNumber}` : "Nao informado"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Criada em {formatDateTime(session.createdAt)}</p>
-                  </div>
-                  <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                    {session.status}
-                  </Badge>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">Nenhuma sessao registrada para este host ainda.</p>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
