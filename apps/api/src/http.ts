@@ -81,6 +81,38 @@ function getApiCode(error: ApiError) {
   }
 }
 
+type RemoteMappedError = {
+  code: string;
+  message: string;
+  httpStatus: number;
+  data?: unknown;
+};
+
+function extractRemoteMappedError(error: ApiError): RemoteMappedError | null {
+  if (!error.cause || typeof error.cause !== "object") return null;
+
+  const cause = error.cause as { remote?: unknown };
+  if (!cause.remote || typeof cause.remote !== "object") return null;
+
+  const remote = cause.remote as {
+    code?: unknown;
+    message?: unknown;
+    httpStatus?: unknown;
+    data?: unknown;
+  };
+
+  if (typeof remote.code !== "string") return null;
+  if (typeof remote.message !== "string") return null;
+  if (typeof remote.httpStatus !== "number") return null;
+
+  return {
+    code: remote.code,
+    message: remote.message,
+    httpStatus: remote.httpStatus,
+    ...(remote.data !== undefined ? { data: remote.data } : {}),
+  };
+}
+
 function isApiError(error: unknown): error is ApiError {
   if (!error || typeof error !== "object") return false;
 
@@ -94,6 +126,7 @@ export async function handleApiRequest(request: Request) {
   if (url.pathname === "/health") {
     return json({
       ok: true,
+      success: true,
       service: "@dosc-syspro/app-api",
       transport: "http",
     });
@@ -101,14 +134,14 @@ export async function handleApiRequest(request: Request) {
 
   const match = url.pathname.match(/^\/rpc\/([^/]+)\/([^/]+)$/);
   if (!match) {
-    return json({ ok: false, error: "Route not found." }, { status: 404 });
+    return json({ ok: false, success: false, error: "Route not found." }, { status: 404 });
   }
 
   const [, namespace, procedure] = match;
   const router = appRouter[namespace as keyof typeof appRouter];
 
   if (!router) {
-    return json({ ok: false, error: `Namespace not found: ${namespace}` }, { status: 404 });
+    return json({ ok: false, success: false, error: `Namespace not found: ${namespace}` }, { status: 404 });
   }
 
   const ctx = createApiContext({
@@ -135,21 +168,27 @@ export async function handleApiRequest(request: Request) {
 
     return json({
       ok: true,
+      success: true,
       requestId: ctx.requestId,
       data,
     });
   } catch (error) {
     if (isApiError(error)) {
-      const httpStatus = getStatusCode(error);
-      const code = getApiCode(error);
+      const mappedRemote = extractRemoteMappedError(error);
+      const httpStatus = mappedRemote?.httpStatus ?? getStatusCode(error);
+      const code = mappedRemote?.code ?? getApiCode(error);
+      const message = mappedRemote?.message ?? error.message;
+
       return json(
         {
           ok: false,
+          success: false,
           requestId: ctx.requestId,
-          error: error.message,
-          message: error.message,
+          error: message,
+          message,
           code,
           httpStatus,
+          ...(mappedRemote?.data !== undefined ? { data: mappedRemote.data } : {}),
         },
         { status: httpStatus },
       );
@@ -163,6 +202,7 @@ export async function handleApiRequest(request: Request) {
     return json(
       {
         ok: false,
+        success: false,
         requestId: ctx.requestId,
         error: mapped.message,
         message: mapped.message,
@@ -174,4 +214,3 @@ export async function handleApiRequest(request: Request) {
     );
   }
 }
-

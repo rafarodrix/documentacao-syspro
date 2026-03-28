@@ -77,7 +77,10 @@ function mapRemoteErrorToApiError(error: unknown): never {
           ? "BAD_REQUEST"
           : "INTERNAL_ERROR";
 
-  throw new ApiError(mapped.message, code, error);
+  throw new ApiError(mapped.message, code, {
+    remote: mapped,
+    original: error,
+  });
 }
 
 function createRemoteService(ctx: ApiContext) {

@@ -316,19 +316,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         } => !!entry
       );
 
-    if (items.length) return items;
-
-    return host.companyName
-      ? [
-          {
-            companyId: host.companyId,
-            resolvedCompanyName: host.companyName,
-            companyLabel: host.companyName,
-            path: DEFAULT_INSTALLATION_DIRECTORY,
-          },
-        ]
-      : [];
-  }, [details.sysproUpdates, host.companyId, host.companyName]);
+    return items;
+  }, [details.sysproUpdates]);
+  const installationsPreview = useMemo(() => installations.slice(0, 2), [installations]);
+  const hasMoreInstallations = installations.length > installationsPreview.length;
   const companyOptionLabelCount = useMemo(() => {
     return details.companyOptions.reduce<Record<string, number>>((acc, option) => {
       acc[option.label] = (acc[option.label] ?? 0) + 1;
@@ -600,25 +591,34 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <h1 className="text-2xl font-bold tracking-tight text-foreground">{projectedHostName}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {installations.length
-                  ? `${installations.length} instalacao(oes) vinculada(s) nesta maquina`
+                  ? `${installations.length} instalacoes vinculadas nesta maquina`
                   : "Maquina remota vinculada ao portal"}
               </p>
             </div>
             {installations.length ? (
               <div className="space-y-2">
-                {installations.map((installation, installationIndex) => (
+                {installationsPreview.map((installation, installationIndex) => (
                   <div
                     key={`${installation.companyId ?? "unlinked"}::${installation.companyLabel}::${installation.path}::${installationIndex}`}
                     className="rounded-lg border border-border/50 bg-muted/15 p-3"
                   >
-                    <p className="truncate text-[11px] uppercase tracking-wide text-muted-foreground">
-                      Instalacao {installationIndex + 1} · {installation.path}
+                    <p
+                      className="truncate text-[11px] uppercase tracking-wide text-muted-foreground"
+                      title={`Instalacao ${installationIndex + 1} (diretorio): ${installation.path}`}
+                    >
+                      Instalacao {installationIndex + 1} (diretorio): {installation.path}
                     </p>
                     <p className="mt-1 text-sm font-medium text-foreground">
                       {installation.resolvedCompanyName ?? installation.companyLabel}
                     </p>
                   </div>
                 ))}
+                {hasMoreInstallations ? (
+                  <p className="text-xs text-muted-foreground">
+                    +{installations.length - installationsPreview.length} instalacao(oes). Veja todas na aba{" "}
+                    <span className="font-medium text-foreground">Empresa</span>.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
