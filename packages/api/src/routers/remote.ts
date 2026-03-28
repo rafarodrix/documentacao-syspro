@@ -113,6 +113,17 @@ function asObject(input: unknown): Record<string, unknown> {
   return input && typeof input === "object" && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
 }
 
+function sanitizeAuthenticatedPayload(input: unknown): Record<string, unknown> {
+  const payload = asObject(input);
+  const {
+    scope: _ignoredScope,
+    actor: _ignoredActor,
+    actorUserId: _ignoredActorUserId,
+    ...safePayload
+  } = payload;
+  return safePayload;
+}
+
 function buildScopeFromSession(ctx: ApiContext) {
   if (!ctx.session) {
     throw new ApiError("Nao autenticado.", "UNAUTHORIZED");
@@ -195,7 +206,7 @@ export const remoteRouter = createRouter({
     auth: "authenticated",
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(listSessionsInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
       });
 
@@ -211,7 +222,7 @@ export const remoteRouter = createRouter({
     auth: "authenticated",
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(createSessionInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
         actor: buildActorFromSession(ctx),
       });
@@ -228,7 +239,7 @@ export const remoteRouter = createRouter({
     auth: "authenticated",
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(startSessionInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
         actor: buildActorFromSession(ctx),
       });
@@ -245,7 +256,7 @@ export const remoteRouter = createRouter({
     auth: "authenticated",
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(stopSessionInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
         actor: buildActorFromSession(ctx),
       });
@@ -263,7 +274,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(linkDiscoveredHostInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
       });
 
@@ -280,7 +291,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(createHostInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
       });
 
@@ -297,7 +308,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(updateHostInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
       });
 
@@ -314,7 +325,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(deleteHostInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
       });
 
@@ -331,7 +342,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(hostAgentTokenInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
       });
 
@@ -348,7 +359,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(hostAgentTokenInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
       });
 
@@ -365,7 +376,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(relinkHostSysproUpdateInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
       });
 
@@ -381,7 +392,7 @@ export const remoteRouter = createRouter({
     auth: "authenticated",
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(listAddressBookInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         scope: buildScopeFromSession(ctx),
       });
 
@@ -412,7 +423,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(createAddressBookCredentialInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         actorUserId: buildActorFromSession(ctx).userId,
       });
 
@@ -429,7 +440,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(rotateAddressBookCredentialInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         actorUserId: buildActorFromSession(ctx).userId,
       });
 
@@ -446,7 +457,7 @@ export const remoteRouter = createRouter({
     roles: ["ADMIN", "DEVELOPER"],
     handler: async ({ ctx, input }) => {
       const payload = parseOrThrow(revokeAddressBookCredentialInputSchema, {
-        ...asObject(input.payload),
+        ...sanitizeAuthenticatedPayload(input.payload),
         actorUserId: buildActorFromSession(ctx).userId,
       });
 

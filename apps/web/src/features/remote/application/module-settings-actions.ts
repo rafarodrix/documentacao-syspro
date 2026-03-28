@@ -4,7 +4,8 @@ import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { getRemoteModuleSettingsSnapshot, REMOTE_MODULE_SETTINGS_KEY, remoteModuleSettingsSchema } from "@/features/remote/application/module-settings";
+import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings-server";
+import { REMOTE_MODULE_SETTINGS_KEY, remoteModuleSettingsSchema } from "@/features/remote/application/module-settings";
 import type { RemoteModuleSettings, RemoteModuleSettingsActionResponse } from "@/features/remote/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.SUPORTE, Role.DEVELOPER];

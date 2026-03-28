@@ -1,6 +1,6 @@
-﻿import { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings";
+import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings-server";
 import { getRemoteAgentTokenExpiresAt, isRemoteAgentTokenExpired } from "@/features/remote/application/agent-token";
 import {
   buildRustDeskConfigProfile,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings";
+import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings-server";
 import { remoteErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";

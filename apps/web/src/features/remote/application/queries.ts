@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
-import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings";
+import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings-server";
 import { hashRustDeskPublicKey } from "@/features/remote/application/rustdesk-sync";
 import { resolveRemoteOperationalStatus } from "@/features/remote/domain/operational-status";
 import type {

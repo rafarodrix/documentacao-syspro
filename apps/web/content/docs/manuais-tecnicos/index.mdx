@@ -1,7 +1,7 @@
 ---
 title: Manuais Tecnicos
 description: Base tecnica restrita para administracao, suporte e desenvolvimento.
-lastUpdated: 2026-03-22
+lastUpdated: 2026-03-28
 owner: Equipe de Documentacao
 status: published
 tags:
@@ -22,8 +22,133 @@ Esta area e exclusiva para os perfis:
 
 Use este espaco para concentrar procedimentos internos, playbooks de suporte e guias de arquitetura tecnica.
 
-## Organizacao vigente
+## Compilado do projeto
 
-- `documentacao-tecnica-arquitetura/`: documentacao pronta e referencia tecnica oficial.
-- `backlog-e-pendencias/`: backlog vivo, itens em desenvolvimento e drafts.
+Este indice centraliza:
+
+- estrutura do monorepo
+- objetivo de cada documento tecnico
+- links diretos por tema
+- comandos operacionais mais usados no projeto
+
+## Estrutura do projeto (monorepo)
+
+- `apps/web`: frontend Next.js (portal + docs + rotas API do app web)
+- `apps/api`: shell HTTP dedicado para backend desacoplado
+- `apps/mobile`: shell mobile (runtime em evolucao)
+- `packages/database`: schema Prisma, migrations e seed
+- `packages/api`: contratos e routers compartilhados
+- `packages/remote-domain`: casos de uso e contratos do dominio remoto
+- `scripts/`: utilitarios operacionais (check, build e automacoes de suporte)
+
+## Mapa de documentacao tecnica
+
+### Arquitetura
+
+1. [Arquitetura da aplicacao monorepo](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-aplicacao-monorepo)
+   material: visao de camadas, boundaries entre apps/packages e regras de acoplamento.
+2. [Arquitetura de referencia por fluxo](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-referencia-por-fluxo)
+   material: fluxos transversais de negocio e referencia de ponta a ponta.
+3. [Estrutura do projeto](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/estrutura-projeto)
+   material: arvore principal e responsabilidades por diretorio.
+4. [Checklist de PR de arquitetura/feature](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/checklist-pr-arquitetura-feature)
+   material: checklist de revisao tecnica antes de merge/deploy.
+5. [Homologacao e producao](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/homologcao-producao)
+   material: fluxo de validacao, liberacao e controles por ambiente.
+
+### Portal Web
+
+1. [Arquitetura da documentacao Fumadocs](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura-documentacao-fumadocs)
+   material: padrao da base docs, estrutura de conteudo e convencoes de navegacao.
+2. [Padrao de componentes MDX](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/padrao-componentes-mdx)
+   material: componentes permitidos no conteudo e padrao de escrita tecnica.
+3. [Diff highlighting (Shiki)](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/diff-highlighting-shiki)
+   material: padrao para blocos de codigo com destaque de alteracoes.
+
+### Zammad
+
+1. [Integracao Zammad](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad)
+   material: contratos, fluxo de ticket e integracao com sessao remota.
+
+### Acesso Remoto
+
+1. [Operacao do agente remoto OSS](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss)
+    material: fluxo oficial `discover -> bootstrap -> sync -> ack`, seguranca e operacao de campo.
+
+### Templates de conteudo
+
+1. [Guia de templates MDX](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/modulo-documentacao/templates/guia-templates-mdx)
+2. [Template geral (frontmatter/tags)](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/modulo-documentacao/templates/template-geral-frontmatter-tags)
+3. [Template manual](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/modulo-documentacao/templates/template-manual)
+4. [Template duvida](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/modulo-documentacao/templates/template-duvida)
+5. [Template treinamento](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/modulo-documentacao/templates/template-treinamento)
+6. [Template suporte](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/modulo-documentacao/templates/template-suporte)
+7. [Template tecnico](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/modulo-documentacao/templates/template-tecnico)
+
+### Backlog e pendencias
+
+1. [Backlog infra monorepo](/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo)
+   material: backlog pendente, sprints, prioridades e criterios de aceite.
+2. [Operacao backup agendado remoto](/docs/manuais-tecnicos/backlog-e-pendencias/operacao-backup-agendado-remoto)
+   material: proposta/recorte de backup operacional remoto.
+3. [Arquitetura canal WhatsApp](/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp)
+   material: desenho de backend dedicado, bridge e trilha auditavel.
+
+## Comandos operacionais (referencia rapida)
+
+### Workspace (raiz)
+
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run typecheck
+npm run test
+```
+
+### Banco e Prisma
+
+```bash
+npm run db:validate
+npm run db:generate
+npm run db:migrate   # dev
+npm run db:deploy    # producao
+npm run db:seed:remote
+```
+
+### Web (portal + docs)
+
+```bash
+npm run dev -w @dosc-syspro/web
+npm run build -w @dosc-syspro/web
+npm run lint -w @dosc-syspro/web
+npm run typecheck -w @dosc-syspro/web
+npm run docs:check -w @dosc-syspro/web
+```
+
+### API e mobile (shells dedicados)
+
+```bash
+npm run dev:api
+npm run build:api
+npm run typecheck:api
+
+npm run dev:mobile
+npm run build:mobile
+npm run typecheck:mobile
+```
+
+### E2E (Playwright)
+
+```bash
+npm run test:e2e:install
+npm run test:e2e
+npm run test:e2e:headed
+```
+
+## Uso recomendado deste indice
+
+1. Comece por arquitetura (`arquitetura-aplicacao-monorepo` + `estrutura-projeto`).
+2. Para remoto, siga `operacao-agente-remoto-oss` e depois backlog.
+3. Para entrega, use os comandos desta pagina como baseline de execucao.
 

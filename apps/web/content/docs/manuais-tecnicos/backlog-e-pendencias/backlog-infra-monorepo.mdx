@@ -1,7 +1,7 @@
 ---
 title: Backlog de Infraestrutura e Estabilizacao
 description: Backlog priorizado com os itens pendentes para estabilizacao do app, consolidacao arquitetural e evolucao das novas funcionalidades.
-lastUpdated: 2026-03-26
+lastUpdated: 2026-03-28
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -43,6 +43,12 @@ Ordem recomendada:
 - [ ] `INFRA-026` [Media] Metricas minimas por rota critica, jobs e integracoes externas.
 - [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs. A base de Playwright ja foi aberta em `apps/web`, com config, scripts, smoke de landing page, redirect de rotas protegidas (`/portal` e `/docs`) e fluxo autenticado opcional por credenciais de ambiente; faltam integrar execucao ao CI, instalar browsers no pipeline e ampliar a cobertura para fluxos autenticados e operacionais mais profundos.
 - [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`. Status atual: **parcial**. O `remoteRouter` ja foi conectado ao `appRouter` no `packages/api`, com contrato remoto parseado por schema e mapeamento de erro tipado; `discover/bootstrap/sync/ack` ja delegam para `remote-domain` com `requestIp` e logger reais vindos do contexto HTTP. `sessions/hosts/address-book` no `apps/api` agora tambem estao ligados em ports reais (sem `not-wired`). Pendencias para fechamento: (1) manter `scope/actor` 100% derivados da sessao em todos os endpoints autenticados, sem confiar no payload do cliente, (2) criar suite automatizada minima do `remoteRouter` (fluxo feliz + erro tipado + autorizacao), (3) reduzir duplicacao residual entre `apps/web` e `packages/api` nos gateways/ports do remoto (host-admin/address-book ja extraidos para helpers compartilhados em `@dosc-syspro/database`), (4) integrar nota interna de sessao com backend de tickets no shell da API (substituir no-op atual).
+  - etapas objetivas para fechamento:
+    1. `scope/actor` exclusivamente derivados da sessao em 100% dos endpoints autenticados (sem confiar em payload).
+    2. suite automatizada minima do `remoteRouter` cobrindo fluxo feliz + erro tipado + autorizacao.
+    3. remocao da duplicacao residual entre `apps/web` e `packages/api` nos gateways/ports remotos.
+    4. integracao da nota interna de sessao com backend real de tickets (substituir no-op).
+    5. padronizacao final do mapper de erro remoto (`code/message/httpStatus`) em todos os adapters HTTP (`apps/web` e `apps/api`).
 - [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
 - [ ] `INFRA-027C` [Media] Revisar o que ainda deve sair de `apps/web/src/lib` para consumo compartilhado via `packages/*`.
 
@@ -75,6 +81,11 @@ Ordem recomendada:
 #### Backlog de implementacao
 
 - [ ] `FEAT-001` [Alta] Materializar MVP de plataforma remota com entidades-base, persistencia e rotas iniciais. Persistencia, tenant enforcement, rotas de `hosts`, `sessions`, `discover`, `bootstrap`, `sync` e `ack`, separacao entre configuracao e operacao, detalhe do host, CRUD basico de host com `RustDesk ID`, busca operacional do modulo, rate limit basico no fluxo do agente, triagem de maquinas descobertas, TTL de sessao e bloqueio de host ativo sem `RustDesk ID` ja existem; falta aplicar migration/generate/seed no ambiente, validar fluxo fim a fim por perfil, endurecer mensagens de erro e fechar testes operacionais com maquina real.
+  - runbook minimo (execucao de ambiente):
+    - `npm run db:validate`
+    - `npm run db:generate`
+    - `npm run db:migrate` (dev)
+    - `npm run db:deploy` (producao)
 - [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, observacoes manuais do host, token de instalacao, heartbeat, metadata basica do agente, configuracoes globais do modulo remoto e regeneracao automatica de `installToken` legado ja existem; falta validar auto-registro/heartbeat em ambiente real, materializar instalacao em campo com ciclo recorrente e decidir se a entidade de agente vira tabela propria quando o recorte OSS-first estabilizar.
 - [ ] `FEAT-002A` [Media] Consolidar UX operacional de hosts e agentes. Grid operacional simplificada, cadastro rapido por modal, filtros por status/ambiente/heartbeat, copia rapida de `RustDesk ID`, labels amigaveis, indicadores de prontidao, acesso direto, simplificacao do detalhe do host, edicao de `machineName`, separacao entre observacoes do host vs empresa e matriz compartilhada de status operacional (`ONLINE`, `RECENT`, `OFFLINE`, `MISCONFIGURED`, `SESSION_BUSY`) ja existem; falta fechar consistencia visual entre configuracao, diretorio e detalhe, revisar mobile e reforcar feedback de bloqueios por host.
 - [ ] `FEAT-002G` [Media] Refatorar frontend da aba `/portal/configuracoes?tab=remote` para contrato remoto tipado. Status atual: **parcial**. Ja existe parser unico de resposta remota no frontend (`code/message/httpStatus`) aplicado no formulario de configuracoes e nas acoes de credenciais/address-book, incluindo mensagens acionaveis para `401/403/429`. Pendencias para fechar: (1) aplicar o mesmo parser em 100% das actions restantes da aba, (2) validar inputs com a mesma regra do backend para `RustDesk ID` (7-12 digitos), (3) revisar copy final para remover qualquer linguagem residual de onboarding legado.
@@ -178,6 +189,11 @@ Ordem recomendada:
 
 1. `FEAT-001`
    aplicar migrations pendentes, `prisma generate` no ambiente e validar o fluxo completo por perfil
+   comandos base:
+   - `npm run db:validate`
+   - `npm run db:generate`
+   - `npm run db:migrate` (dev)
+   - `npm run db:deploy` (producao)
 2. `FEAT-002B`
    validar `discover`, `bootstrap`, `sync`, `ack`, auto-vinculo por `installToken` e metadata real do agente (foco tecnico em campo)
 3. `FEAT-002E`
