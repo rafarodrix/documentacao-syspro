@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+﻿import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@dosc-syspro/database";
 import type {
@@ -7,7 +7,7 @@ import type {
   RemoteDiscoverPort,
   RemoteSyncPort,
 } from "@dosc-syspro/remote-domain";
-
+import { createRemoteSessionPort as createSharedRemoteSessionPort } from "./remote-session-port";
 // Componentes de configuração compartilhados (copiados do app-web)
 const REMOTE_MODULE_SETTINGS_KEY = "remote.module.settings";
 
@@ -787,7 +787,25 @@ export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAck
   };
 }
 
-export { createRemoteSessionPort } from "./remote-session-port";
+type AddInternalTicketNoteFn = (input: { ticketId: string; body: string }) => Promise<void>;
+
+let remoteSessionTicketNoteHandler: AddInternalTicketNoteFn | null = null;
+
+export function configureRemoteSessionTicketNoteHandler(handler: AddInternalTicketNoteFn | null) {
+  remoteSessionTicketNoteHandler = handler;
+}
+
+export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
+  return createSharedRemoteSessionPort({
+    logger: params.logger,
+    addInternalTicketNote: remoteSessionTicketNoteHandler ?? undefined,
+  });
+}
 export { createRemoteHostAdminPort } from "./remote-host-admin-port";
 export { createRemoteAddressBookPort } from "./remote-address-book-port";
+
+
+
+
+
 

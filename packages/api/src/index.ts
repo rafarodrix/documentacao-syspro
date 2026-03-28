@@ -1,4 +1,4 @@
-export { createApiContext } from "./context";
+﻿export { createApiContext } from "./context";
 export { ApiError, callProcedure, createRouter, defineMutation, defineQuery, mergeRouters } from "./router";
 export { appRouter } from "./routers/app";
 export { ticketsRouter } from "./routers/tickets";
@@ -9,3 +9,4 @@ export { taxRouter } from "./routers/tax";
 export { remoteRouter } from "./routers/remote";
 export type { AppRouter } from "./routers/app";
 export type { ApiContext, ApiLogger, AuthLikeSession, ProcedureDefinition, RouterDefinition } from "./lib/contracts";
+export { configureRemoteSessionTicketNoteHandler } from "./remote-domain-ports";

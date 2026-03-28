@@ -1,6 +1,11 @@
-import { ApiError, appRouter, callProcedure, createApiContext } from "@dosc-syspro/api";
+﻿import {
+  ApiError,
+  appRouter,
+  callProcedure,
+  configureRemoteSessionTicketNoteHandler,
+  createApiContext,
+} from "@dosc-syspro/api";
 import { mapRemoteDomainError } from "@dosc-syspro/remote-domain";
-
 type JsonObject = Record<string, unknown>;
 
 function json(data: JsonObject, init?: ResponseInit) {
@@ -47,6 +52,60 @@ function getSessionFromHeaders(request: Request) {
   };
 }
 
+function getZammadConfig() {
+  const baseUrl = process.env.ZAMMAD_URL?.trim() ?? "";
+  const token = process.env.ZAMMAD_TOKEN?.trim() ?? "";
+  const authScheme = process.env.ZAMMAD_AUTH_SCHEME?.trim().toLowerCase() ?? "token";
+
+  return {
+    baseUrl: baseUrl.replace(/\/+$/, ""),
+    token,
+    authScheme,
+  };
+}
+
+function buildZammadAuthorizationHeader(token: string, authScheme: string) {
+  const normalized = token.trim();
+  const lowered = normalized.toLowerCase();
+
+  if (lowered.startsWith("bearer ") || lowered.startsWith("token ")) {
+    return normalized;
+  }
+
+  if (authScheme === "bearer") {
+    return `Bearer ${normalized}`;
+  }
+
+  return `Token token=${normalized}`;
+}
+
+async function addInternalTicketNoteToZammad(input: { ticketId: string; body: string }) {
+  const { baseUrl, token, authScheme } = getZammadConfig();
+  if (!baseUrl || !token) {
+    return;
+  }
+
+  const response = await fetch(`${baseUrl}/api/v1/ticket_articles`, {
+    method: "POST",
+    headers: {
+      Authorization: buildZammadAuthorizationHeader(token, authScheme),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ticket_id: input.ticketId,
+      body: input.body,
+      type: "note",
+      content_type: "text/html",
+      internal: true,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`ZAMMAD_INTERNAL_NOTE_FAILED_${response.status}`);
+  }
+}
+
+configureRemoteSessionTicketNoteHandler(addInternalTicketNoteToZammad);
 async function parseInput(request: Request) {
   if (request.method !== "POST") return undefined;
   const contentType = request.headers.get("content-type") || "";
@@ -214,3 +273,6 @@ export async function handleApiRequest(request: Request) {
     );
   }
 }
+
+
+
