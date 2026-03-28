@@ -4,11 +4,15 @@ import { type QueueKey } from "@dosc-syspro/core";
 
 const getProtectedSessionMock = vi.fn();
 const getUserIdByEmailMock = vi.fn();
-const searchOperationalTicketsMock = vi.fn();
+const searchOperationalTicketsPageMock = vi.fn();
 const getTicketCountMock = vi.fn();
 const getZammadRouteHealthMock = vi.fn();
 const upsertOperationalTicketsToCacheMock = vi.fn();
 const listCachedTicketsMock = vi.fn();
+const getLatestOperationalTicketCacheFreshnessMock = vi.fn();
+const getTicketMetricsSnapshotMock = vi.fn();
+const getQueueCountsFromCacheMock = vi.fn();
+const getStatusCountsFromCacheMock = vi.fn();
 
 const prismaMock = {
   membership: { findMany: vi.fn() },
@@ -27,7 +31,7 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/features/tickets/infrastructure/gateways/zammad-gateway", () => ({
   ZammadGateway: {
     getUserIdByEmail: getUserIdByEmailMock,
-    searchOperationalTickets: searchOperationalTicketsMock,
+    searchOperationalTicketsPage: searchOperationalTicketsPageMock,
     getTicketCount: getTicketCountMock,
   },
 }));
@@ -39,6 +43,16 @@ vi.mock("@/features/tickets/infrastructure/observability/zammad-observability", 
 vi.mock("@/features/tickets/infrastructure/cache/zammad-ticket-cache", () => ({
   upsertOperationalTicketsToCache: upsertOperationalTicketsToCacheMock,
   listCachedTickets: listCachedTicketsMock,
+  getLatestOperationalTicketCacheFreshness: getLatestOperationalTicketCacheFreshnessMock,
+}));
+
+vi.mock("@/features/tickets/application/services/ticket-metrics-snapshot.service", () => ({
+  getTicketMetricsSnapshot: getTicketMetricsSnapshotMock,
+}));
+
+vi.mock("@/features/tickets/application/services/ticket-query-counts.service", () => ({
+  getQueueCountsFromCache: getQueueCountsFromCacheMock,
+  getStatusCountsFromCache: getStatusCountsFromCacheMock,
 }));
 
 vi.mock("next/cache", () => ({
@@ -94,14 +108,17 @@ describe("tickets integration: queue pagination/count consistency", () => {
 
     getUserIdByEmailMock.mockResolvedValue(99);
 
-    searchOperationalTicketsMock.mockImplementation(async (query: string, options?: { limit?: number; page?: number }) => {
+    searchOperationalTicketsPageMock.mockImplementation(async (query: string, options?: { limit?: number; page?: number }) => {
       const queue = getQueueFromQuery(query);
       const limit = options?.limit ?? 20;
       const page = options?.page ?? 1;
       const total = TOTALS[queue];
       const start = (page - 1) * limit;
       const count = Math.max(0, Math.min(limit, total - start));
-      return Array.from({ length: count }, (_, i) => makeTicket(queue, start + i));
+      return {
+        tickets: Array.from({ length: count }, (_, i) => makeTicket(queue, start + i)),
+        total,
+      };
     });
 
     getTicketCountMock.mockImplementation(async (query: string) => {
@@ -112,6 +129,20 @@ describe("tickets integration: queue pagination/count consistency", () => {
     getZammadRouteHealthMock.mockReturnValue({ stale: false, staleMinutes: 0 });
     upsertOperationalTicketsToCacheMock.mockResolvedValue(undefined);
     listCachedTicketsMock.mockResolvedValue({ rows: [], total: 0 });
+    getLatestOperationalTicketCacheFreshnessMock.mockResolvedValue({ hasCache: true, staleMinutes: 0 });
+    getTicketMetricsSnapshotMock.mockResolvedValue(null);
+    getQueueCountsFromCacheMock.mockResolvedValue({
+      all: TOTALS.all,
+      my_queue: TOTALS.my_queue,
+      unassigned: TOTALS.unassigned,
+      critical: TOTALS.critical,
+      no_response: TOTALS.no_response,
+    });
+    getStatusCountsFromCacheMock.mockResolvedValue({
+      open: 10,
+      pending: 8,
+      closed: 6,
+    });
   });
 
   const scenarios: Array<{ queue: QueueKey; expectedTotal: number }> = [
@@ -151,11 +182,10 @@ describe("tickets integration: queue pagination/count consistency", () => {
       no_response: TOTALS.no_response,
     });
 
-    const searchCall = searchOperationalTicketsMock.mock.calls.at(-1);
+    const searchCall = searchOperationalTicketsPageMock.mock.calls.at(-1);
     expect(searchCall?.[0]).toContain("state_id:1");
     expect(searchCall?.[0]).toContain("state_id:7");
     expect(searchCall?.[0]).not.toContain("state_id:8");
     expect(searchCall?.[0]).not.toContain("state_id:9");
   });
 });
-

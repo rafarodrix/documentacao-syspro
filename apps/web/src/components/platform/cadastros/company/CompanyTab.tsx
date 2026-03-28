@@ -41,6 +41,12 @@ interface CompanyTabProps {
 }
 
 const formatCNPJ = (cnpj: string) => cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+const normalizeSearch = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
 
 const STATUS_CONFIG: Record<CompanyStatus, { label: string; dot: string; badge: string }> = {
   ACTIVE: {
@@ -170,19 +176,23 @@ export function CompanyTab({ data, canCreate, canEdit, canToggleStatus, canDelet
   }, [data])
 
   const filteredData = useMemo(() => {
-    const term = searchTerm.toLowerCase()
+    const term = normalizeSearch(searchTerm)
     const cnpjRaw = searchTerm.replace(/\D/g, "")
 
-    return items.filter((company) => {
-      const matchesSearch =
-        !term ||
-        company.razaoSocial.toLowerCase().includes(term) ||
-        company.nomeFantasia?.toLowerCase().includes(term) ||
-        company.cnpj.includes(cnpjRaw)
+    const filtered = items.filter((company) => {
+      const normalizedRazao = normalizeSearch(company.razaoSocial)
+      const normalizedFantasia = normalizeSearch(company.nomeFantasia ?? "")
+      const matchesSearch = !term || normalizedRazao.includes(term) || normalizedFantasia.includes(term) || company.cnpj.includes(cnpjRaw)
 
       const matchesStatus = filterStatus === "ALL" || company.status === filterStatus
       const matchesBlocked = filterBlocked === "ALL" || company.isBlockedByContract
       return matchesSearch && matchesStatus && matchesBlocked
+    })
+
+    return filtered.sort((a, b) => {
+      const aName = (a.nomeFantasia?.trim() || a.razaoSocial).toLocaleLowerCase("pt-BR")
+      const bName = (b.nomeFantasia?.trim() || b.razaoSocial).toLocaleLowerCase("pt-BR")
+      return aName.localeCompare(bName, "pt-BR")
     })
   }, [items, searchTerm, filterStatus, filterBlocked])
 

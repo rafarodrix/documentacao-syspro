@@ -293,21 +293,21 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   ]);
   const installations = useMemo(() => {
     const seen = new Set<string>();
+    const primaryCompanyDirectory = details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
     const items = details.installationContexts
       .map((context) => {
         const entry = context.update;
         const companyContext = context.company;
         const companyDirectory = companyContext?.installationDirectory?.trim();
-        const displayDirectory = companyDirectory || entry.path;
-        const key = `${entry.companyLabel}::${displayDirectory}`.toLowerCase();
+        const resolvedDirectory = companyDirectory || primaryCompanyDirectory || DEFAULT_INSTALLATION_DIRECTORY;
+        const key = `${entry.companyLabel}::${resolvedDirectory}`.toLowerCase();
         if (seen.has(key)) return null;
         seen.add(key);
         return {
           companyId: entry.companyId,
           resolvedCompanyName: entry.resolvedCompanyName,
           companyLabel: entry.companyLabel,
-          path: displayDirectory,
-          directorySource: companyDirectory ? "company" : "agent",
+          path: resolvedDirectory,
         };
       })
       .filter(
@@ -318,12 +318,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           resolvedCompanyName: string | null;
           companyLabel: string;
           path: string;
-          directorySource: "company" | "agent";
         } => !!entry
       );
 
     return items;
-  }, [details.installationContexts]);
+  }, [details.company.installationDirectory, details.installationContexts]);
   const installationsPreview = useMemo(() => installations.slice(0, 2), [installations]);
   const hasMoreInstallations = installations.length > installationsPreview.length;
   const companyOptionLabelCount = useMemo(() => {
@@ -603,7 +602,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       className="truncate text-[11px] uppercase tracking-wide text-muted-foreground"
                       title={`Instalacao ${installationIndex + 1} (diretorio): ${installation.path}`}
                     >
-                      Instalacao {installationIndex + 1} (diretorio {installation.directorySource === "company" ? "empresa" : "agente"}): {installation.path}
+                      Instalacao {installationIndex + 1} (diretorio empresa): {installation.path}
                     </p>
                     <p className="mt-1 text-sm font-medium text-foreground">
                       {installation.resolvedCompanyName ?? installation.companyLabel}
@@ -772,23 +771,17 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   {details.installationContexts.map((context, index) => {
                     const entry = context.update;
                     const companyContext = context.company;
+                    const primaryCompanyDirectory = details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
                     const companyName = companyContext?.nomeFantasia ?? companyContext?.razaoSocial ?? entry.resolvedCompanyName ?? entry.companyLabel;
                     const serverType = companyContext?.serverType ? COMPANY_SERVER_TYPE_LABEL[companyContext.serverType] : "Nao configurado";
                     const draft = companyContext ? companyContextDrafts[companyContext.id] : null;
                     const draftDirectory = draft?.installationDirectory?.trim();
                     const companyDirectory = companyContext?.installationDirectory?.trim();
-                    const agentDirectory = entry.path?.trim();
                     const installationDirectory =
                       draftDirectory ||
                       companyDirectory ||
-                      agentDirectory ||
+                      primaryCompanyDirectory ||
                       DEFAULT_INSTALLATION_DIRECTORY;
-                    const installationDirectorySource =
-                      draftDirectory || companyDirectory
-                        ? "empresa"
-                        : agentDirectory
-                        ? "agente"
-                        : "padrao";
 
                     return (
                       <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
@@ -807,7 +800,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           </div>
                           <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                              Caminho monitorado (diretorio {installationDirectorySource})
+                              Caminho monitorado (diretorio empresa)
                             </p>
                             <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
                           </div>
@@ -841,7 +834,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Diretorio da instalacao (fonte de verdade)</p>
                               {companyContext && details.permissions.canEditCompanyContext ? (
                                 <Input
-                                  value={draft?.installationDirectory ?? companyContext.installationDirectory ?? entry.path ?? DEFAULT_INSTALLATION_DIRECTORY}
+                                  value={
+                                    draft?.installationDirectory ??
+                                    companyContext.installationDirectory ??
+                                    primaryCompanyDirectory ??
+                                    DEFAULT_INSTALLATION_DIRECTORY
+                                  }
                                   onChange={(event) =>
                                     handleCompanyContextDraftChange(
                                       companyContext.id,
@@ -975,7 +973,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                                Caminho monitorado (diretorio {installationDirectorySource})
+                                Caminho monitorado (diretorio empresa)
                               </p>
                               <p className="mt-1 break-all font-mono text-xs text-foreground">{installationDirectory}</p>
                             </div>

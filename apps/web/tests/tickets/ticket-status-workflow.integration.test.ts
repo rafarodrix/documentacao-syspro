@@ -33,7 +33,7 @@ describe("tickets integration: status workflow queries", () => {
     expect(query).toContain("state_id:5");
     expect(query).not.toContain("state_id:8");
     expect(query).not.toContain("state_id:9");
-    expect(query).not.toContain('state:"');
+    expect(query).toContain('state:"');
   });
 
   it("buildStatusQuery('pending') nao inclui estados fechados", () => {

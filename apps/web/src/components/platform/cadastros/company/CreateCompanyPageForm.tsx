@@ -18,6 +18,11 @@ import {
   COMPANY_REMOTE_CONNECTION_TYPE_VALUES,
   COMPANY_SERVER_PROTOCOL_VALUES,
   COMPANY_SERVER_TYPE_VALUES,
+  DEFAULT_COMPANY_INSTALLATION_DIRECTORY,
+  DEFAULT_COMPANY_SERVER_HOST,
+  DEFAULT_COMPANY_SERVER_PORT,
+  DEFAULT_COMPANY_SERVER_PROTOCOL,
+  DEFAULT_COMPANY_SERVER_TYPE,
   type CreateCompanyInput,
 } from "@/features/company/application/company-schema";
 import type {
@@ -136,6 +141,13 @@ const SECTIONS: Array<{ id: SectionId; title: string; description: string; icon:
     ],
   },
   {
+    id: "contato",
+    title: "Contato",
+    description: "Canais de comunicacao",
+    icon: PhoneIcon,
+    fields: ["emailContato", "emailFinanceiro", "telefone", "whatsapp", "website", "observacoes"],
+  },
+  {
     id: "fiscal",
     title: "Fiscal",
     description: "Regime, inscricoes e estrutura",
@@ -156,13 +168,6 @@ const SECTIONS: Array<{ id: SectionId; title: string; description: string; icon:
       "installationDirectory",
       "remoteConnections",
     ],
-  },
-  {
-    id: "contato",
-    title: "Contato",
-    description: "Canais de comunicacao",
-    icon: PhoneIcon,
-    fields: ["emailContato", "emailFinanceiro", "telefone", "whatsapp", "website", "observacoes"],
   },
 ];
 
@@ -244,12 +249,12 @@ export function CreateCompanyPageForm({
       segment: undefined,
       logoUrl: "",
       status: CompanyStatus.ACTIVE,
-      serverType: "SYSPRO_SERVER",
-      serverPort: 1234,
-      serverHost: "localhost",
-      serverProtocol: "HTTP",
+      serverType: DEFAULT_COMPANY_SERVER_TYPE,
+      serverPort: DEFAULT_COMPANY_SERVER_PORT,
+      serverHost: DEFAULT_COMPANY_SERVER_HOST,
+      serverProtocol: DEFAULT_COMPANY_SERVER_PROTOCOL,
       iisIsapiPath: "SYSPROSERVERISAPI.DLL",
-      installationDirectory: "",
+      installationDirectory: DEFAULT_COMPANY_INSTALLATION_DIRECTORY,
       remoteConnections: [],
       indicadorIE: IndicadorIE.NAO_CONTRIBUINTE,
       regimeTributario: undefined,
@@ -1107,4 +1112,3 @@ export function CreateCompanyPageForm({
     </div>
   );
 }
-

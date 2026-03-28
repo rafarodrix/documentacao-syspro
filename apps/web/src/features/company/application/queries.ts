@@ -64,7 +64,7 @@ export async function getCompaniesQuery(filters?: {
       },
       accountingFirm: { select: { id: true, nomeFantasia: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
   });
 
   return companies.map((company) => {

@@ -14,6 +14,12 @@ const emptyToUndefined = z.preprocess(
   z.string().optional()
 );
 
+export const DEFAULT_COMPANY_SERVER_TYPE = "SYSPRO_SERVER" as const;
+export const DEFAULT_COMPANY_SERVER_PROTOCOL = "HTTP" as const;
+export const DEFAULT_COMPANY_SERVER_PORT = 1234;
+export const DEFAULT_COMPANY_SERVER_HOST = "LOCALHOST";
+export const DEFAULT_COMPANY_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
+
 export const COMPANY_SERVER_TYPE_VALUES = ["SYSPRO_SERVER", "IIS"] as const;
 export const COMPANY_SERVER_PROTOCOL_VALUES = ["HTTP", "HTTPS"] as const;
 export const COMPANY_REMOTE_CONNECTION_TYPE_VALUES = ["DDNS_NOIP", "RADMIN_VPN"] as const;
@@ -45,12 +51,12 @@ export const createCompanySchema = z
     segment: z.nativeEnum(CompanySegment).nullable().optional(),
     status: z.nativeEnum(CompanyStatus).default(CompanyStatus.ACTIVE),
     logoUrl: emptyToUndefined.pipe(z.string().url("URL invalida").optional()),
-    serverType: z.enum(COMPANY_SERVER_TYPE_VALUES).default("SYSPRO_SERVER"),
-    serverPort: z.coerce.number().int().min(1, "Porta obrigatoria").default(1234),
-    serverHost: z.string().trim().min(1, "Servidor obrigatorio").default("localhost"),
-    serverProtocol: z.enum(COMPANY_SERVER_PROTOCOL_VALUES).default("HTTP"),
+    serverType: z.enum(COMPANY_SERVER_TYPE_VALUES).default(DEFAULT_COMPANY_SERVER_TYPE),
+    serverPort: z.coerce.number().int().min(1, "Porta obrigatoria").default(DEFAULT_COMPANY_SERVER_PORT),
+    serverHost: z.string().trim().min(1, "Servidor obrigatorio").default(DEFAULT_COMPANY_SERVER_HOST),
+    serverProtocol: z.enum(COMPANY_SERVER_PROTOCOL_VALUES).default(DEFAULT_COMPANY_SERVER_PROTOCOL),
     iisIsapiPath: emptyToUndefined.default("SYSPROSERVERISAPI.DLL"),
-    installationDirectory: z.string().trim().min(1, "Diretorio da instalacao obrigatorio"),
+    installationDirectory: emptyToUndefined.default(DEFAULT_COMPANY_INSTALLATION_DIRECTORY),
     remoteConnections: z.array(companyRemoteConnectionSchema).default([]),
     parentCompanyId: emptyToUndefined,
     accountingFirmId: emptyToUndefined,
