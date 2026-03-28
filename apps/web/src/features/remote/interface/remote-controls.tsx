@@ -18,15 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { RemotePlatformOverview } from "@/features/remote/domain/model";
-import { getRemoteApiErrorMessage, parseRemoteMutationResponse } from "@/features/remote/interface/remote-api";
+import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 
 type Props = {
   overview: RemotePlatformOverview;
 };
-
-async function parseJson(response: Response) {
-  return parseRemoteMutationResponse<Record<string, unknown>>(response);
-}
 
 export function RemotePlatformControls({ overview }: Props) {
   const router = useRouter();
@@ -256,22 +252,20 @@ export function RemotePlatformControls({ overview }: Props) {
     }
 
     try {
-      const payload = await parseJson(
-        await fetch(isEditing ? `/api/remote/hosts/${editingHostId}` : "/api/remote/hosts", {
-          method: isEditing ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            companyId: selectedCompanyId,
-            name: hostName,
-            environment,
-            provider,
-            description,
-            notes,
-            agentExternalId,
-            status: hostStatus,
-          }),
-        })
-      );
+      const payload = await requestRemoteMutation<Record<string, unknown>>({
+        url: isEditing ? `/api/remote/hosts/${editingHostId}` : "/api/remote/hosts",
+        method: isEditing ? "PATCH" : "POST",
+        body: {
+          companyId: selectedCompanyId,
+          name: hostName,
+          environment,
+          provider,
+          description,
+          notes,
+          agentExternalId,
+          status: hostStatus,
+        },
+      });
       const savedHost = payload.data as {
         id: string;
         companyId: string;
@@ -333,11 +327,10 @@ export function RemotePlatformControls({ overview }: Props) {
     }
 
     try {
-      await parseJson(
-        await fetch(`/api/remote/hosts/${hostId}`, {
-          method: "DELETE",
-        })
-      );
+      await requestRemoteMutation({
+        url: `/api/remote/hosts/${hostId}`,
+        method: "DELETE",
+      });
 
       if (editingHostId === hostId) {
         resetHostForm();
@@ -361,19 +354,17 @@ export function RemotePlatformControls({ overview }: Props) {
     }
 
     try {
-      const payload = await parseJson(
-        await fetch("/api/remote/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            companyId: sessionCompanyId,
-            hostId: selectedHostId,
-            ticketId: sessionTicketId,
-            ticketNumber: sessionTicketNumber,
-            reason: sessionReason,
-          }),
-        })
-      );
+      const payload = await requestRemoteMutation<Record<string, unknown>>({
+        url: "/api/remote/sessions",
+        method: "POST",
+        body: {
+          companyId: sessionCompanyId,
+          hostId: selectedHostId,
+          ticketId: sessionTicketId,
+          ticketNumber: sessionTicketNumber,
+          reason: sessionReason,
+        },
+      });
       const createdSession = payload.data as {
         id: string;
         companyId: string;
@@ -413,11 +404,10 @@ export function RemotePlatformControls({ overview }: Props) {
 
   async function handleSessionTransition(sessionId: string, action: "start" | "stop") {
     try {
-      const payload = await parseJson(
-        await fetch(`/api/remote/sessions/${sessionId}/${action}`, {
-          method: "POST",
-        })
-      );
+      const payload = await requestRemoteMutation<Record<string, unknown>>({
+        url: `/api/remote/sessions/${sessionId}/${action}`,
+        method: "POST",
+      });
       const updatedSession = payload.data as {
         id: string;
         status: "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";

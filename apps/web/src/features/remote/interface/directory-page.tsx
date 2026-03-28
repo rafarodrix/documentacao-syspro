@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
-import { getRemoteApiErrorMessage, parseRemoteMutationResponse } from "@/features/remote/interface/remote-api";
+import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 
@@ -186,20 +186,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     try {
       const companyLabel = directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Host remoto";
       const name = `${companyLabel} - Acesso remoto`;
-      const response = await fetch("/api/remote/hosts", {
+      await requestRemoteMutation({
+        url: "/api/remote/hosts",
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           companyId: quickCompanyId,
           name,
           provider: "RustDesk",
           description: quickDescription,
           agentExternalId: quickRustdeskId,
           status: "ACTIVE",
-        }),
+        },
       });
-
-      await parseRemoteMutationResponse(response);
 
       toast.success("Maquina cadastrada.");
       setQuickRustdeskId("");
@@ -221,16 +219,14 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     }
 
     try {
-      const response = await fetch(`/api/remote/discovered-hosts/${id}/link`, {
+      await requestRemoteMutation({
+        url: `/api/remote/discovered-hosts/${id}/link`,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           companyId,
           name,
-        }),
+        },
       });
-
-      await parseRemoteMutationResponse(response);
 
       toast.success("Maquina vinculada e convertida em host.");
       startTransition(() => router.refresh());

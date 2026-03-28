@@ -88,6 +88,41 @@ export function parseRemoteMutationResponse<T>(
   return parseRemoteApiResponse<T>(response, "Falha ao concluir a operacao remota.");
 }
 
+type RemoteRequestInput = {
+  url: string;
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  body?: unknown;
+  headers?: HeadersInit;
+  signal?: AbortSignal;
+};
+
+function buildRemoteRequestInit(input: RemoteRequestInput): RequestInit {
+  const hasBody = typeof input.body !== "undefined";
+  return {
+    method: input.method,
+    headers: {
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
+      ...(input.headers ?? {}),
+    },
+    body: hasBody ? JSON.stringify(input.body) : undefined,
+    signal: input.signal,
+  };
+}
+
+export async function requestRemoteMutation<T = Record<string, unknown>>(
+  input: RemoteRequestInput,
+): Promise<{ data: T; message?: string; code?: string; httpStatus?: number }> {
+  const response = await fetch(input.url, buildRemoteRequestInit(input));
+  return parseRemoteMutationResponse<T>(response);
+}
+
+export async function requestRemoteQuery<T>(
+  input: Omit<RemoteRequestInput, "body">,
+): Promise<{ data: T; message?: string; code?: string; httpStatus?: number }> {
+  const response = await fetch(input.url, buildRemoteRequestInit(input));
+  return parseRemoteApiResponse<T>(response);
+}
+
 export function getRemoteApiErrorMessage(
   error: unknown,
   fallback = "Falha ao concluir a operacao remota.",

@@ -21,7 +21,7 @@ import {
   updateRemoteModuleSettingsAction,
 } from "@/features/remote/application/module-settings-actions";
 import type { RemoteModuleSettings } from "@/features/remote/domain/model";
-import { getRemoteApiErrorMessage, parseRemoteApiResponse, parseRemoteMutationResponse } from "@/features/remote/interface/remote-api";
+import { getRemoteApiErrorMessage, requestRemoteMutation, requestRemoteQuery } from "@/features/remote/interface/remote-api";
 
 type RemoteModuleSettingsFormValues = z.input<typeof remoteModuleSettingsSchema>;
 type CompanyOption = { id: string; label: string };
@@ -131,8 +131,10 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
   async function loadCredentials() {
     try {
       setCredentialsLoading(true);
-      const response = await fetch("/api/remote/rustdesk/address-book/credentials", { method: "GET" });
-      const result = await parseRemoteApiResponse<AddressBookCredentialItem[]>(response);
+      const result = await requestRemoteQuery<AddressBookCredentialItem[]>({
+        url: "/api/remote/rustdesk/address-book/credentials",
+        method: "GET",
+      });
       const items = Array.isArray(result.data) ? result.data : [];
       setCredentials(items);
     } catch (error) {
@@ -152,8 +154,10 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
     async function loadClientProfile() {
       try {
         setClientProfileLoading(true);
-        const response = await fetch("/api/remote/rustdesk/client-profile", { method: "GET" });
-        const result = await parseRemoteApiResponse<RemoteClientProfile>(response);
+        const result = await requestRemoteQuery<RemoteClientProfile>({
+          url: "/api/remote/rustdesk/client-profile",
+          method: "GET",
+        });
         if (!mounted) return;
         setClientProfile(result.data ?? null);
       } catch (error) {
@@ -233,18 +237,17 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
 
     startSubmittingCredential(async () => {
       try {
-        const response = await fetch("/api/remote/rustdesk/address-book/credentials", {
+        const result = await requestRemoteMutation<{ token?: string; tokenPreview?: string }>({
+          url: "/api/remote/rustdesk/address-book/credentials",
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             label: credentialLabel.trim(),
             integrationKey: normalizeIntegrationKey(credentialIntegrationKey || credentialLabel),
             scope: credentialScope,
             companyId: credentialScope === "COMPANY" ? credentialCompanyId : null,
             expiresInDays: credentialExpiresDays ? Number(credentialExpiresDays) : null,
-          }),
+          },
         });
-        const result = await parseRemoteMutationResponse<{ token?: string; tokenPreview?: string }>(response);
         toast.success(result.message ?? "Credencial criada.");
         setLatestIssuedToken({
           token: result.data?.token ?? "",
@@ -261,10 +264,10 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
   async function handleRotateCredential(id: string) {
     startSubmittingCredential(async () => {
       try {
-        const response = await fetch(`/api/remote/rustdesk/address-book/credentials/${id}/rotate`, {
+        const result = await requestRemoteMutation<{ token?: string; tokenPreview?: string }>({
+          url: `/api/remote/rustdesk/address-book/credentials/${id}/rotate`,
           method: "POST",
         });
-        const result = await parseRemoteMutationResponse<{ token?: string; tokenPreview?: string }>(response);
         toast.success(result.message ?? "Credencial rotacionada.");
         setLatestIssuedToken({
           token: result.data?.token ?? "",
@@ -280,10 +283,10 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
   async function handleRevokeCredential(id: string) {
     startSubmittingCredential(async () => {
       try {
-        const response = await fetch(`/api/remote/rustdesk/address-book/credentials/${id}/revoke`, {
+        const result = await requestRemoteMutation({
+          url: `/api/remote/rustdesk/address-book/credentials/${id}/revoke`,
           method: "POST",
         });
-        const result = await parseRemoteMutationResponse(response);
         toast.success(result.message ?? "Credencial revogada.");
         await loadCredentials();
       } catch (error) {

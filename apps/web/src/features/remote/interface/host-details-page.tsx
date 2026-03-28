@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
-import { getRemoteApiErrorMessage, parseRemoteMutationResponse } from "@/features/remote/interface/remote-api";
+import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 
 function formatDateTime(value: string | null) {
   if (!value) return "Sem registro";
@@ -418,10 +418,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   function handleSaveProjectedHostName() {
     startSavingMachineName(async () => {
       try {
-        const response = await fetch(`/api/remote/hosts/${host.id}`, {
+        await requestRemoteMutation({
+          url: `/api/remote/hosts/${host.id}`,
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             companyId: host.companyId,
             name: projectedHostName,
             machineName: host.machineName,
@@ -431,10 +431,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             notes: host.notes,
             agentExternalId: host.rustdeskId,
             status: host.status,
-          }),
+          },
         });
-
-        await parseRemoteMutationResponse(response);
 
         toast.success("Nome da maquina atualizado.");
       } catch (error) {
@@ -446,11 +444,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   function handleRotateAgentToken() {
     startRevokingAgentToken(async () => {
       try {
-        const response = await fetch(`/api/remote/hosts/${host.id}/agent-token`, {
+        const result = await requestRemoteMutation<{ message?: string }>({
+          url: `/api/remote/hosts/${host.id}/agent-token`,
           method: "POST",
         });
-
-        const result = await parseRemoteMutationResponse<{ message?: string }>(response);
         toast.success(result.message ?? "Credencial renovada.");
         window.location.reload();
       } catch (error) {
@@ -493,10 +490,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
     try {
       setSavingCompanyContextId(companyId);
-      const response = await fetch(`/api/remote/companies/${companyId}/context`, {
+      await requestRemoteMutation({
+        url: `/api/remote/companies/${companyId}/context`,
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           serverType: draft.serverType === "IIS" ? "IIS" : "SYSPRO_SERVER",
           installationDirectory: draft.installationDirectory.trim() || DEFAULT_INSTALLATION_DIRECTORY,
           serverHost: draft.serverHost,
@@ -504,10 +501,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           serverProtocol: draft.serverProtocol === "HTTPS" ? "HTTPS" : "HTTP",
           iisIsapiPath: draft.iisIsapiPath,
           observacoes: draft.observacoes,
-        }),
+        },
       });
-
-      await parseRemoteMutationResponse(response);
 
       toast.success("Configuracoes da empresa atualizadas.");
       window.location.reload();
@@ -521,15 +516,13 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   function handleRelinkInstallation(updateId: string) {
     startLinkingUpdateId(async () => {
       try {
-        const response = await fetch(`/api/remote/hosts/${host.id}/syspro-updates/${updateId}`, {
+        await requestRemoteMutation({
+          url: `/api/remote/hosts/${host.id}/syspro-updates/${updateId}`,
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             companyId: pendingUpdateCompanyById[updateId] || null,
-          }),
+          },
         });
-
-        await parseRemoteMutationResponse(response);
 
         toast.success("Empresa vinculada na instalacao monitorada.");
         window.location.reload();
@@ -542,16 +535,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   function handleAddCompanyToInstallation(updateId: string) {
     startLinkingUpdateId(async () => {
       try {
-        const response = await fetch(`/api/remote/hosts/${host.id}/syspro-updates/${updateId}`, {
+        await requestRemoteMutation({
+          url: `/api/remote/hosts/${host.id}/syspro-updates/${updateId}`,
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             companyId: pendingUpdateCompanyById[updateId] || null,
             mode: "add",
-          }),
+          },
         });
-
-        await parseRemoteMutationResponse(response);
 
         toast.success("Empresa adicional vinculada a esta instalacao.");
         window.location.reload();
@@ -725,7 +716,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </summary>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Token de instalacao</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Credencial do host</p>
                     <p className="mt-1 break-all font-mono text-sm text-foreground">{host.installToken ?? "Nao configurado"}</p>
                   </div>
                   <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
@@ -1053,7 +1044,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
-                <Button variant="outline" onClick={() => handleCopy(host.installToken, "Token de instalacao")} className="w-full gap-2 xl:w-auto">
+                <Button variant="outline" onClick={() => handleCopy(host.installToken, "Credencial do host")} className="w-full gap-2 xl:w-auto">
                   <Fingerprint className="h-4 w-4" />
                   Copiar credencial
                 </Button>
@@ -1061,10 +1052,16 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <Copy className="h-4 w-4" />
                   Copiar RustDesk ID
                 </Button>
-                <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 xl:w-auto">
-                  <Fingerprint className="h-4 w-4" />
-                  {isRevokingAgentToken ? "Renovando..." : "Renovar credencial"}
-                </Button>
+                {!agentTokenMeta.needsBootstrap ? (
+                  <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 xl:w-auto">
+                    <Fingerprint className="h-4 w-4" />
+                    {isRevokingAgentToken ? "Renovando..." : "Renovar credencial"}
+                  </Button>
+                ) : (
+                  <div className="flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                    Nova vinculacao da maquina pendente
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -1073,20 +1070,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <p className="mt-1 text-sm text-foreground">{agentTokenMeta.label}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vinculacao inicial</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Primeira vinculacao autenticada</p>
                   <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.lastRegisterAt)}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Origem da vinculacao</p>
                   <p className="mt-1 text-sm text-foreground">{host.agent.lastRegisterSource ?? "Sem leitura"}</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat valido</p>
-                  <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.lastHeartbeatSuccessAt)}</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo IP reportado</p>
-                  <p className="mt-1 text-sm text-foreground">{host.agent.lastKnownIp ?? "Sem leitura"}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Emissao da credencial</p>
