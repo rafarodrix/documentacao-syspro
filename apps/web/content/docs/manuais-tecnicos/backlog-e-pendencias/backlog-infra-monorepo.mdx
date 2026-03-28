@@ -233,9 +233,20 @@ Checklist objetivo por componente:
 3. `directory-page.tsx`: mapear erros de `create/update/delete/link/relink` por `code` e exibir feedback acionavel.
 4. `host-details-page.tsx`: mapear estados de token (`valid`, `expired`, `rotated`, `revoked`) com CTA de rebootstrap.
 5. `remote-controls.tsx`: unificar toasts e mensagens de erro para contrato tipado remoto.
-6. `actions`/`hooks` de remoto: normalizar parsing de erro para sempre priorizar `message` e `code` do backend.
+6. `actions`/`hooks` de remoto: normalizar parsing de erro para sempre priorizar `message` e `code` do backend. **Status: concluido (Prioridade 3)**.
 7. `copy UX`: remover termos residuais (`register`, `installer legado`, `.ps1` como fluxo principal).
-8. `E2E`: cobrir ao menos um fluxo feliz e um fluxo de erro tipado para `configuracoes` e `plataforma-remota`.
+8. `E2E`: cobrir ao menos um fluxo feliz e um fluxo de erro tipado para `configuracoes` e `plataforma-remota`. **Status: erro tipado `409/429` concluido em testes de interface do parser; E2E completo ainda pendente no `INFRA-027`**.
+
+Fechamento de Prioridade 3 (escopo remoto):
+
+- [x] parser unico aplicado no frontend remoto (`remote-api.ts` + consumo padronizado em `directory-page.tsx`, `host-details-page.tsx`, `remote-controls.tsx`, `settings-tab.tsx`).
+- [x] testes de erro tipado concluidos para `429` (rate limit) e `409` (conflito de sessao) em `apps/web/tests/remote-api.test.ts`.
+- [x] evidencia anexada de run de validacao:
+  - `npm run typecheck -w @dosc-syspro/web` -> `✓ Route types generated successfully` e sem erros de `tsc`.
+  - `npm run test -w @dosc-syspro/web` -> `6` arquivos de teste aprovados e `27` testes aprovados (`remote-api` incluindo cenarios `429` e `409`).
+  - `npm run build -w @dosc-syspro/web` -> build de producao concluido com sucesso (Next.js 15.5.14), sem erros de compilacao.
+  - `npm run typecheck -w @dosc-syspro/api` e `npm run test -w @dosc-syspro/api` -> `remote-router.test.ts` com `3 passed`.
+  - observacao: build reportou apenas warning de performance em `src/components/docs/YouTubeModal.tsx` (`@next/next/no-img-element`), sem bloquear entrega.
 
 ### Sprint 3 - Multi-instalacao e observabilidade
 

@@ -44,8 +44,30 @@ Padrao oficial:
 - UI (detalhe do host): **card unico "Ultimo contato da maquina"** com tempo relativo + data/hora da ultima leitura
   - backend/contrato: continua baseado em `lastHeartbeatAt` e status de `sync`
 
+Mapa de termos oficial (obrigatorio):
+
+- UI/portal e manuais operacionais:
+  - **Vinculacao de Maquina**
+  - **Renovacao de Credencial**
+- Backend, contratos, payloads e logs tecnicos:
+  - `bootstrap`
+  - `agentToken`
+
 <Callout type="info" title="Convencao de linguagem">
   No frontend e nos textos operacionais do portal, evitar jargoes como `bootstrap` e `agentToken` quando houver alternativa clara. Em logs tecnicos, payloads, codigo e contratos de API, manter os termos tecnicos para rastreabilidade.
+</Callout>
+
+## Regra de precedencia do diretorio monitorado
+
+Para leitura operacional do caminho monitorado no modulo remoto, adotar a seguinte precedencia:
+
+1. `installationDirectory` configurado na **empresa** (fonte primaria).
+2. caminho reportado pelo **agente** (`sysproUpdates[].path`) quando nao houver configuracao valida da empresa.
+3. valor **padrao** oficial quando os dois anteriores estiverem ausentes:
+   - `C:\Syspro\Server\SysproServer.exe`
+
+<Callout type="warning" title="Fonte de verdade">
+  O valor persistido na configuracao da empresa e a referencia oficial de operacao. O caminho vindo do agente e sinal auxiliar de telemetria e nao substitui a configuracao da empresa.
 </Callout>
 ## Premissas
 

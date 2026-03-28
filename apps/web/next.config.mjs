@@ -26,6 +26,14 @@ const withMDX = createMDX({
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(process.cwd(), '../../'),
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+      },
+    ],
+  },
   async redirects() {
     return [
       {
@@ -78,3 +86,4 @@ const nextConfig = {
 };
 
 export default withMDX(nextConfig);
+
