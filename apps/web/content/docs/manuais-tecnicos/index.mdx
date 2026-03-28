@@ -138,6 +138,27 @@ npm run build:mobile
 npm run typecheck:mobile
 ```
 
+### Packages compartilhados (dominio e router)
+
+```bash
+npm run typecheck -w @dosc-syspro/api
+npm run test -w @dosc-syspro/api
+npm run typecheck -w @dosc-syspro/remote-domain
+```
+
+### Paridade com CI (checagem final antes do PR)
+
+```bash
+npm run typecheck:contracts
+npm run typecheck
+npm run typecheck:api
+npm run typecheck -w @dosc-syspro/api
+npm run test -w @dosc-syspro/api
+npm run build
+npm run build:api
+npm run build:mobile
+```
+
 ### E2E (Playwright)
 
 ```bash

@@ -635,6 +635,7 @@ Rotas remotas fora do nucleo `remote-domain` por escopo atual:
 - `packages/remote-domain` concentra casos de uso e contratos do modulo remoto
 - `apps/web` opera os endpoints remotos em adapter HTTP fino (`parse + delegate + response`) com gateways dedicados
 - `apps/api` ja consome `@dosc-syspro/remote-domain` e usa o mesmo mapeamento de erro tipado para o shell HTTP
+- no shell `apps/api`, a nota interna de sessao remota agora e publicada no backend real do Zammad (sem `no-op`), via handler configurado em `configureRemoteSessionTicketNoteHandler`
 - manter independencia de framework (sem dependencia de Next.js no dominio)
 
 2. Endurecimento de seguranca operacional

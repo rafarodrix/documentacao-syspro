@@ -42,9 +42,7 @@ Ordem recomendada:
 
 - [ ] `INFRA-026` [Media] Metricas minimas por rota critica, jobs e integracoes externas.
 - [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs. A base de Playwright ja foi aberta em `apps/web`, com config, scripts, smoke de landing page, redirect de rotas protegidas (`/portal` e `/docs`) e fluxo autenticado opcional por credenciais de ambiente; faltam integrar execucao ao CI, instalar browsers no pipeline e ampliar a cobertura para fluxos autenticados e operacionais mais profundos.
-- [ ] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`. Status atual: **parcial avancado**. Suite minima automatizada do `remoteRouter` ja criada em `packages/api/tests/remote-router.test.ts`. Ja concluido neste recorte: `remoteRouter` conectado ao `appRouter`; contrato remoto parseado por schema; erro tipado preservado (`code/message/httpStatus`) no shell HTTP; `discover/bootstrap/sync/ack` ligados ao `remote-domain` com `requestIp` e logger reais; `sessions/hosts/address-book` sem blocos `not-wired`; e reducao forte de duplicacao com wrappers do `apps/web` consumindo ports centrais do `packages/api`.
-  - checklist de fechamento (pendente):
-    1. validar fechamento em CI (`typecheck` + `test` do `packages/api` + build de shells) e anexar evidencia no PR. Status: **em andamento** (workflow `CI` ja atualizado com `Typecheck package-api` e `Test package-api`; falta executar e anexar resultado do run).
+- [x] `INFRA-027A` [Media] Ligar `apps/api` aos casos de uso reais do `packages/api`. Status atual: **concluido**. Fechamento deste recorte: `remoteRouter` conectado ao `appRouter`; contrato remoto parseado por schema; erro tipado preservado (`code/message/httpStatus`) no shell HTTP; `discover/bootstrap/sync/ack` ligados ao `remote-domain` com `requestIp` e logger reais; `sessions/hosts/address-book` sem blocos `not-wired`; reducao forte de duplicacao com wrappers do `apps/web` consumindo ports centrais do `packages/api`; suite minima do `remoteRouter` criada em `packages/api/tests/remote-router.test.ts`; e validacao local executada com sucesso em `@dosc-syspro/api` (`typecheck` + `test`).
 - [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
 - [ ] `INFRA-027C` [Media] Revisar o que ainda deve sair de `apps/web/src/lib` para consumo compartilhado via `packages/*`.
 
@@ -282,6 +280,9 @@ Checklist objetivo por componente:
 - desenho do `agentToken` e multi-bases remoto: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/operacao-agente-remoto-oss)
 - integracao `Zammad + RustDesk`: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/integracao-zammad)
 - integracao `Zammad + WhatsApp`: [`/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp`](/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp)
+
+
+
 
 
 

@@ -3,7 +3,9 @@ import { ApiError, callProcedure } from "../src/router";
 import { createApiContext } from "../src/context";
 import { remoteRouter } from "../src/routers/remote";
 
-const createTrilinkRemoteMock = vi.fn();
+const { createTrilinkRemoteMock } = vi.hoisted(() => ({
+  createTrilinkRemoteMock: vi.fn(),
+}));
 
 vi.mock("@dosc-syspro/remote-domain", async () => {
   const actual = await vi.importActual("@dosc-syspro/remote-domain");
@@ -149,5 +151,3 @@ describe("remoteRouter", () => {
     expect(createTrilinkRemoteMock).not.toHaveBeenCalled();
   });
 });
-
-
