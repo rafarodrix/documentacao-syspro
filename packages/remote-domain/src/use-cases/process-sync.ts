@@ -12,6 +12,25 @@ function normalizeComparable(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
 
+function normalizeRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const normalized = JSON.parse(JSON.stringify(value));
+  if (!normalized || typeof normalized !== "object" || Array.isArray(normalized)) return null;
+  return normalized as Record<string, unknown>;
+}
+
+function normalizeRecordArray(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) return [];
+  const list: Array<Record<string, unknown>> = [];
+  for (const entry of value) {
+    const normalized = normalizeRecord(entry);
+    if (!normalized) continue;
+    list.push(normalized);
+    if (list.length >= 200) break;
+  }
+  return list;
+}
+
 function getStartOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 }
@@ -110,6 +129,10 @@ export async function processSync(
   }
 
   const normalizedSysproUpdates = deps.port.normalizeSysproUpdates(input.sysproUpdates);
+  const systemSnapshot = normalizeRecord(input.systemSnapshot);
+  const networkSnapshot = normalizeRecord(input.networkSnapshot);
+  const softwareSnapshot = normalizeRecordArray(input.softwareSnapshot);
+  const agentMetrics = normalizeRecord(input.agentMetrics);
 
   const inventory = await deps.port.getInventorySnapshot(context.hostId);
   const dayStart = getStartOfDay(heartbeatAt);
@@ -149,6 +172,10 @@ export async function processSync(
     reportedServerHost: input.serverHost ?? null,
     reportedApiHost: input.apiHost ?? null,
     reportedPublicKeyHash,
+    systemSnapshot,
+    networkSnapshot,
+    softwareSnapshot,
+    agentMetrics,
     normalizedSysproUpdates,
     syncDirectives: directives,
     compliance,
@@ -204,5 +231,3 @@ export async function processSync(
     },
   };
 }
-
-

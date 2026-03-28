@@ -629,6 +629,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       "Invoke-WebRequest -Method Post -Uri \"https://ajuda.trilinksoftware.com.br/api/remote/rustdesk/bootstrap\" -ContentType \"application/json\" -Body $body -UseBasicParsing",
     ].join("\n");
   }, [host.installToken, normalizedRustdeskId]);
+  const systemSnapshot = details.agentTelemetry.systemSnapshot;
+  const networkSnapshot = details.agentTelemetry.networkSnapshot;
+  const softwareSnapshot = details.agentTelemetry.softwareSnapshot;
+  const agentMetrics = details.agentTelemetry.agentMetrics;
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
       return {
@@ -1216,6 +1220,69 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     <p className="mt-2 text-sm text-foreground">{details.agentHealth.consecutiveFailures}</p>
                   </div>
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-sm font-medium text-foreground">Inventario tecnico projetado pelo agente</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sistema operacional</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      {typeof systemSnapshot?.osCaption === "string" && systemSnapshot.osCaption.trim()
+                        ? systemSnapshot.osCaption
+                        : "Sem leitura"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.systemSnapshotAt)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Memoria / Disco</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      RAM livre: {typeof systemSnapshot?.freeRamMb === "number" ? `${systemSnapshot.freeRamMb} MB` : "-"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Disco livre C: {typeof systemSnapshot?.diskFreeGb === "number" ? `${systemSnapshot.diskFreeGb} GB` : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Rede</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      Gateway: {typeof networkSnapshot?.defaultGateway === "string" && networkSnapshot.defaultGateway.trim()
+                        ? networkSnapshot.defaultGateway
+                        : "Sem leitura"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.networkSnapshotAt)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Software inventariado</p>
+                    <p className="mt-2 text-sm text-foreground">{softwareSnapshot.length} item(ns)</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.softwareSnapshotAt)}</p>
+                  </div>
+                </div>
+
+                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Métricas do agente</summary>
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
+                    {JSON.stringify(agentMetrics ?? { status: "Sem leitura" }, null, 2)}
+                  </pre>
+                </details>
+                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Snapshot de sistema (raw)</summary>
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
+                    {JSON.stringify(systemSnapshot ?? { status: "Sem leitura" }, null, 2)}
+                  </pre>
+                </details>
+                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Snapshot de rede (raw)</summary>
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
+                    {JSON.stringify(networkSnapshot ?? { status: "Sem leitura" }, null, 2)}
+                  </pre>
+                </details>
+                <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Snapshot de software (raw)</summary>
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
+                    {JSON.stringify(softwareSnapshot.length ? softwareSnapshot : [{ status: "Sem leitura" }], null, 2)}
+                  </pre>
+                </details>
               </div>
 
               <div className="flex flex-wrap gap-2">

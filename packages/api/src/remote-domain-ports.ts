@@ -1,4 +1,4 @@
-﻿import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@dosc-syspro/database";
 import type {
@@ -631,6 +631,14 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
             lastKnownRustDeskApiHost: record.reportedApiHost || record.context.lastKnownRustDeskApiHost,
             lastKnownRustDeskPublicKeyHash: record.reportedPublicKeyHash || record.context.lastKnownRustDeskPublicKeyHash,
             lastRustDeskConfigSyncAt: record.heartbeatAt,
+            lastSystemSnapshot: record.systemSnapshot ? toJsonValue(record.systemSnapshot) : undefined,
+            lastSystemSnapshotAt: record.systemSnapshot ? record.heartbeatAt : undefined,
+            lastNetworkSnapshot: record.networkSnapshot ? toJsonValue(record.networkSnapshot) : undefined,
+            lastNetworkSnapshotAt: record.networkSnapshot ? record.heartbeatAt : undefined,
+            lastSoftwareSnapshot: record.softwareSnapshot.length ? toJsonValue(record.softwareSnapshot) : undefined,
+            lastSoftwareSnapshotAt: record.softwareSnapshot.length ? record.heartbeatAt : undefined,
+            lastAgentMetrics: record.agentMetrics ? toJsonValue(record.agentMetrics) : undefined,
+            lastAgentMetricsAt: record.agentMetrics ? record.heartbeatAt : undefined,
             status: "ACTIVE",
           },
           select: {
@@ -803,9 +811,3 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
 }
 export { createRemoteHostAdminPort } from "./remote-host-admin-port";
 export { createRemoteAddressBookPort } from "./remote-address-book-port";
-
-
-
-
-
-

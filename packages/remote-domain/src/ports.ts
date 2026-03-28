@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   CreateSessionInput,
   CreateSessionOutput,
   ListSessionsInput,
@@ -240,6 +240,10 @@ export type ProcessedSyncRecord = {
   reportedServerHost: string | null;
   reportedApiHost: string | null;
   reportedPublicKeyHash: string | null;
+  systemSnapshot: Record<string, unknown> | null;
+  networkSnapshot: Record<string, unknown> | null;
+  softwareSnapshot: Array<Record<string, unknown>>;
+  agentMetrics: Record<string, unknown> | null;
   normalizedSysproUpdates: RemoteSyncIncomingUpdate[];
   syncDirectives: SyncCommandDirective[];
   compliance: SyncCompliance;
@@ -436,9 +440,3 @@ export interface TrilinkRemoteDomain {
   rotateAddressBookCredential(payload: unknown): Promise<RotateAddressBookCredentialOutput>;
   revokeAddressBookCredential(payload: unknown): Promise<RevokeAddressBookCredentialOutput>;
 }
-
-
-
-
-
-

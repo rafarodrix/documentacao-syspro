@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 
 export const sysproUpdateSchema = z.object({
   companyLabel: z.string().min(1),
@@ -75,6 +75,10 @@ export const processSyncInputSchema = z.object({
   publicKey: z.string().trim().min(1).nullable().optional(),
   serviceStatus: z.string().trim().min(1).nullable().optional(),
   sysproUpdates: z.unknown().optional(),
+  systemSnapshot: z.unknown().optional(),
+  networkSnapshot: z.unknown().optional(),
+  softwareSnapshot: z.unknown().optional(),
+  agentMetrics: z.unknown().optional(),
   metadata: z
     .object({
       ip: z.string().trim().min(1).nullable().optional(),
@@ -464,6 +468,3 @@ export type RevokeAddressBookCredentialOutput = {
   alreadyRevoked: boolean;
   message: string;
 };
-
-
-

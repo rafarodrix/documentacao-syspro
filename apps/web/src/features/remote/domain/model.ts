@@ -385,6 +385,16 @@ export type RemoteHostDetails = {
     tokenSource: string | null;
     serviceStatus: string | null;
   };
+  agentTelemetry: {
+    systemSnapshot: Record<string, unknown> | null;
+    systemSnapshotAt: string | null;
+    networkSnapshot: Record<string, unknown> | null;
+    networkSnapshotAt: string | null;
+    softwareSnapshot: Array<Record<string, unknown>>;
+    softwareSnapshotAt: string | null;
+    agentMetrics: Record<string, unknown> | null;
+    agentMetricsAt: string | null;
+  };
   moduleSettings: {
     rustDeskServerHost: string;
     rustDeskPublicKeyHash: string | null;

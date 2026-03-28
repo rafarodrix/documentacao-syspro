@@ -39,7 +39,7 @@ function isCommandTypeValue(value: string): value is CommandTypeValue {
   );
 }
 
-function toJsonValue(value: Record<string, unknown>): Prisma.InputJsonValue {
+function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value));
 }
 
@@ -57,7 +57,6 @@ function toRecordPayload(value: unknown): Record<string, unknown> | null {
   if (!normalized || typeof normalized !== "object" || Array.isArray(normalized)) return null;
   return normalized as Record<string, unknown>;
 }
-
 export async function revokeExpiredSyncAgentToken(agentToken: string | null | undefined) {
   const token = agentToken?.trim();
   if (!token) return;
@@ -180,27 +179,37 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
     },
     async persistSync(record) {
       const result = await prisma.$transaction(async (tx) => {
+        const hostUpdateData: Prisma.RemoteHostUpdateInput & Record<string, unknown> = {
+          agentExternalId: record.rustdeskId || record.context.agentExternalId,
+          machineName: record.machineName || record.context.machineName,
+          agentVersion: record.agentVersion || record.context.agentVersion,
+          lastHeartbeatAt: record.heartbeatAt,
+          lastHeartbeatSuccessAt: record.heartbeatAt,
+          lastHeartbeatErrorAt: null,
+          lastHeartbeatErrorMessage: null,
+          lastKnownIp: requestIp || record.context.lastKnownIp,
+          agentTokenLastUsedAt: record.heartbeatAt,
+          serviceStatus: record.serviceStatus || record.context.serviceStatus,
+          lastKnownRustDeskAlias: record.reportedAlias || record.context.lastKnownRustDeskAlias,
+          lastKnownRustDeskVersion: record.reportedVersion || record.context.lastKnownRustDeskVersion,
+          lastKnownRustDeskServerHost: record.reportedServerHost || record.context.lastKnownRustDeskServerHost,
+          lastKnownRustDeskApiHost: record.reportedApiHost || record.context.lastKnownRustDeskApiHost,
+          lastKnownRustDeskPublicKeyHash: record.reportedPublicKeyHash || record.context.lastKnownRustDeskPublicKeyHash,
+          lastRustDeskConfigSyncAt: record.heartbeatAt,
+          lastSystemSnapshot: record.systemSnapshot ? toJsonValue(record.systemSnapshot) : undefined,
+          lastSystemSnapshotAt: record.systemSnapshot ? record.heartbeatAt : undefined,
+          lastNetworkSnapshot: record.networkSnapshot ? toJsonValue(record.networkSnapshot) : undefined,
+          lastNetworkSnapshotAt: record.networkSnapshot ? record.heartbeatAt : undefined,
+          lastSoftwareSnapshot: record.softwareSnapshot.length ? toJsonValue(record.softwareSnapshot) : undefined,
+          lastSoftwareSnapshotAt: record.softwareSnapshot.length ? record.heartbeatAt : undefined,
+          lastAgentMetrics: record.agentMetrics ? toJsonValue(record.agentMetrics) : undefined,
+          lastAgentMetricsAt: record.agentMetrics ? record.heartbeatAt : undefined,
+          status: "ACTIVE",
+        };
+
         const saved = await tx.remoteHost.update({
           where: { id: record.context.hostId },
-          data: {
-            agentExternalId: record.rustdeskId || record.context.agentExternalId,
-            machineName: record.machineName || record.context.machineName,
-            agentVersion: record.agentVersion || record.context.agentVersion,
-            lastHeartbeatAt: record.heartbeatAt,
-            lastHeartbeatSuccessAt: record.heartbeatAt,
-            lastHeartbeatErrorAt: null,
-            lastHeartbeatErrorMessage: null,
-            lastKnownIp: requestIp || record.context.lastKnownIp,
-            agentTokenLastUsedAt: record.heartbeatAt,
-            serviceStatus: record.serviceStatus || record.context.serviceStatus,
-            lastKnownRustDeskAlias: record.reportedAlias || record.context.lastKnownRustDeskAlias,
-            lastKnownRustDeskVersion: record.reportedVersion || record.context.lastKnownRustDeskVersion,
-            lastKnownRustDeskServerHost: record.reportedServerHost || record.context.lastKnownRustDeskServerHost,
-            lastKnownRustDeskApiHost: record.reportedApiHost || record.context.lastKnownRustDeskApiHost,
-            lastKnownRustDeskPublicKeyHash: record.reportedPublicKeyHash || record.context.lastKnownRustDeskPublicKeyHash,
-            lastRustDeskConfigSyncAt: record.heartbeatAt,
-            status: "ACTIVE",
-          },
+          data: hostUpdateData,
           select: {
             id: true,
             agentExternalId: true,

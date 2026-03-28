@@ -283,6 +283,22 @@ function normalizeCompanyIdentity(value: string | null | undefined) {
     .toLowerCase();
 }
 
+function toRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function toRecordArray(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) return [];
+  const list: Array<Record<string, unknown>> = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    list.push(entry as Record<string, unknown>);
+    if (list.length >= 200) break;
+  }
+  return list;
+}
+
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
   const tenantScope = await getRemoteTenantScope();
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
@@ -1072,6 +1088,16 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       agentVersion: host.agentVersion ?? host.discoveryRecord?.agentVersion ?? null,
       tokenSource: host.lastRegisterSource ?? null,
       serviceStatus,
+    },
+    agentTelemetry: {
+      systemSnapshot: toRecord(host.lastSystemSnapshot),
+      systemSnapshotAt: host.lastSystemSnapshotAt?.toISOString() ?? null,
+      networkSnapshot: toRecord(host.lastNetworkSnapshot),
+      networkSnapshotAt: host.lastNetworkSnapshotAt?.toISOString() ?? null,
+      softwareSnapshot: toRecordArray(host.lastSoftwareSnapshot),
+      softwareSnapshotAt: host.lastSoftwareSnapshotAt?.toISOString() ?? null,
+      agentMetrics: toRecord(host.lastAgentMetrics),
+      agentMetricsAt: host.lastAgentMetricsAt?.toISOString() ?? null,
     },
     moduleSettings: {
       rustDeskServerHost: moduleSettings.rustDeskServerHost,

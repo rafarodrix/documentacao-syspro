@@ -571,6 +571,14 @@ model RemoteHost {
   lastKnownRustDeskApiHost String?
   lastKnownRustDeskPublicKeyHash String?
   lastRustDeskConfigSyncAt DateTime?
+  lastSystemSnapshot Json?
+  lastSystemSnapshotAt DateTime?
+  lastNetworkSnapshot Json?
+  lastNetworkSnapshotAt DateTime?
+  lastSoftwareSnapshot Json?
+  lastSoftwareSnapshotAt DateTime?
+  lastAgentMetrics Json?
+  lastAgentMetricsAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
