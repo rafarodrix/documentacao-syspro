@@ -819,9 +819,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
                         <div className="space-y-1">
                           <p className="truncate text-base font-semibold text-foreground">{item.name}</p>
-                          <p className="truncate text-sm text-muted-foreground">
-                            Maquina: <span className="text-foreground/95">{item.machineName ?? "Sem leitura do agente"}</span>
-                          </p>
                           {installationNames.length ? (
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className="text-xs text-muted-foreground">Empresas:</span>
@@ -843,6 +840,14 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           ) : (
                             <p className="text-xs text-muted-foreground">Sem empresa reportada no heartbeat.</p>
                           )}
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
+                              Contato: {item.lastHeartbeatAt ? new Date(item.lastHeartbeatAt).toLocaleString("pt-BR") : "Sem contato"}
+                            </span>
+                            <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
+                              Sessao: {item.lastSessionStatus ?? "Nenhuma"}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -891,6 +896,28 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         </p>
                       ) : null}
                     </div>
+
+                    <details className="mt-3 rounded-lg border border-border/50 bg-muted/10 p-3">
+                      <summary className="cursor-pointer text-xs font-medium text-foreground">Detalhes operacionais</summary>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da maquina (agente)</p>
+                          <p className="mt-1 text-sm text-foreground">{item.machineName ?? "Sem leitura do agente"}</p>
+                        </div>
+                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
+                          <p className="mt-1 text-sm text-foreground">{item.provider ?? "Sem registro"}</p>
+                        </div>
+                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Descricao</p>
+                          <p className="mt-1 text-sm text-foreground">{item.description ?? "Sem descricao"}</p>
+                        </div>
+                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo ticket</p>
+                          <p className="mt-1 text-sm text-foreground">{item.lastTicketNumber ?? "Sem ticket recente"}</p>
+                        </div>
+                      </div>
+                    </details>
                   </div>
                 );
               })}

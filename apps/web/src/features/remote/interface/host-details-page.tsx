@@ -670,9 +670,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
-                Ultimo contato: {formatRelativeHeartbeat(host.lastHeartbeatAt)}
-              </span>
-              <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
                 Sessao: {host.openSessionCount ? `${host.openSessionCount} ativa(s)` : "Nenhuma"}
               </span>
               <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
@@ -707,15 +704,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         <TabsContent value="conexao">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Resumo de conexao</CardTitle>
-              <CardDescription>Visao enxuta para operacao rapida. Detalhes tecnicos ficam recolhidos.</CardDescription>
+              <CardTitle className="text-lg">Conexao da maquina</CardTitle>
+              <CardDescription>Somente sinais operacionais essenciais. Detalhes tecnicos ficam no diagnostico.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da maquina (projetado)</p>
-                  <p className="mt-1 text-sm text-foreground">{projectedHostName || "Nao registrado"}</p>
-                </div>
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome do computador (Windows)</p>
                   <p className="mt-1 text-sm text-foreground">{windowsComputerName ?? "Sem leitura do agente"}</p>
@@ -723,14 +716,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao do agente</p>
                   <p className="mt-1 text-sm text-foreground">{host.agentVersion ?? "Nao registrada"}</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo sucesso</p>
-                  <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatSuccessAt)}</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo IP</p>
-                  <p className="mt-1 text-sm text-foreground">{host.lastKnownIp ?? "Sem leitura"}</p>
                 </div>
               </div>
 
@@ -742,6 +727,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Token de instalacao</p>
                     <p className="mt-1 break-all font-mono text-sm text-foreground">{host.installToken ?? "Nao configurado"}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat valido</p>
+                    <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatSuccessAt)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo IP reportado</p>
+                    <p className="mt-1 text-sm text-foreground">{host.lastKnownIp ?? "Sem leitura"}</p>
                   </div>
                   <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
