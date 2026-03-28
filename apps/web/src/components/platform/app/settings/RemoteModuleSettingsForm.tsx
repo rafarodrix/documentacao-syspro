@@ -21,7 +21,7 @@ import {
   updateRemoteModuleSettingsAction,
 } from "@/features/remote/application/module-settings-actions";
 import type { RemoteModuleSettings } from "@/features/remote/domain/model";
-import { getRemoteApiErrorMessage, parseRemoteApiResponse } from "@/features/remote/interface/remote-api";
+import { getRemoteApiErrorMessage, parseRemoteApiResponse, parseRemoteMutationResponse } from "@/features/remote/interface/remote-api";
 
 type RemoteModuleSettingsFormValues = z.input<typeof remoteModuleSettingsSchema>;
 type CompanyOption = { id: string; label: string };
@@ -132,14 +132,11 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
     try {
       setCredentialsLoading(true);
       const response = await fetch("/api/remote/rustdesk/address-book/credentials", { method: "GET" });
-      const result = await parseRemoteApiResponse<AddressBookCredentialItem[]>(
-        response,
-        "Falha ao carregar credenciais.",
-      );
+      const result = await parseRemoteApiResponse<AddressBookCredentialItem[]>(response);
       const items = Array.isArray(result.data) ? result.data : [];
       setCredentials(items);
     } catch (error) {
-      toast.error(getRemoteApiErrorMessage(error, "Falha ao carregar credenciais."));
+      toast.error(getRemoteApiErrorMessage(error));
     } finally {
       setCredentialsLoading(false);
     }
@@ -156,15 +153,12 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
       try {
         setClientProfileLoading(true);
         const response = await fetch("/api/remote/rustdesk/client-profile", { method: "GET" });
-        const result = await parseRemoteApiResponse<RemoteClientProfile>(
-          response,
-          "Falha ao carregar perfil do cliente RustDesk.",
-        );
+        const result = await parseRemoteApiResponse<RemoteClientProfile>(response);
         if (!mounted) return;
         setClientProfile(result.data ?? null);
       } catch (error) {
         if (!mounted) return;
-        toast.error(getRemoteApiErrorMessage(error, "Falha ao carregar perfil do cliente RustDesk."));
+        toast.error(getRemoteApiErrorMessage(error));
       } finally {
         if (mounted) setClientProfileLoading(false);
       }
@@ -250,10 +244,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             expiresInDays: credentialExpiresDays ? Number(credentialExpiresDays) : null,
           }),
         });
-        const result = await parseRemoteApiResponse<{ token?: string; tokenPreview?: string }>(
-          response,
-          "Falha ao criar credencial.",
-        );
+        const result = await parseRemoteMutationResponse<{ token?: string; tokenPreview?: string }>(response);
         toast.success(result.message ?? "Credencial criada.");
         setLatestIssuedToken({
           token: result.data?.token ?? "",
@@ -262,7 +253,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         resetCredentialForm();
         await loadCredentials();
       } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error, "Falha ao criar credencial."));
+        toast.error(getRemoteApiErrorMessage(error));
       }
     });
   }
@@ -273,10 +264,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         const response = await fetch(`/api/remote/rustdesk/address-book/credentials/${id}/rotate`, {
           method: "POST",
         });
-        const result = await parseRemoteApiResponse<{ token?: string; tokenPreview?: string }>(
-          response,
-          "Falha ao rotacionar credencial.",
-        );
+        const result = await parseRemoteMutationResponse<{ token?: string; tokenPreview?: string }>(response);
         toast.success(result.message ?? "Credencial rotacionada.");
         setLatestIssuedToken({
           token: result.data?.token ?? "",
@@ -284,7 +272,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         });
         await loadCredentials();
       } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error, "Falha ao rotacionar credencial."));
+        toast.error(getRemoteApiErrorMessage(error));
       }
     });
   }
@@ -295,11 +283,11 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         const response = await fetch(`/api/remote/rustdesk/address-book/credentials/${id}/revoke`, {
           method: "POST",
         });
-        const result = await parseRemoteApiResponse(response, "Falha ao revogar credencial.");
+        const result = await parseRemoteMutationResponse(response);
         toast.success(result.message ?? "Credencial revogada.");
         await loadCredentials();
       } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error, "Falha ao revogar credencial."));
+        toast.error(getRemoteApiErrorMessage(error));
       }
     });
   }

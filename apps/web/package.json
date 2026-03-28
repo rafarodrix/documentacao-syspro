@@ -7,7 +7,7 @@
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "next typegen && tsc -p tsconfig.json --noEmit",
     "test": "vitest run --reporter=verbose",
     "docs:check": "node scripts/docs-check.mjs",
     "test:authz": "vitest run tests/authz --reporter=verbose",

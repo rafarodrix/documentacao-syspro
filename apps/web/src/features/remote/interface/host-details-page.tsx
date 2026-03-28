@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
-import { getRemoteApiErrorMessage, parseRemoteApiResponse } from "@/features/remote/interface/remote-api";
+import { getRemoteApiErrorMessage, parseRemoteMutationResponse } from "@/features/remote/interface/remote-api";
 
 function formatDateTime(value: string | null) {
   if (!value) return "Sem registro";
@@ -434,11 +434,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           }),
         });
 
-        await parseRemoteApiResponse(response, "Falha ao salvar nome projetado da maquina.");
+        await parseRemoteMutationResponse(response);
 
         toast.success("Nome da maquina atualizado.");
       } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error, "Falha ao salvar nome projetado da maquina."));
+        toast.error(getRemoteApiErrorMessage(error));
       }
     });
   }
@@ -450,11 +450,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           method: "POST",
         });
 
-        const result = await parseRemoteApiResponse<{ message?: string }>(response, "Falha ao renovar credencial.");
+        const result = await parseRemoteMutationResponse<{ message?: string }>(response);
         toast.success(result.message ?? "Credencial renovada.");
         window.location.reload();
       } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error, "Falha ao renovar credencial."));
+        toast.error(getRemoteApiErrorMessage(error));
       }
     });
   }
@@ -507,12 +507,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         }),
       });
 
-      await parseRemoteApiResponse(response, "Falha ao salvar configuracoes da empresa.");
+      await parseRemoteMutationResponse(response);
 
       toast.success("Configuracoes da empresa atualizadas.");
       window.location.reload();
     } catch (error) {
-      toast.error(getRemoteApiErrorMessage(error, "Falha ao salvar configuracoes da empresa."));
+      toast.error(getRemoteApiErrorMessage(error));
     } finally {
       setSavingCompanyContextId(null);
     }
@@ -529,12 +529,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           }),
         });
 
-        await parseRemoteApiResponse(response, "Falha ao vincular empresa na instalacao.");
+        await parseRemoteMutationResponse(response);
 
         toast.success("Empresa vinculada na instalacao monitorada.");
         window.location.reload();
       } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error, "Falha ao vincular empresa na instalacao."));
+        toast.error(getRemoteApiErrorMessage(error));
       }
     });
   }
@@ -551,12 +551,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           }),
         });
 
-        await parseRemoteApiResponse(response, "Falha ao adicionar empresa nesta instalacao.");
+        await parseRemoteMutationResponse(response);
 
         toast.success("Empresa adicional vinculada a esta instalacao.");
         window.location.reload();
       } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error, "Falha ao adicionar empresa nesta instalacao."));
+        toast.error(getRemoteApiErrorMessage(error));
       }
     });
   }
@@ -1367,5 +1367,3 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     </div>
   );
 }
-
-

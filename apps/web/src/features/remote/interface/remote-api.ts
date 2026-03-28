@@ -4,7 +4,6 @@ type RemoteApiEnvelope<T> = {
   success?: boolean;
   data?: T;
   message?: string;
-  error?: string;
   code?: string;
   httpStatus?: number;
 };
@@ -36,17 +35,30 @@ function toActionableMessage(baseMessage: string, httpStatus?: number, code?: st
     return "Limite de requisicoes atingido. Aguarde alguns segundos e tente novamente.";
   }
 
+  if (httpStatus === 409) {
+    if (code === "HOST_DELETE_HAS_ACTIVE_SESSION") {
+      return "Nao e possivel excluir host com sessao ativa. Encerre a sessao e tente novamente.";
+    }
+    if (code === "SESSION_DUPLICATE_OPEN") {
+      return "Ja existe sessao aberta para este ticket e host.";
+    }
+    if (code === "SESSION_START_CONCURRENT") {
+      return "Ja existe sessao em andamento neste host. Encerre a sessao atual antes de iniciar outra.";
+    }
+    return "Conflito de estado no recurso remoto. Atualize a tela e tente novamente.";
+  }
+
   return baseMessage;
 }
 
 export async function parseRemoteApiResponse<T>(
   response: Response,
-  fallbackErrorMessage: string,
+  fallbackErrorMessage = "Falha ao concluir a operacao remota.",
 ): Promise<{ data: T; message?: string; code?: string; httpStatus?: number }> {
   const payload = (await response.json().catch(() => null)) as RemoteApiEnvelope<T> | null;
   const code = payload?.code;
   const httpStatus = payload?.httpStatus ?? response.status;
-  const rawMessage = payload?.message ?? payload?.error ?? fallbackErrorMessage;
+  const rawMessage = payload?.message ?? fallbackErrorMessage;
   const message = toActionableMessage(rawMessage, httpStatus, code);
 
   if (!response.ok) {
@@ -70,13 +82,27 @@ export async function parseRemoteApiResponse<T>(
   };
 }
 
-export function getRemoteApiErrorMessage(error: unknown, fallback: string) {
+export function parseRemoteMutationResponse<T>(
+  response: Response,
+): Promise<{ data: T; message?: string; code?: string; httpStatus?: number }> {
+  return parseRemoteApiResponse<T>(response, "Falha ao concluir a operacao remota.");
+}
+
+export function getRemoteApiErrorMessage(
+  error: unknown,
+  fallback = "Falha ao concluir a operacao remota.",
+) {
   if (error instanceof RemoteApiClientError) {
     return error.message;
   }
 
-  if (error instanceof Error && error.message) {
-    return error.message;
+  if (error instanceof Error) {
+    if (/failed to fetch|networkerror|load failed|fetch/i.test(error.message)) {
+      return "Falha de comunicacao com o modulo remoto. Verifique a conexao e tente novamente.";
+    }
+    if (error.message) {
+      return error.message;
+    }
   }
 
   return fallback;
