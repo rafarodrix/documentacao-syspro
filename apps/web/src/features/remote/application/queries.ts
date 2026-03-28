@@ -977,6 +977,25 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     observacoes: host.company.observacoes ?? null,
   };
   companyContextById.set(host.company.id, primaryCompanyContext);
+  const companyContexts = Array.from(companyContextById.values());
+  const companyContextByIdentity = new Map<string, (typeof primaryCompanyContext)>();
+  const companyContextByDirectory = new Map<string, (typeof primaryCompanyContext)>();
+
+  for (const context of companyContexts) {
+    const identities = [context.nomeFantasia, context.razaoSocial]
+      .map((entry) => normalizeCompanyIdentity(entry))
+      .filter((entry) => !!entry);
+    for (const identity of identities) {
+      if (!companyContextByIdentity.has(identity)) {
+        companyContextByIdentity.set(identity, context);
+      }
+    }
+
+    const directoryKey = context.installationDirectory?.trim().toLowerCase();
+    if (directoryKey && !companyContextByDirectory.has(directoryKey)) {
+      companyContextByDirectory.set(directoryKey, context);
+    }
+  }
   const primaryCompanyLabels = new Set(
     [host.company.nomeFantasia, host.company.razaoSocial]
       .map((entry) => normalizeCompanyIdentity(entry))
@@ -1103,6 +1122,24 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       const updateLabels = [update.resolvedCompanyName, update.companyLabel]
         .map((entry) => normalizeCompanyIdentity(entry))
         .filter((entry) => !!entry);
+      const guessedByLabel = updateLabels
+        .map((label) => companyContextByIdentity.get(label) ?? null)
+        .find((context): context is typeof primaryCompanyContext => !!context);
+      if (guessedByLabel) {
+        return {
+          update,
+          company: guessedByLabel,
+        };
+      }
+
+      const guessedByDirectory = companyContextByDirectory.get(update.path.trim().toLowerCase()) ?? null;
+      if (guessedByDirectory) {
+        return {
+          update,
+          company: guessedByDirectory,
+        };
+      }
+
       const belongsToPrimaryCompany = updateLabels.some((entry) => primaryCompanyLabels.has(entry));
 
       return {

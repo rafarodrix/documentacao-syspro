@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
@@ -322,12 +321,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const router = useRouter();
   const { host } = details;
   const [projectedHostName, setProjectedHostName] = useState(host.name);
-  const [pendingUpdateCompanyById, setPendingUpdateCompanyById] = useState<Record<string, string>>({});
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
   const [isRotatingInstallToken, startRotatingInstallToken] = useTransition();
-  const [linkingUpdateId, startLinkingUpdateId] = useTransition();
   const [latestInstallToken, setLatestInstallToken] = useState<string | null>(null);
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
@@ -580,13 +577,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   );
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
-  const companyOptionLabelCount = useMemo(() => {
-    return details.companyOptions.reduce<Record<string, number>>((acc, option) => {
-      acc[option.label] = (acc[option.label] ?? 0) + 1;
-      return acc;
-    }, {});
-  }, [details.companyOptions]);
-
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
       return {
@@ -708,45 +698,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           await handleCopy(token, "InstallToken");
         }
         toast.success(result.message ?? "Token de instalacao regenerado.");
-        router.refresh();
-      } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error));
-      }
-    });
-  }
-
-  function handleRelinkInstallation(updateId: string) {
-    startLinkingUpdateId(async () => {
-      try {
-        await requestRemoteMutation({
-          url: `/api/remote/hosts/${host.id}/syspro-updates/${updateId}`,
-          method: "PATCH",
-          body: {
-            companyId: pendingUpdateCompanyById[updateId] || null,
-          },
-        });
-
-        toast.success("Empresa vinculada na instalacao monitorada.");
-        router.refresh();
-      } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error));
-      }
-    });
-  }
-
-  function handleAddCompanyToInstallation(updateId: string) {
-    startLinkingUpdateId(async () => {
-      try {
-        await requestRemoteMutation({
-          url: `/api/remote/hosts/${host.id}/syspro-updates/${updateId}`,
-          method: "PATCH",
-          body: {
-            companyId: pendingUpdateCompanyById[updateId] || null,
-            mode: "add",
-          },
-        });
-
-        toast.success("Empresa adicional vinculada a esta instalacao.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -960,13 +911,13 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     const entry = context.update;
                     const companyContext = context.company;
                     const primaryCompanyDirectory = details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
-                    const companyName = companyContext?.nomeFantasia ?? companyContext?.razaoSocial ?? entry.resolvedCompanyName ?? entry.companyLabel;
+                    const companyName = companyContext?.nomeFantasia ?? companyContext?.razaoSocial ?? "Sem empresa vinculada";
                     const serverType = companyContext?.serverType ? COMPANY_SERVER_TYPE_LABEL[companyContext.serverType] : "Nao configurado";
                     const companyDirectory = companyContext?.installationDirectory?.trim();
                     const installationDirectory =
-                      companyDirectory ||
-                      primaryCompanyDirectory ||
-                      DEFAULT_INSTALLATION_DIRECTORY;
+                      companyContext
+                        ? (companyDirectory || primaryCompanyDirectory || DEFAULT_INSTALLATION_DIRECTORY)
+                        : (entry.path?.trim() || DEFAULT_INSTALLATION_DIRECTORY);
 
                     return (
                       <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
@@ -978,6 +929,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da empresa</p>
                             <p className="mt-1 text-sm font-medium text-foreground">{companyName}</p>
+                            {!entry.companyId ? (
+                              <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                                Instalacao sem vinculo formal com empresa do cadastro.
+                              </p>
+                            ) : null}
                           </div>
                           <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
@@ -1003,21 +959,21 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                             </div>
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Servidor</p>
-                              <p className="mt-1 text-sm text-foreground">{companyContext?.serverHost ?? "Nao configurado"}</p>
+                              <p className="mt-1 text-sm text-foreground">{entry.companyId ? (companyContext?.serverHost ?? "Nao configurado") : "Sem vinculo"}</p>
                             </div>
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Porta</p>
                               <p className="mt-1 text-sm text-foreground">
-                                {companyContext?.serverPort ? String(companyContext.serverPort) : "Nao configurado"}
+                                {entry.companyId ? (companyContext?.serverPort ? String(companyContext.serverPort) : "Nao configurado") : "Sem vinculo"}
                               </p>
                             </div>
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conexao</p>
-                              <p className="mt-1 text-sm text-foreground">{companyContext?.serverProtocol ?? "Nao configurado"}</p>
+                              <p className="mt-1 text-sm text-foreground">{entry.companyId ? (companyContext?.serverProtocol ?? "Nao configurado") : "Sem vinculo"}</p>
                             </div>
                             <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Url Path (ISAPI)</p>
-                              <p className="mt-1 break-all text-sm text-foreground">{companyContext?.iisIsapiPath ?? "Nao configurado"}</p>
+                              <p className="mt-1 break-all text-sm text-foreground">{entry.companyId ? (companyContext?.iisIsapiPath ?? "Nao configurado") : "Sem vinculo"}</p>
                             </div>
                           </div>
                         </details>
@@ -1026,7 +982,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           <summary className="cursor-pointer text-sm font-medium text-foreground">Observacoes</summary>
                           <div className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
                             <p className="whitespace-pre-wrap text-sm text-foreground">
-                              {companyContext?.observacoes ?? "Sem observacoes operacionais para esta empresa."}
+                              {entry.companyId
+                                ? (companyContext?.observacoes ?? "Sem observacoes operacionais para esta empresa.")
+                                : "Sem vinculo com empresa do cadastro para exibir observacoes."}
                             </p>
                           </div>
                         </details>
@@ -1034,7 +992,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
                           <summary className="cursor-pointer text-sm font-medium text-foreground">Conexao remota</summary>
                           <div className="mt-3 space-y-3">
-                            {companyContext?.remoteConnections.length ? (
+                            {entry.companyId && companyContext?.remoteConnections.length ? (
                               companyContext.remoteConnections.map((connection, connectionIndex) => (
                                 <div key={`${connection.type}-${connectionIndex}`} className="rounded-lg border border-border/40 bg-background/40 p-3">
                                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo</p>
@@ -1045,7 +1003,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                               ))
                             ) : (
                               <div className="rounded-lg border border-dashed border-border/50 bg-background/30 p-3">
-                                Nenhuma conexao remota cadastrada para esta empresa.
+                                {entry.companyId
+                                  ? "Nenhuma conexao remota cadastrada para esta empresa."
+                                  : "Sem vinculo com empresa do cadastro para exibir conexoes remotas."}
                               </div>
                             )}
                           </div>
@@ -1066,40 +1026,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           </div>
                         </div>
 
-                        {details.permissions.canRelinkInstallations ? (
-                          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
-                            <Select
-                              value={pendingUpdateCompanyById[entry.id] ?? entry.companyId ?? details.company.id}
-                              onValueChange={(value) =>
-                                setPendingUpdateCompanyById((current) => ({ ...current, [entry.id]: value }))
-                              }
-                            >
-                              <SelectTrigger className="h-10">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {details.companyOptions.map((company) => (
-                                  <SelectItem key={company.id} value={company.id}>
-                                    {companyOptionLabelCount[company.label] > 1
-                                      ? `${company.label} (${company.id.slice(0, 8)})`
-                                      : company.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button className="w-full lg:w-auto" onClick={() => handleRelinkInstallation(entry.id)} disabled={linkingUpdateId}>
-                              Trocar empresa
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="w-full lg:w-auto"
-                              onClick={() => handleAddCompanyToInstallation(entry.id)}
-                              disabled={linkingUpdateId}
-                            >
-                              Adicionar empresa
-                            </Button>
-                          </div>
-                        ) : null}
+                        <div className="mt-3 rounded-lg border border-border/40 bg-background/30 p-3 text-xs text-muted-foreground">
+                          Edicao de vinculo e cadastro da empresa deve ser feita no modulo de Empresas.
+                        </div>
                       </div>
                     );
                   })}
