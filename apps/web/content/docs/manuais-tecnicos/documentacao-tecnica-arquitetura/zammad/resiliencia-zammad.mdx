@@ -1,0 +1,477 @@
+---
+title: Resiliência e contingência — Zammad
+description: Decisões técnicas sobre retry, circuit breaker, cache e observabilidade na integração Zammad.
+lastUpdated: 2026-03-28
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - manuais-tecnicos
+  - documentacao-tecnica-arquitetura
+  - integracao-zammad
+  - resiliencia
+audience:
+  - developer
+  - arquitetura
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Contexto
+
+O Zammad é um sistema externo gerenciado por terceiros. Pode ficar indisponível, lento ou instável. A arquitetura de integração foi desenhada para **nunca falhar silenciosamente** nem deixar o usuário sem resposta.
+
+As decisões aqui documentadas foram validadas em produção e não devem ser reversas sem consenso da equipe de engenharia.
+
+## Camadas de resiliência
+
+```
+Requisição → Retry → Circuit Breaker → Cache Local → Erro controlado
+   (1x)      (3x)      (cooldown)    (até 15min)      (UI notifica)
+```
+
+Cada camada é independente e compensa falhas das anteriores.
+
+## 1. Retry com exponential backoff
+
+### Por que
+
+Falhas transitórias (network glitch, GC pause no Zammad) devem ser automaticamente recuperáveis. Retry imediato não dá tempo para resolvê-las.
+
+### Como
+
+```javascript
+Tentativa 1: imediato
+Tentativa 2: 400ms
+Tentativa 3: 800ms
+Total: até 3 tentativas em ~1.2 segundos
+```
+
+### Configuração
+
+```bash
+ZAMMAD_RETRY_MAX_ATTEMPTS=3          # Quantas vezes tentar
+ZAMMAD_RETRY_BASE_DELAY_MS=400       # Delay base em ms
+```
+
+### Código
+
+Arquivo: `zammad-http-client.ts`
+
+```typescript
+export async function fetchWithRetry(
+  input: string, 
+  options: NextFetchOptions, 
+  meta: FetchMeta
+): Promise<Response> {
+  for (let attempt = 1; attempt <= ZAMMAD_RETRY_MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(input, options);
+      if (response.ok) return response;
+      
+      // Retryable: 429 (rate limit) e 5xx (servidor)
+      if (!isRetryableStatus(response.status) || attempt === max) {
+        throw new Error(...);
+      }
+    } catch (error) {
+      if (attempt === ZAMMAD_RETRY_MAX_ATTEMPTS) throw error;
+    }
+    
+    const delayMs = ZAMMAD_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+    await sleep(delayMs);
+  }
+}
+```
+
+### Decisão
+
+**Exponential backoff reduz congestionamento** — Se Zammad está lento, bombardeá-lo com retries imediatos piora. Esperar cada vez mais dá tempo para recuperação.
+
+## 2. Circuit breaker por rota
+
+### Por que
+
+Se uma rota falha sistematicamente (ex: Zammad offline, branch de dados corrompida), continuar tentando:
+- Desperdiça tempo no timeout
+- Aumenta latência da aplicação
+- Congestiona o Zammad
+
+Um circuit breaker **abre** a rota e cai imediatamente no fallback.
+
+### Como
+
+```javascript
+// Rota falha 3 vezes (max attempts)
+→ Circuit breaker abre
+→ Próximas requisições caem direto no fallback
+→ Após 20 segundos, tenta novamente (cooldown)
+```
+
+### Configuração
+
+```bash
+ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER=true
+ZAMMAD_CIRCUIT_COOLDOWN_MS=20000    # Cooldown de 20s
+```
+
+### Código
+
+```typescript
+// Em zammad-http-client.ts
+const circuitOpenUntilByRoute = new Map<string, number>();
+
+const circuitOpenUntil = circuitOpenUntilByRoute.get(routeKey) ?? 0;
+if (Date.now() < circuitOpenUntil) {
+  // Circuit aberto — cai no fallback
+  throw new Error("Circuit breaker ativo para rota Zammad.");
+}
+
+// Na última tentativa de retry que falha:
+circuitOpenUntilByRoute.set(
+  routeKey, 
+  Date.now() + ZAMMAD_CIRCUIT_COOLDOWN_MS
+);
+```
+
+### Observação
+
+O circuit breaker é **por rota** (`routeKey`), não global. Exemplo:
+- Rota `"customer-dashboard-list"` falha → isola apenas essa
+- Rota `"get-ticket-details"` continua funcionando
+
+### Decisão
+
+**In-memory circuit breaker é suficiente**:
+- Single server (Next.js)
+- Cooldown curto (20s) — fallback rápido
+- Não precisa de estado compartilhado (Redis)
+
+## 3. Response cache com stale fallback
+
+### Por que
+
+Cache local permite **degradação controlada**. Se Zammad falha:
+- Retornar dados desatualizados é melhor que erro
+- Usuário segue trabalhando (com aviso)
+- Zammad tem tempo para recuperar
+
+### Como
+
+```javascript
+Requisição bem-sucedida
+  → Armazena em cache local { ts, data }
+  
+Requisição falha (retry esgotado + circuit aberto)
+  → Busca cache local
+  → Se cache < 15 minutos, retorna com marcação 'stale'
+  → Senão, propaga erro
+```
+
+### Configuração
+
+```bash
+ZAMMAD_FALLBACK_MAX_STALE_MINUTES=15  # Até 15 min de stale
+```
+
+### Código
+
+```typescript
+try {
+  const response = await fetchWithRetry(...);
+  // Sucesso — armazena em cache
+  responseCache.set(cacheKey, { ts: Date.now(), data: json });
+  return json;
+} catch (error) {
+  if (method === "GET") {
+    const fallback = responseCache.get(cacheKey);
+    if (fallback) {
+      const staleMinutes = (Date.now() - fallback.ts) / 60000;
+      if (staleMinutes <= ZAMMAD_FALLBACK_MAX_STALE_MINUTES) {
+        markZammadRouteStale(routeKey, staleMinutes);
+        return fallback.data; // Retorna com marcação 'stale'
+      }
+    }
+  }
+  throw error;
+}
+```
+
+### Configuração por operação
+
+Cada chamada pode ter seu próprio TTL:
+
+```typescript
+// Cache de 30 segundos
+await ZammadGateway.searchOperationalTicketsPage(query, {
+  cacheTtlSeconds: 30,
+  routeKey: "search-operational"
+});
+
+// Cache padrão (sem revalidação)
+await ZammadGateway.getUserIdByEmail(email);
+```
+
+### Marcação de stale
+
+A aplicação **precisa saber** quando está servindo dados desatualizados:
+
+```typescript
+// Na aplicação
+const health = zammadObservabilityGateway.getRouteHealth("customer-list");
+if (health.stale) {
+  showWarning(
+    `Dados podem estar ${health.staleMinutes} minutos desatualizados`
+  );
+}
+```
+
+### Decisão
+
+**Cache apenas para GET** — Não cachear POST/PUT/DELETE (mutações). Falhas em escrita devem ser explícitas.
+
+## 4. User ID cache
+
+### Contexto
+
+Resolver `userIdByEmail` é operação comum — muitas mutações precisam disso. Sem cache local:
+- Uma requisição ao Zammad por email
+- Se N emails, N requisições ao Zammad
+- Em picos, congestiona
+
+### Implementação
+
+```typescript
+const ZAMMAD_USER_ID_CACHE_TTL_MS = 300000; // 5 minutos
+
+function getCachedUserId(email: string): number | null | undefined {
+  const cached = userIdCache.get(email);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+  userIdCache.delete(email);
+  return undefined;
+}
+
+function cacheUserId(email: string, value: number | null) {
+  userIdCache.set(email, {
+    value,
+    expiresAt: Date.now() + ZAMMAD_USER_ID_CACHE_TTL_MS
+  });
+}
+
+// Uso
+async function getUserIdByEmail(email: string): Promise<number | null> {
+  const cached = getCachedUserId(email);
+  if (cached !== undefined) return cached;
+  
+  const userId = await fetchZammad(...);
+  cacheUserId(email, userId);
+  return userId;
+}
+```
+
+### Decisão
+
+**5 minutos é tempo suficiente** — Emails são criados raramente em Zammad. Cache mais longo (30min) correria risco de stale info.
+
+## 5. Sincronização proativa
+
+### Por que
+
+Esperar requisição do usuário para preencher cache inevitavelmente perderá dados ou causará latência. Sincronização proativa:
+- Preenche cache antes de picos
+- Reduz pressão em horas normais
+- Permite detect issues mais cedo
+
+### Endpoint
+
+```
+POST /api/platform/zammad/sync
+Authorization: Bearer {token}
+```
+
+Retorna count de tickets sincronizados.
+
+### Implementação
+
+```typescript
+// Arquivo: zammad-sync/route.ts
+export async function POST(request: Request) {
+  const pages = Number(process.env.ZAMMAD_SYNC_PAGES ?? 3);
+  const perPage = Number(process.env.ZAMMAD_SYNC_PER_PAGE ?? 50);
+  
+  let collected = 0;
+  for (let page = 1; page <= pages; page++) {
+    const items = await ZammadGateway.getAllTickets(perPage, {
+      page,
+      routeKey: "sync-worker",
+      cacheTtlSeconds: 0  // Sempre fresco
+    });
+    if (!items.length) break;
+    collected += items.length;
+  }
+  
+  return NextResponse.json({ 
+    success: true, 
+    ticketsSynced: collected 
+  });
+}
+```
+
+### Segurança
+
+- Requer autorização (Bearer token)
+- Não usa sessão web (pode ser chamado de worker)
+- Nenhuma validação de usuário necessária
+
+### Decisão
+
+**Sem limitação de rate** — Sync pode rodar quantas vezes precisar. É idempotente (apenas preenche cache).
+
+## 6. Observabilidade
+
+### Métricas estruturadas
+
+Toda requisição é registrada como JSON estruturado:
+
+```json
+{
+  "type": "zammad_request",
+  "ts": "2026-03-28T14:30:45.123Z",
+  "routeKey": "customer-dashboard-list",
+  "endpoint": "tickets?query=...",
+  "statusCode": 200,
+  "ok": true,
+  "timeout": false,
+  "attempts": 2,
+  "latencyMs": 1245
+}
+```
+
+### Rastreamento de stale
+
+```typescript
+export function markZammadRouteStale(
+  routeKey: string, 
+  staleMinutes: number
+) {
+  staleByRoute.set(routeKey, {
+    sinceTs: ...,
+    staleMinutes,
+    updatedAt: Date.now()
+  });
+}
+```
+
+Permite visualizar **quanto tempo** cada rota está servindo dados antigos.
+
+### Health snapshots
+
+Agregação por janela de tempo:
+
+```typescript
+interface RouteSnapshot {
+  routeKey: string;
+  total: number;        // requisições
+  errors: number;       // falhas
+  timeouts: number;     // timeouts
+  avgLatencyMs: number;
+  errorRate: number;    // percentual
+  timeoutRate: number;  // percentual
+}
+
+// Uso: últimas 60 minutos
+const snapshots = getZammadMetricsSnapshot(
+  ["customer-dashboard-list", "search-operational"], 
+  60 // minutes
+);
+```
+
+### Alertas recomendados
+
+- `errorRate > 10%` por 5 minutos → investigar Zammad
+- `staleMinutes > 10` em rota crítica → indicar ao usuário
+- `avgLatencyMs > 5000` → possível gargalo
+
+## Exemplo prático: fluxo completo
+
+Usuário acessa dashboard de tickets:
+
+```
+[Requisição] GET /api/tickets?customer=user@example.com
+
+↓
+
+[Gateway] searchOperationalTicketsPage(query, {
+  cacheTtlSeconds: 30,
+  routeKey: "customer-dashboard-list"
+})
+
+↓
+
+[HTTP Client] fetchZammad(...)
+  Tentativa 1: timeout 10s → retry
+  Tentativa 2: 400ms + timeout 10s → 429 Rate Limit → retry
+  Tentativa 3: 800ms + timeout 10s → sucesso!
+
+↓
+
+[Cache] Armazena resultado localmente
+  responseCache.set("GET:...", { ts: now, data: results })
+
+↓
+
+[Response] Retorna tickets
+  UI renderiza lista
+
+--- 30 segundos depois, cache expira ---
+
+[Novo usuário acessa]
+
+↓
+
+[HTTP Client] fetchZammad(...)
+  Tentativa 1: timeout 10s → retry
+  Tentativa 2: timeout → retry
+  Tentativa 3: timeout → circuit breaker abre
+
+↓
+
+[Fallback] Cache local tem dados de 2 minutos atrás
+  staleMinutes = 2
+
+↓
+
+Se staleMinutes ≤ 15:
+  → Retorna cache com marcação 'stale'
+  → UI exibe: "Dados podem estar desatualizados (2 min atrás)"
+  → Usuário segue trabalhando
+  
+Senão:
+  → Propaga erro
+  → UI exibe: "Falha ao carregar. Tente novamente."
+```
+
+## Decisões não implementadas (e por quê)
+
+### Não há Redis cache compartilhado
+
+**Por quê:** Single server (Next.js), in-memory é suficiente. Se escalarmos, Redis é o próximo passo.
+
+### Não há deduplicação de requisições (request coalescing)
+
+**Por quê:** Cache local + sync proativa reduzem N+1 naturalmente. Implementar coalescing adiciona complexidade sem gang para o caso de uso atual.
+
+### Não há bulkhead pattern entre rotas
+
+**Por quê:** Circuit breaker por rota já isola falhas. Bulkhead (thread pools separadas) é prematura para Node.js single-threaded.
+
+### Não há timeout customizável por rota
+
+**Por quê:** 10s aplica-se bem para todos os endpoints Zammad. Endpoints específicos lentos devem ser debugados no Zammad, não mascarados com timeout maior.
+
+## Referências
+
+- Arquivo: `zammad-http-client.ts` — implementação de retry e circuit breaker
+- Arquivo: `zammad-observability.ts` — métricas e health tracking
+- Arquivo: `zammad-integration.ts` — integração com módulo remoto
+- Documentação: [Integração com Zammad](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/zammad/integracao-zammad)

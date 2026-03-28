@@ -1,13 +1,16 @@
 ---
 title: Operacao do Agente Remoto OSS
-description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat e validacao operacional do agente remoto no modelo RustDesk self-hosted com portal proprio.
-lastUpdated: 2026-03-28
+description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat, validacao operacional, token lifecycle, sessions e observabilidade do agente remoto no modelo RustDesk self-hosted com portal proprio.
+lastUpdated: 2026-03-29
 owner: Engenharia de Plataforma
 status: published
 tags:
   - manuais-tecnicos
   - documentacao-tecnica-arquitetura
   - arquitetura-remote
+  - token-lifecycle
+  - sessions
+  - observability
 audience:
   - admin
   - developer
@@ -500,10 +503,160 @@ Uso:
 
 ### Sessao
 
-- sessao manual criada
-- transicao `REQUESTED -> STARTED -> ENDED`
-- bloqueio de exclusao de host com sessao aberta
-- bloqueio de sessao duplicada por ticket/host
+Sessoes permitem gerenciar conexoes remotas entre suporte/usuario e maquina via RustDesk.
+
+Fluxo:
+
+- **Criacao**: UI portal (`/plataforma-remota/host/:id/sessoes`) cria sessao manualmente com `actor` (usuario/suporte) e `scope` (global/host/ticket)
+- **Listagem**: `listSessions` retorna sessoes ativas por escopo
+- **Iniciacao**: `startSession` marca sessao como `STARTED`, agente pode conectar
+- **Termino**: `stopSession` marca como `ENDED`, conexao encerrada
+- **Validacoes**:
+  - bloqueio de exclusao de host com sessao aberta
+  - bloqueio de sessao duplicada para mesmo host/ticket
+  - scope define nivel de acesso (global: todas maquinas, host: maquina especifica, ticket: vinculada a ticket)
+
+Operacao recomendada:
+
+```
+suporte -> criar sessao para host X (scope: host)
+suporte -> listar para confirmar REQUESTED
+suporte -> iniciar sessao (status: STARTED)
+suporte -> conectar em RustDesk com `hostId`
+suporte -> parar sessao apos terminar
+```
+
+### Lifecycle do AgentToken
+
+**AgentToken** e a credencial permanente emitida no bootstrap que autentica o agente em todas as chamadas subsequentes (sync, ack, heartbeat).
+
+#### Emissao
+
+- Gerado em `POST /api/remote/rustdesk/bootstrap` com `installToken` valido
+- Valido a partir de `agentTokenIssuedAt` (timestamp do bootstrap)
+- Resposta inclui `agentTokenExpiresAt` (TTL, ex: 90 dias)
+
+#### Validacao durante Sync
+
+Em toda chamada de sync/ack/heartbeat, o portal valida:
+
+1. Token existe e nao foi revogado (`agentTokenHash` na DB)
+2. Token nao expirou (compara `Date.now()` vs `agentTokenExpiresAt`)
+3. Se falhar: resposta `{"error": "AGENT_TOKEN_INVALID"}` ou `{"error": "AGENT_TOKEN_EXPIRED"}`
+
+#### Rotacao de Token
+
+Quando suporte precisa renovar credencial (suspeita de comprometimento, rotina de seguranca):
+
+1. UI portal: `/plataforma-remota/host/:id` → botao "Renovar Credencial"
+2. Backend: `rotateHostAgentToken(hostId)` gera novo token e invalida o anterior
+3. Agente detecta invalidade na proxima chamada de sync (erro `AGENT_TOKEN_INVALID`)
+4. Agente deve executar novo bootstrap com `installToken` para receber novo token
+5. Portal marca host como `BOOTSTRAP_REQUIRED` durante discover ate novo bootstrap
+
+#### Revogacao Manual
+
+Suporte pode revogar token permanentemente (desativar acesso):
+
+1. UI portal: → botao "Revogar Credencial" (nao recomendado em horas de trabalho)
+2. Backend: `revokeHostAgentToken(hostId)` marca token como revogado
+3. Agente entra em estado desconectado permanente ate novo bootstrap
+4. Para reativar: novo bootstrap necessario
+
+#### Compliance apos Bootstrap
+
+Apos emissao, portal valida configuracoes:
+
+```
+compliance: {
+  aliasMatch: alias recebido = alias esperado,
+  versionMatch: versao RustDesk = target config,
+  serverHostMatch: host RustDesk = config,
+  apiHostMatch: api host RustDesk = config,
+  publicKeyMatch: public key = config
+}
+```
+
+Se algum campo falha, relatorio salvo em logs estruturados para diagnostico.
+
+### Address Book
+
+Address Book permite manter credenciais e configuracoes compartilhadas para discovery e operacoes em massa.
+
+Operacoes:
+
+- `listAddressBook`: listar maquinas/grupos cadastrados
+- `createAddressBookCredential`: registrar nova credencial (usuario/senha) para acesso
+- `rotateAddressBookCredential`: renovar credencial sem interromper operacoes
+- `revokeAddressBookCredential`: desativar credencial permanentemente
+- `listAddressBookCredentials`: listar credenciais ativas por address book
+
+Uso típico:
+
+- Suporte cadastra credencial AD/local para descoberta em subnet
+- Portal usa credencial para scan em background (`POST /api/remote/agents/discover` com metadata)
+- Credenciais nao sao armazenadas em texto plano (criptografia obrigatoria)
+
+## Transicoes de Discover (Detalhamento)
+
+O fluxo discover expoe 3 caminhos mutuamente exclusivos:
+
+#### 1. `pending_link` (Nova maquina encontrada)
+
+- Maquina nunca vista antes em portal
+- Agente chama discover com `discoveryToken`
+- Portal cria registro `remoteDiscoveredHost` com status `PENDING_LINK`
+- Suporte deve decidir: **linkar a host existente** ou **nao processar**
+- Resposta: `allowDiscoveryHeartbeat: true` (continua enviando heartbeat via discovery)
+- Proxima acao: suporte clica "Linkar Maquina" em UI → transicao para `linked_host_detected`
+
+#### 2. `linked_host_detected` (Maquina ja vinculada, tudo ok)
+
+- Sistema detectou que `discoveryToken` vem de maquina ja vinculada a um host
+- Transicao: agente deve chamar `sync` com `agentToken` (fluxo autenticado)
+- Resposta: `allowDiscoveryHeartbeat: false` (descoberta nao e mais necessaria)
+- Proxima acao: agente para de chamar discover e passa a chamar sync
+
+#### 3. `host_bootstrap_required` (Maquina vinculada, mas token inválido/expirado)
+
+- Sistema detectou que token anterior foi rotacionado ou expirou
+- Transicao: agente deve executar novo bootstrap com `installToken`
+- Resposta: `requiresAuthenticatedBootstrap: true`
+- Proxima acao: agente chama `POST /api/remote/rustdesk/bootstrap` para receber novo token
+
+## Observabilidade e Logging
+
+Todas as operacoes remotas sao loggadas estruturadamente:
+
+- `remote.domain.discover.started`: inicio de descoberta
+- `remote.domain.discover.pending`: maquina pendente de linkagem
+- `remote.domain.discover.linked`: maquina vinculada confirmada
+- `remote.domain.bootstrap.succeeded`: bootstrap completado com sucesso
+- `remote.domain.bootstrap.failed`: erro no bootstrap (token invalido, etc)
+- `remote.domain.sync.started`: sync iniciado com contexto
+- `remote.domain.sync.failed`: sync falhou (token expirado, etc)
+- `remote.domain.ack.processed`: comando reconhecido pelo agente
+
+Campos inclusos em cada log:
+
+```json
+{
+  "event": "remote.domain.bootstrap.succeeded",
+  "hostId": "host-123",
+  "companyId": "company-456",
+  "rustdeskId": "212345678",
+  "agentVersion": "1.2.3",
+  "ip": "192.168.1.100",
+  "timestamp": "2026-03-28T10:00:00.000Z"
+}
+```
+
+Integracoes:
+
+- Logs centralizados em JSON para monitoramento
+- Alertas quando agente nao faz heartbeat > 1h
+- Compliance audit quando token rotacionado
+- Dashboard de saude: % maquinas com heartbeat recente
 
 ## Problemas comuns
 

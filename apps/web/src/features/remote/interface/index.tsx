@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { RemotePlatformOverview, RemotePlatformStatus } from "@/features/remote/domain/model";
 import { RemotePlatformControls } from "@/features/remote/interface/remote-controls";
-import { Building2, Database, KeyRound, LaptopMinimal, ShieldCheck, Waypoints } from "lucide-react";
+import { Building2, ChevronDown, Database, KeyRound, LaptopMinimal } from "lucide-react";
 
 const statusLabel: Record<RemotePlatformStatus, string> = {
   planned: "Planejado",
@@ -12,10 +13,10 @@ const statusLabel: Record<RemotePlatformStatus, string> = {
 };
 
 const statusVariant: Record<RemotePlatformStatus, string> = {
-  planned: "bg-muted text-muted-foreground border-border",
-  foundation: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-300",
-  in_progress: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-300",
-  blocked: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-300",
+  planned:     "border-border/60 bg-muted/50 text-muted-foreground",
+  foundation:  "border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  in_progress: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  blocked:     "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
 };
 
 export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlatformOverview }) {
@@ -129,9 +130,9 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
               <CardHeader className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="text-lg">{module.title}</CardTitle>
-                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusVariant[module.status]}`}>
+                  <Badge variant="outline" className={statusVariant[module.status]}>
                     {statusLabel[module.status]}
-                  </span>
+                  </Badge>
                 </div>
                 <CardDescription>{module.description}</CardDescription>
               </CardHeader>
@@ -145,15 +146,26 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-3">
+      <section className="grid gap-6 lg:grid-cols-2">
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-lg">Hosts persistidos</CardTitle>
-            <CardDescription>
-              Total: {overview.hostStats.total} | Ativos: {overview.hostStats.active} | Manutencao: {overview.hostStats.maintenance} | Inativos: {overview.hostStats.inactive}
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="grid grid-cols-4 gap-2 rounded-lg border border-border/50 bg-muted/20 p-3">
+              {[
+                { label: "Total", value: overview.hostStats.total },
+                { label: "Ativos", value: overview.hostStats.active },
+                { label: "Manutenção", value: overview.hostStats.maintenance },
+                { label: "Inativos", value: overview.hostStats.inactive },
+              ].map(({ label, value }) => (
+                <div key={label} className="text-center">
+                  <p className="text-lg font-semibold text-foreground">{value}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+
             {overview.recentHosts.length ? (
               overview.recentHosts.map((host) => (
                 <div key={host.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
@@ -179,11 +191,23 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-lg">Sessoes persistidas</CardTitle>
-            <CardDescription>
-              Total: {overview.sessionStats.total} | Requested: {overview.sessionStats.requested} | Started: {overview.sessionStats.started} | Ended: {overview.sessionStats.ended} | Failed: {overview.sessionStats.failed}
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="grid grid-cols-5 gap-2 rounded-lg border border-border/50 bg-muted/20 p-3">
+              {[
+                { label: "Total", value: overview.sessionStats.total },
+                { label: "Req.", value: overview.sessionStats.requested },
+                { label: "Init.", value: overview.sessionStats.started },
+                { label: "Ended", value: overview.sessionStats.ended },
+                { label: "Failed", value: overview.sessionStats.failed },
+              ].map(({ label, value }) => (
+                <div key={label} className="text-center">
+                  <p className="text-lg font-semibold text-foreground">{value}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+
             {overview.recentSessions.length ? (
               overview.recentSessions.map((session) => (
                 <div key={session.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
@@ -210,16 +234,13 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
         </Card>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className="space-y-4">
+        <div>
+          <p className="text-xl font-semibold text-foreground">Endpoints previstos</p>
+          <p className="text-sm text-muted-foreground">Contratos HTTP iniciais do fluxo remoto.</p>
+        </div>
         <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Waypoints className="h-5 w-5 text-primary" />
-              Endpoints previstos
-            </CardTitle>
-            <CardDescription>Contratos HTTP iniciais do fluxo remoto.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 pt-6">
             {overview.endpoints.map((endpoint) => (
               <div key={`${endpoint.method}-${endpoint.path}`} className="flex flex-col gap-1 rounded-lg border border-border/50 bg-muted/20 p-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -231,130 +252,118 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
             ))}
           </CardContent>
         </Card>
-
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-              Roadmap por fases
-            </CardTitle>
-            <CardDescription>Sequencia recomendada para sair do shell e chegar a operacao real.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {overview.roadmap.map((phase) => (
-              <div key={phase.id} className="rounded-lg border border-border/50 bg-muted/20 p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold">{phase.title}</h3>
-                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusVariant[phase.status]}`}>
-                    {statusLabel[phase.status]}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">{phase.summary}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Modelo inicial de RemoteHost</CardTitle>
-            <CardDescription>`companyId` e obrigatorio para filtrar hosts por tenant.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              <span className="font-medium text-foreground">id:</span> {overview.hostModel.id}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">companyId:</span> {overview.hostModel.companyId}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">name:</span> {overview.hostModel.name}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">environment:</span> {overview.hostModel.environment}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">provider:</span> {overview.hostModel.provider}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">status:</span> {overview.hostModel.status}
-            </p>
-          </CardContent>
-        </Card>
+      <section className="space-y-4">
+        <div>
+          <p className="text-xl font-semibold text-foreground">Roadmap por fases</p>
+          <p className="text-sm text-muted-foreground">Sequencia recomendada para sair do shell e chegar a operacao real.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {overview.roadmap.map((phase) => (
+            <Card key={phase.id} className="border-border/50">
+              <CardHeader className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">{phase.title}</CardTitle>
+                  <Badge variant="outline" className={statusVariant[phase.status]}>
+                    {statusLabel[phase.status]}
+                  </Badge>
+                </div>
+                <CardDescription>{phase.summary}</CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      </section>
 
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Modelo inicial de RemoteSession</CardTitle>
-            <CardDescription>`companyId` e proprio para auditar e filtrar sessoes sem depender so do host.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              <span className="font-medium text-foreground">id:</span> {overview.sessionModel.id}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">companyId:</span> {overview.sessionModel.companyId}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">hostId:</span> {overview.sessionModel.hostId}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">ticketId:</span> {overview.sessionModel.ticketId ?? "null"}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">ticketNumber:</span> {overview.sessionModel.ticketNumber ?? "null"}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">requestedByUserId:</span> {overview.sessionModel.requestedByUserId}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">startedByUserId:</span> {overview.sessionModel.startedByUserId}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">status:</span> {overview.sessionModel.status}
-            </p>
-          </CardContent>
-        </Card>
+      <section>
+        <Collapsible>
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-muted/10 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/20 transition-colors">
+            Referência técnica — contratos de modelo
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 data-[state=open]:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-3 grid gap-6 lg:grid-cols-2">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Modelo inicial de RemoteHost</CardTitle>
+                  <CardDescription>`companyId` e obrigatorio para filtrar hosts por tenant.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-2 text-sm">
+                    {[
+                      { key: "id", value: overview.hostModel.id },
+                      { key: "companyId", value: overview.hostModel.companyId },
+                      { key: "name", value: overview.hostModel.name },
+                      { key: "environment", value: overview.hostModel.environment },
+                      { key: "provider", value: overview.hostModel.provider },
+                      { key: "status", value: overview.hostModel.status },
+                    ].map(({ key, value }) => (
+                      <div key={key} className="flex gap-2">
+                        <dt className="w-28 shrink-0 font-mono text-xs text-muted-foreground">{key}</dt>
+                        <dd className="text-foreground">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
 
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Recorte tecnico de auditoria</CardTitle>
-            <CardDescription>Contrato-base para registrar solicitacao, inicio, encerramento e origem da sessao.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              <span className="font-medium text-foreground">id:</span> {overview.sessionAuditModel.id}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">sessionId:</span> {overview.sessionAuditModel.sessionId}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">action:</span> {overview.sessionAuditModel.action}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">source:</span> {overview.sessionAuditModel.source}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">actorUserId:</span> {overview.sessionAuditModel.actorUserId ?? "null"}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">hostId:</span> {overview.sessionAuditModel.hostId ?? "null"}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">ticketNumber:</span> {overview.sessionAuditModel.ticketNumber ?? "null"}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">occurredAt:</span> {overview.sessionAuditModel.occurredAt}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">summary:</span> {overview.sessionAuditModel.summary}
-            </p>
-            <p>
-              <span className="font-medium text-foreground">metadata:</span> {overview.sessionAuditModel.metadata}
-            </p>
-          </CardContent>
-        </Card>
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Modelo inicial de RemoteSession</CardTitle>
+                  <CardDescription>`companyId` e proprio para auditar e filtrar sessoes sem depender so do host.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-2 text-sm">
+                    {[
+                      { key: "id", value: overview.sessionModel.id },
+                      { key: "companyId", value: overview.sessionModel.companyId },
+                      { key: "hostId", value: overview.sessionModel.hostId },
+                      { key: "ticketId", value: overview.sessionModel.ticketId ?? "null" },
+                      { key: "ticketNumber", value: overview.sessionModel.ticketNumber ?? "null" },
+                      { key: "requestedByUserId", value: overview.sessionModel.requestedByUserId },
+                      { key: "startedByUserId", value: overview.sessionModel.startedByUserId },
+                      { key: "status", value: overview.sessionModel.status },
+                    ].map(({ key, value }) => (
+                      <div key={key} className="flex gap-2">
+                        <dt className="w-36 shrink-0 font-mono text-xs text-muted-foreground">{key}</dt>
+                        <dd className="text-foreground">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-lg">Recorte tecnico de auditoria</CardTitle>
+                  <CardDescription>Contrato-base para registrar solicitacao, inicio, encerramento e origem da sessao.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-2 text-sm">
+                    {[
+                      { key: "id", value: overview.sessionAuditModel.id },
+                      { key: "sessionId", value: overview.sessionAuditModel.sessionId },
+                      { key: "action", value: overview.sessionAuditModel.action },
+                      { key: "source", value: overview.sessionAuditModel.source },
+                      { key: "actorUserId", value: overview.sessionAuditModel.actorUserId ?? "null" },
+                      { key: "hostId", value: overview.sessionAuditModel.hostId ?? "null" },
+                      { key: "ticketNumber", value: overview.sessionAuditModel.ticketNumber ?? "null" },
+                      { key: "occurredAt", value: overview.sessionAuditModel.occurredAt },
+                      { key: "summary", value: overview.sessionAuditModel.summary },
+                      { key: "metadata", value: overview.sessionAuditModel.metadata },
+                    ].map(({ key, value }) => (
+                      <div key={key} className="flex gap-2">
+                        <dt className="w-32 shrink-0 font-mono text-xs text-muted-foreground">{key}</dt>
+                        <dd className="text-foreground">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </section>
     </div>
   );

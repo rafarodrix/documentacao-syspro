@@ -1,7 +1,7 @@
 ---
 title: Integracao com Zammad
-description: Registro do papel atual do Zammad na plataforma e das diretrizes para novas integracoes.
-lastUpdated: 2026-03-24
+description: Registro do papel atual do Zammad na plataforma, arquitetura de integração e diretrizes para novas implementações.
+lastUpdated: 2026-03-28
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -18,89 +18,372 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 ## Objetivo
 
-Registrar como o projeto usa o Zammad hoje e evitar que decisoes antigas sobre SSO, frontend acoplado ou consultas redundantes voltem a orientar implementacoes novas.
+Registrar como o projeto usa o Zammad hoje, documentar a arquitetura de resilência e evitar que decisões antigas sobre SSO, frontend acoplado ou consultas redundantes voltem a orientar implementações novas.
 
 ## Papel atual do Zammad
 
-Hoje o Zammad e tratado como:
+Hoje o Zammad é tratado como:
 
-- sistema de atendimento e ticketing
-- origem de eventos para operacao remota
-- provider externo consultado por adapters dedicados
+- **Sistema de atendimento e ticketing** — origem de verdade para tickets e interações com clientes
+- **Provider de eventos** — webhooks para operações remotas (deep-link, criar sessões)
+- **Adapter consultado** — via gateway dedicado na camada de infraestrutura, nunca diretamente
+- **Origem de observabilidade** — saúde das rotas rastreada por métricas estruturadas
 
-Hoje o Zammad **nao** e tratado como:
+Hoje o Zammad **não** é tratado como:
 
-- fonte principal de autenticacao do portal
-- backend central da aplicacao
-- lugar para concentrar regra de negocio da Trilink
+- Fonte principal de autenticação do portal
+- Backend central da aplicação
+- Lugar para concentrar regra de negócio da Trilink
+- Página ou componente consultando diretamente (sem adapter)
 
 <Callout type="info" title="Diretriz vigente">
-  O portal segue com autenticacao propria e usa o Zammad como integracao operacional. Qualquer acoplamento adicional deve passar por contrato e adapter da feature de tickets.
+  O portal segue com autenticação própria e usa o Zammad como integração operacional. Qualquer acoplamento adicional deve passar por contrato e adapter da feature de tickets. Resiliência é obrigatória: contingência, cache e circuit breaker são da arquitetura, não da aplicação.
 </Callout>
 
-## O que ja existe no codigo
+## Arquitetura de integração
 
-- gateway dedicado para consultas e mutacoes do Zammad na feature de tickets
-- cache operacional local para fallback e contingencia
-- sincronizacao e webhook para refletir estado operacional
-- integracao com a plataforma remota para deep-link e anotacoes internas
+### Layers
 
-## Decisoes praticas para novas implementacoes
+```
+┌─────────────────────────────────────────────────────────┐
+│  Application Layer (features/tickets/application)       │
+│  - Use Cases: searchTickets, addReply, createTicket     │
+└─────────────────────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────────────────────┐
+│  Domain Layer (features/tickets/domain)                 │
+│  - ZammadGatewayRepository (contrato/interface)         │
+│  - Tipos: ZammadOperationalTicket, ZammadTicketAPI      │
+└─────────────────────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────────────────────┐
+│  Infrastructure Layer (features/tickets/infrastructure) │
+│  ┌─────────────────────────────────────────────────────┐│
+│  │ zammad-gateway.ts (implementação do contrato)      ││
+│  └─────────────────────────────────────────────────────┘│
+│  ┌─────────────────────────────────────────────────────┐│
+│  │ zammad-http-client.ts (HTTP + resilência)          ││
+│  │ - Retry com exponential backoff                     ││
+│  │ - Circuit breaker por rota                          ││
+│  │ - Response cache com stale fallback                 ││
+│  │ - Timeout configurável                              ││
+│  └─────────────────────────────────────────────────────┘│
+│  ┌─────────────────────────────────────────────────────┐│
+│  │ zammad-observability.ts (métricas + saúde)         ││
+│  │ - Registro estruturado de requisições               ││
+│  │ - Saúde por routeKey (stale, latência)             ││
+│  └─────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────┘
+              ↓
+        Zammad API
+```
+
+### O que já existe no código
+
+- **Gateway dedicado** — `ZammadGateway` para consultas e mutações, nunca chamadas diretas
+- **HTTP client robusto** — retry automático, circuit breaker, timeout e cache com stale fallback
+- **Cache operacional local** — em memória com TTL per-query, permite degradação até 15 minutos atrás
+- **Sincronização proativa** — endpoint `/api/platform/zammad/sync` para preencher cache periodicamente
+- **Webhooks bidirecionais** — `/api/integrations/zammad/webhook` recebe eventos para criar sessões remotas
+- **Integração com módulo remoto** — `zammad-integration.ts` resolve deep-links e cria sessões autenticadas
+- **Observabilidade estruturada** — métricas por rota, rastreamento de estale data e health checks
+- **Cache de usuários** — em memória com TTL 5 minutos para `getUserIdByEmail`
+
+## Estratégia de resiliência
+
+### Retry com exponential backoff
+
+Toda requisição HTTP para o Zammad passa por retry automático:
+
+- **Max attempts:** 3 (configurável via `ZAMMAD_RETRY_MAX_ATTEMPTS`)
+- **Base delay:** 400ms (configurável via `ZAMMAD_RETRY_BASE_DELAY_MS`)
+- **Estratégia:** exponential backoff — delay = base × 2^(tentativa-1)
+- **Retryable:** HTTP 429 (rate limit) e 5xx (erro servidor)
+- **Não retryável:** 4xx (erro cliente), timeout na última tentativa
+
+```javascript
+// Exemplo de delays: 400ms, 800ms, 1600ms
+```
+
+### Circuit breaker por rota
+
+Quando uma rota falha repetidamente, um circuit breaker a isola temporariamente:
+
+- **Ativação:** Erro na última tentativa de retry
+- **Cooldown:** 20 segundos (configurável via `ZAMMAD_CIRCUIT_COOLDOWN_MS`)
+- **Comportamento:** Requisições para rota aberta caem imediatamente no fallback
+- **Rastreamento:** Por `routeKey` (exemplo: `"search-operational"`, `"sync-worker"`)
+- **Configuração:** Ativar via `ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER=true`
+
+### Timeout
+
+- **Padrão:** 10 segundos (configurável via `ZAMMAD_TIMEOUT_MS`)
+- **Mecanismo:** AbortController do Fetch API
+- **Comportamento:** Timeout dispara fallback se estiver disponível
+
+### Cache com stale fallback
+
+O cliente mantém um cache em memória com estratégia sofisticada:
+
+1. **Cache fresco** — Requisições GET são armazenadas localmente
+2. **Degradação ativa** — Se o Zammad falha e há cache local com menos de 15 minutos (configurável via `ZAMMAD_FALLBACK_MAX_STALE_MINUTES`), retorna cache com marcação de `stale`
+3. **TTL por operação** — Cada query pode estar seu próprio `cacheTtlSeconds`
+4. **Rastreamento** — Router mantém registro de qual cache está em estado `stale` para observabilidade
+
+Exemplo:
+```javascript
+// Buscar tickets com cache de 30 segundos
+const tickets = await ZammadGateway.searchOperationalTicketsPage(
+  query, 
+  { cacheTtlSeconds: 30, routeKey: "search-operational" }
+);
+// Se falha antes de 30s, cache local ainda vale
+// Se falha depois de 30s, cache de até 15min atrás é usado com marcação 'stale'
+```
+
+### Sincronização proativa
+
+Para garantir cache atualizado e reduzir pressão em picos:
+
+- **Endpoint:** `POST /api/platform/zammad/sync`
+- **Frequência:** Executar periodicamente (recomendado: a cada 5 minutos)
+- **Paginação:** Configurável via `ZAMMAD_SYNC_PAGES` e `ZAMMAD_SYNC_PER_PAGE`
+- **Autorização:** Token do header (não usa sessão web)
+- **Comportamento:** Preenche cache de todos os tickets operacionais
+
+## Decisões práticas para novas implementações
 
 ### Leitura operacional
 
-- priorizar uma consulta principal por contexto
-- evitar consultas separadas de contagem quando o cache local puder responder
-- nao mascarar erro do provider como lista vazia quando houver fallback disponivel
+1. **Uma consulta principal por contexto** — Evitar N+1 e consultas desnecessárias
+   ```typescript
+   // ✅ BOM: Uma consulta que traz tudo
+   const tickets = await gateway.searchOperationalTicketsPage(query);
+   
+   // ❌ RUIM: Chamar duas vezes
+   const tickets = await gateway.searchOperationalTicketsPage(query);
+   const count = await gateway.getTicketCount(query); // redundante
+   ```
 
-### Escrita
+2. **Usar cache local quando possível** — Não mascarar erro como lista vazia
+   ```typescript
+   // ✅ BOM: Falha e retorna cache de contingência
+   const tickets = await ZammadGateway.getTicketsForCustomerEmailsPaged(emails, {
+     cacheTtlSeconds: 60,
+     routeKey: "list-customer-tickets"
+   });
+   // Se Zammad falha, retorna cache até 15 minutos atrás com status 'stale'
+   
+   // ❌ RUIM: Retornar lista vazia quando há fallback
+   try {
+     return await fetchZammed(...);
+   } catch {
+     return []; // Perdeu dados que poderiam estar em cache
+   }
+   ```
 
-- toda mutacao deve passar por camada de `application`
-- adapters do Zammad ficam isolados em infraestrutura
-- side effects como cache e invalidacao precisam ficar centralizados
+3. **Designar um `routeKey` semanticamente** — Para observabilidade
+   ```typescript
+   // ✅ BOM: Nome descritivo
+   await ZammadGateway.searchOperationalTicketsPage(query, { 
+     routeKey: "customer-dashboard-list" 
+   });
+   
+   // ❌ RUIM: Genérico
+   await ZammadGateway.searchOperationalTicketsPage(query, { 
+     routeKey: "unknown" 
+   });
+   ```
 
-### Contingencia
+### Escrita (mutações)
 
-- erro do Zammad deve permitir degradacao controlada
-- dashboard e listagens devem usar cache local quando o provider oscilar
-- mensagens para o usuario precisam deixar claro quando os dados vieram de contingencia
+1. **Camada de `application`** — Toda mutação passa por use case
+   ```typescript
+   // ✅ BOM: Use case centraliza lógica
+   export async function addTicketReply(ticketId: string, body: string) {
+     // Validações, audit, etc
+     return ZammadGateway.addTicketReply(ticketId, body);
+   }
+   
+   // ❌ RUIM: Chamar gateway diretamente em componente ou rota
+   // Sem validação, sem auditoria, sem tratamento de erro coerente
+   ```
 
-## O que nao devemos retomar
+2. **Isolamento em infraestrutura** — Gateway fica em `infrastructure`, não em `application`
+3. **Side effects centralizados** — Cache invalidation, logging estruturado e observabilidade acontecem no gateway
 
-- proposta de usar o Zammad como provedor OAuth principal do portal
-- texto normativo baseado em `NextAuth.js` como diretriz oficial
-- pagina ou componente consultando Zammad diretamente
-- varias consultas independentes para alimentar a mesma tela
+### Contingência e degradação
 
-## Quando abrir um novo recorte de integracao
+1. **Mensagens claras ao usuário** quando dados vêm de contingência
+   ```typescript
+   // UI precisa indicar: "Dados podem estar desatualizados"
+   if (routeHealth.stale) {
+     showWarning(`Dados atualizados há ${routeHealth.staleMinutes} minutos`);
+   }
+   ```
 
-Abrir documentacao tecnica nova apenas quando houver um destes casos:
+2. **Dashboard sem Zammad** — Listagens devem usar cache local mesmo se offline
+3. **Health checks públicos** — Expor saúde das rotas via endpoint para monitoramento externo
 
-- novo webhook
-- novo fluxo de mutacao relevante
-- nova estrategia de sincronizacao
-- integracao com outro modulo, como remoto ou conversas
+## Observabilidade
 
-Quando isso acontecer, o documento deve registrar:
+### Métricas estruturadas
 
-- contrato de entrada e saida
-- fallback esperado
-- impacto em cache local
-- observabilidade minima
+Toda requisição ao Zammad é registrada estruturadamente:
 
-## Relacao com outros manuais
+```json
+{
+  "type": "zammad_request",
+  "ts": "2026-03-28T14:30:45.123Z",
+  "routeKey": "customer-dashboard-list",
+  "endpoint": "ticket_customers?state=open",
+  "statusCode": 200,
+  "ok": true,
+  "timeout": false,
+  "attempts": 1,
+  "latencyMs": 245
+}
+```
 
-- arquitetura geral: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/arquitetura-aplicacao-monorepo`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/arquitetura-aplicacao-monorepo)
-- backlog e pendencias: [`/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo`](/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo)
-- fonte unica do remoto: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote)
+### Health por rota
 
-## Registro historico
+Rastrear saúde de cada `routeKey`:
 
-Houve uma analise inicial propondo:
+```typescript
+interface RouteHealth {
+  routeKey: string;
+  stale: boolean;
+  staleMinutes: number;
+  staleSince: string | null;
+  updatedAt: string;
+}
+```
+
+### Snapshots de tráfego
+
+Visualizar padrões em janelas de tempo:
+
+```typescript
+interface RouteSnapshot {
+  routeKey: string;
+  total: number;        // requisições no período
+  errors: number;       // requisições com erro
+  timeouts: number;     // requisições que timeout-aram
+  avgLatencyMs: number; // média de latência
+  errorRate: number;    // percentual
+  timeoutRate: number;  // percentual
+}
+```
+
+## O que não devemos retomar
+
+- Proposta de usar o Zammad como provedor OAuth principal do portal
+- Texto normativo baseado em `NextAuth.js` como diretriz oficial
+- Página ou componente consultando Zammad diretamente (sem adapter)
+- Várias consultas independentes para alimentar a mesma tela
+- Assumir que Zammad sempre está disponível (sem fallback)
+
+## Quando abrir um novo recorte de integração
+
+Abrir documentação técnica **nova** apenas quando houver um destes casos:
+
+- Novo webhook ou mudança estrutural em handlers existentes
+- Novo fluxo de mutação relevante (criar ticket, atualizar campo personalizado, etc)
+- Nova estratégia de sincronização ou cache
+- Integração bidirecional com outro módulo (ex: remoto ↔ tickets)
+
+Quando isso acontecer, o documento **deve registrar:**
+
+1. **Contrato de entrada e saída**
+   - Qual dado entra e sai de qual endpoint
+   - Tipos esperados (Zod schemas recomendado)
+
+2. **Fallback esperado**
+   - O que acontece se Zammad falha
+   - Como cache local mitiga falhas
+
+3. **Impacto em cache local**
+   - Qual resultado é cacheado
+   - Por quanto tempo (TTL)
+   - Estratégia de invalidação
+
+4. **Observabilidade mínima**
+   - Qual `routeKey` usar
+   - Métricas críticas a monitorar
+   - Alertas esperados
+
+## Integração com módulo remoto
+
+O Zammad integra bidirecionalmente com o módulo remoto via webhooks:
+
+### De Zammad para Remoto
+
+**Webhook:** `POST /api/integrations/zammad/webhook`
+
+Quando um ticket é criado com tag `#remoto`, o webhook:
+
+1. Resolve a empresa via email do cliente
+2. Busca o host remoto correspondente
+3. Cria uma sessão de acesso remoto autenticada
+4. Vincula ticket ↔ sessão para deep-linking
+
+**Campos esperados no ticket:**
+- `customer.email` — para resolver empresa
+- Tag `#remoto` — para sinalizar integração
+- Custom field com RustDesk ID (opcional)
+
+### De Remoto para Zammad
+
+**Use case:** `resolveRustdeskDeepLink`
+
+Ao clicar em "Ver no Zammad" dentro de uma sessão remota:
+
+1. Resolve ticket a partir de sessão
+2. Valida acesso do usuário ao ticket
+3. Retorna deep-link para abrir no browser
+
+Arquivo: [`remote/application/zammad-integration.ts`]
+
+## Relação com outros manuais
+
+- **Arquitetura geral:** [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/arquitetura-aplicacao-monorepo`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/arquitetura-aplicacao-monorepo)
+- **Backlog e pendências:** [`/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo`](/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo)
+- **Acesso remoto:** [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote)
+- **Feature de Tickets:** Implementação em `apps/web/src/features/tickets/`
+
+## Variáveis de ambiente
+
+```bash
+# Conectividade e autenticação
+ZAMMAD_URL=https://zammad.example.com
+ZAMMAD_TOKEN=seu-token-aqui
+ZAMMAD_AUTH_SCHEME=bearer  # ou 'token'
+
+# Timeouts e retry
+ZAMMAD_TIMEOUT_MS=10000                          # padrão: 10s
+ZAMMAD_RETRY_MAX_ATTEMPTS=3                      # padrão: 3
+ZAMMAD_RETRY_BASE_DELAY_MS=400                   # padrão: 400ms
+
+# Cache e contingência
+ZAMMAD_FALLBACK_MAX_STALE_MINUTES=15             # padrão: 15 minutos
+ZAMMAD_USER_ID_CACHE_TTL_MS=300000               # padrão: 5 minutos
+
+# Circuit breaker
+ZAMMAD_ENABLE_IN_MEMORY_CIRCUIT_BREAKER=true     # padrão: false
+ZAMMAD_CIRCUIT_COOLDOWN_MS=20000                 # padrão: 20s
+
+# Sincronização proativa
+ZAMMAD_SYNC_PAGES=3                              # padrão: 3
+ZAMMAD_SYNC_PER_PAGE=50                          # padrão: 50
+```
+
+## Registro histórico
+
+Houve uma análise inicial propondo:
 
 - SSO com Zammad
-- area "Meus chamados" acoplada ao token do help desk
-- uso de biblioteca de auth como caminho principal da integracao
+- Área "Meus chamados" acoplada ao token do help desk
+- Uso de biblioteca de auth como caminho principal da integração
 
-Esse recorte foi mantido apenas como contexto historico e nao representa mais a diretriz vigente da plataforma.
+Esse recorte foi mantido apenas como contexto histórico e **não representa mais a diretriz vigente** da plataforma. A integração hoje é isolada, resiliente e opera sob contrato claro com a feature de tickets.
 

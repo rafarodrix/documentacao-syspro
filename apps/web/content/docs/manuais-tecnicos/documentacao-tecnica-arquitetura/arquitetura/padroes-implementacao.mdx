@@ -1,0 +1,725 @@
+---
+title: Padrões de Implementação por Camada
+description: Detalhamento dos padrões implementados (Server Actions, tRPC queries/mutations, error handling, observabilidade) e como aplicá-los.
+lastUpdated: 2026-03-29
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - manuais-tecnicos
+  - documentacao-tecnica-arquitetura
+  - padroes-implementacao
+  - patterns
+  - server-actions
+  - trpc
+audience:
+  - developer
+  - engineer
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tabs } from "fumadocs-ui/components/tabs";
+
+Este documento detalha os padrões concretos usados em cada camada (interface, application, infrastructure).
+
+---
+
+## 1. Padrão de Server Actions (Web)
+
+### 1.1 Estrutura Base
+
+Todas as ações em `src/features/<feature>/application/actions.ts`:
+
+```typescript
+"use server";
+
+import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import type { ActionResponse } from "@/features/<feature>/domain/model";
+
+// Error handler genérico
+function handleActionError(error: unknown): ActionResponse {
+    console.error("[FeatureAction Error]:", error);
+    
+    if (error instanceof PrismaClientError) {
+        return { success: false, error: "Database error" };
+    }
+    
+    if (error instanceof ValidationError) {
+        return { success: false, error: error.message };
+    }
+    
+    return { success: false, error: "Unknown error" };
+}
+
+// Padrão: Action genérica com rate limit + error handling
+export async function someAction(input: SomeInput): Promise<ActionResponse<SomeOutput>> {
+    try {
+        // 1. Rate limit
+        const rateLimit = consumeActionRateLimit({
+            action: "someAction",
+            windowMs: 60_000,
+            maxAttempts: 10
+        });
+        
+        if (!rateLimit.allowed) {
+            return { success: false, error: "Rate limit exceeded" };
+        }
+        
+        // 2. Validação
+        const validated = someInputSchema.parse(input);
+        
+        // 3. Obter contexto
+        const session = await getProtectedSession();
+        
+        // 4. Regra de negócio (application layer)
+        const result = await SomeService.executeAction(validated, session.user.id);
+        
+        // 5. Logging estruturado
+        logger.info("feature.action.completed", { 
+            userId: session.user.id, 
+            action: "someAction" 
+        });
+        
+        return { success: true, data: result };
+        
+    } catch (error) {
+        return handleActionError(error);
+    }
+}
+```
+
+### 1.2 Padrão Response Type
+
+```typescript
+// Em domain/model.ts
+export type ActionSuccess<T = void> = T extends void
+    ? { success: true; message?: string }
+    : { success: true; data: T; message?: string };
+
+export type ActionFailure = { 
+    success: false; 
+    error: string; 
+    code?: string;
+};
+
+export type ActionResponse<T = void> = ActionSuccess<T> | ActionFailure;
+
+// Type guard (útil no componente)
+export function isActionError(value: unknown): value is ActionFailure {
+    return typeof value === 'object' && value !== null && 'error' in value;
+}
+```
+
+### 1.3 Uso no Componente
+
+```typescript
+// Em interface/some-component.tsx
+"use client";
+
+import { someAction } from "@/features/some/application/actions";
+import type { ActionResponse } from "@/features/some/domain/model";
+import { isActionError } from "@/features/some/domain/model";
+
+export function SomeComponent() {
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<ActionResponse | null>(null);
+    
+    async function handleSubmit(input: SomeInput) {
+        setLoading(true);
+        try {
+            const response = await someAction(input);
+            
+            if (isActionError(response)) {
+                // response.error é string
+                toast.error(response.error);
+            } else {
+                // response.data disponível
+                toast.success("Success!");
+                setResult(response);
+            }
+        } finally {
+            setLoading(false);
+        }
+    }
+    
+    return <form onSubmit={handleSubmit}>...</form>;
+}
+```
+
+### 1.4 Rate Limiting
+
+`consumeActionRateLimit` implementa sliding window counter:
+
+```typescript
+const limit = consumeActionRateLimit({
+    action: "createUserAction",     // Identidade única
+    windowMs: 60_000,               // Janela: 1 min
+    maxAttempts: 10,                // Limite: 10 calls
+    keyPrefix: "user_actions",      // (Opcional) Storage prefix
+});
+
+if (!limit.allowed) {
+    // Rejeitado, próxima tentativa em...
+    console.error(`Retry after ${limit.retryAfterSeconds}s`);
+}
+```
+
+---
+
+## 2. Padrão de Queries (Web)
+
+### 2.1 Server-Side Queries
+
+```typescript
+// Em application/queries.ts
+"use server";
+
+import { getProtectedSession } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma";
+
+// View Model (form de dados da tela)
+export type DashboardViewData = {
+    users: UserSummary[];
+    counts: { active: number; inactive: number };
+    isAdmin: boolean;
+};
+
+export async function getDashboardViewData(): Promise<DashboardViewData> {
+    const session = await getProtectedSession();
+    
+    // Queries são sempre seguras (filtro por tenant/company embutido)
+    const users = await prisma.user.findMany({
+        where: {
+            company: { id: session.user.companyId }
+        },
+        select: { id: true, name: true, email: true }
+    });
+    
+    const counts = await prisma.user.groupBy({
+        by: ["status"],
+        where: { company: { id: session.user.companyId } },
+        _count: true
+    });
+    
+    return {
+        users: users.map(u => ({ ...u, status: u.status })),
+        counts: { 
+            active: counts.find(c => c.status === 'ACTIVE')?._count ?? 0,
+            inactive: counts.find(c => c.status === 'INACTIVE')?._count ?? 0
+        },
+        isAdmin: session.user.role === 'ADMIN'
+    };
+}
+```
+
+### 2.2 Uso em Page/Layout
+
+```typescript
+// Em interface/dashboard/page.tsx
+import { getDashboardViewData } from "@/features/users/application/queries";
+
+export default async function DashboardPage() {
+    const viewData = await getDashboardViewData();
+    
+    return (
+        <>
+            <h1>Dashboard</h1>
+            <UsersList users={viewData.users} />
+            <UserStats counts={viewData.counts} />
+        </>
+    );
+}
+```
+
+---
+
+## 3. Padrão de tRPC Router (API)
+
+### 3.1 Definição de Query/Mutation
+
+```typescript
+// Em packages/api/src/routers/user.ts
+import { createRouter, defineQuery, defineMutation } from "../router";
+
+export const userRouter = createRouter({
+    
+    // QUERY: Leitura segura com autenticação
+    listUsers: defineQuery<
+        { companyId: string },
+        UserListItem[]
+    >({
+        auth: "authenticated",
+        handler: async ({ ctx, input }) => {
+            // ctx.session.user sempre disponível (auth === "authenticated")
+            
+            const users = await // ... fetch from DB
+            
+            return users;
+        }
+    }),
+    
+    // MUTATION: Escrita com validação + RBAC
+    createUser: defineMutation<
+        { name: string; email: string; role: Role },
+        { id: string }
+    >({
+        auth: "role",  // Requer verificação de role específica
+        handler: async ({ ctx, input }) => {
+            // ctx.session.user.role já foi validado por middleware
+            
+            if (ctx.session.user.role !== "ADMIN") {
+                throw new ApiError("FORBIDDEN", "Admin only");
+            }
+            
+            // Inserir no banco
+            const user = await prisma.user.create({
+                data: {
+                    name: input.name,
+                    email: input.email,
+                    role: input.role,
+                    companyId: ctx.session.user.companyId
+                }
+            });
+            
+            // Logging estruturado
+            ctx.logger.info("user.created", {
+                userId: user.id,
+                createdBy: ctx.session.user.id,
+                role: input.role
+            });
+            
+            return { id: user.id };
+        }
+    }),
+    
+    // PUBLIC: Sem autenticação (ex: CAPTCHA, public discovery)
+    publicData: defineQuery<void, PublicData>({
+        auth: "public",
+        handler: async ({ input }) => {
+            return { /* dados públicos */ };
+        }
+    })
+});
+```
+
+### 3.2 Opciones de Auth
+
+| Tipo | Validação | Contexto |
+|------|-----------|----------|
+| `"public"` | Nenhuma | `ctx.session` é undefined |
+| `"authenticated"` | User logado | `ctx.session.user` existe |
+| `"role"` | User + role ADMIN | Mesmo que authenticated, mas com garantia |
+
+---
+
+## 4. Observabilidade e Logging Estruturado
+
+### 4.1 Logging em Server Actions
+
+```typescript
+// Em application/actions.ts
+import { createLogger } from "@/lib/observability/logger";
+
+const logger = createLogger("features.users.actions");
+
+export async function createUserAction(input: UserInput): Promise<ActionResponse> {
+    try {
+        const session = await getProtectedSession();
+        
+        logger.info("user.create.started", {
+            companyId: session.user.companyId,
+            userId: session.user.id,
+            inputKeys: Object.keys(input)
+        });
+        
+        // ... lógica
+        
+        logger.info("user.create.succeeded", {
+            createdUserId: newUser.id,
+            role: newUser.role,
+            durationMs: performance.now() - startTime
+        });
+        
+        return { success: true };
+        
+    } catch (error) {
+        logger.error("user.create.failed", {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        
+        return { success: false, error: "Creation failed" };
+    }
+}
+```
+
+### 4.2 Logging em tRPC Routes
+
+```typescript
+// Em packages/api/src/routers/user.ts
+defineQuery<...>({
+    handler: async ({ ctx, input }) => {
+        ctx.logger.info("user.list.started", {
+            companyId: ctx.session.user.companyId,
+            filters: Object.keys(input || {})
+        });
+        
+        const users = await fetchUsers(input);
+        
+        ctx.logger.info("user.list.completed", {
+            count: users.length,
+            companyId: ctx.session.user.companyId
+        });
+        
+        return users;
+    }
+})
+```
+
+### 4.3 Estrutura de Log
+
+Todos os logs seguem estrutura JSON:
+
+```json
+{
+    "timestamp": "2026-03-29T10:30:00.000Z",
+    "level": "info",
+    "namespace": "features.users.actions",
+    "event": "user.create.succeeded",
+    "userId": "user-123",
+    "companyId": "company-456",
+    "createdUserId": "user-789",
+    "role": "OPERATOR",
+    "durationMs": 145
+}
+```
+
+---
+
+## 5. Padrão de Gateway/Adapter
+
+### 5.1 Interface (Domain)
+
+```typescript
+// Em domain/repositories/externals.repository.ts
+export interface ExternalProviderGateway {
+    fetchData(id: string): Promise<ExternalData>;
+    pushData(id: string, data: unknown): Promise<void>;
+    healthCheck(): Promise<boolean>;
+}
+
+export type ExternalError = {
+    code: string;
+    message: string;
+    retriable: boolean;
+};
+```
+
+### 5.2 Implementação (Infrastructure)
+
+```typescript
+// Em infrastructure/gateways/external-provider.gateway.ts
+import type { ExternalProviderGateway } from "@/features/some/domain/repositories/externals.repository";
+
+export class ExternalProviderHTTPGateway implements ExternalProviderGateway {
+    private baseUrl = process.env.EXTERNAL_API_URL;
+    private timeout = 10_000;
+    private maxRetries = 3;
+    
+    async fetchData(id: string): Promise<ExternalData> {
+        try {
+            const response = await fetch(`${this.baseUrl}/data/${id}`, {
+                signal: AbortSignal.timeout(this.timeout)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            return await response.json();
+            
+        } catch (error) {
+            logger.error("external.fetch.failed", {
+                id,
+                error: error instanceof Error ? error.message : String(error),
+                url: `${this.baseUrl}/data/${id}`
+            });
+            
+            throw error;
+        }
+    }
+    
+    async healthCheck(): Promise<boolean> {
+        try {
+            const response = await fetch(`${this.baseUrl}/health`, {
+                signal: AbortSignal.timeout(5_000)
+            });
+            return response.ok;
+        } catch {
+            return false;
+        }
+    }
+}
+
+// Singleton
+export const externalProviderGateway = new ExternalProviderHTTPGateway();
+```
+
+### 5.3 Uso em Application
+
+```typescript
+// Em application/queries.ts
+import { externalProviderGateway } from "@/features/some/infrastructure/gateways/external-provider.gateway";
+
+export async function getSomeDataQuery(externalId: string) {
+    try {
+        const externalData = await externalProviderGateway.fetchData(externalId);
+        const localData = await prisma.some.findFirst({ where: { externalId } });
+        
+        return { external: externalData, local: localData };
+        
+    } catch (error) {
+        // Fallback: retorna cache se gateway falhar
+        return { external: null, local: await getCached(externalId) };
+    }
+}
+```
+
+---
+
+## 6. Error Handling Padronizado
+
+### 6.1 Tipos de Erro
+
+```typescript
+// Em domain/errors.ts
+export class DomainError extends Error {
+    constructor(
+        public code: string,
+        message: string,
+        public retriable: boolean = false
+    ) {
+        super(message);
+        this.name = "DomainError";
+    }
+}
+
+export class ValidationError extends DomainError {
+    constructor(public field: string, message: string) {
+        super("VALIDATION_ERROR", message);
+    }
+}
+
+export class NotFoundError extends DomainError {
+    constructor(public resource: string, id: string) {
+        super("NOT_FOUND", `${resource} not found: ${id}`);
+    }
+}
+
+export class UnauthorizedError extends DomainError {
+    constructor(message = "Unauthorized") {
+        super("UNAUTHORIZED", message);
+    }
+}
+```
+
+### 6.2 Tratamento em Server Actions
+
+```typescript
+function handleActionError(error: unknown): ActionResponse {
+    if (error instanceof ValidationError) {
+        return { 
+            success: false, 
+            error: error.message,
+            code: "VALIDATION_ERROR"
+        };
+    }
+    
+    if (error instanceof NotFoundError) {
+        return { 
+            success: false, 
+            error: `${error.resource} not found` 
+        };
+    }
+    
+    if (error instanceof UnauthorizedError) {
+        return { 
+            success: false, 
+            error: "You don't have permission", 
+            code: "FORBIDDEN"
+        };
+    }
+    
+    // Generic error
+    logger.error("action.error.unhandled", { error });
+    return { success: false, error: "An error occurred" };
+}
+```
+
+### 6.3 Tratamento em tRPC
+
+```typescript
+defineQuery<...>({
+    handler: async ({ ctx, input }) => {
+        try {
+            return await fetchData(input);
+        } catch (error) {
+            if (error instanceof NotFoundError) {
+                throw new ApiError("NOT_FOUND", error.message);
+            }
+            
+            if (error instanceof ValidationError) {
+                throw new ApiError("BAD_REQUEST", error.message);
+            }
+            
+            ctx.logger.error("query.error", { error });
+            throw new ApiError("INTERNAL", "Something went wrong");
+        }
+    }
+})
+```
+
+---
+
+## 7. Checklist: Implementar Nova Feature
+
+<Steps>
+
+<Step>
+**Definir Domain**: Criar tipos, enums, contratos de repository
+```typescript
+// src/features/newfeature/domain/
+├── model.ts              # Tipos de domínio
+├── errors.ts             # Erros domínio-específicos
+└── repositories/
+    ├── read.repository.ts    # Contrato
+    └── write.repository.ts   # Contrato
+```
+</Step>
+
+<Step>
+**Implementar Application**: Queries, actions, orquestrações
+```typescript
+// src/features/newfeature/application/
+├── queries.ts           # Leituras (sem regra crítica)
+├── actions.ts           # Escritas com Server Actions
+└── services/
+    └── service.ts       # Orquestração complexa
+```
+</Step>
+
+<Step>
+**Implementar Infrastructure**: Adapters, gateways
+```typescript
+// src/features/newfeature/infrastructure/
+├── gateways/
+│   └── external.gateway.ts    # HTTP clients, APIs
+└── cache/
+    └── cache.repository.ts    # Redis/memória
+```
+</Step>
+
+<Step>
+**Criar Interface**: Componentes, páginas, formas
+```typescript
+// src/features/newfeature/interface/
+├── page.tsx            # Página principal
+├── form.tsx            # Formulário
+└── components/
+    └── card.tsx        # Componentes menores
+```
+</Step>
+
+<Step>
+**Testar**: Validar camadas isoladas
+```bash
+# Unit tests para domain
+npm test -- src/features/newfeature/domain
+
+# Integration tests para application
+npm test -- src/features/newfeature/application
+
+# E2E tests para fluxo completo
+npm test:e2e -- newfeature
+```
+</Step>
+
+</Steps>
+
+---
+
+## 8. Padrão de Cache
+
+### 8.1 In-Memory (Simples)
+
+```typescript
+import { cache } from "react";
+
+// Na query (React Server Components)
+export const getCachedUserData = cache(async (userId: string) => {
+    return await prisma.user.findUnique({ where: { id: userId } });
+});
+
+// Usa automática em mesma requisição HTTP
+// const user1 = await getCachedUserData("id-1");
+// const user2 = await getCachedUserData("id-1"); // Reutiliza
+```
+
+### 8.2 Redis (Persistente)
+
+```typescript
+import { redis } from "@/lib/redis";
+
+export async function getCachedCompanyData(companyId: string) {
+    const cacheKey = `company:${companyId}`;
+    
+    // Tentar ler do cache
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+    
+    // Fetch do banco
+    const fresh = await prisma.company.findUnique({ where: { id: companyId } });
+    
+    // Persistir no cache (TTL 1 hora)
+    await redis.setex(cacheKey, 3600, JSON.stringify(fresh));
+    
+    return fresh;
+}
+```
+
+### 8.3 Cache Invalidation
+
+```typescript
+// Ao atualizar empresa, invalidar cache
+export async function updateCompanyAction(input: CompanyInput) {
+    const company = await prisma.company.update({
+        where: { id: input.id },
+        data: input
+    });
+    
+    // Invalidar cache
+    await redis.del(`company:${company.id}`);
+    
+    // Invalidar query cache do React
+    revalidatePath(`/company/${company.id}`);
+    
+    return { success: true };
+}
+```
+
+---
+
+## Conclusão
+
+Padrões consolidados:
+
+1. **Server Actions**: error handling + rate limit + logging
+2. **Queries**: view models, sempre com filtro tenant
+3. **tRPC**: auth + error handling + observabilidade
+4. **Gateways**: interface contrato + implementação
+5. **Logging**: estruturado em JSON com campos padronizados
+6. **Cache**: in-memory (requisição) + Redis (TTL)
+7. **Error**: tipos específicos + handling por camada
+
+Próxima feature segue exatamente este padrão! 🎯
+

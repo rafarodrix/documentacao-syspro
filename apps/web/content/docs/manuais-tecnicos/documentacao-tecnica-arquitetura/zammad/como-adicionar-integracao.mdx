@@ -1,0 +1,520 @@
+---
+title: How-to — Adicionar nova integração Zammad
+description: Guia passo-a-passo para implementar novas leituras e escritas com Zammad.
+lastUpdated: 2026-03-28
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - manuais-tecnicos
+  - how-to
+  - integracao-zammad
+audience:
+  - developer
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Checklist antes de começar
+
+- [ ] Tarefa definida — qual dado eu preciso ler/escrever?
+- [ ] Contrato claro — qual endpoint Zammad usar?
+- [ ] RouteKey semântico — como nomear essa operação?
+- [ ] TTL definido — por quanto tempo cachear?
+- [ ] Fallback definido — o que fazer se falhar?
+
+<Callout type="warn">
+Não comece a codificar sem ter essas respostas. Evita retrabalho depois.
+</Callout>
+
+## Caso 1: Ler tickets de um cliente
+
+### Contexto
+
+Você precisa listar todos os tickets de um cliente logado (por email).
+
+### Passo 1: Definir contrato na interface
+
+Arquivo: `features/tickets/domain/repositories/zammad-gateway.repository.ts`
+
+```typescript
+export interface ZammadGatewayRepository {
+  // ... existentes ...
+  
+  // ✅ NOVO
+  getTicketsByCustomerEmail(
+    email: string,
+    options?: {
+      limit?: number;
+      page?: number;
+      cacheTtlSeconds?: number;
+      routeKey?: string;
+    }
+  ): Promise<ZammadOperationalTicket[]>;
+}
+```
+
+### Passo 2: Implementar na gateway
+
+Arquivo: `features/tickets/infrastructure/gateways/zammad-gateway.ts`
+
+```typescript
+export const ZammadGateway: ZammadGatewayRepository = {
+  // ... existentes ...
+  
+  // ✅ NOVO
+  async getTicketsByCustomerEmail(
+    email: string,
+    options?: {
+      limit?: number;
+      page?: number;
+      cacheTtlSeconds?: number;
+      routeKey?: string;
+    }
+  ): Promise<ZammadOperationalTicket[]> {
+    const limit = options?.limit ?? 100;
+    const page = options?.page ?? 1;
+    const routeKey = options?.routeKey ?? "get-tickets-by-email";
+
+    // 1. Construir query (email e estado operacional)
+    const query = buildCustomerEmailsQuery([email]);
+    const stateQuery = buildStateQuery([OPEN, IN_PROGRESS, PENDING]);
+    const fullQuery = `${query} ${stateQuery}`;
+
+    // 2. Buscar com cache
+    const data = await fetchZammad(
+      `tickets/search?query=${encodeURIComponent(fullQuery)}&limit=${limit}&page=${page}`,
+      { cache: "no-store" },
+      { 
+        routeKey,
+        cacheTtlSeconds: options?.cacheTtlSeconds ?? 60 // 1 min padrão
+      }
+    );
+
+    // 3. Normalizar resposta
+    const tickets = normalizeSearchResponse(data);
+    const parsed = tickets.map(t => zammadOperationalTicketSchema.parse(t));
+    
+    return parsed;
+  }
+};
+```
+
+### Passo 3: Usar na application
+
+Arquivo: `features/tickets/application/use-cases.ts`
+
+```typescript
+// ✅ NOVO
+export async function getCustomerTickets(
+  customerEmail: string,
+  options?: { page?: number }
+) {
+  // Validar email
+  if (!customerEmail || !customerEmail.includes("@")) {
+    throw new Error("Email inválido");
+  }
+
+  // Chamar gateway (com fallback automático)
+  try {
+    return await ZammadGateway.getTicketsByCustomerEmail(
+      customerEmail,
+      {
+        limit: 50,
+        page: options?.page ?? 1,
+        cacheTtlSeconds: 120,
+        routeKey: "customer-tickets-page"
+      }
+    );
+  } catch (error) {
+    logger.error("Falha ao carregar tickets do cliente", { 
+      customerEmail, 
+      error 
+    });
+    throw error; // Propagar para não mascarar erro
+  }
+}
+```
+
+### Passo 4: Expor em API route
+
+Arquivo: `app/api/tickets/customer/route.ts`
+
+```typescript
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const email = searchParams.get("email");
+  const page = searchParams.get("page");
+
+  if (!email) {
+    return NextResponse.json(
+      { error: "Email requerido" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const tickets = await getCustomerTickets(email, {
+      page: page ? parseInt(page) : 1
+    });
+
+    return NextResponse.json({ tickets });
+  } catch (error) {
+    logger.error("GET /api/tickets/customer falhou", { email, error });
+    return NextResponse.json(
+      { error: "Falha ao carregar tickets" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Passo 5: Usar no componente
+
+```typescript
+// ✅ BOM
+async function CustomerTicketsList({ email }: { email: string }) {
+  const tickets = await getCustomerTickets(email);
+  
+  // Verificar health para saber se dados são stale
+  const health = getZammadRouteHealth("customer-tickets-page");
+  
+  return (
+    <div>
+      {health.stale && (
+        <Alert>
+          Dados atualizados há {health.staleMinutes} minutos
+        </Alert>
+      )}
+      <TicketTable tickets={tickets} />
+    </div>
+  );
+}
+
+// ❌ RUIM — Chamar gateway diretamente
+async function BadComponent() {
+  const data = await fetchZammad("tickets/search?...");
+  // Sem fallback, sem observabilidade, sem cache
+}
+```
+
+## Caso 2: Escrever nota interna em ticket
+
+### Contexto
+
+Feature permite adicionar anotação interna em ticket. Isso é mutação, não leitura.
+
+### Passo 1: Interface já existe
+
+Arquivo: `features/tickets/domain/repositories/zammad-gateway.repository.ts`
+
+```typescript
+export interface ZammadGatewayRepository {
+  // ... existentes ...
+  addInternalTicketNote(
+    ticketId: string | number, 
+    body: string
+  ): Promise<unknown>;
+}
+```
+
+### Passo 2: Verificar implementação
+
+Arquivo: `features/tickets/infrastructure/gateways/zammad-gateway.ts`
+
+```typescript
+async addInternalTicketNote(
+  ticketId: string | number, 
+  body: string
+): Promise<unknown> {
+  return fetchZammad("ticket_articles", {
+    method: "POST",
+    body: JSON.stringify({
+      ticket_id: ticketId,
+      body,
+      type: "note",
+      content_type: "text/html",
+      internal: true,  // ← chave: interna
+    }),
+    cache: "no-store",  // ← nunca cachear escrita
+    headers: { "Content-Type": "application/json" },
+  });
+}
+```
+
+### Passo 3: Use case com validação
+
+Arquivo: `features/tickets/application/use-cases.ts`
+
+```typescript
+// ✅ NOVO
+export async function addInternalNoteToTicket(
+  ticketId: string,
+  body: string,
+  authenticatedUserId: string
+) {
+  // Validar entrada
+  if (!ticketId || !body.trim()) {
+    throw new Error("Ticket ID e corpo da nota são obrigatórios");
+  }
+
+  if (body.length > 10000) {
+    throw new Error("Nota não pode ter mais de 10000 caracteres");
+  }
+
+  // Validar acesso do usuário ao ticket
+  const hasAccess = await canUserAccessTicket(ticketId, authenticatedUserId);
+  if (!hasAccess) {
+    throw new Error("Sem acesso a esse ticket");
+  }
+
+  // Lado-a-lado com auditoria
+  const auditLog = {
+    action: "add-internal-note",
+    ticketId,
+    userId: authenticatedUserId,
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    const result = await ZammadGateway.addInternalTicketNote(
+      ticketId,
+      body
+    );
+
+    // Log de sucesso
+    logger.info("Nota interna adicionada", auditLog);
+
+    // Invalidar cache do ticket se houver
+    // (implementar conforme necessário)
+
+    return result;
+  } catch (error) {
+    // Log de falha com contexto
+    logger.error("Falha ao adicionar nota interna", {
+      ...auditLog,
+      error
+    });
+    throw error;
+  }
+}
+```
+
+### Passo 4: Expor em API route
+
+```typescript
+export async function POST(request: Request) {
+  const { ticketId, body } = await request.json();
+  const userId = getAuthenticatedUserId(request); // seu middleware
+
+  if (!userId) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  try {
+    await addInternalNoteToTicket(ticketId, body, userId);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    return NextResponse.json(
+      { error: message },
+      { status: 400 }
+    );
+  }
+}
+```
+
+## Caso 3: Implementar novo webhook
+
+### Contexto
+
+Zammad te notifica quando um ticket entra em estado "fechado". Você precisa reagir (ex: limpar cache, notificar Slack, fechar sessão remota).
+
+### Passo 1: Registrar webhook no Zammad
+
+No painel Zammad:
+- WebHooks → New
+- URL: `https://seu-dominio/api/integrations/zammad/webhook`
+- Eventos: `ticket.state.change` onde `state = 4` (closed)
+- Autenticação: Token compartilhado com seu backend
+
+### Passo 2: Implementar handler
+
+Arquivo: `app/api/platform/zammad/webhook/route.ts`
+
+```typescript
+export async function POST(request: Request) {
+  // 1. Verificar autenticação
+  const token = request.headers.get("Authorization");
+  if (token !== `Bearer ${ZAMMAD_WEBHOOK_SECRET}`) {
+    return NextResponse.json(
+      { error: "Não autorizado" },
+      { status: 401 }
+    );
+  }
+
+  // 2. Parser payload
+  const payload = await request.json();
+  
+  // 3. Validar estrutura
+  if (!payload.ticket?.id || !payload.ticket?.state_id) {
+    return NextResponse.json(
+      { error: "Payload inválido" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // 4. Executar lógica
+    const handled = await handleZammadTicketStateChange(
+      payload.ticket.id,
+      payload.ticket.state_id
+    );
+
+    // 5. Log estruturado
+    logger.info("Webhook processado", {
+      type: "zammad_webhook",
+      ticketId: payload.ticket.id,
+      handled
+    });
+
+    // 6. Confirmar ao Zammad
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error("Erro ao processar webhook", { error });
+    // ⚠️ Retornar 200 mesmo com erro para Zammad não reenviar indefinidamente
+    return NextResponse.json({ success: false, error: String(error) });
+  }
+}
+
+async function handleZammadTicketStateChange(
+  ticketId: string,
+  stateId: number
+) {
+  const CLOSED_STATE_ID = 4;
+
+  if (stateId === CLOSED_STATE_ID) {
+    // Buscar sessão remota associada
+    const session = await prisma.remoteSession.findFirst({
+      where: { ticketId }
+    });
+
+    if (session) {
+      // Fechar sessão
+      await prisma.remoteSession.update({
+        where: { id: session.id },
+        data: { status: "CLOSED", closedAt: new Date() }
+      });
+
+      // Invalidar cache do ticket
+      // (implementar conforme necessário)
+
+      return true;
+    }
+  }
+
+  return false;
+}
+```
+
+### Passo 3: Secure o webhook
+
+```typescript
+// .env
+ZAMMAD_WEBHOOK_SECRET=seu-token-super-secreto
+
+// Validação no handler
+const isValid = timing-safe-compare(
+  request.headers.get("Authorization"),
+  `Bearer ${process.env.ZAMMAD_WEBHOOK_SECRET}`
+);
+```
+
+<Callout type="warn">
+Sempre validar autenticação de webhooks. Qualquer um poderia chamar seu endpoint senão.
+</Callout>
+
+## Caso 4: Contribuir com métrica de observabilidade
+
+### Contexto
+
+Você adicionou nova rota. Quer rastrear sua saúde junto com as outras.
+
+### Passo 1: Use routeKey semântico
+
+```typescript
+// ✅ BOM
+await ZammadGateway.someMethod(data, {
+  routeKey: "admin-bulk-update-tickets"
+});
+
+// ❌ RUIM
+await ZammadGateway.someMethod(data, {
+  routeKey: "update"
+});
+```
+
+### Passo 2: Monitorar em dashboards
+
+```typescript
+// Expor health em dashboard/endpoint
+export async function GET() {
+  const routeKeys = [
+    "customer-tickets-page",
+    "admin-bulk-update-tickets",
+    "search-operational"
+  ];
+
+  const snapshots = getZammadMetricsSnapshot(routeKeys, 60); // últimas 60 min
+  const health = routeKeys.map(key => getZammadRouteHealth(key));
+
+  return NextResponse.json({
+    health,
+    snapshots,
+    timestamp: new Date().toISOString()
+  });
+}
+```
+
+## Checklist de review antes de subir
+
+- [ ] Interface/contrato definido em domain
+- [ ] Implementação em gateway com fallback automático
+- [ ] Use case em application com validações
+- [ ] Route/endpoint com try-catch apropriado
+- [ ] RouteKey semântico (não "unknown")
+- [ ] TTL definido (se leitura)
+- [ ] Logging estruturado
+- [ ] Testes passando
+- [ ] Observabilidade integrada (métricas)
+- [ ] Documentação atualizada se webhooks/novos fluxos
+
+## Troubleshooting
+
+### "Circuit breaker ativo para rota Zammad"
+
+→ Sua rota falhou 3 vezes. Aguarde 20 segundos e tente novamente.
+→ Se continuar, debugar no Zammad (logs, performance, disponibilidade).
+
+### Dados retornam como "stale"
+
+→ Cache tem > X minutos. Normal. UI deve avisar o usuário.
+→ Se stale > 15 minutos, houve indisponibilidade longa. Debugar Zammad.
+
+### "Timeout após tentativas"
+
+→ Zammad respondendo lentamente. Verificar logs do Zammad ou rede.
+→ Se consistente, aumentar `ZAMMAD_TIMEOUT_MS` é solução de curto prazo. Debugar causa real.
+
+### Webhook não dispara
+
+1. Verificar URL no Zammad (typo?)
+2. Verificar token de autenticação
+3. Verificar logs do Zammad (section WebHook)
+4. Zammad enviou POST? Se sim, checar status na response
+5. Seu endpoint retornou 200? Se não, Zammad reenviará
+
+## Referências
+
+- Arquitetura: [Integração com Zammad](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/zammad/integracao-zammad)
+- Resiliência: [Resiliência e contingência — Zammad](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/zammad/resiliencia-zammad)
+- Código-fonte: `apps/web/src/features/tickets/`

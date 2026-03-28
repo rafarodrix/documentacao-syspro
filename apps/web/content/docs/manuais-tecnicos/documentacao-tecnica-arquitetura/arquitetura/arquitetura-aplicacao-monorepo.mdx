@@ -144,6 +144,40 @@ Quando houver `apps/mobile` ou `apps/api`, o consumo ideal fica:
 - `apps/mobile` -> `packages/contracts`, `packages/core`, `packages/shared`
 - `apps/api` -> `packages/api`, `packages/contracts`, `packages/core`, `packages/database`
 
+## Próximo Passo: Implementar a Arquitetura
+
+Agora que você entende a **estratégia e estrutura**, proximas leituras:
+
+<Callout type="info">
+**Como você implementa?** Leia [Padrões de Implementação](./padroes-implementacao.mdx) — documenta os 8 padrões concretos que todo dev deve seguir.
+</Callout>
+
+<Callout type="info">
+**Como implemento uma feature completa?** Leia [Como Implementar uma Feature (Passo-a-Passo)](./como-implementar-feature.mdx) — guia prático com exemplo concreto da feature de auditoria.
+</Callout>
+
+<Callout type="warn">
+**Como trato erros, observabilidade e resiliência?** Leia [Resiliência e Observabilidade](./resiliencia-arquitetura.mdx) — documentação de error handling, logging estruturado, rate limiting e circuit breaker.
+</Callout>
+
+---
+
+## Documentação Complementar
+
+Esta arquitetura é complementada por:
+
+| Documento | Propósito | Público |
+|-----------|-----------|---------|
+| [Padrões de Implementação](./padroes-implementacao.mdx) | 8 padrões concretos que todos devem seguir (Server Actions, tRPC, error handling, logging, gateways, cache) | Devs |
+| [Como Implementar uma Feature](./como-implementar-feature.mdx) | Guia passo-a-passo (6 fases) com exemplo concreto (auditoria) | Devs |
+| [Resiliência e Observabilidade](./resiliencia-arquitetura.mdx) | Error handling, logging, rate limiting, circuit breaker, retry, graceful degradation | Devs + Arquitetos |
+| [Estrutura do Projeto](./estrutura-projeto.mdx) | Organização física de pastas e regras per camada | Devs |
+| [Fluxos Técnicos](./arquitetura-referencia-por-fluxo.mdx) | Diagrama ASCII de 3 fluxos principais (cadastro, suporte, financeiro) | Arquitetos + Sêniors |
+| [Checklist PR Arquitetura](./checklist-pr-arquitetura-feature.mdx) | 7 critérios de review para garantir consistência | Reviewers |
+| [Revisão de Gaps](./REVISAO.md) | Antes/depois: 8 gaps arquiteturais e impacto das melhorias | Stakeholders |
+
+---
+
 ## Regras de dependencia
 
 ### Dentro do app atual
