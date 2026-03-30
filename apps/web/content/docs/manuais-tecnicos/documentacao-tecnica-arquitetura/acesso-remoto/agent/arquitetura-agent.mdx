@@ -1,0 +1,974 @@
+---
+title: Operacao do Agente
+description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat, validacao operacional, token lifecycle, sessions e observabilidade do agente remoto no modelo RustDesk self-hosted com portal proprio.
+lastUpdated: 2026-03-29
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - manuais-tecnicos
+  - documentacao-tecnica-arquitetura
+  - arquitetura-remote
+  - token-lifecycle
+  - sessions
+  - observability
+audience:
+  - admin
+  - developer
+  - suporte
+---
+
+Perfeito. Vou te entregar em 3 blocos:
+
+1. avaliação da abordagem atual do script com RustDesk  
+2. backlog técnico premium do agente remoto  
+3. documentação passo a passo de como o script funciona e como conversa com a API
+
+Baseei isso no seu `trilink-agente.ps1` e na arquitetura consolidada do remoto, que define o modelo OSS-first com o portal como fonte de verdade e o RustDesk como camada de conectividade fileciteturn11file0
+
+# 1. A abordagem atual do script é a melhor?
+
+## Veredito
+
+**A abordagem atual é boa e faz sentido para o seu cenário com RustDesk self-hosted.**  
+Mas eu **não considero que ela seja a forma final ideal**. Ela é a melhor abordagem **para o estágio atual do projeto**, porém existe uma abordagem melhor para médio prazo:
+
+- manter o RustDesk como motor de acesso remoto
+- manter o portal como fonte de verdade
+- **reduzir o agente PowerShell a um “bootstrapper/orchestrator”**
+- mover parte da lógica para:
+  - cliente configurado por `client-profile`
+  - serviço/agente mais estruturado
+  - comandos/políticas vindas do portal
+
+## O que está certo na abordagem atual
+
+Seu modelo atual está alinhado com a arquitetura oficial:
+
+- o portal governa host, sessão, heartbeat, vínculo, token e observabilidade fileciteturn11file0
+- o RustDesk fornece conectividade, não domínio de negócio fileciteturn11file0
+- o fluxo oficial é `discover -> bootstrap -> sync -> ack` fileciteturn11file0
+
+Isso está conceitualmente correto.
+
+Em outras palavras:  
+**você não está tentando transformar o RustDesk em plataforma de gestão**.  
+Você está usando o RustDesk como transporte remoto e construindo a camada de gestão no portal. Isso é o desenho certo.
+
+## Onde a abordagem atual ainda pode melhorar
+
+Hoje seu script PowerShell faz muitas coisas:
+
+- lock de execução
+- self-heal
+- discovery
+- bootstrap
+- sync
+- ack
+- inventário
+- health
+- leitura de estado
+- retry/backoff
+- logs
+- coleta de Syspro
+- coleta de Windows/Network/Software
+
+Isso funciona, mas começa a concentrar demais no `.ps1`.
+
+### Melhor abordagem para o futuro
+
+A melhor evolução seria esta:
+
+## Camada 1 — instalador/bootstrap
+Responsável por:
+- instalar RustDesk
+- gravar Registry
+- criar task
+- executar primeira chamada
+
+## Camada 2 — agente operacional
+Responsável por:
+- estado local
+- coleta
+- sync
+- fila de comandos
+- health
+- remediação leve
+
+## Camada 3 — portal
+Responsável por:
+- políticas
+- tokens
+- compliance
+- alertas
+- comandos
+- UI
+- auditoria
+- sessão
+
+## Camada 4 — RustDesk
+Responsável por:
+- acesso remoto
+- ID
+- relay/server
+- config do cliente
+
+Hoje seu `.ps1` faz muito da camada 2 sozinho.  
+Isso está ok agora, mas o ideal é modularizar.
+
+## Minha recomendação objetiva
+
+### Curto prazo
+Continue com PowerShell.  
+Para Windows e para seu estágio atual, ele é prático, fácil de distribuir e bom para integração com serviços, registry, WMI/CIM e tarefas agendadas.
+
+### Médio prazo
+Transforme o script em:
+- módulos menores
+- menos lógica “hardcoded”
+- mais comportamento dirigido por política
+
+### Longo prazo
+Avalie um agente mais robusto para Windows, por exemplo:
+- PowerShell modular + tarefas
+- ou um wrapper/launcher em serviço nativo
+- ou um agente compilado leve só para runtime/execução, deixando PowerShell para plugins/coletas
+
+Mas hoje, com RustDesk, **não vejo necessidade de abandonar PowerShell já**.
+
+---
+
+# 2. Backlog técnico premium do agente remoto
+
+Vou te entregar em formato de implementação.
+
+## EPIC A — Core do agente
+
+### A001. Modularizar o agente por responsabilidades
+Separar o script em módulos:
+
+- `core/state.ps1`
+- `core/http.ps1`
+- `core/logging.ps1`
+- `core/lock.ps1`
+- `providers/syspro.ps1`
+- `providers/system.ps1`
+- `providers/network.ps1`
+- `providers/software.ps1`
+- `providers/rustdesk.ps1`
+- `actions/commands.ps1`
+- `main.ps1`
+
+Objetivo:
+- facilitar manutenção
+- reduzir risco de regressão
+- permitir testes por módulo
+
+### A002. Padronizar versionamento do agente
+Hoje existe:
+- `AgentVersion = "trilink-agent-v1"`
+- hash do script para métrica/log
+
+Melhorar para:
+- `agentVersion`
+- `scriptVersion`
+- `buildVersion`
+- `rustdeskVersion`
+
+Payload sugerido:
+
+```json
+{
+  "agentInfo": {
+    "agentVersion": "1.2.0",
+    "scriptVersion": "sha256:...",
+    "buildVersion": "2026.03.29.1",
+    "runtime": "powershell-5.1"
+  }
+}
+```
+
+### A003. Definir política de execução local
+Portal passa a poder informar:
+- heartbeat interval
+- full snapshot interval
+- software scan interval
+- maximum payload size
+- command timeout
+- features enabled
+
+---
+
+## EPIC B — Segurança
+
+### B001. Endurecer persistência do state
+Melhorias:
+- ACL restrita na pasta `ProgramData\Trilink\RemoteAgent`
+- ACL restrita em logs
+- impedir leitura por usuários comuns
+- proteger `agentToken`
+
+### B002. Proteger `agentToken`
+Avaliar:
+- DPAPI para criptografia local
+- separar token em arquivo protegido
+- metadados em JSON e segredo criptografado à parte
+
+### B003. Comandos assinados/política de execução
+Todo comando vindo do portal deve ter:
+- `commandId`
+- `commandType`
+- `issuedAt`
+- `expiresAt`
+- `tenantId`
+- `hostId`
+- `policyVersion`
+
+### B004. Lista branca de comandos
+Só aceitar tipos conhecidos:
+- `REAPPLY_ALIAS`
+- `REAPPLY_CONFIG`
+- `RESTART_SERVICE`
+- `FORCE_INVENTORY`
+- `COLLECT_LOGS`
+- `ROTATE_TOKEN_REQUIRED`
+- `UPGRADE_CLIENT`
+
+---
+
+## EPIC C — Inventário e monitoramento
+
+### C001. Health summary local
+Agente calcula:
+
+- `healthy`
+- `warning`
+- `critical`
+
+Com razões:
+- rustdesk_service_stopped
+- firebird_not_running
+- disk_low
+- pending_reboot
+- no_backup_recent
+- portal_connectivity_failed
+
+Payload:
+
+```json
+{
+  "agentHealth": {
+    "status": "warning",
+    "score": 82,
+    "reasons": ["pending_reboot", "disk_low_c"]
+  }
+}
+```
+
+### C002. Melhorar coleta de Syspro
+Hoje o script olha `X:\Syspro\Server\SysproServer.exe`.  
+Melhorar para Smart Scan aderente à arquitetura documentada, que recomenda procurar candidatos `*Syspro*`, limitar profundidade e localizar `SysproServer.exe` sem varredura cega fileciteturn11file0
+
+### C003. Backup status
+Coletar:
+- último backup encontrado
+- idade do backup
+- tamanho
+- pasta
+- padrão do arquivo
+- status ok/warn/critical
+
+### C004. Firebird status detalhado
+Coletar:
+- serviço
+- status
+- start type
+- PID
+- porta escutando
+- versão do Firebird
+- uso de CPU/memória
+
+### C005. Latência e conectividade
+Medições:
+- portal API
+- host RustDesk
+- resolução DNS
+- tempo de bootstrap/sync
+
+### C006. Atualizações do Windows
+Você já coleta algo. Evoluir para:
+- status mais estruturado
+- updates críticos
+- falha na última tentativa
+- reboot pendente há quanto tempo
+
+### C007. Usuário e sessão local
+Coletar:
+- usuário logado
+- sessão console/RDP
+- tempo desde último logon
+- quantidade de sessões ativas
+
+---
+
+## EPIC D — Comunicação com API
+
+### D001. Separar heartbeat leve de sync pesado
+Modelo sugerido:
+
+#### heartbeat leve
+a cada 5 min:
+- token
+- rustdeskId
+- status
+- health
+- service state
+- quick metrics
+
+#### inventory sync
+a cada 6h/12h:
+- hardware
+- software
+- network
+- system
+- syspro full
+- backup full
+
+### D002. Eventos imediatos
+Endpoints/eventos para:
+- serviço caiu
+- reboot detectado
+- disco crítico
+- token inválido
+- mudança de IP
+- nova instalação Syspro
+
+### D003. Melhorar compliance do RustDesk
+A arquitetura já prevê compliance após bootstrap:
+- alias
+- version
+- server host
+- api host
+- public key fileciteturn11file0
+
+O agente deve passar a:
+- coletar alias real
+- coletar versão real do RustDesk
+- coletar server host real
+- coletar key/config ativa
+- comparar localmente e reportar divergência
+
+---
+
+## EPIC E — Ações remotas
+
+### E001. Implementar comandos reais
+Hoje o `ack` existe, mas várias ações ainda não executam nada localmente.
+
+Prioridade:
+- `REAPPLY_ALIAS`
+- `REAPPLY_CONFIG`
+- `RESTART_RUSTDESK_SERVICE`
+- `RESTART_FIREBIRD_SERVICE`
+- `FORCE_FULL_SYNC`
+- `COLLECT_AGENT_LOGS`
+
+### E002. Upgrade do cliente
+Fluxo:
+- baixar pacote validado
+- checar hash
+- instalar
+- reiniciar serviço
+- reportar resultado
+
+### E003. Execução controlada de scripts
+Somente scripts:
+- aprovados
+- catalogados
+- com hash
+- com timeout
+- com stdout/stderr truncado
+
+---
+
+## EPIC F — Observabilidade
+
+### F001. Log estruturado em JSON
+Hoje os logs são texto simples.  
+Melhorar para JSON line:
+
+```json
+{
+  "timestamp": "2026-03-29T10:00:00Z",
+  "level": "info",
+  "event": "agent.sync.started",
+  "cycleId": "abc123",
+  "hostId": "host_1",
+  "rustdeskId": "21187620068"
+}
+```
+
+### F002. Correlation ID por ciclo
+Você já tem `cycleId`. Excelente.  
+Padronizar em tudo:
+- discover
+- bootstrap
+- sync
+- ack
+- command execution
+
+### F003. Audit trail por comando
+Salvar:
+- comando recebido
+- comando executado
+- duração
+- saída resumida
+- sucesso/falha
+
+---
+
+## EPIC G — Instalação e operação
+
+### G001. NSIS mais forte
+Hoje a arquitetura já define o instalador como fonte única de configuração inicial, gravando `DiscoveryToken` e `PortalBaseUrl` no Registry e criando a task `TrilinkRemoteAgent` fileciteturn11file0
+
+Melhorar:
+- validar dependências
+- validar presença do RustDesk
+- validar task
+- validar ACL pós-instalação
+- gravar versão instalada
+
+### G002. Task Scheduler resiliente
+Configurar:
+- retry automático
+- rodar ao startup
+- rodar em falha
+- não iniciar concorrente
+- logs de task
+
+### G003. Modo diagnóstico local
+Comandos úteis:
+- `-TestOnly`
+- `-PrintPayload`
+- `-ForceFullSync`
+- `-SkipSoftwareScan`
+- `-VerboseJson`
+
+---
+
+# 3. Documentação do script — funcionamento passo a passo
+
+Abaixo está um manual técnico claro do agent.
+
+---
+
+# Operação do Script `trilink-agente.ps1`
+
+## Visão geral
+
+O `trilink-agente.ps1` é o agente operacional Windows da plataforma remota Trilink.  
+Ele atua como intermediário entre:
+
+- a máquina do cliente
+- o portal Trilink
+- o cliente RustDesk instalado localmente
+
+No modelo atual, o portal é a fonte de verdade para host, vínculo, credenciais, heartbeat, compliance e comando remoto, enquanto o RustDesk é usado como canal de conectividade remota fileciteturn11file0
+
+## Objetivo do script
+
+O script foi criado para:
+
+- identificar a máquina local
+- obter o `RustDesk ID`
+- descobrir a máquina no portal
+- autenticar a máquina em um host já cadastrado
+- enviar heartbeat e inventário
+- receber comandos do portal
+- devolver `ack` do processamento
+- persistir estado local entre ciclos
+
+---
+
+## Pré-requisitos
+
+O agente depende de:
+
+- Windows com PowerShell
+- RustDesk instalado
+- `rustdesk.exe` acessível localmente
+- chaves no Registry:
+  - `HKLM\SOFTWARE\Trilink\RemoteAgent\PortalBaseUrl`
+  - `HKLM\SOFTWARE\Trilink\RemoteAgent\DiscoveryToken`
+- opcionalmente:
+  - `InstallToken` no Registry
+  - ou `install-token.txt`
+
+---
+
+## Locais usados pelo agente
+
+### Registry
+- `HKLM:\SOFTWARE\Trilink\RemoteAgent`
+
+### Estado local
+- `C:\ProgramData\Trilink\RemoteAgent\agent-state.json`
+
+### Logs
+- `C:\Trilink\Remote\Logs\agentRemote.log`
+- `C:\Trilink\Remote\Logs\comodebug.log`
+
+### Binário RustDesk
+- local ao lado do script, se existir
+- senão: `C:\Trilink\Remote\RustDesk\rustdesk.exe`
+
+---
+
+## Etapa 1 — Inicialização
+
+Ao iniciar, o script:
+
+- define modo estrito
+- define tratamento de erro com interrupção
+- carrega caminhos de estado/log
+- cria `cycleId`
+- inicia cronômetro do ciclo
+- registra log de início
+
+Depois, ele tenta obter um lock global via mutex para garantir que apenas uma execução rode por vez.
+
+### Objetivo do lock
+Evitar:
+- duas tasks rodando ao mesmo tempo
+- escrita concorrente no state
+- chamadas duplicadas para a API
+- duplicidade de `ack`
+
+Se não conseguir o lock, o ciclo é encerrado com log de “lock busy”.
+
+---
+
+## Etapa 2 — Carregamento do estado local
+
+O agente lê `agent-state.json`.
+
+Esse arquivo guarda, entre outros:
+
+- `agentToken`
+- `hostId`
+- `rebootstrapRequired`
+- hashes dos snapshots
+- data do último snapshot completo
+- contagem de falhas consecutivas
+- hash da última versão do script
+
+Se o arquivo não existir ou estiver inválido, o agente cria um estado padrão.
+
+---
+
+## Etapa 3 — Jitter e backoff
+
+Antes de iniciar as chamadas principais, o agente pode:
+
+- aplicar um atraso aleatório inicial
+- aplicar backoff persistente conforme número de falhas consecutivas
+
+### Motivo
+Evitar:
+- rajada simultânea de vários agentes
+- stress no portal após reboot em massa
+- loop agressivo de erro
+
+---
+
+## Etapa 4 — Leitura da configuração local
+
+O agente lê do Registry:
+
+- `PortalBaseUrl`
+- `DiscoveryToken`
+
+E tenta ler:
+
+- `InstallToken`
+
+Se `InstallToken` não existir no Registry, ele tenta fallback em arquivo:
+- `install-token.txt` ao lado do script
+- `C:\Trilink\Remote\RustDesk\install-token.txt`
+
+### Regras importantes
+- `PortalBaseUrl` é obrigatório
+- `DiscoveryToken` é obrigatório
+- `InstallToken` é opcional, mas necessário para bootstrap automático de host operacional
+
+---
+
+## Etapa 5 — Self-heal do RustDesk
+
+O agente verifica o serviço `RustDesk`.
+
+Se o serviço:
+- estiver rodando, segue normal
+- estiver parado, tenta iniciar
+- não existir, registra falha
+
+Também registra:
+- status antes
+- tentativa de recuperação
+- resultado
+- status depois
+
+---
+
+## Etapa 6 — Obtenção do RustDesk ID
+
+O agente executa:
+
+```powershell
+rustdesk.exe --get-id
+```
+
+Ele faz múltiplas tentativas, removendo espaços e validando o resultado.
+
+### Regras
+- o ID não pode ser vazio
+- o ID deve conter apenas números em formato esperado
+
+Se não conseguir obter o ID, o ciclo falha.
+
+---
+
+## Etapa 7 — Coleta do Syspro
+
+O agente procura instalações Syspro no padrão:
+
+- `X:\Syspro\Server\SysproServer.exe`
+
+Para cada instalação encontrada, ele coleta:
+
+- nome lógico do cliente
+- caminho da instalação
+- versão do executável
+- revisão do changelog
+- data de última atualização
+- campos `empresa`, `caminho`, `ultimaAtualizacao`
+
+Depois ele calcula um hash semântico para decidir se precisa enviar snapshot completo ou array vazio.
+
+### Regra atual
+Envia `sysproUpdates[]` completo quando:
+- é o primeiro ciclo
+- o hash mudou
+- mudou o dia UTC
+
+Caso contrário:
+- envia `sysproUpdates: []`
+
+Isso está alinhado com a política de payload incremental definida na arquitetura fileciteturn11file0
+
+---
+
+## Etapa 8 — Chamada de descoberta
+
+O agente monta o payload de descoberta e envia para:
+
+```text
+POST /api/remote/agents/discover
+```
+
+Payload principal:
+- `discoveryToken`
+- `rustdeskId`
+- `machineName`
+- `agentVersion`
+- `serviceStatus`
+- `sysproUpdates`
+
+### Papel do discover
+O discover faz a triagem inicial da máquina no portal.  
+É o primeiro passo do fluxo oficial `discover -> bootstrap -> sync -> ack` fileciteturn11file0
+
+### Possíveis respostas esperadas
+- `pending_link`
+- `linked_host_detected`
+- `host_bootstrap_required`
+
+### Interpretação no agente
+
+#### `pending_link`
+A máquina ainda está em triagem e não deve seguir para bootstrap/sync.  
+O agente salva estado e encerra o ciclo.
+
+#### `linked_host_detected`
+A máquina já está vinculada a um host e pode seguir para operação autenticada.
+
+#### `host_bootstrap_required`
+A máquina está vinculada, mas precisa executar bootstrap para emitir ou renovar `agentToken`.
+
+---
+
+## Etapa 9 — Bootstrap
+
+Se o agente não tiver `agentToken`, ou se o fluxo exigir rebootstrap, ele chama:
+
+```text
+POST /api/remote/rustdesk/bootstrap
+```
+
+Payload principal:
+- `installToken`
+- `rustdeskId`
+- `machineName`
+- `agentVersion`
+- `environment`
+
+### Papel do bootstrap
+Emitir a credencial operacional (`agentToken`) usada nas chamadas autenticadas seguintes.
+
+### Resultado esperado
+O portal devolve:
+- `agentToken`
+- opcionalmente `hostId`
+
+O agente então:
+- salva o token no estado local
+- salva `hostId`, se vier
+- limpa a flag `rebootstrapRequired`
+
+Se bootstrap falhar com `401/403`:
+- o token local é limpo
+- `rebootstrapRequired = true`
+
+---
+
+## Etapa 10 — Coletas adicionais
+
+Antes do sync, o agente coleta dados complementares:
+
+### softwareSnapshot
+Lista de softwares instalados, com deduplicação e janela de refresh.
+
+### systemSnapshot
+Dados de:
+- Windows
+- build
+- arquitetura
+- RAM
+- CPU
+- disco
+- uptime
+- timezone
+- domínio/workgroup
+
+### networkSnapshot
+Dados de:
+- gateway
+- DNS
+- adaptadores
+- IPs
+
+### hardwareIdentity
+Dados de:
+- BIOS
+- serial
+- placa-mãe
+- fabricante/modelo da máquina
+
+### diskSnapshot
+Dados de volumes fixos:
+- unidade
+- total
+- livre
+- percentual livre
+- label
+
+### sysproProcesses
+Status dos processos:
+- `SysproServer`
+- `fbserver`
+
+### windowsUpdateStatus
+- contagem pendente
+- último check
+- reboot pendente
+
+Esses dados são enviados de forma controlada, usando hash e janelas para evitar payload excessivo.
+
+---
+
+## Etapa 11 — Sync operacional
+
+Com `agentToken` válido, o agente chama:
+
+```text
+POST /api/remote/rustdesk/sync
+```
+
+Payload principal:
+- `agentToken`
+- `rustdeskId`
+- `machineName`
+- `agentVersion`
+- `serviceStatus`
+- `sysproUpdates`
+- snapshots adicionais
+- métricas do agente
+
+### Papel do sync
+O sync é o heartbeat operacional autenticado do host.  
+Segundo a arquitetura, ele deve:
+- atualizar `lastHeartbeatAt`
+- refletir `serviceStatus`
+- atualizar instalações monitoradas
+- devolver compliance
+- devolver `commandQueue` fileciteturn11file0
+
+Se `sync` falhar com `401/403`:
+- o agente limpa o token local
+- marca `rebootstrapRequired = true`
+
+---
+
+## Etapa 12 — Processamento da fila de comandos
+
+Depois do sync, o agente lê `commandQueue`.
+
+Para cada comando:
+
+1. extrai `commandId`
+2. identifica `commandType`
+3. executa lógica local
+4. monta payload de `ack`
+5. envia retorno
+
+Comando de retorno:
+
+```text
+POST /api/remote/rustdesk/ack
+```
+
+Payload:
+- `agentToken`
+- `commandId`
+- `status`
+- `message`
+- `details`
+
+### Comandos atuais tratados
+- `REAPPLY_ALIAS`
+- `REAPPLY_CONFIG`
+- `UPGRADE_CLIENT`
+- `ROTATE_TOKEN_REQUIRED`
+
+Hoje:
+- `ROTATE_TOKEN_REQUIRED` já invalida o token local
+- os demais ainda estão mais próximos de placeholders operacionais
+
+---
+
+## Etapa 13 — Persistência final do estado
+
+No fim do ciclo bem-sucedido, o agente atualiza no state:
+
+- último hash de Syspro
+- data do último snapshot completo
+- hashes de software/system/network
+- timestamps de refresh
+- `consecutiveFailures = 0`
+
+Se houve falha:
+- incrementa `consecutiveFailures`
+
+---
+
+## Etapa 14 — Finalização
+
+Ao terminar:
+- escreve logs finais do ciclo
+- libera o mutex global
+- encerra
+
+---
+
+# Como o script se comunica com a API
+
+## Fluxo resumido
+
+### 1. Descoberta
+```text
+POST /api/remote/agents/discover
+```
+
+Usado para triagem inicial.
+
+### 2. Bootstrap
+```text
+POST /api/remote/rustdesk/bootstrap
+```
+
+Usado para emitir `agentToken`.
+
+### 3. Sync
+```text
+POST /api/remote/rustdesk/sync
+```
+
+Usado para heartbeat autenticado e recebimento de comandos.
+
+### 4. Ack
+```text
+POST /api/remote/rustdesk/ack
+```
+
+Usado para confirmar e registrar o processamento de comandos.
+
+## Mecanismo HTTP usado no script
+
+O agente usa `Invoke-WebRequest` com:
+- `Content-Type: application/json; charset=utf-8`
+- timeout
+- retry
+- backoff
+- parse seguro de JSON
+
+## Política de retry
+Faz retry em:
+- erro de rede
+- `429`
+- `5xx`
+
+Não faz retry agressivo em erros permanentes como:
+- payload inválido
+- token inválido
+- credencial ausente
+
+---
+
+# Avaliação final da abordagem com RustDesk
+
+## O que eu manteria
+- RustDesk como motor remoto
+- portal como fonte de verdade
+- fluxo `discover -> bootstrap -> sync -> ack`
+- PowerShell como agente Windows no curto prazo
+- Registry + state local
+- snapshot incremental
+
+## O que eu melhoraria já
+- modularizar o script
+- implementar ações reais da `commandQueue`
+- reforçar segurança do `agentToken`
+- separar heartbeat leve de inventário pesado
+- melhorar Smart Scan do Syspro
+- adicionar `health summary` e `backup status`
+- coletar compliance real do RustDesk
+
+## O que eu não faria agora
+- tentar substituir o RustDesk
+- acoplar domínio de negócio dentro do RustDesk
+- transformar tudo já em agente compilado complexo antes de estabilizar o contrato remoto
+
+Resumo:
+**a abordagem está correta para o modelo com RustDesk self-hosted**.  
+Existe uma abordagem melhor, mas ela é uma **evolução da atual**, não uma troca total.
+

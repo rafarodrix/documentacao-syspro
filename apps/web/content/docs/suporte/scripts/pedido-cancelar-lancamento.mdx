@@ -1,25 +1,31 @@
 ---
-id: "SCR-006"
-title: "Cancelar Pedidos Antigos com Status 'Lan?ando'"
-description: "Atualiza o status para 'CANCELADO' e inativa pedidos antigos que ficaram travados no status 'LANCANDO', com numero 0 e data de venda anterior a data atual. ATENCAO: a obrigatorio realizar um backup completo da base de dados antes da execucao e validar o impacto em um ambiente de homologacao."
-category: "Vendas"
-author: "Analista do Sistema"
-createdAt: "2025-10-16"
-firebirdVersion: "5.0"
+title: Cancelar Pedidos Antigos com Status 'Lançando'
+description: Atualiza para 'CANCELADO' e inativa pedidos com número 0 e status 'LANCANDO' anteriores a uma data de corte.
+lastUpdated: 2026-03-30
+owner: Equipe de Suporte
+status: published
 tags:
-  - "pedidos"
-  - "cancelamento"
-  - "limpeza"
+  - suporte
+  - vendas
+  - procedimento
+  - limpeza
+audience:
+  - suporte
+  - developer
 ---
 
+## Objetivo
+
+Este script realiza a limpeza da base de dados, invalidando pedidos que ficaram "presos" no status de edição (`LANCANDO`) e que possuem numeração zerada. Isso geralmente ocorre por quedas de conexão ou abandono da venda pelo usuário, o que pode poluir relatórios e consultas.
+
+> **Atenção:** É obrigatório realizar um backup completo da base de dados antes da execução. Valide o impacto em um ambiente de homologação primeiro.
+
+## Script SQL (Firebird 5.0)
+
 ```sql
--- Script: Cancelamento de Pedidos Antigos em Lan?amento
--- Objetivo: Inativar e cancelar pedidos que nao foram finalizados (numero 0, status 'LANCANDO') 
---           e que s?o anteriores a 16/10/2025, visando a limpeza da base de dados.
--- Par?metros: N?o h? par?metros. O script utiliza uma data de corte fixa ('2025-10-16'). 
---             Se necess?rio, ajuste a data no final da cl?usula WHERE.
--- Recomendacao: Execute backup completo antes de rodar este script. Teste previamente 
---               em um ambiente de homologacao para garantir o resultado esperado.
+-- Script: Cancelamento de Pedidos Antigos em Lançamento
+-- Objetivo: Inativar e cancelar pedidos não finalizados (número 0, status 'LANCANDO').
+-- Recomendação: Ajuste a data de corte conforme a necessidade do cliente.
 
 UPDATE pedido AS ped
 SET ped.status = 'CANCELADO',
@@ -27,8 +33,7 @@ SET ped.status = 'CANCELADO',
 WHERE ped.numero = 0
   AND ped.ativo = 1
   AND ped.status = 'LANCANDO'
-  AND ped.dt_venda < '2025-10-16'; -- <<< INFORME AQUI A DATA DO DIA
->>
+  AND ped.dt_venda < '2025-10-16'; -- <<< INFORME AQUI A DATA DE CORTE (YYYY-MM-DD)
 
 COMMIT;
 ```

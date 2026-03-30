@@ -1,0 +1,413 @@
+---
+title: Recuperação de Banco Firebird Corrompido
+description: Guia completo para diagnosticar e recuperar um banco de dados Firebird corrompido usando gfix e gbak via PowerShell.
+draft: true
+lastUpdated: 2026-03-22
+owner: Equipe de Documentacao
+status: published
+tags:
+  - manuais-tecnicos
+  - firebird
+  - recuperacao-banco-dados
+audience:
+  - admin
+  - developer
+  - suporte
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+# Recuperação de Banco Firebird Corrompido
+
+Este guia cobre o processo completo de diagnóstico e recuperação de um banco de dados **Firebird (.FDB)** corrompido, utilizando as ferramentas nativas `gfix` e `gbak` via **PowerShell** no Windows.
+
+---
+
+## Diagnóstico dos Erros
+
+Antes de iniciar a recuperação, identifique o tipo de corrupção pelos códigos de erro:
+
+<TypeTable
+  type={{
+    "page N is of wrong type (expected data, found blob)": {
+      description: "Página do banco com tipo incorreto — estrutura corrompida",
+      type: "Crítico",
+    },
+    "database file appears corrupt": {
+      description: "Firebird confirmou corrupção no arquivo .FDB",
+      type: "Crítico",
+    },
+    "SQLCODE: -902 / GDSCODE: 335544335": {
+      description: "Erro fatal de I/O — corrupção de página",
+      type: "Crítico",
+    },
+    "gds_$receive failed": {
+      description: "Falha na comunicação interna do engine Firebird",
+      type: "Crítico",
+    },
+    "firebird.msg not found": {
+      description: "Arquivo de mensagens ausente (problema secundário)",
+      type: "Aviso",
+    },
+  }}
+/>
+
+<Callout type="warn" title="Atenção">
+  No **PowerShell**, sempre use `.\` antes dos comandos `gfix` e `gbak`, pois o PowerShell não executa programas do diretório atual sem esse prefixo.
+</Callout>
+
+---
+
+## Pré-requisitos
+
+- Acesso ao diretório `C:\Program Files\Firebird\Firebird_5_0\`
+- Credenciais SYSDBA do banco
+- PowerShell com permissões de administrador
+
+---
+
+## Passo a Passo
+
+<Steps>
+
+<Step>
+
+### Criar a pasta de backup
+
+Crie o diretório onde os arquivos de backup serão armazenados:
+
+```powershell
+New-Item -ItemType Directory -Path "C:\TRILINK\BACKUP" -Force
+```
+
+</Step>
+
+<Step>
+
+### Parar o serviço do Firebird
+
+Certifique-se de que não há conexões ativas no banco antes de qualquer operação:
+
+```powershell
+Stop-Service -Name "FirebirdServerDefaultInstance"
+```
+
+<Callout type="info">
+  Caso o nome do serviço seja diferente, verifique em `services.msc` e ajuste o nome acima.
+</Callout>
+
+</Step>
+
+<Step>
+
+### Validar a integridade do banco
+
+Execute a validação completa para verificar o nível de corrupção:
+
+```powershell
+cd "C:\Program Files\Firebird\Firebird_5_0"
+
+.\gfix -v -full "C:\SYSPRO\SERVER\DATA\SYSPRO.FDB" `
+  -user SYSDBA `
+  -password SuaSenha
+```
+
+**Resultado esperado:**
+
+```
+Summary of validation errors
+    Number of database page warnings : 3
+```
+
+<Callout type="info" title="Interpretação">
+  Apenas **warnings** (avisos) indica dano leve com alta chance de recuperação. **Errors** indicam dano mais severo.
+</Callout>
+
+</Step>
+
+<Step>
+
+### Reparar o banco (mend)
+
+Prepara o banco corrompido para que possa ser lido pelo `gbak`:
+
+```powershell
+.\gfix -mend -full -ignore "C:\SYSPRO\SERVER\DATA\SYSPRO.FDB" `
+  -user SYSDBA `
+  -password SuaSenha
+```
+
+| Flag | Descrição |
+|------|-----------|
+| `-mend` | Prepara banco corrompido para backup |
+| `-full` | Validação e reparo completo incluindo fragmentos |
+| `-ignore` | Ignora erros de checksum durante o processo |
+
+</Step>
+
+<Step>
+
+### Gerar o arquivo de backup (.FBK)
+
+Faz o backup do banco reparado, ignorando erros remanescentes:
+
+```powershell
+.\gbak -b -v -ig "C:\SYSPRO\SERVER\DATA\SYSPRO.FDB" `
+  "C:\TRILINK\BACKUP\SYSPRO_RECOVER.FBK" `
+  -user SYSDBA `
+  -password SuaSenha
+```
+
+| Flag | Descrição |
+|------|-----------|
+| `-b` | Modo backup |
+| `-v` | Verbose — exibe cada ação |
+| `-ig` | Ignora checksums inválidos |
+
+</Step>
+
+<Step>
+
+### Restaurar o banco a partir do backup
+
+Restaura o `.FBK` para um novo arquivo `.FDB` limpo, desativando indexes e constraints durante o processo:
+
+```powershell
+.\gbak -c -v -I -N `
+  "C:\TRILINK\BACKUP\SYSPRO_RECOVER.FBK" `
+  "C:\SYSPRO\SERVER\DATA\SYSPRO_NEW.FDB" `
+  -user SYSDBA `
+  -password SuaSenha
+```
+
+| Flag | Descrição |
+|------|-----------|
+| `-c` | Modo create (restore) |
+| `-v` | Verbose |
+| `-I` | Desativa indexes durante o restore |
+| `-N` | Ignora validações de FK e constraints |
+
+<Callout type="warn" title="Arquivo já existente?">
+  Se o arquivo `SYSPRO_NEW.FDB` já existir de uma tentativa anterior, remova-o antes:
+  ```powershell
+  Remove-Item "C:\SYSPRO\SERVER\DATA\SYSPRO_NEW.FDB" -Force
+  ```
+</Callout>
+
+**Saída esperada de sucesso:**
+
+```
+gbak:creating indexes
+gbak:committing metadata
+gbak:adjusting views dbkey length
+gbak:updating ownership of packages, procedures and tables
+gbak:adding missing privileges
+gbak:adjusting system generators
+gbak:finishing, closing, and going home
+gbak:adjusting the ONLINE and FORCED WRITES flags
+```
+
+</Step>
+
+<Step>
+
+### Verificar o novo banco
+
+Confirme que o novo arquivo foi criado corretamente:
+
+```powershell
+Test-Path "C:\SYSPRO\SERVER\DATA\SYSPRO_NEW.FDB"
+# Deve retornar: True
+```
+
+Valide a integridade do novo banco:
+
+```powershell
+.\gfix -v -full "C:\SYSPRO\SERVER\DATA\SYSPRO_NEW.FDB" `
+  -user SYSDBA `
+  -password SuaSenha
+```
+
+</Step>
+
+<Step>
+
+### Substituir o banco original
+
+```powershell
+# Preserva o banco corrompido como segurança
+Rename-Item "C:\SYSPRO\SERVER\DATA\SYSPRO.FDB" `
+            "C:\SYSPRO\SERVER\DATA\SYSPRO_CORROMPIDO.FDB"
+
+# Promove o novo banco para produção
+Rename-Item "C:\SYSPRO\SERVER\DATA\SYSPRO_NEW.FDB" `
+            "C:\SYSPRO\SERVER\DATA\SYSPRO.FDB"
+```
+
+</Step>
+
+<Step>
+
+### Reiniciar o Firebird
+
+```powershell
+Start-Service -Name "FirebirdServerDefaultInstance"
+```
+
+Verifique se o serviço está rodando:
+
+```powershell
+Get-Service -Name "FirebirdServerDefaultInstance"
+# Status deve ser: Running
+```
+
+</Step>
+
+</Steps>
+
+---
+
+## Erros Comuns Durante o Restore
+
+<Tabs items={['FK Violation', 'Cannot open backup', 'Unknown switch']}>
+
+<Tab value="FK Violation">
+
+### Violação de Chave Estrangeira
+
+Ocorre quando GUIDs corrompidos referenciam registros inexistentes:
+
+```
+gbak: ERROR:violation of FOREIGN KEY constraint "FK_DEPTO_PRODUTO" on table "PRODUTO"
+gbak: ERROR:    Foreign key reference target does not exist
+gbak: ERROR:    Problematic key value is ("ID_DEPARTAMENTO" = '{10195C85-0763-42J3-...}')
+```
+
+**Causa:** Caracteres inválidos nos GUIDs (ex: `42J3`, `2$87`, `4FLA`).
+
+**Solução:** Usar as flags `-I` (inactive indexes) e `-N` (no validity) no restore:
+
+```powershell
+.\gbak -c -v -I -N "C:\TRILINK\BACKUP\SYSPRO_RECOVER.FBK" `
+  "C:\SYSPRO\SERVER\DATA\SYSPRO_NEW.FDB" `
+  -user SYSDBA -password SuaSenha
+```
+
+Após restaurar, corrija os registros via SQL:
+
+```sql
+-- Identificar registros com FK inválida
+SELECT ID, NOME, ID_DEPARTAMENTO
+FROM PRODUTO
+WHERE ID_DEPARTAMENTO NOT IN (SELECT ID FROM DEPARTAMENTO);
+
+-- Nulificar FK inválida
+UPDATE PRODUTO SET ID_DEPARTAMENTO = NULL
+WHERE ID_DEPARTAMENTO NOT IN (SELECT ID FROM DEPARTAMENTO);
+
+UPDATE PRODUTO SET ID_NCM = NULL
+WHERE ID_NCM NOT IN (SELECT ID FROM NCM);
+
+UPDATE PRODUTO SET ID_SITUACAO = NULL
+WHERE ID_SITUACAO NOT IN (SELECT ID FROM SITUACAO);
+
+COMMIT;
+```
+
+</Tab>
+
+<Tab value="Cannot open backup">
+
+### Cannot open backup file
+
+```
+gbak: ERROR:cannot open backup file C:\BACKUP\SYSPRO_RECOVER.FBK
+```
+
+**Causa:** O diretório de destino não existe.
+
+**Solução:**
+
+```powershell
+New-Item -ItemType Directory -Path "C:\TRILINK\BACKUP" -Force
+```
+
+</Tab>
+
+<Tab value="Unknown switch">
+
+### Unknown switch
+
+```
+gbak:unknown switch "INACTIVE_INDEXES"
+```
+
+**Causa:** Nome completo do switch usado em vez da abreviação.
+
+**Solução:** Use as abreviações corretas do Firebird 5:
+
+| Errado | Correto |
+|--------|---------|
+| `-inactive_indexes` | `-I` |
+| `-no_validity` | `-N` |
+| `-one_at_a_time` | `-O` |
+
+</Tab>
+
+</Tabs>
+
+---
+
+## Corrigir o arquivo `firebird.msg` ausente
+
+Se aparecer o aviso `can't format message — firebird.msg not found`:
+
+```powershell
+copy "C:\Program Files\Firebird\Firebird_5_0\firebird.msg" `
+     "C:\Windows\SYSTEM32\firebird.msg"
+```
+
+---
+
+## Referência Rápida de Comandos
+
+<Tabs items={['gfix', 'gbak']}>
+
+<Tab value="gfix">
+
+| Comando | Descrição |
+|---------|-----------|
+| `.\gfix -v -full <db>` | Validar integridade completa |
+| `.\gfix -mend -full -ignore <db>` | Reparar banco para backup |
+| `.\gfix -sweep <db>` | Forçar garbage collection |
+| `.\gfix -z` | Exibir versão do Firebird |
+
+</Tab>
+
+<Tab value="gbak">
+
+| Comando | Descrição |
+|---------|-----------|
+| `.\gbak -b -v -ig <db> <fbk>` | Backup ignorando checksums |
+| `.\gbak -c -v -I -N <fbk> <db>` | Restore sem indexes e sem FKs |
+| `.\gbak -c -v -I -N -O <fbk> <db>` | Restore tabela por tabela |
+| `.\gbak -z` | Exibir versão do gbak |
+
+</Tab>
+
+</Tabs>
+
+---
+
+<Callout type="warn" title="Prevenção de Futuras Corrupções">
+
+- **Não desligue** o servidor abruptamente enquanto o Firebird estiver com transações abertas
+- Configure **backups automáticos** diários com `gbak`
+- Monitore a saúde do disco com **CrystalDiskInfo** ou `chkdsk`
+- Mantenha o arquivo `SYSPRO_CORROMPIDO.FDB` por pelo menos **30 dias** antes de deletar
+- Use **UPS (nobreak)** para evitar quedas de energia durante gravações
+
+</Callout>

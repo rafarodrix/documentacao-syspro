@@ -1,21 +1,30 @@
 ---
-id: "SCR-001"
 title: "Atualizar Código Auxiliar de Produtos em Lote"
-description: "Altera a sequência do código auxiliar para todos os produtos, iniciando a contagem a partir de 1000."
-category: "Estoque"
-author: "Analista do Sistema"
-createdAt: "2025-10-14"
-firebirdVersion: "5.0"
+description: "Reinicia a numeração do campo cd_auxiliar da tabela de produtos a partir de 1000, ordenado pelo ID."
+lastUpdated: 2026-03-30
+owner: Equipe de Suporte
+status: published
 tags:
-  - "produtos"
+  - suporte
+  - estoque
+  - cadastro
+  - procedimento
+audience:
+  - suporte
+  - developer
 ---
+
+## Objetivo
+
+Este script realiza a atualização em massa do campo `cd_auxiliar` na tabela `produto`. Ele é útil para padronizar a codificação auxiliar quando há furos na sequência ou quando se deseja iniciar uma nova numeração a partir de um valor específico (neste caso, 1000).
+
+> **Atenção:** Este script altera **todos** os registros da tabela de produtos. O backup da base de dados é obrigatório antes da execução.
+
+## Script SQL (Firebird 5.0)
 
 ```sql
 -- Script: Atualizar a sequência do código auxiliar dos produtos
--- Objetivo: Reiniciar a numeração do campo 'cd_auxiliar' da tabela de produtos a partir de 1000,
---           seguindo a ordem do ID do produto.
--- Recomendação: Execute um backup completo ANTES de rodar este script. Valide o resultado.
--- Parâmetros: Não há parâmetros. O script afeta TODOS os registros da tabela 'produto'.
+-- Objetivo: Reiniciar a numeração a partir de 1000 seguindo a ordem do ID.
 
 MERGE INTO produto p_target
 USING (

@@ -1,27 +1,32 @@
 ---
-id: "SCR-002"
-title: "Clonar Estoque para Novo Grupo de Estoque"
-description: "Cria novos registros de estoque na tabela 'produto_qtde' para um grupo de destino, baseando-se nos registros de um grupo de origem."
-category: "Estoque"
-author: "Analista do Sistema"
-createdAt: "2025-10-15"
-firebirdVersion: "5.0"
+title: Clonar Estoque para Novo Grupo de Estoque
+description: Script para duplicar registros de estoque na tabela produto_qtde de um grupo de origem para um novo grupo de destino.
+lastUpdated: 2026-03-30
+owner: Equipe de Suporte
+status: published
 tags:
-  - "estoque"
-  - "grupo-de-estoque"
+  - suporte
+  - estoque
+  - procedimento
+  - operacao
+audience:
+  - suporte
+  - developer
 ---
+
+## Objetivo
+
+Este script automatiza a criação de novos registros de estoque (`produto_qtde`) baseando-se em um grupo de estoque já existente. É ideal para cenários onde uma nova unidade ou depósito foi criado e precisa herdar as configurações e quantidades de um depósito base.
+
+> **Importante:** O script gera novos UUIDs para cada registro inserido, garantindo a integridade da chave primária. **Realize backup antes da execução.**
+
+## Script SQL (Firebird 5.0)
 
 ```sql
 -- Script: Duplicação de registros de estoque para um novo grupo
--- Objetivo: Copiar todos os registros de estoque de um grupo de origem
---           para um novo grupo de destino, criando novos IDs para cada registro.
--- Recomendação: Execute um backup completo ANTES de rodar este script. Teste em ambiente de homologação.
---
--- Parâmetros:
--- :ID_GRUPO_ESTOQUE_ORIGEM   -> UUID do grupo de estoque que servirá como base (origem).
---                              Ex: '{0C3F6E3B-5A3A-4E2D-8B8A-7C1E7E6A9A3B}'
--- :ID_GRUPO_ESTOQUE_DESTINO  -> UUID do novo grupo de estoque que receberá os registros (destino).
---                              Ex: '{10418CFB-BC66-4C1C-88AC-39F133971488}'
+-- Parâmetros: 
+-- :ID_GRUPO_ESTOQUE_ORIGEM  -> UUID do grupo base
+-- :ID_GRUPO_ESTOQUE_DESTINO -> UUID do novo grupo
 
 INSERT INTO produto_qtde (
     id_produto_qtde,
@@ -55,13 +60,13 @@ SELECT
     pq.dtc_entrada_ultima,
     pq.informativo,
     pq.localizacao,
-    pq.dt_alteracao,
-    pq.hr_alteracao,
+    CURRENT_DATE, -- Atualizado para data atual
+    CURRENT_TIME, -- Atualizado para hora atual
     pq.id_usuario
 FROM
     produto_qtde pq
 WHERE
-    pq.id_grupo_estoque = :ID_GRUPO_ESTOQUE_ORIGEM; -- <<< INFORME AQUI O ID DO GRUPO DE ESTOQUE DE ORIGEM
+    pq.id_grupo_estoque = :ID_GRUPO_ESTOQUE_ORIGEM;
 
 COMMIT;
 ```

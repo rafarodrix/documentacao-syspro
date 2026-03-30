@@ -1,27 +1,32 @@
 ---
-id: "SCR-004"
-title: "Criar Refer?ncia de Fornecedor com C?digo Fiscal do Produto"
-description: "Cria um registro em 'produto_referencia' para todos os produtos, associando-os a um participante (ex: matriz) e usando o proprio codigo fiscal do produto como codigo de referencia do fornecedor. Essencial para operacoes de transferencia entre matriz e filial. ATENCAO: Backup obrigatorio. O script nao duplica referencias caso ja existam."
-category: "Produtos"
-author: "Analista do Sistema"
-createdAt: "2025-10-15"
-firebirdVersion: "5.0"
+title: "Criar Referência de Fornecedor com Código Fiscal"
+description: "Script para associar o código fiscal do produto como referência de fornecedor na tabela produto_referencia."
+lastUpdated: 2026-03-30
+owner: Equipe de Suporte
+status: published
 tags:
-  - "produtos"
-  - "referencia"
+  - suporte
+  - produtos
+  - nfe
+  - integracao
+audience:
+  - suporte
+  - developer
 ---
+
+## Objetivo
+
+Cria um registro na tabela `produto_referencia` para todos os produtos, associando-os a um participante específico (ex: matriz) e utilizando o próprio código fiscal do produto como código de referência. 
+
+Este procedimento é essencial para operações de transferência entre matriz e filial, garantindo que o sistema reconheça o item pelo código fiscal durante a importação de XMLs.
+
+> **ATENÇÃO:** O script não duplica referências caso elas já existam para o participante informado. **Backup obrigatório antes da execução.**
+
+## Script SQL (Firebird 5.0)
 
 ```sql
 -- Script: Adicionar codigo fiscal como referencia de produto para um participante
--- Objetivo: Para cada produto, cria uma entrada na tabela de referencia (produto_referencia)
---           associando-o a um participante especifico (geralmente a matriz), utilizando
---           o campo 'cd_fiscal' como o codigo do produto no "fornecedor".
--- Recomendacao: Execute um backup completo ANTES de rodar este script.
---
--- Par?metros:
--- :ID_PARTICIPANTE_FORNECEDOR -> UUID do participante (fornecedor, matriz, etc.) para o qual
---                                a referencia ser? criada.
---                                Ex: '{6D7D332C-C88B-4C8D-B465-3A14EE07D382}'
+-- Parâmetros: :ID_PARTICIPANTE_FORNECEDOR (UUID do participante matriz/fornecedor)
 
 INSERT INTO produto_referencia (
     id_produto_referencia,
@@ -51,7 +56,7 @@ WHERE
         SELECT 1
         FROM produto_referencia pr_ex
         WHERE pr_ex.id_produto = pr.id_produto
-          AND pr_ex.id_participante_for = :ID_PARTICIPANTE_FORNECEDOR -- <<< INFORME AQUI O ID DO PARTICIPANTE (MATRIZ/FILIAL)
+          AND pr_ex.id_participante_for = :ID_PARTICIPANTE_FORNECEDOR
     );
 
 COMMIT;

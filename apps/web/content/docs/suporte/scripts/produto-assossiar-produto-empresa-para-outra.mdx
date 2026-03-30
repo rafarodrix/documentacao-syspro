@@ -1,27 +1,32 @@
 ---
-id: "SCR-003"
 title: "Associar Produtos de uma Empresa para Outra em Lote"
-description: "Copia a associação de todos os produtos comerciais de uma empresa de origem para uma empresa de destino. Útil para replicar catálogos de produtos entre filiais ou empresas do mesmo grupo."
-category: "Produtos"
-author: "Analista do Sistema"
-createdAt: "2025-10-15"
-firebirdVersion: "5.0"
+description: "Copia a associação de todos os produtos comerciais de uma empresa de origem para uma empresa de destino."
+lastUpdated: 2026-03-30
+owner: Equipe de Suporte
+status: published
 tags:
-  - "produtos"
-  - "empresa"
+  - suporte
+  - produtos
+  - cadastro
+  - procedimento
+audience:
+  - suporte
+  - developer
 ---
+
+## Objetivo
+
+Este script permite replicar o catálogo de produtos associados a uma empresa (origem) para uma nova empresa (destino). É ideal para processos de expansão, onde uma nova filial precisa herdar as mesmas definições de produtos comerciais da matriz ou de outra unidade já operacional.
+
+> **Atenção:** O script gera novos UUIDs para cada vínculo na tabela `produto_comercial_empresa`. **Backup obrigatório antes da execução.**
+
+## Script SQL (Firebird 5.0)
 
 ```sql
 -- Script: Replicar associação de produtos entre empresas
--- Objetivo: Copiar todos os vínculos da tabela 'produto_comercial_empresa' de uma
---           empresa de origem para uma empresa de destino.
--- Recomendação: Execute um backup completo ANTES de rodar este script.
---
--- Parâmetros:
--- :ID_EMPRESA_ORIGEM   -> UUID da empresa cujas associações de produtos serão copiadas.
---                         Ex: '{DA91E2A4-4828-4A1E-B94E-6A95B253198A}'
--- :ID_EMPRESA_DESTINO  -> UUID da empresa que receberá as novas associações de produtos.
---                         Ex: '{690EB5DE-A217-4FCE-9D87-3A118D841553}'
+-- Parâmetros: 
+-- :ID_EMPRESA_ORIGEM  -> UUID da empresa base
+-- :ID_EMPRESA_DESTINO -> UUID da nova empresa que receberá o catálogo
 
 INSERT INTO produto_comercial_empresa (
     id_produto_comercial_empresa,
@@ -41,7 +46,7 @@ SELECT
 FROM
     produto_comercial_empresa pce
 WHERE
-    pce.id_empresa = :ID_EMPRESA_ORIGEM; -- <<< INFORME AQUI O ID DA EMPRESA DE ORIGEM
+    pce.id_empresa = :ID_EMPRESA_ORIGEM;
 
 COMMIT;
 ```
