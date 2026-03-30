@@ -4,6 +4,8 @@
   "description": "Guias de atendimento, parametrizações e procedimentos para suporte técnico do Syspro ERP.",
   "pages": [
     "index",
+    "---Banco de Dados---",
+    "Banco de Dados/recuperacao-banco-firebird",
     "---Parametrizações---",
     "parametrizacoes/migracao-nfse-nacional",
     "---Documentação e Guias---",
