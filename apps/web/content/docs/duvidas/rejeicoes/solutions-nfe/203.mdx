@@ -1,7 +1,7 @@
 ---
-title: 'RejeiÃ§Ã£o 203: Emitente nÃ£o habilitado para emissÃ£o de NF-e'
-description: 'Como corrigir a rejeiÃ§Ã£o "203 - Emitente nÃ£o habilitado para emissÃ£o de NF-e" ao transmitir NFe no Syspro ERP.'
-causa_do_erro: 'O CNPJ do emitente da nota fiscal nÃ£o estÃ¡ habilitado pela Sefaz para emitir NF-e, geralmente por pendÃªncias cadastrais, fiscais ou por ser um cadastro novo em processo de liberaÃ§Ã£o.'
+title: 'Rejeição 203: Emitente não habilitado para emissão de NF-e'
+description: 'Como corrigir a Rejeição "203 - Emitente não habilitado para emissão de NF-e" ao transmitir NFe no Syspro ERP.'
+causa_do_erro: 'O CNPJ do emitente da nota fiscal não estÃ¡ habilitado pela Sefaz para emitir NF-e, geralmente por pendÃªncias cadastrais, fiscais ou por ser um cadastro novo em processo de liberaÃ§Ã£o.'
 lastUpdated: 2026-03-22
 owner: Equipe de Documentacao
 status: published
@@ -22,14 +22,14 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 
 ## IdentificaÃ§Ã£o do Problema
 
-Ao tentar transmitir uma Nota Fiscal EletrÃ´nica (NFe), o sistema retorna uma rejeiÃ§Ã£o da Sefaz com a seguinte mensagem:
+Ao tentar transmitir uma Nota Fiscal EletrÃ´nica (NFe), o sistema retorna uma Rejeição da Sefaz com a seguinte mensagem:
 
 <Callout type="error" title="Erro Apresentado">
-  RejeiÃ§Ã£o: 203 Emitente nÃ£o habilitado para emissÃ£o de NF-e
+  Rejeição: 203 Emitente não habilitado para emissão de NF-e
 </Callout>
 
 <Callout type="info" title="Causa do Erro">
-  A Sefaz realiza uma validaÃ§Ã£o no Cadastro de Contribuintes para verificar se o CNPJ do emitente possui autorizaÃ§Ã£o para emitir Notas Fiscais EletrÃ´nicas. A rejeiÃ§Ã£o ocorre quando a empresa estÃ¡ com o cadastro inativo, suspenso, baixado, em processo de habilitaÃ§Ã£o ou possui qualquer outra pendÃªncia fiscal que impeÃ§a a emissÃ£o de documentos.
+  A Sefaz realiza uma validaÃ§Ã£o no Cadastro de Contribuintes para verificar se o CNPJ do emitente possui autorizaÃ§Ã£o para emitir Notas Fiscais EletrÃ´nicas. A Rejeição ocorre quando a empresa estÃ¡ com o cadastro inativo, suspenso, baixado, em processo de habilitaÃ§Ã£o ou possui qualquer outra pendÃªncia fiscal que impeÃ§a a emissão de documentos.
 </Callout>
 
 ## PrÃ©-requisitos
@@ -43,7 +43,7 @@ Antes de iniciar, certifique-se de que vocÃª possui:
 
 <Steps>
   <Step title="Verificar a SituaÃ§Ã£o Cadastral">
-    <p>O primeiro passo Ã© confirmar qual a situaÃ§Ã£o cadastral da sua empresa junto Ã  Sefaz. Esta rejeiÃ§Ã£o nÃ£o Ã© um erro no sistema Syspro, e sim um impedimento fiscal.</p>
+    <p>O primeiro passo Ã© confirmar qual a situaÃ§Ã£o cadastral da sua empresa junto Ã  Sefaz. Esta Rejeição não Ã© um erro no sistema Syspro, e sim um impedimento fiscal.</p>
 
     <Callout type="warn" title="AÃ§Ã£o NecessÃ¡ria">
       Entre em contato com o seu **contador**. Ele Ã© o profissional responsÃ¡vel por verificar e regularizar a situaÃ§Ã£o cadastral da empresa junto Ã  Sefaz e Ã  Receita Federal.
@@ -58,7 +58,7 @@ Antes de iniciar, certifique-se de que vocÃª possui:
   </Step>
 
   <Step title="Aguardar a LiberaÃ§Ã£o e Retransmitir a NFe">
-    <p>ApÃ³s a regularizaÃ§Ã£o por parte do contador, pode levar algum tempo para que o sistema da Sefaz atualize o status do seu cadastro e libere a emissÃ£o.</p>
+    <p>ApÃ³s a regularizaÃ§Ã£o por parte do contador, pode levar algum tempo para que o sistema da Sefaz atualize o status do seu cadastro e libere a emissão.</p>
     1.  Assim que o contador confirmar que a situaÃ§Ã£o foi normalizada, aguarde o prazo informado por ele.
     2.  Retorne ao mÃ³dulo de notas fiscais do Syspro.
     3.  **Retransmita a NFe** que havia sido rejeitada.

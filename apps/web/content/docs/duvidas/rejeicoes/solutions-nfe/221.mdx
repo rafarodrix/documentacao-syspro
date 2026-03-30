@@ -1,7 +1,7 @@
 ---
-title: 'RejeiÃ§Ã£o 221: Confirmado o recebimento da NF-e pelo destinatÃ¡rio'
-description: 'Como corrigir a rejeiÃ§Ã£o "221 - Confirmado o recebimento da NF-e pelo destinatÃ¡rio" ao tentar cancelar uma NFe no Syspro ERP.'
-causa_do_erro: 'A rejeiÃ§Ã£o ocorre ao tentar cancelar uma NFe para a qual o destinatÃ¡rio jÃ¡ realizou o evento de ManifestaÃ§Ã£o, confirmando o recebimento da mercadoria.'
+title: 'Rejeição 221: Confirmado o recebimento da NF-e pelo destinatÃ¡rio'
+description: 'Como corrigir a Rejeição "221 - Confirmado o recebimento da NF-e pelo destinatÃ¡rio" ao tentar cancelar uma NFe no Syspro ERP.'
+causa_do_erro: 'A Rejeição ocorre ao tentar cancelar uma NFe para a qual o destinatÃ¡rio jÃ¡ realizou o evento de ManifestaÃ§Ã£o, confirmando o recebimento da mercadoria.'
 lastUpdated: 2026-03-22
 owner: Equipe de Documentacao
 status: published
@@ -22,10 +22,10 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 
 ## IdentificaÃ§Ã£o do Problema
 
-Ao tentar realizar o **cancelamento** de uma Nota Fiscal EletrÃ´nica (NFe), o sistema retorna uma rejeiÃ§Ã£o da Sefaz com a seguinte mensagem:
+Ao tentar realizar o **cancelamento** de uma Nota Fiscal EletrÃ´nica (NFe), o sistema retorna uma Rejeição da Sefaz com a seguinte mensagem:
 
 <Callout type="error" title="Erro Apresentado">
-  RejeiÃ§Ã£o: 221 - Confirmado o recebimento da NF-e pelo destinatÃ¡rio
+  Rejeição: 221 - Confirmado o recebimento da NF-e pelo destinatÃ¡rio
 </Callout>
 
 <Callout type="info" title="Causa do Erro">
@@ -52,11 +52,11 @@ Antes de iniciar, certifique-se de que vocÃª possui:
     <p>O destinatÃ¡rio precisa alterar o status da manifestaÃ§Ã£o para que a Sefaz permita o cancelamento.</p>
     1. PeÃ§a para que ele acesse o sistema que utiliza para manifestar as notas.
     2. Ele deverÃ¡ registrar um dos seguintes eventos para a NFe em questÃ£o:
-        - **OperaÃ§Ã£o nÃ£o Realizada**
+        - **OperaÃ§Ã£o não Realizada**
         - **Desconhecimento da OperaÃ§Ã£o**
 
     <Callout type="warn" title="AÃ§Ã£o Exclusiva do DestinatÃ¡rio">
-      Apenas o destinatÃ¡rio da NFe pode alterar o status da manifestaÃ§Ã£o. NÃ£o Ã© possÃ­vel realizar esta etapa pelo Syspro ou por qualquer sistema do emitente.
+      Apenas o destinatÃ¡rio da NFe pode alterar o status da manifestaÃ§Ã£o. não Ã© possÃ­vel realizar esta etapa pelo Syspro ou por qualquer sistema do emitente.
     </Callout>
   </Step>
 
