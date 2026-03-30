@@ -1,0 +1,106 @@
+---
+title: Como gerar um boleto?
+description: Passo a passo para a emissão de boletos bancários através do Módulo Títulos no Syspro ERP.
+full: true
+lastUpdated: 2026-03-30
+owner: Equipe de Documentacao
+status: published
+tags:
+  - duvidas
+  - financeiro
+  - boletos
+  - modulo-titulos
+audience:
+  - cliente_user
+  - financeiro
+---
+
+import { Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import { YouTubeModal } from '@/components/docs/YouTubeModal';
+
+## Introdução
+
+A geração de boletos no **Syspro ERP** é realizada através do **Módulo Títulos**. Este processo permite que a empresa emita documentos de cobrança registrados, vinculados diretamente às contas a receber, garantindo a baixa automática via arquivo de retorno bancário e a organização do fluxo de caixa.
+
+<Callout type="warn" title="Pré-requisito">
+Antes de iniciar, certifique-se de que a **Conta Corrente** e a **Carteira de Cobrança** já foram homologadas junto ao seu banco e configuradas no sistema pelo administrador.
+</Callout>
+
+---
+
+## Passo a Passo para Emissão
+
+Siga as etapas abaixo para localizar um título e gerar o boleto correspondente:
+
+<Steps>
+
+<step>
+### Acessar o Módulo Títulos
+Navegue pelo menu principal: `Financeiro > Títulos > Receber Pendente`. Esta tela centraliza todos os documentos financeiros (faturas, notas fiscais e duplicatas) que aguardam recebimento.
+</step>
+
+<step>
+### Localizar o Título
+Utilize os filtros de pesquisa para encontrar o documento desejado. Você pode filtrar por:
+* **Cliente:** Nome ou fantasia.
+* **Período:** Data de emissão ou vencimento.
+* **Número documento:** número da fatura, nota fiscal ou duplicata.
+</step>
+
+<step>
+### Selecionar e Processar
+Após localizar o título na grade, selecione-o **CRTL + Espaço**. 
+* Clique no botão **"Boleto > Arquivo > Gerar Boleto"**.
+* O sistema abrirá uma janela de confirmação para validar a **Conta bancaria** e *Tipo de Cobrança***.
+</step>
+
+<step>
+### Gerar o Boleto
+### Visualização e Impressão
+O boleto será gerado em formato PDF. Você poderá:
+* Imprimir diretamente para entrega física.
+* Salvar o arquivo para envio manual.
+</step>
+
+<step>
+### Gerar o remessa de cobrança
+Se a sua empresa utiliza o processo de remessa e retorno bancário, após gerar os boletos, é necessário criar o arquivo de remessa para enviar ao banco. Para isso:
+* Acesse o menu: **"Boleto > Arquivo > Gerar Remessa"**.
+* Selecione a conta bancária.
+* Clique em **Gerar Remessa** para criar o arquivo que deve ser transmitido ao banco.
+</step>
+</Steps>
+
+
+<Callout title="Vídeo Explicativo">
+  <YouTubeModal videoId="wY_VLIJ06wE" thumbnailTitle="Geração de Boletos Bancários e Remessa" />
+</Callout>  
+
+---
+
+## Dúvidas Frequentes
+
+<Accordions>
+  <Accordion title="Posso gerar boletos em lote (vários de uma vez)?">
+    Sim. Na grade do Módulo Títulos, você pode selecionar múltiplos registros de um mesmo cliente ou de clientes diferentes (desde que pertençam ao mesmo banco) e clicar em "Gerar Boletos". O sistema processará todos sequencialmente.
+  </Accordion>
+  
+  <Accordion title="O boleto gerado já está registrado no banco?">
+    Depende da sua configuração:
+    1. **Online:** O registro é instantâneo no momento da geração pois é feiro via API do banco.
+    2. **Arquivo de Remessa:** Você precisa gerar o arquivo de remessa no final do dia e transmiti-lo ao banco para que os boletos sejam registrados.
+  </Accordion>
+
+  <Accordion title="Como alterar o vencimento de um boleto já emitido?">
+    Você deve acessar selecionar o título na grade, clicar em com botão direito acessar "Boleto Bancário > Alterar Boleto" e alterar a data de vencimento. Após isso, gere o boleto novamente. **Atenção:** Se você utiliza carteira registrada, será necessário enviar uma remessa de "Alteração de Vencimento" ao banco.
+  </Accordion>
+</Accordions>
+
+---
+
+<Callout type="info" title="Dica de Produtividade">
+Utilize a coluna **"Nosso Número"** para rastrear qual boleto foi enviado para qual título. Se o campo estiver vazio, significa que o título ainda não teve um boleto gerado.
+</Callout>
+
