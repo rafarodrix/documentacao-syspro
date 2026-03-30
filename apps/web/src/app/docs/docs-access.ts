@@ -1,5 +1,6 @@
 import { CompanySegment, Role } from "@prisma/client";
 import { SYSTEM_ROLES } from "@dosc-syspro/core";
+import { canAccessByCompanySegment } from "@/features/company/application/company-segment-access";
 
 export const DOCS_TECHNICAL_PATH_PREFIX = "/docs/manuais-tecnicos";
 export const DOCS_TECHNICAL_ROLES: Role[] = SYSTEM_ROLES;
@@ -7,12 +8,18 @@ export const DOCS_ADMIN_ONLY_SLUGS = new Set<string>([
   "suporte/documentacao-docs-interna",
 ]);
 
-// Mapa de segmentacao por slug relativo em /docs.
-// Se nao houver entrada para o slug, o acesso fica liberado para todos.
+/**
+ * Mapa de segmentação por slug relativo em /docs.
+ * Se não houver entrada para o slug, o acesso fica liberado para todos.
+ */
 const DOCS_SEGMENT_RULES: Record<string, CompanySegment[]> = {
   "treinamento/steps-auto-center": [CompanySegment.AUTO_PECAS],
   "treinamento/steps-comercial": [CompanySegment.COMERCIAL],
 };
+
+// ---------------------------------------------------------------------------
+// Helpers de slug
+// ---------------------------------------------------------------------------
 
 export function isTechnicalManualSlug(slug?: string[]): boolean {
   return slug?.[0] === "manuais-tecnicos";
@@ -32,4 +39,42 @@ export function isAdminOnlyDocSlug(slug?: string[]): boolean {
 export function isAdminOnlyDocUrl(url: string): boolean {
   const relativeSlug = url.replace(/^\/docs\/?/, "").split("/").filter(Boolean);
   return isAdminOnlyDocSlug(relativeSlug);
+}
+
+// ---------------------------------------------------------------------------
+// Verificação de acesso por URL
+//
+// Antes: canUserSeeDocUrl estava duplicada inline em page.tsx.
+// Agora: fonte única de verdade aqui em docs-access.ts.
+// ---------------------------------------------------------------------------
+
+/**
+ * Verifica se um usuário pode acessar uma URL de documentação.
+ *
+ * Regras:
+ * 1. Manuais técnicos → apenas SYSTEM_ROLES
+ * 2. CLIENTE_ADMIN / CLIENTE_USER → verificar segmento da empresa
+ * 3. Demais roles → acesso liberado
+ */
+export async function canUserAccessDocUrl({
+  url,
+  role,
+  userId,
+}: {
+  url: string;
+  role: Role;
+  userId: string;
+}): Promise<boolean> {
+  if (!SYSTEM_ROLES.includes(role) && url.startsWith(DOCS_TECHNICAL_PATH_PREFIX)) {
+    return false;
+  }
+
+  if (role === Role.CLIENTE_ADMIN || role === Role.CLIENTE_USER) {
+    const relativeSlug = url.replace(/^\/docs\/?/, "").split("/").filter(Boolean);
+    const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
+    if (requiredSegments.length === 0) return true;
+    return canAccessByCompanySegment(userId, requiredSegments);
+  }
+
+  return true;
 }

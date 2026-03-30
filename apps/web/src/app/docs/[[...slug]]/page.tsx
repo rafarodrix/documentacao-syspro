@@ -12,9 +12,13 @@ import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
 import { Role } from '@prisma/client';
 import { requireSession } from '@/lib/auth-helpers';
 import { canAccessByCompanySegment } from '@/features/company/application/company-segment-access';
-import { getRequiredSegmentsForDocSlug, isTechnicalManualSlug } from '@/app/docs/docs-access';
+import {
+  getRequiredSegmentsForDocSlug,
+  isTechnicalManualSlug,
+  canUserAccessDocUrl,
+} from '@/app/docs/docs-access';
 import { SYSTEM_ROLES } from '@dosc-syspro/core';
-import { DocsHomePage } from '@/components/docs/DocsHomePage';
+import { DocsHomePage } from '@/components/docs/home/DocsHomePage';
 import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
 import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
 import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
@@ -25,38 +29,12 @@ import { DocsSurface } from '@/components/docs/DocsSurface';
 import { DocsReadingProgress } from '@/components/docs/DocsReadingProgress';
 import SuporteSection from '@/components/docs/SuporteSection';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
-
-function estimateReadingTimeMinutes(content: string): number {
-  const words = content.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil(words / 220));
-}
-
-function formatSlugLabel(value: string): string {
-  return value
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-async function canUserSeeDocUrl({
-  url,
-  role,
-  userId,
-}: {
-  url: string;
-  role: Role;
-  userId: string;
-}) {
-  if (!SYSTEM_ROLES.includes(role) && url.startsWith('/docs/manuais-tecnicos')) return false;
-
-  if (role === Role.CLIENTE_ADMIN || role === Role.CLIENTE_USER) {
-    const relativeSlug = url.replace(/^\/docs\/?/, '').split('/').filter(Boolean);
-    const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
-    if (requiredSegments.length === 0) return true;
-    return canAccessByCompanySegment(userId, requiredSegments);
-  }
-
-  return true;
-}
+// Utilitários movidos para lib/docs-utils — sem lógica inline no page
+import {
+  estimateReadingTimeMinutes,
+  formatSlugLabel,
+  formatDateLong,
+} from '@/lib/docs-utils';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -72,23 +50,27 @@ export default async function Page(props: {
   if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
     const requiredSegments = getRequiredSegmentsForDocSlug(slug);
     const hasAccess = await canAccessByCompanySegment(session.userId, requiredSegments);
-    if (!hasAccess) {
-      redirect("/docs");
-    }
+    if (!hasAccess) redirect("/docs");
   }
 
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
+  // -------------------------------------------------------------------------
+  // Home page — lista páginas visíveis para o usuário
+  // -------------------------------------------------------------------------
   if (slug.length === 0) {
     const allPages = source.getPages().filter((item) => item.url !== '/docs');
 
+    // Promise.all paralelo: antes eram dois Promise.all sequenciais
     const visibility = await Promise.all(
-      allPages.map((item) => canUserSeeDocUrl({ url: item.url, role: session.role, userId: session.userId })),
+      allPages.map((item) =>
+        canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId }),
+      ),
     );
 
     const visiblePages = allPages
-      .filter((_, index) => visibility[index])
+      .filter((_, i) => visibility[i])
       .map((item) => ({
         href: item.url,
         title: String(item.data.title),
@@ -111,6 +93,9 @@ export default async function Page(props: {
     );
   }
 
+  // -------------------------------------------------------------------------
+  // Página de conteúdo
+  // -------------------------------------------------------------------------
   const MDXContent = page.data.body;
   const lastUpdated = typeof page.data.lastUpdated === 'string' ? page.data.lastUpdated : undefined;
   const owner = typeof page.data.owner === 'string' ? page.data.owner : undefined;
@@ -120,42 +105,47 @@ export default async function Page(props: {
     : undefined;
   const sinceVersion = typeof page.data.sinceVersion === 'string' ? page.data.sinceVersion : undefined;
   const docSlug = `/docs${slug.length ? `/${slug.join('/')}` : ''}`;
-  const formattedLastUpdated = lastUpdated
-    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(lastUpdated))
-    : null;
+
+  // Datas formatadas via lib/docs-utils (sem lógica inline)
+  const formattedLastUpdated = formatDateLong(lastUpdated);
   const lastUpdateDate = lastUpdated ? new Date(lastUpdated) : null;
 
+  // Estimativa de tempo de leitura via lib/docs-utils
   const structuredData = (page.data as { structuredData?: { contents?: Array<{ content?: string }> } }).structuredData;
   const bodyText = structuredData?.contents?.map((item) => item.content ?? '').join(' ') ?? page.data.description ?? '';
   const readingTimeMinutes = estimateReadingTimeMinutes(`${String(page.data.title ?? '')} ${bodyText}`);
+
+  // Breadcrumb
   const breadcrumbItems = slug.reduce<Array<{ href: string; label: string }>>(
     (acc, segment) => {
       const parentPath = acc.length === 1 ? '' : acc[acc.length - 1].href.replace(/^\/docs/, '');
       const nextPath = `${parentPath}/${segment}`.replace(/^\/+/, '');
       const targetSlug = nextPath.split('/').filter(Boolean);
       const targetPage = source.getPage(targetSlug);
-
       acc.push({
         href: `/docs/${nextPath}`,
         label: targetPage ? String(targetPage.data.title) : formatSlugLabel(segment),
       });
-
       return acc;
     },
     [{ href: '/docs', label: 'Documentacao' }],
   );
 
+  // Navegação anterior/próxima
+  // Promise.all paralelo com a visibilidade do pool de navegação
   const navigationPool = source.getPages().filter((item) => item.url !== '/docs');
   const navigationVisibility = await Promise.all(
-    navigationPool.map((item) => canUserSeeDocUrl({ url: item.url, role: session.role, userId: session.userId })),
+    navigationPool.map((item) =>
+      canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId }),
+    ),
   );
-
-  const visibleNavigationPages = navigationPool.filter((_, index) => navigationVisibility[index]);
+  const visibleNavigationPages = navigationPool.filter((_, i) => navigationVisibility[i]);
   const currentIndex = visibleNavigationPages.findIndex((item) => item.url === docSlug);
   const previousPage = currentIndex > 0 ? visibleNavigationPages[currentIndex - 1] : null;
-  const nextPage = currentIndex >= 0 && currentIndex < visibleNavigationPages.length - 1
-    ? visibleNavigationPages[currentIndex + 1]
-    : null;
+  const nextPage =
+    currentIndex >= 0 && currentIndex < visibleNavigationPages.length - 1
+      ? visibleNavigationPages[currentIndex + 1]
+      : null;
 
   return (
     <DocsPage
@@ -247,11 +237,7 @@ export async function generateMetadata(props: {
     openGraph: {
       title: String(page.data.title),
       description: typeof page.data.description === 'string' ? page.data.description : undefined,
-      images: [
-        {
-          url: `/api/og/docs?slug=${encodeURIComponent((params.slug ?? []).join('/'))}`,
-        },
-      ],
+      images: [{ url: `/api/og/docs?slug=${encodeURIComponent((params.slug ?? []).join('/'))}` }],
     },
     twitter: {
       card: 'summary_large_image',

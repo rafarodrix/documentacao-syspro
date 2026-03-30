@@ -5,7 +5,7 @@
   "pages": [
     "index",
     "---Banco de Dados---",
-    "Banco de Dados/recuperacao-banco-firebird",
+    "banco-dados/recuperacao-banco-firebird",
     "---Parametrizações---",
     "parametrizacoes/migracao-nfse-nacional",
     "---Documentação e Guias---",

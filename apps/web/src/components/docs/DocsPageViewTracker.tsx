@@ -1,64 +1,51 @@
 'use client';
 
 import { useEffect } from 'react';
+import {
+  DOCS_STORAGE_KEYS,
+  readStorage,
+  writeStorage,
+  type RecentDocItem,
+  type PopularMap,
+  type VisitedMap,
+} from '@/lib/docs-storage';
 
-type RecentDocItem = {
-  href: string;
-  title: string;
-  visitedAt: number;
-};
-
-type PopularMap = Record<string, { title: string; count: number; lastVisited: number }>;
-type VisitedMap = Record<string, number>;
-
-const RECENT_STORAGE_KEY = 'docs:recent';
-const POPULAR_STORAGE_KEY = 'docs:popular';
-const VISITED_STORAGE_KEY = 'docs:visited';
 const MAX_RECENT_ITEMS = 8;
 
 export function DocsPageViewTracker({ href, title }: { href: string; title: string }) {
   useEffect(() => {
     const visitedAt = Date.now();
 
-    try {
-      const parsedRecent = JSON.parse(localStorage.getItem(RECENT_STORAGE_KEY) ?? '[]') as RecentDocItem[];
-      const recent = Array.isArray(parsedRecent) ? parsedRecent : [];
-      const deduped = recent.filter((item) => item.href !== href);
-      const nextRecent = [{ href, title, visitedAt }, ...deduped].slice(0, MAX_RECENT_ITEMS);
-      localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(nextRecent));
-    } catch {
-      // no-op
-    }
+    // -----------------------------------------------------------------------
+    // Atualiza recent
+    // -----------------------------------------------------------------------
+    const recent = readStorage<RecentDocItem[]>(DOCS_STORAGE_KEYS.recent, []);
+    const deduped = Array.isArray(recent) ? recent.filter((item) => item.href !== href) : [];
+    writeStorage(DOCS_STORAGE_KEYS.recent, [{ href, title, visitedAt }, ...deduped].slice(0, MAX_RECENT_ITEMS));
 
-    try {
-      const parsedPopular = JSON.parse(localStorage.getItem(POPULAR_STORAGE_KEY) ?? '{}') as PopularMap;
-      const popular = parsedPopular && typeof parsedPopular === 'object' ? parsedPopular : {};
-      const current = popular[href];
-      const nextPopular: PopularMap = {
-        ...popular,
-        [href]: {
-          title,
-          count: (current?.count ?? 0) + 1,
-          lastVisited: visitedAt,
-        },
-      };
-      localStorage.setItem(POPULAR_STORAGE_KEY, JSON.stringify(nextPopular));
-    } catch {
-      // no-op
-    }
+    // -----------------------------------------------------------------------
+    // Atualiza popular
+    // -----------------------------------------------------------------------
+    const popular = readStorage<PopularMap>(DOCS_STORAGE_KEYS.popular, {});
+    const current = popular[href];
+    writeStorage(DOCS_STORAGE_KEYS.popular, {
+      ...popular,
+      [href]: {
+        title,
+        count: (current?.count ?? 0) + 1,
+        lastVisited: visitedAt,
+      },
+    });
 
-    try {
-      const parsedVisited = JSON.parse(localStorage.getItem(VISITED_STORAGE_KEY) ?? '{}') as VisitedMap;
-      const visited = parsedVisited && typeof parsedVisited === 'object' ? parsedVisited : {};
-      const nextVisited: VisitedMap = {
-        ...visited,
-        [href]: visitedAt,
-      };
-      localStorage.setItem(VISITED_STORAGE_KEY, JSON.stringify(nextVisited));
-    } catch {
-      // no-op
-    }
+    // -----------------------------------------------------------------------
+    // Atualiza visited
+    // -----------------------------------------------------------------------
+    const visited = readStorage<VisitedMap>(DOCS_STORAGE_KEYS.visited, {});
+    writeStorage(DOCS_STORAGE_KEYS.visited, { ...visited, [href]: visitedAt });
 
+    // -----------------------------------------------------------------------
+    // Reporta visita para a API (fire-and-forget com keepalive)
+    // -----------------------------------------------------------------------
     void fetch('/api/docs/views', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

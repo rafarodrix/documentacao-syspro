@@ -5,9 +5,7 @@ import { usePathname } from 'next/navigation';
 import type { Item } from 'fumadocs-core/page-tree';
 import { SidebarItem } from 'fumadocs-ui/components/layout/sidebar';
 import { cn } from '@/lib/utils';
-
-type VisitedMap = Record<string, number>;
-const VISITED_STORAGE_KEY = 'docs:visited';
+import { DOCS_STORAGE_KEYS, readStorage, type VisitedMap } from '@/lib/docs-storage';
 
 export function DocsSidebarItem({ item }: { item: Item }) {
   const pathname = usePathname();
@@ -16,13 +14,8 @@ export function DocsSidebarItem({ item }: { item: Item }) {
 
   useEffect(() => {
     if (!item.url) return;
-    try {
-      const parsed = JSON.parse(localStorage.getItem(VISITED_STORAGE_KEY) ?? '{}') as VisitedMap;
-      const visited = parsed && typeof parsed === 'object' ? parsed : {};
-      setIsVisited(Boolean(visited[item.url]));
-    } catch {
-      setIsVisited(false);
-    }
+    const visited = readStorage<VisitedMap>(DOCS_STORAGE_KEYS.visited, {});
+    setIsVisited(Boolean(visited[item.url]));
   }, [item.url, pathname]);
 
   return (
@@ -40,6 +33,13 @@ export function DocsSidebarItem({ item }: { item: Item }) {
       )}
     >
       <span className="flex items-center gap-2.5">
+        {/* Indicador de novo: ponto visível para páginas nunca visitadas */}
+        {!isVisited && !isActive ? (
+          <span
+            aria-hidden
+            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40"
+          />
+        ) : null}
         <span>{item.name}</span>
       </span>
     </SidebarItem>
