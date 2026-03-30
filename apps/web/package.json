@@ -21,6 +21,9 @@
     "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
-    "@dosc-syspro/api": "0.0.0"
+    "@dosc-syspro/api": "0.0.0",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-toggle": "^1.1.10",
+    "@radix-ui/react-toggle-group": "^1.1.11"
   }
 }

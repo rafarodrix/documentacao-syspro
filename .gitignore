@@ -34,5 +34,6 @@ apps/web/.env.e2e
 .vercel
 next-env.d.ts
 /generated/prisma
+/node_modules
 # E2E auth state
-apps/web/tests/e2e/.auth/
+apps/web/tests/e2e/.auth//node

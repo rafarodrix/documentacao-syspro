@@ -1,0 +1,35 @@
+{
+  "cookies": [
+    {
+      "name": "better-auth.session_token",
+      "value": "11KXWaEY6mGqqoYAmMgp9jO9SdtkkH7Y.h5AzY0P1nOD2SXuBIpOvRIUduAxf3Ow8nummea3rcBI%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1774953226.519786,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "better-auth.session_data",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzZXNzaW9uIjp7ImV4cGlyZXNBdCI6IjIwMjYtMDMtMzFUMTA6MzM6NDQuNjUzWiIsInRva2VuIjoiMTFLWFdhRVk2bUdxcW9ZQW1NZ3A5ak85U2R0a2tIN1kiLCJjcmVhdGVkQXQiOiIyMDI2LTAzLTI0VDEwOjMzOjQ0LjY1OFoiLCJ1cGRhdGVkQXQiOiIyMDI2LTAzLTI0VDEwOjMzOjQ0LjY1OFoiLCJpcEFkZHJlc3MiOiIxMjcuMC4wLjEiLCJ1c2VyQWdlbnQiOiJNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0KSBBcHBsZVdlYktpdC81MzcuMzYgKEtIVE1MLCBsaWtlIEdlY2tvKSBIZWFkbGVzc0Nocm9tZS8xNDUuMC43NjMyLjYgU2FmYXJpLzUzNy4zNiIsInVzZXJJZCI6IjVWSHkzZXpuNlllWmRuUG4zdTBudmFrZEdVVUhOTFMxIiwiaWQiOiJVcWVnd3NQNHpDc3NMMnljYXc2aWlrdUV5cVQya0RYQiJ9LCJ1c2VyIjp7Im5hbWUiOiJyYWZhZWxyb2RyaXhAaWNsb3VkLmNvbSIsImVtYWlsIjoicmFmYWVscm9kcml4QGljbG91ZC5jb20iLCJlbWFpbFZlcmlmaWVkIjpmYWxzZSwiaW1hZ2UiOm51bGwsImNyZWF0ZWRBdCI6IjIwMjUtMTEtMjlUMjA6Mjc6MzkuMzA4WiIsInVwZGF0ZWRBdCI6IjIwMjYtMDMtMjNUMTg6NTA6MTQuNjA4WiIsInJvbGUiOiJBRE1JTiIsImlkIjoiNVZIeTNlem42WWVaZG5QbjN1MG52YWtkR1VVSE5MUzEifSwidXBkYXRlZEF0IjoxNzc0MzQ4NDI2MzkyLCJ2ZXJzaW9uIjoiMSIsImlhdCI6MTc3NDM0ODQyNiwiZXhwIjoxNzc0MzQ4NzI2fQ.FcqGZ6TgQ79OdZtKkhlwsOo_iwp5eicpadKqhLzX9GQ",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1774348726.521368,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3100",
+      "localStorage": [
+        {
+          "name": "trilink.sidebar.collapsed",
+          "value": "0"
+        }
+      ]
+    }
+  ]
+}
