@@ -10,6 +10,7 @@ import { z } from "zod";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
+import { userListSelect } from "@/features/user-access/domain/selects";
 import type {
     UserAccessActionResponse,
     UserAccessListItem,
@@ -35,26 +36,6 @@ const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 const CREATE_USER_RATE_LIMIT = { max: 8, windowMs: 60_000 };
 
-const userListSelect = {
-    id: true,
-    name: true,
-    email: true,
-    image: true,
-    role: true,
-    isActive: true,
-    jobTitle: true,
-    cpf: true,
-    phone: true,
-    deletedAt: true,
-    createdAt: true,
-    memberships: {
-        select: {
-            companyId: true,
-            role: true,
-            company: { select: { nomeFantasia: true, razaoSocial: true } }
-        }
-    }
-} as const;
 
 async function getSessionCompanyIds(userId: string): Promise<string[]> {
     const memberships = await prisma.membership.findMany({
@@ -170,11 +151,13 @@ export async function getUsersAction(filters?: GetUsersParams): Promise<UserAcce
             orderBy: { createdAt: 'desc' }
         });
 
-        const data: UserAccessListItem[] = users.map((u) => ({
+        const data = users.map((u) => ({
             ...u,
-            companyName: u.memberships[0]?.company?.nomeFantasia || "Sem Vinculo",
-            companyId: u.memberships[0]?.companyId || null
-        }));
+            companyName: u.memberships[0]?.company?.nomeFantasia
+                || u.memberships[0]?.company?.razaoSocial
+                || "Sem Vínculo",
+            companyId: u.memberships[0]?.companyId ?? null,
+        })) satisfies UserAccessListItem[];
 
         return { success: true, data };
     } catch (error) {

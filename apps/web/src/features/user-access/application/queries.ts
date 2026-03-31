@@ -9,51 +9,30 @@ import type {
   UserAccessCompanyOption,
   UserAccessListItem,
 } from "@/features/user-access/domain/model";
+import {
+  userListSelect,
+  companyOptionSelect,
+  type UserListSelectResult,
+} from "@/features/user-access/domain/selects";
+
+// ─── Constantes ────────────────────────────────────────────────────────────────
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
 
+// ─── Tipos internos ────────────────────────────────────────────────────────────
+
 type ActionError = { error: string };
-type SessionContext = { session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>; isSystemRole: boolean };
+type SessionContext = {
+  session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>;
+  isSystemRole: boolean;
+};
 
-const companyOptionSelect = {
-  id: true,
-  razaoSocial: true,
-  nomeFantasia: true,
-  cnpj: true,
-  segment: true,
-  status: true,
-  _count: { select: { memberships: true } },
-} as const;
-
-const userListSelect = {
-  id: true,
-  name: true,
-  email: true,
-  image: true,
-  role: true,
-  isActive: true,
-  jobTitle: true,
-  cpf: true,
-  phone: true,
-  memberships: {
-    select: {
-      companyId: true,
-      role: true,
-      company: {
-        select: {
-          id: true,
-          razaoSocial: true,
-          nomeFantasia: true,
-        },
-      },
-    },
-  },
-} as const;
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
 async function getSessionContext(): Promise<SessionContext | ActionError> {
   const session = await getProtectedSession();
-  if (!session) return { error: "Nao autorizado" };
+  if (!session) return { error: "Não autorizado" };
   return { session, isSystemRole: SYSTEM_ROLES.includes(session.role) };
 }
 
@@ -66,60 +45,31 @@ async function getScopedCompanyIds(userId: string): Promise<string[]> {
 }
 
 function hasError(value: unknown): value is ActionError {
-  return Boolean(value && typeof value === "object" && "error" in (value as Record<string, unknown>));
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    "error" in (value as Record<string, unknown>),
+  );
 }
 
-function mapClientUserListItem(user: {
-  id: string;
-  name: string | null;
-  email: string;
-  image: string | null;
-  role: Role;
-  isActive: boolean;
-  jobTitle: string | null;
-  cpf: string | null;
-  phone: string | null;
-  memberships: {
-    companyId: string;
-    role: Role;
-    company: {
-      id: string;
-      razaoSocial: string;
-      nomeFantasia: string | null;
-    };
-  }[];
-}): UserAccessListItem {
+// ─── Mappers ───────────────────────────────────────────────────────────────────
+
+function mapClientUserListItem(user: UserListSelectResult): UserAccessListItem {
   return {
     ...user,
-    companyName: user.memberships[0]?.company?.nomeFantasia || user.memberships[0]?.company?.razaoSocial || "Sem Vinculo",
-    companyId: user.memberships[0]?.companyId || null,
+    companyName:
+      user.memberships[0]?.company?.nomeFantasia ||
+      user.memberships[0]?.company?.razaoSocial ||
+      "Sem Vínculo",
+    companyId: user.memberships[0]?.companyId ?? null,
   };
 }
 
-function mapSystemUserListItem(user: {
-  id: string;
-  name: string | null;
-  email: string;
-  image: string | null;
-  role: Role;
-  isActive: boolean;
-  jobTitle: string | null;
-  cpf: string | null;
-  phone: string | null;
-  memberships: {
-    companyId: string;
-    role: Role;
-    company: {
-      id: string;
-      razaoSocial: string;
-      nomeFantasia: string | null;
-    };
-  }[];
-}): SystemUserListItem {
-  return {
-    ...user,
-  };
+function mapSystemUserListItem(user: UserListSelectResult): SystemUserListItem {
+  return { ...user };
 }
+
+// ─── Queries ───────────────────────────────────────────────────────────────────
 
 export async function getClientUsersAdminViewData() {
   const ctx = await getSessionContext();
@@ -140,11 +90,17 @@ export async function getClientUsersAdminViewData() {
         }),
       ]);
 
-      return { companies, users: users.map(mapClientUserListItem), isGlobalView: true };
+      return {
+        companies,
+        users: users.map(mapClientUserListItem),
+        isGlobalView: true,
+      };
     }
 
     const companyIds = await getScopedCompanyIds(ctx.session.userId);
-    if (!companyIds.length) return { companies: [], users: [] as UserAccessListItem[], isGlobalView: false };
+    if (!companyIds.length) {
+      return { companies: [], users: [] as UserAccessListItem[], isGlobalView: false };
+    }
 
     const [companies, users] = await Promise.all([
       prisma.company.findMany({
@@ -169,10 +125,14 @@ export async function getClientUsersAdminViewData() {
       }),
     ]);
 
-    return { companies, users: users.map(mapClientUserListItem), isGlobalView: false };
+    return {
+      companies,
+      users: users.map(mapClientUserListItem),
+      isGlobalView: false,
+    };
   } catch (error) {
     console.error(error);
-    return { error: "Erro ao buscar usuarios." };
+    return { error: "Erro ao buscar usuários." };
   }
 }
 
@@ -191,14 +151,19 @@ export async function getSystemUsersAdminViewData() {
       select: userListSelect,
     });
 
-    return { users: users.map(mapSystemUserListItem), isGlobalView: true };
+    return {
+      users: users.map(mapSystemUserListItem),
+      isGlobalView: true,
+    };
   } catch (error) {
     console.error(error);
     return { error: "Erro ao buscar equipe interna." };
   }
 }
 
-export async function getClientUserEditViewData(userId: string): Promise<ClientUserEditViewData> {
+export async function getClientUserEditViewData(
+  userId: string,
+): Promise<ClientUserEditViewData> {
   const session = await getProtectedSession();
   if (!session) notFound();
 
@@ -212,13 +177,16 @@ export async function getClientUserEditViewData(userId: string): Promise<ClientU
         ).map((m) => m.companyId)
       : null;
 
+  const safeCompanyFilter =
+    managedCompanyIds?.length ? managedCompanyIds : ["__none__"];
+
   const user = await prisma.user.findFirst({
     where: {
       id: userId,
       deletedAt: null,
       role: { in: CLIENT_ROLES },
       ...(session.role === Role.CLIENTE_ADMIN
-        ? { memberships: { some: { companyId: { in: managedCompanyIds?.length ? managedCompanyIds : ["__none__"] } } } }
+        ? { memberships: { some: { companyId: { in: safeCompanyFilter } } } }
         : {}),
     },
     select: {
@@ -230,9 +198,7 @@ export async function getClientUserEditViewData(userId: string): Promise<ClientU
       phone: true,
       cpf: true,
       memberships: {
-        select: {
-          companyId: true,
-        },
+        select: { companyId: true },
       },
     },
   });
@@ -242,7 +208,9 @@ export async function getClientUserEditViewData(userId: string): Promise<ClientU
   const companies = await prisma.company.findMany({
     where: {
       deletedAt: null,
-      ...(session.role === Role.CLIENTE_ADMIN ? { id: { in: managedCompanyIds?.length ? managedCompanyIds : ["__none__"] } } : {}),
+      ...(session.role === Role.CLIENTE_ADMIN
+        ? { id: { in: safeCompanyFilter } }
+        : {}),
     },
     orderBy: { razaoSocial: "asc" },
     select: {
@@ -261,7 +229,7 @@ export async function getClientUserEditViewData(userId: string): Promise<ClientU
       email: user.email,
       role: user.role,
       companyId: user.memberships[0]?.companyId ?? "",
-      additionalCompanyIds: user.memberships.slice(1).map((membership) => membership.companyId),
+      additionalCompanyIds: user.memberships.slice(1).map((m) => m.companyId),
       jobTitle: user.jobTitle ?? "",
       phone: user.phone ?? "",
       cpf: user.cpf ?? "",
@@ -270,7 +238,9 @@ export async function getClientUserEditViewData(userId: string): Promise<ClientU
   };
 }
 
-export async function getSystemUserEditViewData(userId: string): Promise<SystemUserEditViewData> {
+export async function getSystemUserEditViewData(
+  userId: string,
+): Promise<SystemUserEditViewData> {
   const user = await prisma.user.findFirst({
     where: {
       id: userId,
