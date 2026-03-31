@@ -11,11 +11,8 @@ import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import { userListSelect } from "@/features/user-access/domain/selects";
-import type {
-    UserAccessActionResponse,
-    UserAccessListItem,
-    UserAccessValidationErrors,
-} from "@/features/user-access/domain/model";
+import type { UserAccessActionResponse, UserAccessListItem, UserAccessValidationErrors, } from "@/features/user-access/domain/model";
+import { SYSTEM_ROLES, CLIENT_ROLES, READ_ROLES, } from "@/features/user-access/domain/constants";
 
 interface GetUsersParams {
     search?: string;
@@ -30,10 +27,7 @@ const linkUserSchema = z.object({
 
 export type LinkUserInput = z.infer<typeof linkUserSchema>;
 
-// --- Permiss?es ---
-const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
-const READ_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
+
 const CREATE_USER_RATE_LIMIT = { max: 8, windowMs: 60_000 };
 
 

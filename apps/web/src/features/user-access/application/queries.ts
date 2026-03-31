@@ -15,10 +15,10 @@ import {
   type UserListSelectResult,
 } from "@/features/user-access/domain/selects";
 
-// ─── Constantes ────────────────────────────────────────────────────────────────
-
-const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
+import {
+  SYSTEM_ROLES,
+  CLIENT_ROLES,
+} from "@/features/user-access/domain/constants";
 
 // ─── Tipos internos ────────────────────────────────────────────────────────────
 
@@ -170,11 +170,11 @@ export async function getClientUserEditViewData(
   const managedCompanyIds =
     session.role === Role.CLIENTE_ADMIN
       ? (
-          await prisma.membership.findMany({
-            where: { userId: session.userId },
-            select: { companyId: true },
-          })
-        ).map((m) => m.companyId)
+        await prisma.membership.findMany({
+          where: { userId: session.userId },
+          select: { companyId: true },
+        })
+      ).map((m) => m.companyId)
       : null;
 
   const safeCompanyFilter =
