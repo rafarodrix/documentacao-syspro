@@ -1,7 +1,7 @@
+// apps/web/src/components/platform/cadastros/user/CreateUserPageForm.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { ElementType } from "react";
+import { useEffect, useMemo, useState, type ElementType } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -14,8 +14,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -28,9 +26,10 @@ import {
   Shield,
   UserRound,
   IdCard,
-  Plus,
-  X,
 } from "lucide-react";
+import { CompanyMultiPicker, type CompanyOption } from "./CompanyMultiPicker";
+
+// ─── Constantes ────────────────────────────────────────────────────────────────
 
 const ROLE = {
   ADMIN: "ADMIN",
@@ -40,21 +39,7 @@ const ROLE = {
   CLIENTE_USER: "CLIENTE_USER",
 } as const;
 
-interface CompanyOption {
-  id: string;
-  razaoSocial: string;
-  nomeFantasia: string | null;
-}
-
-interface CreateUserPageFormProps {
-  companies: CompanyOption[];
-  context: "CLIENT" | "SYSTEM";
-  isAdmin: boolean;
-  backHref: string;
-  mode?: "create" | "edit";
-  userId?: string;
-  initialData?: Partial<CreateUserInput> & { additionalCompanyIds?: string[] };
-}
+// ─── Tipos ─────────────────────────────────────────────────────────────────────
 
 type SectionId = "acesso" | "identidade" | "perfil";
 
@@ -65,6 +50,18 @@ type SectionConfig = {
   icon: ElementType;
   fields: string[];
 };
+
+export interface CreateUserPageFormProps {
+  companies: CompanyOption[];
+  context: "CLIENT" | "SYSTEM";
+  isAdmin: boolean;
+  backHref: string;
+  mode?: "create" | "edit";
+  userId?: string;
+  initialData?: Partial<CreateUserInput> & { additionalCompanyIds?: string[] };
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function hasPath(obj: unknown, path: string): boolean {
   if (!obj || typeof obj !== "object") return false;
@@ -77,6 +74,87 @@ function hasPath(obj: unknown, path: string): boolean {
   return !!current;
 }
 
+const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
+
+// ─── Subcomponentes ────────────────────────────────────────────────────────────
+
+function SectionNav({
+  sections,
+  current,
+  stateMap,
+  onSelect,
+}: {
+  sections: SectionConfig[];
+  current: SectionId;
+  stateMap: Record<SectionId, "error" | "ready" | "idle">;
+  onSelect: (id: SectionId) => void;
+}) {
+  return (
+    <aside className="w-56 border-r border-border/50 bg-muted/20 p-3 space-y-1 backdrop-blur-sm">
+      {sections.map((section) => {
+        const Icon = section.icon;
+        const isCurrent = section.id === current;
+        const state = stateMap[section.id];
+        const hasError = state === "error";
+        const isReady = state === "ready";
+
+        return (
+          <button
+            key={section.id}
+            type="button"
+            onClick={() => onSelect(section.id)}
+            className={cn(
+              "group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-all border",
+              isCurrent
+                ? "bg-primary/10 border-primary/20 shadow-sm"
+                : "hover:bg-muted/70 border-transparent hover:border-border/50",
+            )}
+          >
+            <div
+              className={cn(
+                "mt-0.5 p-1.5 rounded-md",
+                isCurrent ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                hasError && "bg-destructive/10 text-destructive",
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p
+                  className={cn(
+                    "text-sm font-medium truncate",
+                    isCurrent ? "text-primary" : "text-foreground",
+                    hasError && "text-destructive",
+                  )}
+                >
+                  {section.title}
+                </p>
+                {isReady && !hasError && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+                {hasError && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
+              </div>
+              <p className="text-[11px] text-muted-foreground/70 truncate">{section.description}</p>
+              {isReady && !hasError && (
+                <Badge
+                  variant="outline"
+                  className="mt-1 h-5 rounded-full border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] text-emerald-600"
+                >
+                  Pronto
+                </Badge>
+              )}
+            </div>
+
+            {isCurrent && <ChevronRight className="h-3.5 w-3.5 text-primary/70 mt-1 shrink-0" />}
+          </button>
+        );
+      })}
+    </aside>
+  );
+}
+
+// ─── Componente principal ──────────────────────────────────────────────────────
+
 export function CreateUserPageForm({
   companies,
   context,
@@ -88,12 +166,17 @@ export function CreateUserPageForm({
 }: CreateUserPageFormProps) {
   const router = useRouter();
   const defaultRole = context === "SYSTEM" ? ROLE.SUPORTE : ROLE.CLIENTE_USER;
+
   const [currentSection, setCurrentSection] = useState<SectionId>("acesso");
-  const [additionalCompanyIds, setAdditionalCompanyIds] = useState<string[]>(
-    () => (Array.isArray(initialData?.additionalCompanyIds) ? initialData.additionalCompanyIds.filter(Boolean) : []),
-  );
-  const [additionalCompaniesOpen, setAdditionalCompaniesOpen] = useState(false);
-  const [additionalCompaniesQuery, setAdditionalCompaniesQuery] = useState("");
+
+  // Estado unificado de empresas: [0] = principal, [1..] = adicionais
+  const [companyIds, setCompanyIds] = useState<string[]>(() => {
+    const primary = initialData?.companyId;
+    const additional = Array.isArray(initialData?.additionalCompanyIds)
+      ? initialData.additionalCompanyIds.filter(Boolean)
+      : [];
+    return primary ? [primary, ...additional] : additional;
+  });
 
   const sections: SectionConfig[] = useMemo(
     () => [
@@ -122,8 +205,6 @@ export function CreateUserPageForm({
     [context, mode],
   );
 
-  const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
-
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
@@ -141,40 +222,17 @@ export function CreateUserPageForm({
   });
 
   const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
-  const primaryCompanyId = form.watch("companyId");
-  const availableAdditionalCompanies = useMemo(
-    () => companies.filter((company) => company.id !== primaryCompanyId),
-    [companies, primaryCompanyId],
-  );
-  const filteredAdditionalCompanies = useMemo(() => {
-    const normalizedQuery = additionalCompaniesQuery.trim().toLowerCase();
-    if (!normalizedQuery) return availableAdditionalCompanies;
-    return availableAdditionalCompanies.filter((company) => {
-      const name = (company.nomeFantasia || company.razaoSocial).toLowerCase();
-      const documentId = company.razaoSocial.toLowerCase();
-      return name.includes(normalizedQuery) || documentId.includes(normalizedQuery);
-    });
-  }, [additionalCompaniesQuery, availableAdditionalCompanies]);
-  const selectedAdditionalCompanies = useMemo(
-    () =>
-      additionalCompanyIds
-        .map((id) => companies.find((company) => company.id === id))
-        .filter((company): company is CompanyOption => Boolean(company)),
-    [additionalCompanyIds, companies],
-  );
 
+  // Sincroniza o picker com o campo companyId do form
   useEffect(() => {
-    if (!primaryCompanyId) return;
-    setAdditionalCompanyIds((prev) => prev.filter((id) => id !== primaryCompanyId));
-  }, [primaryCompanyId]);
+    if (context !== "CLIENT") return;
+    form.setValue("companyId", companyIds[0] ?? "", { shouldDirty: true, shouldValidate: true });
+  }, [companyIds, context, form]);
 
   const sectionStateMap = useMemo(() => {
     return sections.reduce<Record<SectionId, "error" | "ready" | "idle">>((acc, section) => {
       const hasError = section.fields.some((field) => hasPath(errors, field));
-      if (hasError) {
-        acc[section.id] = "error";
-        return acc;
-      }
+      if (hasError) { acc[section.id] = "error"; return acc; }
       const touched = section.fields.some((field) => hasPath(dirtyFields, field));
       acc[section.id] = touched ? "ready" : "idle";
       return acc;
@@ -183,8 +241,14 @@ export function CreateUserPageForm({
 
   const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
     const payload: CreateUserInput & { additionalCompanyIds?: string[] } = { ...data };
-    if (context === "SYSTEM") payload.companyId = undefined;
-    if (context === "CLIENT") payload.additionalCompanyIds = additionalCompanyIds;
+
+    if (context === "SYSTEM") {
+      payload.companyId = undefined;
+    } else {
+      payload.companyId = companyIds[0] ?? "";
+      payload.additionalCompanyIds = companyIds.slice(1);
+    }
+
     if (mode === "edit" && !payload.password) payload.password = undefined;
 
     const result =
@@ -193,34 +257,37 @@ export function CreateUserPageForm({
         : await createUserAction(payload);
 
     if (!result.success) {
-      toast.error(result.message ?? (mode === "edit" ? "Erro ao atualizar usuario." : "Erro ao cadastrar usuario."));
+      toast.error(result.message ?? (mode === "edit" ? "Erro ao atualizar usuário." : "Erro ao cadastrar usuário."));
       return;
     }
 
-    toast.success(result.message ?? (mode === "edit" ? "Usuario atualizado com sucesso." : "Usuario cadastrado com sucesso."));
+    toast.success(result.message ?? (mode === "edit" ? "Usuário atualizado com sucesso." : "Usuário cadastrado com sucesso."));
     router.push(backHref);
     router.refresh();
   };
 
-  const current = sections.find((s) => s.id === currentSection) ?? sections[0];
-  const currentIndex = Math.max(sections.findIndex((s) => s.id === current.id), 0);
+  const currentSectionConfig = sections.find((s) => s.id === currentSection) ?? sections[0];
+  const currentIndex = Math.max(sections.findIndex((s) => s.id === currentSection), 0);
   const progressPct = Math.round(((currentIndex + 1) / sections.length) * 100);
+  const hasErrors = Object.keys(errors).length > 0;
+
+  const title = mode === "edit"
+    ? context === "SYSTEM" ? "Editar Analista de Sistemas" : "Editar Usuário"
+    : context === "SYSTEM" ? "Novo Analista de Sistemas" : "Novo Usuário";
 
   return (
     <div className="relative w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card/95 overflow-hidden shadow-xl">
+
+      {/* Header */}
       <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4 bg-gradient-to-r from-muted/30 via-background to-muted/20">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary/70" />
-            {mode === "edit"
-              ? context === "SYSTEM"
-                ? "Editar Analista de Sistemas"
-                : "Editar Usuario"
-              : context === "SYSTEM"
-                ? "Novo Analista de Sistemas"
-                : "Novo Usuario"}
+            {title}
           </h2>
-          <p className="text-sm text-muted-foreground">{current.title} - {current.description}</p>
+          <p className="text-sm text-muted-foreground">
+            {currentSectionConfig.title} — {currentSectionConfig.description}
+          </p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
           <ArrowLeft className="h-4 w-4" />
@@ -228,320 +295,238 @@ export function CreateUserPageForm({
         </Button>
       </div>
 
+      {/* Progress */}
       <div className="border-b border-border/50 px-6 py-3 bg-muted/20">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
           <span>Progresso do cadastro</span>
           <span className="font-medium text-foreground">{currentIndex + 1}/{sections.length}</span>
         </div>
-        <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-          <div className="h-1.5 rounded-full bg-primary transition-all duration-300" style={{ width: `${progressPct}%` }} />
+        <div className="h-1.5 w-full rounded-full bg-muted">
+          <div
+            className="h-1.5 rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
       </div>
 
+      {/* Body */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-[calc(100vh-260px)]">
-          <aside className="w-56 border-r border-border/50 bg-muted/20 p-3 space-y-1 backdrop-blur-sm">
-            {sections.map((section) => {
-              const Icon = section.icon;
-              const isCurrent = section.id === currentSection;
-              const state = sectionStateMap[section.id];
-              const hasError = state === "error";
-              const isReady = state === "ready";
 
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => setCurrentSection(section.id)}
-                  className={cn(
-                    "group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-all border",
-                    isCurrent ? "bg-primary/10 border-primary/20 shadow-sm" : "hover:bg-muted/70 border-transparent hover:border-border/50",
-                  )}
-                >
-                  <div className={cn("mt-0.5 p-1.5 rounded-md", isCurrent ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground", hasError && "bg-destructive/10 text-destructive")}>
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className={cn("text-sm font-medium truncate", isCurrent ? "text-primary" : "text-foreground", hasError && "text-destructive")}>
-                        {section.title}
-                      </p>
-                      {isReady && !hasError && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
-                      {hasError && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/70 truncate">{section.description}</p>
-                    {isReady && !hasError && (
-                      <Badge variant="outline" className="mt-1 h-5 rounded-full border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] text-emerald-600">
-                        Pronto
-                      </Badge>
-                    )}
-                  </div>
-                  {isCurrent && <ChevronRight className="h-3.5 w-3.5 text-primary/70 mt-1" />}
-                </button>
-              );
-            })}
-          </aside>
+          <SectionNav
+            sections={sections}
+            current={currentSection}
+            stateMap={sectionStateMap}
+            onSelect={setCurrentSection}
+          />
 
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-y-auto p-6">
               <div key={currentSection} className="animate-in fade-in slide-in-from-right-2 duration-200">
-                  {currentSection === "acesso" && (
-                    <Card className="border-border/60 bg-card/95">
-                      <CardHeader><CardTitle className="text-base">Escopo e Permissoes</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                          {context === "CLIENT" && (
-                            <FormField
-                              control={form.control}
-                              name="companyId"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Empresa</FormLabel>
-                                  <Select
-                                    onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
-                                    value={field.value && companies.some((company) => company.id === field.value) ? field.value : "__none__"}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="__none__">Selecione...</SelectItem>
-                                      {companies.map((company) => (
-                                        <SelectItem key={company.id} value={company.id}>
-                                          {company.nomeFantasia || company.razaoSocial}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          )}
 
-                          {context === "CLIENT" && companies.length > 0 && (
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between gap-3">
-                                <label className="text-sm font-medium leading-none">Empresas adicionais</label>
-                                <Popover open={additionalCompaniesOpen} onOpenChange={setAdditionalCompaniesOpen}>
-                                  <PopoverTrigger asChild>
-                                    <Button type="button" variant="outline" size="sm" className="gap-1.5">
-                                      <Plus className="h-3.5 w-3.5" />
-                                      Adicionar empresa
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent align="end" className="w-[360px] p-3">
-                                    <div className="space-y-2">
-                                      <Input
-                                        value={additionalCompaniesQuery}
-                                        onChange={(event) => setAdditionalCompaniesQuery(event.target.value)}
-                                        placeholder="Buscar empresa..."
-                                      />
-                                      <div className="max-h-56 overflow-auto rounded-md border border-border/60 bg-muted/20 p-1">
-                                        {filteredAdditionalCompanies.length === 0 ? (
-                                          <p className="px-2 py-3 text-xs text-muted-foreground">Nenhuma empresa encontrada.</p>
-                                        ) : (
-                                          filteredAdditionalCompanies.map((company) => {
-                                            const checked = additionalCompanyIds.includes(company.id);
-                                            return (
-                                              <label
-                                                key={company.id}
-                                                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60 cursor-pointer"
-                                              >
-                                                <Checkbox
-                                                  checked={checked}
-                                                  onCheckedChange={(value) => {
-                                                    setAdditionalCompanyIds((prev) =>
-                                                      value === true
-                                                        ? Array.from(new Set([...prev, company.id]))
-                                                        : prev.filter((id) => id !== company.id),
-                                                    );
-                                                  }}
-                                                />
-                                                <span className="line-clamp-1">{company.nomeFantasia || company.razaoSocial}</span>
-                                              </label>
-                                            );
-                                          })
-                                        )}
-                                      </div>
-                                    </div>
-                                  </PopoverContent>
-                                </Popover>
-                              </div>
-                              <div className="rounded-md border border-border/60 bg-muted/10 p-2">
-                                {selectedAdditionalCompanies.length === 0 ? (
-                                  <p className="text-xs text-muted-foreground">Nenhuma empresa adicional vinculada.</p>
-                                ) : (
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {selectedAdditionalCompanies.map((company) => (
-                                      <Badge key={company.id} variant="secondary" className="gap-1 rounded-md pl-2 pr-1 py-1">
-                                        <span className="max-w-[220px] truncate">{company.nomeFantasia || company.razaoSocial}</span>
-                                        <button
-                                          type="button"
-                                          className="rounded p-0.5 hover:bg-background/60"
-                                          onClick={() =>
-                                            setAdditionalCompanyIds((prev) => prev.filter((id) => id !== company.id))
-                                          }
-                                          aria-label={`Remover ${company.nomeFantasia || company.razaoSocial}`}
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </button>
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
+                {/* ── SEÇÃO: ACESSO ─────────────────────────────────────────── */}
+                {currentSection === "acesso" && (
+                  <Card className="border-border/60 bg-card/95">
+                    <CardHeader>
+                      <CardTitle className="text-base">Escopo e Permissões</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-5">
+
+                      {/* Empresas — CLIENT ONLY */}
+                      {context === "CLIENT" && (
+                        <FormField
+                          control={form.control}
+                          name="companyId"
+                          render={({ fieldState }) => (
+                            <FormItem>
+                              <FormLabel>Empresas vinculadas</FormLabel>
+                              <CompanyMultiPicker
+                                companies={companies}
+                                value={companyIds}
+                                onChange={setCompanyIds}
+                                error={fieldState.error?.message}
+                              />
                               <p className="text-[11px] text-muted-foreground">
-                                O mesmo usuario pode ser vinculado a mais de uma empresa.
+                                A primeira empresa selecionada será a principal. As demais são vínculos adicionais.
                               </p>
-                            </div>
+                            </FormItem>
                           )}
+                        />
+                      )}
 
-                          <FormField
-                            control={form.control}
-                            name="role"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nivel de acesso</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {context === "CLIENT" && (
-                                      <>
-                                        <SelectItem value={ROLE.CLIENTE_USER}>Usuario</SelectItem>
-                                        <SelectItem value={ROLE.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
-                                      </>
-                                    )}
-                                    {context === "SYSTEM" && (
-                                      <>
-                                        <SelectItem value={ROLE.SUPORTE}>Suporte</SelectItem>
-                                        <SelectItem value={ROLE.DEVELOPER}>Desenvolvedor</SelectItem>
-                                        {isAdmin && <SelectItem value={ROLE.ADMIN}>Admin</SelectItem>}
-                                      </>
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                      </CardContent>
-                    </Card>
-                  )}
+                      {/* Nível de acesso */}
+                      <FormField
+                        control={form.control}
+                        name="role"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nível de acesso</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {context === "CLIENT" && (
+                                  <>
+                                    <SelectItem value={ROLE.CLIENTE_USER}>Usuário</SelectItem>
+                                    <SelectItem value={ROLE.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
+                                  </>
+                                )}
+                                {context === "SYSTEM" && (
+                                  <>
+                                    <SelectItem value={ROLE.SUPORTE}>Suporte</SelectItem>
+                                    <SelectItem value={ROLE.DEVELOPER}>Desenvolvedor</SelectItem>
+                                    {isAdmin && <SelectItem value={ROLE.ADMIN}>Admin</SelectItem>}
+                                  </>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
-                  {currentSection === "identidade" && (
-                    <Card className="border-border/60 bg-card/95">
-                      <CardHeader><CardTitle className="text-base">Dados do Usuario</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Nome</FormLabel>
-                                  <FormControl><Input placeholder="Nome completo" {...field} value={toInputValue(field.value)} /></FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="email"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>E-mail</FormLabel>
-                                  <FormControl><Input type="email" placeholder="usuario@empresa.com" {...field} value={toInputValue(field.value)} /></FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          {mode === "create" && (
-                            <FormField
-                              control={form.control}
-                              name="password"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Senha de acesso</FormLabel>
-                                  <FormControl><Input type="password" placeholder="Minimo 6 caracteres" {...field} value={toInputValue(field.value)} /></FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                {/* ── SEÇÃO: IDENTIDADE ─────────────────────────────────────── */}
+                {currentSection === "identidade" && (
+                  <Card className="border-border/60 bg-card/95">
+                    <CardHeader>
+                      <CardTitle className="text-base">Dados do Usuário</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nome</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Nome completo" {...field} value={toInputValue(field.value)} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
                           )}
-                      </CardContent>
-                    </Card>
-                  )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>E-mail</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="usuario@empresa.com" {...field} value={toInputValue(field.value)} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                  {currentSection === "perfil" && (
-                    <Card className="border-border/60 bg-card/95">
-                      <CardHeader><CardTitle className="text-base">Informacoes complementares</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="jobTitle"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Cargo</FormLabel>
-                                  <FormControl><Input placeholder="Cargo" {...field} value={toInputValue(field.value)} /></FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="phone"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Telefone</FormLabel>
-                                  <FormControl><Input placeholder="(00) 00000-0000" {...field} value={toInputValue(field.value)} /></FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="cpf"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>CPF</FormLabel>
-                                  <FormControl><Input placeholder="000.000.000-00" {...field} value={toInputValue(field.value)} /></FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                      {mode === "create" && (
+                        <FormField
+                          control={form.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Senha de acesso</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="Mínimo 6 caracteres" {...field} value={toInputValue(field.value)} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* ── SEÇÃO: PERFIL ─────────────────────────────────────────── */}
+                {currentSection === "perfil" && (
+                  <Card className="border-border/60 bg-card/95">
+                    <CardHeader>
+                      <CardTitle className="text-base">Informações complementares</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="jobTitle"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cargo</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Cargo" {...field} value={toInputValue(field.value)} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Telefone</FormLabel>
+                              <FormControl>
+                                <Input placeholder="(00) 00000-0000" {...field} value={toInputValue(field.value)} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="cpf"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>CPF</FormLabel>
+                              <FormControl>
+                                <Input placeholder="000.000.000-00" {...field} value={toInputValue(field.value)} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
               </div>
             </div>
 
+            {/* Footer */}
             <div className="border-t border-border/50 px-6 py-4 flex items-center justify-between">
               <div>
-                {Object.keys(errors).length > 0 && (
+                {hasErrors && (
                   <Badge variant="destructive" className="text-[11px] gap-1 font-medium">
                     <AlertCircle className="h-3 w-3" />
-                    Campos invalidos
+                    Campos inválidos
                   </Badge>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" onClick={() => router.push(backHref)}>Cancelar</Button>
+                <Button type="button" variant="ghost" onClick={() => router.push(backHref)}>
+                  Cancelar
+                </Button>
                 <Button type="submit" className="gap-2" disabled={isSubmitting || !isDirty}>
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {mode === "edit" ? "Salvar Alteracoes" : "Salvar Cadastro"}
+                  {isSubmitting
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Save className="h-4 w-4" />}
+                  {mode === "edit" ? "Salvar Alterações" : "Salvar Cadastro"}
                 </Button>
               </div>
             </div>
+
           </div>
         </form>
       </Form>
     </div>
   );
 }
-
