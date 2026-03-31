@@ -16,6 +16,7 @@
     "syspro/movimento/ajuste-estoque",
     "---financeiro---",
     "syspro/financeiro/titulos/geracao-boletos",
+    "syspro/financeiro/titulos/conciliacao-boletos",
     "tributario",
     "---Terceiros---",
     "integracoes",

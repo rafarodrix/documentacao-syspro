@@ -15,92 +15,155 @@ audience:
   - financeiro
 ---
 
-import { Steps } from 'fumadocs-ui/components/steps';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
 import { YouTubeModal } from '@/components/docs/YouTubeModal';
 
 ## Introdução
 
-A geração de boletos no **Syspro ERP** é realizada através do **Módulo Títulos**. Este processo permite que a empresa emita documentos de cobrança registrados, vinculados diretamente às contas a receber, garantindo a baixa automática via arquivo de retorno bancário e a organização do fluxo de caixa.
+A geração de boletos no **Syspro ERP** é realizada através do **Módulo Títulos**. Este processo permite emitir documentos de cobrança registrados, vinculados diretamente às contas a receber.
+
+<Cards>
+  <Card title="Baixa Automática" description="Boletos registrados são baixados automaticamente via arquivo de retorno bancário." />
+  <Card title="Cobrança Registrada" description="Cada boleto é vinculado a um título, garantindo rastreabilidade completa." />
+  <Card title="Controle de Fluxo de Caixa" description="Organiza recebimentos e facilita a conciliação bancária." />
+</Cards>
 
 <Callout type="warn" title="Pré-requisito">
-Antes de iniciar, certifique-se de que a **Conta Corrente** e a **Carteira de Cobrança** já foram homologadas junto ao seu banco e configuradas no sistema pelo administrador.
+  Antes de iniciar, certifique-se de que a **Conta Corrente** e a **Carteira de Cobrança** já foram homologadas junto ao seu banco e configuradas no sistema pelo administrador.
 </Callout>
 
 ---
 
 ## Passo a Passo para Emissão
 
-Siga as etapas abaixo para localizar um título e gerar o boleto correspondente:
-
 <Steps>
 
-<step>
+<Step>
 ### Acessar o Módulo Títulos
-Navegue pelo menu principal: `Financeiro > Títulos > Receber Pendente`. Esta tela centraliza todos os documentos financeiros (faturas, notas fiscais e duplicatas) que aguardam recebimento.
-</step>
 
-<step>
+Navegue pelo menu principal:
+
+```
+Financeiro > Títulos > Receber Pendente
+```
+
+Esta tela centraliza todos os documentos financeiros — faturas, notas fiscais e duplicatas — que aguardam recebimento.
+</Step>
+
+<Step>
 ### Localizar o Título
-Utilize os filtros de pesquisa para encontrar o documento desejado. Você pode filtrar por:
-* **Cliente:** Nome ou fantasia.
-* **Período:** Data de emissão ou vencimento.
-* **Número documento:** número da fatura, nota fiscal ou duplicata.
-</step>
 
-<step>
-### Selecionar e Processar
-Após localizar o título na grade, selecione-o **CRTL + Espaço**. 
-* Clique no botão **"Boleto > Arquivo > Gerar Boleto"**.
-* O sistema abrirá uma janela de confirmação para validar a **Conta bancaria** e *Tipo de Cobrança***.
-</step>
+Utilize os filtros de pesquisa para encontrar o documento desejado:
 
-<step>
-### Gerar o Boleto
-### Visualização e Impressão
-O boleto será gerado em formato PDF. Você poderá:
-* Imprimir diretamente para entrega física.
-* Salvar o arquivo para envio manual.
-</step>
+| Filtro | Descrição |
+|--------|-----------|
+| **Cliente** | Nome ou nome fantasia |
+| **Período** | Data de emissão ou vencimento |
+| **Número do Documento** | Número da fatura, nota fiscal ou duplicata |
+</Step>
 
-<step>
-### Gerar o remessa de cobrança
-Se a sua empresa utiliza o processo de remessa e retorno bancário, após gerar os boletos, é necessário criar o arquivo de remessa para enviar ao banco. Para isso:
-* Acesse o menu: **"Boleto > Arquivo > Gerar Remessa"**.
-* Selecione a conta bancária.
-* Clique em **Gerar Remessa** para criar o arquivo que deve ser transmitido ao banco.
-</step>
+<Step>
+### Selecionar o Título
+
+Com o título localizado na grade, selecione-o com `CTRL + Espaço`.
+
+Em seguida, clique em **Boleto › Arquivo › Gerar Boleto**.
+
+O sistema abrirá uma janela de confirmação para validar:
+
+- ✅ Conta bancária
+- ✅ Tipo de cobrança
+</Step>
+
+<Step>
+### Visualizar e Imprimir o Boleto
+
+O boleto será gerado em formato **PDF**. A partir daí você pode:
+
+- **Imprimir** diretamente para entrega física ao cliente
+- **Salvar o arquivo** para envio por e-mail ou outro canal
+
+<Callout type="info">
+  O campo **Nosso Número** será preenchido automaticamente após a geração. Se ele estiver vazio em um título, significa que o boleto ainda não foi gerado.
+</Callout>
+</Step>
+
+<Step>
+### Gerar a Remessa de Cobrança
+
+Se a sua empresa utiliza o processo de remessa e retorno bancário, após gerar os boletos é necessário criar o arquivo de remessa para enviá-lo ao banco.
+
+```
+Boleto > Arquivo > Gerar Remessa
+```
+
+1. Selecione a **conta bancária**
+2. Clique em **Gerar Remessa**
+3. Transmita o arquivo gerado ao banco
+
+<Callout type="warn">
+  A remessa deve ser transmitida no mesmo dia da geração dos boletos para garantir o registro tempestivo no banco.
+</Callout>
+</Step>
+
 </Steps>
 
+---
 
-<Callout title="Vídeo Explicativo">
+## Vídeo Explicativo
+
+<Callout title="Assista ao passo a passo completo">
   <YouTubeModal videoId="wY_VLIJ06wE" thumbnailTitle="Geração de Boletos Bancários e Remessa" />
-</Callout>  
+</Callout>
 
 ---
 
 ## Dúvidas Frequentes
 
 <Accordions>
-  <Accordion title="Posso gerar boletos em lote (vários de uma vez)?">
-    Sim. Na grade do Módulo Títulos, você pode selecionar múltiplos registros de um mesmo cliente ou de clientes diferentes (desde que pertençam ao mesmo banco) e clicar em "Gerar Boletos". O sistema processará todos sequencialmente.
-  </Accordion>
-  
-  <Accordion title="O boleto gerado já está registrado no banco?">
-    Depende da sua configuração:
-    1. **Online:** O registro é instantâneo no momento da geração pois é feiro via API do banco.
-    2. **Arquivo de Remessa:** Você precisa gerar o arquivo de remessa no final do dia e transmiti-lo ao banco para que os boletos sejam registrados.
-  </Accordion>
 
-  <Accordion title="Como alterar o vencimento de um boleto já emitido?">
-    Você deve acessar selecionar o título na grade, clicar em com botão direito acessar "Boleto Bancário > Alterar Boleto" e alterar a data de vencimento. Após isso, gere o boleto novamente. **Atenção:** Se você utiliza carteira registrada, será necessário enviar uma remessa de "Alteração de Vencimento" ao banco.
-  </Accordion>
-</Accordions>
+<Accordion title="Posso gerar boletos em lote (vários de uma vez)?">
 
----
+Sim. Na grade do Módulo Títulos, selecione múltiplos registros com `CTRL + Espaço` e clique em **Gerar Boletos**.
 
-<Callout type="info" title="Dica de Produtividade">
-Utilize a coluna **"Nosso Número"** para rastrear qual boleto foi enviado para qual título. Se o campo estiver vazio, significa que o título ainda não teve um boleto gerado.
+<Callout type="info">
+  Para geração em lote, todos os títulos selecionados devem pertencer ao **mesmo banco e carteira de cobrança**.
 </Callout>
 
+O sistema processará todos os boletos sequencialmente e exibirá um resumo ao final.
+
+</Accordion>
+
+<Accordion title="O boleto gerado já está registrado no banco?">
+
+Depende da configuração da sua carteira de cobrança:
+
+<Tabs items={['Registro Online (API)', 'Arquivo de Remessa']}>
+  <Tab value="Registro Online (API)">
+    O registro ocorre **instantaneamente** no momento da geração, via integração direta com a API do banco. Nenhuma ação adicional é necessária.
+  </Tab>
+  <Tab value="Arquivo de Remessa">
+    O boleto só é registrado no banco após a **transmissão do arquivo de remessa**. Gere a remessa ao final do dia e transmita pelo internet banking ou software do banco.
+  </Tab>
+</Tabs>
+
+</Accordion>
+
+<Accordion title="Como alterar o vencimento de um boleto já emitido?">
+
+1. Selecione o título na grade
+2. Clique com o botão direito e acesse **Boleto Bancário › Alterar Boleto**
+3. Altere a data de vencimento e confirme
+4. Gere o boleto novamente com a nova data
+
+<Callout type="warn">
+  Se você utiliza **carteira registrada**, é obrigatório enviar uma remessa com o código de instrução de **Alteração de Vencimento** ao banco. Sem isso, o banco continuará com a data original.
+</Callout>
+
+</Accordion>
+
+</Accordions>

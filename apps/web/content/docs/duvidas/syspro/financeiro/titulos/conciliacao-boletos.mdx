@@ -1,0 +1,262 @@
+---
+title: Processamento de Retorno Bancário
+description: Guia completo com fluxo operacional, tratamento de erros e boas práticas para processamento de retorno bancário no Syspro ERP.
+full: true
+lastUpdated: 2026-03-31
+owner: Equipe de Documentacao
+status: published
+tags:
+  - financeiro
+  - retorno-bancario
+  - conciliacao
+  - troubleshooting
+audience:
+  - cliente_user
+  - financeiro
+  - suporte
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## Introdução
+
+O processamento do **arquivo de retorno bancário** é uma das rotinas mais críticas do financeiro no **Syspro ERP**, pois garante que todos os recebimentos sejam refletidos corretamente no sistema.
+
+<Cards>
+  <Card title="Controle de Divergências" description="Identifica inconsistências entre o banco e o sistema antes de qualquer baixa." />
+  <Card title="Auditoria de Pagamentos" description="Mantém histórico rastreável de todas as liquidações processadas." />
+  <Card title="Redução de Erros" description="Automatiza a baixa e minimiza intervenção manual no financeiro." />
+</Cards>
+
+---
+
+## Fluxo do Processo
+
+O retorno bancário percorre as seguintes etapas até a baixa final no sistema:
+
+```
+Banco processa boletos
+        ↓
+Banco gera arquivo de retorno (.RET / .TXT)
+        ↓
+Usuário salva o arquivo na pasta correta
+        ↓
+Syspro lê e classifica os registros
+        ↓
+     ┌──┴──┐
+Válidos   Críticas
+     ↓
+Usuário processa
+        ↓
+Sistema realiza baixas automáticas
+```
+
+<Callout type="warn">
+  Nunca processe o retorno sem antes verificar a aba **Críticas**. Registros ignorados podem causar duplicidade ou perda de conciliação.
+</Callout>
+
+---
+
+## Passo a Passo Operacional
+
+<Steps>
+
+<Step>
+### Salvar o Arquivo de Retorno
+
+Após baixar o arquivo gerado pelo banco, salve-o no seguinte diretório:
+
+```
+C:\Syspro\Client\Banco\Retorno
+```
+
+<Callout type="info">
+  Padronize essa etapa com toda a equipe financeira para evitar arquivos salvos em locais incorretos.
+</Callout>
+</Step>
+
+<Step>
+### Acessar a Conciliação Bancária
+
+No menu principal, navegue até:
+
+```
+Financeiro > Contas > Contas Bancárias
+```
+
+Selecione a conta desejada e clique em **Conciliação**.
+</Step>
+
+<Step>
+### Validar a Leitura do Arquivo
+
+Antes de avançar, confirme os três pontos abaixo:
+
+- ✅ Arquivo foi carregado com sucesso
+- ✅ Quantidade de registros confere com o esperado
+- ✅ Data do retorno está correta
+</Step>
+
+<Step>
+### Analisar as Abas
+
+<Tabs items={['Títulos para Conciliar', 'Críticas']}>
+  <Tab value="Títulos para Conciliar">
+    Lista os títulos reconhecidos pelo sistema e prontos para baixa automática.
+    Confira os valores e datas antes de prosseguir.
+  </Tab>
+  <Tab value="Críticas">
+    Lista registros que **não puderam ser conciliados** automaticamente.
+    Cada crítica deve ser analisada individualmente — veja a seção [Erros Comuns](#erros-comuns-e-como-resolver) para referência.
+  </Tab>
+</Tabs>
+</Step>
+
+<Step>
+### Processar o Retorno
+
+Após validar ambas as abas, clique em **Processar**.
+
+O sistema irá:
+
+- ✅ Realizar baixa automática dos títulos válidos
+- ✅ Atualizar o saldo da conta bancária
+- ✅ Registrar o histórico financeiro de cada operação
+</Step>
+
+</Steps>
+
+<Callout title="Vídeo Explicativo">
+  <YouTubeModal videoId="wY_VLIJ06wE" thumbnailTitle="Processamento de Retorno Bancário" />
+</Callout>
+
+---
+
+## Entendendo os Códigos de Ocorrência
+
+Cada registro no arquivo de retorno possui um código que indica o tipo de evento. Os principais são:
+
+| Código | Tipo | Impacto no Sistema |
+|:------:|------|--------------------|
+| `02` | Entrada Confirmada | Informativo — boleto registrado no banco |
+| `06` | Liquidação | **Gera baixa automática** |
+| `09` | Baixado Manualmente no Banco | Requer atenção — verificar se baixa já foi feita |
+| `17` | Liquidação após Baixa | Conferir possível duplicidade |
+
+<Callout type="warn">
+  Somente o código **06** gera baixa automática. Outros códigos são informativos ou exigem ação manual.
+</Callout>
+
+---
+
+## Erros Comuns e Como Resolver
+
+<Accordions>
+
+<Accordion title="Título aparece na aba Críticas (não encontrado)">
+
+**Possíveis causas:**
+- Título foi excluído no sistema após o envio da remessa
+- Campo **Nosso Número** diverge entre banco e sistema
+
+**Como resolver:**
+1. Verifique o histórico do título no sistema
+2. Se excluído, recrie o título manualmente
+3. Se o Nosso Número divergir, consulte o suporte técnico para correção
+
+</Accordion>
+
+<Accordion title="Boleto pago no banco mas não baixou">
+
+**Possíveis causas:**
+- Arquivo de retorno ainda não foi processado
+- Código de ocorrência no arquivo não é `06`
+
+**Como resolver:**
+1. Confirme que o arquivo foi salvo e lido pelo sistema
+2. Verifique o código de ocorrência — se for diferente de `06`, a baixa não ocorre automaticamente
+3. Se necessário, realize a baixa manual e registre a ocorrência
+
+</Accordion>
+
+<Accordion title="Arquivo não aparece na conciliação">
+
+**Possíveis causas:**
+- Arquivo salvo fora da pasta correta
+- Nome do arquivo fora do padrão esperado pelo sistema
+
+**Como resolver:**
+1. Confirme que o arquivo está em `C:\Syspro\Client\Banco\Retorno`
+2. Verifique se a extensão é `.RET` ou `.TXT` conforme configurado para o banco
+3. Renomeie o arquivo se necessário e tente novamente
+
+</Accordion>
+
+<Accordion title="Baixa duplicada">
+
+**Possíveis causas:**
+- Arquivo de retorno foi processado mais de uma vez
+- Título já estava baixado manualmente antes do processamento
+
+**Como resolver:**
+1. Consulte os logs de processamento do sistema
+2. Verifique o histórico do título para identificar a duplicidade
+3. Estorne a baixa indevida com auxílio do setor financeiro
+
+</Accordion>
+
+</Accordions>
+
+---
+
+## Troubleshooting Avançado
+
+<Callout type="info" title="Destinado ao Suporte Técnico">
+  Esta seção contém procedimentos de diagnóstico que exigem acesso ao banco de dados e configurações internas do sistema.
+</Callout>
+
+### 1. Validar o Campo "Nosso Número"
+
+O **Nosso Número** é o identificador que vincula o boleto do banco ao título no sistema. Qualquer divergência impede a conciliação.
+
+| Situação | Consequência |
+|----------|-------------|
+| Nosso Número não bate | Título vai para Críticas |
+| Nosso Número duplicado | Pode gerar erro de conciliação |
+
+### 2. Conferir Remessa × Retorno
+
+Antes de escalar um problema, valide:
+
+- O boleto foi incluído em uma remessa enviada ao banco?
+- O banco confirmou a entrada com o código `02`?
+
+Se a entrada nunca foi confirmada, o retorno com `06` pode não ser reconhecido corretamente.
+
+### 3. Verificar na Base de Dados
+
+Para diagnósticos aprofundados:
+
+- Consultar a tabela de títulos e verificar o status do documento
+- Confirmar se o Nosso Número está gravado corretamente
+- Validar a integração e o log de comunicação com o banco
+
+---
+
+## Boas Práticas
+
+<Callout type="info" title="Padrão Trilink — Rotina Recomendada">
+
+| Prática | Frequência |
+|---------|-----------|
+| Processar o arquivo de retorno | Diariamente |
+| Verificar aba de Críticas antes de processar | A cada processamento |
+| Nunca excluir títulos enviados ao banco | Sempre |
+| Manter padrão de pasta para os arquivos | Sempre |
+| Auditar logs de baixas automáticas | Semanalmente |
+
+</Callout>
