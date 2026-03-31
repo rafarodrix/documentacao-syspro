@@ -1,5 +1,5 @@
 ---
-title: Como efetuar oRetorno Bancário?
+title: Como efetuar o Retorno Bancário?
 description: Guia completo com fluxo operacional, tratamento de erros e boas práticas para processamento de retorno bancário no Syspro ERP.
 full: true
 lastUpdated: 2026-03-31
@@ -209,51 +209,3 @@ Cada registro no arquivo de retorno possui um código que indica o tipo de event
 </Accordions>
 
 ---
-
-## Troubleshooting Avançado
-
-<Callout type="info" title="Destinado ao Suporte Técnico">
-  Esta seção contém procedimentos de diagnóstico que exigem acesso ao banco de dados e configurações internas do sistema.
-</Callout>
-
-### 1. Validar o Campo "Nosso Número"
-
-O **Nosso Número** é o identificador que vincula o boleto do banco ao título no sistema. Qualquer divergência impede a conciliação.
-
-| Situação | Consequência |
-|----------|-------------|
-| Nosso Número não bate | Título vai para Críticas |
-| Nosso Número duplicado | Pode gerar erro de conciliação |
-
-### 2. Conferir Remessa × Retorno
-
-Antes de escalar um problema, valide:
-
-- O boleto foi incluído em uma remessa enviada ao banco?
-- O banco confirmou a entrada com o código `02`?
-
-Se a entrada nunca foi confirmada, o retorno com `06` pode não ser reconhecido corretamente.
-
-### 3. Verificar na Base de Dados
-
-Para diagnósticos aprofundados:
-
-- Consultar a tabela de títulos e verificar o status do documento
-- Confirmar se o Nosso Número está gravado corretamente
-- Validar a integração e o log de comunicação com o banco
-
----
-
-## Boas Práticas
-
-<Callout type="info" title="Padrão Trilink — Rotina Recomendada">
-
-| Prática | Frequência |
-|---------|-----------|
-| Processar o arquivo de retorno | Diariamente |
-| Verificar aba de Críticas antes de processar | A cada processamento |
-| Nunca excluir títulos enviados ao banco | Sempre |
-| Manter padrão de pasta para os arquivos | Sempre |
-| Auditar logs de baixas automáticas | Semanalmente |
-
-</Callout>
