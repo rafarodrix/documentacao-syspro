@@ -1,163 +1,125 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 interface YouTubeModalProps {
   videoId: string;
   thumbnailTitle: string;
+  priority?: boolean;
+  startTime?: number; // Tempo em segundos
 }
 
-export function YouTubeModal({ videoId, thumbnailTitle }: YouTubeModalProps) {
+export function YouTubeModal({ 
+  videoId, 
+  thumbnailTitle, 
+  priority = false, 
+  startTime = 0 
+}: YouTubeModalProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isIframeLoaded, setIsIframeLoaded] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState(`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`);
+  const [mounted, setMounted] = useState(false);
 
-  const closeModal = () => setIsOpen(false);
-  const openModal = () => setIsOpen(true);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (event.key === 'Escape') closeModal();
+  // Garante que o portal só execute no cliente
+  useEffect(() => { setMounted(true); }, []);
+
+  const closeModal = useCallback(() => {
+    setIsOpen(false);
+    setIsIframeLoaded(false);
+    triggerRef.current?.focus();
   }, []);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeModal();
+      // Simples trava de foco (Tab) poderia ser adicionada aqui
+    };
+
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      document.addEventListener('keydown', handleKeyDown);
-    } else {
-      document.body.style.overflow = '';
-      document.removeEventListener('keydown', handleKeyDown);
+      window.addEventListener('keydown', handleKeyDown);
+      requestAnimationFrame(() => closeButtonRef.current?.focus());
     }
-
     return () => {
       document.body.style.overflow = '';
-      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, handleKeyDown]);
+  }, [isOpen, closeModal]);
+
+  const videoSrc = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&start=${startTime}`;
 
   return (
-    <div>
+    <>
+      {/* TRIGGER - Integrado com seu tema OKLCH */}
       <button
-        onClick={openModal}
-        aria-label={`Assistir video: ${thumbnailTitle}`}
-        style={{
-          cursor: 'pointer',
-          position: 'relative',
-          maxWidth: '760px',
-          width: '100%',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          lineHeight: 0,
-          backgroundColor: '#000',
-          border: 'none',
-          padding: 0,
-          display: 'block',
-        }}
+        ref={triggerRef}
+        onClick={() => setIsOpen(true)}
+        className="group relative block w-full max-w-[760px] overflow-hidden rounded-xl bg-card p-0 outline-offset-4 focus-visible:outline-2 focus-visible:outline-ring border border-border/40"
+        aria-label={`Assistir treinamento: ${thumbnailTitle}`}
       >
         <Image
           src={thumbnailUrl}
           alt={thumbnailTitle}
           width={1280}
           height={720}
+          priority={priority}
+          className="h-auto w-full transition-all duration-500 group-hover:scale-[1.03] group-hover:opacity-80"
           onError={() => setThumbnailUrl(`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`)}
-          style={{
-            width: '100%',
-            height: 'auto',
-            transition: 'opacity 0.2s ease',
-          }}
         />
-
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '64px',
-            height: '64px',
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background-color 0.2s ease, transform 0.2s ease',
-          }}
-        >
-          <svg height="32" viewBox="0 0 36 36" width="32" aria-hidden="true">
-            <path
-              fill="#ffffff"
-              d="M 12,26 18.5,22 18.5,14 12,10 z M 18.5,22 25,18 25,18 18.5,14 z"
-            />
-          </svg>
+        
+        {/* Overlay com gradiente suave */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        
+        {/* Botão Play usando variáveis do tema */}
+        <div className="absolute top-1/2 left-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all duration-300 group-hover:scale-110 group-active:scale-95">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
         </div>
       </button>
 
-      {isOpen && (
-        <div
+      {/* MODAL VIA PORTAL */}
+      {isOpen && mounted && createPortal(
+        <div 
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-background/90 backdrop-blur-md p-4 animate-in fade-in duration-300"
+          onClick={closeModal}
           role="dialog"
           aria-modal="true"
-          aria-label={`Video: ${thumbnailTitle}`}
-          onClick={closeModal}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
         >
           <button
+            ref={closeButtonRef}
             onClick={closeModal}
-            aria-label="Fechar video"
-            style={{
-              position: 'absolute',
-              top: '16px',
-              right: '20px',
-              background: 'none',
-              border: 'none',
-              color: '#fff',
-              fontSize: '32px',
-              lineHeight: 1,
-              cursor: 'pointer',
-              opacity: 0.8,
-              padding: '4px 8px',
-            }}
+            className="absolute top-6 right-6 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-foreground transition-all hover:bg-accent hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label="Fechar vídeo"
           >
-            x
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
 
-          <div
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              position: 'relative',
-              width: '90%',
-              maxWidth: '1280px',
-              paddingBottom: '56.25%',
-              height: 0,
-            }}
+          <div 
+            className="relative aspect-video w-full max-w-6xl overflow-hidden rounded-2xl bg-black shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-8 duration-300 border border-border/50"
+            onClick={(e) => e.stopPropagation()}
           >
+            {!isIframeLoaded && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-card">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary" />
+                <p className="text-sm text-muted-foreground animate-pulse">Carregando aula...</p>
+              </div>
+            )}
             <iframe
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+              src={videoSrc}
               title={thumbnailTitle}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="autoplay; encrypted-media; picture-in-picture"
               allowFullScreen
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                borderRadius: '8px',
-              }}
+              onLoad={() => setIsIframeLoaded(true)}
+              className={`h-full w-full border-none transition-opacity duration-700 ${isIframeLoaded ? 'opacity-100' : 'opacity-0'}`}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
