@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Role } from "@prisma/client";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { getUserCompanyIds } from "@/features/user-access/infrastructure/membership-helpers";
 import type {
   ClientUserEditViewData,
   SystemUserListItem,
@@ -34,14 +35,6 @@ async function getSessionContext(): Promise<SessionContext | ActionError> {
   const session = await getProtectedSession();
   if (!session) return { error: "Não autorizado" };
   return { session, isSystemRole: SYSTEM_ROLES.includes(session.role) };
-}
-
-async function getScopedCompanyIds(userId: string): Promise<string[]> {
-  const memberships = await prisma.membership.findMany({
-    where: { userId },
-    select: { companyId: true },
-  });
-  return memberships.map((m) => m.companyId);
 }
 
 function hasError(value: unknown): value is ActionError {
@@ -97,7 +90,7 @@ export async function getClientUsersAdminViewData() {
       };
     }
 
-    const companyIds = await getScopedCompanyIds(ctx.session.userId);
+    const companyIds = await getUserCompanyIds(ctx.session.userId);
     if (!companyIds.length) {
       return { companies: [], users: [] as UserAccessListItem[], isGlobalView: false };
     }

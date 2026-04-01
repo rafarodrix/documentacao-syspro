@@ -1,7 +1,4 @@
-/**
- * Selects para consultas relacionadas a usuários e empresas.
- * Centraliza os campos selecionados para garantir consistência e facilitar manutenção.
- */
+import type { UserAccessListItem, SystemUserListItem } from "@/features/user-access/domain/model";
 
 export const userListSelect = {
   id: true,
@@ -30,6 +27,8 @@ export const userListSelect = {
   },
 } as const;
 
+// O tipo resultante do select acima, que é a base para os mappers usados nas queries.
+
 export const companyOptionSelect = {
   id: true,
   razaoSocial: true,
@@ -44,9 +43,8 @@ export const companyOptionSelect = {
   },
 } as const;
 
-/**
- * Tipos inferidos — evita repetir manualmente em mappers e funções.
- */
+// O tipo resultante do select acima, que é a base para os mappers usados nas queries.
+
 export type UserListSelectResult = {
   id: string;
   name: string | null;
@@ -69,3 +67,20 @@ export type UserListSelectResult = {
     };
   }[];
 };
+
+// Mappers para transformar o resultado bruto do banco em formatos específicos para a UI.
+
+export function mapClientUserListItem(user: UserListSelectResult): UserAccessListItem {
+  return {
+    ...user,
+    companyName:
+      user.memberships[0]?.company?.nomeFantasia ||
+      user.memberships[0]?.company?.razaoSocial ||
+      "Sem Vínculo",
+    companyId: user.memberships[0]?.companyId ?? null,
+  };
+}
+
+export function mapSystemUserListItem(user: UserListSelectResult): SystemUserListItem {
+  return { ...user };
+}

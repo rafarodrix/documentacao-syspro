@@ -10,9 +10,11 @@ import { z } from "zod";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
-import { userListSelect } from "@/features/user-access/domain/selects";
+import { userListSelect, mapClientUserListItem } from "@/features/user-access/domain/selects";
 import type { UserAccessActionResponse, UserAccessListItem, UserAccessValidationErrors, } from "@/features/user-access/domain/model";
 import { SYSTEM_ROLES, CLIENT_ROLES, READ_ROLES, } from "@/features/user-access/domain/constants";
+import { getUserCompanyIds } from "@/features/user-access/infrastructure/membership-helpers";
+import { handleActionError } from "@/lib/action-error-handler";
 
 interface GetUsersParams {
     search?: string;
@@ -30,15 +32,6 @@ export type LinkUserInput = z.infer<typeof linkUserSchema>;
 
 const CREATE_USER_RATE_LIMIT = { max: 8, windowMs: 60_000 };
 
-
-async function getSessionCompanyIds(userId: string): Promise<string[]> {
-    const memberships = await prisma.membership.findMany({
-        where: { userId },
-        select: { companyId: true }
-    });
-    return memberships.map((m) => m.companyId);
-}
-
 async function canManageTargetUser(session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>, targetUserId: string): Promise<boolean> {
     if (SYSTEM_ROLES.includes(session.role)) return true;
     if (session.role !== Role.CLIENTE_ADMIN) return false;
@@ -50,7 +43,7 @@ async function canManageTargetUser(session: NonNullable<Awaited<ReturnType<typeo
     if (!targetUser || targetUser.deletedAt) return false;
     if (!CLIENT_ROLES.includes(targetUser.role)) return false;
 
-    const managedCompanyIds = await getSessionCompanyIds(session.userId);
+    const managedCompanyIds = await getUserCompanyIds(session.userId);
     if (managedCompanyIds.length === 0) return false;
     const targetMembership = await prisma.membership.findFirst({
         where: { userId: targetUserId, companyId: { in: managedCompanyIds } },
@@ -96,72 +89,56 @@ function toValidationErrors(
     return fieldErrors as UserAccessValidationErrors;
 }
 
-// --- Central de Erros ---
-function handleActionError(error: unknown): UserAccessActionResponse {
-    console.error("[UserAction Error]:", error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-            const target = (error.meta?.target as string[]) || [];
-            if (target.includes('email')) return { success: false, message: "Este e-mail ja esta em uso." };
-            if (target.includes('cpf')) return { success: false, message: "Este CPF ja esta cadastrado." };
-        }
+
+
+//LISTAR USUARIOS
+export async function getUsersAction(
+  filters?: GetUsersParams,
+): Promise<UserAccessActionResponse<UserAccessListItem[]>> {
+  const session = await getProtectedSession();
+  if (!session || !READ_ROLES.includes(session.role)) {
+    return { success: false, message: "Não autorizado." };
+  }
+
+  try {
+    const where: Prisma.UserWhereInput = { deletedAt: null };
+    const isSystemRole = SYSTEM_ROLES.includes(session.role);
+
+    if (!isSystemRole) {
+      const companyIds = await getUserCompanyIds(session.userId);
+      if (!companyIds.length) return { success: true, data: [] };
+
+      where.role = { in: CLIENT_ROLES };
+      where.memberships = { some: { companyId: { in: companyIds } } };
     }
-    if (error instanceof Error) {
-        return { success: false, message: error.message || "Erro interno no servidor." };
+
+    if (filters?.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: "insensitive" } },
+        { email: { contains: filters.search, mode: "insensitive" } },
+        { cpf: { contains: filters.search.replace(/\D/g, "") } },
+      ];
     }
-    return { success: false, message: "Erro interno no servidor." };
+
+    if (filters?.role && filters.role !== "ALL" && isSystemRole) {
+      where.role = filters.role as Role;
+    }
+
+    const users = await prisma.user.findMany({
+      where,
+      select: userListSelect,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: true, data: users.map(mapClientUserListItem) };
+
+  } catch (error) {
+    return { success: false, message: "Erro ao carregar usuários." };
+  }
 }
 
-/**
- * LISTAR USU?RIOS
- */
-export async function getUsersAction(filters?: GetUsersParams): Promise<UserAccessActionResponse<UserAccessListItem[]>> {
-    const session = await getProtectedSession();
-    if (!session || !READ_ROLES.includes(session.role)) return { success: false, message: "Nao autorizado." };
 
-    try {
-        const where: Prisma.UserWhereInput = { deletedAt: null };
-        const isSystemRole = SYSTEM_ROLES.includes(session.role);
-
-        if (!isSystemRole) {
-            const companyIds = await getSessionCompanyIds(session.userId);
-            if (!companyIds.length) return { success: true, data: [] };
-
-            where.role = { in: [Role.CLIENTE_ADMIN, Role.CLIENTE_USER] };
-            where.memberships = { some: { companyId: { in: companyIds } } };
-        }
-        if (filters?.search) {
-            where.OR = [
-                { name: { contains: filters.search, mode: "insensitive" } },
-                { email: { contains: filters.search, mode: "insensitive" } },
-                { cpf: { contains: filters.search.replace(/\D/g, "") } },
-            ];
-        }
-        if (filters?.role && filters.role !== "ALL" && isSystemRole) where.role = filters.role as Role;
-
-        const users = await prisma.user.findMany({
-            where,
-            select: userListSelect,
-            orderBy: { createdAt: 'desc' }
-        });
-
-        const data = users.map((u) => ({
-            ...u,
-            companyName: u.memberships[0]?.company?.nomeFantasia
-                || u.memberships[0]?.company?.razaoSocial
-                || "Sem Vínculo",
-            companyId: u.memberships[0]?.companyId ?? null,
-        })) satisfies UserAccessListItem[];
-
-        return { success: true, data };
-    } catch (error) {
-        return { success: false, message: "Erro ao carregar usuarios." };
-    }
-}
-
-/**
- * CRIAR USU?RIO (Com Rollback Corrigido)
- */
+//CRIAR USUARIO
 type UserUpsertInput = CreateUserInput & {
     additionalCompanyIds?: string[];
 };
@@ -203,7 +180,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
     const desiredCompanyIds = Array.from(new Set([data.companyId, ...additionalCompanyIds].filter(Boolean) as string[]));
 
     if (isClientManager) {
-        const managedCompanyIds = await getSessionCompanyIds(session.userId);
+        const managedCompanyIds = await getUserCompanyIds(session.userId);
         if (!data.companyId || !managedCompanyIds.includes(data.companyId)) {
             return { success: false, message: "Empresa invalida para este gestor." };
         }
@@ -287,9 +264,8 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
     }
 }
 
-/**
- * ATUALIZAR USU?RIO
- */
+
+//ATUALIZAR USUARIO
 export async function updateUserAction(id: string, data: Partial<UserUpsertInput>): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Acesso negado." };
@@ -324,7 +300,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
         }
 
         if (desiredCompanyIds?.length) {
-            managedCompanyIdsForClientManager = await getSessionCompanyIds(session.userId);
+            managedCompanyIdsForClientManager = await getUserCompanyIds(session.userId);
             if (desiredCompanyIds.some((companyId) => !managedCompanyIdsForClientManager.includes(companyId))) {
                 return { success: false, message: "Uma ou mais empresas informadas sao invalidas para este gestor." };
             }
@@ -390,9 +366,8 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
     }
 }
 
-/**
- * SOFT DELETE
- */
+
+// SOFT DELETE
 export async function deleteUserAction(id: string): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session || id === session.userId) return { success: false, message: "Operacao invalida." };
@@ -416,9 +391,9 @@ export async function deleteUserAction(id: string): Promise<UserAccessActionResp
     }
 }
 
-/**
- * VINCULAR A EMPRESA
- */
+
+//VINCULAR A EMPRESA
+
 export async function linkUserToCompanyAction(data: LinkUserInput): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Acesso negado." };
@@ -429,7 +404,7 @@ export async function linkUserToCompanyAction(data: LinkUserInput): Promise<User
 
     try {
         if (isClientManager) {
-            const managedCompanyIds = await getSessionCompanyIds(session.userId);
+            const managedCompanyIds = await getUserCompanyIds(session.userId);
             if (!managedCompanyIds.includes(data.companyId)) {
                 return { success: false, message: "Empresa invalida para este gestor." };
             }
@@ -497,7 +472,7 @@ export async function removeUserFromCompanyAction(userId: string, companyId: str
         if (!(await canManageTargetUser(session, userId))) {
             return { success: false, message: "Voce nao pode alterar este usuario." };
         }
-        const managedCompanyIds = await getSessionCompanyIds(session.userId);
+        const managedCompanyIds = await getUserCompanyIds(session.userId);
         if (!managedCompanyIds.includes(companyId)) {
             return { success: false, message: "Empresa invalida para este gestor." };
         }
@@ -530,7 +505,7 @@ export async function updateMembershipRoleAction(userId: string, companyId: stri
         if (!(await canManageTargetUser(session, userId))) {
             return { success: false, message: "Voce nao pode alterar este usuario." };
         }
-        const managedCompanyIds = await getSessionCompanyIds(session.userId);
+        const managedCompanyIds = await getUserCompanyIds(session.userId);
         if (!managedCompanyIds.includes(companyId)) {
             return { success: false, message: "Empresa invalida para este gestor." };
         }
