@@ -14,28 +14,38 @@ import type { QuickLink } from './docs-home-config';
 import { TONE_STYLES } from './docs-home-config';
 
 // ---------------------------------------------------------------------------
-// HeroMetric — agora com NumberTicker para animação de contagem
+// HeroMetric — transformado em Link (Actionable)
 // ---------------------------------------------------------------------------
 
 export function HeroMetric({
   icon: Icon,
   label,
   value,
+  href,
+  className,
 }: {
   icon: React.ElementType;
   label: string;
   value: number;
+  href: string;
+  className?: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-border/70 bg-background/60 p-3 transition-colors hover:border-border hover:bg-background/75">
-      <span className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-slate-300/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-      <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+    <Link
+      href={href}
+      className={cn(
+        "group relative block overflow-hidden rounded-xl border border-border/70 bg-background/60 p-3 transition-colors hover:border-border hover:bg-background/90",
+        className
+      )}
+    >
+      <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+      <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-foreground">
         <Icon className="h-3.5 w-3.5" /> {label}
       </p>
       <p className="mt-1 text-lg font-semibold tracking-tight">
         <NumberTicker value={value} />
       </p>
-    </div>
+    </Link>
   );
 }
 
@@ -47,7 +57,7 @@ export function CountBadge({ count }: { count: number }) {
   return (
     <Badge
       variant="secondary"
-      className="ml-2 shrink-0 rounded-md border border-border/60 bg-card tabular-nums"
+      className="ml-2 shrink-0 rounded-md border-transparent bg-muted tabular-nums text-muted-foreground"
     >
       {count}
     </Badge>
@@ -55,7 +65,7 @@ export function CountBadge({ count }: { count: number }) {
 }
 
 // ---------------------------------------------------------------------------
-// InsightLink
+// InsightLink — Aumento de touch target (py-3) e sem bordas excessivas
 // ---------------------------------------------------------------------------
 
 export function InsightLink({
@@ -70,19 +80,19 @@ export function InsightLink({
   return (
     <Link
       href={href}
-      className="group relative flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2.5 text-sm transition-all hover:border-primary/35 hover:bg-accent/60"
+      className="group relative flex min-h-[44px] items-center justify-between gap-2 rounded-lg border border-transparent bg-transparent px-3 py-3 text-sm transition-all hover:bg-accent/60 hover:border-border/50"
     >
-      <span className="absolute inset-y-1 left-1 w-0.5 rounded bg-primary/70 opacity-0 transition-opacity group-hover:opacity-100" />
+      <span className="absolute inset-y-1.5 left-0 w-1 rounded-r bg-primary opacity-0 transition-opacity group-hover:opacity-100" />
       <span className="line-clamp-2 leading-snug">{title}</span>
       {meta ?? (
-        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
       )}
     </Link>
   );
 }
 
 // ---------------------------------------------------------------------------
-// InsightCard — com Skeleton quando está carregando
+// InsightCard
 // ---------------------------------------------------------------------------
 
 export function InsightCard({
@@ -101,7 +111,7 @@ export function InsightCard({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-2xl border border-border/60 bg-card/60 p-4 shadow-[0_10px_24px_-24px_rgba(15,23,42,0.55)]',
+        'relative h-full overflow-hidden rounded-2xl border border-border/60 bg-card/60 p-4 shadow-[0_10px_24px_-24px_rgba(15,23,42,0.55)]',
         className,
       )}
     >
@@ -109,13 +119,13 @@ export function InsightCard({
       <div className="relative z-10">
         {icon ? <DocsSectionHeader icon={icon} label={label} /> : null}
         {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-9 w-full rounded-lg" />
-            <Skeleton className="h-9 w-full rounded-lg" />
-            <Skeleton className="h-9 w-4/5 rounded-lg" />
+          <div className="space-y-2 mt-2">
+            <Skeleton className="h-11 w-full rounded-lg" />
+            <Skeleton className="h-11 w-full rounded-lg" />
+            <Skeleton className="h-11 w-4/5 rounded-lg" />
           </div>
         ) : (
-          children
+          <div className="mt-2">{children}</div>
         )}
       </div>
     </div>
@@ -123,7 +133,7 @@ export function InsightCard({
 }
 
 // ---------------------------------------------------------------------------
-// PremiumLinkCard — quick access cards com MagicUI
+// PremiumLinkCard
 // ---------------------------------------------------------------------------
 
 export function PremiumLinkCard({
@@ -142,7 +152,7 @@ export function PremiumLinkCard({
         <div className="relative h-full rounded-2xl border border-border/70 bg-card/70 p-4 transition-colors sm:p-5 group-hover:bg-card">
           <div
             className={cn(
-              'pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-br to-transparent opacity-20',
+              'pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br to-transparent opacity-20',
               tone.glowClass,
             )}
           />
@@ -155,7 +165,7 @@ export function PremiumLinkCard({
               <div className="space-y-1.5">
                 <span
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px]',
+                    'inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium',
                     tone.pillClass,
                   )}
                 >

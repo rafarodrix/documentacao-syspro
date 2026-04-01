@@ -97,7 +97,7 @@ export const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string;
 };
 
 // ---------------------------------------------------------------------------
-// Estilos por tone (MagicUI ShineBorder + pill)
+// Estilos por tone (Cores semânticas Tailwind para suportar Dark/Light mode)
 // ---------------------------------------------------------------------------
 
 export const TONE_STYLES: Record<QuickLinkTone, {
@@ -106,29 +106,29 @@ export const TONE_STYLES: Record<QuickLinkTone, {
   glowClass: string;
 }> = {
   docs: {
-    shineColor: ['#94a3b822', '#64748b18'],
-    pillClass: 'border-slate-400/20 bg-slate-500/5 text-slate-200',
-    glowClass: 'from-slate-400/8',
+    shineColor: ['#3b82f633', '#60a5fa33'], // Tons de primary genéricos para o shine
+    pillClass: 'border-primary/20 bg-primary/10 text-primary',
+    glowClass: 'from-primary/10',
   },
   faq: {
-    shineColor: ['#94a3b822', '#47556918'],
-    pillClass: 'border-slate-400/20 bg-slate-500/5 text-slate-200',
-    glowClass: 'from-slate-400/8',
+    shineColor: ['#10b98133', '#34d39933'],
+    pillClass: 'border-secondary/20 bg-secondary/10 text-secondary-foreground',
+    glowClass: 'from-secondary/10',
   },
   training: {
-    shineColor: ['#94a3b822', '#64748b18'],
-    pillClass: 'border-slate-400/20 bg-slate-500/5 text-slate-200',
-    glowClass: 'from-slate-400/8',
+    shineColor: ['#8b5cf633', '#a78bfa33'],
+    pillClass: 'border-accent/20 bg-accent/20 text-accent-foreground',
+    glowClass: 'from-accent/10',
   },
   support: {
-    shineColor: ['#94a3b822', '#47556918'],
-    pillClass: 'border-slate-400/20 bg-slate-500/5 text-slate-200',
-    glowClass: 'from-slate-400/8',
+    shineColor: ['#f59e0b33', '#fbbf2433'],
+    pillClass: 'border-muted-foreground/20 bg-muted text-muted-foreground',
+    glowClass: 'from-muted-foreground/10',
   },
   technical: {
-    shineColor: ['#cbd5e122', '#64748b18'],
-    pillClass: 'border-slate-300/20 bg-slate-400/5 text-slate-100',
-    glowClass: 'from-slate-300/8',
+    shineColor: ['#64748b33', '#94a3b833'],
+    pillClass: 'border-foreground/10 bg-foreground/5 text-foreground',
+    glowClass: 'from-foreground/5',
   },
 };
 
