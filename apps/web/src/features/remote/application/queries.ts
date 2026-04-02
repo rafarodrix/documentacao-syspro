@@ -959,6 +959,17 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
   });
 
   if (!host) return null;
+  const companyOptions = await prisma.company.findMany({
+    where: tenantScope.isGlobalView
+      ? { deletedAt: null }
+      : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
+    select: {
+      id: true,
+      nomeFantasia: true,
+      razaoSocial: true,
+    },
+    orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
+  });
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const last30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -1124,6 +1135,7 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
   })();
 
   return {
+    tenantScope,
     host: mapDirectoryItem({
       ...host,
       serviceStatus,
@@ -1178,6 +1190,10 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
         : null,
       rustDeskVersion: moduleSettings.rustDeskVersion,
     },
+    companyOptions: companyOptions.map((company) => ({
+      id: company.id,
+      label: company.nomeFantasia ?? company.razaoSocial,
+    })),
     installGuide: buildInstallGuide(
       mapDirectoryItem({
         ...host,

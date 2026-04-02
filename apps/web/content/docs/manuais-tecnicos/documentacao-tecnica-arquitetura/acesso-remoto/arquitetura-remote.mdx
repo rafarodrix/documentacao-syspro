@@ -534,10 +534,26 @@ Repo > Settings > Secrets and variables > Actions > New repository secret
 - header esperado:
   - `Authorization: Bearer <PORTAL_API_TOKEN>`
 
+4. `REMOTE_RUSTDESK_UPGRADE_URL` (**runtime API**, recomendado)
+- URL HTTPS do pacote aprovado para `UPGRADE_CLIENT`
+- sem esse valor, o portal nao emite comando de upgrade remoto
+
+5. `REMOTE_RUSTDESK_UPGRADE_SHA256` (**runtime API**, recomendado)
+- hash SHA256 (hex) do pacote de upgrade
+- usado para validar integridade no agente
+
+6. `REMOTE_RUSTDESK_UPGRADE_PACKAGE_TYPE` (**runtime API**, opcional)
+- `binary` (padrao) ou `installer`
+
+7. `REMOTE_RUSTDESK_UPGRADE_SILENT_ARGS` (**runtime API**, opcional)
+- argumentos silenciosos para instalador
+- padrao: `/S`
+
 ### Comportamento no pipeline
 
 - sem `REMOTE_DISCOVERY_TOKEN`: fluxo atual de descoberta fica inconsistente/indisponivel
 - sem `PORTAL_API_TOKEN`: o build continua funcionando, apenas pula o envio automatico de metadata ao portal
+- sem `REMOTE_RUSTDESK_UPGRADE_URL` ou `REMOTE_RUSTDESK_UPGRADE_SHA256`: o portal nao entrega `UPGRADE_CLIENT` na fila de comandos
 
 <Callout type="warning" title="Seguranca">
   Nunca versionar token real em `.mdx`, `.env` comitado ou arquivo de script. Manter apenas em `GitHub Actions Secrets`.

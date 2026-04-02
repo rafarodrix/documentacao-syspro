@@ -376,6 +376,7 @@ export type RemoteCompanyContextItem = {
 };
 
 export type RemoteHostDetails = {
+  tenantScope: RemoteTenantScope;
   host: RemoteConfiguredHostItem;
   agentHealth: {
     lastDiscoverAt: string | null;
@@ -417,6 +418,10 @@ export type RemoteHostDetails = {
     rustDeskPublicKeyHash: string | null;
     rustDeskVersion: string;
   };
+  companyOptions: Array<{
+    id: string;
+    label: string;
+  }>;
   installGuide: Array<{
     id: RemoteAgentInstallStage;
     title: string;

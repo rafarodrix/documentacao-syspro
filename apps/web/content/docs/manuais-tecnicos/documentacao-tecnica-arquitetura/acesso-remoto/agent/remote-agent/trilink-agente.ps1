@@ -151,58 +151,58 @@ try {
         Write-Log "sysproUpdates: sem mudanca, enviando array vazio. hash=$sysproHash previous=$($state.lastSysproHash)"
     }
 
-    # Discover
-    $discoverPayload = @{
-        discoveryToken    = $discoveryToken
-        rustdeskId        = $rustdeskId
-        machineName       = $env:COMPUTERNAME
-        agentVersion      = $AgentVersion
-        serviceStatus     = [string]$selfHeal.serviceStatusAfter
-        serviceStatusBefore = [string]$selfHeal.serviceStatusBefore
-        selfHealAttempted = [bool]$selfHeal.selfHealAttempted
-        selfHealResult    = [string]$selfHeal.selfHealResult
-        serviceStatusAfter = [string]$selfHeal.serviceStatusAfter
-        sysproUpdates     = $sysproUpdatesToSend
-    }
-
-    Write-Log "discover request: rustdeskId=$rustdeskId machine=$env:COMPUTERNAME serviceAfter=$($selfHeal.serviceStatusAfter) updatesCount=$(@($sysproUpdatesToSend).Count)"
-    $phaseDiscoverSw = [System.Diagnostics.Stopwatch]::StartNew()
-    $discover = Invoke-AgentDiscover -PortalBaseUrl $portalBaseUrl -Payload $discoverPayload
-    $phaseTimings.discover = [int]$phaseDiscoverSw.ElapsedMilliseconds
-
-    if (-not $discover.ok) {
-        Write-Log "Decision=discover_failed status=$($discover.statusCode) error=$($discover.error)"
-        Mark-FailureAndSave -State $state
-        return
-    }
-
-    $discoverData = Normalize-ApiData -Body $discover.body
-    $summary      = Get-DiscoverSummary -DiscoverData $discoverData
-    Write-Log "discover response: mode=$($summary.mode) bootstrapFlow=$($summary.bootstrapFlow) allowDiscoveryHeartbeat=$($summary.allowDiscoveryHeartbeat) nextEndpoint=$($summary.nextEndpoint)"
-
-    if ($summary.bootstrapFlow -eq "pending_link") {
-        Write-Log "Decision=triagem (pending_link). Sem bootstrap/sync neste ciclo."
-        if ($sendFullSnapshot) {
-            $state.lastSysproHash       = $sysproHash
-            $state.lastFullSnapshotDate = $todayUtc
-        }
-        $state.consecutiveFailures = 0
-        Save-AgentState -State $state
-        return
-    }
-
-    # Bootstrap
+    # Bootstrap orchestration (token-first)
     $agentToken = [string]$state.agentToken
     if ($state.rebootstrapRequired) {
         Write-Log "Estado local exige rebootstrap; token atual sera ignorado."
         $agentToken = ""
     }
 
-    $needsBootstrap = $false
-    if ([string]::IsNullOrWhiteSpace($agentToken))               { $needsBootstrap = $true }
-    if ($summary.bootstrapFlow -eq "host_bootstrap_required")    { $needsBootstrap = $true }
+    $hasUsableToken = -not [string]::IsNullOrWhiteSpace($agentToken)
+    if ($hasUsableToken) {
+        Write-Log "Decision=sync_token_first (token local reutilizado mask=$(Mask-Secret -Value $agentToken))."
+    } else {
+        # Discover (somente quando nao ha token local utilizavel)
+        $discoverPayload = @{
+            discoveryToken    = $discoveryToken
+            rustdeskId        = $rustdeskId
+            machineName       = $env:COMPUTERNAME
+            agentVersion      = $AgentVersion
+            serviceStatus     = [string]$selfHeal.serviceStatusAfter
+            serviceStatusBefore = [string]$selfHeal.serviceStatusBefore
+            selfHealAttempted = [bool]$selfHeal.selfHealAttempted
+            selfHealResult    = [string]$selfHeal.selfHealResult
+            serviceStatusAfter = [string]$selfHeal.serviceStatusAfter
+            sysproUpdates     = $sysproUpdatesToSend
+        }
 
-    if ($needsBootstrap) {
+        Write-Log "discover request: rustdeskId=$rustdeskId machine=$env:COMPUTERNAME serviceAfter=$($selfHeal.serviceStatusAfter) updatesCount=$(@($sysproUpdatesToSend).Count)"
+        $phaseDiscoverSw = [System.Diagnostics.Stopwatch]::StartNew()
+        $discover = Invoke-AgentDiscover -PortalBaseUrl $portalBaseUrl -Payload $discoverPayload
+        $phaseTimings.discover = [int]$phaseDiscoverSw.ElapsedMilliseconds
+
+        if (-not $discover.ok) {
+            Write-Log "Decision=discover_failed status=$($discover.statusCode) error=$($discover.error)"
+            Mark-FailureAndSave -State $state
+            return
+        }
+
+        $discoverData = Normalize-ApiData -Body $discover.body
+        $summary      = Get-DiscoverSummary -DiscoverData $discoverData
+        Write-Log "discover response: mode=$($summary.mode) bootstrapFlow=$($summary.bootstrapFlow) allowDiscoveryHeartbeat=$($summary.allowDiscoveryHeartbeat) nextEndpoint=$($summary.nextEndpoint)"
+
+        if ($summary.bootstrapFlow -eq "pending_link") {
+            Write-Log "Decision=triagem (pending_link). Sem bootstrap/sync neste ciclo."
+            if ($sendFullSnapshot) {
+                $state.lastSysproHash       = $sysproHash
+                $state.lastFullSnapshotDate = $todayUtc
+            }
+            $state.consecutiveFailures = 0
+            Save-AgentState -State $state
+            return
+        }
+
+        # Bootstrap
         if ([string]::IsNullOrWhiteSpace($installToken)) {
             Write-Log "Decision=triagem_await_install_token (bootstrap bloqueado; aguardando InstallToken para continuar)."
             if ($sendFullSnapshot) {
@@ -261,8 +261,6 @@ try {
         }
         $agentToken = $agentTokenFromApi
         Write-Log "bootstrap concluido com sucesso. agentTokenMask=$(Mask-Secret -Value $agentToken) hostId=$($state.hostId)"
-    } else {
-        Write-Log "Decision=sync_direto (token local reutilizado mask=$(Mask-Secret -Value $agentToken))."
     }
 
     # Software snapshot

@@ -20,6 +20,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
@@ -220,6 +227,7 @@ const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
   RADMIN_VPN: "Radmin VPN",
 };
 const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
+const UNLINKED_COMPANY_VALUE = "__unlinked__";
 
 const AGENT_COMMAND_LABEL: Record<
   "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED",
@@ -345,6 +353,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [isRequestingResendConfig, startRequestingResendConfig] = useTransition();
   const [isRequestingSelfHeal, startRequestingSelfHeal] = useTransition();
   const [isRequestingRebootstrap, startRequestingRebootstrap] = useTransition();
+  const [isRelinkingInstallation, startRelinkingInstallation] = useTransition();
+  const [selectedCompanyByUpdateId, setSelectedCompanyByUpdateId] = useState<Record<string, string>>({});
   const [latestInstallToken, setLatestInstallToken] = useState<string | null>(null);
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
@@ -472,6 +482,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     );
     return names.size;
   }, [installations]);
+  const canManageInstallations =
+    details.tenantScope.role === "ADMIN" ||
+    details.tenantScope.role === "SUPORTE" ||
+    details.tenantScope.role === "DEVELOPER";
   const serviceStatusIcon = useMemo(() => getServiceStatusIconMeta(host.serviceStatus), [host.serviceStatus]);
   const agentHealthCard = useMemo(() => {
     const latestAutoHealCommand = details.agentCommands.find(
@@ -679,6 +693,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
   }, []);
 
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    for (const context of details.installationContexts) {
+      next[context.update.id] = context.update.companyId ?? UNLINKED_COMPANY_VALUE;
+    }
+    setSelectedCompanyByUpdateId(next);
+  }, [details.installationContexts]);
+
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
       toast.error(`${label} nao configurado.`);
@@ -792,6 +814,25 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     }
 
     startRequestingSelfHeal(run);
+  }
+
+  function handleRelinkInstallation(updateId: string, companyId: string | null) {
+    startRelinkingInstallation(async () => {
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/hosts/${host.id}/syspro-updates/${updateId}`,
+          method: "PATCH",
+          body: {
+            companyId,
+            mode: "replace",
+          },
+        });
+        toast.success(companyId ? "Instalacao vinculada com sucesso." : "Vinculo removido com sucesso.");
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
   }
 
   return (
@@ -1195,8 +1236,66 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           </div>
                         </div>
 
-                        <div className="mt-3 rounded-lg border border-border/40 bg-background/30 p-3 text-xs text-muted-foreground">
-                          Edicao de vinculo e cadastro da empresa deve ser feita no modulo de Empresas.
+                        <div className="mt-3 rounded-lg border border-border/40 bg-background/30 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vinculo da instalacao</p>
+                          {canManageInstallations ? (
+                            <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
+                              <Select
+                                value={selectedCompanyByUpdateId[entry.id] ?? (entry.companyId ?? UNLINKED_COMPANY_VALUE)}
+                                onValueChange={(value) =>
+                                  setSelectedCompanyByUpdateId((prev) => ({
+                                    ...prev,
+                                    [entry.id]: value,
+                                  }))
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione a empresa" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={UNLINKED_COMPANY_VALUE}>Sem vinculo</SelectItem>
+                                  {details.companyOptions.map((company) => (
+                                    <SelectItem key={company.id} value={company.id}>
+                                      {company.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                size="sm"
+                                disabled={isRelinkingInstallation}
+                                onClick={() => {
+                                  const selected =
+                                    selectedCompanyByUpdateId[entry.id] ??
+                                    (entry.companyId ?? UNLINKED_COMPANY_VALUE);
+                                  handleRelinkInstallation(
+                                    entry.id,
+                                    selected === UNLINKED_COMPANY_VALUE ? null : selected
+                                  );
+                                }}
+                              >
+                                Salvar vinculo
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={isRelinkingInstallation || !entry.companyId}
+                                onClick={() => {
+                                  setSelectedCompanyByUpdateId((prev) => ({
+                                    ...prev,
+                                    [entry.id]: UNLINKED_COMPANY_VALUE,
+                                  }));
+                                  handleRelinkInstallation(entry.id, null);
+                                }}
+                              >
+                                Remover vinculo
+                              </Button>
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Seu perfil tem acesso somente leitura para vinculacao de instalacoes.
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
