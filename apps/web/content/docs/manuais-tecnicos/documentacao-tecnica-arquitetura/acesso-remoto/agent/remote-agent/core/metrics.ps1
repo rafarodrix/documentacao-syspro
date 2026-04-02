@@ -3,13 +3,15 @@ function New-AgentMetrics {
         [System.Diagnostics.Stopwatch]$CycleStopwatch,
         [hashtable]$PhaseTimings,
         [hashtable]$SelfHeal,
-        [string]$ScriptVersion
+        [string]$ScriptVersion,
+        [string]$OrchestrationStrategy
     )
     return [ordered]@{
         cycleElapsedMs    = [int]$CycleStopwatch.ElapsedMilliseconds
         phaseTimings      = $PhaseTimings
         psVersion         = [string]$PSVersionTable.PSVersion.ToString()
         scriptVersion     = [string]$ScriptVersion
+        orchestrationStrategy = [string]$OrchestrationStrategy
         selfHealAttempted = [bool]$SelfHeal.selfHealAttempted
         selfHealResult    = [string]$SelfHeal.selfHealResult
     }

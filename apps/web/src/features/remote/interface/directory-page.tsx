@@ -23,6 +23,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -389,17 +396,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 <div className="grid gap-3 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Empresa</Label>
-                    <select
-                      value={quickCompanyId}
-                      onChange={(event) => setQuickCompanyId(event.target.value)}
-                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                    >
-                      {directory.companyOptions.map((company) => (
-                        <option key={company.id} value={company.id}>
-                          {company.label}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={quickCompanyId} onValueChange={setQuickCompanyId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {directory.companyOptions.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>RustDesk ID</Label>
@@ -570,6 +578,30 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             </div>
           </div>
 
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia 24h: sync direto</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
+                {commandObservability.orchestrationMix.window24h.syncTokenFirst}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Ciclos com `sync_token_first`</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia 24h: discover/bootstrap</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
+                {commandObservability.orchestrationMix.window24h.discoverBootstrap}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Ciclos com `discover_bootstrap`</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia 24h: sem leitura</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
+                {commandObservability.orchestrationMix.window24h.unknown}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Hosts sem metrica estruturada</p>
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -670,52 +702,56 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                   <div>
                     <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Detalhados</p>
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                      <select
-                        value={statusFilter}
-                        onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                      >
-                        <option value="all">Todos os status</option>
-                        <option value="ACTIVE">Ativo</option>
-                        <option value="MAINTENANCE">Manutencao</option>
-                        <option value="INACTIVE">Inativo</option>
-                      </select>
+                      <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos os status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos os status</SelectItem>
+                          <SelectItem value="ACTIVE">Ativo</SelectItem>
+                          <SelectItem value="MAINTENANCE">Manutencao</SelectItem>
+                          <SelectItem value="INACTIVE">Inativo</SelectItem>
+                        </SelectContent>
+                      </Select>
 
-                      <select
-                        value={environmentFilter}
-                        onChange={(event) => setEnvironmentFilter(event.target.value)}
-                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                      >
-                        <option value="all">Todos os ambientes</option>
-                        {environmentOptions.map((environment) => (
-                          <option key={environment} value={environment}>
-                            {environment}
-                          </option>
-                        ))}
-                      </select>
+                      <Select value={environmentFilter} onValueChange={setEnvironmentFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos os ambientes" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos os ambientes</SelectItem>
+                          {environmentOptions.map((environment) => (
+                            <SelectItem key={environment} value={environment}>
+                              {environment}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
 
-                      <select
-                        value={heartbeatFilter}
-                        onChange={(event) => setHeartbeatFilter(event.target.value as typeof heartbeatFilter)}
-                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                      >
-                        <option value="all">Qualquer heartbeat</option>
-                        <option value="recent">Online agora</option>
-                        <option value="stale">Antigo</option>
-                        <option value="missing">Sem contato</option>
-                      </select>
+                      <Select value={heartbeatFilter} onValueChange={(value) => setHeartbeatFilter(value as typeof heartbeatFilter)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Qualquer heartbeat" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Qualquer heartbeat</SelectItem>
+                          <SelectItem value="recent">Online agora</SelectItem>
+                          <SelectItem value="stale">Antigo</SelectItem>
+                          <SelectItem value="missing">Sem contato</SelectItem>
+                        </SelectContent>
+                      </Select>
 
-                      <select
-                        value={agentFilter}
-                        onChange={(event) => setAgentFilter(event.target.value as typeof agentFilter)}
-                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-                      >
-                        <option value="all">Qualquer agente</option>
-                        <option value="pending">Vinculacao pendente</option>
-                        <option value="linked">Agente vinculado</option>
-                        <option value="online">Heartbeat confirmado</option>
-                        <option value="stale">Exige revisao</option>
-                      </select>
+                      <Select value={agentFilter} onValueChange={(value) => setAgentFilter(value as typeof agentFilter)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Qualquer agente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Qualquer agente</SelectItem>
+                          <SelectItem value="pending">Vinculacao pendente</SelectItem>
+                          <SelectItem value="linked">Agente vinculado</SelectItem>
+                          <SelectItem value="online">Heartbeat confirmado</SelectItem>
+                          <SelectItem value="stale">Exige revisao</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -825,19 +861,23 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-                      <select
+                      <Select
                         value={pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? ""}
-                        onChange={(event) =>
-                          setPendingCompanyById((current) => ({ ...current, [item.id]: event.target.value }))
+                        onValueChange={(value) =>
+                          setPendingCompanyById((current) => ({ ...current, [item.id]: value }))
                         }
-                        className="h-10 rounded-md border border-border bg-background px-3 text-sm"
                       >
-                        {directory.companyOptions.map((company) => (
-                          <option key={company.id} value={company.id}>
-                            {company.label}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a empresa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {directory.companyOptions.map((company) => (
+                            <SelectItem key={company.id} value={company.id}>
+                              {company.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Input
                         value={pendingNameById[item.id] ?? item.machineName ?? ""}
                         onChange={(event) =>

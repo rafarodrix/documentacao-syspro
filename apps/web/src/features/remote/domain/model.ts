@@ -326,6 +326,13 @@ export type RemotePlatformDirectory = {
       window7d: number;
       window30d: number;
     };
+    orchestrationMix: {
+      window24h: {
+        syncTokenFirst: number;
+        discoverBootstrap: number;
+        unknown: number;
+      };
+    };
     timeline: Array<{
       commandId: string;
       hostId: string;

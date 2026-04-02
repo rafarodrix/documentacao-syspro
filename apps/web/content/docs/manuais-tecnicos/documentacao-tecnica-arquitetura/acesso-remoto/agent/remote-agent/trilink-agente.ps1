@@ -159,6 +159,7 @@ try {
     }
 
     $hasUsableToken = -not [string]::IsNullOrWhiteSpace($agentToken)
+    $orchestrationStrategy = if ($hasUsableToken) { "sync_token_first" } else { "discover_bootstrap" }
     if ($hasUsableToken) {
         Write-Log "Decision=sync_token_first (token local reutilizado mask=$(Mask-Secret -Value $agentToken))."
     } else {
@@ -327,7 +328,7 @@ try {
     Write-Log "windowsUpdate: pending=$($windowsUpdateStatus.pendingCount) rebootRequired=$($windowsUpdateStatus.rebootRequired)"
 
     # Metricas e payload de sync
-    $metricsPreSync = New-AgentMetrics -CycleStopwatch $cycleWatch -PhaseTimings $phaseTimings -SelfHeal $selfHeal -ScriptVersion $scriptVersion
+    $metricsPreSync = New-AgentMetrics -CycleStopwatch $cycleWatch -PhaseTimings $phaseTimings -SelfHeal $selfHeal -ScriptVersion $scriptVersion -OrchestrationStrategy $orchestrationStrategy
 
     $syncPayload = New-AgentSyncPayload `
         -AgentToken $agentToken `

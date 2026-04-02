@@ -354,6 +354,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [isRequestingSelfHeal, startRequestingSelfHeal] = useTransition();
   const [isRequestingRebootstrap, startRequestingRebootstrap] = useTransition();
   const [isRelinkingInstallation, startRelinkingInstallation] = useTransition();
+  const [isBulkRelinkingInstallations, startBulkRelinkingInstallations] = useTransition();
+  const [installationFilter, setInstallationFilter] = useState<"all" | "unlinked">("all");
+  const [bulkInstallationCompanyId, setBulkInstallationCompanyId] = useState(details.companyOptions[0]?.id ?? "");
   const [selectedCompanyByUpdateId, setSelectedCompanyByUpdateId] = useState<Record<string, string>>({});
   const [latestInstallToken, setLatestInstallToken] = useState<string | null>(null);
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
@@ -486,6 +489,16 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     details.tenantScope.role === "ADMIN" ||
     details.tenantScope.role === "SUPORTE" ||
     details.tenantScope.role === "DEVELOPER";
+  const unlinkedInstallationsCount = useMemo(
+    () => details.installationContexts.filter((context) => !context.update.companyId).length,
+    [details.installationContexts]
+  );
+  const installationContextsForDisplay = useMemo(() => {
+    if (installationFilter === "unlinked") {
+      return details.installationContexts.filter((context) => !context.update.companyId);
+    }
+    return details.installationContexts;
+  }, [details.installationContexts, installationFilter]);
   const serviceStatusIcon = useMemo(() => getServiceStatusIconMeta(host.serviceStatus), [host.serviceStatus]);
   const agentHealthCard = useMemo(() => {
     const latestAutoHealCommand = details.agentCommands.find(
@@ -652,6 +665,16 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const windowsUpdateStatus = details.agentTelemetry.windowsUpdateStatus;
   const rebootPending = details.agentTelemetry.rebootPending;
   const agentMetrics = details.agentTelemetry.agentMetrics;
+  const orchestrationStrategy = useMemo(() => {
+    const raw =
+      agentMetrics && typeof agentMetrics["orchestrationStrategy"] === "string"
+        ? (agentMetrics["orchestrationStrategy"] as string)
+        : null;
+    if (!raw) return "Sem leitura";
+    if (raw === "sync_token_first") return "Sync direto com token";
+    if (raw === "discover_bootstrap") return "Discover + bootstrap";
+    return raw;
+  }, [agentMetrics]);
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
       return {
@@ -700,6 +723,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     }
     setSelectedCompanyByUpdateId(next);
   }, [details.installationContexts]);
+
+  useEffect(() => {
+    if (details.companyOptions.length === 0) return;
+    setBulkInstallationCompanyId((current) => current || details.companyOptions[0].id);
+  }, [details.companyOptions]);
 
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
@@ -835,6 +863,39 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
+  function handleBulkRelinkInstallations(companyId: string | null) {
+    if (!installationContextsForDisplay.length) {
+      toast.error("Nenhuma instalacao disponivel para a acao em lote.");
+      return;
+    }
+
+    startBulkRelinkingInstallations(async () => {
+      try {
+        await Promise.all(
+          installationContextsForDisplay.map((context) =>
+            requestRemoteMutation({
+              url: `/api/remote/hosts/${host.id}/syspro-updates/${context.update.id}`,
+              method: "PATCH",
+              body: {
+                companyId,
+                mode: "replace",
+              },
+            })
+          )
+        );
+
+        toast.success(
+          companyId
+            ? `Vinculo aplicado em ${installationContextsForDisplay.length} instalacao(oes).`
+            : `Vinculo removido em ${installationContextsForDisplay.length} instalacao(oes).`
+        );
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -890,7 +951,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 {hasMoreInstallations ? (
                   <p className="text-xs text-muted-foreground">
                     +{installations.length - installationsPreview.length} instalacao(oes). Veja todas na aba{" "}
-                    <span className="font-medium text-foreground">Empresa</span>.
+                    <span className="font-medium text-foreground">Instalacoes</span>.
                   </p>
                 ) : null}
               </div>
@@ -968,8 +1029,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       </Card>
 
       <Tabs defaultValue="infra" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-3">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-4">
           <TabsTrigger value="infra">{isMobileClient ? "Acesso" : "Infra"}</TabsTrigger>
+          <TabsTrigger value="instalacoes">Instalacoes</TabsTrigger>
           <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="agente">Agente</TabsTrigger>
         </TabsList>
@@ -1104,14 +1166,191 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           </Card>
         </TabsContent>
 
+        <TabsContent value="instalacoes">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Instalacoes detectadas</CardTitle>
+              <CardDescription>
+                Gestao operacional de vinculo por instalacao (com filtro de nao vinculadas e acao em lote).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total de instalacoes</p>
+                  <p className="mt-1 text-sm text-foreground">{details.installationContexts.length}</p>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sem vinculo</p>
+                  <p className="mt-1 text-sm text-foreground">{unlinkedInstallationsCount}</p>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Filtro</p>
+                  <Select value={installationFilter} onValueChange={(value) => setInstallationFilter(value as "all" | "unlinked")}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as instalacoes</SelectItem>
+                      <SelectItem value="unlinked">Somente sem vinculo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Visiveis no filtro</p>
+                  <p className="mt-1 text-sm text-foreground">{installationContextsForDisplay.length}</p>
+                </div>
+              </div>
+
+              {canManageInstallations ? (
+                <div className="rounded-lg border border-border/40 bg-background/30 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Acoes em lote</p>
+                  <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
+                    <Select value={bulkInstallationCompanyId} onValueChange={setBulkInstallationCompanyId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {details.companyOptions.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      disabled={isBulkRelinkingInstallations || !bulkInstallationCompanyId}
+                      onClick={() => handleBulkRelinkInstallations(bulkInstallationCompanyId)}
+                    >
+                      Vincular filtradas
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isBulkRelinkingInstallations}
+                      onClick={() => handleBulkRelinkInstallations(null)}
+                    >
+                      Desvincular filtradas
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              {installationContextsForDisplay.length ? (
+                <div className="space-y-3">
+                  {installationContextsForDisplay.map((context, index) => {
+                    const entry = context.update;
+                    const companyContext = context.company;
+                    const companyName = companyContext?.nomeFantasia ?? companyContext?.razaoSocial ?? "Sem empresa vinculada";
+                    const linked = !!entry.companyId;
+                    return (
+                      <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="flex items-center gap-2 font-medium text-foreground">
+                            <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
+                            Instalacao {index + 1}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className={
+                              linked
+                                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                            }
+                          >
+                            {linked ? "Vinculada" : "Sem vinculo"}
+                          </Badge>
+                        </div>
+                        <div className="mt-3 grid gap-3 md:grid-cols-3">
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
+                            <p className="mt-1 text-sm font-medium text-foreground">{companyName}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho</p>
+                            <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima leitura</p>
+                            <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastHeartbeatAt)}</p>
+                          </div>
+                        </div>
+                        {canManageInstallations ? (
+                          <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
+                            <Select
+                              value={selectedCompanyByUpdateId[entry.id] ?? (entry.companyId ?? UNLINKED_COMPANY_VALUE)}
+                              onValueChange={(value) =>
+                                setSelectedCompanyByUpdateId((prev) => ({
+                                  ...prev,
+                                  [entry.id]: value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a empresa" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={UNLINKED_COMPANY_VALUE}>Sem vinculo</SelectItem>
+                                {details.companyOptions.map((company) => (
+                                  <SelectItem key={company.id} value={company.id}>
+                                    {company.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              disabled={isRelinkingInstallation}
+                              onClick={() => {
+                                const selected =
+                                  selectedCompanyByUpdateId[entry.id] ??
+                                  (entry.companyId ?? UNLINKED_COMPANY_VALUE);
+                                handleRelinkInstallation(
+                                  entry.id,
+                                  selected === UNLINKED_COMPANY_VALUE ? null : selected
+                                );
+                              }}
+                            >
+                              Salvar vinculo
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isRelinkingInstallation || !entry.companyId}
+                              onClick={() => {
+                                setSelectedCompanyByUpdateId((prev) => ({
+                                  ...prev,
+                                  [entry.id]: UNLINKED_COMPANY_VALUE,
+                                }));
+                                handleRelinkInstallation(entry.id, null);
+                              }}
+                            >
+                              Remover vinculo
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                  Nenhuma instalacao encontrada para o filtro atual.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="empresa">
           <div className="space-y-4">
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-lg">Empresa e instalacoes da maquina</CardTitle>
                 <CardDescription>
-                  Dados operacionais por instalacao, com o diretorio da instalacao como fonte unica do caminho monitorado.
-                  Edicoes de cadastro da empresa devem ser feitas apenas no modulo de Empresas.
+                  Conteudo legado. A operacao de vinculo por instalacao foi movida para a aba `Instalacoes`.
+                  Edicoes de cadastro da empresa continuam no modulo de Empresas.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1313,7 +1552,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <CardHeader>
                 <CardTitle className="text-lg">Pessoas vinculadas</CardTitle>
                 <CardDescription>
-                  Usuarios ativos da empresa base do cadastro. Para maquinas multiempresa, a leitura principal agora esta em `Empresa e instalacoes`.
+                  Usuarios ativos da empresa base do cadastro. Para maquinas multiempresa, a leitura principal agora esta em `Instalacoes`.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -1464,6 +1703,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <div className="rounded-xl border border-border/50 bg-background/60 p-3">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Falhas consecutivas</p>
                     <p className="mt-2 text-sm text-foreground">{details.agentHealth.consecutiveFailures}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia do ciclo</p>
+                    <p className="mt-2 text-sm text-foreground">{orchestrationStrategy}</p>
                   </div>
                 </div>
               </div>

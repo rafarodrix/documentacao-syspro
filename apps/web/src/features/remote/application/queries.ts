@@ -817,6 +817,46 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
     window7d: resolveSuccessRate(commandRows, last7d),
     window30d: resolveSuccessRate(commandRows, last30d),
   };
+  const orchestrationMix24hRaw = hostIds.length
+    ? await prisma.$queryRaw<
+        Array<{
+          syncTokenFirst: bigint | number | null;
+          discoverBootstrap: bigint | number | null;
+          unknown: bigint | number | null;
+        }>
+      >(
+        Prisma.sql`
+          SELECT
+            SUM(
+              CASE
+                WHEN "lastAgentMetrics"->>'orchestrationStrategy' = 'sync_token_first' THEN 1
+                ELSE 0
+              END
+            ) AS "syncTokenFirst",
+            SUM(
+              CASE
+                WHEN "lastAgentMetrics"->>'orchestrationStrategy' = 'discover_bootstrap' THEN 1
+                ELSE 0
+              END
+            ) AS "discoverBootstrap",
+            SUM(
+              CASE
+                WHEN COALESCE("lastAgentMetrics"->>'orchestrationStrategy', '') NOT IN ('sync_token_first', 'discover_bootstrap')
+                THEN 1
+                ELSE 0
+              END
+            ) AS "unknown"
+          FROM "remote_host"
+          WHERE "id" IN (${Prisma.join(hostIds)})
+            AND "lastAgentMetricsAt" >= ${last24h}
+        `
+      )
+    : [{ syncTokenFirst: 0, discoverBootstrap: 0, unknown: 0 }];
+  const orchestrationMix24h = orchestrationMix24hRaw[0] ?? {
+    syncTokenFirst: 0,
+    discoverBootstrap: 0,
+    unknown: 0,
+  };
 
   const pendingItems: RemoteDiscoveredHostItem[] = discoveredHosts.map((host) => {
     const snapshot = Array.isArray(host.installationsSnapshot) ? host.installationsSnapshot : [];
@@ -874,6 +914,13 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
       deliveredLast24h,
       hotspots,
       successRates,
+      orchestrationMix: {
+        window24h: {
+          syncTokenFirst: Number(orchestrationMix24h.syncTokenFirst ?? 0),
+          discoverBootstrap: Number(orchestrationMix24h.discoverBootstrap ?? 0),
+          unknown: Number(orchestrationMix24h.unknown ?? 0),
+        },
+      },
       timeline,
     },
     companyOptions: companyOptions.map((company) => ({
@@ -1124,9 +1171,7 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     }
     return { count: acc.count, stopped: true };
   }, { count: 0, stopped: false }).count;
-  const failureMessage = (host.lastHeartbeatErrorMessage ?? "").toLowerCase();
   const bootstrapFlow: RemoteHostDetails["agentHealth"]["bootstrapFlow"] = (() => {
-    if (failureMessage.includes("body_parse_failed")) return "body_parse_failed";
     if (!host.installToken) return "triagem_await_install_token";
     if (host.discoveryRecord?.status === "PENDING_LINK") return "pending_link";
     if (!host.agentTokenHash) return "host_bootstrap_required";
