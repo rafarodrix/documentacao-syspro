@@ -1,7 +1,6 @@
 $StateDir = Join-Path $env:ProgramData "Trilink\RemoteAgent"
 $LogsDir = "C:\Trilink\Remote\Logs"
 $LogFile = Join-Path $LogsDir "agentRemote.log"
-$DebugLogFile = Join-Path $LogsDir "comodebug.log"
 $StateFile = Join-Path $StateDir "agent-state.json"
 
 $script:RegistryReadTrace = @{}

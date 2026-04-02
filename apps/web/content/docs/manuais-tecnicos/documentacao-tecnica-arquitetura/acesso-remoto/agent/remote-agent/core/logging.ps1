@@ -12,7 +12,6 @@ function Write-Log {
     Ensure-StateDir
     $line = "$(Get-Date -Format o) | $Message"
     Add-Content -Path $LogFile -Value $line
-    Add-Content -Path $DebugLogFile -Value $line
 }
 
 

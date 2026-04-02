@@ -65,7 +65,6 @@ try {
 
     Remove-OldLogs -DaysToKeep 10
     Rotate-LogIfNeeded -FilePath $LogFile      -MaxSizeKb 2048
-    Rotate-LogIfNeeded -FilePath $DebugLogFile -MaxSizeKb 4096
 
     $state = Load-AgentState
     Write-Log "state loaded id=$cycleId failures=$($state.consecutiveFailures) hasAgentToken=$(-not [string]::IsNullOrWhiteSpace($state.agentToken)) hostId=$($state.hostId) rebootstrapRequired=$($state.rebootstrapRequired) lastSnapshotDate=$($state.lastFullSnapshotDate)"
@@ -374,6 +373,8 @@ try {
 
     # ACK loop
     $phaseAckTotal = 0
+    $tokenForAck = [string]$state.agentToken
+    $pendingTokenInvalidation = $false
     foreach ($cmd in $queue) {
         $commandId = Resolve-AgentCommandId -Command $cmd
         if ([string]::IsNullOrWhiteSpace($commandId)) {
@@ -383,23 +384,22 @@ try {
 
         $exec = Execute-RemoteCommand -Command $cmd -State $state
         $ackPayload = @{
-            agentToken = [string]$state.agentToken
+            agentToken = $tokenForAck
             commandId  = $commandId
             status     = [string]$exec.status
             message    = [string]$exec.message
             details    = $exec.details
         }
 
-        Write-Log "ack request: commandId=$commandId status=$($exec.status) tokenMask=$(Mask-Secret -Value $state.agentToken)"
+        Write-Log "ack request: commandId=$commandId status=$($exec.status) tokenMask=$(Mask-Secret -Value $tokenForAck)"
         $phaseAckSw = [System.Diagnostics.Stopwatch]::StartNew()
         $ack = Invoke-AgentAck -PortalBaseUrl $portalBaseUrl -Payload $ackPayload
         $phaseAckTotal += [int]$phaseAckSw.ElapsedMilliseconds
 
         if (-not $ack.ok) {
             if ($ack.statusCode -eq 401 -or $ack.statusCode -eq 403) {
-                $state.agentToken          = ""
-                $state.rebootstrapRequired = $true
-                Write-Log "ack $commandId retornou $($ack.statusCode). Token limpo para rebootstrap."
+                $pendingTokenInvalidation = $true
+                Write-Log "ack $commandId retornou $($ack.statusCode). Rebootstrap sera aplicado apos a fila de ACK."
             }
             Write-Log "Decision=ack_failed commandId=$commandId status=$($ack.statusCode) error=$($ack.error)"
         } else {
@@ -407,10 +407,14 @@ try {
         }
 
         if (To-Bool $exec.details.invalidateTokenAfterAck) {
-            $state.agentToken          = ""
-            $state.rebootstrapRequired = $true
+            $pendingTokenInvalidation = $true
             Write-Log "Decision=rebootstrap_required_after_ack commandId=$commandId"
         }
+    }
+    if ($pendingTokenInvalidation) {
+        $state.agentToken          = ""
+        $state.rebootstrapRequired = $true
+        Write-Log "Decision=rebootstrap_required_after_ack_queue"
     }
     $phaseTimings.ack      = [int]$phaseAckTotal
     $phaseTimings.ackCount = [int]@($queue).Count
