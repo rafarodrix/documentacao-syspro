@@ -420,10 +420,14 @@ Objetivo:
 
 Tarefas:
 
-1. agente: implementar executor real para `UPGRADE_CLIENT` com download seguro, validacao de integridade e resultado estruturado no ACK.
-2. agente: criar politica de rollback local quando upgrade falhar (reverter binario/configuracao aplicavel).
-3. portal: bloquear emissao de `UPGRADE_CLIENT` para hosts sem pre-requisitos declarados.
-4. portal: registrar telemetria de sucesso/falha por comando.
+1. agente: criar politica de rollback local quando upgrade falhar (reverter binario/configuracao aplicavel).
+2. portal: bloquear emissao de `UPGRADE_CLIENT` para hosts sem metadados seguros (`downloadUrl` + `checksumSha256`).
+3. portal: registrar telemetria de sucesso/falha por comando.
+
+Status atual:
+
+- executor real de `UPGRADE_CLIENT` implementado no agente, com download HTTPS, validacao SHA256 e ACK estruturado.
+- emissao de `upgrade_client` no portal condicionada a metadados de upgrade (URL/checksum) configurados.
 
 Criterios de aceite:
 
@@ -486,7 +490,7 @@ Criterios de aceite:
 
 - endpoints de producao possuem protecao anti-abuso uniforme.
 - ciclo completo pode ser rastreado por um unico `correlationId`.
-- suporte identifica degradacao sem inspeção manual de log em host.
+- suporte identifica degradacao sem inspecao manual de log em host.
 
 ### EPIC-RM-05 (P2): consolidacao de fluxo legado
 
@@ -680,7 +684,7 @@ Em toda chamada de sync/ack/heartbeat, o portal valida:
 
 Quando suporte precisa renovar credencial (suspeita de comprometimento, rotina de seguranca):
 
-1. UI portal: `/plataforma-remota/host/:id` → botao "Renovar Credencial"
+1. UI portal: `/plataforma-remota/host/:id` -> botao "Renovar Credencial"
 2. Backend: `rotateHostAgentToken(hostId)` gera novo token e invalida o anterior
 3. Agente detecta invalidade na proxima chamada de sync (erro `AGENT_TOKEN_INVALID`)
 4. Agente deve executar novo bootstrap com `installToken` para receber novo token
@@ -690,7 +694,7 @@ Quando suporte precisa renovar credencial (suspeita de comprometimento, rotina d
 
 Suporte pode revogar token permanentemente (desativar acesso):
 
-1. UI portal: → botao "Revogar Credencial" (nao recomendado em horas de trabalho)
+1. UI portal: -> botao "Revogar Credencial" (nao recomendado em horas de trabalho)
 2. Backend: `revokeHostAgentToken(hostId)` marca token como revogado
 3. Agente entra em estado desconectado permanente ate novo bootstrap
 4. Para reativar: novo bootstrap necessario
@@ -723,7 +727,7 @@ Operacoes:
 - `revokeAddressBookCredential`: desativar credencial permanentemente
 - `listAddressBookCredentials`: listar credenciais ativas por address book
 
-Uso típico:
+Uso tipico:
 
 - Suporte cadastra credencial AD/local para descoberta em subnet
 - Portal usa credencial para scan em background (`POST /api/remote/agents/discover` com metadata)
@@ -740,7 +744,7 @@ O fluxo discover expoe 3 caminhos mutuamente exclusivos:
 - Portal cria registro `remoteDiscoveredHost` com status `PENDING_LINK`
 - Suporte deve decidir: **linkar a host existente** ou **nao processar**
 - Resposta: `allowDiscoveryHeartbeat: true` (continua enviando heartbeat via discovery)
-- Proxima acao: suporte clica "Linkar Maquina" em UI → transicao para `linked_host_detected`
+- Proxima acao: suporte clica "Linkar Maquina" em UI -> transicao para `linked_host_detected`
 
 #### 2. `linked_host_detected` (Maquina ja vinculada, tudo ok)
 
@@ -749,7 +753,7 @@ O fluxo discover expoe 3 caminhos mutuamente exclusivos:
 - Resposta: `allowDiscoveryHeartbeat: false` (descoberta nao e mais necessaria)
 - Proxima acao: agente para de chamar discover e passa a chamar sync
 
-#### 3. `host_bootstrap_required` (Maquina vinculada, mas token inválido/expirado)
+#### 3. `host_bootstrap_required` (Maquina vinculada, mas token invalido/expirado)
 
 - Sistema detectou que token anterior foi rotacionado ou expirou
 - Transicao: agente deve executar novo bootstrap com `installToken`
@@ -985,6 +989,7 @@ Rotas remotas fora do nucleo `remote-domain` por escopo atual:
 1. validar em campo a rotacao/rebootstrap e os dois fluxos de instalacao
 2. consolidar testes de regressao de contrato remoto (`code/message/httpStatus`) em CI
 3. abrir migracao controlada para `packages/api` e contrato mobile, mantendo o mesmo nucleo em `packages/remote-domain`
+
 
 
 

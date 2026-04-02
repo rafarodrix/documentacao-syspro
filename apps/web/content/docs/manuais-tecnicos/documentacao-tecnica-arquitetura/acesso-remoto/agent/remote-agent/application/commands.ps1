@@ -61,6 +61,13 @@ function Invoke-RustDeskUpgrade {
         throw "UPGRADE_CLIENT sem downloadUrl/url/installerUrl."
     }
 
+    if ($upgrade.downloadUrl -notmatch '^https://') {
+        throw "UPGRADE_CLIENT requer downloadUrl HTTPS."
+    }
+    if ([string]::IsNullOrWhiteSpace($upgrade.checksumSha256)) {
+        throw "UPGRADE_CLIENT requer checksumSha256 para validacao de integridade."
+    }
+
     Ensure-StateDir
     $downloadDir = Join-Path $StateDir "downloads"
     if (-not (Test-Path -LiteralPath $downloadDir)) {
@@ -78,15 +85,11 @@ function Invoke-RustDeskUpgrade {
         throw "Falha ao baixar pacote de upgrade."
     }
 
-    $checksumValidated = $false
-    $downloadChecksum = ""
-    if (-not [string]::IsNullOrWhiteSpace($upgrade.checksumSha256)) {
-        $downloadChecksum = ((Get-FileHash -LiteralPath $packagePath -Algorithm SHA256 -ErrorAction Stop).Hash).ToLowerInvariant()
-        if ($downloadChecksum -ne $upgrade.checksumSha256) {
-            throw "Checksum SHA256 divergente para pacote de upgrade."
-        }
-        $checksumValidated = $true
+    $downloadChecksum = ((Get-FileHash -LiteralPath $packagePath -Algorithm SHA256 -ErrorAction Stop).Hash).ToLowerInvariant()
+    if ($downloadChecksum -ne $upgrade.checksumSha256) {
+        throw "Checksum SHA256 divergente para pacote de upgrade."
     }
+    $checksumValidated = $true
 
     $exePath = Get-RustDeskExePath
     $oldVersion = Get-RustDeskFileVersion -Path $exePath

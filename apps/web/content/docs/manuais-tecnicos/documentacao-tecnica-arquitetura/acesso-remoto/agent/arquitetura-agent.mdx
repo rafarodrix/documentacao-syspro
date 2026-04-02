@@ -197,9 +197,13 @@ Checklist minimo:
 
 Escopo:
 
-1. implementar execucao real de `UPGRADE_CLIENT` no agente (`application/commands.ps1`) com ACK detalhado.
-2. ajustar orquestracao no `trilink-agente.ps1` para priorizar `sync` com token valido e reduzir bootstrap recorrente.
-3. manter invalidacao de token apenas apos finalizar a fila de ACK (sem quebrar comandos subsequentes).
+1. ajustar orquestracao no `trilink-agente.ps1` para priorizar `sync` com token valido e reduzir bootstrap recorrente.
+2. manter invalidacao de token apenas apos finalizar a fila de ACK (sem quebrar comandos subsequentes).
+
+Status atual:
+
+- `UPGRADE_CLIENT` implementado em `application/commands.ps1` com download HTTPS, validacao SHA256 e ACK detalhado.
+- portal atualizado para so emitir `upgrade_client` quando metadados seguros de upgrade estiverem presentes.
 
 Definicao de pronto:
 
@@ -239,3 +243,4 @@ Definicao de pronto:
 
 - estrategia remota: `/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`
 - backlog consolidado: `/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo`
+

@@ -186,6 +186,10 @@ export type RemoteSyncConfigProfile = {
   publicKeyHash: string | null;
   serverConfig: string | null;
   targetVersion: string | null;
+  upgradeDownloadUrl?: string | null;
+  upgradeChecksumSha256?: string | null;
+  upgradePackageType?: string | null;
+  upgradeSilentArgs?: string | null;
 };
 
 export type RemoteSyncIncomingUpdate = {

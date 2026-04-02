@@ -158,18 +158,35 @@ export async function processSync(
     });
   }
 
+  const warnings: string[] = [];
+
   if (!compliance.versionMatch) {
-    directives.push({
-      action: "upgrade_client",
-      reason: "Versao reportada do cliente diverge da versao alvo configurada no portal.",
-      payload: {
+    const hasUpgradeMetadata =
+      !!configProfile.upgradeDownloadUrl &&
+      !!configProfile.upgradeChecksumSha256;
+
+    if (!hasUpgradeMetadata) {
+      warnings.push("SYNC_UPGRADE_METADATA_MISSING");
+      await deps.port.logWarning("remote.domain.sync.upgrade_metadata_missing", {
+        hostId: context.hostId,
         targetVersion: configProfile.targetVersion,
-        reportedVersion: input.currentVersion ?? null,
-      },
-    });
+      });
+    } else {
+      directives.push({
+        action: "upgrade_client",
+        reason: "Versao reportada do cliente diverge da versao alvo configurada no portal.",
+        payload: {
+          targetVersion: configProfile.targetVersion,
+          reportedVersion: input.currentVersion ?? null,
+          downloadUrl: configProfile.upgradeDownloadUrl,
+          checksumSha256: configProfile.upgradeChecksumSha256,
+          packageType: configProfile.upgradePackageType ?? "binary",
+          silentArgs: configProfile.upgradeSilentArgs ?? "/S",
+        },
+      });
+    }
   }
 
-  const warnings: string[] = [];
   const normalizedSysproUpdates = deps.port.normalizeSysproUpdates(input.sysproUpdates);
   const systemSnapshot = normalizeOptionalRecordWithWarning(input.systemSnapshot, "SYNC_INVALID_SYSTEM_SNAPSHOT", warnings);
   const networkSnapshot = normalizeOptionalRecordWithWarning(input.networkSnapshot, "SYNC_INVALID_NETWORK_SNAPSHOT", warnings);
@@ -291,4 +308,5 @@ export async function processSync(
     },
   };
 }
+
 

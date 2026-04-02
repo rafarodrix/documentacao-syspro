@@ -8,7 +8,7 @@ import type {
   RemoteSyncPort,
 } from "@dosc-syspro/remote-domain";
 import { createRemoteSessionPort as createSharedRemoteSessionPort } from "./remote-session-port";
-// Componentes de configuração compartilhados (copiados do app-web)
+// Componentes de configuracao compartilhados (copiados do app-web)
 const REMOTE_MODULE_SETTINGS_KEY = "remote.module.settings";
 
 const DEFAULT_REMOTE_MODULE_SETTINGS = {
@@ -295,6 +295,11 @@ function buildRustDeskConfigProfile(settings: {
 }) {
   const serverHost = settings.rustDeskServerHost.trim();
   const publicKey = settings.rustDeskPublicKey.trim();
+  const upgradeDownloadUrl = process.env.REMOTE_RUSTDESK_UPGRADE_URL?.trim() || null;
+  const upgradeChecksumSha256 = process.env.REMOTE_RUSTDESK_UPGRADE_SHA256?.trim().toLowerCase() || null;
+  const upgradePackageType = process.env.REMOTE_RUSTDESK_UPGRADE_PACKAGE_TYPE?.trim().toLowerCase() || "binary";
+  const upgradeSilentArgs = process.env.REMOTE_RUSTDESK_UPGRADE_SILENT_ARGS?.trim() || "/S";
+
   return {
     serverHost,
     apiHost: serverHost,
@@ -303,6 +308,10 @@ function buildRustDeskConfigProfile(settings: {
     serverConfig: settings.rustDeskServerConfig.trim(),
     targetVersion: settings.rustDeskVersion.trim(),
     defaultPassword: settings.defaultPassword,
+    upgradeDownloadUrl,
+    upgradeChecksumSha256,
+    upgradePackageType,
+    upgradeSilentArgs,
   };
 }
 
@@ -589,6 +598,10 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
         publicKeyHash: configProfile.publicKeyHash,
         serverConfig: configProfile.serverConfig,
         targetVersion: configProfile.targetVersion,
+        upgradeDownloadUrl: configProfile.upgradeDownloadUrl,
+        upgradeChecksumSha256: configProfile.upgradeChecksumSha256,
+        upgradePackageType: configProfile.upgradePackageType,
+        upgradeSilentArgs: configProfile.upgradeSilentArgs,
       };
     },
     hashPublicKey: hashRustDeskPublicKey,
