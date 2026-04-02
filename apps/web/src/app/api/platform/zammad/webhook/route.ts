@@ -4,7 +4,7 @@ import { upsertOperationalTicketsToCache } from "@/features/tickets/infrastructu
 import { handleZammadRemoteWebhook } from "@/features/remote/application/zammad-integration";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { isValidHmacSignature } from "@/lib/security/request-auth";
+import { isValidHmacSignature } from "@dosc-syspro/api/request-auth";
 import { createRequestLogger } from "@/lib/observability/logger";
 
 function isAuthorized(request: Request, rawBody: string): boolean {

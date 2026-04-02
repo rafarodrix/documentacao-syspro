@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { SefazService } from "@/app/api/sefaz/sefaz.service";
-import { isValidSecretToken } from "@/lib/security/request-auth";
+import { isValidSecretToken } from "@dosc-syspro/api/request-auth";
 import { createRequestLogger } from "@/lib/observability/logger";
 
 function isAuthorized(request: Request): boolean {
