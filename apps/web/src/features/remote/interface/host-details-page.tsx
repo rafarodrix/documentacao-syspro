@@ -1456,7 +1456,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                                     ...prev,
                                     [entry.id]: value,
                                   }))
-                                )}
+                                }
                                 options={details.companyOptions}
                                 disabled={isRelinkingInstallation}
                               />

@@ -364,6 +364,13 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
   const activeResultCount = filteredItems.length;
   const activePendingCount = filteredPendingItems.length;
+  const filteredQuickIndicators = useMemo(() => {
+    const online = filteredItems.filter((item) => getHeartbeatMeta(item.lastHeartbeatAt).bucket === "recent").length;
+    const stale = filteredItems.filter((item) => getHeartbeatMeta(item.lastHeartbeatAt).bucket === "stale").length;
+    const offline = filteredItems.filter((item) => getHeartbeatMeta(item.lastHeartbeatAt).bucket === "missing").length;
+    const rebootPending = filteredItems.filter((item) => item.inventorySignals.rebootPending === true).length;
+    return { online, stale, offline, rebootPending };
+  }, [filteredItems]);
 
   return (
     <div className="space-y-5">
@@ -534,151 +541,32 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
       <Card className="border-border/50 overflow-hidden">
         <CardContent className="space-y-4 p-5 sm:p-6">
-          <details className="rounded-2xl border border-border/50 bg-muted/10 p-4">
-            <summary className="cursor-pointer text-sm font-medium text-foreground">
-              Observabilidade dos comandos do agente
-            </summary>
-            <div className="mt-4 space-y-4">
-
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Backlog pendente</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fila de comandos</p>
               <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.pendingTotal}</p>
-              <p className="text-[11px] text-muted-foreground">{commandObservability.pendingHosts} host(s) com fila aberta</p>
+              <p className="text-[11px] text-muted-foreground">{commandObservability.pendingHosts} host(s) com backlog</p>
             </div>
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Falhas 24h</p>
               <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.failedLast24h}</p>
-              <p className="text-[11px] text-muted-foreground">Comandos encerrados com erro no ultimo dia</p>
+              <p className="text-[11px] text-muted-foreground">Comandos encerrados com erro</p>
             </div>
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Entregas 24h</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.deliveredLast24h}</p>
-              <p className="text-[11px] text-muted-foreground">Comandos entregues ao agente recentemente</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucessos 24h</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.acknowledgedLast24h}</p>
-              <p className="text-[11px] text-muted-foreground">Acks de sucesso recebidos pelo portal</p>
-            </div>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 24h</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucesso 24h</p>
               <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.successRates.window24h}%</p>
+              <p className="text-[11px] text-muted-foreground">Acks em relacao a entregas</p>
             </div>
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 7d</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.successRates.window7d}%</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 30d</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.successRates.window30d}%</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia 24h</p>
+              <p className="mt-1 text-sm text-foreground">
+                sync direto: {commandObservability.orchestrationMix.window24h.syncTokenFirst}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                discover/bootstrap: {commandObservability.orchestrationMix.window24h.discoverBootstrap}
+              </p>
             </div>
           </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia 24h: sync direto</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">
-                {commandObservability.orchestrationMix.window24h.syncTokenFirst}
-              </p>
-              <p className="text-[11px] text-muted-foreground">Ciclos com `sync_token_first`</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia 24h: discover/bootstrap</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">
-                {commandObservability.orchestrationMix.window24h.discoverBootstrap}
-              </p>
-              <p className="text-[11px] text-muted-foreground">Ciclos com `discover_bootstrap`</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia 24h: sem leitura</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">
-                {commandObservability.orchestrationMix.window24h.unknown}
-              </p>
-              <p className="text-[11px] text-muted-foreground">Hosts sem metrica estruturada</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">Hosts com maior pressao operacional</p>
-                <p className="text-xs text-muted-foreground">Fila acumulada e falhas recentes de comando por host.</p>
-              </div>
-            </div>
-
-            {commandObservability.hotspots.length ? (
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                {commandObservability.hotspots.map((entry) => (
-                  <Link
-                    key={entry.hostId}
-                    href={`/portal/plataforma-remota/${entry.hostId}`}
-                    className="rounded-xl border border-border/50 bg-background/60 p-4 transition hover:border-primary/30 hover:bg-background"
-                  >
-                    <p className="text-sm font-medium text-foreground">{entry.hostName}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{entry.companyName ?? "Sem empresa resolvida"}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                        {entry.pendingCount} pendente(s)
-                      </Badge>
-                      <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300">
-                        {entry.failedCount} falha(s)
-                      </Badge>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-muted-foreground">
-                Nenhum host com backlog ou falha recente de comando. A fila do agente esta estavel neste momento.
-              </p>
-            )}
-          </div>
-
-          <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">Timeline recente de comandos</p>
-                <p className="text-xs text-muted-foreground">Historico por host/comando com janela temporal e duracao.</p>
-              </div>
-            </div>
-
-            {commandObservability.timeline.length ? (
-              <div className="mt-4 space-y-2">
-                {commandObservability.timeline.map((entry) => (
-                  <Link
-                    key={entry.commandId}
-                    href={`/portal/plataforma-remota/${entry.hostId}`}
-                    className="block rounded-xl border border-border/50 bg-background/60 p-3 transition hover:border-primary/30 hover:bg-background"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-foreground">
-                        {entry.hostName} - {entry.type}
-                      </p>
-                      <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                        {entry.status}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{entry.companyName ?? "Sem empresa resolvida"}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      criado: {new Date(entry.createdAt).toLocaleString("pt-BR")}
-                      {entry.deliveredAt ? ` | entregue: ${new Date(entry.deliveredAt).toLocaleString("pt-BR")}` : ""}
-                      {entry.executedAt ? ` | executado: ${new Date(entry.executedAt).toLocaleString("pt-BR")}` : ""}
-                      {entry.failedAt ? ` | falhou: ${new Date(entry.failedAt).toLocaleString("pt-BR")}` : ""}
-                      {entry.durationSeconds !== null ? ` | duracao: ${entry.durationSeconds}s` : ""}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-muted-foreground">Sem eventos recentes de comandos para timeline operacional.</p>
-            )}
-          </div>
-            </div>
-          </details>
         </CardContent>
       </Card>
 
@@ -803,6 +691,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="rounded-full border border-border/50 bg-muted/10 px-3 py-1">
               {activeResultCount} host(s) no diretorio
+            </span>
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+              {filteredQuickIndicators.online} online
+            </span>
+            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300">
+              {filteredQuickIndicators.stale} instavel
+            </span>
+            <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 text-rose-700 dark:text-rose-300">
+              {filteredQuickIndicators.offline} sem contato
+            </span>
+            <span className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-red-700 dark:text-red-300">
+              {filteredQuickIndicators.rebootPending} reboot pendente
             </span>
             {canCreateHosts ? (
               <span className="rounded-full border border-border/50 bg-muted/10 px-3 py-1">
@@ -1029,36 +929,17 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       ) : null}
                     </div>
 
-                    <details className="mt-3 rounded-lg border border-border/50 bg-muted/10 p-3">
-                      <summary className="cursor-pointer text-xs font-medium text-foreground">Detalhes operacionais</summary>
-                      <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da maquina (agente)</p>
-                          <p className="mt-1 text-sm text-foreground">{item.machineName ?? "Sem leitura do agente"}</p>
-                        </div>
-                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
-                          <p className="mt-1 text-sm text-foreground">{item.provider ?? "Sem registro"}</p>
-                        </div>
-                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Inventario tecnico</p>
-                          <p className="mt-1 text-sm text-foreground">
-                            {item.inventorySignals.lastExtendedSnapshotAt
-                              ? new Date(item.inventorySignals.lastExtendedSnapshotAt).toLocaleString("pt-BR")
-                              : "Sem leitura"
-                            }
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Descricao</p>
-                          <p className="mt-1 text-sm text-foreground">{item.description ?? "Sem descricao"}</p>
-                        </div>
-                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo ticket</p>
-                          <p className="mt-1 text-sm text-foreground">{item.lastTicketNumber ?? "Sem ticket recente"}</p>
-                        </div>
-                      </div>
-                    </details>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
+                        Maquina: {item.machineName ?? "Sem leitura"}
+                      </span>
+                      <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
+                        Provider: {item.provider ?? "Sem registro"}
+                      </span>
+                      <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
+                        Ticket: {item.lastTicketNumber ?? "Sem ticket"}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
