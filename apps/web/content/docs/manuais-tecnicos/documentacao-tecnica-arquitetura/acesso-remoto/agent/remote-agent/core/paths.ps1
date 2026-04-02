@@ -8,3 +8,4 @@ $script:RegistryReadTrace = @{}
 $script:InstallTokenReadSource = "not_checked"
 $script:RunMutex = $null
 $script:HasRunMutex = $false
+$script:RunMutexName = ""
