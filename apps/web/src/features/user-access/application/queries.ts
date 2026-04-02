@@ -13,7 +13,8 @@ import type {
 import {
   userListSelect,
   companyOptionSelect,
-  type UserListSelectResult,
+  mapClientUserListItem,
+  mapSystemUserListItem,
 } from "@/features/user-access/domain/selects";
 
 import {
@@ -46,21 +47,6 @@ function hasError(value: unknown): value is ActionError {
 }
 
 // ─── Mappers ───────────────────────────────────────────────────────────────────
-
-function mapClientUserListItem(user: UserListSelectResult): UserAccessListItem {
-  return {
-    ...user,
-    companyName:
-      user.memberships[0]?.company?.nomeFantasia ||
-      user.memberships[0]?.company?.razaoSocial ||
-      "Sem Vínculo",
-    companyId: user.memberships[0]?.companyId ?? null,
-  };
-}
-
-function mapSystemUserListItem(user: UserListSelectResult): SystemUserListItem {
-  return { ...user };
-}
 
 // ─── Queries ───────────────────────────────────────────────────────────────────
 
@@ -234,6 +220,11 @@ export async function getClientUserEditViewData(
 export async function getSystemUserEditViewData(
   userId: string,
 ): Promise<SystemUserEditViewData> {
+  const session = await getProtectedSession();
+  if (!session || !SYSTEM_ROLES.includes(session.role) || session.role !== Role.ADMIN) {
+    notFound();
+  }
+
   const user = await prisma.user.findFirst({
     where: {
       id: userId,
@@ -266,3 +257,4 @@ export async function getSystemUserEditViewData(
     },
   };
 }
+

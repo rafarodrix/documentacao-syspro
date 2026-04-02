@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { createUserSchema, CreateUserInput } from "@dosc-syspro/contracts";
+import { createUserSchema, type CreateUserInput, linkUserToCompanySchema, type LinkUserToCompanyInput } from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { Prisma, Role } from "@prisma/client";
 import { z } from "zod";
@@ -20,14 +20,6 @@ interface GetUsersParams {
     search?: string;
     role?: string;
 }
-
-const linkUserSchema = z.object({
-    email: z.string().email("E-mail invalido"),
-    role: z.nativeEnum(Role),
-    companyId: z.string().min(1, "Selecione uma empresa"),
-});
-
-export type LinkUserInput = z.infer<typeof linkUserSchema>;
 
 
 const CREATE_USER_RATE_LIMIT = { max: 8, windowMs: 60_000 };
@@ -394,7 +386,7 @@ export async function deleteUserAction(id: string): Promise<UserAccessActionResp
 
 //VINCULAR A EMPRESA
 
-export async function linkUserToCompanyAction(data: LinkUserInput): Promise<UserAccessActionResponse> {
+export async function linkUserToCompanyAction(data: LinkUserToCompanyInput): Promise<UserAccessActionResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, message: "Acesso negado." };
 
@@ -402,27 +394,37 @@ export async function linkUserToCompanyAction(data: LinkUserInput): Promise<User
     const isClientManager = session.role === Role.CLIENTE_ADMIN;
     if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
 
+    const validation = linkUserToCompanySchema.safeParse(data);
+    if (!validation.success) {
+        return {
+            success: false,
+            message: validation.error.issues[0]?.message ?? "Dados invalidos.",
+        };
+    }
+
+    const payload = validation.data;
+
     try {
         if (isClientManager) {
             const managedCompanyIds = await getUserCompanyIds(session.userId);
-            if (!managedCompanyIds.includes(data.companyId)) {
+            if (!managedCompanyIds.includes(payload.companyId)) {
                 return { success: false, message: "Empresa invalida para este gestor." };
             }
-            if (data.role !== Role.CLIENTE_ADMIN && data.role !== Role.CLIENTE_USER) {
+            if (payload.role !== Role.CLIENTE_ADMIN && payload.role !== Role.CLIENTE_USER) {
                 return { success: false, message: "Perfil invalido para contexto de cliente." };
             }
         }
 
-        const user = await prisma.user.findUnique({ where: { email: data.email } });
+        const user = await prisma.user.findUnique({ where: { email: payload.email } });
         if (!user) return { success: false, message: "Usuario nao encontrado." };
         if (isClientManager && !CLIENT_ROLES.includes(user.role)) {
             return { success: false, message: "N\u00E3o \u00E9 permitido vincular usu\u00E1rio interno." };
         }
 
         await prisma.membership.upsert({
-            where: { userId_companyId: { userId: user.id, companyId: data.companyId } },
-            create: { userId: user.id, companyId: data.companyId, role: data.role },
-            update: { role: data.role }
+            where: { userId_companyId: { userId: user.id, companyId: payload.companyId } },
+            create: { userId: user.id, companyId: payload.companyId, role: payload.role },
+            update: { role: payload.role }
         });
 
         revalidateCadastrosViews();
@@ -527,3 +529,4 @@ export async function updateMembershipRoleAction(userId: string, companyId: stri
         return handleActionError(error);
     }
 }
+

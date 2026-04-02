@@ -103,8 +103,19 @@ export async function getCompanyZammadEmailsQuery(companyId: string): Promise<Co
 }
 
 export async function getCompanyOptionsAction(): Promise<CompanyOption[]> {
+  const session = await getProtectedSession();
+  if (!session) return [];
+
+  const companyScopeIds =
+    session.role === Role.CLIENTE_ADMIN ? await getSessionCompanyIds(session.userId) : null;
+
   const companies = await prisma.company.findMany({
-    where: { deletedAt: null },
+    where: {
+      deletedAt: null,
+      ...(session.role === Role.CLIENTE_ADMIN
+        ? { id: { in: companyScopeIds?.length ? companyScopeIds : ["__none__"] } }
+        : {}),
+    },
     orderBy: { razaoSocial: "asc" },
     select: {
       id: true,

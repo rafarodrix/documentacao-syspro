@@ -1,21 +1,25 @@
 {
-    "name":  "@dosc-syspro/contracts",
-    "version":  "0.0.0",
-    "private":  true,
-    "type":  "module",
-    "exports":  {
-                    ".":  "./src/index.ts",
-                    "./settings":  "./src/settings.ts",
-                    "./sefaz-routes":  "./src/sefaz-routes.ts",
-                    "./sefaz-endpoints":  "./src/sefaz-endpoints.ts",
-                    "./ticket-form":  "./src/ticket-form.ts",
-                    "./address":  "./src/address.ts",
-                    "./documento":  "./src/documento.ts",
-                    "./documento-config":  "./src/documento-config.ts",
-                    "./user":  "./src/user.ts",
-                    "./zammad-api":  "./src/zammad-api.ts"
-                },
-    "scripts":  {
-                    "typecheck":  "tsc -p tsconfig.json --noEmit"
-                }
+  "name": "@dosc-syspro/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./settings": "./src/settings.ts",
+    "./sefaz-routes": "./src/sefaz-routes.ts",
+    "./sefaz-endpoints": "./src/sefaz-endpoints.ts",
+    "./ticket-form": "./src/ticket-form.ts",
+    "./address": "./src/address.ts",
+    "./company": "./src/company.ts",
+    "./documento": "./src/documento.ts",
+    "./documento-config": "./src/documento-config.ts",
+    "./user": "./src/user.ts",
+    "./zammad-api": "./src/zammad-api.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  }
 }

@@ -17,6 +17,19 @@ export type { TicketFormInput, TicketFormOutput } from "./ticket-form";
 export { addressSchema } from "./address";
 export type { AddressInput } from "./address";
 
+export {
+  createCompanySchema,
+  COMPANY_REMOTE_CONNECTION_TYPE_VALUES,
+  COMPANY_SERVER_PROTOCOL_VALUES,
+  COMPANY_SERVER_TYPE_VALUES,
+  DEFAULT_COMPANY_INSTALLATION_DIRECTORY,
+  DEFAULT_COMPANY_SERVER_HOST,
+  DEFAULT_COMPANY_SERVER_PORT,
+  DEFAULT_COMPANY_SERVER_PROTOCOL,
+  DEFAULT_COMPANY_SERVER_TYPE,
+} from "./company";
+export type { CreateCompanyInput, CreateCompanyOutput } from "./company";
+
 export { documentoSchema } from "./documento";
 export type { DocumentoFormInput, DocumentoFormValues } from "./documento";
 
@@ -29,8 +42,8 @@ export {
 } from "./documento-config";
 export type { FieldMetadata } from "./documento-config";
 
-export { USER_ROLE_VALUES, createUserSchema } from "./user";
-export type { CreateUserInput, CreateUserOutput } from "./user";
+export { USER_ROLE_VALUES, createUserSchema, linkUserToCompanySchema } from "./user";
+export type { CreateUserInput, CreateUserOutput, LinkUserToCompanyInput } from "./user";
 
 export {
   zammadTicketAPISchema,
@@ -46,3 +59,4 @@ export type {
   ZammadTicketArticle,
   ZammadUserSearch,
 } from "./zammad-api";
+
