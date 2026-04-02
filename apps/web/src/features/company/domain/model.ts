@@ -6,7 +6,7 @@ import type {
   IndicadorIE,
   TaxRegime,
 } from "@prisma/client";
-import type { CreateCompanyInput } from "@/features/company/application/company-schema";
+import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
 
 export type CompanyValidationErrors = Partial<Record<keyof CreateCompanyInput, string[]>>;
 
@@ -171,3 +171,4 @@ export interface CompanyEditViewData {
   initialZammadEmails: CompanyZammadEmailInput[];
   initialContacts: CompanyContactInput[];
 }
+

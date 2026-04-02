@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { UseFormSetValue } from "react-hook-form";
-import type { CreateCompanyInput } from "@/features/company/application/company-schema";
+import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
 
 interface BrasilApiCepResponse {
   state?: string;
@@ -131,3 +131,4 @@ export function useAddressLookup(setValue: UseFormSetValue<CreateCompanyInput>) 
     handleCepChange,
   };
 }
+

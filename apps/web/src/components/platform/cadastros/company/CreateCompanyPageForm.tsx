@@ -24,7 +24,7 @@ import {
   DEFAULT_COMPANY_SERVER_PROTOCOL,
   DEFAULT_COMPANY_SERVER_TYPE,
   type CreateCompanyInput,
-} from "@/features/company/application/company-schema";
+} from "@dosc-syspro/contracts/company";
 import type {
   CompanyContactInput,
   CompanyOption,
@@ -1112,3 +1112,4 @@ export function CreateCompanyPageForm({
     </div>
   );
 }
+

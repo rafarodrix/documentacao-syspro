@@ -5,7 +5,7 @@ import {
   createCompanySchema,
   type CreateCompanyInput,
   type CreateCompanyOutput,
-} from "@/features/company/application/company-schema";
+} from "@dosc-syspro/contracts/company";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { CompanyStatus, Role } from "@prisma/client";
 import { z } from "zod";
@@ -414,6 +414,7 @@ export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
     return toCompanyActionError(error);
   }
 }
+
 
 
 
