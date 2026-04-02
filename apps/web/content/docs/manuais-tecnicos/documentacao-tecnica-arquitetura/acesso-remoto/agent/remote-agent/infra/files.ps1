@@ -1,3 +1,1 @@
-# Placeholder seguro para modularizacao do agente remoto.
-# Fase 1: arquivo reservado para extracao de funcoes de responsabilidade unica.
-# Modulo: files.ps1
+# Reservado para helpers de arquivo da fase seguinte.

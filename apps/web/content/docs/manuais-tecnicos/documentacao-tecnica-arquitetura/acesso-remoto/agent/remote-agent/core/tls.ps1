@@ -1,3 +1,8 @@
-# Placeholder seguro para modularizacao do agente remoto.
-# Fase 1: arquivo reservado para extracao de funcoes de responsabilidade unica.
-# Modulo: tls.ps1
+function Initialize-TlsSecurity {
+    try {
+        $tls13 = [Net.SecurityProtocolType]::Tls13
+        [Net.ServicePointManager]::SecurityProtocol = $tls13 -bor [Net.SecurityProtocolType]::Tls12
+    } catch {
+        try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+    }
+}

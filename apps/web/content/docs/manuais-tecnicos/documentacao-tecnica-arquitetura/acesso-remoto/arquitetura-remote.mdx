@@ -292,6 +292,35 @@ Resultado esperado:
 - instalacoes monitoradas atualizadas sem duplicar hosts
 - `compliance` retornado pelo portal
 - `commandQueue` entregue para execucao local
+### Inventario tecnico expandido (FEAT-002K + FEAT-002L)
+
+Campos aceitos no `sync` (contrato remoto):
+
+- `hardwareIdentity`
+- `diskSnapshot`
+- `sysproProcesses`
+- `windowsUpdateStatus`
+- `rebootPending`
+
+Comportamento de dominio:
+
+- normalizacao defensiva no `process-sync`
+- fallback seguro para payload parcial/invalido
+- retorno de `warnings[]` sem interromper heartbeat
+
+Persistencia atual em `remote_host`:
+
+- `lastHardwareIdentity`, `lastHardwareIdentityAt`
+- `lastDiskSnapshot`, `lastDiskSnapshotAt`
+- `lastSysproProcessSnapshot`, `lastSysproProcessSnapshotAt`
+- `lastWindowsUpdateStatus`, `lastWindowsUpdateStatusAt`
+- `lastRebootPending`, `lastRebootPendingAt`
+
+Exposicao atual no portal:
+
+- detalhe de host: snapshots expandidos em `agentTelemetry`
+- diretorio: sinais operacionais derivados (`reboot pending`, `disk low`, `syspro process down`)
+
 
 ### Otimizacao de payload no sync (obrigatoria)
 
@@ -853,6 +882,7 @@ Rotas remotas fora do nucleo `remote-domain` por escopo atual:
 1. validar em campo a rotacao/rebootstrap e os dois fluxos de instalacao
 2. consolidar testes de regressao de contrato remoto (`code/message/httpStatus`) em CI
 3. abrir migracao controlada para `packages/api` e contrato mobile, mantendo o mesmo nucleo em `packages/remote-domain`
+
 
 
 

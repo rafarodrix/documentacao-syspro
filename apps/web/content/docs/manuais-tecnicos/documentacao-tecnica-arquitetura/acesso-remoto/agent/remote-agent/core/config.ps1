@@ -1,3 +1,2 @@
-# Placeholder seguro para modularizacao do agente remoto.
-# Fase 1: arquivo reservado para extracao de funcoes de responsabilidade unica.
-# Modulo: config.ps1
+$AgentVersion = "trilink-agent-v1"
+$RegPath = "HKLM:\SOFTWARE\Trilink\RemoteAgent"
