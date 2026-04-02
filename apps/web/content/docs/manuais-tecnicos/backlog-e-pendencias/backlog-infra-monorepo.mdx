@@ -43,20 +43,6 @@ Ordem recomendada:
 - [ ] `INFRA-026` [Media] Metricas minimas por rota critica, jobs e integracoes externas.
 - [ ] `INFRA-027` [Alta] Testes E2E para fluxos criticos do app e docs. A base de Playwright ja foi aberta em `apps/web`, com config, scripts, smoke de landing page, redirect de rotas protegidas (`/portal` e `/docs`) e fluxo autenticado opcional por credenciais de ambiente; faltam integrar execucao ao CI, instalar browsers no pipeline e ampliar a cobertura para fluxos autenticados e operacionais mais profundos.
 - [ ] `INFRA-027B` [Media] Materializar runtime real de `apps/mobile` com boundaries ja definidos.
-- [x] `INFRA-027C` [Media] Revisao de `apps/web/src/lib` concluida em `2026-04-02` para consumo compartilhado via `packages/*`.
-  - Ja extraido e mantido como facade local: `date.ts`, `formatters.ts`, `utils.ts`, `prisma.ts`, `security/request-auth.ts`, `observability/logger.ts`, `security/action-rate-limit.ts`, `action-error-handler.ts` (publicados via `@dosc-syspro/shared`, `@dosc-syspro/ui`, `@dosc-syspro/database` e `@dosc-syspro/api/*`).
-  - Conclusoes desta revisao:
-    - `security/request-auth.ts` (token/header/hmac): extraido para `packages/api/src/lib/security/request-auth.ts` e publicado em `@dosc-syspro/api/request-auth` em `2026-04-02`.
-    - `observability/logger.ts` (logger estruturado + correlation id): extraido para `packages/api/src/lib/observability/logger.ts` e publicado em `@dosc-syspro/api/observability/logger` em `2026-04-02`.
-    - `security/action-rate-limit.ts` (com evolucao posterior para store distribuido): extraido para `packages/api/src/lib/security/action-rate-limit.ts` e publicado em `@dosc-syspro/api/security/action-rate-limit` em `2026-04-02`.
-    - `action-error-handler.ts` (normalizacao de erros de action): extraido para `packages/api/src/lib/errors/action-error-handler.ts` e publicado em `@dosc-syspro/api/errors/action-error-handler` em `2026-04-02`.
-  - Candidatos reais para proxima extracao:
-    - Nenhum item pendente neste recorte de `apps/web/src/lib`.
-
-  - Permanecem no `apps/web` por acoplamento ao app/framework:
-    - `auth.ts`, `auth-client.ts`, `auth-helpers.ts`, `email.ts`, `source.ts`,
-    - `docs-storage.ts`, `docs-utils.ts`, `docs-tree-utils.ts`,
-    - `cache-invalidation.ts`, `security/request-context.ts`.
 
 #### Ideias de implementacao
 

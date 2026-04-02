@@ -1,7 +1,7 @@
-﻿---
+---
 title: Manuais Tecnicos
 description: Base tecnica restrita para administracao, suporte e desenvolvimento.
-lastUpdated: 2026-03-28
+lastUpdated: 2026-04-02
 owner: Equipe de Documentacao
 status: published
 tags:
@@ -94,6 +94,15 @@ Este indice centraliza:
 3. [Arquitetura canal WhatsApp](/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp)
    material: desenho de backend dedicado, bridge e trilha auditavel.
 
+## Atualizacoes tecnicas recentes (2026-04-02)
+
+Melhorias aplicadas no recorte de infraestrutura do suporte tecnico (`INFRA-027C`):
+
+- Extracao de `request-auth` para `packages/api/src/lib/security/request-auth.ts` (`@dosc-syspro/api/request-auth`).
+- Extracao de `observability/logger` para `packages/api/src/lib/observability/logger.ts` (`@dosc-syspro/api/observability/logger`).
+- Extracao de `security/action-rate-limit` para `packages/api/src/lib/security/action-rate-limit.ts` (`@dosc-syspro/api/security/action-rate-limit`).
+- Extracao de `action-error-handler` para `packages/api/src/lib/errors/action-error-handler.ts` (`@dosc-syspro/api/errors/action-error-handler`).
+- `apps/web/src/lib/*` permanece como facade para compatibilidade, com fonte de verdade nos `packages/*`.
 ## Comandos operacionais (referencia rapida)
 
 ### Workspace (raiz)
@@ -172,5 +181,6 @@ npm run test:e2e:headed
 1. Comece por arquitetura (`arquitetura-aplicacao-monorepo` + `estrutura-projeto`).
 2. Para remoto, siga `arquitetura-remote` e depois backlog.
 3. Para entrega, use os comandos desta pagina como baseline de execucao.
+
 
 

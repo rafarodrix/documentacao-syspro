@@ -1,7 +1,7 @@
 ---
 title: Resiliência e Observabilidade na Arquitetura
 description: Deep-dive técnico em estratégias de error handling, observabilidade, rate limiting e padrões de resiliência em nível arquitetural.
-lastUpdated: 2026-03-29
+lastUpdated: 2026-04-02
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -95,7 +95,7 @@ export class IntegrationError extends DomainError {
 ### 1.2 Tratamento em Server Actions
 
 ```typescript
-// src/lib/actions/handle-action-error.ts
+// packages/api/src/lib/errors/action-error-handler.ts
 import { DomainError, ValidationError, RateLimitError } from "@/lib/errors";
 
 export type ActionResponse<T = void> = 
@@ -264,7 +264,7 @@ Nossa abordagem usa **JSON estruturado** com namespace hierárquicos:
 ### 2.2 Implementação do Logger
 
 ```typescript
-// src/lib/observability/logger.ts
+// packages/api/src/lib/observability/logger.ts
 import pino from "pino";
 
 const pinoLogger = pino({
@@ -982,4 +982,5 @@ Antes de fazer PR, sua feature deve ter:
 - [ ] Timeout em todas chamadas HTTP/network
 
 Resiliência não é "nice to have" — é essencial para production! 🛡️
+
 

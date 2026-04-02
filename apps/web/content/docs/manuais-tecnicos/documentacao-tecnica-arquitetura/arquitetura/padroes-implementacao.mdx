@@ -1,7 +1,7 @@
 ---
 title: Padrões de Implementação por Camada
 description: Detalhamento dos padrões implementados (Server Actions, tRPC queries/mutations, error handling, observabilidade) e como aplicá-los.
-lastUpdated: 2026-03-29
+lastUpdated: 2026-04-02
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -33,7 +33,7 @@ Todas as ações em `src/features/<feature>/application/actions.ts`:
 ```typescript
 "use server";
 
-import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import type { ActionResponse } from "@/features/<feature>/domain/model";
 
 // Error handler genérico
@@ -318,7 +318,7 @@ export const userRouter = createRouter({
 
 ```typescript
 // Em application/actions.ts
-import { createLogger } from "@/lib/observability/logger";
+import { createLogger } from "@dosc-syspro/api/observability/logger";
 
 const logger = createLogger("features.users.actions");
 
@@ -722,4 +722,5 @@ Padrões consolidados:
 7. **Error**: tipos específicos + handling por camada
 
 Próxima feature segue exatamente este padrão! 🎯
+
 

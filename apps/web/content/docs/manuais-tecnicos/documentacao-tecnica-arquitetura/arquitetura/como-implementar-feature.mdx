@@ -1,7 +1,7 @@
 ---
 title: Como Implementar uma Nova Feature (Passo a Passo)
 description: Guia prático step-by-step para implementar uma feature completa seguindo padrões de arquitetura.
-lastUpdated: 2026-03-29
+lastUpdated: 2026-04-02
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -316,7 +316,7 @@ export async function listAuditLogsQuery(input: ListAuditLogsInput): Promise<Aud
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { auditWriteRepository } from "@/features/audit/infrastructure/repositories/audit-write.repository";
 import type { AuditActionResponse } from "@/features/audit/domain/model";
-import { logger } from "@/lib/observability/logger";
+import { logger } from "@dosc-syspro/api/observability/logger";
 
 // Error handler
 function handleError(error: unknown): AuditActionResponse {
@@ -635,4 +635,5 @@ Use exatamente o mesmo padrão:
 5. **API** em `packages/api`
 
 Consistência = escalabilidade! 🎯
+
 

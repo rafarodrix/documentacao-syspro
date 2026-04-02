@@ -36,8 +36,10 @@ const COMPANY_ACTION_ERROR_OPTIONS = {
   logPrefix: "[CompanyAction Error]",
 };
 
-function toCompanyActionError(error: unknown): ActionResponse {
-  return handleActionError(error, COMPANY_ACTION_ERROR_OPTIONS);
+function toCompanyActionError<T = void>(
+  error: unknown,
+): Extract<ActionResponse<T>, { success: false }> {
+  return handleActionError(error, COMPANY_ACTION_ERROR_OPTIONS) as Extract<ActionResponse<T>, { success: false }>;
 }
 
 async function getSessionCompanyIds(userId: string): Promise<string[]> {
