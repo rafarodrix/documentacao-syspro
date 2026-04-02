@@ -6,7 +6,7 @@ import { ZammadTicketArticle } from "@dosc-syspro/contracts";
 import { computeTicketSla } from "@dosc-syspro/core";
 import { queryTicketsForViewer } from "@/features/tickets/application/services/ticket-query.service";
 import { mapTicketStateLabel } from "@/features/tickets/infrastructure/mappers/zammad-ticket.mapper";
-import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
 import { getScopedCompanyZammadEmails, isSystemRole } from "@/features/tickets/application/services/ticket-scope.service";

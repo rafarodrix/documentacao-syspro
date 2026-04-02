@@ -10,7 +10,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { Prisma, CompanyStatus, Role } from "@prisma/client";
 import { z } from "zod";
 import { resolveCompanySegmentTriggers } from "@/features/company/domain/company-segments";
-import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { CompanyRegistryGateway } from "@/features/company/infrastructure/gateways/company-registry-gateway";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";

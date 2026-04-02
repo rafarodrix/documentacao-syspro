@@ -7,7 +7,7 @@ import { createUserSchema, CreateUserInput } from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { Prisma, Role } from "@prisma/client";
 import { z } from "zod";
-import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import { userListSelect, mapClientUserListItem } from "@/features/user-access/domain/selects";

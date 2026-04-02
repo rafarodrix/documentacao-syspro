@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
+import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 import { createRemoteBootstrapPort } from "@/features/remote/infrastructure/gateways/remote-domain/bootstrap-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
