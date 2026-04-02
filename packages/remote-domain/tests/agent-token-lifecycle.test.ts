@@ -134,6 +134,46 @@ describe("agent token lifecycle", () => {
     expect(port.persistSync).toHaveBeenCalledOnce();
   });
 
+  it("emits payload warnings when extended sync blocks are invalid", async () => {
+    const port = buildSyncPort();
+
+    const result = await processSync(
+      {
+        agentToken: "valid-token",
+        hardwareIdentity: "invalid",
+        diskSnapshot: { drive: "C" },
+        sysproProcesses: "invalid",
+        windowsUpdateStatus: ["invalid"],
+        rebootPending: "talvez",
+      },
+      { port },
+    );
+
+    expect(result.warnings).toEqual([
+      "SYNC_INVALID_HARDWARE_IDENTITY",
+      "SYNC_INVALID_DISK_SNAPSHOT",
+      "SYNC_INVALID_SYSPRO_PROCESSES",
+      "SYNC_INVALID_WINDOWS_UPDATE_STATUS",
+      "SYNC_INVALID_REBOOT_PENDING",
+    ]);
+
+    expect(port.logWarning).toHaveBeenCalledWith(
+      "remote.domain.sync.payload_warnings",
+      expect.objectContaining({
+        hostId: "host-1",
+      }),
+    );
+
+    expect(port.persistSync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hardwareIdentity: null,
+        diskSnapshot: [],
+        sysproProcesses: [],
+        windowsUpdateStatus: null,
+        rebootPending: null,
+      }),
+    );
+  });
   it("rejects sync when token is invalid", async () => {
     const port = buildSyncPort({
       resolveSyncContextByAgentToken: vi.fn(async () => null),
@@ -167,3 +207,4 @@ describe("agent token lifecycle", () => {
     expect(result.transition.requiresAuthenticatedBootstrap).toBe(true);
   });
 });
+

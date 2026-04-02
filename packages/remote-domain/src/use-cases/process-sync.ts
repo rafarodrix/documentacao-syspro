@@ -31,6 +31,47 @@ function normalizeRecordArray(value: unknown): Array<Record<string, unknown>> {
   return list;
 }
 
+function normalizeOptionalRecordWithWarning(
+  value: unknown,
+  warningCode: string,
+  warnings: string[],
+): Record<string, unknown> | null {
+  if (typeof value === "undefined" || value === null) return null;
+  const normalized = normalizeRecord(value);
+  if (normalized) return normalized;
+  warnings.push(warningCode);
+  return null;
+}
+
+function normalizeOptionalRecordArrayWithWarning(
+  value: unknown,
+  warningCode: string,
+  warnings: string[],
+): Array<Record<string, unknown>> {
+  if (typeof value === "undefined" || value === null) return [];
+  if (!Array.isArray(value)) {
+    warnings.push(warningCode);
+    return [];
+  }
+  return normalizeRecordArray(value);
+}
+
+function normalizeOptionalBooleanWithWarning(value: unknown, warningCode: string, warnings: string[]): boolean | null {
+  if (typeof value === "undefined" || value === null) return null;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "sim") return true;
+    if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "nao") return false;
+  }
+  warnings.push(warningCode);
+  return null;
+}
+
 function getStartOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 }
@@ -128,11 +169,17 @@ export async function processSync(
     });
   }
 
+  const warnings: string[] = [];
   const normalizedSysproUpdates = deps.port.normalizeSysproUpdates(input.sysproUpdates);
-  const systemSnapshot = normalizeRecord(input.systemSnapshot);
-  const networkSnapshot = normalizeRecord(input.networkSnapshot);
-  const softwareSnapshot = normalizeRecordArray(input.softwareSnapshot);
-  const agentMetrics = normalizeRecord(input.agentMetrics);
+  const systemSnapshot = normalizeOptionalRecordWithWarning(input.systemSnapshot, "SYNC_INVALID_SYSTEM_SNAPSHOT", warnings);
+  const networkSnapshot = normalizeOptionalRecordWithWarning(input.networkSnapshot, "SYNC_INVALID_NETWORK_SNAPSHOT", warnings);
+  const softwareSnapshot = normalizeOptionalRecordArrayWithWarning(input.softwareSnapshot, "SYNC_INVALID_SOFTWARE_SNAPSHOT", warnings);
+  const hardwareIdentity = normalizeOptionalRecordWithWarning(input.hardwareIdentity, "SYNC_INVALID_HARDWARE_IDENTITY", warnings);
+  const diskSnapshot = normalizeOptionalRecordArrayWithWarning(input.diskSnapshot, "SYNC_INVALID_DISK_SNAPSHOT", warnings);
+  const sysproProcesses = normalizeOptionalRecordArrayWithWarning(input.sysproProcesses, "SYNC_INVALID_SYSPRO_PROCESSES", warnings);
+  const windowsUpdateStatus = normalizeOptionalRecordWithWarning(input.windowsUpdateStatus, "SYNC_INVALID_WINDOWS_UPDATE_STATUS", warnings);
+  const rebootPending = normalizeOptionalBooleanWithWarning(input.rebootPending, "SYNC_INVALID_REBOOT_PENDING", warnings);
+  const agentMetrics = normalizeOptionalRecordWithWarning(input.agentMetrics, "SYNC_INVALID_AGENT_METRICS", warnings);
 
   const inventory = await deps.port.getInventorySnapshot(context.hostId);
   const dayStart = getStartOfDay(heartbeatAt);
@@ -159,6 +206,13 @@ export async function processSync(
     });
   }
 
+  if (warnings.length > 0) {
+    await deps.port.logWarning("remote.domain.sync.payload_warnings", {
+      hostId: context.hostId,
+      warnings,
+    });
+  }
+
   const persisted = await deps.port.persistSync({
     context,
     heartbeatAt,
@@ -175,6 +229,11 @@ export async function processSync(
     systemSnapshot,
     networkSnapshot,
     softwareSnapshot,
+    hardwareIdentity,
+    diskSnapshot,
+    sysproProcesses,
+    windowsUpdateStatus,
+    rebootPending,
     agentMetrics,
     normalizedSysproUpdates,
     syncDirectives: directives,
@@ -214,6 +273,7 @@ export async function processSync(
       dayStart: dayStart.toISOString(),
       lastFullSysproSnapshotAt: inventory.lastFullSnapshotAt?.toISOString() ?? null,
     },
+    warnings,
     actions: persisted.pendingCommands.map((command) => COMMAND_RESPONSE_MAP[command.type]),
     commandQueue: persisted.pendingCommands.map((command) => ({
       id: command.id,
@@ -231,3 +291,4 @@ export async function processSync(
     },
   };
 }
+

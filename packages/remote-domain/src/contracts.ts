@@ -78,6 +78,11 @@ export const processSyncInputSchema = z.object({
   systemSnapshot: z.unknown().optional(),
   networkSnapshot: z.unknown().optional(),
   softwareSnapshot: z.unknown().optional(),
+  hardwareIdentity: z.unknown().optional(),
+  diskSnapshot: z.unknown().optional(),
+  sysproProcesses: z.unknown().optional(),
+  windowsUpdateStatus: z.unknown().optional(),
+  rebootPending: z.unknown().optional(),
   agentMetrics: z.unknown().optional(),
   metadata: z
     .object({
@@ -280,6 +285,7 @@ export type ProcessSyncOutput = {
     dayStart: string;
     lastFullSysproSnapshotAt: string | null;
   };
+  warnings: string[];
   actions: Array<"reapply_alias" | "reapply_config" | "upgrade_client" | "rotate_token_required">;
   commandQueue: SyncCommandQueueItem[];
   flow: {
@@ -468,3 +474,4 @@ export type RevokeAddressBookCredentialOutput = {
   alreadyRevoked: boolean;
   message: string;
 };
+

@@ -1,31 +1,3 @@
-$ModuleRoot = Split-Path -Parent $PSScriptRoot
-
-. "$ModuleRoot/core/paths.ps1"
-. "$ModuleRoot/core/config.ps1"
-. "$ModuleRoot/core/utils.ps1"
-. "$ModuleRoot/core/logging.ps1"
-. "$ModuleRoot/core/lock.ps1"
-. "$ModuleRoot/core/state.ps1"
-. "$ModuleRoot/core/metrics.ps1"
-. "$ModuleRoot/core/tls.ps1"
-
-. "$ModuleRoot/infra/registry.ps1"
-. "$ModuleRoot/infra/http.ps1"
-. "$ModuleRoot/infra/files.ps1"
-
-. "$ModuleRoot/providers/rustdesk.ps1"
-. "$ModuleRoot/providers/syspro.ps1"
-. "$ModuleRoot/providers/system.ps1"
-. "$ModuleRoot/providers/network.ps1"
-. "$ModuleRoot/providers/software.ps1"
-. "$ModuleRoot/providers/hardware.ps1"
-. "$ModuleRoot/providers/windows-update.ps1"
-. "$ModuleRoot/providers/processes.ps1"
-. "$ModuleRoot/providers/disks.ps1"
-
-. "$ModuleRoot/application/discover.ps1"
-. "$ModuleRoot/application/bootstrap.ps1"
-. "$ModuleRoot/application/sync.ps1"
-. "$ModuleRoot/application/ack.ps1"
-. "$ModuleRoot/application/commands.ps1"
-. "$ModuleRoot/application/health.ps1"
+# Placeholder seguro para modularizacao do agente remoto.
+# Fase 1: arquivo reservado para extracao de funcoes de responsabilidade unica.
+# Modulo: metrics.ps1

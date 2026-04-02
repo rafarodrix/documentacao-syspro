@@ -243,6 +243,11 @@ export type ProcessedSyncRecord = {
   systemSnapshot: Record<string, unknown> | null;
   networkSnapshot: Record<string, unknown> | null;
   softwareSnapshot: Array<Record<string, unknown>>;
+  hardwareIdentity: Record<string, unknown> | null;
+  diskSnapshot: Array<Record<string, unknown>>;
+  sysproProcesses: Array<Record<string, unknown>>;
+  windowsUpdateStatus: Record<string, unknown> | null;
+  rebootPending: boolean | null;
   agentMetrics: Record<string, unknown> | null;
   normalizedSysproUpdates: RemoteSyncIncomingUpdate[];
   syncDirectives: SyncCommandDirective[];
@@ -440,3 +445,4 @@ export interface TrilinkRemoteDomain {
   rotateAddressBookCredential(payload: unknown): Promise<RotateAddressBookCredentialOutput>;
   revokeAddressBookCredential(payload: unknown): Promise<RevokeAddressBookCredentialOutput>;
 }
+

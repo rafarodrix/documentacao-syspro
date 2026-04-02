@@ -611,6 +611,15 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
       };
     },
     async persistSync(record) {
+      logger.info("remote.domain.sync.inventory_ext_received", {
+        hostId: record.context.hostId,
+        hasHardwareIdentity: !!record.hardwareIdentity,
+        diskSnapshotCount: record.diskSnapshot.length,
+        sysproProcessCount: record.sysproProcesses.length,
+        hasWindowsUpdateStatus: !!record.windowsUpdateStatus,
+        rebootPending: record.rebootPending,
+      });
+
       const result = await prisma.$transaction(async (tx) => {
         const saved = await tx.remoteHost.update({
           where: { id: record.context.hostId },
@@ -811,3 +820,4 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
 }
 export { createRemoteHostAdminPort } from "./remote-host-admin-port";
 export { createRemoteAddressBookPort } from "./remote-address-book-port";
+
