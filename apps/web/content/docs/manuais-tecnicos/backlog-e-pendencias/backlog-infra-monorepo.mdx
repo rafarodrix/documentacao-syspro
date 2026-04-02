@@ -1,7 +1,7 @@
 ---
 title: Backlog de Infraestrutura e Estabilizacao
 description: Backlog priorizado com os itens pendentes para estabilizacao do app, consolidacao arquitetural e evolucao das novas funcionalidades.
-lastUpdated: 2026-03-28
+lastUpdated: 2026-04-02
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -98,8 +98,6 @@ Ordem recomendada:
     - para cada linha, anexar ao menos uma evidencia em `Evidencia` (print, log ou link do run).
 - [ ] `FEAT-002` [Media] Estruturar gestao de ambientes, hosts e agentes para operacao remota. Cadastro inicial de host, descricao persistida, observacoes manuais do host, token de instalacao, heartbeat, metadata basica do agente, configuracoes globais do modulo remoto e regeneracao automatica de `installToken` legado ja existem; falta validar auto-registro/heartbeat em ambiente real, materializar instalacao em campo com ciclo recorrente e decidir se a entidade de agente vira tabela propria quando o recorte OSS-first estabilizar.
 - [ ] `FEAT-002A` [Media] Consolidar UX operacional de hosts e agentes. Grid operacional simplificada, cadastro rapido por modal, filtros por status/ambiente/heartbeat, copia rapida de `RustDesk ID`, labels amigaveis, indicadores de prontidao, acesso direto, simplificacao do detalhe do host, edicao de `machineName`, separacao entre observacoes do host vs empresa e matriz compartilhada de status operacional (`ONLINE`, `RECENT`, `OFFLINE`, `MISCONFIGURED`, `SESSION_BUSY`) ja existem; falta fechar consistencia visual entre configuracao, diretorio e detalhe, revisar mobile e reforcar feedback de bloqueios por host.
-- [ ] `FEAT-002G` [Media] Refatorar frontend da aba `/portal/configuracoes?tab=remote` para contrato remoto tipado. Status atual: **parcial**. Ja existe parser unico de resposta remota no frontend (`code/message/httpStatus`) aplicado no formulario de configuracoes e nas acoes de credenciais/address-book, incluindo mensagens acionaveis para `401/403/429`. Avanco concluido: validacao de `RustDesk ID` (7-12 digitos) no frontend em fluxos operacionais. Pendencias para fechar: (1) aplicar o mesmo parser em 100% das actions restantes da aba, (2) revisar copy final para remover qualquer linguagem residual de onboarding legado.
-- [ ] `FEAT-002H` [Media] Refatorar frontend de `/portal/plataforma-remota` para padrao unico de erros e operacao. Status atual: **parcial**. O parser remoto tipado ja foi aplicado em fluxos principais de `directory`, `host-details` e `remote-controls`, com fallback acionavel para `401/403/429`; os estados de `agentToken` e CTA de rebootstrap ja aparecem no diretorio/detalhe. Avanco concluido: retry guiado para `429` no fluxo de triagem/vinculacao e validacao de `RustDesk ID` antes de mutacoes chave. Pendencias para fechar: (1) cobrir 100% das mutacoes (`create/update/delete/link/rotate/revoke/relink/sessions`) com o mesmo parser unificado, (2) concluir sweep de copy OSS-first sem termos residuais antigos.
 - [ ] `FEAT-002I` [Baixa] Sweep de copy/UX do modulo remoto para alinhamento de nomenclatura operacional. Criterios de aceite: (1) remover textos residuais de onboarding legado nas telas de configuracao, diretorio e detalhe, (2) padronizar termos oficiais (`discover`, `bootstrap`, `sync`, `ack`, `agentToken`, `host installer required`), (3) revisar toasts/empty states/tooltips para consistencia com a documentacao tecnica.
 - [ ] `FEAT-002B` [Media] Fechar fluxo OSS-first de agente. Endpoints de `discover`, `bootstrap`, `sync` e `ack`, rate limit basico por IP, `agentToken` pos-bootstrap e manual tecnico OSS ja existem; o pipeline de release ja foi endurecido com segredo injetado por step, contrato NSIS final (`/DDISCOVERY_TOKEN` + `/DPORTAL_BASE_URL`) e runtime do agente via Registry (`HKLM\Software\Trilink\RemoteAgent`). Falta validar auto-vinculo guiado ao host em campo, validar ciclo recorrente em ambiente real, validar reconfiguracao de maquina ja instalada e decidir a estrategia futura do contrato de descoberta.
 - [ ] `FEAT-002C` [Media] Evoluir o agente RustDesk para cenarios `multi-servidores` na mesma maquina. Este recorte esta em fase final: backend ja persiste e sincroniza `sysproUpdates[]` em entidade filha por host, UI ja exibe e permite operacao multiempresa por maquina no diretorio e no detalhe, e os fluxos `discover`/`sync` ja aceitam leitura multi-instalacao. Pendencias para encerramento: abrir lista realmente configuravel de empresas/caminhos Syspro no agente por host, consolidar onboarding do agente para esse modo, validar em campo com discos/bases diferentes e fechar a decisao de produto sobre a entidade filha como objeto operacional completo (alem de leitura de update). **Criterio tecnico obrigatorio**: Smart Scan multi-disco (varredura tatica por pastas `*Syspro*` com profundidade limitada, sem recurse cego na raiz dos discos), com deduplicacao por `empresa+caminho`, envio incremental e snapshot diario completo. A fonte unica deste desenho foi consolidada em `/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`.
@@ -183,7 +181,6 @@ Ordem recomendada:
 
 #### Backlog de implementacao
 
-- [ ] `FEAT-009` [Media] Criar shell inicial de `apps/api` com endpoints de exemplo e contrato de API compartilhado. O esqueleto do app, configuracao de rota, autenticacao basica por token, logger estruturado e endpoint de exemplo ja existem; faltam definir contrato compartilhado, aplicar a esse contrato em endpoints reais, integrar casos de uso do `apps/web` e validar o comportamento em ambiente real.
 - [ ] `FEAT-009A` [Media] Criar shell inicial de backend dedicado para o canal de WhatsApp, com endpoints de exemplo e contrato compartilhado. O esqueleto do app, configuracao de rota, autenticacao basica por token, logger estruturado e endpoint de exemplo ja existem; faltam definir contrato compartilhado, aplicar a esse contrato em endpoints reais, integrar casos de uso do `apps/web` e validar o comportamento em ambiente real.
 - [ ] `UI-001` [Media] Reforcar a consistencia visual do app com o tema compartilhado, aplicando-o integralmente e eliminando hardcodes. O tema compartilhado ja existe em `packages/ui`, foi integrado ao `apps/web` e aplicado em diversos componentes e telas, mas ainda existem pontos de inconsistencia visual e hardcodes de cor, tipografia e espacamento que precisam ser eliminados para garantir uma experiencia visual coesa e aderente ao design system.
 - [ ] `FEAT-010` [Media] Criar shell inicial de `apps/mobile` com boundaries definidas e integracao inicial com o backend. O esqueleto do app, configuracao de rota, autenticacao basica por token, logger estruturado e tela de exemplo ja existem; faltam definir boundaries de integracao, aplicar esses contratos em telas reais, integrar casos de uso do `apps/web` e validar o comportamento em ambiente real.
@@ -192,18 +189,6 @@ Ordem recomendada:
 
 - Revisar responsividade e densidade visual das telas operacionais com foco em uso mobile.
 - Consolidar contratos compartilhados entre `apps/web`, `apps/api` e `apps/mobile` antes de expandir features novas.
-
-## Concluidos recentemente (ate 2026-03-28)
-
-- `INFRA-027A`: `apps/api` conectado aos casos de uso reais de `packages/api` (router remoto, erro tipado e testes base).
-- Parser remoto unificado no frontend (`remote-api.ts`) com consumo consolidado em `directory`, `host-details`, `remote-controls` e `settings`.
-- Testes de erro tipado no frontend remoto para `429` e `409` (`apps/web/tests/remote-api.test.ts`).
-- `FEAT-002G/FEAT-002H` (fechamento rapido UX/contrato):
-  - validacao de `RustDesk ID` (7-12 digitos) antes de mutacoes-chave no frontend remoto;
-  - retry guiado para `429` no fluxo de triagem/vinculacao;
-  - melhoria de consistencia de erro acionavel.
-- `FEAT-002E` (parte automatizada): cobertura inicial de lifecycle de token em `packages/remote-domain/tests/agent-token-lifecycle.test.ts`.
-- Detalhe do host (aba Empresa): leitura padronizada por empresa vinculada e tela somente leitura para dados de cadastro.
 
 ## Proximas etapas (roadmap claro)
 
@@ -222,7 +207,7 @@ Ordem recomendada:
 
 ### Proximo (estabilizacao UX e operacao)
 
-1. `FEAT-002A` + `FEAT-002H` + `FEAT-002I`
+1. `FEAT-002A` + `FEAT-002I`
    - Fechar consistencia visual e copy OSS-first no modulo remoto.
    - Cobrir 100% das mutacoes com parser de erro tipado.
 2. `FEAT-002C`
@@ -259,6 +244,8 @@ Ordem recomendada:
 - desenho do `agentToken` e multi-bases remoto: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote)
 - integracao `Zammad + RustDesk`: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/zammad/integracao-zammad`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/zammad/integracao-zammad)
 - integracao `Zammad + WhatsApp`: [`/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp`](/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp)
+
+
 
 
 
