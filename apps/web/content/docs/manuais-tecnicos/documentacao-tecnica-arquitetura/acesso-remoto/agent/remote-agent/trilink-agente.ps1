@@ -8,7 +8,6 @@ $AgentRoot = if ([string]::IsNullOrWhiteSpace($PSScriptRoot)) {
 }
 
 $RequiredModules = @(
-  "application/health.ps1"
   "core/paths.ps1",
   "core/config.ps1",
   "core/utils.ps1",
@@ -148,7 +147,7 @@ try {
     $sysproUpdatesToSend = @()
     if ($sendFullSnapshot) {
         $sysproUpdatesToSend = $sysproUpdatesFull
-        Write-Log "sysproUpdates: enviando snapshot completo. count=$(@($sysproUpdatesToSend).Count) hash=$sysproHash today=$todayUtc"
+        Write-Log "sysproUpdates: enviando snapshot completo. count=$($sysproUpdatesToSend.Count) hash=$sysproHash today=$todayUtc"
     } else {
         Write-Log "sysproUpdates: sem mudanca, enviando array vazio. hash=$sysproHash previous=$($state.lastSysproHash)"
     }
@@ -167,7 +166,7 @@ try {
         sysproUpdates     = $sysproUpdatesToSend
     }
 
-    Write-Log "discover request: rustdeskId=$rustdeskId machine=$env:COMPUTERNAME serviceAfter=$($selfHeal.serviceStatusAfter) updatesCount=$(@($sysproUpdatesToSend).Count)"
+    Write-Log "discover request: rustdeskId=$rustdeskId machine=$env:COMPUTERNAME serviceAfter=$($selfHeal.serviceStatusAfter) updatesCount=$($sysproUpdatesToSend.Count)"
     $phaseDiscoverSw = [System.Diagnostics.Stopwatch]::StartNew()
     $discover = Invoke-AgentDiscover -PortalBaseUrl $portalBaseUrl -Payload $discoverPayload
     $phaseTimings.discover = [int]$phaseDiscoverSw.ElapsedMilliseconds
@@ -281,7 +280,7 @@ try {
         $softwareSnapshotChanged = ($state.lastSoftwareHash -ne $softwareSnapshotHash)
         $softwareSnapshotToSend  = if ($softwareSnapshotChanged) { $softwareSnapshotFull } else { @() }
         $softwareScanPerformed   = $true
-        Write-Log "softwareSnapshot: scan_due=true changed=$softwareSnapshotChanged count=$(@($softwareSnapshotToSend).Count)"
+        Write-Log "softwareSnapshot: scan_due=true changed=$softwareSnapshotChanged count=$($softwareSnapshotToSend.Count)"
     } else {
         Write-Log "softwareSnapshot: scan_due=false changed=false count=0"
     }
@@ -313,14 +312,14 @@ try {
     $networkSnapshotHash    = Get-Sha256Hex -InputText $networkSnapshotJson
     $networkSnapshotChanged = ($state.lastNetworkHash -ne $networkSnapshotHash)
     $networkSnapshotToSend  = if ($networkSnapshotChanged) { $networkSnapshotFull } else { $null }
-    Write-Log "networkSnapshot: changed=$networkSnapshotChanged adapters=$(@($networkSnapshotFull.adapters).Count)"
+    Write-Log "networkSnapshot: changed=$networkSnapshotChanged adapters=$($networkSnapshotFull.adapters.Count)"
 
     # Novas coletas
     $hardwareIdentity    = Get-HardwareIdentity
     Write-Log "hardwareIdentity: serial=$($hardwareIdentity.biosSerial) model=$($hardwareIdentity.systemModel) manufacturer=$($hardwareIdentity.systemManufacturer)"
 
     $diskSnapshot = Get-DiskSnapshot
-    Write-Log "diskSnapshot: drives=$(@($diskSnapshot).Count)"
+    Write-Log "diskSnapshot: drives=$($diskSnapshot.Count)"
 
     $sysproProcesses = Get-SysproProcessStatus
     foreach ($proc in $sysproProcesses) {
@@ -348,7 +347,7 @@ try {
         -WindowsUpdateStatus $windowsUpdateStatus `
         -AgentMetrics $metricsPreSync
 
-    Write-Log "sync request: rustdeskId=$rustdeskId machine=$env:COMPUTERNAME tokenMask=$(Mask-Secret -Value $agentToken) updatesCount=$(@($sysproUpdatesToSend).Count)"
+    Write-Log "sync request: rustdeskId=$rustdeskId machine=$env:COMPUTERNAME tokenMask=$(Mask-Secret -Value $agentToken) updatesCount=$($sysproUpdatesToSend.Count)"
     $phaseSyncSw = [System.Diagnostics.Stopwatch]::StartNew()
     $sync = Invoke-AgentSync -PortalBaseUrl $portalBaseUrl -Payload $syncPayload
     $phaseTimings.sync = [int]$phaseSyncSw.ElapsedMilliseconds
@@ -371,7 +370,7 @@ try {
     }
 
     $queue = Extract-CommandQueue -SyncData $syncData
-    Write-Log "sync OK. commandQueue=$(@($queue).Count)"
+    Write-Log "sync OK. commandQueue=$($queue.Count)"
 
     # ACK loop
     $phaseAckTotal = 0
@@ -414,8 +413,8 @@ try {
         }
     }
     $phaseTimings.ack      = [int]$phaseAckTotal
-    $phaseTimings.ackCount = [int]@($queue).Count
-    Write-Log "ack loop: commands=$(@($queue).Count) totalMs=$phaseAckTotal"
+    $phaseTimings.ackCount = [int]$queue.Count
+    Write-Log "ack loop: commands=$($queue.Count) totalMs=$phaseAckTotal"
 
     # Persistir estado
     if ($sendFullSnapshot) {
