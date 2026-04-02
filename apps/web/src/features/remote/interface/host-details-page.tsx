@@ -632,6 +632,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const systemSnapshot = details.agentTelemetry.systemSnapshot;
   const networkSnapshot = details.agentTelemetry.networkSnapshot;
   const softwareSnapshot = details.agentTelemetry.softwareSnapshot;
+  const hardwareIdentity = details.agentTelemetry.hardwareIdentity;
+  const diskSnapshot = details.agentTelemetry.diskSnapshot;
+  const sysproProcessSnapshot = details.agentTelemetry.sysproProcessSnapshot;
+  const windowsUpdateStatus = details.agentTelemetry.windowsUpdateStatus;
+  const rebootPending = details.agentTelemetry.rebootPending;
   const agentMetrics = details.agentTelemetry.agentMetrics;
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
@@ -977,7 +982,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <p className="text-sm font-medium text-foreground">Hardware e conectividade reportados pelo agente</p>
-                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   <div className="rounded-xl border border-border/50 bg-background/60 p-3">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sistema operacional</p>
                     <p className="mt-2 text-sm text-foreground">
@@ -1006,9 +1011,32 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.networkSnapshotAt)}</p>
                   </div>
                   <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Software inventariado</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Inventario de software</p>
                     <p className="mt-2 text-sm text-foreground">{softwareSnapshot.length} item(ns)</p>
                     <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.softwareSnapshotAt)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Hardware e discos</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      Modelo: {typeof hardwareIdentity?.systemModel === "string" && hardwareIdentity.systemModel.trim()
+                        ? hardwareIdentity.systemModel
+                        : "Sem leitura"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Volumes: {diskSnapshot.length} | Atualizado em {formatDateTime(details.agentTelemetry.diskSnapshotAt)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Saude operacional</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      Reboot pendente: {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim" : "Nao"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Processos Syspro em alerta: {sysproProcessSnapshot.filter((entry) => entry["running"] === false).length}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Updates pendentes: {typeof windowsUpdateStatus?.["pendingCount"] === "number" ? windowsUpdateStatus["pendingCount"] : "-"}
+                    </p>
                   </div>
                 </div>
                 <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
@@ -1019,6 +1047,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         systemSnapshot: systemSnapshot ?? { status: "Sem leitura" },
                         networkSnapshot: networkSnapshot ?? { status: "Sem leitura" },
                         softwareSnapshot: softwareSnapshot.length ? softwareSnapshot : [{ status: "Sem leitura" }],
+                        hardwareIdentity: hardwareIdentity ?? { status: "Sem leitura" },
+                        diskSnapshot: diskSnapshot.length ? diskSnapshot : [{ status: "Sem leitura" }],
+                        sysproProcessSnapshot: sysproProcessSnapshot.length ? sysproProcessSnapshot : [{ status: "Sem leitura" }],
+                        windowsUpdateStatus: windowsUpdateStatus ?? { status: "Sem leitura" },
+                        rebootPending: rebootPending,
                       },
                       null,
                       2
@@ -1666,3 +1699,4 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     </div>
   );
 }
+

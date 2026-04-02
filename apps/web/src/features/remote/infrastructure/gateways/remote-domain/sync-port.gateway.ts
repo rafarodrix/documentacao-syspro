@@ -202,6 +202,16 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
           lastNetworkSnapshotAt: record.networkSnapshot ? record.heartbeatAt : undefined,
           lastSoftwareSnapshot: record.softwareSnapshot.length ? toJsonValue(record.softwareSnapshot) : undefined,
           lastSoftwareSnapshotAt: record.softwareSnapshot.length ? record.heartbeatAt : undefined,
+          lastHardwareIdentity: record.hardwareIdentity ? toJsonValue(record.hardwareIdentity) : undefined,
+          lastHardwareIdentityAt: record.hardwareIdentity ? record.heartbeatAt : undefined,
+          lastDiskSnapshot: record.diskSnapshot.length ? toJsonValue(record.diskSnapshot) : undefined,
+          lastDiskSnapshotAt: record.diskSnapshot.length ? record.heartbeatAt : undefined,
+          lastSysproProcessSnapshot: record.sysproProcesses.length ? toJsonValue(record.sysproProcesses) : undefined,
+          lastSysproProcessSnapshotAt: record.sysproProcesses.length ? record.heartbeatAt : undefined,
+          lastWindowsUpdateStatus: record.windowsUpdateStatus ? toJsonValue(record.windowsUpdateStatus) : undefined,
+          lastWindowsUpdateStatusAt: record.windowsUpdateStatus ? record.heartbeatAt : undefined,
+          lastRebootPending: typeof record.rebootPending === "boolean" ? record.rebootPending : undefined,
+          lastRebootPendingAt: typeof record.rebootPending === "boolean" ? record.heartbeatAt : undefined,
           lastAgentMetrics: record.agentMetrics ? toJsonValue(record.agentMetrics) : undefined,
           lastAgentMetricsAt: record.agentMetrics ? record.heartbeatAt : undefined,
           status: "ACTIVE",
@@ -344,3 +354,4 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
     },
   };
 }
+

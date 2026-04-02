@@ -106,6 +106,16 @@ function mapDirectoryItem(host: {
   lastKnownRustDeskApiHost?: string | null;
   lastKnownRustDeskPublicKeyHash?: string | null;
   lastRustDeskConfigSyncAt?: Date | null;
+  lastHardwareIdentity?: unknown;
+  lastHardwareIdentityAt?: Date | null;
+  lastDiskSnapshot?: unknown;
+  lastDiskSnapshotAt?: Date | null;
+  lastSysproProcessSnapshot?: unknown;
+  lastSysproProcessSnapshotAt?: Date | null;
+  lastWindowsUpdateStatus?: unknown;
+  lastWindowsUpdateStatusAt?: Date | null;
+  lastRebootPending?: boolean | null;
+  lastRebootPendingAt?: Date | null;
   company: { nomeFantasia: string | null; razaoSocial: string };
   sessions: Array<{ createdAt: Date; status: string; ticketNumber: string | null }>;
 }): RemoteConfiguredHostItem {
@@ -134,6 +144,24 @@ function mapDirectoryItem(host: {
     rustdeskId: host.agentExternalId,
     lastHeartbeatAt: host.lastHeartbeatAt,
   });
+  const windowsUpdateStatus = toRecord(host.lastWindowsUpdateStatus);
+  const diskSnapshot = toRecordArray(host.lastDiskSnapshot);
+  const sysproProcessSnapshot = toRecordArray(host.lastSysproProcessSnapshot);
+  const rebootPendingFromWindows = readBooleanRecordValue(windowsUpdateStatus, "rebootRequired");
+  const rebootPending = typeof host.lastRebootPending === "boolean" ? host.lastRebootPending : rebootPendingFromWindows;
+  const windowsPendingCount = readNumberRecordValue(windowsUpdateStatus, "pendingCount");
+  const diskLow = diskSnapshot.some((entry) => {
+    const freePercent = readNumberRecordValue(entry, "freePercent");
+    const freeGb = readNumberRecordValue(entry, "freeGb");
+    if (typeof freePercent === "number" && freePercent <= 10) return true;
+    if (typeof freeGb === "number" && freeGb <= 5) return true;
+    return false;
+  });
+  const sysproProcessDown = sysproProcessSnapshot.some((entry) => readBooleanRecordValue(entry, "running") === false);
+  const extendedSnapshotDates = [host.lastHardwareIdentityAt, host.lastDiskSnapshotAt, host.lastSysproProcessSnapshotAt, host.lastWindowsUpdateStatusAt, host.lastRebootPendingAt].filter((value): value is Date => value instanceof Date);
+  const lastExtendedSnapshotAt = extendedSnapshotDates.length
+    ? new Date(Math.max(...extendedSnapshotDates.map((value) => value.getTime()))).toISOString()
+    : null;
 
   return {
     id: host.id,
@@ -170,6 +198,13 @@ function mapDirectoryItem(host: {
     lastSessionAt,
     lastSessionStatus,
     lastTicketNumber,
+    inventorySignals: {
+      rebootPending,
+      diskLow,
+      sysproProcessDown,
+      windowsPendingCount,
+      lastExtendedSnapshotAt,
+    },
     agent: {
       installToken: host.installToken,
       rustdeskId: host.agentExternalId,
@@ -297,6 +332,33 @@ function toRecordArray(value: unknown): Array<Record<string, unknown>> {
     if (list.length >= 200) break;
   }
   return list;
+}
+
+function readBooleanRecordValue(record: Record<string, unknown> | null, key: string): boolean | null {
+  if (!record) return null;
+  const value = record[key];
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "sim") return true;
+    if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "nao") return false;
+  }
+  return null;
+}
+
+function readNumberRecordValue(record: Record<string, unknown> | null, key: string): number | null {
+  if (!record) return null;
+  const value = record[key];
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
 }
 
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
@@ -1096,6 +1158,16 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       networkSnapshotAt: host.lastNetworkSnapshotAt?.toISOString() ?? null,
       softwareSnapshot: toRecordArray(host.lastSoftwareSnapshot),
       softwareSnapshotAt: host.lastSoftwareSnapshotAt?.toISOString() ?? null,
+      hardwareIdentity: toRecord(host.lastHardwareIdentity),
+      hardwareIdentityAt: host.lastHardwareIdentityAt?.toISOString() ?? null,
+      diskSnapshot: toRecordArray(host.lastDiskSnapshot),
+      diskSnapshotAt: host.lastDiskSnapshotAt?.toISOString() ?? null,
+      sysproProcessSnapshot: toRecordArray(host.lastSysproProcessSnapshot),
+      sysproProcessSnapshotAt: host.lastSysproProcessSnapshotAt?.toISOString() ?? null,
+      windowsUpdateStatus: toRecord(host.lastWindowsUpdateStatus),
+      windowsUpdateStatusAt: host.lastWindowsUpdateStatusAt?.toISOString() ?? null,
+      rebootPending: typeof host.lastRebootPending === "boolean" ? host.lastRebootPending : null,
+      rebootPendingAt: host.lastRebootPendingAt?.toISOString() ?? null,
       agentMetrics: toRecord(host.lastAgentMetrics),
       agentMetricsAt: host.lastAgentMetricsAt?.toISOString() ?? null,
     },
@@ -1230,3 +1302,4 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     })),
   };
 }
+

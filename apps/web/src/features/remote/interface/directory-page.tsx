@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
@@ -892,6 +892,21 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                               {agentToken.label}
                             </Badge>
                           ) : null}
+                          {item.inventorySignals.rebootPending === true ? (
+                            <Badge variant="outline" className="border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300">
+                              Reboot pendente
+                            </Badge>
+                          ) : null}
+                          {item.inventorySignals.diskLow ? (
+                            <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                              Disco baixo
+                            </Badge>
+                          ) : null}
+                          {item.inventorySignals.sysproProcessDown ? (
+                            <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                              Processo Syspro parado
+                            </Badge>
+                          ) : null}
                         </div>
 
                         <div className="space-y-1">
@@ -984,6 +999,15 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         <div className="rounded-lg border border-border/50 bg-background/50 p-3">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
                           <p className="mt-1 text-sm text-foreground">{item.provider ?? "Sem registro"}</p>
+                        </div>
+                        <div className="rounded-lg border border-border/50 bg-background/50 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Inventario tecnico</p>
+                          <p className="mt-1 text-sm text-foreground">
+                            {item.inventorySignals.lastExtendedSnapshotAt
+                              ? new Date(item.inventorySignals.lastExtendedSnapshotAt).toLocaleString("pt-BR")
+                              : "Sem leitura"
+                            }
+                          </p>
                         </div>
                         <div className="rounded-lg border border-border/50 bg-background/50 p-3">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Descricao</p>

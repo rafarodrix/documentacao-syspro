@@ -265,6 +265,13 @@ export type RemoteConfiguredHostItem = {
     lifecycleStatus: RemoteAgentLifecycleStatus;
     installStages: RemoteAgentInstallStage[];
   };
+  inventorySignals: {
+    rebootPending: boolean | null;
+    diskLow: boolean;
+    sysproProcessDown: boolean;
+    windowsPendingCount: number | null;
+    lastExtendedSnapshotAt: string | null;
+  };
 };
 
 export type RemoteDiscoveredHostItem = {
@@ -392,6 +399,16 @@ export type RemoteHostDetails = {
     networkSnapshotAt: string | null;
     softwareSnapshot: Array<Record<string, unknown>>;
     softwareSnapshotAt: string | null;
+    hardwareIdentity: Record<string, unknown> | null;
+    hardwareIdentityAt: string | null;
+    diskSnapshot: Array<Record<string, unknown>>;
+    diskSnapshotAt: string | null;
+    sysproProcessSnapshot: Array<Record<string, unknown>>;
+    sysproProcessSnapshotAt: string | null;
+    windowsUpdateStatus: Record<string, unknown> | null;
+    windowsUpdateStatusAt: string | null;
+    rebootPending: boolean | null;
+    rebootPendingAt: string | null;
     agentMetrics: Record<string, unknown> | null;
     agentMetricsAt: string | null;
   };
@@ -463,3 +480,4 @@ export type RemoteHostDetails = {
     durationSeconds: number | null;
   }>;
 };
+

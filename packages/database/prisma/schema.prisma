@@ -579,6 +579,16 @@ model RemoteHost {
   lastSoftwareSnapshotAt DateTime?
   lastAgentMetrics Json?
   lastAgentMetricsAt DateTime?
+  lastHardwareIdentity Json?
+  lastHardwareIdentityAt DateTime?
+  lastDiskSnapshot Json?
+  lastDiskSnapshotAt DateTime?
+  lastSysproProcessSnapshot Json?
+  lastSysproProcessSnapshotAt DateTime?
+  lastWindowsUpdateStatus Json?
+  lastWindowsUpdateStatusAt DateTime?
+  lastRebootPending Boolean?
+  lastRebootPendingAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1255,3 +1265,4 @@ model ZammadSyncState {
   lastProcessedAt   DateTime?
   updatedAt         DateTime @updatedAt
 }
+
