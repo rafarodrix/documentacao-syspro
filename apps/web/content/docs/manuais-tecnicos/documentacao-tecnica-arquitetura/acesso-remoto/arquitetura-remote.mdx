@@ -1,7 +1,7 @@
 ---
 title: Operacao do Agente Remoto OSS
 description: Fluxo tecnico vigente para descoberta, instalacao, heartbeat, validacao operacional, token lifecycle, sessions e observabilidade do agente remoto no modelo RustDesk self-hosted com portal proprio.
-lastUpdated: 2026-03-29
+lastUpdated: 2026-04-02
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -410,6 +410,102 @@ Esses valores alimentam:
 
 - `GET /api/remote/rustdesk/client-profile`
 
+## Backlog tecnico priorizado (agente + portal)
+
+### EPIC-RM-01 (P0): comando `UPGRADE_CLIENT` executavel de ponta a ponta
+
+Objetivo:
+
+- eliminar gap entre comando emitido pelo portal e acao efetiva no agente.
+
+Tarefas:
+
+1. agente: implementar executor real para `UPGRADE_CLIENT` com download seguro, validacao de integridade e resultado estruturado no ACK.
+2. agente: criar politica de rollback local quando upgrade falhar (reverter binario/configuracao aplicavel).
+3. portal: bloquear emissao de `UPGRADE_CLIENT` para hosts sem pre-requisitos declarados.
+4. portal: registrar telemetria de sucesso/falha por comando.
+
+Criterios de aceite:
+
+- `UPGRADE_CLIENT` deixa de ficar em estado entregue sem efeito pratico.
+- ACK retorna status consistente e detalhes de versao antes/depois.
+- erro de upgrade gera trilha auditavel no portal.
+
+### EPIC-RM-02 (P0): reduzir bootstrap desnecessario e custo de rede
+
+Objetivo:
+
+- evitar bootstrap recorrente quando host ja esta operando com token valido.
+
+Tarefas:
+
+1. agente: priorizar `sync` quando houver `agentToken` valido; usar `discover` apenas em triagem/onboarding.
+2. portal: remover dependencia de heuristica textual de erro para decidir `host_bootstrap_required`.
+3. portal: introduzir estado explicito de credencial (valida, expirada, revogada, rotacionada).
+4. agente: executar `bootstrap` somente quando `sync` retornar 401/403 ou quando estado local exigir rebootstrap.
+
+Criterios de aceite:
+
+- taxa de `bootstrap` por host cai para patamar excepcional.
+- fluxo nominal em host ativo fica `sync -> ack`.
+- `discover` nao dirige operacao recorrente de host ja vinculado.
+
+### EPIC-RM-03 (P1): politica de ciclo centralizada no portal
+
+Objetivo:
+
+- desacoplar cadencia operacional do Task Scheduler local.
+
+Tarefas:
+
+1. portal: expor policy de ciclo (intervalo, jitter maximo, limites de backoff, flags de coleta).
+2. agente: consumir policy remota com fallback local seguro.
+3. portal: permitir rollout gradual por grupo/canario de hosts.
+4. agente: registrar policy aplicada em `agentMetrics`.
+
+Criterios de aceite:
+
+- intervalo efetivo de ciclo pode ser alterado sem redistribuir script.
+- mudanca de policy aparece em telemetria no portal.
+- fallback local mantem operacao se policy remota indisponivel.
+
+### EPIC-RM-04 (P1): hardening de API remota e observabilidade
+
+Objetivo:
+
+- aumentar protecao de borda e facilitar diagnostico rapido.
+
+Tarefas:
+
+1. API: aplicar rate limit dedicado em `bootstrap`, `sync` e `ack`.
+2. API/agente: padronizar `correlationId` por ciclo (`discover/bootstrap/sync/ack`).
+3. portal: criar painel de saude com SLO de ciclo (sucesso, bootstrap rate, ack failure rate, rebootstrap rate).
+4. dominio: padronizar eventos e codigos de warning/erro para consulta operacional.
+
+Criterios de aceite:
+
+- endpoints de producao possuem protecao anti-abuso uniforme.
+- ciclo completo pode ser rastreado por um unico `correlationId`.
+- suporte identifica degradacao sem inspeção manual de log em host.
+
+### EPIC-RM-05 (P2): consolidacao de fluxo legado
+
+Objetivo:
+
+- reduzir superficie de manutencao e ambiguidade de protocolo.
+
+Tarefas:
+
+1. revisar uso de `processHeartbeat` no dominio remoto e manter apenas quando houver consumidor real.
+2. se nao houver consumidor: descontinuar rota/caso de uso legado com plano de retirada.
+3. atualizar documentacao e testes para refletir unicamente `discover/bootstrap/sync/ack`.
+
+Criterios de aceite:
+
+- existe um unico fluxo oficial operacional.
+- documentacao e contratos nao entram em conflito.
+- cobertura de testes representa somente fluxo vigente.
+
 ## Segredos de CI/CD (GitHub Actions)
 
 Para build e operacao de descoberta no pipeline, configure os secrets no repositorio:
@@ -469,6 +565,13 @@ Comportamento de instalacao:
   - `HKLM\Software\Trilink\RemoteAgent\PortalBaseUrl`
 - agenda tarefa `TrilinkRemoteAgent` a cada 5 minutos como `SYSTEM`
 - executa uma chamada inicial do agente logo apos instalar
+
+Baseline oficial de execucao (rollout):
+
+- manter uma unica rotina recorrente via task `TrilinkRemoteAgent` em contexto `SYSTEM`
+- nao manter agendamentos paralelos do mesmo agente em contexto de usuario (`USER`, `Administrator` ou contas locais)
+- durante homologacao manual, executar o script de forma pontual e encerrar; a operacao continua deve ficar apenas na task `SYSTEM`
+- se houver execucao concorrente acidental, o lock global evita corrida, mas esse estado deve ser tratado como desvio operacional
 
 Comportamento de desinstalacao:
 

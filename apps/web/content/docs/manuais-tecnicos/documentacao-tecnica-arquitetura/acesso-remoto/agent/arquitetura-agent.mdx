@@ -189,6 +189,51 @@ Checklist minimo:
 4. validar warnings de payload no sync
 5. definir canario interno por versao do agente
 6. documentar criterio de rollback
+7. padronizar execucao em campo com task unica `TrilinkRemoteAgent` em `SYSTEM` (sem scheduler paralelo em contexto de usuario)
+
+## Plano de implementacao recomendado (proximas sprints)
+
+### Sprint A (P0): estabilidade operacional do ciclo
+
+Escopo:
+
+1. implementar execucao real de `UPGRADE_CLIENT` no agente (`application/commands.ps1`) com ACK detalhado.
+2. ajustar orquestracao no `trilink-agente.ps1` para priorizar `sync` com token valido e reduzir bootstrap recorrente.
+3. manter invalidacao de token apenas apos finalizar a fila de ACK (sem quebrar comandos subsequentes).
+
+Definicao de pronto:
+
+- comando `UPGRADE_CLIENT` tem caminho de sucesso e falha cobertos.
+- ciclo nominal de host ativo conclui sem bootstrap desnecessario.
+- testes locais do fluxo de comandos passam.
+
+### Sprint B (P1): politica remota de execucao
+
+Escopo:
+
+1. criar consumo de policy remota para intervalo/jitter/backoff com fallback local.
+2. registrar policy aplicada e tempo por fase em `agentMetrics`.
+3. revisar thresholds de coleta (software/system/network) com base em policy.
+
+Definicao de pronto:
+
+- intervalo do ciclo pode ser ajustado no portal sem alterar pacote local.
+- metricas de ciclo mostram policy aplicada no host.
+- fallback local preserva operacao offline de configuracao.
+
+### Sprint C (P1): hardening e observabilidade
+
+Escopo:
+
+1. padronizar `correlationId` por ciclo em todas as chamadas HTTP do agente.
+2. aumentar sinais operacionais no log para erros de autenticacao/rate limit/timeout.
+3. alinhar codigos de warning com o dominio remoto para triagem mais rapida.
+
+Definicao de pronto:
+
+- chamadas `discover/bootstrap/sync/ack` podem ser correlacionadas fim a fim.
+- suporte consegue diagnosticar falha de ciclo sem acesso interativo ao host.
+- taxa de falso positivo em rebootstrap reduzida.
 
 ## Referencias
 
