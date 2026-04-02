@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
-import { createRequestLogger } from "@/lib/observability/logger";
+import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 import {
   createRemoteSyncPort,
   revokeExpiredSyncAgentToken,

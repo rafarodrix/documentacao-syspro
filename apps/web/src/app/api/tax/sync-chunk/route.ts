@@ -10,7 +10,7 @@ import {
   saveTaxNcmBatch,
 } from "@/features/tax/application/actions";
 import type { TaxActionResponse, TaxSyncChunkRequest, TaxSyncMode } from "@/features/tax/domain/model";
-import { createRequestLogger } from "@/lib/observability/logger";
+import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 
 function isSyncMode(value: unknown): value is TaxSyncMode {
   return value === "classTrib" || value === "anexos" || value === "credPresumido" || value === "ncm";

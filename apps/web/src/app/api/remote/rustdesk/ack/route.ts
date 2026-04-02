@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createRequestLogger } from "@/lib/observability/logger";
+import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
 import { createRemoteAckPort } from "@/features/remote/infrastructure/gateways/remote-domain/ack-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";

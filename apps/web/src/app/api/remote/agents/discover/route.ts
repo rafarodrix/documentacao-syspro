@@ -1,6 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { consumeActionRateLimit } from "@/lib/security/action-rate-limit";
-import { createRequestLogger } from "@/lib/observability/logger";
+import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 import { createRemoteDiscoverPort } from "@/features/remote/infrastructure/gateways/remote-domain/discover-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";

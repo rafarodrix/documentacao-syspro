@@ -3,7 +3,7 @@ import { analyzeSefazResponse, buildDefaultSefazRoutes } from "@dosc-syspro/cont
 import { SETTING_KEYS } from "@dosc-syspro/contracts";
 import { sefazRoutesSchema } from "@dosc-syspro/contracts";
 import type { SefazServiceType, SefazStatusType } from "@prisma/client";
-import { createLogger } from "@/lib/observability/logger";
+import { createLogger } from "@dosc-syspro/api/observability/logger";
 
 type SefazCheckResult = {
     uf: string;

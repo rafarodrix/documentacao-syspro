@@ -4,7 +4,7 @@ import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad
 import { upsertOperationalTicketsToCache } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { prisma } from "@/lib/prisma";
 import { isValidSecretToken } from "@dosc-syspro/api/request-auth";
-import { createRequestLogger } from "@/lib/observability/logger";
+import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.ZAMMAD_SYNC_SECRET;

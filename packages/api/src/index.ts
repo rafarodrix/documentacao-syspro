@@ -8,6 +8,11 @@ export { contractsRouter } from "./routers/contracts";
 export { taxRouter } from "./routers/tax";
 export { remoteRouter } from "./routers/remote";
 export {
+  createLogger,
+  createRequestLogger,
+  getCorrelationIdFromRequest,
+} from "./lib/observability/logger";
+export {
   computeHmacSha256Hex,
   extractSecretToken,
   isValidHmacSignature,
@@ -16,5 +21,6 @@ export {
 } from "./lib/security/request-auth";
 export type { AppRouter } from "./routers/app";
 export type { ApiContext, ApiLogger, AuthLikeSession, ProcedureDefinition, RouterDefinition } from "./lib/contracts";
+export type { LogFields, LogLevel, RequestLoggerLike, RequestLoggerOptions } from "./lib/observability/logger";
 export type { RequestLike, SecretTokenOptions } from "./lib/security/request-auth";
 export { configureRemoteSessionTicketNoteHandler } from "./remote-domain-ports";

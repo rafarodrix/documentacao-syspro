@@ -11,6 +11,7 @@
     ".": "./src/index.ts",
     "./context": "./src/context.ts",
     "./router": "./src/router.ts",
+    "./observability/logger": "./src/lib/observability/logger.ts",
     "./request-auth": "./src/lib/security/request-auth.ts",
     "./routers/app": "./src/routers/app.ts",
     "./routers/company": "./src/routers/company.ts",

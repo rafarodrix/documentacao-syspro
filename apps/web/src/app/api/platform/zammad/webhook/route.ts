@@ -5,7 +5,7 @@ import { handleZammadRemoteWebhook } from "@/features/remote/application/zammad-
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { isValidHmacSignature } from "@dosc-syspro/api/request-auth";
-import { createRequestLogger } from "@/lib/observability/logger";
+import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 
 function isAuthorized(request: Request, rawBody: string): boolean {
   const hmacSecret = process.env.ZAMMAD_WEBHOOK_HMAC_SECRET ?? process.env.ZAMMAD_WEBHOOK_SECRET;
