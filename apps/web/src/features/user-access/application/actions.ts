@@ -14,7 +14,7 @@ import { userListSelect, mapClientUserListItem } from "@/features/user-access/do
 import type { UserAccessActionResponse, UserAccessListItem, UserAccessValidationErrors, } from "@/features/user-access/domain/model";
 import { SYSTEM_ROLES, CLIENT_ROLES, READ_ROLES, } from "@/features/user-access/domain/constants";
 import { getUserCompanyIds } from "@/features/user-access/infrastructure/membership-helpers";
-import { handleActionError } from "@/lib/action-error-handler";
+import { handleActionError } from "@dosc-syspro/api/errors/action-error-handler";
 
 interface GetUsersParams {
     search?: string;

@@ -7,6 +7,7 @@ export { settingsRouter } from "./routers/settings";
 export { contractsRouter } from "./routers/contracts";
 export { taxRouter } from "./routers/tax";
 export { remoteRouter } from "./routers/remote";
+export { handleActionError } from "./lib/errors/action-error-handler";
 export {
   createLogger,
   createRequestLogger,
@@ -22,6 +23,7 @@ export {
 } from "./lib/security/request-auth";
 export type { AppRouter } from "./routers/app";
 export type { ApiContext, ApiLogger, AuthLikeSession, ProcedureDefinition, RouterDefinition } from "./lib/contracts";
+export type { ActionErrorResponse, HandleActionErrorOptions } from "./lib/errors/action-error-handler";
 export type { LogFields, LogLevel, RequestLoggerLike, RequestLoggerOptions } from "./lib/observability/logger";
 export type { RateLimitOptions, RateLimitWindow } from "./lib/security/action-rate-limit";
 export type { RequestLike, SecretTokenOptions } from "./lib/security/request-auth";

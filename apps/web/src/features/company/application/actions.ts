@@ -7,17 +7,17 @@ import {
   type CreateCompanyOutput,
 } from "@/features/company/application/company-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { Prisma, CompanyStatus, Role } from "@prisma/client";
+import { CompanyStatus, Role } from "@prisma/client";
 import { z } from "zod";
 import { resolveCompanySegmentTriggers } from "@/features/company/domain/company-segments";
 import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
+import { handleActionError } from "@dosc-syspro/api/errors/action-error-handler";
 import { getRequestIp } from "@/lib/security/request-context";
 import { CompanyRegistryGateway } from "@/features/company/infrastructure/gateways/company-registry-gateway";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
   CompanyActionResponse as ActionResponse,
   CompanyContactInput,
-  CompanyActionFailure,
   CompanyRegistryLookupResponse,
   CompanyValidationErrors,
   CompanyZammadEmailInput,
@@ -28,6 +28,17 @@ const CREATE_ROLES: Role[] = SYSTEM_ROLES;
 const UPDATE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
 const DELETE_ROLES: Role[] = [Role.ADMIN];
 const CREATE_COMPANY_RATE_LIMIT = { max: 6, windowMs: 60_000 };
+const COMPANY_ACTION_ERROR_OPTIONS = {
+  defaultMessage: "Ocorreu um erro interno. Tente novamente.",
+  duplicateFieldMessages: {
+    cnpj: "Este CNPJ ja esta cadastrado no sistema.",
+  },
+  logPrefix: "[CompanyAction Error]",
+};
+
+function toCompanyActionError(error: unknown): ActionResponse {
+  return handleActionError(error, COMPANY_ACTION_ERROR_OPTIONS);
+}
 
 async function getSessionCompanyIds(userId: string): Promise<string[]> {
   const memberships = await prisma.membership.findMany({
@@ -124,19 +135,6 @@ async function replaceCompanyContacts(companyId: string, items: CompanyContactIn
   });
 }
 
-function handleActionError(error: unknown): CompanyActionFailure {
-  console.error("[CompanyAction Error]:", error);
-
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return { success: false, message: "Este CNPJ ja esta cadastrado no sistema." };
-  }
-
-  return {
-    success: false,
-    message: error instanceof Error ? error.message : "Ocorreu um erro interno. Tente novamente.",
-  };
-}
-
 export async function lookupCompanyProfileByCnpjAction(
   cnpj: string,
 ): Promise<ActionResponse<CompanyRegistryLookupResponse>> {
@@ -172,8 +170,7 @@ export async function lookupCompanyProfileByCnpjAction(
       } satisfies CompanyRegistryLookupResponse,
     };
   } catch (error) {
-    const handled = handleActionError(error);
-    return handled;
+    return toCompanyActionError(error);
   }
 }
 
@@ -243,7 +240,7 @@ export async function createCompanyAction(
     void segmentTriggers;
     return { success: true, message: "Empresa criada com sucesso!" };
   } catch (error) {
-    return handleActionError(error);
+    return toCompanyActionError(error);
   }
 }
 
@@ -339,7 +336,7 @@ export async function updateCompanyAction(
     revalidateCadastrosViews();
     return { success: true, message: "Empresa atualizada com sucesso!" };
   } catch (error) {
-    return handleActionError(error);
+    return toCompanyActionError(error);
   }
 }
 
@@ -364,7 +361,7 @@ export async function updateCompanyStatusAction(id: string, status: CompanyStatu
       message: status === CompanyStatus.INACTIVE ? "Empresa inativada com sucesso." : "Empresa reativada com sucesso.",
     };
   } catch (error) {
-    return handleActionError(error);
+    return toCompanyActionError(error);
   }
 }
 
@@ -412,7 +409,9 @@ export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
     revalidateCadastrosViews();
     return { success: true, message: "Empresa excluida com sucesso." };
   } catch (error) {
-    return handleActionError(error);
+    return toCompanyActionError(error);
   }
 }
+
+
 
