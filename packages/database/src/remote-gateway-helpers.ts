@@ -5,6 +5,11 @@ export type NormalizedSysproUpdate = {
   companyLabel: string;
   path: string;
   lastFileWriteAt: Date | null;
+  isServerHost: boolean;
+  hasClientFolder: boolean;
+  hasDllFolder: boolean;
+  firebirdVersion: string | null;
+  firebirdPath: string | null;
 };
 
 const MAX_SYSPRO_UPDATES_PER_CYCLE = 200;
@@ -98,6 +103,11 @@ export function normalizeSysproUpdates(value: unknown): NormalizedSysproUpdate[]
           : typeof source.lastFileWriteAt === "string"
             ? source.lastFileWriteAt
             : null;
+    const rawIsServerHost = typeof source.isServerHost === "boolean" ? source.isServerHost : null;
+    const rawHasClientFolder = typeof source.hasClientFolder === "boolean" ? source.hasClientFolder : null;
+    const rawHasDllFolder = typeof source.hasDllFolder === "boolean" ? source.hasDllFolder : null;
+    const rawFirebirdVersion = typeof source.firebirdVersion === "string" ? source.firebirdVersion : null;
+    const rawFirebirdPath = typeof source.firebirdPath === "string" ? source.firebirdPath : null;
 
     const companyLabel = rawCompany.trim().slice(0, MAX_SYSPRO_LABEL_LENGTH);
     const path = rawPath.trim().slice(0, MAX_SYSPRO_PATH_LENGTH);
@@ -110,6 +120,11 @@ export function normalizeSysproUpdates(value: unknown): NormalizedSysproUpdate[]
       companyLabel,
       path,
       lastFileWriteAt: parseSysproDate(rawLastFileWriteAt),
+      isServerHost: rawIsServerHost ?? path.toLowerCase().endsWith("\\syspro\\server\\sysproserver.exe"),
+      hasClientFolder: rawHasClientFolder ?? false,
+      hasDllFolder: rawHasDllFolder ?? false,
+      firebirdVersion: rawFirebirdVersion?.trim() ? rawFirebirdVersion.trim() : null,
+      firebirdPath: rawFirebirdPath?.trim() ? rawFirebirdPath.trim() : null,
     });
 
     if (unique.size >= MAX_SYSPRO_UPDATES_PER_CYCLE) break;
@@ -123,6 +138,11 @@ export function serializeSysproUpdatesSnapshot(value: NormalizedSysproUpdate[]) 
     companyLabel: entry.companyLabel,
     path: entry.path,
     lastFileWriteAt: entry.lastFileWriteAt?.toISOString() ?? null,
+    isServerHost: entry.isServerHost,
+    hasClientFolder: entry.hasClientFolder,
+    hasDllFolder: entry.hasDllFolder,
+    firebirdVersion: entry.firebirdVersion ?? null,
+    firebirdPath: entry.firebirdPath ?? null,
   }));
 }
 
@@ -178,6 +198,11 @@ export async function syncRemoteHostSysproUpdates(
           companyLabel: entry.companyLabel,
           path: entry.path,
           lastFileWriteAt: entry.lastFileWriteAt,
+          isServerHost: entry.isServerHost,
+          hasClientFolder: entry.hasClientFolder,
+          hasDllFolder: entry.hasDllFolder,
+          firebirdVersion: entry.firebirdVersion,
+          firebirdPath: entry.firebirdPath,
           lastHeartbeatAt: input.heartbeatAt,
           updatedAt: input.heartbeatAt,
         },
@@ -191,7 +216,13 @@ export async function syncRemoteHostSysproUpdates(
         companyId: resolvedCompanyId,
         companyLabel: entry.companyLabel,
         path: entry.path,
+        
         lastFileWriteAt: entry.lastFileWriteAt,
+        isServerHost: entry.isServerHost,
+        hasClientFolder: entry.hasClientFolder,
+        hasDllFolder: entry.hasDllFolder,
+        firebirdVersion: entry.firebirdVersion,
+        firebirdPath: entry.firebirdPath,
         lastHeartbeatAt: input.heartbeatAt,
         createdAt: input.heartbeatAt,
         updatedAt: input.heartbeatAt,
@@ -223,4 +254,3 @@ export function buildAddressBookToken() {
     tokenPreview: `${token.slice(0, 14)}...`,
   };
 }
-

@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CreateSessionInput,
   CreateSessionOutput,
   ListSessionsInput,
@@ -198,6 +198,11 @@ export type RemoteSyncIncomingUpdate = {
   companyLabel: string;
   path: string;
   lastFileWriteAt: Date | null;
+  isServerHost?: boolean;
+  hasClientFolder?: boolean;
+  hasDllFolder?: boolean;
+  firebirdVersion?: string | null;
+  firebirdPath?: string | null;
 };
 
 export type SyncCommandDirective = {

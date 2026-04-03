@@ -707,6 +707,11 @@ model RemoteHostSysproUpdate {
   companyLabel String
   path String
   lastFileWriteAt DateTime?
+  isServerHost Boolean?
+  hasClientFolder Boolean?
+  hasDllFolder Boolean?
+  firebirdVersion String?
+  firebirdPath String?
   lastHeartbeatAt DateTime
 
   createdAt DateTime @default(now())
@@ -1265,4 +1270,3 @@ model ZammadSyncState {
   lastProcessedAt   DateTime?
   updatedAt         DateTime @updatedAt
 }
-

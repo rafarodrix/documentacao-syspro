@@ -1042,6 +1042,34 @@ Rotas remotas fora do nucleo `remote-domain` por escopo atual:
 2. consolidar testes de regressao de contrato remoto (`code/message/httpStatus`) em CI
 3. abrir migracao controlada para `packages/api` e contrato mobile, mantendo o mesmo nucleo em `packages/remote-domain`
 
+## Revisao cruzada (backend x frontend x API) - 2026-04-03
+
+### Backend ja disponivel e ainda pouco explorado no frontend
+
+- `commandObservability.hotspots` e `commandObservability.timeline` ja saem no diretorio, mas a tela principal usa apenas KPIs resumidos.
+- `commandObservability.acknowledgedLast24h` e `commandObservability.deliveredLast24h` ja existem no payload e nao aparecem como indicador dedicado.
+- campos tecnicos por instalacao (`hasClientFolder`, `hasDllFolder`) ja sao persistidos e ainda nao aparecem em card/coluna explicita na aba de instalacoes.
+
+### Frontend com comportamento que ainda depende de legado no backend
+
+- classificacao de credencial do agente ainda usa fallback por texto em `lastHeartbeatErrorMessage` quando o ideal e priorizar codigo estruturado sempre que existir.
+- tela de detalhes ja mostra Firebird, mas ainda mistura leitura persistida e fallback de snapshot de software; precisa manter prioridade clara para dado persistido por instalacao.
+
+### Gap de contrato na API
+
+- `discover`, `sync` e `ack` validam `schemaVersion` na borda HTTP.
+- `bootstrap` ainda aceita payload sem gate explicito de `schemaVersion` no route handler.
+- recomendacao: padronizar `schemaVersion` tambem em `/api/remote/rustdesk/bootstrap` para manter simetria de contrato.
+
+### Legado tecnico resolvido (2026-04-03)
+
+- normalizacao/persistencia de `sysproUpdates` centralizada em fonte unica:
+  - `packages/database/src/remote-gateway-helpers.ts`
+- adapters agora estao finos, apenas consumindo helper compartilhado:
+  - `packages/api/src/remote-domain-ports.ts`
+  - `apps/web/src/features/remote/application/agent-payload.ts`
+- efeito: reduzido risco de drift entre runtime/API/web gateway.
+
 
 
 

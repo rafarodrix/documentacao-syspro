@@ -117,55 +117,6 @@ remote-agent/
     commands.ps1
     health.ps1
 ```
-
-## Entrega FEAT-002J (concluida em 2026-04-02)
-
-Arquivos chave atualizados:
-
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/trilink-agente.ps1`
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/bootstrap/load-modules.ps1`
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/core/*`
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/infra/*`
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/providers/*`
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/application/discover.ps1`
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/application/bootstrap.ps1`
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/application/sync.ps1`
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/application/ack.ps1`
-- `apps/web/content/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/remote-agent/application/commands.ps1`
-
-## Fases da modularizacao do agente
-
-### Fase 1 (concluida): extracao segura da base compartilhada
-
-Escopo:
-
-- `core/*`
-- `infra/*`
-- `providers/rustdesk.ps1`
-- `providers/syspro.ps1`
-- `providers/system.ps1`
-
-### Fase 2 (concluida): providers de inventario tecnico
-
-Escopo:
-
-- `providers/network.ps1`
-- `providers/software.ps1`
-- `providers/hardware.ps1`
-- `providers/windows-update.ps1`
-- `providers/processes.ps1`
-- `providers/disks.ps1`
-
-### Fase 3 (concluida): casos de uso de aplicacao
-
-Escopo:
-
-- `application/discover.ps1`
-- `application/bootstrap.ps1`
-- `application/sync.ps1`
-- `application/ack.ps1`
-- `application/commands.ps1`
-
 ### Fase 4: health e politicas operacionais
 
 Escopo:
@@ -238,6 +189,25 @@ Definicao de pronto:
 - chamadas `discover/bootstrap/sync/ack` podem ser correlacionadas fim a fim.
 - suporte consegue diagnosticar falha de ciclo sem acesso interativo ao host.
 - taxa de falso positivo em rebootstrap reduzida.
+
+### Sprint D (P1): inventario tecnico Syspro/Firebird consolidado
+
+Escopo:
+
+1. consolidar no ciclo de `sync` os campos de instalacao por base:
+- `isServerHost`
+- `hasClientFolder`
+- `hasDllFolder`
+- `firebirdVersion`
+- `firebirdPath`
+2. garantir persistencia unificada desses campos no backend e consumo no portal.
+3. eliminar fallback desnecessario quando dado persistido estiver disponivel.
+
+Definicao de pronto:
+
+- aba `Informacoes tecnicas` mostra leitura coerente para servidor Syspro e Firebird.
+- aba `Instalacoes` usa metadados persistidos por instalacao para diagnostico operacional.
+- contrato agente/API documentado com campos opcionais e sem quebra retrocompativel.
 
 ## Referencias
 

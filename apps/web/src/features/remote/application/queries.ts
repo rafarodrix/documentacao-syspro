@@ -1120,6 +1120,11 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       resolvedCompanyName: string | null;
       path: string;
       lastFileWriteAt: Date | null;
+      isServerHost: boolean | null;
+      hasClientFolder: boolean | null;
+      hasDllFolder: boolean | null;
+      firebirdVersion: string | null;
+      firebirdPath: string | null;
       lastHeartbeatAt: Date;
     }>
   >`
@@ -1130,6 +1135,11 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       COALESCE(c."nomeFantasia", c."razaoSocial") AS "resolvedCompanyName",
       u."path",
       u."lastFileWriteAt",
+      u."isServerHost",
+      u."hasClientFolder",
+      u."hasDllFolder",
+      u."firebirdVersion",
+      u."firebirdPath",
       u."lastHeartbeatAt"
     FROM "remote_host_syspro_update" u
     LEFT JOIN "company" c ON c."id" = u."companyId"
@@ -1253,6 +1263,11 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     resolvedCompanyName: entry.resolvedCompanyName,
     path: entry.path,
     lastFileWriteAt: entry.lastFileWriteAt?.toISOString() ?? null,
+    isServerHost: entry.isServerHost,
+    hasClientFolder: entry.hasClientFolder,
+    hasDllFolder: entry.hasDllFolder,
+    firebirdVersion: entry.firebirdVersion,
+    firebirdPath: entry.firebirdPath,
     lastHeartbeatAt: entry.lastHeartbeatAt.toISOString(),
   }));
   const mostRecentFailureStreak = agentCommands.reduce((acc, command) => {

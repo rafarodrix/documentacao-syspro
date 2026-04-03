@@ -374,6 +374,11 @@ export type RemoteHostSysproUpdateItem = {
   resolvedCompanyName: string | null;
   path: string;
   lastFileWriteAt: string | null;
+  isServerHost: boolean | null;
+  hasClientFolder: boolean | null;
+  hasDllFolder: boolean | null;
+  firebirdVersion: string | null;
+  firebirdPath: string | null;
   lastHeartbeatAt: string;
 };
 

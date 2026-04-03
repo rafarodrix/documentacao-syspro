@@ -71,8 +71,9 @@ function isSysproServerInstallation(path: string | null) {
   return path.trim().toLowerCase().endsWith(SYSPRO_SERVER_EXECUTABLE_SUFFIX);
 }
 
-function getSysproUpdateHealthMeta(input: { path: string; lastFileWriteAt: string | null }) {
-  if (!isSysproServerInstallation(input.path)) {
+function getSysproUpdateHealthMeta(input: { path: string; isServerHost: boolean | null; lastFileWriteAt: string | null }) {
+  const isServerHost = input.isServerHost ?? isSysproServerInstallation(input.path);
+  if (!isServerHost) {
     return {
       label: "Nao aplicavel",
       detail: "Indicador aplicado somente ao servidor Syspro.",
@@ -662,10 +663,41 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     host.machineName,
     host.name,
   ]);
+  const dedupedInstallationContexts = useMemo(() => {
+    const byPath = new Map<
+      string,
+      (typeof details.installationContexts)[number]
+    >();
+
+    for (const context of details.installationContexts) {
+      const pathKey = context.update.path.trim().toLowerCase();
+      const current = byPath.get(pathKey);
+      if (!current) {
+        byPath.set(pathKey, context);
+        continue;
+      }
+
+      const currentHasLink = !!current.update.companyId;
+      const nextHasLink = !!context.update.companyId;
+      if (nextHasLink && !currentHasLink) {
+        byPath.set(pathKey, context);
+        continue;
+      }
+
+      const currentHeartbeat = Date.parse(current.update.lastHeartbeatAt);
+      const nextHeartbeat = Date.parse(context.update.lastHeartbeatAt);
+      if (Number.isFinite(nextHeartbeat) && (!Number.isFinite(currentHeartbeat) || nextHeartbeat > currentHeartbeat)) {
+        byPath.set(pathKey, context);
+      }
+    }
+
+    return Array.from(byPath.values());
+  }, [details.installationContexts]);
+
   const installations = useMemo(() => {
     const seen = new Set<string>();
     const primaryCompanyDirectory = details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY;
-    const items = details.installationContexts
+    const items = dedupedInstallationContexts
       .map((context) => {
         const entry = context.update;
         const companyContext = context.company;
@@ -693,7 +725,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       );
 
     return items;
-  }, [details.company.installationDirectory, details.installationContexts]);
+  }, [dedupedInstallationContexts, details.company.installationDirectory]);
   const installationsPreview = useMemo(() => installations.slice(0, 2), [installations]);
   const hasMoreInstallations = installations.length > installationsPreview.length;
   const detectedCompanyCount = useMemo(() => {
@@ -710,15 +742,15 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     details.tenantScope.role === "SUPORTE" ||
     details.tenantScope.role === "DEVELOPER";
   const unlinkedInstallationsCount = useMemo(
-    () => details.installationContexts.filter((context) => !context.update.companyId).length,
-    [details.installationContexts]
+    () => dedupedInstallationContexts.filter((context) => !context.update.companyId).length,
+    [dedupedInstallationContexts]
   );
   const installationContextsForDisplay = useMemo(() => {
     if (installationFilter === "unlinked") {
-      return details.installationContexts.filter((context) => !context.update.companyId);
+      return dedupedInstallationContexts.filter((context) => !context.update.companyId);
     }
-    return details.installationContexts;
-  }, [details.installationContexts, installationFilter]);
+    return dedupedInstallationContexts;
+  }, [dedupedInstallationContexts, installationFilter]);
   const serviceStatusIcon = useMemo(() => getServiceStatusIconMeta(host.serviceStatus), [host.serviceStatus]);
   const agentHealthCard = useMemo(() => {
     const latestAutoHealCommand = details.agentCommands.find(
@@ -947,10 +979,16 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     return fromNetwork ?? host.lastKnownIp ?? null;
   }, [host.lastKnownIp, networkSnapshot, systemSnapshot]);
   const sysproServerInstallations = useMemo(
-    () => details.installationContexts.filter((context) => isSysproServerInstallation(context.update.path)),
-    [details.installationContexts],
+    () =>
+      dedupedInstallationContexts.filter((context) =>
+        context.update.isServerHost ?? isSysproServerInstallation(context.update.path)
+      ),
+    [dedupedInstallationContexts],
   );
   const firebirdData = useMemo(() => {
+    const persistedFirebird = sysproServerInstallations.find(
+      (context) => !!context.update.firebirdVersion || !!context.update.firebirdPath,
+    )?.update;
     const softwareItem = softwareSnapshot.find((entry) => {
       const name = extractStringFromPayload(entry, ["displayName", "name", "productName", "title"]);
       return !!name && name.toLowerCase().includes("firebird");
@@ -968,11 +1006,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     const processRunningRaw = fbProcess?.["running"];
     const processRunning = typeof processRunningRaw === "boolean" ? processRunningRaw : null;
     return {
-      name: softwareName,
-      version: softwareVersion,
+      name: persistedFirebird?.firebirdPath ?? softwareName,
+      version: persistedFirebird?.firebirdVersion ?? softwareVersion,
       processRunning,
     };
-  }, [softwareSnapshot, sysproProcessSnapshot]);
+  }, [softwareSnapshot, sysproProcessSnapshot, sysproServerInstallations]);
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
       return {
@@ -1016,11 +1054,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
   useEffect(() => {
     const next: Record<string, string> = {};
-    for (const context of details.installationContexts) {
+    for (const context of dedupedInstallationContexts) {
       next[context.update.id] = context.update.companyId ?? UNLINKED_COMPANY_VALUE;
     }
     setSelectedCompanyByUpdateId(next);
-  }, [details.installationContexts]);
+  }, [dedupedInstallationContexts]);
 
   useEffect(() => {
     if (details.companyOptions.length === 0) return;
@@ -1378,6 +1416,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       const company = context.company;
                       const health = getSysproUpdateHealthMeta({
                         path: entry.path,
+                        isServerHost: entry.isServerHost,
                         lastFileWriteAt: entry.lastFileWriteAt,
                       });
                       return (
@@ -1590,7 +1629,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <p className="mt-3 text-xs text-muted-foreground">
                     {installationFilter === "unlinked"
                       ? `${installationContextsForDisplay.length} instalacao(oes) sem vinculo exibida(s).`
-                      : `${details.installationContexts.length} instalacao(oes) detectada(s), ${unlinkedInstallationsCount} sem vinculo.`}
+                      : `${dedupedInstallationContexts.length} instalacao(oes) detectada(s), ${unlinkedInstallationsCount} sem vinculo.`}
                   </p>
                 </div>
                 {installationContextsForDisplay.length ? (
@@ -1608,6 +1647,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         : (entry.path?.trim() || DEFAULT_INSTALLATION_DIRECTORY);
                     const updateHealthMeta = getSysproUpdateHealthMeta({
                       path: entry.path,
+                      isServerHost: entry.isServerHost,
                       lastFileWriteAt: entry.lastFileWriteAt,
                     });
 

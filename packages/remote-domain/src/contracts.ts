@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import { REMOTE_AGENT_ACK_REASON_CODES, type RemoteAgentAckReasonCode } from "./ack-reason-codes";
 
 export const AGENT_DISCOVER_SCHEMA_VERSION = "discover.payload.v1" as const;
@@ -9,6 +9,11 @@ export const sysproUpdateSchema = z.object({
   companyLabel: z.string().min(1),
   path: z.string().min(1),
   lastFileWriteAt: z.string().datetime().nullable().optional(),
+  isServerHost: z.boolean().optional(),
+  hasClientFolder: z.boolean().optional(),
+  hasDllFolder: z.boolean().optional(),
+  firebirdVersion: z.string().trim().nullable().optional(),
+  firebirdPath: z.string().trim().nullable().optional(),
 });
 
 export const processHeartbeatInputSchema = z.object({

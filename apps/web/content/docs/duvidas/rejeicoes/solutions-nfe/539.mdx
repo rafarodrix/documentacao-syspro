@@ -1,7 +1,7 @@
 ---
 title: 'Rejeicao 539: Duplicidade de NF-e, com diferenca na Chave de Acesso'
 description: 'Como corrigir a Rejeição "Duplicidade de NF-e, com diferenÃ§a na Chave de Acesso" no Syspro, sincronizando a nota com o XML oficial da Sefaz.'
-causa_do_erro: 'JÃ¡ existe uma NF-e com a mesma chave de acesso, mas com diferenÃ§as nos dados. A soluÃ§Ã£o Ã© atualizar o cadastro da nota no Syspro com os dados oficiais da Sefaz.'
+causa_do_erro: 'JÃ¡ existe uma NF-e com a mesma chave de acesso, mas com diferenÃ§as nos dados. A solução é atualizar o cadastro da nota no Syspro com os dados oficiais da Sefaz.'
 lastUpdated: 2026-03-22
 owner: Equipe de Documentacao
 status: published
@@ -20,9 +20,9 @@ import { Steps, Step } from 'fumadocs-ui/components/steps';
 
 ---
 
-## IdentificaÃ§Ã£o do Problema
+## Identificação do Problema
 
-Ao tentar transmitir uma Nota Fiscal EletrÃ´nica (NFe), o sistema pode retornar uma Rejeição da Sefaz informando que o documento jÃ¡ existe, mas com conteÃºdo diferente.
+Ao tentar transmitir uma Nota Fiscal Eletronica (NFe), o sistema pode retornar uma Rejeição da Sefaz informando que o documento já existe, mas com conteúdo diferente.
 
 <Callout type="error" title="Erro Apresentado">
   Rejeicao: 539 Duplicidade de NF-e, com diferenca na Chave de Acesso [chNFe:0000000000000000000000000000000000000000000]
@@ -30,53 +30,64 @@ Ao tentar transmitir uma Nota Fiscal EletrÃ´nica (NFe), o sistema pode retorna
 
 
 <Callout type="info" title="Causa do Erro">
-  Este erro ocorre porque uma NFe com o **mesmo nÃºmero** e **sÃ©rie** jÃ¡ foi autorizada pela Sefaz, mas os dados da nota que estÃ£o no seu sistema sÃ£o **diferentes** dos dados da nota que foi autorizada.
+  Este erro ocorre porque uma NFe com o **mesmo número** e **série** já foi autorizada pela Sefaz, mas os dados da nota que estão no seu sistema são **diferentes** dos dados da nota que foi autorizada.
 
-  Isso geralmente acontece quando uma NFe jÃ¡ autorizada Ã© editada e salva no sistema por engano. A soluÃ§Ã£o Ã© sincronizar a nota no sistema com a versÃ£o oficial e autorizada que estÃ¡ na Sefaz.
+  Isso geralmente acontece quando uma NFe já autorizada é editada e salva no sistema por engano. A solução é sincronizar a nota no sistema com a versão oficial e autorizada que está na Sefaz.
 </Callout>
 
-## Passo a Passo da SoluÃ§Ã£o
+## Passo a Passo da Solução
 
 <Steps>
   <Step title="Consultar a Chave de Acesso na Sefaz">
-    <p>O primeiro passo Ã© verificar qual Ã© a versÃ£o oficial da NFe que jÃ¡ foi autorizada.</p>
-    1. Copie a **Chave de Acesso** de 44 dÃ­gitos que aparece na mensagem de erro.
-    2. Acesse o Portal da Nota Fiscal EletrÃ´nica clicando no link: <a href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx" target="_blank" rel="noopener noreferrer">https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx</a>
+    <p>O primeiro passo é verificar qual é a versão oficial da NFe que já foi autorizada.</p>
+    1. Copie a **Chave de Acesso** de 44 dígitos que aparece na mensagem de erro.
+    2. Acesse o Portal da Nota Fiscal Eletrônica clicando no link: <a href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx" target="_blank" rel="noopener noreferrer">https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx</a>
     3. Cole a Chave de Acesso, marque a caixa "Sou humano" e clique em "Continuar".
 
   </Step>
 
   <Step title="Comparar a NFe do Sistema com a da Sefaz">
-    <p>Agora, confirme se a nota autorizada na Sefaz Ã© a que vocÃª realmente queria emitir. Compare os dados do portal com os dados da nota no seu sistema.</p>
+    <p>Agora, confirme se a nota autorizada na Sefaz é a que você realmente queria emitir. Compare os dados do portal com os dados da nota no seu sistema.</p>
     
-    **Principais critÃ©rios para verificaÃ§Ã£o:**
-    - **DestinatÃ¡rio (Cliente)**
+    **Principais critérios para verificação:**
+    - **Destinatário (Cliente)**
     - **Itens e Quantidades**
     - **Valor Total da Nota**
 
-    <Callout type="warn" title="AtenÃ§Ã£o">
-      Se os dados na Sefaz estiverem **corretos**, significa que a nota no seu sistema foi alterada apÃ³s a autorizaÃ§Ã£o. Prossiga para o prÃ³ximo passo. Se os dados estiverem **incorretos**, pode haver um problema de numeraÃ§Ã£o; neste caso, contate o suporte.
+    <Callout type="warn" title="Atenção">
+      Se os dados na Sefaz estiverem **corretos**, significa que a nota no seu sistema foi alterada após a autorização. Prossiga para o próximo passo. Se os dados estiverem **incorretos**, pode haver um problema de numeração; neste caso, contate o suporte.
     </Callout>
   </Step>
 
   <Step title="Baixar o XML Autorizado da Sefaz">
-    <p>Para corrigir a nota no seu sistema, vocÃª precisarÃ¡ do arquivo XML oficial, que Ã© a versÃ£o legalmente vÃ¡lida do documento.</p>
-    1. Na tela de consulta da NFe no portal da Sefaz, clique no botÃ£o **"Download do documento"**.
-    2. Pode ser necessÃ¡rio confirmar o uso do seu **Certificado Digital** para realizar o download.
-    3. Salve o arquivo XML em um local de fÃ¡cil acesso no seu computador.
+    <p>Para corrigir a nota no seu sistema, você precisará do arquivo XML oficial, que é a versão legalmente válida do documento.</p>
+    1. Na tela de consulta da NFe no portal da Sefaz, clique no botão **"Download do documento"**.
+    2. Pode ser necessário confirmar o uso do seu **Certificado Digital** para realizar o download.
+    3. Salve o arquivo XML em um local de fácil acesso no seu computador.
   </Step>
 
   <Step title="Importar o XML para Sincronizar a Nota">
-    <p>O passo final Ã© importar o XML oficial para dentro do Syspro, substituindo os dados incorretos.</p>
-    1. Abra a NFe que apresentou o erro dentro do Syspro, na tela de "LanÃ§amento de Documentos".
-    2. Clique no botÃ£o **`Importar XML`**, localizado no menu superior.
+    <p>O passo final é importar o XML oficial para dentro do Syspro, substituindo os dados incorretos.</p>
+    1. Abra a NFe que apresentou o erro dentro do Syspro, na tela de "Lançamento de Documentos".
+    2. Clique no botão **`Importar XML`**, localizado no menu superior.
     
 
-    3. Selecione o arquivo XML que vocÃª baixou da Sefaz no passo anterior.
-    4. O sistema irÃ¡ carregar os dados do XML e sobrescrever as informaÃ§Ãµes incorretas.
+    3. Selecione o arquivo XML que você baixou da Sefaz no passo anterior.
+    4. O sistema irá carregar os dados do XML e sobrescrever as informações do sistema com os dados do XML.
+
+     <Callout type="warn" title="Importante">
+      Certifique-se de que o XML importado é o correto, pois ele irá substituir os dados atuais da nota no sistema. Esta ação é necessária para corrigir a rejeição de duplicidade.
+    </Callout>
+  </Step>
+
+  <Step title="Atualizar a Nota no Syspro">
+    <p>Após a importação, revise os dados da nota no sistema para garantir que estão corretos e completos.</p>
+    1. Verifique o destinatário, os itens, as quantidades e os valores para confirmar que correspondem ao XML importado.
+    2. Faça as correções manuais necessárias, caso algum campo não tenha sido preenchido corretamente pela importação.
+    3. Salve as alterações na nota.
 
     <Callout type="success" title="Problema Resolvido">
-      ApÃ³s a importaÃ§Ã£o, a nota no seu sistema estarÃ¡ sincronizada com a versÃ£o autorizada na Sefaz. O status do documento deve ser atualizado para "Processado NFe", e o problema de duplicidade estarÃ¡ corrigido sem a necessidade de uma nova transmissÃ£o.
+      Após a importação, a nota no seu sistema estará sincronizada com a versão autorizada na Sefaz. O status do documento deve ser atualizado para "Processado NFe", e o problema de duplicidade estará corrigido sem a necessidade de uma nova transmissão.
     </Callout>
   </Step>
 </Steps>
