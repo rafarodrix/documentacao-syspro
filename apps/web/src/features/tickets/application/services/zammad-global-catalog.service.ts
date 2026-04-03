@@ -6,7 +6,7 @@ import {
 import {
   zammadGlobalCatalogSchema,
   type ZammadGlobalCatalog,
-} from "@/features/tickets/application/zammad-global-settings";
+} from "@dosc-syspro/contracts";
 
 export type ZammadCatalogLoadResult = {
   catalog: ZammadGlobalCatalog | null;

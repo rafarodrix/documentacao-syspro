@@ -10,10 +10,12 @@ import {
 import { loadZammadCatalogWithFallback } from "@/features/tickets/application/services/zammad-global-catalog.service";
 import {
   ZAMMAD_GLOBAL_SETTINGS_KEY,
+} from "@/features/tickets/application/zammad-global-settings-config";
+import {
   zammadGlobalSettingsSchema,
   type ZammadGlobalCatalog,
   type ZammadGlobalSettings,
-} from "@/features/tickets/application/zammad-global-settings";
+} from "@dosc-syspro/contracts";
 import type { SettingsActionResponse } from "@/features/settings/domain/model";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.SUPORTE, Role.DEVELOPER];

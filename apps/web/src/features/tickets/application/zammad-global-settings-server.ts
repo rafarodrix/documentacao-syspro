@@ -3,11 +3,13 @@ import {
   ZAMMAD_GLOBAL_CATALOG_SNAPSHOT_KEY,
   getDefaultZammadGlobalSettings,
   ZAMMAD_GLOBAL_SETTINGS_KEY,
+} from "@/features/tickets/application/zammad-global-settings-config";
+import {
   zammadGlobalCatalogSchema,
   zammadGlobalSettingsSchema,
   type ZammadGlobalCatalog,
   type ZammadGlobalSettings,
-} from "@/features/tickets/application/zammad-global-settings";
+} from "@dosc-syspro/contracts";
 
 export async function getZammadGlobalSettingsSnapshot(): Promise<ZammadGlobalSettings> {
   try {

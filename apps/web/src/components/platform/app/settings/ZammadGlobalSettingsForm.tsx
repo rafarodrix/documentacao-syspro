@@ -14,10 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   getDefaultZammadGlobalSettings,
+} from "@/features/tickets/application/zammad-global-settings-config";
+import {
   type ZammadGlobalCatalog,
   type ZammadOwnerMode,
   zammadGlobalSettingsSchema,
-} from "@/features/tickets/application/zammad-global-settings";
+} from "@dosc-syspro/contracts";
 import {
   getZammadGlobalSettingsAction,
   updateZammadGlobalSettingsAction,

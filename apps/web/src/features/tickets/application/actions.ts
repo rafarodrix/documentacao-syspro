@@ -15,7 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { getZammadGlobalSettingsSnapshot } from "@/features/tickets/application/zammad-global-settings-server";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
 import type { TicketDetailsResponse, TicketMutationResponse } from "@/features/tickets/domain/model";
-import type { ZammadGlobalSettings } from "@/features/tickets/application/zammad-global-settings";
+import type { ZammadGlobalSettings } from "@dosc-syspro/contracts";
 
 const CREATE_TICKET_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 

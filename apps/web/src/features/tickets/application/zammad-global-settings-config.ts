@@ -1,24 +1,4 @@
-﻿import type { ZammadGlobalSettings } from "@dosc-syspro/contracts";
-export {
-  zammadOwnerModeSchema,
-  zammadArticleTypeSchema,
-  zammadGlobalSettingsSchema,
-  zammadCatalogGroupSchema,
-  zammadCatalogStateSchema,
-  zammadCatalogPrioritySchema,
-  zammadCatalogOwnerSchema,
-  zammadGlobalCatalogSchema,
-} from "@dosc-syspro/contracts";
-export type {
-  ZammadOwnerMode,
-  ZammadArticleType,
-  ZammadGlobalSettings,
-  ZammadCatalogGroup,
-  ZammadCatalogState,
-  ZammadCatalogPriority,
-  ZammadCatalogOwner,
-  ZammadGlobalCatalog,
-} from "@dosc-syspro/contracts";
+import type { ZammadGlobalSettings } from "@dosc-syspro/contracts";
 
 export const ZAMMAD_GLOBAL_SETTINGS_KEY = "zammad.global.settings";
 export const ZAMMAD_GLOBAL_CATALOG_SNAPSHOT_KEY = "zammad.global.catalog.snapshot";

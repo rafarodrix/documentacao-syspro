@@ -2061,10 +2061,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     <p className="mt-2 text-sm text-foreground">{details.agentHealth.consecutiveFailures}</p>
                   </div>
                   <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia do ciclo</p>
-                    <p className="mt-2 text-sm text-foreground">{orchestrationStrategy}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bootstrap 24h</p>
                     <p className="mt-2 text-sm text-foreground">
                       {bootstrapRateMetrics.ratePct === null ? "Sem leitura" : `${bootstrapRateMetrics.ratePct}%`}
@@ -2294,7 +2290,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <div>
                     <p className="text-sm font-medium text-foreground">Fila de acoes do agente</p>
                     <p className="text-sm text-muted-foreground">
-                      Comandos pendentes calculados a partir da divergencia entre o portal e o cliente RustDesk.
+                      Comandos emitidos pelo portal com retorno de ACK, resultado e telemetria de execucao.
                     </p>
                   </div>
                   <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
@@ -2396,9 +2392,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-foreground">Timeline operacional do host</p>
-                    <p className="text-sm text-muted-foreground">
-                      Linha temporal por comando com criacao, entrega, execucao, falha e duracao.
-                    </p>
+                    <p className="text-sm text-muted-foreground">Historico de criacao, entrega, execucao e falha por comando.</p>
                   </div>
                   <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
                     {details.commandTimeline.length} evento(s)
