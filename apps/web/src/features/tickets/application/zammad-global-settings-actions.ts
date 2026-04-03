@@ -4,15 +4,12 @@ import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import {
-  getZammadGlobalCatalogSnapshot,
   getZammadGlobalSettingsSnapshot,
-  saveZammadGlobalCatalogSnapshot,
 } from "@/features/tickets/application/zammad-global-settings-server";
+import { loadZammadCatalogWithFallback } from "@/features/tickets/application/services/zammad-global-catalog.service";
 import {
   ZAMMAD_GLOBAL_SETTINGS_KEY,
-  zammadGlobalCatalogSchema,
   zammadGlobalSettingsSchema,
   type ZammadGlobalCatalog,
   type ZammadGlobalSettings,
@@ -69,39 +66,6 @@ function validateSettingsAgainstCatalog(input: ZammadGlobalSettings, catalog: Za
   return null;
 }
 
-async function loadCatalogWithFallback(): Promise<{
-  catalog: ZammadGlobalCatalog | null;
-  source: "live" | "snapshot" | null;
-  warning: string | null;
-}> {
-  try {
-    const liveCatalogRaw = await ZammadGateway.getGlobalCatalog("app-configuracoes-zammad");
-    const liveValidation = zammadGlobalCatalogSchema.safeParse(liveCatalogRaw);
-    if (!liveValidation.success) {
-      throw new Error("catalog_live_parse_failed");
-    }
-
-    await saveZammadGlobalCatalogSnapshot(liveValidation.data);
-    return { catalog: liveValidation.data, source: "live", warning: null };
-  } catch (error) {
-    const snapshot = await getZammadGlobalCatalogSnapshot();
-    if (snapshot) {
-      return {
-        catalog: snapshot,
-        source: "snapshot",
-        warning: "Catalogo carregado do ultimo snapshot salvo. Dados possivelmente desatualizados (Zammad indisponivel).",
-      };
-    }
-
-    console.error("Erro ao carregar catalogo global do Zammad:", error);
-    return {
-      catalog: null,
-      source: null,
-      warning: "Nao foi possivel carregar o catalogo do Zammad e nao existe snapshot salvo.",
-    };
-  }
-}
-
 export async function getZammadGlobalSettingsAction(): Promise<SettingsActionResponse<ZammadGlobalSettingsFormSnapshot>> {
   const session = await getProtectedSession();
   if (!session || !WRITE_ROLES.includes(session.role)) {
@@ -109,7 +73,7 @@ export async function getZammadGlobalSettingsAction(): Promise<SettingsActionRes
   }
 
   const settings = await getZammadGlobalSettingsSnapshot();
-  const catalogResult = await loadCatalogWithFallback();
+  const catalogResult = await loadZammadCatalogWithFallback("app-configuracoes-zammad");
   if (!catalogResult.catalog || !catalogResult.source) {
     return { success: false, error: catalogResult.warning ?? "Nao foi possivel carregar catalogo do Zammad." };
   }
@@ -138,7 +102,7 @@ export async function updateZammadGlobalSettingsAction(
     return { success: false, error: validation.error.issues[0]?.message ?? "Dados invalidos." };
   }
 
-  const catalogResult = await loadCatalogWithFallback();
+  const catalogResult = await loadZammadCatalogWithFallback("app-configuracoes-zammad");
   if (!catalogResult.catalog) {
     return { success: false, error: catalogResult.warning ?? "Catalogo do Zammad indisponivel para validacao." };
   }

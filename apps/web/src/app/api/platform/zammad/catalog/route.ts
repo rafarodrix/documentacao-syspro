@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
-import {
-  getZammadGlobalCatalogSnapshot,
-  saveZammadGlobalCatalogSnapshot,
-} from "@/features/tickets/application/zammad-global-settings-server";
-import { zammadGlobalCatalogSchema } from "@/features/tickets/application/zammad-global-settings";
+import { loadZammadCatalogWithFallback } from "@/features/tickets/application/services/zammad-global-catalog.service";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.SUPORTE, Role.DEVELOPER];
 
@@ -16,34 +11,18 @@ export async function GET() {
     return NextResponse.json({ success: false, error: "Nao autorizado." }, { status: 401 });
   }
 
-  try {
-    const liveCatalogRaw = await ZammadGateway.getGlobalCatalog("api-zammad-catalog");
-    const validation = zammadGlobalCatalogSchema.safeParse(liveCatalogRaw);
-    if (!validation.success) {
-      throw new Error("catalog_parse_failed");
-    }
-    await saveZammadGlobalCatalogSnapshot(validation.data);
-    return NextResponse.json({
-      success: true,
-      source: "live",
-      warning: null,
-      data: validation.data,
-    });
-  } catch (error) {
-    const snapshot = await getZammadGlobalCatalogSnapshot();
-    if (snapshot) {
-      return NextResponse.json({
-        success: true,
-        source: "snapshot",
-        warning: "Catalogo retornado via snapshot local. Dados possivelmente desatualizados.",
-        data: snapshot,
-      });
-    }
-
-    console.error("Erro ao carregar catalogo Zammad:", error);
+  const result = await loadZammadCatalogWithFallback("api-zammad-catalog");
+  if (!result.catalog || !result.source) {
     return NextResponse.json(
-      { success: false, error: "Nao foi possivel carregar catalogo do Zammad." },
+      { success: false, error: result.warning ?? "Nao foi possivel carregar catalogo do Zammad." },
       { status: 503 }
     );
   }
+
+  return NextResponse.json({
+    success: true,
+    source: result.source,
+    warning: result.warning,
+    data: result.catalog,
+  });
 }
