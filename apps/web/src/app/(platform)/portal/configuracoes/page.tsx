@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { getContractsAdminViewData } from "@/features/contracts/application/queries";
 import { getSettingsAdminViewData } from "@/features/settings/application/queries";
 import { getRemotePlatformOverview } from "@/features/remote/application/queries";
+import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-tab";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,10 +43,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const mode = typeof params?.mode === "string" ? params.mode : "";
     const isContractsCreateMode = mode === "create";
 
+    const tenantScope = await getRemoteTenantScope();
     const [contractsView, settingsView, remoteOverview] = await Promise.all([
         getContractsAdminViewData(),
         getSettingsAdminViewData(),
-        getRemotePlatformOverview(),
+        getRemotePlatformOverview(tenantScope),
     ]);
 
     const contracts = contractsView.contracts;

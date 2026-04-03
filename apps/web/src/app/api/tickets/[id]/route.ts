@@ -8,14 +8,14 @@ import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getProtectedSession();
   if (!session) {
     return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const ticket = await ZammadGateway.getTicketById(id);

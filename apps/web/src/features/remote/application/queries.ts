@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import type { RemoteTenantScope } from "@/features/remote/domain/model";
 import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings-server";
 import { hashRustDeskPublicKey } from "@/features/remote/application/rustdesk-sync";
 import { resolveRemoteOperationalStatus } from "@/features/remote/domain/operational-status";
@@ -19,7 +19,7 @@ type RemoteConnectionItem = {
   details: string;
 };
 
-function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
+export function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
   return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
 }
 
@@ -452,8 +452,7 @@ function readAckQueueFlushFailedFromMetrics(metrics: unknown): number | null {
   return null;
 }
 
-export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
-  const tenantScope = await getRemoteTenantScope();
+export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope): Promise<RemotePlatformOverview> {
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
   const companyOptions = await prisma.company.findMany({
@@ -743,8 +742,8 @@ export async function getRemotePlatformOverview(): Promise<RemotePlatformOvervie
   };
 }
 
-export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirectory> {
-  const tenantScope = await getRemoteTenantScope();
+export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope): Promise<RemotePlatformDirectory> {
+  
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -1028,8 +1027,8 @@ export async function getRemotePlatformDirectory(): Promise<RemotePlatformDirect
   };
 }
 
-export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDetails | null> {
-  const tenantScope = await getRemoteTenantScope();
+export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostId: string): Promise<RemoteHostDetails | null> {
+  
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
