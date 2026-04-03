@@ -10,6 +10,7 @@ import { NotificationsMenu } from "./NotificationsMenu"
 import Link from "next/link"
 import type { Role } from "@prisma/client"
 import { SYSTEM_ROLES } from "@dosc-syspro/core"
+import { RemoteActiveSessionsCounter } from "@/features/remote/interface/active-sessions-counter"
 
 interface ClientHeaderProps {
   user: {
@@ -20,9 +21,10 @@ interface ClientHeaderProps {
   }
   sidebarCollapsed: boolean
   onToggleSidebar: () => void
+  initialActiveSessionsCount?: number
 }
 
-export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar }: ClientHeaderProps) {
+export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialActiveSessionsCount }: ClientHeaderProps) {
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
 
   return (
@@ -39,8 +41,11 @@ export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar }: Client
 
       <Breadcrumbs />
 
-      <div className="flex-1 flex justify-center max-w-sm mx-auto">
+      <div className="flex-1 flex justify-center max-w-sm mx-auto gap-4">
         <CommandPaletteTrigger />
+        {isSystemUser && (
+          <RemoteActiveSessionsCounter initialCount={initialActiveSessionsCount} />
+        )}
       </div>
 
       <div className="flex items-center gap-1.5">

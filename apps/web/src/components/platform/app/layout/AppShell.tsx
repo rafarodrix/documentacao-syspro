@@ -16,11 +16,12 @@ interface AppShellUser {
 interface AppShellProps {
   user: AppShellUser
   children: ReactNode
+  initialActiveSessionsCount?: number
 }
 
 const STORAGE_KEY = "trilink.sidebar.collapsed"
 
-export function AppShell({ user, children }: AppShellProps) {
+export function AppShell({ user, children, initialActiveSessionsCount }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
@@ -42,7 +43,12 @@ export function AppShell({ user, children }: AppShellProps) {
 
       <div className={`flex-1 flex flex-col h-full transition-[padding-left] duration-200 ${collapsed ? "md:pl-20" : "md:pl-72"}`}>
         <MobileHeader user={user} />
-        <ClientHeader user={user} sidebarCollapsed={collapsed} onToggleSidebar={() => setCollapsed((prev) => !prev)} />
+        <ClientHeader 
+          user={user} 
+          sidebarCollapsed={collapsed} 
+          onToggleSidebar={() => setCollapsed((prev) => !prev)} 
+          initialActiveSessionsCount={initialActiveSessionsCount}
+        />
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
           <div className="max-w-400 mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500">

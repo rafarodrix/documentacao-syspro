@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   AlertTriangle,
@@ -16,6 +17,9 @@ import {
   HardDriveDownload,
   UserRound,
   XCircle,
+  Ticket,
+  RefreshCcw,
+  PlayCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -754,6 +758,42 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
+  const searchParams = useSearchParams();
+  const ticketNumber = searchParams.get("ticketNumber");
+  const [isStartingSession, startSessionTransition] = useTransition();
+
+  const handleStartOrchestratedSession = async () => {
+    if (!normalizedRustdeskId) {
+      toast.error("Host sem ID RustDesk. Nao e possivel iniciar sessao.");
+      return;
+    }
+
+    startSessionTransition(async () => {
+      try {
+        const result = await requestRemoteSessionAction({
+          hostId: host.id,
+          companyId: host.companyId,
+          ticketNumber: ticketNumber,
+          reason: ticketNumber ? `Suporte via Portal para Ticket #${ticketNumber}` : "Acesso técnico via Portal",
+        });
+
+        if (result.success) {
+          toast.success("Sessão auditada iniciada.");
+          // Abre o RustDesk (usando o ID da maquina para o deep link)
+          const href = isMobileClient 
+            ? `rustdesk://[${normalizedRustdeskId}]` 
+            : `rustdesk://${normalizedRustdeskId}`;
+          
+          window.location.href = href;
+        } else {
+          toast.error(result.error ?? "Falha ao iniciar sessao auditada.");
+        }
+      } catch (error) {
+        toast.error("Erro ao processar início de sessão.");
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -864,10 +904,39 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </div>
 
               <div className="flex flex-col gap-2">
-                <Button onClick={handleOpenRustDesk} disabled={!rustdeskHref} className="w-full gap-2 shadow-sm">
-                  <ExternalLink className="h-4 w-4" />
-                  {isMobileClient ? "Abrir no app" : "Abrir acesso remoto"}
+                {ticketNumber && (
+                   <div className="mb-2 p-3 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3 animate-in zoom-in-95 duration-300">
+                     <div className="mt-0.5 rounded-full bg-primary/10 p-1.5 text-primary">
+                       <Ticket className="h-4 w-4" />
+                     </div>
+                     <div className="space-y-0.5">
+                       <p className="text-sm font-semibold text-primary">Contexto de Suporte Ativo</p>
+                       <p className="text-xs text-primary/80">Você está operando associado ao Ticket <span className="font-bold">#{ticketNumber}</span>.</p>
+                     </div>
+                   </div>
+                )}
+
+                <Button 
+                  onClick={handleStartOrchestratedSession} 
+                  disabled={!normalizedRustdeskId || isStartingSession} 
+                  className={cn(
+                    "w-full gap-2 shadow-sm h-11 transition-all",
+                    ticketNumber ? "bg-primary border-primary hover:bg-primary/90" : ""
+                  )}
+                >
+                  {isStartingSession ? (
+                    <RefreshCcw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <PlayCircle className="h-4 w-4" />
+                  )}
+                  {isStartingSession ? "Iniciando Auditoria..." : (isMobileClient ? "Abrir no app" : "Iniciar Acesso Auditado")}
                 </Button>
+
+                {ticketNumber && (
+                  <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest px-2">
+                    Acesso registrado e vinculado ao chamado no Zammad
+                  </p>
+                )}
               </div>
             </div>
 
