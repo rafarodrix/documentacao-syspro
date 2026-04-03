@@ -10,7 +10,7 @@ import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-ta
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files, Wallet, Boxes, Monitor } from "lucide-react";
 
-import { AccessControlTab, GeneralSettingsForm, SefazRoutesTab, ZammadObservabilityTab } from "@/features/settings/interface";
+import { AccessControlTab, GeneralSettingsForm, SefazRoutesTab, ZammadGlobalSettingsForm, ZammadObservabilityTab } from "@/features/settings/interface";
 import {
     SyncTaxAnexosButton,
     SyncTaxClassTribButton,
@@ -28,7 +28,7 @@ interface SettingsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const TAB_VALUES = new Set(["general", "remote", "access", "tax", "contracts", "sefaz", "observability"]);
+const TAB_VALUES = new Set(["general", "remote", "zammad", "access", "tax", "contracts", "sefaz", "observability"]);
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
     const session = await requireSession();
@@ -81,6 +81,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                         <TabsTrigger value="remote" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Monitor className="h-4 w-4" />
                             <span className="font-medium">Remoto (Global)</span>
+                        </TabsTrigger>
+
+                        <TabsTrigger value="zammad" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
+                            <Monitor className="h-4 w-4" />
+                            <span className="font-medium">Zammad (Global)</span>
                         </TabsTrigger>
 
                         <TabsTrigger value="access" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
@@ -141,6 +146,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <TabsContent value="remote" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-6xl">
                         <RemoteAccessSettingsTab overview={remoteOverview} />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="zammad" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
+                    <div className="max-w-4xl">
+                        <ZammadGlobalSettingsForm />
                     </div>
                 </TabsContent>
 

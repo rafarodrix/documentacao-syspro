@@ -11,6 +11,7 @@ import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
 import { getScopedCompanyZammadEmails, isSystemRole } from "@/features/tickets/application/services/ticket-scope.service";
 import { prisma } from "@/lib/prisma";
+import { getZammadGlobalSettingsSnapshot } from "@/features/tickets/application/zammad-global-settings-server";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
 import type { TicketDetailsResponse, TicketMutationResponse } from "@/features/tickets/domain/model";
 
@@ -66,7 +67,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     const subject = String(formData.get("subject") || "").trim();
     const description = String(formData.get("description") || "").trim();
     const priorityStr = String(formData.get("priority") || "2 normal");
-    const priorityId = parseInt(priorityStr.charAt(0), 10) || 2;
+    const parsedPriorityId = parseInt(priorityStr.charAt(0), 10);
     const customerEmailInput = String(formData.get("customerEmail") || "").trim().toLowerCase();
     const systemUser = isSystemRole(session.role);
 
@@ -84,6 +85,12 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     }
 
     try {
+        const zammadGlobal = await getZammadGlobalSettingsSnapshot();
+        const priorityId = Number.isFinite(parsedPriorityId) ? parsedPriorityId : zammadGlobal.defaultPriorityId;
+        const normalizedSubject = zammadGlobal.titlePrefix
+            ? `${zammadGlobal.titlePrefix} ${subject}`.trim()
+            : subject;
+
         if (systemUser && customerEmailInput) {
             const configured = await prisma.companyZammadEmail.findFirst({
                 where: {
@@ -103,15 +110,15 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
         }
 
         const newTicket = await ZammadGateway.createTicket({
-            title: subject,
-            group: "Users",
+            title: normalizedSubject,
+            group: zammadGlobal.defaultGroup,
             customer: systemUser ? customerEmailInput : session.email,
             priority_id: priorityId,
             article: {
-                subject,
+                subject: normalizedSubject,
                 body: description,
-                type: "note",
-                internal: false,
+                type: zammadGlobal.defaultArticleType,
+                internal: zammadGlobal.defaultArticleInternal,
             },
         });
 
