@@ -150,11 +150,7 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
       return normalizeRustdeskId(value) ?? null;
     },
     normalizeSysproUpdates(value: unknown) {
-      return normalizeSysproUpdates(value).map((entry) => ({
-        companyLabel: entry.companyLabel,
-        path: entry.path,
-        lastFileWriteAt: entry.lastFileWriteAt,
-      }));
+      return normalizeSysproUpdates(value);
     },
     resolveAlias(input) {
       return resolveRustDeskAlias({
@@ -237,12 +233,14 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
           },
         });
 
+        const normalizedUpdatesForPersistence = normalizeSysproUpdates(record.normalizedSysproUpdates);
+
         await syncRemoteHostSysproUpdates(tx, {
           hostId: record.context.hostId,
           hostCompanyId: record.context.companyId,
           hostCompanyNames: record.context.companyPrimaryNames,
           heartbeatAt: record.heartbeatAt,
-          sysproUpdates: record.normalizedSysproUpdates,
+          sysproUpdates: normalizedUpdatesForPersistence,
         });
 
         const existingCommands = await tx.remoteAgentCommand.findMany({
