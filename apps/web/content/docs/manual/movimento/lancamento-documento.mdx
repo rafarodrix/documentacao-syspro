@@ -15,9 +15,10 @@ audience:
 ---
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Steps } from 'fumadocs-ui/components/steps';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Callout } from 'fumadocs-ui/components/callout';
+import SuporteSection from '@/components/docs/SuporteSection.tsx';
 
 ## Introdução
 
@@ -99,7 +100,60 @@ Caso seja um item novo, selecione **Cadastrar Produto**. O Syspro abrirá a fich
 
 Após todos os indicadores (Participante e Itens) ficarem **verdes**, clique no botão **Gerar Lançamentos** no topo da tela.
 </Step>
+
+<Step>
+### Seleção do Tipo de Documento
+
+Escolha a operação correta para a entrada. Esta escolha define a tributação e o destino contábil:
+
+* Compra para Revenda
+* Uso e Consumo
+* Ativo Imobilizado
+* Brinde / Doação
+</Step>
 </Steps>
+
+---
+
+## Edição, Precificação e Fechamento
+
+Após gerar o lançamento, a nota fiscal será criada no módulo para os ajustes finais de negócio.
+
+### Ajustes de Unidade e Preço
+
+Ao editar a nota gerada, realize as seguintes conferências:
+
+* **Conversão de Unidade:** Se você compra em "Caixa" e vende em "Unidade", ajuste a unidade de medida de entrada para garantir a precisão do estoque.
+* **Precificação:** Insira ou atualize o **Valor de Venda** dos produtos para manter sua margem de lucro atualizada com base no custo da nova nota.
+
+### Processamento Financeiro
+
+Após salvar as alterações na nota, siga para a finalização:
+
+<Steps>
+<Step>
+
+### Processar Documento
+
+Clique no botão **Processar**. O sistema validará os dados e abrirá a tela de fechamento financeiro.
+</Step>
+<Step>
+
+### Configurar Pagamento
+
+Na tela de financeiro, selecione a forma de pagamento (Ex: **Boleto**).
+</Step>
+<Step>
+
+### Definir Prazos
+
+Insira o prazo de vencimento e o parcelamento exatamente como consta no boleto físico/digital enviado pelo fornecedor.
+</Step>
+</Steps>
+
+<Callout type="success" emoji="✅">
+**Processo Concluído:** Ao finalizar o financeiro, o estoque é alimentado, o custo médio é recalculado e as contas a pagar são provisionadas automaticamente.
+</Callout>
 
 <Callout type="warning" emoji="⚠️">
 **Importante:** Verifique sempre se o NCM sugerido pelo fornecedor no XML condiz com a tributação correta para o seu estado e tipo de empresa.
@@ -120,3 +174,7 @@ Clique com o botão direito sobre o nome do fornecedor no topo da tela de pendê
 Após clicar em "Gerar Lançamentos", o sistema abrirá a tela principal do documento. Verifique a aba **Financeiro** para conferir as parcelas e datas de vencimento antes de **Processar**.
 </Accordion>
 </Accordions>
+
+<SuporteSection modulo="Syspro ERP" />
+
+---
