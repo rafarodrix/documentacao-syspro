@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, Building2, Loader2, SearchX } from "lucide-react";
 import { toast } from "sonner";
+import { cn, formatDateSafe } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -117,7 +118,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                                     <SlaBadge ticket={ticket} />
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-mono">
-                                    {new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}
+                                    {formatDateSafe(ticket.updatedAt)}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
