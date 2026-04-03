@@ -95,29 +95,34 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
         }
 
         startTransition(async () => {
-            const formData = new FormData();
-            formData.append("subject", data.subject);
-            formData.append("description", data.description);
-            formData.append("priority", data.priority);
-            formData.append("type", data.type);
-            if (options.isSystemUser) {
-                formData.append("customerEmail", customerEmail.trim().toLowerCase());
-            }
+            try {
+                const formData = new FormData();
+                formData.append("subject", data.subject);
+                formData.append("description", data.description);
+                formData.append("priority", data.priority);
+                formData.append("type", data.type);
+                if (options.isSystemUser) {
+                    formData.append("customerEmail", customerEmail.trim().toLowerCase());
+                }
 
-            files.forEach((file) => {
-                formData.append("attachments", file);
-            });
+                files.forEach((file) => {
+                    formData.append("attachments", file);
+                });
 
-            const result = await createTicketAction(null, formData);
+                const result = await createTicketAction(null, formData);
 
-            if (result.success) {
-                toast.success("Chamado aberto com sucesso!");
-                form.reset();
-                setFiles([]);
-                setCustomerEmail("");
-                onSuccess();
-            } else {
-                toast.error(result.message || "Erro ao criar chamado.");
+                if (result.success) {
+                    toast.success("Chamado aberto com sucesso!");
+                    form.reset();
+                    setFiles([]);
+                    setCustomerEmail("");
+                    onSuccess();
+                } else {
+                    toast.error(result.message || "Erro ao criar chamado.");
+                }
+            } catch (error) {
+                const message = error instanceof Error ? error.message : "Erro inesperado ao criar chamado.";
+                toast.error(message);
             }
         });
     };

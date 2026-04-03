@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   getDefaultZammadGlobalSettings,
+  type ZammadOwnerMode,
   zammadGlobalSettingsSchema,
 } from "@/features/tickets/application/zammad-global-settings";
 import {
@@ -32,6 +33,24 @@ export function ZammadGlobalSettingsForm() {
     defaultValues: getDefaultZammadGlobalSettings(),
     mode: "onChange",
   });
+
+  function renderOwnerModeSelect(
+    id: string,
+    value: ZammadOwnerMode,
+    onChange: (value: ZammadOwnerMode) => void
+  ) {
+    return (
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger id={id}>
+          <SelectValue placeholder="Selecione o modo" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="UNASSIGNED">Sem proprietario</SelectItem>
+          <SelectItem value="ASSIGN_CURRENT_AGENT">Atribuir ao agente atual</SelectItem>
+        </SelectContent>
+      </Select>
+    );
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -124,6 +143,11 @@ export function ZammadGlobalSettingsForm() {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="defaultStateId">Estado padrao (state_id)</Label>
+            <Input id="defaultStateId" type="number" min={1} {...form.register("defaultStateId", { valueAsNumber: true })} />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="defaultArticleType">Canal padrao</Label>
             <Select
               value={form.watch("defaultArticleType")}
@@ -143,6 +167,15 @@ export function ZammadGlobalSettingsForm() {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="defaultOwnerMode">Owner padrao</Label>
+            {renderOwnerModeSelect(
+              "defaultOwnerMode",
+              form.watch("defaultOwnerMode"),
+              (value) => form.setValue("defaultOwnerMode", value, { shouldValidate: true })
+            )}
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="titlePrefix">Prefixo opcional no titulo</Label>
             <Input id="titlePrefix" placeholder="[Portal]" {...form.register("titlePrefix")} />
           </div>
@@ -156,6 +189,152 @@ export function ZammadGlobalSettingsForm() {
               checked={form.watch("defaultArticleInternal")}
               onCheckedChange={(checked) => form.setValue("defaultArticleInternal", checked, { shouldValidate: true })}
             />
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-border/50 p-4 md:col-span-2">
+            <div>
+              <p className="text-sm font-medium">Mapeamento por perfil</p>
+              <p className="text-xs text-muted-foreground">
+                Override de grupo, estado, owner e prioridade para cada perfil no portal.
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="grid items-end gap-3 rounded-md border border-border/40 p-3 md:grid-cols-5">
+                <div className="text-sm font-medium">Cliente Admin</div>
+                <Input placeholder="group" {...form.register("roleDefaults.clienteAdmin.group")} />
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="state_id"
+                  {...form.register("roleDefaults.clienteAdmin.stateId", { valueAsNumber: true })}
+                />
+                {renderOwnerModeSelect(
+                  "owner-cliente-admin",
+                  form.watch("roleDefaults.clienteAdmin.ownerMode"),
+                  (value) => form.setValue("roleDefaults.clienteAdmin.ownerMode", value, { shouldValidate: true })
+                )}
+                <Select
+                  value={String(form.watch("roleDefaults.clienteAdmin.priorityId"))}
+                  onValueChange={(value) =>
+                    form.setValue("roleDefaults.clienteAdmin.priorityId", Number(value), { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 low</SelectItem>
+                    <SelectItem value="2">2 normal</SelectItem>
+                    <SelectItem value="3">3 high</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid items-end gap-3 rounded-md border border-border/40 p-3 md:grid-cols-5">
+                <div className="text-sm font-medium">Cliente User</div>
+                <Input placeholder="group" {...form.register("roleDefaults.clienteUser.group")} />
+                <Input type="number" min={1} {...form.register("roleDefaults.clienteUser.stateId", { valueAsNumber: true })} />
+                {renderOwnerModeSelect(
+                  "owner-cliente-user",
+                  form.watch("roleDefaults.clienteUser.ownerMode"),
+                  (value) => form.setValue("roleDefaults.clienteUser.ownerMode", value, { shouldValidate: true })
+                )}
+                <Select
+                  value={String(form.watch("roleDefaults.clienteUser.priorityId"))}
+                  onValueChange={(value) =>
+                    form.setValue("roleDefaults.clienteUser.priorityId", Number(value), { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 low</SelectItem>
+                    <SelectItem value="2">2 normal</SelectItem>
+                    <SelectItem value="3">3 high</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid items-end gap-3 rounded-md border border-border/40 p-3 md:grid-cols-5">
+                <div className="text-sm font-medium">Admin</div>
+                <Input placeholder="group" {...form.register("roleDefaults.admin.group")} />
+                <Input type="number" min={1} {...form.register("roleDefaults.admin.stateId", { valueAsNumber: true })} />
+                {renderOwnerModeSelect(
+                  "owner-admin",
+                  form.watch("roleDefaults.admin.ownerMode"),
+                  (value) => form.setValue("roleDefaults.admin.ownerMode", value, { shouldValidate: true })
+                )}
+                <Select
+                  value={String(form.watch("roleDefaults.admin.priorityId"))}
+                  onValueChange={(value) =>
+                    form.setValue("roleDefaults.admin.priorityId", Number(value), { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 low</SelectItem>
+                    <SelectItem value="2">2 normal</SelectItem>
+                    <SelectItem value="3">3 high</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid items-end gap-3 rounded-md border border-border/40 p-3 md:grid-cols-5">
+                <div className="text-sm font-medium">Suporte</div>
+                <Input placeholder="group" {...form.register("roleDefaults.suporte.group")} />
+                <Input type="number" min={1} {...form.register("roleDefaults.suporte.stateId", { valueAsNumber: true })} />
+                {renderOwnerModeSelect(
+                  "owner-suporte",
+                  form.watch("roleDefaults.suporte.ownerMode"),
+                  (value) => form.setValue("roleDefaults.suporte.ownerMode", value, { shouldValidate: true })
+                )}
+                <Select
+                  value={String(form.watch("roleDefaults.suporte.priorityId"))}
+                  onValueChange={(value) =>
+                    form.setValue("roleDefaults.suporte.priorityId", Number(value), { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 low</SelectItem>
+                    <SelectItem value="2">2 normal</SelectItem>
+                    <SelectItem value="3">3 high</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid items-end gap-3 rounded-md border border-border/40 p-3 md:grid-cols-5">
+                <div className="text-sm font-medium">Developer</div>
+                <Input placeholder="group" {...form.register("roleDefaults.developer.group")} />
+                <Input type="number" min={1} {...form.register("roleDefaults.developer.stateId", { valueAsNumber: true })} />
+                {renderOwnerModeSelect(
+                  "owner-developer",
+                  form.watch("roleDefaults.developer.ownerMode"),
+                  (value) => form.setValue("roleDefaults.developer.ownerMode", value, { shouldValidate: true })
+                )}
+                <Select
+                  value={String(form.watch("roleDefaults.developer.priorityId"))}
+                  onValueChange={(value) =>
+                    form.setValue("roleDefaults.developer.priorityId", Number(value), { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 low</SelectItem>
+                    <SelectItem value="2">2 normal</SelectItem>
+                    <SelectItem value="3">3 high</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

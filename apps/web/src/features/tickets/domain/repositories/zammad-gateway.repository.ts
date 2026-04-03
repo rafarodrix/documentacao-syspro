@@ -48,6 +48,8 @@ export interface ZammadGatewayRepository {
     group: string;
     customer: string;
     priority_id: number;
+    state_id?: number;
+    owner_id?: number | null;
     article: {
       subject: string;
       body: string;

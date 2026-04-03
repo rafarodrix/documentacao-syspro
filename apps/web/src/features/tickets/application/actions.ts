@@ -1,5 +1,6 @@
 "use server";
 
+import { Role } from "@prisma/client";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import { ZammadTicketArticle } from "@dosc-syspro/contracts";
@@ -14,8 +15,25 @@ import { prisma } from "@/lib/prisma";
 import { getZammadGlobalSettingsSnapshot } from "@/features/tickets/application/zammad-global-settings-server";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
 import type { TicketDetailsResponse, TicketMutationResponse } from "@/features/tickets/domain/model";
+import type { ZammadGlobalSettings } from "@/features/tickets/application/zammad-global-settings";
 
 const CREATE_TICKET_RATE_LIMIT = { max: 10, windowMs: 60_000 };
+
+function resolveRoleDefaults(role: Role, config: ZammadGlobalSettings) {
+    switch (role) {
+        case Role.ADMIN:
+            return config.roleDefaults.admin;
+        case Role.SUPORTE:
+            return config.roleDefaults.suporte;
+        case Role.DEVELOPER:
+            return config.roleDefaults.developer;
+        case Role.CLIENTE_ADMIN:
+            return config.roleDefaults.clienteAdmin;
+        case Role.CLIENTE_USER:
+        default:
+            return config.roleDefaults.clienteUser;
+    }
+}
 
 export async function getTicketsAction(params: TicketQueryParams = {}): Promise<TicketsDataResponse> {
     const session = await getProtectedSession();
@@ -48,45 +66,55 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
 }
 
 export async function createTicketAction(_prevState: unknown, formData: FormData) {
-    const session = await getProtectedSession();
-    if (!session) return { success: false, message: "Sessao expirada." };
-
-    const ip = await getRequestIp();
-    const rateLimit = consumeActionRateLimit({
-        action: "createTicketAction",
-        max: CREATE_TICKET_RATE_LIMIT.max,
-        windowMs: CREATE_TICKET_RATE_LIMIT.windowMs,
-        userId: session.userId,
-        ip,
-    });
-
-    if (!rateLimit.allowed) {
-        return { success: false, message: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s.` };
-    }
-
-    const subject = String(formData.get("subject") || "").trim();
-    const description = String(formData.get("description") || "").trim();
-    const priorityStr = String(formData.get("priority") || "2 normal");
-    const parsedPriorityId = parseInt(priorityStr.charAt(0), 10);
-    const customerEmailInput = String(formData.get("customerEmail") || "").trim().toLowerCase();
-    const systemUser = isSystemRole(session.role);
-
-    if (!subject || !description) {
-        return { success: false, message: "Preencha assunto e descricao." };
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (systemUser && !customerEmailInput) {
-        return { success: false, message: "Informe o e-mail do cliente." };
-    }
-
-    if (systemUser && !emailRegex.test(customerEmailInput)) {
-        return { success: false, message: "Informe um e-mail de cliente valido." };
-    }
-
     try {
+        const session = await getProtectedSession();
+        if (!session) return { success: false, message: "Sessao expirada." };
+
+        const ip = await getRequestIp();
+        const rateLimit = consumeActionRateLimit({
+            action: "createTicketAction",
+            max: CREATE_TICKET_RATE_LIMIT.max,
+            windowMs: CREATE_TICKET_RATE_LIMIT.windowMs,
+            userId: session.userId,
+            ip,
+        });
+
+        if (!rateLimit.allowed) {
+            return { success: false, message: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s.` };
+        }
+
+        const subject = String(formData.get("subject") || "").trim();
+        const description = String(formData.get("description") || "").trim();
+        const priorityStr = String(formData.get("priority") || "2 normal");
+        const parsedPriorityId = parseInt(priorityStr.charAt(0), 10);
+        const customerEmailInput = String(formData.get("customerEmail") || "").trim().toLowerCase();
+        const systemUser = isSystemRole(session.role);
+
+        if (!subject || !description) {
+            return { success: false, message: "Preencha assunto e descricao." };
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (systemUser && !customerEmailInput) {
+            return { success: false, message: "Informe o e-mail do cliente." };
+        }
+
+        if (systemUser && !emailRegex.test(customerEmailInput)) {
+            return { success: false, message: "Informe um e-mail de cliente valido." };
+        }
+
         const zammadGlobal = await getZammadGlobalSettingsSnapshot();
-        const priorityId = Number.isFinite(parsedPriorityId) ? parsedPriorityId : zammadGlobal.defaultPriorityId;
+        const roleDefaults = resolveRoleDefaults(session.role, zammadGlobal);
+        const group = roleDefaults.group || zammadGlobal.defaultGroup;
+        const priorityId = Number.isFinite(parsedPriorityId)
+            ? parsedPriorityId
+            : (roleDefaults.priorityId ?? zammadGlobal.defaultPriorityId);
+        const stateId = roleDefaults.stateId ?? zammadGlobal.defaultStateId;
+        const ownerMode = roleDefaults.ownerMode ?? zammadGlobal.defaultOwnerMode;
+        const shouldAssignCurrentAgent = systemUser && ownerMode === "ASSIGN_CURRENT_AGENT";
+        const ownerId = shouldAssignCurrentAgent
+            ? await ZammadGateway.getUserIdByEmail(session.email, "app-chamados")
+            : null;
         const normalizedSubject = zammadGlobal.titlePrefix
             ? `${zammadGlobal.titlePrefix} ${subject}`.trim()
             : subject;
@@ -111,9 +139,11 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
 
         const newTicket = await ZammadGateway.createTicket({
             title: normalizedSubject,
-            group: zammadGlobal.defaultGroup,
+            group,
             customer: systemUser ? customerEmailInput : session.email,
             priority_id: priorityId,
+            state_id: stateId,
+            owner_id: ownerId,
             article: {
                 subject: normalizedSubject,
                 body: description,
