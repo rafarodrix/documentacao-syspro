@@ -64,16 +64,8 @@ function formatDateOnly(value: string | null) {
   return new Date(value).toLocaleDateString("pt-BR");
 }
 
-const SYSPRO_SERVER_EXECUTABLE_SUFFIX = "\\syspro\\server\\sysproserver.exe";
-
-function isSysproServerInstallation(path: string | null) {
-  if (!path) return false;
-  return path.trim().toLowerCase().endsWith(SYSPRO_SERVER_EXECUTABLE_SUFFIX);
-}
-
-function getSysproUpdateHealthMeta(input: { path: string; isServerHost: boolean | null; lastFileWriteAt: string | null }) {
-  const isServerHost = input.isServerHost ?? isSysproServerInstallation(input.path);
-  if (!isServerHost) {
+function getSysproUpdateHealthMeta(input: { isServerHost: boolean | null; lastFileWriteAt: string | null }) {
+  if (input.isServerHost !== true) {
     return {
       label: "Nao aplicavel",
       detail: "Indicador aplicado somente ao servidor Syspro.",
@@ -979,16 +971,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     return fromNetwork ?? host.lastKnownIp ?? null;
   }, [host.lastKnownIp, networkSnapshot, systemSnapshot]);
   const sysproServerInstallations = useMemo(
-    () =>
-      dedupedInstallationContexts.filter((context) =>
-        context.update.isServerHost ?? isSysproServerInstallation(context.update.path)
-      ),
+    () => dedupedInstallationContexts.filter((context) => context.update.isServerHost === true),
     [dedupedInstallationContexts],
   );
   const firebirdData = useMemo(() => {
     const persistedFirebird = sysproServerInstallations.find(
       (context) => !!context.update.firebirdVersion || !!context.update.firebirdPath,
     )?.update;
+    const hasPersistedFirebird = !!persistedFirebird;
     const softwareItem = softwareSnapshot.find((entry) => {
       const name = extractStringFromPayload(entry, ["displayName", "name", "productName", "title"]);
       return !!name && name.toLowerCase().includes("firebird");
@@ -1006,8 +996,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     const processRunningRaw = fbProcess?.["running"];
     const processRunning = typeof processRunningRaw === "boolean" ? processRunningRaw : null;
     return {
-      name: persistedFirebird?.firebirdPath ?? softwareName,
-      version: persistedFirebird?.firebirdVersion ?? softwareVersion,
+      name: persistedFirebird?.firebirdPath ?? (!hasPersistedFirebird ? softwareName : null),
+      version: persistedFirebird?.firebirdVersion ?? (!hasPersistedFirebird ? softwareVersion : null),
       processRunning,
     };
   }, [softwareSnapshot, sysproProcessSnapshot, sysproServerInstallations]);
@@ -1415,7 +1405,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       const entry = context.update;
                       const company = context.company;
                       const health = getSysproUpdateHealthMeta({
-                        path: entry.path,
                         isServerHost: entry.isServerHost,
                         lastFileWriteAt: entry.lastFileWriteAt,
                       });
@@ -1428,6 +1417,17 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Servidor / Porta / Protocolo</p>
                           <p className="mt-1 text-sm text-foreground">
                             {(company?.serverHost ?? "Sem vinculo")} : {company?.serverPort ?? "-"} ({company?.serverProtocol ?? "-"})
+                          </p>
+                          <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Topologia detectada</p>
+                          <p className="mt-1 text-sm text-foreground">
+                            Client: {entry.hasClientFolder === null ? "Sem leitura" : entry.hasClientFolder ? "Sim" : "Nao"} | Dll:{" "}
+                            {entry.hasDllFolder === null ? "Sem leitura" : entry.hasDllFolder ? "Sim" : "Nao"}
+                          </p>
+                          <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Firebird</p>
+                          <p className="mt-1 text-sm text-foreground">
+                            {entry.firebirdVersion || entry.firebirdPath
+                              ? `${entry.firebirdVersion ?? "versao n/d"} (${entry.firebirdPath ?? "caminho n/d"})`
+                              : "Sem leitura"}
                           </p>
                           <div className={cn("mt-2 rounded-lg border px-2 py-1 text-xs", health.className)}>
                             {health.label} - {health.detail}
@@ -1646,7 +1646,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         ? (companyDirectory || primaryCompanyDirectory || DEFAULT_INSTALLATION_DIRECTORY)
                         : (entry.path?.trim() || DEFAULT_INSTALLATION_DIRECTORY);
                     const updateHealthMeta = getSysproUpdateHealthMeta({
-                      path: entry.path,
                       isServerHost: entry.isServerHost,
                       lastFileWriteAt: entry.lastFileWriteAt,
                     });

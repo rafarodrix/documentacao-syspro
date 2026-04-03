@@ -1,7 +1,7 @@
 ---
 title: Operacao do Agente
-description: Fluxo tecnico vigente do agente remoto e plano de modularizacao por fases com impacto no portal.
-lastUpdated: 2026-04-02
+description: Baseline tecnico vigente do agente remoto e plano de evolucao com impacto no portal.
+lastUpdated: 2026-04-03
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -17,69 +17,19 @@ audience:
 
 ## Objetivo
 
-Consolidar a operacao do agente remoto RustDesk e definir a migracao do script monolitico (`trilink-agente.ps1`) para arquitetura modular, sem quebrar o fluxo atual `discover -> bootstrap -> sync -> ack`.
+Manter o agente remoto RustDesk operando em baseline estavel, com orquestracao token-first no `trilink-agente.ps1`, e evoluir observabilidade/politicas sem regressao no ciclo.
 
-## Estado atual (2026-04-02)
+## Baseline operacional atual (2026-04-03)
 
-- A modularizacao do agente (`FEAT-002J`) foi concluida e o `trilink-agente.ps1` agora atua como orquestrador de ciclo.
-- O contrato de `sync` no dominio remoto ja aceita inventario tecnico expandido.
-- A persistencia em `remote_host` ja foi ampliada para os novos blocos de inventario.
-- O diretorio e o detalhe de host no portal ja exibem sinais operacionais derivados do inventario.
+- estrategia de ciclo: `sync_token_first`.
+- com token valido: segue direto para `sync`.
+- sem token valido: executa `discover` e faz `bootstrap` somente em fluxos explicitos.
+- invalidacao de token: aplicada ao final da fila de ACK (`rebootstrap_required_after_ack_queue`).
+- contrato com `schemaVersion` em `discover/sync/ack`.
+- watchdog por fase habilitado em `discover/bootstrap/sync/ack`.
+- inventario tecnico estendido ativo no sync e refletido no portal.
 
-## Entregas ja implementadas
-
-### FEAT-002K (Contrato + dominio de sync)
-
-Arquivos principais:
-
-- `packages/remote-domain/src/contracts.ts`
-- `packages/remote-domain/src/ports.ts`
-- `packages/remote-domain/src/use-cases/process-sync.ts`
-- `packages/remote-domain/tests/agent-token-lifecycle.test.ts`
-
-Implementado:
-
-- novos campos aceitos em `processSyncInputSchema`:
-  - `hardwareIdentity`
-  - `diskSnapshot`
-  - `sysproProcesses`
-  - `windowsUpdateStatus`
-  - `rebootPending`
-- normalizacao defensiva dos novos blocos no `process-sync`
-- fallback seguro quando payload vier invalido
-- retorno de `warnings[]` no output de sync para observabilidade sem quebrar o ciclo
-
-### FEAT-002L (Persistencia + leitura no portal)
-
-Arquivos principais:
-
-- `packages/database/prisma/schema.prisma`
-- `packages/database/prisma/migrations/20260402110000_remote_host_extended_inventory/migration.sql`
-- `packages/api/src/remote-domain-ports.ts`
-- `apps/web/src/features/remote/infrastructure/gateways/remote-domain/sync-port.gateway.ts`
-- `apps/web/src/features/remote/application/queries.ts`
-- `apps/web/src/features/remote/domain/model.ts`
-- `apps/web/src/features/remote/interface/directory-page.tsx`
-- `apps/web/src/features/remote/interface/host-details-page.tsx`
-
-Implementado:
-
-- novas colunas no `remote_host`:
-  - `lastHardwareIdentity`, `lastHardwareIdentityAt`
-  - `lastDiskSnapshot`, `lastDiskSnapshotAt`
-  - `lastSysproProcessSnapshot`, `lastSysproProcessSnapshotAt`
-  - `lastWindowsUpdateStatus`, `lastWindowsUpdateStatusAt`
-  - `lastRebootPending`, `lastRebootPendingAt`
-- persistencia desses blocos no `persistSync`
-- leitura dos snapshots no detalhe do host (`agentTelemetry`)
-- sinais operacionais no diretorio:
-  - `rebootPending`
-  - `diskLow`
-  - `sysproProcessDown`
-  - `windowsPendingCount`
-  - `lastExtendedSnapshotAt`
-
-## Estrutura alvo do agente
+## Estrutura atual do agente
 
 ```text
 remote-agent/
@@ -115,14 +65,7 @@ remote-agent/
     sync.ps1
     ack.ps1
     commands.ps1
-    health.ps1
 ```
-### Fase 4: health e politicas operacionais
-
-Escopo:
-
-- `application/health.ps1`
-- consolidacao de politicas de coleta, retry, auto-heal e thresholds
 
 ## Proximo passo oficial
 
@@ -134,40 +77,15 @@ Objetivo:
 
 Checklist minimo:
 
-1. executar migration e generate no ambiente alvo
-2. validar ciclo real `discover -> bootstrap -> sync -> ack`
-3. validar novos sinais no portal (diretorio + detalhe)
-4. validar warnings de payload no sync
-5. definir canario interno por versao do agente
-6. documentar criterio de rollback
-7. padronizar execucao em campo com task unica `TrilinkRemoteAgent` em `SYSTEM` (sem scheduler paralelo em contexto de usuario)
+1. executar migration e generate no ambiente alvo.
+2. validar ciclo real token-first (`sync` direto com token valido; `discover/bootstrap` condicional).
+3. validar sinais no portal (diretorio + detalhe).
+4. validar fila local de ACK e comportamento de reprocessamento.
+5. definir canario interno por versao do agente.
+6. documentar criterio de rollback.
+7. padronizar execucao em campo com task unica `TrilinkRemoteAgent` em `SYSTEM`.
 
 ## Plano de implementacao recomendado (proximas sprints)
-
-### Sprint A (P0): estabilidade operacional do ciclo (concluido em 2026-04-03)
-
-Escopo concluido:
-
-1. orquestracao no `trilink-agente.ps1` ajustada para priorizar `sync` com token valido (estrategia `sync_token_first`) e reduzir bootstrap recorrente.
-2. invalidacao de token aplicada apenas apos finalizar a fila de ACK (`pendingTokenInvalidation` + `Decision=rebootstrap_required_after_ack_queue`).
-
-Evidencias no codigo:
-
-- `Decision=sync_token_first` quando ha token local reutilizavel.
-- `discover/bootstrap` executados apenas quando nao ha token util ou quando `rebootstrapRequired=true`.
-- bootstrap restrito a fluxos explicitos do contrato (`host_bootstrap_required` ou `token_invalid`).
-- loop de ACK usa `tokenForAck` estavel para todos os comandos do ciclo e posterga a invalidacao para o fim da fila.
-
-Status atual:
-
-- `UPGRADE_CLIENT` implementado em `application/commands.ps1` com download HTTPS, validacao SHA256 e ACK detalhado.
-- portal atualizado para emitir `upgrade_client` somente quando metadados seguros de upgrade estiverem presentes.
-
-Definicao de pronto (atingida):
-
-- comando `UPGRADE_CLIENT` com caminho de sucesso/falha cobertos.
-- ciclo nominal de host ativo concluindo sem bootstrap desnecessario.
-- token nao e invalidado no meio da fila de ACK.
 
 ### Sprint B (P1): politica remota de execucao
 
@@ -179,7 +97,7 @@ Escopo:
 
 Definicao de pronto:
 
-- intervalo do ciclo pode ser ajustado no portal sem alterar pacote local.
+- intervalo do ciclo ajustavel no portal sem alterar pacote local.
 - metricas de ciclo mostram policy aplicada no host.
 - fallback local preserva operacao offline de configuracao.
 
@@ -193,31 +111,11 @@ Escopo:
 
 Definicao de pronto:
 
-- chamadas `discover/bootstrap/sync/ack` podem ser correlacionadas fim a fim.
-- suporte consegue diagnosticar falha de ciclo sem acesso interativo ao host.
-- taxa de falso positivo em rebootstrap reduzida.
-
-### Sprint D (P1): inventario tecnico Syspro/Firebird consolidado
-
-Escopo:
-
-1. consolidar no ciclo de `sync` os campos de instalacao por base:
-- `isServerHost`
-- `hasClientFolder`
-- `hasDllFolder`
-- `firebirdVersion`
-- `firebirdPath`
-2. garantir persistencia unificada desses campos no backend e consumo no portal.
-3. eliminar fallback desnecessario quando dado persistido estiver disponivel.
-
-Definicao de pronto:
-
-- aba `Informacoes tecnicas` mostra leitura coerente para servidor Syspro e Firebird.
-- aba `Instalacoes` usa metadados persistidos por instalacao para diagnostico operacional.
-- contrato agente/API documentado com campos opcionais e sem quebra retrocompativel.
+- chamadas `discover/bootstrap/sync/ack` correlacionadas fim a fim.
+- suporte diagnostica falha de ciclo sem acesso interativo ao host.
+- reducao de falso positivo em rebootstrap.
 
 ## Referencias
 
 - estrategia remota: `/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`
 - backlog consolidado: `/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo`
-

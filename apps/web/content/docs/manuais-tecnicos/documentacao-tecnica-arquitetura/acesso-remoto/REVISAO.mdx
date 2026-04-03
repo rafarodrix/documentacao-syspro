@@ -21,21 +21,7 @@ audience:
 
 # Análise Comparativa: Documentação vs. Implementação
 
-A documentação atual (`arquitetura-remote.mdx`) cobre bem os fluxos principais de **discover, bootstrap, sync e ack**, mas há **9 gaps significativos** entre o que está documentado e o que foi implementado em produção.
 
-### Resumo Executivo
-
-| Aspecto | Status Atual | Implementação | Severidade |
-|---------|------------|---------------|-----------|
-| Fluxo discover/bootstrap/sync/ack | ✅ Documentado | ✅ Implementado | - |
-| Lifecycle do agentToken (rotate/revoke) | ❌ Não documentado | ✅ Implementado | 🔴 Alta |
-| Sessions (create/list/start/stop) | ⚠️ Brevemente mencionado | ✅ Implementado | 🟡 Alta |
-| Address Book (CRUD de credenciais) | ❌ Não documentado | ✅ Implementado | 🟡 Alta |
-| Host Admin (link/create/update/delete) | ❌ Não documentado | ✅ Implementado | 🟡 Média |
-| Heartbeat (fluxo alternativo) | ❌ Não documentado | ✅ Implementado | 🟡 Média |
-| Transições de estado discover | ⚠️ Menciona 3 estados | ✅ Implementado | 🟡 Média |
-| Observabilidade e logging estruturado | ❌ Não documentado | ✅ Implementado | 🟡 Média |
-| Validação de token e compliance | ⚠️ Parcial | ✅ Implementado | 🟡 Média |
 
 ---
 
@@ -635,20 +621,4 @@ Closes #DOCUMENTATION
 Related: #REMOTE-MODULE
 ```
 
----
 
-## ?? Referência Rápida
-
-**Precisa entender...**
-
-- **Como renovar token de agente?** ? `como-gerenciar-sessoes-e-tokens.mdx` Rotina 1
-- **Como revogar credencial?** ? `como-gerenciar-sessoes-e-tokens.mdx` Rotina 2
-- **Como criar sessão remota?** ? `como-gerenciar-sessoes-e-tokens.mdx` Rotina 3
-- **Como diagnosticar token expirado?** ? `como-gerenciar-sessoes-e-tokens.mdx` Rotina 5
-- **Qual é o fluxo de transição discover?** ? `arquitetura-remote.mdx` + `resiliencia-remote.mdx` §2
-- **Como observabilidade funciona?** ? `resiliencia-remote.mdx` §6
-- **O arquivo original está incompleto?** ? Consultar `REVISAO.md` para gap list
-
----
-
-**Documentação do módulo remoto agora é production-ready! ??**
