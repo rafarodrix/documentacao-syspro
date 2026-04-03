@@ -707,6 +707,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }, [details.agentCommands]);
   const hiddenAcknowledgedCount = Math.max(0, details.agentCommands.length - visibleAgentCommands.length);
+  const hasPendingInstallGuide = useMemo(
+    () => details.installGuide.some((step) => !step.done),
+    [details.installGuide]
+  );
   const dedupedInstallationContexts = useMemo(() => {
     const byPath = new Map<string, RemoteHostDetails["installationContexts"][number]>();
 
@@ -2427,34 +2431,36 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </div>
               </details>
 
-              <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
-                <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
-                  Guia tecnico e checklist de campo
-                </summary>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {details.installGuide.map((step) => (
-                    <div key={step.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-foreground">{step.title}</p>
-                        <Badge variant="outline" className={step.done ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"}>
-                          {step.done ? "OK" : "Pendente"}
-                        </Badge>
+              {hasPendingInstallGuide ? (
+                <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
+                    Resumo de prontidao operacional
+                  </summary>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {details.installGuide.map((step) => (
+                      <div key={step.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-foreground">{step.title}</p>
+                          <Badge variant="outline" className={step.done ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"}>
+                            {step.done ? "OK" : "Pendente"}
+                          </Badge>
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                <div className="mt-3 rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <p>1. Execute a Vinculacao de Maquina autenticada para este host.</p>
-                  <p>2. Confirme o RustDesk ID devolvido pela maquina do cliente.</p>
-                  <p>3. A Vinculacao de Maquina emite a credencial operacional e o heartbeat continuo passa a usar essa credencial.</p>
-                  <p>4. Se a credencial for renovada ou expirar, execute a Vinculacao de Maquina novamente neste host.</p>
-                  <p>5. A descoberta e apenas etapa de triagem e nao reativa heartbeat autenticado em host ja vinculado.</p>
-                  <p>6. Se o heartbeat nao vier, valide conectividade, tarefa do agente e URL do portal.</p>
-                  {isMobileClient ? <p>7. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
-                </div>
-              </details>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
+                    <span>Consulte o playbook tecnico para execucao assistida do fluxo de vinculacao e heartbeat.</span>
+                    <Link
+                      href="/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/agent/arquitetura-agent"
+                      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
+                    >
+                      Abrir playbook
+                    </Link>
+                  </div>
+                </details>
+              ) : null}
                 </div>
               </details>
             </CardContent>

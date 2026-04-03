@@ -142,7 +142,10 @@ function normalizeCatalogOwners(data: unknown): ZammadCatalogOwner[] {
       if (!active || !Number.isFinite(id) || id < 1 || !name) return null;
       return { id, name, email };
     })
-    .filter((row): row is ZammadCatalogOwner => Boolean(row));
+    .filter(
+      (row): row is { id: number; name: string; email: string | null } =>
+        row !== null
+    );
 
   const deduped = new Map<number, ZammadCatalogOwner>();
   for (const owner of owners) {
