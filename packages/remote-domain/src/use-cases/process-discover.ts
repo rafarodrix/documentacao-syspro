@@ -1,4 +1,4 @@
-﻿import { processDiscoverInputSchema, type ProcessDiscoverOutput } from "../contracts";
+import { processDiscoverInputSchema, type ProcessDiscoverOutput } from "../contracts";
 import type { RemoteDiscoverPort } from "../ports";
 
 function normalizeNullable(value?: string | null): string | null {

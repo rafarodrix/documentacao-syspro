@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getReleases } from "@/features/releases/application/queries";
 import { Calendar, Rocket, Bug, ArrowRight, Sparkles, Lock } from "lucide-react";

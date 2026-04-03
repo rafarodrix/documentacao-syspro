@@ -1,4 +1,4 @@
-﻿export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
+export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
 
 export type RemoteModuleSettings = {
   rustDeskServerHost: string;

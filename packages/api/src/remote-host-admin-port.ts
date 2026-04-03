@@ -1,4 +1,4 @@
-﻿import { randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { prisma, buildScopedWhere, normalizeCompareValue, normalizeRustdeskIdStrict, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
 import type {
   CreateHostInput,

@@ -1,4 +1,4 @@
-﻿import { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashAgentToken } from "@/features/remote/application/rustdesk-sync";
 import { isRemoteAgentTokenExpired } from "@/features/remote/application/agent-token";

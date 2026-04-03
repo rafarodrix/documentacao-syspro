@@ -324,7 +324,7 @@ export function CreateUserPageForm({
             <div className="flex-1 overflow-y-auto p-6">
               <div key={currentSection} className="animate-in fade-in slide-in-from-right-2 duration-200">
 
-                {/* ── SEÇÃO: ACESSO ─────────────────────────────────────────── */}
+                {/* ── SEÇíO: ACESSO ─────────────────────────────────────────── */}
                 {currentSection === "acesso" && (
                   <Card className="border-border/60 bg-card/95">
                     <CardHeader>
@@ -391,7 +391,7 @@ export function CreateUserPageForm({
                   </Card>
                 )}
 
-                {/* ── SEÇÃO: IDENTIDADE ─────────────────────────────────────── */}
+                {/* ── SEÇíO: IDENTIDADE ─────────────────────────────────────── */}
                 {currentSection === "identidade" && (
                   <Card className="border-border/60 bg-card/95">
                     <CardHeader>
@@ -446,7 +446,7 @@ export function CreateUserPageForm({
                   </Card>
                 )}
 
-                {/* ── SEÇÃO: PERFIL ─────────────────────────────────────────── */}
+                {/* ── SEÇíO: PERFIL ─────────────────────────────────────────── */}
                 {currentSection === "perfil" && (
                   <Card className="border-border/60 bg-card/95">
                     <CardHeader>

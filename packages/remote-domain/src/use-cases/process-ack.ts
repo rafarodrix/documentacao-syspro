@@ -1,4 +1,4 @@
-﻿import { COMMAND_PROCESSED } from "../ack-reason-codes";
+import { COMMAND_PROCESSED } from "../ack-reason-codes";
 import { processAckInputSchema, type ProcessAckOutput } from "../contracts";
 import type { RemoteAckPort } from "../ports";
 

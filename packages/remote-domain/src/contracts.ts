@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 import { REMOTE_AGENT_ACK_REASON_CODES, type RemoteAgentAckReasonCode } from "./ack-reason-codes";
 
 export const AGENT_DISCOVER_SCHEMA_VERSION = "discover.payload.v1" as const;

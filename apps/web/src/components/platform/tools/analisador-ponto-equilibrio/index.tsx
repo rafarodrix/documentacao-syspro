@@ -18,6 +18,11 @@ const formatarMoedaInput = (value: string): string => {
     const numberValue = parseFloat(digitsOnly) / 100;
     return numberValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+const formatNumberToInput = (value: number): string => {
+    if (isNaN(value)) return '';
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const round = (value: number) => Math.round(value * 100) / 100;
 
 // --- Componente Principal ---
@@ -136,14 +141,14 @@ export function AnalisadorPontoEquilibrio() {
                         <div>
                             <label className="font-semibold text-sm flex items-center gap-2"><TrendingUp size={16}/> Meta de Faturamento Mensal</label>
                              <input type="text" inputMode="decimal" placeholder="Ex: 20.000,00"
-                                value={modoAnalise === 'lucro' && analise ? formatarMoedaInput(String(analise.faturamentoProjetado)) : faturamentoDesejado}
+                                value={modoAnalise === 'lucro' && analise?.faturamentoProjetado ? formatNumberToInput(analise.faturamentoProjetado) : faturamentoDesejado}
                                 onChange={handleFaturamentoChange}
                                 className="mt-1 w-full p-2 bg-background border rounded-md" />
                         </div>
                          <div>
                             <label className="font-semibold text-sm flex items-center gap-2"><Coins size={16}/> Meta de Lucro Mensal</label>
                              <input type="text" inputMode="decimal" placeholder="Ex: 5.000,00"
-                                value={modoAnalise === 'faturamento' && analise ? formatarMoedaInput(String(analise.lucroProjetado)) : lucroDesejado}
+                                value={modoAnalise === 'faturamento' && analise?.lucroProjetado !== undefined ? formatNumberToInput(analise.lucroProjetado) : lucroDesejado}
                                 onChange={handleLucroChange}
                                 className="mt-1 w-full p-2 bg-background border rounded-md" />
                         </div>

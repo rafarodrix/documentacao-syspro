@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 
 export const zammadOwnerModeSchema = z.enum(["UNASSIGNED", "ASSIGN_CURRENT_AGENT"]);
 export type ZammadOwnerMode = z.infer<typeof zammadOwnerModeSchema>;

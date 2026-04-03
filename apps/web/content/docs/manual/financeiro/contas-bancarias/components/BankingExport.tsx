@@ -29,7 +29,7 @@ const BankingExport = () => {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(80, 80, 80);
-        const introText = "Para realizarmos a homologa??o junto ao banco e configurar a emiss?o de boletos, preencha os dados abaixo:";
+        const introText = "Para realizarmos a homologa??o junto ao banco e configurar a emissão de boletos, preencha os dados abaixo:";
         doc.text(doc.splitTextToSize(introText, pageWidth - (margin * 2)), margin, 40);
 
         // --- FUN??O AUXILIAR PARA CRIAR SE??ES ---
@@ -70,16 +70,16 @@ const BankingExport = () => {
             ['C?digo do Conv?nio', ''],
             ['Modalidade', ''],
             ['Carteira', ''],
-            ['C?digo Transmiss?o', ''],
+            ['C?digo Transmissão', ''],
         ], nextY);
 
         // --- 3. INSTRU??ES E FAIXAS ---
         nextY = createFormTable("Configura??es e Instru??es", [
             ['Taxa Juros ao M?s (%)', ''],
             ['Taxa Multa (%)', ''],
-            ['Envia para protesto?', '[   ] N?o [   ] Sim [          ] dias (Obs: Caso seja informado "Sim" ? obrigat?rio informar o prazo em dias)'],
-            ['Nosso N?mero (In?cio)/(Fim)', ''],
-            ['Layout Remessa', ' [   ] 240 [   ] 400 [   ] 444 (Obs: O layout remessa 444 ? exclusivo para inclus?o da chave da NF-e no arquivo)'],
+            ['Envia para protesto?', '[   ] Não [   ] Sim [          ] dias (Obs: Caso seja informado "Sim" ? obrigat?rio informar o prazo em dias)'],
+            ['Nosso número (In?cio)/(Fim)', ''],
+            ['Layout Remessa', ' [   ] 240 [   ] 400 [   ] 444 (Obs: O layout remessa 444 ? exclusivo para inclusão da chave da NF-e no arquivo)'],
         ], nextY);
 
         // --- MENSAGEM FIXA ---

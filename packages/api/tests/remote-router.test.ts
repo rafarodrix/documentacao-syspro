@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError, callProcedure } from "../src/router";
 import { createApiContext } from "../src/context";
 import { remoteRouter } from "../src/routers/remote";

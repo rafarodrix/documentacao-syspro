@@ -1,4 +1,4 @@
-﻿import { hostAgentTokenInputSchema, type RotateHostInstallTokenOutput } from "../contracts";
+import { hostAgentTokenInputSchema, type RotateHostInstallTokenOutput } from "../contracts";
 import type { RemoteHostAdminPort } from "../ports";
 
 export async function rotateHostInstallToken(

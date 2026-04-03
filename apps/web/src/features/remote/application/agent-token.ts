@@ -1,4 +1,4 @@
-﻿const DEFAULT_AGENT_TOKEN_TTL_DAYS = 30;
+const DEFAULT_AGENT_TOKEN_TTL_DAYS = 30;
 
 export function getRemoteAgentTokenTtlDays() {
   const rawValue = process.env.REMOTE_AGENT_TOKEN_TTL_DAYS?.trim();

@@ -14,7 +14,7 @@ audience:
   - suporte
 ---
 
-Este manual detalha o processo de configura??o de regras tribut?rias no Syspro ERP, abrangendo as telas de **Al?quota**, **Participante**, **Documentos** e **UF**. O objetivo ? configurar as al?quotas e regras de c?lculo para impostos como ICMS, ICMS-ST, PIS, COFINS e IPI, considerando diferentes tipos de opera??es, participantes e unidades federativas (UFs).
+Este manual detalha o processo de configura??o de regras tribut?rias no Syspro ERP, abrangendo as telas de **Al?quota**, **Participante**, **Documentos** e **UF**. O objetivo ? configurar as alíquotas e regras de c?lculo para impostos como ICMS, ICMS-ST, PIS, COFINS e IPI, considerando diferentes tipos de opera??es, participantes e unidades federativas (UFs).
 
 As telas a seguir ilustram o processo de configura??o:
 
@@ -25,18 +25,18 @@ As telas a seguir ilustram o processo de configura??o:
 
 
 <Callout type="info" title="Aviso">
- Voc? tem acesso administrativo ou permiss?es espec?ficas para alterar configura??es tribut?rias no Syspro ERP.
+ Você tem acesso administrativo ou permiss?es espec?ficas para alterar configura??es tribut?rias no Syspro ERP.
 </Callout>
 
 
-## Vis?o Geral das Telas
+## Visão Geral das Telas
 
 ### 1. Tela de Al?quota
 
-A tela de **Al?quota** ? onde as regras de c?lculo de impostos (ICMS, ICMS-ST, PIS, COFINS, IPI) s?o definidas. Ela permite configurar al?quotas, CSTs (C?digos de Situa??o Tribut?ria), bases de c?lculo e outras informa??es fiscais.
+A tela de **Al?quota** ? onde as regras de c?lculo de impostos (ICMS, ICMS-ST, PIS, COFINS, IPI) são definidas. Ela permite configurar alíquotas, CSTs (C?digos de Situa??o Tribut?ria), bases de c?lculo e outras informa??es fiscais.
 
 - **Funcionalidade**:
-  - Define al?quotas para cada imposto (ex.: ICMS: 18,00%, PIS: 0,00%).
+  - Define alíquotas para cada imposto (ex.: ICMS: 18,00%, PIS: 0,00%).
   - Associa CSTs (ex.: CST ICMS: 000, CST PIS: 99).
   - Configura bases de c?lculo e redu??es (ex.: Red. Base ICMS: 0,00%).
   - Permite definir a UF de origem e destino (ex.: MG para ambos).
@@ -54,26 +54,26 @@ A tela de **Al?quota** ? onde as regras de c?lculo de impostos (ICMS, ICMS-ST, P
 
 ### 2. Tela de Participante
 
-A tela de **Participante** associa tipos de participantes ?s regras tribut?rias. Diferentes tipos de participantes (ex.: Pessoa F?sica, Isento, Simples Nacional) podem ter regras espec?ficas, como aproveitamento ou n?o de al?quotas.
+A tela de **Participante** associa tipos de participantes ?s regras tribut?rias. Diferentes tipos de participantes (ex.: Pessoa F?sica, Isento, Simples Nacional) podem ter regras espec?ficas, como aproveitamento ou Não de alíquotas.
 
 - **Funcionalidade**:
   - Associa tipos de participantes (ex.: Simples Nacional, Pessoa F?sica, Isento, Normal Tributado Integralmente).
   - Permite configurar regras espec?ficas para cada tipo de participante.
-  - Exemplo: Um participante "Isento" n?o aproveita al?quotas de ICMS, enquanto um "Simples Nacional" pode ter regras diferenciadas.
+  - Exemplo: Um participante "Isento" Não aproveita alíquotas de ICMS, enquanto um "Simples Nacional" pode ter regras diferenciadas.
 - **Exemplo de Configura??o**:
   - **Participante: Simples Nacional**
-    - Regra: Tributado pelo Simples Nacional, sem permiss?o de cr?dito.
+    - Regra: Tributado pelo Simples Nacional, sem permissão de cr?dito.
     - CST CSOSN: 0102
   - **Participante: Isento**
-    - Regra: N?o aproveita al?quotas de ICMS.
+    - Regra: Não aproveita alíquotas de ICMS.
     - CST ICMS: 090 (Isento)
   - **Participante: Pessoa F?sica**
-    - Regra: N?o aproveita al?quotas de ICMS.
+    - Regra: Não aproveita alíquotas de ICMS.
     - CST ICMS: 090 (Isento)
 
 ### 3. Tela de Documentos
 
-A tela de **Documentos** lista os tipos de opera??es que podem ter regras tribut?rias espec?ficas. Cada tipo de opera??o (ex.: compra, venda, transfer?ncia) pode ser configurado com al?quotas e CSTs diferentes.
+A tela de **Documentos** lista os tipos de opera??es que podem ter regras tribut?rias espec?ficas. Cada tipo de opera??o (ex.: compra, venda, transfer?ncia) pode ser configurado com alíquotas e CSTs diferentes.
 
 - **Funcionalidade**:
   - Exibe uma lista de opera??es (ex.: Venda PDV, Compra de Mercadoria, Transfer?ncia de Mercadoria).
@@ -85,13 +85,13 @@ A tela de **Documentos** lista os tipos de opera??es que podem ter regras tribut
   - **Compra de Mercadoria (PEDIDO DE COMPRA)**:
     - ICMS: 18,00%, CST ICMS: 090
     - PIS/COFINS: 0,00%, CST PIS/COFINS: 99
-  - **Transfer?ncia de Mercadoria (EMISS?O DE TRANSFER?NCIA DE MERCADORIA)**:
+  - **Transfer?ncia de Mercadoria (EMISsão DE TRANSFER?NCIA DE MERCADORIA)**:
     - ICMS: 0,00%, CST ICMS: 090
     - PIS/COFINS: 0,00%, CST PIS/COFINS: 99
 
 ### 4. Tela de UF
 
-A tela de **UF** define a unidade federativa (UF) para a qual as regras tribut?rias s?o v?lidas. Isso ? importante para opera??es interestaduais ou para regras espec?ficas de cada estado.
+A tela de **UF** define a unidade federativa (UF) para a qual as regras tribut?rias são v?lidas. Isso ? importante para opera??es interestaduais ou para regras espec?ficas de cada estado.
 
 - **Localiza??o**: Menu **Tributa??o** > **Ativos** > **UF**.
 - **Funcionalidade**:
@@ -138,7 +138,7 @@ A tela de **UF** define a unidade federativa (UF) para a qual as regras tribut?r
 2. Selecione o tipo de participante (ex.: **Simples Nacional**).
 3. Associe as regras tribut?rias:
    - **Simples Nacional**:
-     - CST CSOSN: 0102 (Tributada pelo Simples Nacional, sem permiss?o de cr?dito).
+     - CST CSOSN: 0102 (Tributada pelo Simples Nacional, sem permissão de cr?dito).
    - **Isento**:
      - CST ICMS: 090 (Isento).
 4. Clique em **Salvar** para confirmar.

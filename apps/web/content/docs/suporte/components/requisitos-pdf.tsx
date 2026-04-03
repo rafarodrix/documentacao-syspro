@@ -105,7 +105,7 @@ export default function GeradorPdfRequisitos() {
             <Printer size={20} strokeWidth={1.5} />
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-fd-foreground">Ficha T?cnica Completa</h4>
+            <h4 className="text-sm font-semibold text-fd-foreground">Ficha técnica Completa</h4>
             <p className="text-xs text-fd-muted-foreground">Requisitos de hardware e orienta??es de uso multitarefa.</p>
           </div>
         </div>
