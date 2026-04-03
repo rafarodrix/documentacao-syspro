@@ -656,10 +656,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     host.name,
   ]);
   const dedupedInstallationContexts = useMemo(() => {
-    const byPath = new Map<
-      string,
-      (typeof details.installationContexts)[number]
-    >();
+    const byPath = new Map<string, RemoteHostDetails["installationContexts"][number]>();
 
     for (const context of details.installationContexts) {
       const pathKey = context.update.path.trim().toLowerCase();

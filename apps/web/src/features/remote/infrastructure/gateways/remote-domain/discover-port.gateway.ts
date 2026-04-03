@@ -31,21 +31,10 @@ export function createRemoteDiscoverPort(params: {
       return normalizeRustdeskId(value) ?? null;
     },
     normalizeSysproUpdates(value: unknown) {
-      return normalizeSysproUpdates(value).map((entry) => ({
-        companyLabel: entry.companyLabel,
-        path: entry.path,
-        lastFileWriteAt: entry.lastFileWriteAt?.toISOString() ?? null,
-      }));
+      return normalizeSysproUpdates(value);
     },
     serializeSysproUpdatesSnapshot(updates) {
-      const normalizedUpdates = normalizeSysproUpdates(updates);
-      return serializeSysproUpdatesSnapshot(
-        normalizedUpdates.map((entry) => ({
-          companyLabel: entry.companyLabel,
-          path: entry.path,
-          lastFileWriteAt: entry.lastFileWriteAt ? new Date(entry.lastFileWriteAt) : null,
-        })),
-      );
+      return serializeSysproUpdatesSnapshot(normalizeSysproUpdates(updates));
     },
     getTransitions() {
       return transitions;
