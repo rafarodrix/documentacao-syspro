@@ -1,14 +1,26 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
+import { useEffect, useState, useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ticketFormSchema, type TicketFormInput, type TicketFormOutput } from "@dosc-syspro/contracts";
 import { createTicketAction } from "@/features/tickets/application/actions";
 import { toast } from "sonner";
 
-export function useTicketSheet(onSuccess: () => void) {
+type UseTicketSheetOptions = {
+    isSystemUser?: boolean;
+};
+
+type CustomerEmailOption = {
+    email: string;
+    companyName: string;
+};
+
+export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOptions = {}) {
     const [files, setFiles] = useState<File[]>([]);
+    const [customerEmail, setCustomerEmail] = useState("");
+    const [customerOptions, setCustomerOptions] = useState<CustomerEmailOption[]>([]);
+    const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,13 +53,56 @@ export function useTicketSheet(onSuccess: () => void) {
 
     const triggerFileInput = () => fileInputRef.current?.click();
 
+    useEffect(() => {
+        if (!options.isSystemUser) return;
+
+        const controller = new AbortController();
+        const timer = setTimeout(async () => {
+            try {
+                setIsCustomerOptionsLoading(true);
+                const params = new URLSearchParams();
+                params.set("q", customerEmail.trim());
+                params.set("limit", "15");
+                const response = await fetch(`/api/platform/tickets/customer-emails?${params.toString()}`, {
+                    method: "GET",
+                    signal: controller.signal,
+                });
+                if (!response.ok) {
+                    setCustomerOptions([]);
+                    return;
+                }
+                const json = (await response.json()) as { options?: CustomerEmailOption[] };
+                setCustomerOptions(Array.isArray(json.options) ? json.options : []);
+            } catch (error) {
+                if ((error as Error).name !== "AbortError") {
+                    setCustomerOptions([]);
+                }
+            } finally {
+                setIsCustomerOptionsLoading(false);
+            }
+        }, 180);
+
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [customerEmail, options.isSystemUser]);
+
     const onSubmit = (data: TicketFormOutput) => {
+        if (options.isSystemUser && !customerEmail.trim()) {
+            toast.error("Informe o e-mail do cliente para abrir o chamado.");
+            return;
+        }
+
         startTransition(async () => {
             const formData = new FormData();
             formData.append("subject", data.subject);
             formData.append("description", data.description);
             formData.append("priority", data.priority);
             formData.append("type", data.type);
+            if (options.isSystemUser) {
+                formData.append("customerEmail", customerEmail.trim().toLowerCase());
+            }
 
             files.forEach((file) => {
                 formData.append("attachments", file);
@@ -59,6 +114,7 @@ export function useTicketSheet(onSuccess: () => void) {
                 toast.success("Chamado aberto com sucesso!");
                 form.reset();
                 setFiles([]);
+                setCustomerEmail("");
                 onSuccess();
             } else {
                 toast.error(result.message || "Erro ao criar chamado.");
@@ -75,5 +131,9 @@ export function useTicketSheet(onSuccess: () => void) {
         removeFile,
         triggerFileInput,
         onSubmit: form.handleSubmit(onSubmit),
+        customerEmail,
+        setCustomerEmail,
+        customerOptions,
+        isCustomerOptionsLoading,
     };
 }

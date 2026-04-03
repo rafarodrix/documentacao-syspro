@@ -10,6 +10,7 @@ import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-li
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
 import { getScopedCompanyZammadEmails, isSystemRole } from "@/features/tickets/application/services/ticket-scope.service";
+import { prisma } from "@/lib/prisma";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
 import type { TicketDetailsResponse, TicketMutationResponse } from "@/features/tickets/domain/model";
 
@@ -66,16 +67,45 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     const description = String(formData.get("description") || "").trim();
     const priorityStr = String(formData.get("priority") || "2 normal");
     const priorityId = parseInt(priorityStr.charAt(0), 10) || 2;
+    const customerEmailInput = String(formData.get("customerEmail") || "").trim().toLowerCase();
+    const systemUser = isSystemRole(session.role);
 
     if (!subject || !description) {
         return { success: false, message: "Preencha assunto e descricao." };
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (systemUser && !customerEmailInput) {
+        return { success: false, message: "Informe o e-mail do cliente." };
+    }
+
+    if (systemUser && !emailRegex.test(customerEmailInput)) {
+        return { success: false, message: "Informe um e-mail de cliente valido." };
+    }
+
     try {
+        if (systemUser && customerEmailInput) {
+            const configured = await prisma.companyZammadEmail.findFirst({
+                where: {
+                    email: customerEmailInput,
+                    isActive: true,
+                    company: { deletedAt: null },
+                },
+                select: { id: true },
+            });
+
+            if (!configured) {
+                return {
+                    success: false,
+                    message: "E-mail nao encontrado entre os contatos Zammad ativos das empresas.",
+                };
+            }
+        }
+
         const newTicket = await ZammadGateway.createTicket({
             title: subject,
             group: "Users",
-            customer: session.email,
+            customer: systemUser ? customerEmailInput : session.email,
             priority_id: priorityId,
             article: {
                 subject,

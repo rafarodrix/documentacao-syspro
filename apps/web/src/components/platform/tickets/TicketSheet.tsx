@@ -5,7 +5,7 @@ import { useTicketSheet } from '@/features/tickets/hooks/use-ticket-sheet';
 
 import {
     PlusCircle, Loader2, Send, FileText, AlertCircle,
-    Paperclip, X, MessageSquare, HelpCircle, Info
+    Paperclip, X, MessageSquare, HelpCircle, Info, ChevronsUpDown, Building2, Check
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -23,15 +23,23 @@ import {
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
-export function TicketSheet() {
+interface TicketSheetProps {
+    isSystemUser?: boolean;
+}
+
+export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
     const [open, setOpen] = useState(false);
+    const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
 
     // Toda a lógica vem do Hook
     const {
         form, files, isPending, fileInputRef,
-        handleFileChange, removeFile, triggerFileInput, onSubmit
-    } = useTicketSheet(() => setOpen(false));
+        handleFileChange, removeFile, triggerFileInput, onSubmit,
+        customerEmail, setCustomerEmail, customerOptions, isCustomerOptionsLoading
+    } = useTicketSheet(() => setOpen(false), { isSystemUser });
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
@@ -82,6 +90,79 @@ export function TicketSheet() {
                                             <FormMessage />
                                         </FormItem>
                                     )} />
+
+                                    {isSystemUser && (
+                                        <FormItem>
+                                            <FormLabel>E-mail do cliente</FormLabel>
+                                            <FormControl>
+                                                <Popover open={customerPickerOpen} onOpenChange={setCustomerPickerOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className={cn(
+                                                                "w-full justify-between bg-muted/30 hover:bg-muted/40",
+                                                                !customerEmail && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            <span className="truncate text-left">
+                                                                {customerEmail || "Selecione ou digite o e-mail do cliente"}
+                                                            </span>
+                                                            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent align="start" className="w-[420px] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                                                        <div className="border-b p-2.5">
+                                                            <Input
+                                                                type="email"
+                                                                value={customerEmail}
+                                                                onChange={(event) => setCustomerEmail(event.target.value)}
+                                                                placeholder="Buscar cliente@empresa.com"
+                                                                className="bg-background"
+                                                            />
+                                                        </div>
+                                                        <div className="max-h-64 overflow-y-auto py-1">
+                                                            {customerOptions.map((option) => {
+                                                                const selected = option.email === customerEmail.trim().toLowerCase();
+                                                                return (
+                                                                    <button
+                                                                        key={`${option.email}:${option.companyName}`}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setCustomerEmail(option.email);
+                                                                            setCustomerPickerOpen(false);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60",
+                                                                            selected && "bg-primary/5"
+                                                                        )}
+                                                                    >
+                                                                        <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                                                        <span className="min-w-0 flex-1">
+                                                                            <span className="block truncate font-medium">{option.companyName}</span>
+                                                                            <span className="block truncate text-xs text-muted-foreground">{option.email}</span>
+                                                                        </span>
+                                                                        {selected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                            {!customerOptions.length && !isCustomerOptionsLoading && (
+                                                                <p className="px-3 py-4 text-xs text-muted-foreground">
+                                                                    Nenhum cliente encontrado para o filtro informado.
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </FormControl>
+                                            <FormDescription>
+                                                Informe um e-mail de cliente ativo e vinculado no portal.
+                                            </FormDescription>
+                                            {isCustomerOptionsLoading && (
+                                                <p className="text-xs text-muted-foreground">Buscando clientes...</p>
+                                            )}
+                                        </FormItem>
+                                    )}
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField control={form.control} name="type" render={({ field }) => (

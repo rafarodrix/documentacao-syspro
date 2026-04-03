@@ -124,7 +124,7 @@ export function TicketsContainer({
                         {isAdmin ? "Gerencie a fila de suporte e solicitacoes." : "Acompanhe o status das suas solicitacoes."}
                     </p>
                 </div>
-                {!isAdmin && <TicketSheet />}
+                <TicketSheet isSystemUser={isAdmin} />
             </div>
 
             <TicketsStats counts={statusCounts} activeStatus={statusGroup} onSelectStatus={setStatusFilter} />
