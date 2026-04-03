@@ -1,0 +1,451 @@
+---
+title: MELHORIAS DE CÓDIGO — Integração Zammad
+description: Este arquivo documenta e exemplifica as melhorias identificadas na análise do código atual da integração Zammad vs documentação.
+lastUpdated: 2026-04-03
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - manuais-tecnicos
+  - how-to
+  - integracao-zammad
+audience:
+  - developer
+---
+
+// ============================================================================
+// [1] ROUTER DE TICKETS MELHORADO (packages/api/src/routers/tickets.ts)
+//
+// Problema atual: o router.list() não suporta os filtros reais usados no portal
+// (queue, statusGroup, closedWindow, search) — isso faz a action no apps/web
+// reimplementar toda a lógica de filtro sem reutilização.
+// ============================================================================
+
+
+import { prisma } from "@dosc-syspro/database";
+import { ApiError, createRouter, defineMutation, defineQuery } from "../router";
+import {
+  OPEN_STATE_IDS,
+  PENDING_STATE_IDS,
+  CLOSED_STATE_IDS,
+  TICKET_QUEUE_KEYS,
+ type QueueKey,
+  type TicketStatusGroup,
+} from "@dosc-syspro/core";
+
+type ClosedTicketsWindow = "30d" | "60d" | "90d" | "180d" | "365d" | "all";
+
+const CLOSED_WINDOW_DAYS: Record<ClosedTicketsWindow, number | null> = {
+  "30d": 30,
+  "60d": 60,
+  "90d": 90,
+  "180d": 180,
+  "365d": 365,
+  "all": null,
+};
+
+function buildClosedWindowFilter(window: ClosedTicketsWindow) {
+  const days = CLOSED_WINDOW_DAYS[window];
+  if (days === null) return {};
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return { updatedAtZammad: { gte: cutoff } };
+}
+
+function parseValidQueue(value: unknown): QueueKey {
+  if (typeof value === "string" && TICKET_QUEUE_KEYS.includes(value as QueueKey)) {
+    return value as QueueKey;
+  }
+  return "all";
+}
+
+function parseValidStatusGroup(value: unknown): TicketStatusGroup {
+  if (value === "open" || value === "pending" || value === "closed") return value;
+  return "open";
+}
+
+function parseValidClosedWindow(value: unknown): ClosedTicketsWindow {
+  const valid: ClosedTicketsWindow[] = ["30d", "60d", "90d", "180d", "365d", "all"];
+  if (typeof value === "string" && valid.includes(value as ClosedTicketsWindow)) {
+    return value as ClosedTicketsWindow;
+  }
+  return "30d";
+}
+
+export const ticketsRouterV2 = createRouter({
+  /**
+   * MELHORADO: suporta todos os filtros do portal (queue, statusGroup, search, closedWindow)
+   * e retorna contadores de fila/status para os badges da UI.
+   */
+  list: defineQuery<{
+    page?: number;
+    pageSize?: number;
+    queue?: string;
+    statusGroup?: string;
+    search?: string;
+    closedWindow?: string;
+  }, unknown>({
+    auth: "authenticated",
+    handler: async ({ ctx, input }) => {
+      const page = Math.max(1, Number(input.page ?? 1));
+      const pageSize = Math.min(100, Math.max(1, Number(input.pageSize ?? 20)));
+      const skip = (page - 1) * pageSize;
+      const queue = parseValidQueue(input.queue);
+      const statusGroup = parseValidStatusGroup(input.statusGroup);
+      const closedWindow = parseValidClosedWindow(input.closedWindow);
+      const search = typeof input.search === "string" ? input.search.trim() : "";
+
+      // Filtro por grupo de status
+      const statusFilter = {
+        open: { stateId: { in: OPEN_STATE_IDS } },
+        pending: { stateId: { in: PENDING_STATE_IDS } },
+        closed: { stateId: { in: CLOSED_STATE_IDS } },
+      }[statusGroup];
+
+      // Filtro por janela para fechados
+      const closedFilter = statusGroup === "closed"
+        ? buildClosedWindowFilter(closedWindow)
+        : {};
+
+      // Filtro por fila — para my_queue precisa do userId Zammad do usuário
+      const queueFilter = buildQueueFilter(queue, ctx.session?.userId ?? null);
+
+      // Filtro de busca
+      const searchFilter = search
+        ? {
+            OR: [
+              { title: { contains: search, mode: "insensitive" as const } },
+              { number: { contains: search, mode: "insensitive" as const } },
+              { customer: { contains: search, mode: "insensitive" as const } },
+              { groupName: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {};
+
+      const where = {
+        ...statusFilter,
+        ...closedFilter,
+        ...queueFilter,
+        ...searchFilter,
+      };
+
+      const [tickets, total] = await Promise.all([
+        prisma.zammadTicketCache.findMany({
+          where,
+          orderBy: [{ updatedAtZammad: "desc" }],
+          skip,
+          take: pageSize,
+        }),
+        prisma.zammadTicketCache.count({ where }),
+      ]);
+
+      // Contadores de status (para TicketsStats)
+      const [openCount, pendingCount, closedCount] = await Promise.all([
+        prisma.zammadTicketCache.count({ where: { stateId: { in: OPEN_STATE_IDS } } }),
+        prisma.zammadTicketCache.count({ where: { stateId: { in: PENDING_STATE_IDS } } }),
+        prisma.zammadTicketCache.count({ where: { stateId: { in: CLOSED_STATE_IDS } } }),
+      ]);
+
+      return {
+        items: tickets,
+        pagination: {
+          page,
+          pageSize,
+          total,
+          hasNextPage: skip + pageSize < total,
+          hasPreviousPage: page > 1,
+        },
+        statusCounts: { open: openCount, pending: pendingCount, closed: closedCount },
+      };
+    },
+  }),
+
+  details: defineQuery<{ ticketId: string }, unknown>({
+    auth: "authenticated",
+    handler: async ({ input }) => {
+      const ticketId = parseTicketId(input.ticketId);
+      const ticket = await prisma.zammadTicketCache.findUnique({
+        where: { zammadTicketId: ticketId },
+      });
+
+      if (!ticket) {
+        throw new ApiError("Ticket não encontrado no cache.", "BAD_REQUEST");
+      }
+
+      return ticket;
+    },
+  }),
+
+  /**
+   * MELHORADO: quick actions com validação tipada e atualização imediata do cache
+   */
+  quickAction: defineMutation<{
+    ticketId: string;
+    action: "assume" | "priority_high" | "macro_followup" | "close_resolved";
+  }, unknown>({
+    auth: "role",
+    roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
+    handler: async ({ ctx, input }) => {
+      const ticketId = parseTicketId(input.ticketId);
+      const action = input.action;
+
+      const ALLOWED_ACTIONS = ["assume", "priority_high", "macro_followup", "close_resolved"] as const;
+      if (!ALLOWED_ACTIONS.includes(action as typeof ALLOWED_ACTIONS[number])) {
+        throw new ApiError(`Ação inválida: ${action}`, "BAD_REQUEST");
+      }
+
+      const current = await prisma.zammadTicketCache.findUnique({
+        where: { zammadTicketId: ticketId },
+        select: { id: true, stateId: true, priorityId: true },
+      });
+
+      if (!current) {
+        throw new ApiError("Ticket não encontrado.", "BAD_REQUEST");
+      }
+
+      // Atualização otimista do cache + chamada ao Zammad
+      // (a chamada ao Zammad é feita no use case da feature de tickets)
+      const cacheUpdate =
+        action === "priority_high"
+          ? { priorityId: 3, lastSyncedAt: new Date() }
+          : action === "close_resolved"
+            ? { stateId: CLOSED_STATE_IDS[0], resolvedAt: new Date(), lastSyncedAt: new Date() }
+            : { lastSyncedAt: new Date() };
+
+      const updated = await prisma.zammadTicketCache.update({
+        where: { zammadTicketId: ticketId },
+        data: cacheUpdate,
+        select: { zammadTicketId: true, priorityId: true, stateId: true, lastSyncedAt: true },
+      });
+
+      return { action, ticket: updated, actorUserId: ctx.session?.userId };
+    },
+  }),
+
+  /**
+   * NOVO: contadores de fila sem retornar tickets (para badges de fila)
+   */
+  queueCounts: defineQuery({
+    auth: "authenticated",
+    handler: async () => {
+      const operationalFilter = { stateId: { in: [...OPEN_STATE_IDS, ...PENDING_STATE_IDS] } };
+
+      const [all, unassigned, critical, noResponse] = await Promise.all([
+        prisma.zammadTicketCache.count({ where: operationalFilter }),
+        prisma.zammadTicketCache.count({ where: { ...operationalFilter, ownerId: null } }),
+        prisma.zammadTicketCache.count({ where: { ...operationalFilter, priorityId: 3 } }),
+        prisma.zammadTicketCache.count({
+          where: { ...operationalFilter, firstResponseAt: null },
+        }),
+      ]);
+
+      return {
+        all,
+        my_queue: 0, // Requer userId do Zammad — resolver no use case da feature
+        unassigned,
+        critical,
+        no_response: noResponse,
+      };
+    },
+  }),
+
+  /**
+   * NOVO: sincronização manual do cache (trigger de worker)
+   */
+  syncCache: defineMutation<{ pages?: number }, unknown>({
+    auth: "role",
+    roles: ["ADMIN", "DEVELOPER"],
+    handler: async ({ input }) => {
+      const pages = Math.max(1, Math.min(10, Number(input.pages ?? 3)));
+
+      // Atualiza ZammadSyncState para indicar que sync foi solicitado
+      await prisma.zammadSyncState.upsert({
+        where: { key: "global" },
+        update: { lastProcessedAt: new Date() },
+        create: {
+          key: "global",
+          lastProcessedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      return { accepted: true, requestedPages: pages };
+    },
+  }),
+});
+
+// ============================================================================
+// [2] HELPER PARA FILTRO DE FILA
+// ============================================================================
+
+function buildQueueFilter(queue: QueueKey, _userId: string | null) {
+  const operacional = { stateId: { in: [...OPEN_STATE_IDS, ...PENDING_STATE_IDS] } };
+
+  switch (queue) {
+    case "my_queue":
+      // TODO: resolver zammadUserId do userId do portal via ZammadGateway.getUserIdByEmail
+      // Por ora, retorna filtro operacional sem filtro de owner
+      return operacional;
+    case "unassigned":
+      return { ...operacional, ownerId: null };
+    case "critical":
+      return { ...operacional, priorityId: 3 };
+    case "no_response":
+      return { ...operacional, firstResponseAt: null };
+    default:
+      return operacional;
+  }
+}
+
+function parseTicketId(value: string) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new ApiError("ticketId inválido. Use o ID numérico do Zammad.", "BAD_REQUEST");
+  }
+  return parsed;
+}
+
+// ============================================================================
+// [3] NOVOS RECURSOS A IMPLEMENTAR — ANÁLISE E ROADMAP
+// ============================================================================
+
+/**
+ * PRIORIDADE ALTA — Impacto imediato na operação
+ * 
+ * 3.1 NOTIFICAÇÕES DE SLA EM TEMPO REAL
+ * ---------------------------------------------------------------------------
+ * O sistema de notificações (`NotificationsMenu`) já existe e consulta
+ * `/api/platform/notifications`. Adicionar alertas de SLA:
+ * 
+ * - tickets com `breached = true` E sem dono → "SLA estourado sem responsável"
+ * - tickets com `escalationAt` próxima (< 30 min) → "Alerta de escalação"
+ * - tickets `no_response` há > X horas → "Ticket sem primeira resposta"
+ * 
+ * Implementação sugerida:
+ * 
+ *   GET /api/platform/notifications
+ *   → já existe; adicionar SlaNotificationProvider ao NotificationsResolver
+ * 
+ * Prioridade: ALTA — usa infraestrutura existente, sem nova dependência
+ * 
+ * 
+ * 3.2 SYNC WEBHOOK IDEMPOTENTE COM SIGNATURE VERIFICATION
+ * ---------------------------------------------------------------------------
+ * O webhook atual não verifica assinatura HMAC (apenas Bearer token simples).
+ * Migrar para verificação HMAC com `isValidHmacSignature` (já existe em
+ * `@dosc-syspro/api/request-auth`):
+ * 
+ *   ZAMMAD_WEBHOOK_SECRET=... (já na arquitetura, verificar implementação atual)
+ * 
+ * Prioridade: ALTA — segurança
+ * 
+ * 
+ * 3.3 ATUALIZAÇÃO OTIMISTA NA TABELA DE TICKETS
+ * ---------------------------------------------------------------------------
+ * Atualmente, quick actions chamam router.refresh() após sucesso.
+ * Implementar atualização otimista local no TicketsTable (sem full refresh):
+ * 
+ *   // Em runQuickAction, após sucesso:
+ *   setLocalTickets(prev => prev.map(t =>
+ *     t.id === ticketId
+ *       ? { ...t, priority: action === "priority_high" ? 3 : t.priority }
+ *       : t
+ *   ));
+ *   // E um soft-refresh em background
+ * 
+ * Prioridade: ALTA — melhoria de UX perceptível
+ */
+
+/**
+ * PRIORIDADE MÉDIA — Melhoria de produto
+ * 
+ * 3.4 AÇÕES EM LOTE (BULK ACTIONS)
+ * ---------------------------------------------------------------------------
+ * Seleção múltipla na TicketsTable com ações:
+ * - Atribuir selecionados para mim
+ * - Alterar prioridade em lote
+ * - Fechar em lote (com confirmação)
+ * 
+ * Dependências: checkbox por row, estado de seleção no TicketsContainer,
+ *   novo endpoint `POST /api/platform/tickets/bulk-actions`
+ * 
+ * 
+ * 3.5 INTEGRAÇÃO CONVERSATION ↔ TICKET
+ * ---------------------------------------------------------------------------
+ * O schema já tem `Conversation` com `ticketId` e `ticketNumber`. 
+ * Quando uma conversa do WhatsApp/Portal é associada a um ticket Zammad,
+ * o histórico de mensagens pode aparecer no TicketChat como artigos internos.
+ * 
+ * Fluxo:
+ *   Conversation.ticketNumber = ticket.number
+ *   → TicketChat renderiza ConversationMessages junto com ZammadArticles
+ *   → Resposta no TicketChat → cria artigo no Zammad E mensagem na Conversation
+ * 
+ * 
+ * 3.6 EXPORTAÇÃO AVANÇADA COM FILTROS
+ * ---------------------------------------------------------------------------
+ * O `downloadCsv` atual exporta apenas a página corrente.
+ * Exportar todos os tickets do filtro atual (sem paginação):
+ * 
+ *   POST /api/platform/tickets/export
+ *   { queue, statusGroup, closedWindow, search, format: "csv" | "xlsx" }
+ *   → Stream de download
+ */
+
+/**
+ * PRIORIDADE BAIXA — Nice to have
+ * 
+ * 3.7 TEMPLATES DE MACROS CONFIGURÁVEIS
+ * ---------------------------------------------------------------------------
+ * Atualmente "Aplicar macro" usa macro hardcoded.
+ * Permitir configurar macros via ZammadGlobalSettings:
+ * 
+ *   zammadGlobalSettings.macros = [
+ *     { id: "followup", label: "Follow-up", zammadMacroId: 1 },
+ *     { id: "resolved", label: "Resolvido", zammadMacroId: 2 },
+ *   ]
+ * 
+ * 
+ * 3.8 DASHBOARD DE SLA POR GRUPO
+ * ---------------------------------------------------------------------------
+ * Gráficos de:
+ * - % de tickets dentro do SLA por grupo (usando groupName do cache)
+ * - Tempo médio de primeira resposta
+ * - Tickets críticos resolvidos vs abertos
+ * 
+ * Tudo calculado do ZammadTicketCache — sem consulta ao Zammad.
+ * 
+ * 
+ * 3.9 AUTO-REFRESH DA LISTA DE TICKETS
+ * ---------------------------------------------------------------------------
+ * Polling leve a cada 2 minutos quando a página de chamados está aberta:
+ * 
+ *   // TicketsContainer.tsx — client component
+ *   useEffect(() => {
+ *     const interval = setInterval(() => router.refresh(), 120_000);
+ *     return () => clearInterval(interval);
+ *   }, [router]);
+ * 
+ * Ou via SSE para push real-time quando webhook atualiza o cache.
+ */
+
+// ============================================================================
+// [4] MIGRATION DE ÍNDICE SUGERIDA
+//
+// O ZammadTicketCache atualmente tem índice em (stateId, priorityId) mas não
+// tem índice eficiente para a fila "no_response" que filtra por
+// (firstResponseAt IS NULL AND stateId IN operational).
+// ============================================================================
+
+/*
+-- Adicionar à próxima migration:
+
+CREATE INDEX "ZammadTicketCache_no_response_idx"
+ON "ZammadTicketCache"("stateId", "firstResponseAt")
+WHERE "firstResponseAt" IS NULL;
+
+-- E um índice para busca textual:
+CREATE INDEX "ZammadTicketCache_title_search_idx"
+ON "ZammadTicketCache" USING gin(to_tsvector('portuguese', "title"));
+*/
+
+export {};

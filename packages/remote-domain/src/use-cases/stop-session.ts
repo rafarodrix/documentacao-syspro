@@ -14,6 +14,15 @@ function formatDuration(startedAt: Date | null) {
   return `${hours}h ${minutes}min`;
 }
 
+function buildStopWhatsAppBody(input: {
+  hostName: string;
+  companyName: string;
+  duration: string | null;
+}) {
+  const durationText = input.duration ? ` Duração: ${input.duration}.` : "";
+  return `*Sessão Remota Encerrada*\n\nInformamos que o acesso ao computador *${input.hostName}* (${input.companyName}) foi finalizado.${durationText}\n\nObrigado pela confiança!`;
+}
+
 function buildStopNote(input: {
   sessionId: string;
   ticketNumber: string | null;
@@ -75,6 +84,24 @@ export async function stopSession(
       await deps.port.logError("remote.domain.sessions.stop.ticket_note_failed", error, {
         sessionId: context.id,
         ticketId: context.ticketId,
+      });
+    }
+  }
+
+  if (context.company.whatsapp) {
+    try {
+      await deps.port.sendWhatsAppAlert({
+        number: context.company.whatsapp,
+        body: buildStopWhatsAppBody({
+          hostName: context.host.name,
+          companyName: context.company.nomeFantasia ?? context.company.razaoSocial ?? "Empresa sem nome",
+          duration: formatDuration(context.startedAt),
+        }),
+      });
+    } catch (error) {
+      await deps.port.logError("remote.domain.sessions.stop.whatsapp_alert_failed", error, {
+        sessionId: context.id,
+        whatsapp: context.company.whatsapp,
       });
     }
   }

@@ -27,4 +27,4 @@ export type { ActionErrorResponse, HandleActionErrorOptions } from "./lib/errors
 export type { LogFields, LogLevel, RequestLoggerLike, RequestLoggerOptions } from "./lib/observability/logger";
 export type { RateLimitOptions, RateLimitWindow } from "./lib/security/action-rate-limit";
 export type { RequestLike, SecretTokenOptions } from "./lib/security/request-auth";
-export { configureRemoteSessionTicketNoteHandler } from "./remote-domain-ports";
+export { configureRemoteSessionTicketNoteHandler, configureRemoteSessionWhatsAppAlertHandler } from "./remote-domain-ports";

@@ -13,6 +13,7 @@ type RemoteLogger = {
 };
 
 type AddInternalTicketNoteFn = (input: { ticketId: string; body: string }) => Promise<void>;
+type SendWhatsAppAlertFn = (input: { number: string; body: string }) => Promise<void>;
 
 function buildScopeWhere(scope: RemoteSessionScope) {
   if (scope.isGlobalView) return {};
@@ -54,8 +55,9 @@ function serializeSessionRecord(
 export function createRemoteSessionPort(params: {
   logger: RemoteLogger;
   addInternalTicketNote?: AddInternalTicketNoteFn;
+  sendWhatsAppAlert?: SendWhatsAppAlertFn;
 }): RemoteSessionPort {
-  const { logger, addInternalTicketNote } = params;
+  const { logger, addInternalTicketNote, sendWhatsAppAlert } = params;
 
   return {
     async listSessions(scope) {
@@ -120,25 +122,23 @@ export function createRemoteSessionPort(params: {
       return serializeSessionRecord(session as unknown as Record<string, unknown>);
     },
     async findSessionForStart(input) {
-      const session = await prisma.remoteSession.findFirst({
-        where: {
-          id: input.sessionId,
-          ...buildScopeWhere(input.scope),
-        },
-        select: {
-          id: true,
-          status: true,
-          ticketId: true,
-          ticketNumber: true,
+      const session = await prisma.remoteSession.findUnique({
+        where: { id: input.sessionId, ...buildScopeWhere(input.scope) },
+        include: {
           host: { select: { id: true, name: true, agentExternalId: true, status: true } },
-          company: { select: { nomeFantasia: true, razaoSocial: true } },
+          company: { select: { nomeFantasia: true, razaoSocial: true, whatsapp: true } },
         },
       });
 
       if (!session) return null;
+
       return {
-        ...session,
+        id: session.id,
         status: mapSessionStatus(session.status),
+        ticketId: session.ticketId,
+        ticketNumber: session.ticketNumber,
+        host: session.host as any,
+        company: session.company as any,
       };
     },
     async findConcurrentStartedSession(input) {
@@ -165,26 +165,24 @@ export function createRemoteSessionPort(params: {
       return serializeSessionRecord(updated as unknown as Record<string, unknown>);
     },
     async findSessionForStop(input) {
-      const session = await prisma.remoteSession.findFirst({
-        where: {
-          id: input.sessionId,
-          ...buildScopeWhere(input.scope),
-        },
-        select: {
-          id: true,
-          status: true,
-          startedAt: true,
-          ticketId: true,
-          ticketNumber: true,
+      const session = await prisma.remoteSession.findUnique({
+        where: { id: input.sessionId, ...buildScopeWhere(input.scope) },
+        include: {
           host: { select: { name: true } },
-          company: { select: { nomeFantasia: true, razaoSocial: true } },
+          company: { select: { nomeFantasia: true, razaoSocial: true, whatsapp: true } },
         },
       });
 
       if (!session) return null;
+
       return {
-        ...session,
+        id: session.id,
         status: mapSessionStatus(session.status),
+        startedAt: session.startedAt,
+        ticketId: session.ticketId,
+        ticketNumber: session.ticketNumber,
+        host: session.host,
+        company: session.company as any,
       };
     },
     async updateSessionEnded(input) {
@@ -200,8 +198,14 @@ export function createRemoteSessionPort(params: {
       return serializeSessionRecord(updated as unknown as Record<string, unknown>);
     },
     async addInternalTicketNote(input) {
-      if (!addInternalTicketNote) return;
-      await addInternalTicketNote({ ticketId: input.ticketId, body: input.body });
+      if (addInternalTicketNote) {
+        await addInternalTicketNote(input);
+      }
+    },
+    async sendWhatsAppAlert(input) {
+      if (sendWhatsAppAlert) {
+        await sendWhatsAppAlert(input);
+      }
     },
     async logInfo(event, fields) {
       logger.info(event, fields);

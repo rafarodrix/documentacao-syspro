@@ -76,50 +76,7 @@ function buildInstallStages(input: {
   return stages;
 }
 
-function mapDirectoryItem(host: {
-  id: string;
-  companyId: string;
-  name: string;
-  installationCompanies?: string[];
-  environment: string | null;
-  provider: string | null;
-  description: string | null;
-  notes: string | null;
-  agentExternalId: string | null;
-  installToken: string | null;
-  machineName: string | null;
-  agentVersion: string | null;
-  serviceStatus?: string | null;
-  status: "ACTIVE" | "INACTIVE" | "MAINTENANCE";
-  lastHeartbeatAt: Date | null;
-  lastHeartbeatSuccessAt?: Date | null;
-  lastHeartbeatErrorAt?: Date | null;
-  lastHeartbeatErrorMessage?: string | null;
-  lastAgentMetrics?: unknown;
-  lastKnownIp?: string | null;
-  lastRegisterAt?: Date | null;
-  lastRegisterSource?: string | null;
-  agentTokenIssuedAt?: Date | null;
-  agentTokenLastUsedAt?: Date | null;
-  lastKnownRustDeskAlias?: string | null;
-  lastKnownRustDeskVersion?: string | null;
-  lastKnownRustDeskServerHost?: string | null;
-  lastKnownRustDeskApiHost?: string | null;
-  lastKnownRustDeskPublicKeyHash?: string | null;
-  lastRustDeskConfigSyncAt?: Date | null;
-  lastHardwareIdentity?: unknown;
-  lastHardwareIdentityAt?: Date | null;
-  lastDiskSnapshot?: unknown;
-  lastDiskSnapshotAt?: Date | null;
-  lastSysproProcessSnapshot?: unknown;
-  lastSysproProcessSnapshotAt?: Date | null;
-  lastWindowsUpdateStatus?: unknown;
-  lastWindowsUpdateStatusAt?: Date | null;
-  lastRebootPending?: boolean | null;
-  lastRebootPendingAt?: Date | null;
-  company: { nomeFantasia: string | null; razaoSocial: string };
-  sessions: Array<{ createdAt: Date; status: string; ticketNumber: string | null }>;
-}): RemoteConfiguredHostItem {
+function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
   const companyName = host.company.nomeFantasia ?? host.company.razaoSocial;
   const bootstrapFlowFromMetrics = readBootstrapFlowFromMetrics(host.lastAgentMetrics);
   const bootstrapFlow: RemoteConfiguredHostItem["bootstrapFlow"] =
@@ -137,7 +94,7 @@ function mapDirectoryItem(host: {
   const bootstrapRate24hPct = readBootstrapRatePctFromMetrics(host.lastAgentMetrics);
   const pendingAckQueueSize = readPendingAckQueueSizeFromMetrics(host.lastAgentMetrics);
   const ackQueueFlushFailed = readAckQueueFlushFailedFromMetrics(host.lastAgentMetrics);
-  const openSessionCount = host.sessions.filter((session) => session.status === "REQUESTED" || session.status === "STARTED").length;
+  const openSessionCount = host.sessions.filter((session: any) => session.status === "REQUESTED" || session.status === "STARTED").length;
   const lastSessionAt = host.sessions[0]?.createdAt.toISOString() ?? null;
   const lastSessionStatus = (host.sessions[0]?.status as RemoteConfiguredHostItem["lastSessionStatus"]) ?? null;
   const lastTicketNumber = host.sessions[0]?.ticketNumber ?? null;
@@ -177,7 +134,7 @@ function mapDirectoryItem(host: {
   const sysproProcessDown = sysproProcessSnapshot.some((entry) => readBooleanRecordValue(entry, "running") === false);
   const extendedSnapshotDates = [host.lastHardwareIdentityAt, host.lastDiskSnapshotAt, host.lastSysproProcessSnapshotAt, host.lastWindowsUpdateStatusAt, host.lastRebootPendingAt].filter((value): value is Date => value instanceof Date);
   const lastExtendedSnapshotAt = extendedSnapshotDates.length
-    ? new Date(Math.max(...extendedSnapshotDates.map((value) => value.getTime()))).toISOString()
+    ? new Date(Math.max(...extendedSnapshotDates.map((value) => (value instanceof Date ? value.getTime() : 0)))).toISOString()
     : null;
 
   return {
@@ -196,9 +153,9 @@ function mapDirectoryItem(host: {
     machineName: host.machineName,
     agentVersion: host.agentVersion,
     serviceStatus: host.serviceStatus ?? null,
-    lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
-    lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt?.toISOString() ?? null,
-    lastHeartbeatErrorAt: host.lastHeartbeatErrorAt?.toISOString() ?? null,
+    lastHeartbeatAt: host.lastHeartbeatAt instanceof Date ? host.lastHeartbeatAt.toISOString() : null,
+    lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt instanceof Date ? host.lastHeartbeatSuccessAt.toISOString() : null,
+    lastHeartbeatErrorAt: host.lastHeartbeatErrorAt instanceof Date ? host.lastHeartbeatErrorAt.toISOString() : null,
     lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage ?? null,
     bootstrapFlow,
     contractErrorCode,
@@ -206,10 +163,12 @@ function mapDirectoryItem(host: {
     pendingAckQueueSize,
     ackQueueFlushFailed,
     lastKnownIp: host.lastKnownIp ?? null,
-    lastRegisterAt: host.lastRegisterAt?.toISOString() ?? null,
+    lastAgentMetrics: host.lastAgentMetrics ? (host.lastAgentMetrics as any) : null,
+    lastAgentMetricsAt: host.lastAgentMetricsAt instanceof Date ? host.lastAgentMetricsAt.toISOString() : null,
+    lastRegisterAt: host.lastRegisterAt instanceof Date ? host.lastRegisterAt.toISOString() : null,
     lastRegisterSource: host.lastRegisterSource ?? null,
-    agentTokenIssuedAt: host.agentTokenIssuedAt?.toISOString() ?? null,
-    agentTokenLastUsedAt: host.agentTokenLastUsedAt?.toISOString() ?? null,
+    agentTokenIssuedAt: host.agentTokenIssuedAt instanceof Date ? host.agentTokenIssuedAt.toISOString() : null,
+    agentTokenLastUsedAt: host.agentTokenLastUsedAt instanceof Date ? host.agentTokenLastUsedAt.toISOString() : null,
     openSessionCount,
     operationalStatus: resolveRemoteOperationalStatus({
       rustdeskId: host.agentExternalId,
@@ -232,21 +191,21 @@ function mapDirectoryItem(host: {
       rustdeskId: host.agentExternalId,
       machineName: host.machineName,
       agentVersion: host.agentVersion,
-      lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
-      lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt?.toISOString() ?? null,
-      lastHeartbeatErrorAt: host.lastHeartbeatErrorAt?.toISOString() ?? null,
+      lastHeartbeatAt: host.lastHeartbeatAt instanceof Date ? host.lastHeartbeatAt.toISOString() : null,
+      lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt instanceof Date ? host.lastHeartbeatSuccessAt.toISOString() : null,
+      lastHeartbeatErrorAt: host.lastHeartbeatErrorAt instanceof Date ? host.lastHeartbeatErrorAt.toISOString() : null,
       lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage ?? null,
       lastKnownIp: host.lastKnownIp ?? null,
-      lastRegisterAt: host.lastRegisterAt?.toISOString() ?? null,
+      lastRegisterAt: host.lastRegisterAt instanceof Date ? host.lastRegisterAt.toISOString() : null,
       lastRegisterSource: host.lastRegisterSource ?? null,
-      agentTokenIssuedAt: host.agentTokenIssuedAt?.toISOString() ?? null,
-      agentTokenLastUsedAt: host.agentTokenLastUsedAt?.toISOString() ?? null,
+      agentTokenIssuedAt: host.agentTokenIssuedAt instanceof Date ? host.agentTokenIssuedAt.toISOString() : null,
+      agentTokenLastUsedAt: host.agentTokenLastUsedAt instanceof Date ? host.agentTokenLastUsedAt.toISOString() : null,
       lastKnownRustDeskAlias: host.lastKnownRustDeskAlias ?? null,
       lastKnownRustDeskVersion: host.lastKnownRustDeskVersion ?? null,
       lastKnownRustDeskServerHost: host.lastKnownRustDeskServerHost ?? null,
       lastKnownRustDeskApiHost: host.lastKnownRustDeskApiHost ?? null,
       lastKnownRustDeskPublicKeyHash: host.lastKnownRustDeskPublicKeyHash ?? null,
-      lastRustDeskConfigSyncAt: host.lastRustDeskConfigSyncAt?.toISOString() ?? null,
+      lastRustDeskConfigSyncAt: host.lastRustDeskConfigSyncAt instanceof Date ? host.lastRustDeskConfigSyncAt.toISOString() : null,
       lifecycleStatus,
       installStages,
     },
@@ -1366,7 +1325,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
         lastKnownIp: host.lastKnownIp,
         lastRegisterAt: host.lastRegisterAt,
         lastRegisterSource: host.lastRegisterSource,
-        sessions: host.sessions.map((session) => ({
+        sessions: host.sessions.map((session: any) => ({
           createdAt: session.createdAt,
           status: session.status,
           ticketNumber: session.ticketNumber,

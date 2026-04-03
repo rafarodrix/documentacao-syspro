@@ -1,0 +1,44 @@
+export class WhatsAppService {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly apiKey: string,
+    private readonly instanceName: string
+  ) {}
+
+  async sendMessage(number: string, text: string): Promise<void> {
+    if (!this.baseUrl || !this.apiKey) {
+      console.warn("[WhatsAppService] Credenciais faltando. Pulo de envio de mensagem.");
+      return;
+    }
+
+    const url = `${this.baseUrl}/message/sendText/${this.instanceName}`;
+    
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "apikey": this.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        number: this.normalizeNumber(number),
+        text,
+        delay: 1200,
+        linkPreview: false
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erro ao enviar WhatsApp: ${response.status} - ${errorText}`);
+    }
+  }
+
+  private normalizeNumber(number: string): string {
+    // Remove non-digits and ensure it has the correct format for Evolution API
+    let cleaned = number.replace(/\D/g, "");
+    if (!cleaned.startsWith("55")) {
+      cleaned = "55" + cleaned;
+    }
+    return cleaned;
+  }
+}

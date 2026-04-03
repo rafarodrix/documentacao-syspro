@@ -368,7 +368,7 @@ export type RemoteSessionStartContext = {
   ticketId: string | null;
   ticketNumber: string | null;
   host: { id: string; name: string; agentExternalId: string | null; status: string };
-  company: { nomeFantasia: string | null; razaoSocial: string | null };
+  company: { nomeFantasia: string | null; razaoSocial: string | null; whatsapp: string | null };
 };
 
 export type RemoteSessionStopContext = {
@@ -378,7 +378,7 @@ export type RemoteSessionStopContext = {
   ticketId: string | null;
   ticketNumber: string | null;
   host: { name: string };
-  company: { nomeFantasia: string | null; razaoSocial: string | null };
+  company: { nomeFantasia: string | null; razaoSocial: string | null; whatsapp: string | null };
 };
 
 export interface RemoteSessionPort {
@@ -411,6 +411,7 @@ export interface RemoteSessionPort {
   findSessionForStop(input: { sessionId: string; scope: RemoteSessionScope }): Promise<RemoteSessionStopContext | null>;
   updateSessionEnded(input: { sessionId: string; endedAt: Date }): Promise<RemoteSessionPersistedRecord>;
   addInternalTicketNote(input: { ticketId: string; body: string }): Promise<void>;
+  sendWhatsAppAlert(input: { number: string; body: string }): Promise<void>;
   logInfo(event: string, fields: Record<string, unknown>): Promise<void>;
   logWarning(event: string, fields: Record<string, unknown>): Promise<void>;
   logError(event: string, error?: unknown, fields?: Record<string, unknown>): Promise<void>;

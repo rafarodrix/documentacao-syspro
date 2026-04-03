@@ -5,6 +5,13 @@ function buildStartedSessionExpiresAt(now: Date): Date {
   return new Date(now.getTime() + 8 * 60 * 60 * 1000);
 }
 
+function buildStartWhatsAppBody(input: {
+  hostName: string;
+  companyName: string;
+}) {
+  return `*Sessão Remota Iniciada*\n\nInformamos que o suporte técnico iniciou agora o acesso remoto ao computador *${input.hostName}* (${input.companyName}).\n\nCaso não tenha solicitado este acesso, entre em contato imediatamente.`;
+}
+
 function buildStartNote(input: {
   sessionId: string;
   ticketNumber: string | null;
@@ -79,6 +86,23 @@ export async function startSession(
       await deps.port.logError("remote.domain.sessions.start.ticket_note_failed", error, {
         sessionId: context.id,
         ticketId: context.ticketId,
+      });
+    }
+  }
+
+  if (context.company.whatsapp) {
+    try {
+      await deps.port.sendWhatsAppAlert({
+        number: context.company.whatsapp,
+        body: buildStartWhatsAppBody({
+          hostName: context.host.name,
+          companyName: context.company.nomeFantasia ?? context.company.razaoSocial ?? "Empresa sem nome",
+        }),
+      });
+    } catch (error) {
+      await deps.port.logError("remote.domain.sessions.start.whatsapp_alert_failed", error, {
+        sessionId: context.id,
+        whatsapp: context.company.whatsapp,
       });
     }
   }

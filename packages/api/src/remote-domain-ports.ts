@@ -153,6 +153,9 @@ export function createRemoteDiscoverPort(params: {
     getTransitions() {
       return transitions as any;
     },
+    normalizeSystemMetrics(value) {
+      return toJsonValue(value);
+    },
     async findDiscoveredHost(input) {
       const discoveredHost = await prisma.remoteDiscoveredHost.findFirst({
         where: input.rustdeskId
@@ -219,6 +222,15 @@ export function createRemoteDiscoverPort(params: {
         select: { id: true },
       });
       return record;
+    },
+    async updateLinkedHostMetrics(hostId, metrics) {
+      await prisma.remoteHost.update({
+        where: { id: hostId },
+        data: {
+          lastAgentMetrics: toJsonValue(metrics),
+          lastAgentMetricsAt: new Date(),
+        },
+      });
     },
     async logInfo(event, fields) {
       logger.info(event, fields);
@@ -653,17 +665,24 @@ export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAck
 }
 
 type AddInternalTicketNoteFn = (input: { ticketId: string; body: string }) => Promise<void>;
+type SendWhatsAppAlertFn = (input: { number: string; body: string }) => Promise<void>;
 
 let remoteSessionTicketNoteHandler: AddInternalTicketNoteFn | null = null;
+let remoteSessionWhatsAppAlertHandler: SendWhatsAppAlertFn | null = null;
 
 export function configureRemoteSessionTicketNoteHandler(handler: AddInternalTicketNoteFn | null) {
   remoteSessionTicketNoteHandler = handler;
+}
+
+export function configureRemoteSessionWhatsAppAlertHandler(handler: SendWhatsAppAlertFn | null) {
+  remoteSessionWhatsAppAlertHandler = handler;
 }
 
 export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
   return createSharedRemoteSessionPort({
     logger: params.logger,
     addInternalTicketNote: remoteSessionTicketNoteHandler ?? undefined,
+    sendWhatsAppAlert: remoteSessionWhatsAppAlertHandler ?? undefined,
   });
 }
 export { createRemoteHostAdminPort } from "./remote-host-admin-port";
