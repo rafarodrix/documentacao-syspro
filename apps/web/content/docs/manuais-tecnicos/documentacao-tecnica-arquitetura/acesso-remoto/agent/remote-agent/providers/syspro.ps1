@@ -25,13 +25,25 @@ function Get-SysproChangelogVersion {
 
         if ([string]::IsNullOrWhiteSpace($content)) { return "" }
 
-        # FIX: $regexMatch em vez de $match (variavel automatica reservada do PS)
-        $regexMatch = [regex]::Match(
-            $content,
-            'Revis\w*\s+Atual\s*[:\s]\s*(\d+)',
-            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+        $patterns = @(
+            'Revis[aã]o\s+Atual\s*[:\-\s]\s*(\d+)',
+            'Revis[aã]o\s*[:\-\s]\s*(\d+)',
+            'Rev\.?\s+Atual\s*[:\-\s]\s*(\d+)',
+            'Atual\s*[:\-\s]\s*(\d+)\s*$'
         )
-        if ($regexMatch.Success) { return $regexMatch.Groups[1].Value.Trim() }
+
+        foreach ($pattern in $patterns) {
+            $regexMatch = [regex]::Match(
+                $content,
+                $pattern,
+                [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Multiline
+            )
+            if ($regexMatch.Success) {
+                return $regexMatch.Groups[1].Value.Trim()
+            }
+        }
+
+        Write-Log "revisao nao encontrada no changelog: $changelogPath"
         return ""
     } catch {
         Write-Log "changelog erro leitura: $InstallPath | $($_.Exception.Message)"
@@ -39,20 +51,103 @@ function Get-SysproChangelogVersion {
     }
 }
 
+function Resolve-ExecutablePathFromServiceCommandLine {
+    param([string]$CommandLine)
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) { return "" }
+    $trimmed = $CommandLine.Trim()
+
+    if ($trimmed.StartsWith('"')) {
+        $endQuote = $trimmed.IndexOf('"', 1)
+        if ($endQuote -gt 1) {
+            return $trimmed.Substring(1, $endQuote - 1)
+        }
+    }
+
+    $exeMatch = [regex]::Match($trimmed, '^[^\s]+?\.exe', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if ($exeMatch.Success) {
+        return $exeMatch.Value
+    }
+
+    return ""
+}
+
+function Get-FirebirdExecutableFromService {
+    $serviceNames = @(
+        "FirebirdServerDefaultInstance",
+        "FirebirdServer",
+        "FBServer"
+    )
+
+    foreach ($serviceName in $serviceNames) {
+        try {
+            $service = Get-CimInstance -ClassName Win32_Service -Filter "Name='$serviceName'" -ErrorAction Stop
+            if ($null -eq $service) { continue }
+            $exePath = Resolve-ExecutablePathFromServiceCommandLine -CommandLine ([string]$service.PathName)
+            if ([string]::IsNullOrWhiteSpace($exePath)) { continue }
+            if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) { continue }
+            return $exePath
+        } catch {}
+    }
+
+    return ""
+}
+
 function Get-FirebirdVersion {
-    param([string]$InstallPath)
+    param(
+        [string]$InstallPath,
+        [string]$SysproRoot
+    )
 
     $candidates = @(
         (Join-Path $InstallPath "fbserver.exe"),
         (Join-Path $InstallPath "fb_inet_server.exe"),
         (Join-Path $InstallPath "..\Firebird\fbserver.exe"),
-        (Join-Path $InstallPath "..\Firebird\fb_inet_server.exe")
+        (Join-Path $InstallPath "..\Firebird\fb_inet_server.exe"),
+        (Join-Path $InstallPath "..\..\Firebird\fbserver.exe"),
+        (Join-Path $InstallPath "..\..\Firebird\fb_inet_server.exe")
     )
 
+    if (-not [string]::IsNullOrWhiteSpace($SysproRoot)) {
+        $candidates += @(
+            (Join-Path $SysproRoot "Firebird\fbserver.exe"),
+            (Join-Path $SysproRoot "Firebird\fb_inet_server.exe"),
+            (Join-Path $SysproRoot "Dll\fbserver.exe"),
+            (Join-Path $SysproRoot "Dlls\fbserver.exe")
+        )
+    }
+
+    $firebirdRoots = @(
+        (Join-Path $env:ProgramFiles "Firebird"),
+        (Join-Path ${env:ProgramFiles(x86)} "Firebird")
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+    foreach ($root in $firebirdRoots) {
+        try {
+            if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
+            $candidateDirs = Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending
+            foreach ($dir in $candidateDirs) {
+                $candidates += @(
+                    (Join-Path $dir.FullName "bin\fbserver.exe"),
+                    (Join-Path $dir.FullName "bin\fb_inet_server.exe"),
+                    (Join-Path $dir.FullName "fbserver.exe"),
+                    (Join-Path $dir.FullName "fb_inet_server.exe")
+                )
+            }
+        } catch {}
+    }
+
+    $serviceExe = Get-FirebirdExecutableFromService
+    if (-not [string]::IsNullOrWhiteSpace($serviceExe)) {
+        $candidates += $serviceExe
+    }
+
+    $visited = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($candidate in $candidates) {
         try {
-            if (-not (Test-Path -LiteralPath $candidate)) { continue }
+            if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
             $resolved = (Resolve-Path -LiteralPath $candidate -ErrorAction Stop).Path
+            if (-not $visited.Add($resolved)) { continue }
+            if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) { continue }
             $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($resolved)
             $version = [string]$versionInfo.FileVersion
             if (-not [string]::IsNullOrWhiteSpace($version)) {
@@ -97,7 +192,7 @@ function Get-SysproUpdates {
                 $versionInfo      = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exePath)
                 $clientName       = "Syspro-Server-$($drive.Name)"
                 $changelogVersion = Get-SysproChangelogVersion -InstallPath $targetFolder
-                $firebird         = Get-FirebirdVersion -InstallPath $targetFolder
+                $firebird         = Get-FirebirdVersion -InstallPath $targetFolder -SysproRoot $sysproRoot
 
                 $results += [ordered]@{
                     clientName        = $clientName
@@ -116,6 +211,9 @@ function Get-SysproUpdates {
                 }
 
                 Write-Log "Syspro detectado em: $targetFolder | versao=$($versionInfo.FileVersion) | revisao=$changelogVersion | alterado=$($fileInfo.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')) | firebird=$($firebird.version)"
+                if ([string]::IsNullOrWhiteSpace([string]$firebird.version)) {
+                    Write-Log "Firebird nao encontrado para instalacao: $targetFolder"
+                }
             } catch {
                 Write-Log "Erro ao ler metadados de ${exePath}: $($_.Exception.Message)"
             }
