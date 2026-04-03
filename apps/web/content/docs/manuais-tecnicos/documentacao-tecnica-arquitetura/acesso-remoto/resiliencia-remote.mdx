@@ -590,18 +590,47 @@ remote.domain.token.revoked
 
 ---
 
+## 9. Hub de Telemetria em Tempo Real (SSE) [NOVO]
+
+Para suportar dashboards de saúde que atualizam a cada segundo sem sobrecarregar o banco de dados (I/O) ou o orquestrador (polling), o sistema utiliza um **Telemetry Event Hub**.
+
+### 9.1 Arquitetura de Transmissão
+
+Ao receber o payload `systemMetrics` nos endpoints de `sync` ou `discover`, o portal:
+
+1. **Persistência em Background**: Salva os dados no banco (`lastAgentMetrics`) para histórico e fallback.
+2. **Broadcasting In-Memory**: Emite um evento via `TelemetryEventEmitter` (Singleton).
+3. **SSE Propagation**: O stream de eventos do host (`/api/remote/hosts/[id]/events`) escuta o EventEmitter e repassa o pacote de telemetria via **Server-Sent Events**.
+
+### 9.2 Benefícios de Resiliência
+
+- **Zero DB Polling**: Frontend não precisa consultar a API repetidamente para ver mudanças de CPU/RAM.
+- **Isolamento de Carga**: O tráfego de monitoramento em tempo real acontece inteiramente em memória e via conexões SSE abertas, protegendo o pool de conexões do Prisma.
+- **Graceful Degradation**: Se o stream SSE desconectar, os componentes de UI (`HostTechnicalTab`) automaticamente exibem o valor da última persistência (`lastAgentMetrics`) vindo da query inicial.
+
+### 9.3 Diagnóstico de Telemetria
+
+| Sintoma | Causa Provável | Ação |
+|---------|---------------|------|
+| Monitoramento "Congelado" | Stream SSE caiu ou Agent parou de enviar `systemMetrics` | Verificar log `remote.domain.sync.started` e campo `systemMetrics` no payload |
+| Métricas divergentes | Concorrência de agentes com mesmo RustDesk ID | Validar se há mais de uma máquina usando o mesmo ID (verificar IP em log) |
+| Atraso na UI | Jitter de rede ou carga no SSR | Verificar latência de rede no console do navegador (EventSource) |
+
+---
+
 ## Conclusão
 
-Resiliência do módulo remoto é construída em **3 camadas**:
+A resiliência do módulo remoto é construída em **4 camadas**:
 
-1. **Token Management**: Validação 3-passo + TTL + compliance
-2. **State Machine**: Transições bem-definidas com deferral de comandos
-3. **Observability**: Eventos estruturados para diagnóstico rápido
+1. **Token Management**: Validação 3-passo + TTL + compliance.
+2. **State Machine**: Transições bem-definidas com deferral de comandos.
+3. **Telemetry Hub**: Monitoramento em tempo real via SSE in-memory.
+4. **Observability**: Eventos estruturados para diagnóstico rápido.
 
 Operação requer monitoramento proativo:
 
-- Dashboard daily check
-- Logs weekly review
-- Prevenção token expirations
-- Compliance audit mensal
+- Dashboard daily check (via `fleet-stats` API).
+- Logs weekly review.
+- Prevenção token expirations.
+- Compliance audit mensal.
 

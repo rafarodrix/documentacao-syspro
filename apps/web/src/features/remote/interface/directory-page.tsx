@@ -14,6 +14,15 @@ import {
   TimerReset,
   Wrench,
   X,
+  Activity,
+  Zap,
+  LayoutDashboard,
+  Filter,
+  Cpu,
+  Building2,
+  Clock,
+  Ticket,
+  RefreshCw,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -189,6 +198,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [pendingCompanyById, setPendingCompanyById] = useState<Record<string, string>>({});
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [latestQuickInstallToken, setLatestQuickInstallToken] = useState<{ hostName: string; token: string } | null>(null);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
 
@@ -421,69 +431,74 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-border/50 bg-muted/10 p-3">
-        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
-        <a
-          href="/portal/configuracoes?tab=remote"
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/40 sm:w-auto sm:justify-start"
-        >
-          <Settings className="h-4 w-4" />
-          Configuracoes
-        </a>
-
-        {canCreateHosts ? (
-          <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
-            <DialogTrigger asChild>
-              <Button type="button" variant="outline" className="w-full gap-2 sm:w-auto">
-                <Plus className="h-4 w-4" />
-                Cadastro rapido
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Cadastro rapido de host</DialogTitle>
-                <DialogDescription>
-                  Fluxo minimo para criar um host operacional diretamente nesta rota.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>Empresa</Label>
-                    <Select value={quickCompanyId} onValueChange={setQuickCompanyId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a empresa" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {directory.companyOptions.map((company) => (
-                          <SelectItem key={company.id} value={company.id}>
-                            {company.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>RustDesk ID</Label>
-                    <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Descricao</Label>
-                    <Input value={quickDescription} onChange={(event) => setQuickDescription(event.target.value)} placeholder="ERP matriz / servidor fiscal" />
-                  </div>
-                </div>
-                <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Confirmar cadastro
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        ) : null}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <LayoutDashboard className="h-6 w-6 text-primary" />
+            Plataforma Remota
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Gestao centralizada de hosts e conectividade RustDesk.
+          </p>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          O fluxo agora e 100% via integracao RustDesk. Faca a vinculacao das maquinas descobertas nesta tela e siga a vinculacao de maquina autenticada do agente.
-        </p>
+        <div className="flex items-center gap-2">
+          <a
+            href="/portal/configuracoes?tab=remote"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+          >
+            <Settings className="h-4 w-4" />
+            Configuracoes
+          </a>
+          {canCreateHosts && (
+            <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
+              <DialogTrigger asChild>
+                <Button type="button" size="sm" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Novo Host
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Cadastro rapido de host</DialogTitle>
+                  <DialogDescription>
+                    Fluxo minimo para criar um host operacional diretamente nesta rota.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Empresa</Label>
+                      <Select value={quickCompanyId} onValueChange={setQuickCompanyId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a empresa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {directory.companyOptions.map((company) => (
+                            <SelectItem key={company.id} value={company.id}>
+                              {company.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>RustDesk ID</Label>
+                      <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Descricao</Label>
+                      <Input value={quickDescription} onChange={(event) => setQuickDescription(event.target.value)} placeholder="ERP matriz / servidor fiscal" />
+                    </div>
+                  </div>
+                  <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Confirmar cadastro
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
       {latestQuickInstallToken ? (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
@@ -517,74 +532,104 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         </div>
       ) : null}
 
-      <section className={cn("grid gap-3", canCreateHosts ? "grid-cols-2 xl:grid-cols-5" : "grid-cols-2 xl:grid-cols-4")}>
-        <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-1 space-y-1">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              Prontos para acesso
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="relative overflow-hidden border-border/50 bg-background/50 shadow-sm backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5 text-emerald-500" />
+              Saude da Frota
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-2xl font-semibold text-foreground">{directoryStats.ready}</p>
-            <p className="text-[11px] text-muted-foreground">ID valido e heartbeat recente</p>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-bold tracking-tight text-foreground">{directoryStats.ready}</p>
+              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Online</p>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">ID e heartbeat 100% operacionais</p>
           </CardContent>
+          <div className="absolute top-0 right-0 p-3 opacity-10">
+            <ShieldCheck className="h-12 w-12" />
+          </div>
         </Card>
 
-        <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-1 space-y-1">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <TimerReset className="h-4 w-4 text-amber-500" />
-              Exigem revisao
+        <Card className="relative overflow-hidden border-border/50 bg-background/50 shadow-sm backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Activity className="h-3.5 w-3.5 text-amber-500" />
+              Atenção técnica
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-2xl font-semibold text-foreground">{directoryStats.attention}</p>
-            <p className="text-[11px] text-muted-foreground">Heartbeat antigo ou sinais de instabilidade</p>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-bold tracking-tight text-foreground">{directoryStats.attention}</p>
+              <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Instaveis</p>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">Hosts com contato intermitente</p>
           </CardContent>
+          <div className="absolute top-0 right-0 p-3 opacity-10">
+            <TimerReset className="h-12 w-12" />
+          </div>
         </Card>
 
-        <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-1 space-y-1">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Monitor className="h-4 w-4 text-sky-500" />
-              Em atendimento
+        <Card className="relative overflow-hidden border-border/50 bg-background/50 shadow-sm backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Monitor className="h-3.5 w-3.5 text-sky-500" />
+              Fluxo de Trabalho
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-2xl font-semibold text-foreground">{directoryStats.openSessions}</p>
-            <p className="text-[11px] text-muted-foreground">Sessao aberta ou solicitacao ativa</p>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-bold tracking-tight text-foreground">{directoryStats.openSessions}</p>
+              <p className="text-xs font-medium text-sky-600 dark:text-sky-400">Ativos</p>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">Sessoes em uso ou solicitadas</p>
           </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-          <CardHeader className="pb-1 space-y-1">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Wrench className="h-4 w-4 text-rose-500" />
-              Aguardam vinculacao de maquina
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-2xl font-semibold text-foreground">{directoryStats.pendingSetup}</p>
-            <p className="text-[11px] text-muted-foreground">Sem ciclo completo de agente e heartbeat</p>
-          </CardContent>
+          <div className="absolute top-0 right-0 p-3 opacity-10">
+            <Monitor className="h-12 w-12" />
+          </div>
         </Card>
 
         {canCreateHosts ? (
-          <Card className="border-border/50 bg-linear-to-br from-background to-muted/20">
-            <CardHeader className="pb-1 space-y-1">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Monitor className="h-4 w-4 text-violet-500" />
-                Maquinas em triagem
+          <Card className="relative overflow-hidden border-amber-500/20 bg-amber-500/5 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                <Wrench className="h-3.5 w-3.5" />
+                Novas Descobertas
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-2xl font-semibold text-foreground">{directory.stats.pendingDiscovery}</p>
-              <p className="text-[11px] text-muted-foreground">Descobertas e aguardando vinculo</p>
+            <CardContent>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold tracking-tight text-amber-800 dark:text-amber-100">{directory.stats.pendingDiscovery}</p>
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Pendentes</p>
+              </div>
+              <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400/80">Aguardando vinculacao inicial</p>
             </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <Plus className="h-12 w-12" />
+            </div>
           </Card>
-        ) : null}
-      </section>
+        ) : (
+          <Card className="relative overflow-hidden border-border/50 bg-background/50 shadow-sm backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Settings className="h-3.5 w-3.5 text-rose-500" />
+                Configuração
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold tracking-tight text-foreground">{directoryStats.pendingSetup}</p>
+                <p className="text-xs font-medium text-rose-600 dark:text-rose-400">Setup</p>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">Hosts sem bootstrap completo</p>
+            </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <Wrench className="h-12 w-12" />
+            </div>
+          </Card>
+        )}
+      </div>
 
       <details className="rounded-xl border border-border/50 bg-muted/10 p-4">
         <summary className="cursor-pointer text-sm font-medium text-foreground">
@@ -651,162 +696,151 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
       <Card className="border-border/50 overflow-hidden">
         <CardContent className="space-y-4 p-5 sm:p-6">
-          <div className="rounded-2xl border border-border/50 bg-muted/10 p-4">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Pesquisar empresa, host, instalacao, ambiente, ticket ou RustDesk ID"
-                className="pl-9"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[300px]">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Pesquisar por empresa, host, IP, RustDesk ID ou ticket..."
+                  className="h-10 pl-9 transition-all focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <Button
+                variant={showFilters ? "secondary" : "outline"}
+                size="icon"
+                className="h-10 w-10 shrink-0"
+                onClick={() => setShowFilters(!showFilters)}
+                title="Filtros avançados"
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+              {(searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" || operationalFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 px-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setEnvironmentFilter("all");
+                    setHeartbeatFilter("all");
+                    setAgentFilter("all");
+                    setOperationalFilter("all");
+                  }}
+                >
+                  <X className="mr-2 h-3.5 w-3.5" />
+                  Limpar
+                </Button>
+              )}
             </div>
 
-            <details className="mt-4 rounded-xl border border-border/50 bg-background/40 p-3">
-              <summary className="cursor-pointer text-sm font-medium text-foreground">Filtros avancados</summary>
-              <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div className="flex-1 space-y-3">
-                  <div>
-                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Detalhados</p>
-                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                      <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Todos os status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos os status</SelectItem>
-                          <SelectItem value="ACTIVE">Ativo</SelectItem>
-                          <SelectItem value="MAINTENANCE">Manutencao</SelectItem>
-                          <SelectItem value="INACTIVE">Inativo</SelectItem>
-                        </SelectContent>
-                      </Select>
+            {showFilters && (
+              <Card className="border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Status</Label>
+                    <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="ACTIVE">Ativo</SelectItem>
+                        <SelectItem value="MAINTENANCE">Manutencao</SelectItem>
+                        <SelectItem value="INACTIVE">Inativo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      <Select value={environmentFilter} onValueChange={setEnvironmentFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Todos os ambientes" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos os ambientes</SelectItem>
-                          {environmentOptions.map((environment) => (
-                            <SelectItem key={environment} value={environment}>
-                              {environment}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Ambiente</Label>
+                    <Select value={environmentFilter} onValueChange={setEnvironmentFilter}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Ambiente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {environmentOptions.map((env) => (
+                          <SelectItem key={env} value={env}>{env}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      <Select value={heartbeatFilter} onValueChange={(value) => setHeartbeatFilter(value as typeof heartbeatFilter)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Qualquer heartbeat" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Qualquer heartbeat</SelectItem>
-                          <SelectItem value="recent">Online agora</SelectItem>
-                          <SelectItem value="stale">Antigo</SelectItem>
-                          <SelectItem value="missing">Sem contato</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Conectividade</Label>
+                    <Select value={heartbeatFilter} onValueChange={(value) => setHeartbeatFilter(value as typeof heartbeatFilter)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Conectividade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Qualquer</SelectItem>
+                        <SelectItem value="recent">Online agora</SelectItem>
+                        <SelectItem value="stale">Instavel</SelectItem>
+                        <SelectItem value="missing">Offline</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      <Select value={agentFilter} onValueChange={(value) => setAgentFilter(value as typeof agentFilter)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Qualquer agente" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Qualquer agente</SelectItem>
-                          <SelectItem value="pending">Vinculacao pendente</SelectItem>
-                          <SelectItem value="linked">Agente vinculado</SelectItem>
-                          <SelectItem value="online">Heartbeat confirmado</SelectItem>
-                          <SelectItem value="stale">Exige revisao</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Agente</Label>
+                    <Select value={agentFilter} onValueChange={(value) => setAgentFilter(value as typeof agentFilter)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Agente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Qualquer</SelectItem>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                        <SelectItem value="linked">Vinculado</SelectItem>
+                        <SelectItem value="online">Operacional</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      <Select value={operationalFilter} onValueChange={(value) => setOperationalFilter(value as typeof operationalFilter)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Estado operacional" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Estado operacional: todos</SelectItem>
-                          <SelectItem value="token_invalid">Token invalido</SelectItem>
-                          <SelectItem value="bootstrap_required">Bootstrap obrigatorio</SelectItem>
-                          <SelectItem value="sync_ok">Sync OK</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Operação</Label>
+                    <Select value={operationalFilter} onValueChange={(value) => setOperationalFilter(value as typeof operationalFilter)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Operacao" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Qualquer</SelectItem>
+                        <SelectItem value="token_invalid">Token Invalido</SelectItem>
+                        <SelectItem value="bootstrap_required">Bootstrap</SelectItem>
+                        <SelectItem value="sync_ok">Sync OK</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
+              </Card>
+            )}
 
-                <div className="flex flex-col gap-2 xl:w-[220px]">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button type="button" variant="outline" className="w-full">Fluxo operacional</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Roteiro rapido de atendimento</DialogTitle>
-                        <DialogDescription>
-                          Fluxo inspirado em softwares de suporte remoto: validar prontidao, entrar rapido e so abrir o detalhe quando precisar de mais contexto.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-3 text-sm text-muted-foreground">
-                        <p>1. Procure pela empresa ou pelo ticket.</p>
-                        <p>2. Priorize cards marcados como `Online` ou com heartbeat recente.</p>
-                        <p>3. Use `Acesso rapido` no desktop ou `Abrir no app` no celular.</p>
-                        <p>4. Se o navegador bloquear, use `Copiar ID` e conecte manualmente.</p>
-                        <p>5. Se houver alerta de sessao aberta ou heartbeat antigo, valide antes de prosseguir.</p>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" || operationalFilter !== "all" ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setStatusFilter("all");
-                        setEnvironmentFilter("all");
-                        setHeartbeatFilter("all");
-                        setAgentFilter("all");
-                        setOperationalFilter("all");
-                      }}
-                    >
-                      <X className="mr-2 h-4 w-4" />
-                      Limpar filtros
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            </details>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="h-6 border-border/50 bg-background/50 font-medium">
+                {activeResultCount} hosts
+              </Badge>
+              {filteredQuickIndicators.online > 0 && (
+                <Badge variant="outline" className="h-6 border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                  <Zap className="mr-1 h-3 w-3 fill-current" />
+                  {filteredQuickIndicators.online} online
+                </Badge>
+              )}
+              {filteredQuickIndicators.rebootPending > 0 && (
+                <Badge variant="outline" className="h-6 border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400">
+                  <Activity className="mr-1 h-3 w-3" />
+                  {filteredQuickIndicators.rebootPending} reboot
+                </Badge>
+              )}
+              {canCreateHosts && activePendingCount > 0 && (
+                <Badge variant="outline" className="h-6 border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                  {activePendingCount} em triagem
+                </Badge>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="rounded-full border border-border/50 bg-muted/10 px-3 py-1">
-              {activeResultCount} host(s) no diretorio
-            </span>
-            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
-              {filteredQuickIndicators.online} online
-            </span>
-            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300">
-              {filteredQuickIndicators.stale} instavel
-            </span>
-            <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 text-rose-700 dark:text-rose-300">
-              {filteredQuickIndicators.offline} sem contato
-            </span>
-            <span className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-red-700 dark:text-red-300">
-              {filteredQuickIndicators.rebootPending} reboot pendente
-            </span>
-            {canCreateHosts ? (
-              <span className="rounded-full border border-border/50 bg-muted/10 px-3 py-1">
-                {activePendingCount} item(ns) em triagem
-              </span>
-            ) : null}
-            {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" || operationalFilter !== "all" ? (
-              <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-primary">
-                filtros ativos
-              </span>
-            ) : null}
-          </div>
 
           {canCreateHosts && filteredPendingItems.length ? (
             <details className="space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4" open={false}>
@@ -846,7 +880,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                             RAM: {item.lastAgentMetrics.ramUsedPc}%
                           </Badge>
                         )}
-                        {item.lastAgentMetrics?.diskFree !== undefined && (
+                        {item.lastAgentMetrics?.diskFree != null && (
                           <Badge variant="outline" className="border-border/40 bg-background/50 font-mono text-[10px]">
                             DISK: {(item.lastAgentMetrics.diskFree / (1024 * 1024 * 1024)).toFixed(1)}GB
                           </Badge>
@@ -913,104 +947,88 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
                 const installationNames = item.installationCompanies.length
                   ? item.installationCompanies
-                    : item.companyName
-                    ? [item.companyName]
-                    : [];
+                  : item.companyName
+                  ? [item.companyName]
+                  : [];
 
                 return (
                   <div
                     key={item.id}
-                    className="rounded-xl border border-border/55 bg-background/45 p-4 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/20 hover:bg-muted/10"
+                    className="group relative rounded-xl border border-border/40 bg-background/50 p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-muted/5 hover:shadow-md"
                   >
-                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_240px_auto] lg:items-center">
-                      <div className="min-w-0 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className={heartbeat.className}>
-                            {heartbeat.shortLabel}
-                          </Badge>
-                          <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                            {getStatusLabel(item.status)}
-                          </Badge>
-                          {item.environment ? (
-                            <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
-                              {item.environment}
+                    <div className="grid gap-4 lg:grid-cols-[1fr_220px_auto] lg:items-center">
+                      <div className="flex items-start gap-4 min-w-0">
+                        <div className={`mt-1 h-3 w-3 shrink-0 rounded-full border-2 ${heartbeat.bucket === "recent" ? "animate-pulse border-emerald-500 bg-emerald-500" : "border-muted-foreground/30 bg-muted-foreground/20"}`} />
+                        
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary" className="h-5 text-[10px] font-bold uppercase tracking-wider bg-background/80">
+                              {getStatusLabel(item.status)}
                             </Badge>
-                          ) : null}
-                          {agentToken.needsBootstrap ? (
-                            <Badge variant="outline" className={agentToken.className}>
-                              {agentToken.label}
-                            </Badge>
-                          ) : null}
-                          {item.inventorySignals.rebootPending === true ? (
-                            <Badge variant="outline" className="border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300">
-                              Reboot pendente
-                            </Badge>
-                          ) : null}
-                          {item.inventorySignals.diskLow ? (
-                            <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                              Disco baixo
-                            </Badge>
-                          ) : null}
-                          {item.inventorySignals.sysproProcessDown ? (
-                            <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                              Processo Syspro parado
-                            </Badge>
-                          ) : null}
-                          {item.contractErrorCode ? (
-                            <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300">
-                              Contrato degradado: {item.contractErrorCode}
-                            </Badge>
-                          ) : null}
-                        </div>
+                            {item.environment && (
+                              <Badge variant="outline" className="h-5 text-[10px] border-border/40 bg-background/40">
+                                {item.environment}
+                              </Badge>
+                            )}
+                            {agentToken.needsBootstrap && (
+                              <Badge variant="outline" className={`h-5 text-[10px] ${agentToken.className}`}>
+                                {agentToken.label}
+                              </Badge>
+                            )}
+                            
+                            {/* Live Telemetry Badges */}
+                            {item.lastAgentMetrics?.cpuLoad !== undefined && (
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/30 bg-background/30 text-[10px] font-mono text-muted-foreground">
+                                <Cpu className="h-2.5 w-2.5" />
+                                {item.lastAgentMetrics.cpuLoad}%
+                              </div>
+                            )}
+                            {item.lastAgentMetrics?.ramUsedPc !== undefined && (
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/30 bg-background/30 text-[10px] font-mono text-muted-foreground">
+                                <Activity className="h-2.5 w-2.5" />
+                                {item.lastAgentMetrics.ramUsedPc}%
+                              </div>
+                            )}
+                          </div>
 
-                        <div className="space-y-1">
-                          <p className="truncate text-base font-semibold text-foreground">{item.name}</p>
-                          {installationNames.length ? (
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-xs text-muted-foreground">Empresas:</span>
-                              {installationNames.slice(0, 2).map((installationName, installationIndex) => (
-                                <Badge
-                                  key={`${item.id}-installation-${installationIndex}-${installationName}`}
-                                  variant="outline"
-                                  className="border-border/55 bg-background/70 text-xs text-foreground"
-                                >
-                                  {installationName}
-                                </Badge>
-                              ))}
-                              {installationNames.length > 2 ? (
-                                <Badge variant="outline" className="border-border/55 bg-background/70 text-xs text-muted-foreground">
-                                  +{installationNames.length - 2}
-                                </Badge>
-                              ) : null}
+                          <div className="space-y-0.5">
+                            <p className="truncate text-lg font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
+                              {item.name}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              {installationNames.length > 0 && (
+                                <span className="flex items-center gap-1">
+                                  <Building2 className="h-3 w-3" />
+                                  {installationNames[0]} {installationNames.length > 1 && `+${installationNames.length - 1}`}
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {item.lastHeartbeatAt ? new Date(item.lastHeartbeatAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "Offline"}
+                              </span>
+                              {item.lastTicketNumber && (
+                                <span className="flex items-center gap-1 text-primary/80 font-medium">
+                                  <Ticket className="h-3 w-3" />
+                                  #{item.lastTicketNumber}
+                                </span>
+                              )}
                             </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">Sem empresa reportada no heartbeat.</p>
-                          )}
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                            <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
-                              Contato: {item.lastHeartbeatAt ? new Date(item.lastHeartbeatAt).toLocaleString("pt-BR") : "Sem contato"}
-                            </span>
-                            <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
-                              Sessao: {item.lastSessionStatus ?? "Nenhuma"}
-                            </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="min-w-0">
-                        <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
-                        <div className="flex items-center gap-1.5 rounded-lg border border-border/55 bg-muted/10 p-1">
-                          <code className="min-w-0 flex-1 truncate px-2 text-sm text-foreground">
-                            {item.rustdeskId ?? "Nao configurado"}
+                      <div className="lg:px-4">
+                        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">ID RustDesk</p>
+                        <div className="relative group/id">
+                          <code className="block w-full rounded-lg border border-border/30 bg-muted/20 px-3 py-2 text-sm font-mono tracking-tight text-foreground/80 transition-all group-hover/id:border-primary/20 group-hover/id:bg-muted/30">
+                            {item.rustdeskId ?? "---"}
                           </code>
                           <Button
-                            type="button"
                             variant="ghost"
                             size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover/id:opacity-100 transition-opacity"
                             onClick={() => handleCopyRustDeskId(item.rustdeskId)}
                             disabled={!item.rustdeskId}
-                            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                            aria-label="Copiar RustDesk ID"
                           >
                             <Copy className="h-3.5 w-3.5" />
                           </Button>
@@ -1019,41 +1037,46 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
                       <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
                         {rustdeskHref ? (
-                          <a
-                            href={rustdeskHref}
-                            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/35"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            {isMobileClient ? "Abrir app" : "Acesso"}
-                          </a>
-                        ) : null}
-                        <Link
-                          href={`/portal/plataforma-remota/${item.id}`}
-                          className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/35"
-                        >
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                          Detalhes
-                        </Link>
+                          <Button asChild size="sm" className="h-9 font-semibold shadow-sm">
+                            <a href={rustdeskHref}>
+                              <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                              {isMobileClient ? "Abrir App" : "Acesso Rápido"}
+                            </a>
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" disabled className="h-9 border-dashed">
+                            Sem Conexão
+                          </Button>
+                        )}
+                        <Button asChild variant="outline" size="sm" className="h-9 bg-background/50 hover:bg-muted/50">
+                          <Link href={`/portal/plataforma-remota/${item.id}`}>
+                            Ver Detalhes
+                          </Link>
+                        </Button>
                       </div>
-
-                      {isMobileClient ? (
-                        <p className="text-xs text-muted-foreground lg:col-span-3">
-                          Se o app RustDesk nao abrir automaticamente, copie o ID e conecte manualmente.
-                        </p>
-                      ) : null}
                     </div>
 
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
-                        Maquina: {item.machineName ?? "Sem leitura"}
-                      </span>
-                      <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
-                        Provider: {item.provider ?? "Sem registro"}
-                      </span>
-                      <span className="rounded-full border border-border/50 bg-muted/10 px-2 py-0.5 text-[11px] text-muted-foreground">
-                        Ticket: {item.lastTicketNumber ?? "Sem ticket"}
-                      </span>
-                    </div>
+                    {/* Signals Bar */}
+                    {(item.inventorySignals.rebootPending || item.inventorySignals.diskLow || item.inventorySignals.sysproProcessDown || item.contractErrorCode) && (
+                      <div className="mt-3 flex flex-wrap gap-2 pt-3 border-t border-border/20">
+                        {item.inventorySignals.rebootPending && (
+                          <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[10px]">
+                            <RefreshCw className="mr-1 h-3 w-3 animate-spin-slow" />
+                            Reboot Pendente
+                          </Badge>
+                        )}
+                        {item.inventorySignals.diskLow && (
+                          <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px]">
+                            Disco Insuficiente
+                          </Badge>
+                        )}
+                        {item.contractErrorCode && (
+                          <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[10px]">
+                            Erro de Contrato: {item.contractErrorCode}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1070,4 +1093,3 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     </div>
   );
 }
-

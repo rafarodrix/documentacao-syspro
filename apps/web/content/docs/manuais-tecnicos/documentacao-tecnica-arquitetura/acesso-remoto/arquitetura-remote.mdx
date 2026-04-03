@@ -81,6 +81,7 @@ Para leitura operacional do caminho monitorado no modulo remoto, adotar a seguin
   - `POST /api/remote/rustdesk/bootstrap`
   - `POST /api/remote/rustdesk/sync`
   - `POST /api/remote/rustdesk/ack`
+  - `GET /api/remote/hosts/fleet-stats`
   - `GET /api/remote/rustdesk/client-profile`
   - `POST /api/remote/discovered-hosts/:id/link`
 - a rota de descoberta aplica protecao anti-abuso na camada HTTP:
@@ -301,6 +302,7 @@ Campos aceitos no `sync` (contrato remoto):
 - `sysproProcesses`
 - `windowsUpdateStatus`
 - `rebootPending`
+- `systemMetrics` (CPU, RAM, Disk em tempo real)
 
 Comportamento de dominio:
 
@@ -321,6 +323,20 @@ Exposicao atual no portal:
 - detalhe de host: snapshots expandidos em `agentTelemetry`
 - diretorio: sinais operacionais derivados (`reboot pending`, `disk low`, `syspro process down`)
 
+### Telemetry Hub & Real-Time Monitoring [NOVO]
+
+O portal implementa um **Telemetry Hub** in-memory que permite monitoramento de saude em tempo real (sub-millisecond) sem pollar o banco de dados.
+
+**Arquitetura do Hub:**
+
+1. **Ingestao**: O gateway de descoberta e sync detecta `systemMetrics` e emite evento local via `TelemetryEventEmitter`.
+2. **Broadcasting**: O Singleton do Hub propaga o evento para todos os fluxos SSE (`/api/remote/hosts/[id]/events`) ativos.
+3. **Frontend**: O hook `useAckStream` consome os eventos e atualiza os cards de Live Health (`CPU`, `RAM`, `Disk`).
+4. **Resiliencia**: Caso o streaming caia, a UI faz fallback automatico para os ultimos dados persistidos na DB (`lastAgentMetrics`).
+
+**API de Fleet Global:**
+
+- `GET /api/remote/hosts/fleet-stats`: Retorna contagem ativa, alerta de disco baixo e status offline de toda a frota para dashboards de gestao.
 
 ### Otimizacao de payload no sync (obrigatoria)
 
@@ -1027,14 +1043,7 @@ Rotas remotas fora do nucleo `remote-domain` por escopo atual:
 - evoluir politica de cache para payloads estaveis (`client-profile`)
 - revisar ritmo de heartbeat e protecoes de carga conforme volume real
 
-## Relacao com features
 
-- `FEAT-001`
-- `FEAT-002`
-- `FEAT-002A`
-- `FEAT-002B`
-- `FEAT-002C`
-- `FEAT-003`
 
 ## Proximo passo recomendado
 

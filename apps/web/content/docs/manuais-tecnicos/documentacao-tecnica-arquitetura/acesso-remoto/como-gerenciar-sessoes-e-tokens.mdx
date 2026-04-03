@@ -64,8 +64,9 @@ Alternativa: forcar reinicializacao do agente no host via RustDesk (remoto).
 
 <Step>
 Confirmar saude:
-- Verificar `lastHeartbeatAt` atualizado nos ultimos 5 minutos
-- Log deve conter evento `remote.domain.sync.started` com novo token
+- Verificar `lastHeartbeatAt` atualizado nos ultimos 5 minutos.
+- **Validar Telemetria em Tempo Real**: Na aba "Tecnico", os cartoes de CPU, RAM e Disco devem estar atualizando e pintando graficos/barras azuis. Se estiverem cinzas ("Offline"), a telemetria SSE nao esta chegando.
+- Log deve conter evento `remote.domain.sync.started` com novo token.
 </Step>
 
 </Steps>

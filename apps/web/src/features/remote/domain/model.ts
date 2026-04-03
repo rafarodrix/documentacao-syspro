@@ -245,6 +245,13 @@ export type RemoteConfiguredHostItem = {
   pendingAckQueueSize: number | null;
   ackQueueFlushFailed: number | null;
   lastKnownIp: string | null;
+  lastAgentMetrics: {
+    cpuLoad: number | null;
+    ramUsedPc: number | null;
+    diskFree: number | null;
+    osInfo: string | null;
+  } | null;
+  lastAgentMetricsAt: string | null;
   lastRegisterAt: string | null;
   lastRegisterSource: string | null;
   agentTokenIssuedAt: string | null;
@@ -299,7 +306,12 @@ export type RemoteDiscoveredHostItem = {
   status: RemoteDiscoveredHostStatus;
   linkedHostId: string | null;
   installationCompanies: string[];
-  lastAgentMetrics: Record<string, any> | null;
+  lastAgentMetrics: {
+    cpuLoad: number | null;
+    ramUsedPc: number | null;
+    diskFree: number | null;
+    osInfo: string | null;
+  } | null;
   lastAgentMetricsAt: string | null;
 };
 

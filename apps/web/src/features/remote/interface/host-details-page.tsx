@@ -19,7 +19,19 @@ import {
   XCircle,
   Ticket,
   RefreshCcw,
+  RefreshCw,
   PlayCircle,
+  Cpu,
+  Building2,
+  Server,
+  Monitor,
+  Clock,
+  Activity,
+  Database,
+  AlertCircle,
+  Zap,
+  Shield,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -812,231 +824,282 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center">
-        <Link href="/portal/plataforma-remota" className={cn(buttonVariants({ variant: "outline" }), "h-8 gap-2 px-3")}>
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Link>
-      </div>
-
-      {ticketNumber && (
-        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-5 shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-500">
-          <div className="flex items-start gap-4">
-            <div className="mt-1 rounded-full bg-blue-500/20 p-2 text-blue-400">
-              <Ticket className="h-5 w-5" />
-            </div>
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-blue-200">Suporte Contextual Ativo</h3>
-                {ticketDetails && (
-                  <Badge variant="outline" className="border-blue-400/50 text-blue-300 text-[10px] uppercase tracking-wider">
-                    {ticketDetails.state}
-                  </Badge>
-                )}
-              </div>
-              <div className="text-sm text-blue-100/80 leading-relaxed">
-                {isLoadingTicket ? (
-                  <span className="flex items-center gap-2">
-                    <RefreshCcw className="h-3 w-3 animate-spin" /> Buscando detalhes no Zammad...
-                  </span>
-                ) : (
-                  <>
-                    Você está operando associado ao chamado <strong>#{ticketNumber}</strong>
-                    {ticketDetails && (
-                      <div className="mt-1.5 flex flex-col gap-1">
-                        <span className="text-base text-white font-medium">{ticketDetails.title}</span>
-                        <div className="flex items-center gap-3 text-xs text-blue-200/60">
-                          <span className="flex items-center gap-1">Prioridade: {ticketDetails.priority}</span>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-blue-500/50 bg-blue-500/5 text-blue-200 hover:bg-blue-500/20"
-              onClick={() => router.push("/portal/plataforma-remota")}
+      {/* Sticky Hero Header */}
+      <div className="sticky top-0 z-30 -mx-6 -mt-6 mb-6 border-b border-border/40 bg-background/60 px-6 py-4 backdrop-blur-xl transition-all animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            <Link 
+              href="/portal/plataforma-remota" 
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/40 hover:bg-muted/80 hover:scale-105 transition-all text-muted-foreground hover:text-foreground"
+              title="Voltar para a lista"
             >
-              Limpar Contexto
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div className="min-w-0 space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h1 className="truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">
+                  {host.name}
+                </h1>
+                <div className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 ${heartbeat.label === "Contato recente" ? "animate-pulse border-emerald-500 bg-emerald-500" : "border-muted-foreground/30 bg-muted-foreground/20"}`} />
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1 font-mono text-primary/80">
+                  <Fingerprint className="h-3 w-3" />
+                  {normalizedRustdeskId ?? "---"}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Building2 className="h-3 w-3" />
+                  {host.companyName ?? "Sem empresa"}
+                </span>
+                {machineIpv4 && (
+                  <span className="flex items-center gap-1 font-mono">
+                    <Monitor className="h-3 w-3" />
+                    {machineIpv4}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Quick Diagnostic Indicators */}
+            <div className="hidden items-center gap-1.5 border-x border-border/40 px-4 md:flex text-muted-foreground">
+                {host.lastAgentMetrics?.cpuLoad != null && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/30 text-[11px] font-medium transition-colors hover:bg-muted/50" title="CPU Load">
+                    <Cpu className="h-3.5 w-3.5 text-primary/70" />
+                    {host.lastAgentMetrics.cpuLoad}%
+                  </div>
+                )}
+                {host.lastAgentMetrics?.ramUsedPc != null && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/30 text-[11px] font-medium transition-colors hover:bg-muted/50" title="RAM usage">
+                    <Activity className="h-3.5 w-3.5 text-sky-500/70" />
+                    {host.lastAgentMetrics.ramUsedPc}%
+                  </div>
+                )}
+            </div>
+
+            <Button 
+                onClick={handleStartOrchestratedSession} 
+                disabled={!normalizedRustdeskId || isStartingSession} 
+                className={cn(
+                    "gap-2 px-6 shadow-lg shadow-primary/10 transition-all hover:scale-[1.02] active:scale-[0.98] h-10 font-semibold",
+                    ticketNumber ? "bg-primary border-primary hover:bg-primary/90" : "bg-primary/90 hover:bg-primary"
+                )}
+            >
+                {isStartingSession ? (
+                    <RefreshCcw className="h-4 w-4 animate-spin" />
+                ) : (
+                    <PlayCircle className="h-4 w-4" />
+                )}
+                {isStartingSession ? "Iniciando..." : (isMobileClient ? "App" : "Acesso Auditado")}
             </Button>
           </div>
         </div>
-      )}
+      </div>
 
-      <Card className="border-border/50 overflow-hidden">
-        <CardContent className="grid gap-5 p-5 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className={heartbeat.tone}>
-                {heartbeat.label}
-              </Badge>
-              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                {statusLabel}
-              </Badge>
-              {host.environment ? (
-                <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
-                  {host.environment}
-                </Badge>
-              ) : null}
-              {isConnected && (
-                <Badge variant="outline" className="animate-pulse border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Live Sync
-                </Badge>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <Input
-                  value={projectedHostName}
-                  onChange={(event) => setProjectedHostName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && canSaveProjectedHostName && !isSavingMachineName) {
-                      event.preventDefault();
-                      handleSaveProjectedHostName();
-                    }
-                  }}
-                  placeholder="CASA DO PRODUTOR | SERVIDOR"
-                  className="h-11 text-xl font-bold tracking-tight md:text-2xl"
-                />
-                <Button
-                  onClick={handleSaveProjectedHostName}
-                  disabled={isSavingMachineName || !canSaveProjectedHostName}
-                  className="w-full md:w-auto"
-                >
-                  Salvar nome
-                </Button>
-              </div>
-              {canSaveProjectedHostName ? (
-                <p className="text-xs text-amber-600 dark:text-amber-300">Alteracao pendente. Clique em salvar para aplicar.</p>
-              ) : null}
-              <p className="mt-1 text-sm text-muted-foreground">
-                {installations.length
-                  ? `${installations.length} instalacao(oes) | ${detectedCompanyCount} empresa(s)`
-                  : "Maquina remota vinculada ao portal"}
-              </p>
-            </div>
-            {installations.length ? (
-              <div className="space-y-2">
-                {installationsPreview.map((installation, installationIndex) => (
-                  <div
-                    key={`${installation.companyId ?? "unlinked"}::${installation.companyLabel}::${installation.path}::${installationIndex}`}
-                    className="rounded-lg border border-border/50 bg-muted/15 p-3"
-                  >
-                    <p
-                      className="truncate text-[11px] uppercase tracking-wide text-muted-foreground"
-                      title={`Instalacao ${installationIndex + 1} (diretorio): ${installation.path}`}
-                    >
-                      Instalacao {installationIndex + 1} (diretorio empresa): {installation.path}
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-foreground">
-                      {installation.resolvedCompanyName ?? installation.companyLabel}
-                    </p>
-                  </div>
-                ))}
-                {hasMoreInstallations ? (
-                  <p className="text-xs text-muted-foreground">
-                    +{installations.length - installationsPreview.length} instalacao(oes). Veja todas na aba{" "}
-                    <span className="font-medium text-foreground">Instalacoes</span>.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
-                <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <p className="min-w-0 break-all font-mono text-base font-semibold text-foreground">
-                    {normalizedRustdeskId ?? "Nao configurado"}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2 sm:w-auto"
-                    onClick={() => handleCopy(normalizedRustdeskId, "RustDesk ID")}
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copiar ID
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {ticketNumber && (
-                   <div className="mb-2 p-3 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3 animate-in zoom-in-95 duration-300">
-                     <div className="mt-0.5 rounded-full bg-primary/10 p-1.5 text-primary">
-                       <Ticket className="h-4 w-4" />
-                     </div>
-                     <div className="space-y-0.5">
-                       <p className="text-sm font-semibold text-primary">Contexto de Suporte Ativo</p>
-                       <p className="text-xs text-primary/80">Você está operando associado ao Ticket <span className="font-bold">#{ticketNumber}</span>.</p>
-                     </div>
-                   </div>
-                )}
-
-                <Button 
-                  onClick={handleStartOrchestratedSession} 
-                  disabled={!normalizedRustdeskId || isStartingSession} 
-                  className={cn(
-                    "w-full gap-2 shadow-sm h-11 transition-all",
-                    ticketNumber ? "bg-primary border-primary hover:bg-primary/90" : ""
-                  )}
-                >
-                  {isStartingSession ? (
-                    <RefreshCcw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <PlayCircle className="h-4 w-4" />
-                  )}
-                  {isStartingSession ? "Iniciando Auditoria..." : (isMobileClient ? "Abrir no app" : "Iniciar Acesso Auditado")}
-                </Button>
-
-                {ticketNumber && (
-                  <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest px-2">
-                    Acesso registrado e vinculado ao chamado no Zammad
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
-                Sessao: {host.openSessionCount ? `${host.openSessionCount} ativa(s)` : "Nenhuma"}
-              </span>
-              <span className="rounded-full border border-border/50 bg-muted/15 px-3 py-1">
-                Agente: {host.agentVersion ?? "Nao registrado"}
-              </span>
-            </div>
-
-          </div>
-
-          <div className="space-y-3">
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo contato da maquina</p>
-              <p className="mt-1 text-lg font-semibold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
-              <p className="mt-3 text-sm text-muted-foreground">{heartbeat.description}</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Situacao do servico remoto: <span className="font-medium text-foreground">{serviceStatus.label}</span>
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="tecnicas" className="space-y-4">
+      <Tabs defaultValue="geral" className="space-y-6">
         <div className="flex w-full md:justify-end">
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:w-auto md:grid-cols-4">
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:w-auto md:grid-cols-5">
+            <TabsTrigger value="geral">Visao Geral</TabsTrigger>
             <TabsTrigger value="tecnicas">Informacoes tecnicas</TabsTrigger>
             <TabsTrigger value="instalacoes">Instalacoes</TabsTrigger>
             <TabsTrigger value="infra">Infra</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
           </TabsList>
         </div>
+
+        <TabsContent value="geral" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Health & Performance Snapshot */}
+            <Card className="border-border/40 bg-muted/5 shadow-sm">
+              <CardHeader className="pb-3 px-6 pt-6">
+                <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Live Health Snapshot
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-0 grid gap-6 sm:grid-cols-3">
+                <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/40 bg-background/50 text-center gap-2">
+                  <Cpu className="h-6 w-6 text-primary" />
+                  <span className="text-2xl font-bold font-mono">{host.lastAgentMetrics?.cpuLoad ?? "--"}%</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold">CPU Load</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/40 bg-background/50 text-center gap-2">
+                  <Activity className="h-6 w-6 text-sky-500" />
+                  <span className="text-2xl font-bold font-mono">{host.lastAgentMetrics?.ramUsedPc ?? "--"}%</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold">RAM Usage</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/40 bg-background/50 text-center gap-2">
+                  <Database className="h-6 w-6 text-emerald-500" />
+                  <span className="text-2xl font-bold font-mono">
+                    {host.lastAgentMetrics?.diskFree != null 
+                      ? `${(host.lastAgentMetrics.diskFree / (1024 * 1024 * 1024)).toFixed(0)}GB` 
+                      : "--"}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold">Free Disk</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Support Ticket Context */}
+            {ticketNumber ? (
+              <Card className="border-blue-500/20 bg-blue-500/5 shadow-sm backdrop-blur-sm">
+                <CardHeader className="pb-3 px-6 pt-6">
+                  <CardTitle className="text-sm font-bold uppercase tracking-widest text-blue-400 flex items-center gap-2">
+                    <Ticket className="h-4 w-4" />
+                    Zammad Support Context
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-6 pb-6">
+                  {isLoadingTicket ? (
+                    <div className="flex items-center gap-2 text-sm text-blue-300">
+                      <RefreshCw className="h-3 w-3 animate-spin" /> Carregando chamado #{ticketNumber}...
+                    </div>
+                  ) : ticketDetails ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="border-blue-500/40 bg-blue-500/10 text-blue-300 text-[10px] font-bold">
+                          {ticketDetails.state.toUpperCase()}
+                        </Badge>
+                        <h3 className="text-lg font-bold text-white leading-tight">#{ticketNumber}: {ticketDetails.title}</h3>
+                      </div>
+                      <div className="text-xs text-blue-200/60 flex items-center gap-4">
+                        <span>Prioridade: {ticketDetails.priority}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-blue-300/70 italic">Nao foi possível recuperar os detalhes do chamado #{ticketNumber}.</div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-dashed border-border/60 bg-transparent flex items-center justify-center p-8 opacity-60">
+                <div className="text-center space-y-2">
+                  <Ticket className="h-8 w-8 text-muted-foreground/30 mx-auto" />
+                  <p className="text-xs text-muted-foreground uppercase font-bold">Acesso sem chamado vinculado</p>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+            <div className="space-y-6">
+              {/* Inventory Signals */}
+              {(rebootPending || (host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) || contractValidationError) && (
+                <Card className="border-rose-500/20 bg-rose-500/5">
+                   <CardHeader className="pb-2 px-4 pt-4">
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-rose-500 flex items-center gap-2">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      Alertas Críticos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 flex flex-wrap gap-2">
+                    {rebootPending && (
+                      <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                        <RefreshCw className="mr-1.5 h-3 w-3 animate-spin-slow" />
+                        Reinicializacao Necessária
+                      </Badge>
+                    )}
+                    {(host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) && (
+                      <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                        <Database className="mr-1.5 h-3 w-3" />
+                        Espaco em Disco Crítico
+                      </Badge>
+                    )}
+                    {contractValidationError && (
+                      <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono">
+                        <Shield className="mr-1.5 h-3 w-3" />
+                        ERRO CONTRATO: {contractValidationError}
+                      </Badge>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* System Overview List */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                 <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Última Atividade</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
+                      <p className="text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+                    </div>
+                 </div>
+                 
+                 <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10 text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Estado do Agente</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-lg font-bold text-foreground capitalize">{serviceStatus.label}</p>
+                      <p className="text-xs text-muted-foreground">Versao: {host.agentVersion ?? "N/A"}</p>
+                    </div>
+                 </div>
+              </div>
+
+               <Card className="border-border/40 bg-muted/5">
+                 <CardHeader className="pb-3 px-6 pt-6 uppercase tracking-widest font-bold text-muted-foreground text-[10px] border-b border-border/40 mb-4">
+                    Instalações Detectadas no Host
+                 </CardHeader>
+                 <CardContent className="px-6 pb-6 p-0">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        {installations.map((installation, idx) => (
+                          <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-background/50 hover:border-primary/30 transition-all group">
+                             <div className="mt-0.5 rounded-lg bg-primary/5 p-1.5 text-primary/70 group-hover:text-primary transition-colors">
+                                <Server className="h-4 w-4" />
+                             </div>
+                             <div className="min-w-0">
+                                <p className="text-xs font-bold text-foreground truncate">{installation.resolvedCompanyName ?? installation.companyLabel}</p>
+                                <p className="text-[10px] font-mono text-muted-foreground truncate">{installation.path}</p>
+                             </div>
+                          </div>
+                        ))}
+                    </div>
+                 </CardContent>
+               </Card>
+            </div>
+
+            {/* Quick Timeline / Operation Log Sidebar */}
+            <div className="w-full lg:w-72 space-y-4">
+                <Card className="border-border/40 bg-muted/5">
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ações Rápidas</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 flex flex-col gap-2">
+                    <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs" onClick={() => handleRequestRemoteAction("RESEND_CONFIG")}>
+                      <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                      Reenviar Configurações
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs" onClick={() => handleRequestRemoteAction("REAPPLY_ALIAS")}>
+                      <Zap className="mr-2 h-3.5 w-3.5" />
+                      Corrigir Alias/Config
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/5 group" onClick={handleRotateAgentToken}>
+                      <Shield className="mr-2 h-3.5 w-3.5 transition-transform group-hover:rotate-180 duration-500" />
+                      Revogar Credenciais
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <div className="rounded-xl border border-border/40 bg-background/40 p-4 space-y-4">
+                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Sessões Ativas</p>
+                   <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                        <Monitor className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{host.openSessionCount || "Zero"} sessões</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Monitoramento em Tempo Real</p>
+                      </div>
+                   </div>
+                </div>
+            </div>
+          </div>
+        </TabsContent>
 
         <TabsContent value="tecnicas">
           <HostTechnicalTab
