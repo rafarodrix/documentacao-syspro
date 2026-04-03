@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+﻿import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@dosc-syspro/database";
 import type {
@@ -810,7 +810,7 @@ export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAck
         select: { id: true, type: true },
       });
     },
-    async persistAck({ hostId, commandId, status, message, details, executedAt }) {
+    async persistAck({ hostId, commandId, status, reasonCode, message, details, executedAt }) {
       await prisma.remoteAgentCommand.update({
         where: { id: commandId },
         data: {
@@ -843,4 +843,5 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
 }
 export { createRemoteHostAdminPort } from "./remote-host-admin-port";
 export { createRemoteAddressBookPort } from "./remote-address-book-port";
+
 

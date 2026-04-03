@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { createRemoteAckPort } from "@/features/remote/infrastructure/gateways/remote-domain/ack-port.gateway";
@@ -41,6 +41,44 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
+  const schemaVersion = typeof body?.schemaVersion === "string" ? body.schemaVersion.trim() : "";
+  if (!schemaVersion) {
+    return remoteErrorResponse({
+      code: "SCHEMA_VERSION_REQUIRED",
+      message: "schemaVersion e obrigatorio no payload ack.",
+      httpStatus: 400,
+      headers: responseHeaders,
+    });
+  }
+  if (schemaVersion !== "ack.payload.v1") {
+    return remoteErrorResponse({
+      code: "SCHEMA_VERSION_UNSUPPORTED",
+      message: "schemaVersion ack nao suportado.",
+      httpStatus: 400,
+      headers: responseHeaders,
+      data: { expected: "ack.payload.v1", received: schemaVersion },
+    });
+  }
+  const agentToken = typeof body?.agentToken === "string" ? body.agentToken.trim() : "";
+  const commandId = typeof body?.commandId === "string" ? body.commandId.trim() : "";
+  const status = typeof body?.status === "string" ? body.status.trim() : "";
+  if (!agentToken || !commandId || !status) {
+    return remoteErrorResponse({
+      code: "ACK_CRITICAL_FIELDS_REQUIRED",
+      message: "agentToken, commandId e status sao obrigatorios no ack.",
+      httpStatus: 400,
+      headers: responseHeaders,
+    });
+  }
+  const reasonCode = typeof body?.reasonCode === "string" ? body.reasonCode.trim() : "";
+  if (status === "FAILED" && !reasonCode) {
+    return remoteErrorResponse({
+      code: "ACK_REASON_CODE_REQUIRED",
+      message: "reasonCode e obrigatorio quando status=FAILED.",
+      httpStatus: 400,
+      headers: responseHeaders,
+    });
+  }
 
   const ackPort = createRemoteAckPort({ logger });
 
@@ -76,4 +114,5 @@ export async function POST(request: Request) {
     });
   }
 }
+
 

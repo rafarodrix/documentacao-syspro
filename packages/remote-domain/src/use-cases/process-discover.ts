@@ -1,4 +1,4 @@
-import { processDiscoverInputSchema, type ProcessDiscoverOutput } from "../contracts";
+﻿import { processDiscoverInputSchema, type ProcessDiscoverOutput } from "../contracts";
 import type { RemoteDiscoverPort } from "../ports";
 
 function normalizeNullable(value?: string | null): string | null {
@@ -58,9 +58,30 @@ export async function processDiscover(
         status: "LINKED",
       });
 
-      const bootstrapRequired =
-        !linkedHost.agentTokenHash ||
-        !!linkedHost.lastHeartbeatErrorMessage?.toLowerCase().match(/agenttoken (invalido|expirado|rotacionado|indisponivel)/);
+      const hasMissingToken = !linkedHost.agentTokenHash;
+      const hasInvalidToken =
+        !hasMissingToken &&
+        !!linkedHost.lastHeartbeatErrorMessage
+          ?.toLowerCase()
+          .match(/agenttoken (invalido|expirado|rotacionado|indisponivel)/);
+
+      const bootstrapFlow = hasMissingToken
+        ? "host_bootstrap_required"
+        : hasInvalidToken
+          ? "token_invalid"
+          : "linked_host_detected";
+
+      const transition = bootstrapFlow === "host_bootstrap_required"
+        ? transitions.host_bootstrap_required
+        : bootstrapFlow === "token_invalid"
+          ? transitions.token_invalid
+          : transitions.linked_host_detected;
+
+      const message = bootstrapFlow === "host_bootstrap_required"
+        ? "Esta maquina ja esta vinculada a um host do portal, mas sem agentToken ativo. Execute o bootstrap autenticado para emitir nova credencial."
+        : bootstrapFlow === "token_invalid"
+          ? "Esta maquina ja esta vinculada, mas a credencial atual foi invalidada/expirada. Execute o bootstrap autenticado para renovar o agentToken."
+          : "Esta maquina ja esta vinculada a um host do portal. O fluxo discover continua apenas como descoberta e nao substitui o heartbeat autenticado do host.";
 
       return {
         contractVersion: "discover.v2",
@@ -69,11 +90,9 @@ export async function processDiscover(
         hostId: linkedHost.id,
         hostName: linkedHost.name,
         heartbeatAuth: "agentToken",
-        bootstrapFlow: bootstrapRequired ? "host_bootstrap_required" : "linked_host_detected",
-        transition: bootstrapRequired ? transitions.host_bootstrap_required : transitions.linked_host_detected,
-        message: bootstrapRequired
-          ? "Esta maquina ja esta vinculada a um host do portal. O fluxo discover nao emite agentToken; execute o bootstrap autenticado do host para concluir o pareamento do agente."
-          : "Esta maquina ja esta vinculada a um host do portal. O fluxo discover continua apenas como descoberta e nao substitui o heartbeat autenticado do host.",
+        bootstrapFlow,
+        transition,
+        message,
       };
     }
   }
@@ -106,3 +125,4 @@ export async function processDiscover(
       "Maquina descoberta com sucesso. Este fluxo serve apenas para triagem inicial; depois do vinculo, use o bootstrap autenticado do host para emitir agentToken.",
   };
 }
+

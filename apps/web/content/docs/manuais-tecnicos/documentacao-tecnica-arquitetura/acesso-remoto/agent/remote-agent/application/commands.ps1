@@ -1,4 +1,4 @@
-function Get-RustDeskFileVersion {
+﻿function Get-RustDeskFileVersion {
     param([string]$Path)
     if ([string]::IsNullOrWhiteSpace($Path)) { return "" }
     if (-not (Test-Path -LiteralPath $Path)) { return "" }
@@ -169,8 +169,9 @@ function Execute-RemoteCommand {
         $cmdType = [string](Get-ObjectPropertyValue -Object $Command -Name "commandType")
     }
     $result = [ordered]@{
-        status  = "ACKNOWLEDGED"
-        message = "Comando processado."
+        status     = "ACKNOWLEDGED"
+        reasonCode = "COMMAND_PROCESSED"
+        message    = "Comando processado."
         details = [ordered]@{
             commandType             = $cmdType
             executedAtUtc           = (Get-Date).ToUniversalTime().ToString("o")
@@ -182,10 +183,12 @@ function Execute-RemoteCommand {
     try {
         switch ($cmdType.ToUpperInvariant()) {
             "REAPPLY_ALIAS" {
+                $result.reasonCode = "REAPPLY_ALIAS_NOOP"
                 $result.message = "REAPPLY_ALIAS recebido; sem acao local no agente."
                 break
             }
             "REAPPLY_CONFIG" {
+                $result.reasonCode = "REAPPLY_CONFIG_NOOP"
                 $result.message = "REAPPLY_CONFIG recebido; sem acao local no agente."
                 break
             }
@@ -193,22 +196,26 @@ function Execute-RemoteCommand {
                 $upgradeResult = Invoke-RustDeskUpgrade -Command $Command
                 $result.details.executed = $true
                 $result.details.upgrade = $upgradeResult
+                $result.reasonCode = "UPGRADE_CLIENT_SUCCESS"
                 $result.message = "UPGRADE_CLIENT executado com sucesso."
                 break
             }
             "ROTATE_TOKEN_REQUIRED" {
+                $result.reasonCode = "ROTATE_TOKEN_REQUIRED"
                 $result.message = "ROTATE_TOKEN_REQUIRED recebido; token local invalidado para rebootstrap."
                 $result.details.executed = $true
                 $result.details.invalidateTokenAfterAck = $true
                 break
             }
             default {
+                $result.reasonCode = "COMMAND_UNKNOWN"
                 $result.message = "Comando desconhecido tratado sem execucao local."
                 break
             }
         }
     } catch {
         $result.status = "FAILED"
+        $result.reasonCode = "COMMAND_EXECUTION_FAILED"
         $result.message = "Falha ao executar comando ${cmdType}: $($_.Exception.Message)"
         $result.details.error = [ordered]@{
             message = [string]$_.Exception.Message
@@ -220,3 +227,5 @@ function Execute-RemoteCommand {
 
     return $result
 }
+
+

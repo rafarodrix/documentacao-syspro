@@ -1,4 +1,4 @@
-function New-AgentSyncPayload {
+﻿function New-AgentSyncPayload {
     param(
         [string]$AgentToken,
         [string]$RustDeskId,
@@ -16,6 +16,7 @@ function New-AgentSyncPayload {
     )
 
     return @{
+        schemaVersion      = "sync.payload.v1"
         agentToken          = $AgentToken
         rustdeskId          = $RustDeskId
         machineName         = $env:COMPUTERNAME
@@ -44,3 +45,5 @@ function Invoke-AgentSync {
         -Payload $Payload `
         -Operation "sync"
 }
+
+

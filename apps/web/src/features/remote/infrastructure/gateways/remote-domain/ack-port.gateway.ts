@@ -54,13 +54,18 @@ export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAck
       return command;
     },
     async persistAck(record) {
+      const resultPayload = {
+        ...(record.details ?? {}),
+        reasonCode: record.reasonCode,
+      } as Record<string, unknown>;
+
       await prisma.remoteAgentCommand.update({
         where: { id: record.commandId },
         data: {
           status: record.status,
           executedAt: record.executedAt,
-          resultMessage: record.message,
-          resultPayload: record.details ? toJsonValue(record.details) : undefined,
+          resultMessage: record.message ?? record.reasonCode,
+          resultPayload: toJsonValue(resultPayload),
           failedAt: record.status === "FAILED" ? record.executedAt : null,
         },
       });
@@ -70,3 +75,4 @@ export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAck
     },
   };
 }
+

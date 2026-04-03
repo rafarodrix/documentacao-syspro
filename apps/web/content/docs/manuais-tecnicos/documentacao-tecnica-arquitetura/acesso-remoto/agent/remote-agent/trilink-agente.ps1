@@ -53,6 +53,11 @@ try {
     $cycleWatch   = [System.Diagnostics.Stopwatch]::StartNew()
     $phaseTimings = @{}
     $scriptVersion = Get-ScriptVersionId
+    $maxDiscoverMs  = 25000
+    $maxBootstrapMs = 30000
+    $maxSyncMs      = 30000
+    $maxAckMs       = 20000
+    $bootstrapTriggered = $false
 
     Write-Log "cycle start id=$cycleId computer=$env:COMPUTERNAME user=$env:USERNAME ps=$($PSVersionTable.PSVersion.ToString()) script=$PSCommandPath"
 
@@ -165,6 +170,7 @@ try {
     } else {
         # Discover (somente quando nao ha token local utilizavel)
         $discoverPayload = @{
+            schemaVersion    = "discover.payload.v1"
             discoveryToken    = $discoveryToken
             rustdeskId        = $rustdeskId
             machineName       = $env:COMPUTERNAME
@@ -181,6 +187,7 @@ try {
         $phaseDiscoverSw = [System.Diagnostics.Stopwatch]::StartNew()
         $discover = Invoke-AgentDiscover -PortalBaseUrl $portalBaseUrl -Payload $discoverPayload
         $phaseTimings.discover = [int]$phaseDiscoverSw.ElapsedMilliseconds
+        Assert-PhaseWatchdog -PhaseName "discover" -ElapsedMs $phaseTimings.discover -MaxMs $maxDiscoverMs
 
         if (-not $discover.ok) {
             Write-Log "Decision=discover_failed status=$($discover.statusCode) error=$($discover.error)"
@@ -203,7 +210,16 @@ try {
             return
         }
 
-        # Bootstrap
+        # Bootstrap (somente em fluxos explicitos)
+        $bootstrapFlow = [string]$summary.bootstrapFlow
+        $bootstrapAllowed = ($bootstrapFlow -eq "host_bootstrap_required" -or $bootstrapFlow -eq "token_invalid")
+        if (-not $bootstrapAllowed) {
+            Write-Log "Decision=skip_bootstrap_non_explicit_flow flow=$bootstrapFlow"
+            $state.consecutiveFailures = 0
+            Save-AgentState -State $state
+            return
+        }
+
         if ([string]::IsNullOrWhiteSpace($installToken)) {
             Write-Log "Decision=triagem_await_install_token (bootstrap bloqueado; aguardando InstallToken para continuar)."
             if ($sendFullSnapshot) {
@@ -215,7 +231,7 @@ try {
             return
         }
 
-        Write-Log "Decision=bootstrap (flow=$($summary.bootstrapFlow))."
+        Write-Log "Decision=bootstrap (flow=$bootstrapFlow)."
         $bootstrapPayload = @{
             installToken = $installToken
             rustdeskId   = $rustdeskId
@@ -228,6 +244,7 @@ try {
         $phaseBootstrapSw = [System.Diagnostics.Stopwatch]::StartNew()
         $bootstrap = Invoke-AgentBootstrap -PortalBaseUrl $portalBaseUrl -Payload $bootstrapPayload
         $phaseTimings.bootstrap = [int]$phaseBootstrapSw.ElapsedMilliseconds
+        Assert-PhaseWatchdog -PhaseName "bootstrap" -ElapsedMs $phaseTimings.bootstrap -MaxMs $maxBootstrapMs
 
         if (-not $bootstrap.ok) {
             if ($bootstrap.statusCode -eq 401 -or $bootstrap.statusCode -eq 403) {
@@ -261,6 +278,7 @@ try {
             $state.hostId = $hostIdFromBootstrap
         }
         $agentToken = $agentTokenFromApi
+        $bootstrapTriggered = $true
         Write-Log "bootstrap concluido com sucesso. agentTokenMask=$(Mask-Secret -Value $agentToken) hostId=$($state.hostId)"
     }
 
@@ -327,8 +345,17 @@ try {
     $windowsUpdateStatus = Get-WindowsUpdateStatus
     Write-Log "windowsUpdate: pending=$($windowsUpdateStatus.pendingCount) rebootRequired=$($windowsUpdateStatus.rebootRequired)"
 
+    # Flush da fila local de ACK antes do sync (quando token valido existe)
+    $flushStats = Flush-PendingAckQueue -State $state -PortalBaseUrl $portalBaseUrl -AgentToken $agentToken
+    if (@($flushStats).Count -gt 0) {
+        Write-Log "ack queue flush: sent=$($flushStats.sent) failed=$($flushStats.failed) remaining=$($flushStats.remaining)"
+    }
+
+    Register-CycleHistorySample -State $state -BootstrapTriggered $bootstrapTriggered
+    $bootstrapRate24h = Get-BootstrapRate24h -State $state
+
     # Metricas e payload de sync
-    $metricsPreSync = New-AgentMetrics -CycleStopwatch $cycleWatch -PhaseTimings $phaseTimings -SelfHeal $selfHeal -ScriptVersion $scriptVersion -OrchestrationStrategy $orchestrationStrategy
+    $metricsPreSync = New-AgentMetrics -CycleStopwatch $cycleWatch -PhaseTimings $phaseTimings -SelfHeal $selfHeal -ScriptVersion $scriptVersion -OrchestrationStrategy $orchestrationStrategy -BootstrapTriggered $bootstrapTriggered -BootstrapRate24h $bootstrapRate24h
 
     $syncPayload = New-AgentSyncPayload `
         -AgentToken $agentToken `
@@ -349,6 +376,7 @@ try {
     $phaseSyncSw = [System.Diagnostics.Stopwatch]::StartNew()
     $sync = Invoke-AgentSync -PortalBaseUrl $portalBaseUrl -Payload $syncPayload
     $phaseTimings.sync = [int]$phaseSyncSw.ElapsedMilliseconds
+    Assert-PhaseWatchdog -PhaseName "sync" -ElapsedMs $phaseTimings.sync -MaxMs $maxSyncMs
 
     if (-not $sync.ok) {
         if ($sync.statusCode -eq 401 -or $sync.statusCode -eq 403) {
@@ -383,9 +411,11 @@ try {
 
         $exec = Execute-RemoteCommand -Command $cmd -State $state
         $ackPayload = @{
+            schemaVersion = "ack.payload.v1"
             agentToken = $tokenForAck
             commandId  = $commandId
             status     = [string]$exec.status
+            reasonCode = [string]$exec.reasonCode
             message    = [string]$exec.message
             details    = $exec.details
         }
@@ -393,12 +423,18 @@ try {
         Write-Log "ack request: commandId=$commandId status=$($exec.status) tokenMask=$(Mask-Secret -Value $tokenForAck)"
         $phaseAckSw = [System.Diagnostics.Stopwatch]::StartNew()
         $ack = Invoke-AgentAck -PortalBaseUrl $portalBaseUrl -Payload $ackPayload
-        $phaseAckTotal += [int]$phaseAckSw.ElapsedMilliseconds
+        $ackElapsed = [int]$phaseAckSw.ElapsedMilliseconds
+        $phaseAckTotal += $ackElapsed
+        Assert-PhaseWatchdog -PhaseName "ack" -ElapsedMs $ackElapsed -MaxMs $maxAckMs
 
         if (-not $ack.ok) {
             if ($ack.statusCode -eq 401 -or $ack.statusCode -eq 403) {
                 $pendingTokenInvalidation = $true
                 Write-Log "ack $commandId retornou $($ack.statusCode). Rebootstrap sera aplicado apos a fila de ACK."
+            }
+            if (Should-QueueAckForRetry -AckResponse $ack) {
+                Add-PendingAckToState -State $state -AckPayload $ackPayload
+                Write-Log "Decision=ack_queued_for_retry commandId=$commandId status=$($ack.statusCode)"
             }
             Write-Log "Decision=ack_failed commandId=$commandId status=$($ack.statusCode) error=$($ack.error)"
         } else {

@@ -1,4 +1,8 @@
-import { z } from "zod";
+﻿import { z } from "zod";
+
+export const AGENT_DISCOVER_SCHEMA_VERSION = "discover.payload.v1" as const;
+export const AGENT_SYNC_SCHEMA_VERSION = "sync.payload.v1" as const;
+export const AGENT_ACK_SCHEMA_VERSION = "ack.payload.v1" as const;
 
 export const sysproUpdateSchema = z.object({
   companyLabel: z.string().min(1),
@@ -48,9 +52,11 @@ export const processBootstrapInputSchema = z.object({
 });
 
 export const processAckInputSchema = z.object({
+  schemaVersion: z.literal(AGENT_ACK_SCHEMA_VERSION),
   agentToken: z.string().trim().min(1),
   commandId: z.string().trim().min(1),
   status: z.enum(["ACKNOWLEDGED", "FAILED"]),
+  reasonCode: z.string().trim().regex(/^[A-Z0-9_]{3,64}$/).nullable().optional(),
   message: z.string().trim().nullable().optional(),
   details: z.record(z.string(), z.unknown()).nullable().optional(),
   metadata: z
@@ -64,6 +70,7 @@ export const processAckInputSchema = z.object({
 
 
 export const processSyncInputSchema = z.object({
+  schemaVersion: z.literal(AGENT_SYNC_SCHEMA_VERSION),
   agentToken: z.string().trim().min(1),
   rustdeskId: z.string().trim().min(1).nullable().optional(),
   machineName: z.string().trim().min(1).nullable().optional(),
@@ -93,6 +100,7 @@ export const processSyncInputSchema = z.object({
     .optional(),
 });
 export const processDiscoverInputSchema = z.object({
+  schemaVersion: z.literal(AGENT_DISCOVER_SCHEMA_VERSION),
   discoveryToken: z.string().trim().min(1),
   rustdeskId: z.string().trim().min(1).nullable().optional(),
   machineName: z.string().trim().min(1).nullable().optional(),
@@ -227,10 +235,11 @@ export type ProcessBootstrapOutput = {
 export type ProcessAckOutput = {
   commandId: string;
   status: "ACKNOWLEDGED" | "FAILED";
+  reasonCode: string;
   executedAt: string;
 };
 
-export type DiscoverTransitionKey = "pending_link" | "linked_host_detected" | "host_bootstrap_required";
+export type DiscoverTransitionKey = "pending_link" | "linked_host_detected" | "host_bootstrap_required" | "token_invalid";
 
 export type DiscoverTransition = {
   state: string;
@@ -474,4 +483,8 @@ export type RevokeAddressBookCredentialOutput = {
   alreadyRevoked: boolean;
   message: string;
 };
+
+
+
+
 

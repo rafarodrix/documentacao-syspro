@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CreateSessionInput,
   CreateSessionOutput,
   ListSessionsInput,
@@ -146,6 +146,7 @@ export type ProcessedAckRecord = {
   hostId: string;
   commandId: string;
   status: ProcessAckInput["status"];
+  reasonCode: string;
   message: string | null;
   details: Record<string, unknown> | null;
   executedAt: Date;
@@ -279,7 +280,7 @@ export interface RemoteSyncPort {
 }
 
 export type RemoteDiscoverTransitionMap = Record<
-  "pending_link" | "linked_host_detected" | "host_bootstrap_required",
+  "pending_link" | "linked_host_detected" | "host_bootstrap_required" | "token_invalid",
   {
     state: string;
     nextStep: string;
@@ -449,4 +450,5 @@ export interface TrilinkRemoteDomain {
   rotateAddressBookCredential(payload: unknown): Promise<RotateAddressBookCredentialOutput>;
   revokeAddressBookCredential(payload: unknown): Promise<RevokeAddressBookCredentialOutput>;
 }
+
 

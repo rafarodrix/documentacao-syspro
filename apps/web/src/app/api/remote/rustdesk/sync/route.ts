@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
@@ -45,6 +45,33 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
+  const schemaVersion = typeof body?.schemaVersion === "string" ? body.schemaVersion.trim() : "";
+  if (!schemaVersion) {
+    return remoteErrorResponse({
+      code: "SCHEMA_VERSION_REQUIRED",
+      message: "schemaVersion e obrigatorio no payload sync.",
+      httpStatus: 400,
+      headers: responseHeaders,
+    });
+  }
+  if (schemaVersion !== "sync.payload.v1") {
+    return remoteErrorResponse({
+      code: "SCHEMA_VERSION_UNSUPPORTED",
+      message: "schemaVersion sync nao suportado.",
+      httpStatus: 400,
+      headers: responseHeaders,
+      data: { expected: "sync.payload.v1", received: schemaVersion },
+    });
+  }
+  const agentToken = typeof body?.agentToken === "string" ? body.agentToken.trim() : "";
+  if (!agentToken) {
+    return remoteErrorResponse({
+      code: "AGENT_TOKEN_REQUIRED",
+      message: "agentToken e obrigatorio no sync.",
+      httpStatus: 400,
+      headers: responseHeaders,
+    });
+  }
 
   const syncPort = createRemoteSyncPort({
     logger,
@@ -94,3 +121,4 @@ export async function POST(request: Request) {
     });
   }
 }
+

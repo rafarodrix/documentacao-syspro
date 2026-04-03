@@ -1,10 +1,12 @@
-function New-AgentMetrics {
+﻿function New-AgentMetrics {
     param(
         [System.Diagnostics.Stopwatch]$CycleStopwatch,
         [hashtable]$PhaseTimings,
         [hashtable]$SelfHeal,
         [string]$ScriptVersion,
-        [string]$OrchestrationStrategy
+        [string]$OrchestrationStrategy,
+        [bool]$BootstrapTriggered,
+        [hashtable]$BootstrapRate24h
     )
     return [ordered]@{
         cycleElapsedMs    = [int]$CycleStopwatch.ElapsedMilliseconds
@@ -12,6 +14,8 @@ function New-AgentMetrics {
         psVersion         = [string]$PSVersionTable.PSVersion.ToString()
         scriptVersion     = [string]$ScriptVersion
         orchestrationStrategy = [string]$OrchestrationStrategy
+        bootstrapTriggered   = [bool]$BootstrapTriggered
+        bootstrapRate24h     = $BootstrapRate24h
         selfHealAttempted = [bool]$SelfHeal.selfHealAttempted
         selfHealResult    = [string]$SelfHeal.selfHealResult
     }
@@ -32,4 +36,15 @@ function Get-PersistentBackoffSeconds {
     $steps = @(0, 10, 20, 40, 60, 90)
     $idx = [Math]::Min($ConsecutiveFailures, $steps.Count - 1)
     return [int]$steps[$idx]
+}
+
+function Assert-PhaseWatchdog {
+    param(
+        [string]$PhaseName,
+        [int]$ElapsedMs,
+        [int]$MaxMs
+    )
+    if ($MaxMs -le 0) { return }
+    if ($ElapsedMs -le $MaxMs) { return }
+    throw "PHASE_TIMEOUT_${PhaseName}_${ElapsedMs}ms"
 }

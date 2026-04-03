@@ -1,4 +1,4 @@
-import type { z } from "zod";
+﻿import type { z } from "zod";
 import {
   createAddressBookCredentialInputSchema,
   createHostInputSchema,
@@ -53,6 +53,13 @@ const DISCOVER_TRANSITIONS = {
   },
   host_bootstrap_required: {
     state: "DISCOVERY_LINKED_HOST_BOOTSTRAP_REQUIRED",
+    nextStep: "run_authenticated_bootstrap",
+    nextEndpoint: "/api/remote/rustdesk/bootstrap",
+    allowDiscoveryHeartbeat: false,
+    requiresAuthenticatedBootstrap: false,
+  },
+  token_invalid: {
+    state: "DISCOVERY_LINKED_HOST_TOKEN_INVALID",
     nextStep: "run_authenticated_bootstrap",
     nextEndpoint: "/api/remote/rustdesk/bootstrap",
     allowDiscoveryHeartbeat: false,
@@ -472,3 +479,4 @@ export const remoteRouter = createRouter({
     },
   }),
 });
+

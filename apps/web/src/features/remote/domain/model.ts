@@ -1,4 +1,4 @@
-export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
+﻿export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
 
 export type RemoteModuleSettings = {
   rustDeskServerHost: string;
@@ -392,6 +392,7 @@ export type RemoteHostDetails = {
       | "pending_link"
       | "linked_host_detected"
       | "host_bootstrap_required"
+      | "token_invalid"
       | "triagem_await_install_token"
       | "body_parse_failed"
       | "unknown";
@@ -492,4 +493,5 @@ export type RemoteHostDetails = {
     durationSeconds: number | null;
   }>;
 };
+
 

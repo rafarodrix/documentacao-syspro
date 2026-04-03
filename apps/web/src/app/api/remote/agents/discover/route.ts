@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 import { createRemoteDiscoverPort } from "@/features/remote/infrastructure/gateways/remote-domain/discover-port.gateway";
@@ -24,6 +24,13 @@ const DISCOVER_TRANSITIONS = {
   },
   host_bootstrap_required: {
     state: "DISCOVERY_LINKED_HOST_BOOTSTRAP_REQUIRED",
+    nextStep: "run_authenticated_bootstrap",
+    nextEndpoint: "/api/remote/rustdesk/bootstrap",
+    allowDiscoveryHeartbeat: false,
+    requiresAuthenticatedBootstrap: false,
+  },
+  token_invalid: {
+    state: "DISCOVERY_LINKED_HOST_TOKEN_INVALID",
     nextStep: "run_authenticated_bootstrap",
     nextEndpoint: "/api/remote/rustdesk/bootstrap",
     allowDiscoveryHeartbeat: false,
@@ -70,6 +77,33 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
+  const schemaVersion = typeof body?.schemaVersion === "string" ? body.schemaVersion.trim() : "";
+  if (!schemaVersion) {
+    return remoteErrorResponse({
+      code: "SCHEMA_VERSION_REQUIRED",
+      message: "schemaVersion e obrigatorio no payload discover.",
+      httpStatus: 400,
+      headers: responseHeaders,
+    });
+  }
+  if (schemaVersion !== "discover.payload.v1") {
+    return remoteErrorResponse({
+      code: "SCHEMA_VERSION_UNSUPPORTED",
+      message: "schemaVersion discover nao suportado.",
+      httpStatus: 400,
+      headers: responseHeaders,
+      data: { expected: "discover.payload.v1", received: schemaVersion },
+    });
+  }
+  const discoveryToken = typeof body?.discoveryToken === "string" ? body.discoveryToken.trim() : "";
+  if (!discoveryToken) {
+    return remoteErrorResponse({
+      code: "DISCOVERY_TOKEN_REQUIRED",
+      message: "discoveryToken e obrigatorio.",
+      httpStatus: 400,
+      headers: responseHeaders,
+    });
+  }
 
   const discoverPort = createRemoteDiscoverPort({
     logger,
@@ -113,3 +147,4 @@ export async function POST(request: Request) {
     return response;
   }
 }
+

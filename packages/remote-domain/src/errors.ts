@@ -43,6 +43,11 @@ const REMOTE_DOMAIN_ERROR_MAP: Record<string, Omit<RemoteDomainHttpError, "data"
     message: "agentToken expirado.",
     httpStatus: 401,
   },
+ACK_REASON_CODE_REQUIRED: {
+    code: "ACK_REASON_CODE_REQUIRED",
+    message: "reasonCode e obrigatorio quando status=FAILED.",
+    httpStatus: 400,
+  },
   COMMAND_NOT_FOUND: {
     code: "COMMAND_NOT_FOUND",
     message: "Comando nao encontrado para este host.",
@@ -190,3 +195,4 @@ export function mapRemoteDomainError(
     httpStatus: 500,
   };
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -294,6 +294,7 @@ function getBootstrapFlowLabel(
     | "pending_link"
     | "linked_host_detected"
     | "host_bootstrap_required"
+    | "token_invalid"
     | "triagem_await_install_token"
     | "body_parse_failed"
     | "unknown"
@@ -301,6 +302,7 @@ function getBootstrapFlowLabel(
   if (value === "pending_link") return "pending_link";
   if (value === "linked_host_detected") return "linked_host_detected";
   if (value === "host_bootstrap_required") return "host_bootstrap_required";
+  if (value === "token_invalid") return "token_invalid";
   if (value === "triagem_await_install_token") return "triagem_await_install_token";
   if (value === "body_parse_failed") return "body_parse_failed";
   return "unknown";
@@ -707,6 +709,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   );
   const shouldShowDiagnosticsPlaybook = useMemo(
     () =>
+      details.agentHealth.bootstrapFlow === "token_invalid" ||
       details.agentHealth.bootstrapFlow === "triagem_await_install_token" ||
       details.agentHealth.bootstrapFlow === "body_parse_failed",
     [details.agentHealth.bootstrapFlow]
@@ -1674,7 +1677,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </div>
 
               <details className="rounded-lg border border-border/40 bg-background/40 p-3">
-                <summary className="cursor-pointer text-sm font-medium text-foreground">Métricas do agente (raw)</summary>
+                <summary className="cursor-pointer text-sm font-medium text-foreground">MÃ©tricas do agente (raw)</summary>
                 <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
                   {JSON.stringify(agentMetrics ?? { status: "Sem leitura" }, null, 2)}
                 </pre>
@@ -2003,4 +2006,5 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     </div>
   );
 }
+
 

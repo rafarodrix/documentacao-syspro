@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings-server";
 import { hashRustDeskPublicKey } from "@/features/remote/application/rustdesk-sync";
@@ -1175,6 +1175,11 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     if (!host.installToken) return "triagem_await_install_token";
     if (host.discoveryRecord?.status === "PENDING_LINK") return "pending_link";
     if (!host.agentTokenHash) return "host_bootstrap_required";
+
+    const lastHeartbeatError = (host.lastHeartbeatErrorMessage ?? "").toLowerCase();
+    const tokenInvalid = /agenttoken (invalido|expirado|rotacionado|indisponivel)/.test(lastHeartbeatError);
+    if (tokenInvalid) return "token_invalid";
+
     if (host.discoveryRecord?.status === "LINKED") return "linked_host_detected";
     return "unknown";
   })();
@@ -1363,4 +1368,5 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     })),
   };
 }
+
 

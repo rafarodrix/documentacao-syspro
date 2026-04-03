@@ -1,4 +1,4 @@
-function Get-HttpStatusCodeFromException {
+﻿function Get-HttpStatusCodeFromException {
     param([System.Exception]$Exception)
     if ($null -eq $Exception) { return $null }
     if ($Exception.PSObject.Properties.Match("Response").Count -eq 0) { return $null }
@@ -18,6 +18,18 @@ function ConvertFrom-JsonSafe {
     try { return $Text | ConvertFrom-Json } catch { return $null }
 }
 
+
+function Get-HttpRetryProfile {
+    param([string]$Operation)
+    $op = if ([string]::IsNullOrWhiteSpace($Operation)) { "http" } else { $Operation.ToLowerInvariant() }
+    switch ($op) {
+        "ack" { return [ordered]@{ maxAttempts = 3; timeoutSec = 20; maxStatusRetries = 2; maxNetworkRetries = 2 } }
+        "discover" { return [ordered]@{ maxAttempts = 4; timeoutSec = 25; maxStatusRetries = 3; maxNetworkRetries = 3 } }
+        "bootstrap" { return [ordered]@{ maxAttempts = 4; timeoutSec = 30; maxStatusRetries = 3; maxNetworkRetries = 3 } }
+        "sync" { return [ordered]@{ maxAttempts = 4; timeoutSec = 30; maxStatusRetries = 3; maxNetworkRetries = 3 } }
+        default { return [ordered]@{ maxAttempts = 4; timeoutSec = 25; maxStatusRetries = 3; maxNetworkRetries = 3 } }
+    }
+}
 function Post-JsonWithRetry {
     param(
         [string]$Url,
@@ -25,6 +37,16 @@ function Post-JsonWithRetry {
         [int]$MaxAttempts = 4,
         [string]$Operation = "http"
     )
+        $profile = Get-HttpRetryProfile -Operation $Operation
+    if ($MaxAttempts -le 0) {
+        $MaxAttempts = [int]$profile.maxAttempts
+    }
+    $timeoutSec = [int]$profile.timeoutSec
+    $maxStatusRetries = [int]$profile.maxStatusRetries
+    $maxNetworkRetries = [int]$profile.maxNetworkRetries
+    $statusRetryCount = 0
+    $networkRetryCount = 0
+
     $json       = $Payload | ConvertTo-Json -Depth 20
     $jsonBytes  = [System.Text.Encoding]::UTF8.GetByteCount($json)
     $backoffSeconds = @(0, 3, 10, 25)
@@ -43,7 +65,7 @@ function Post-JsonWithRetry {
                 -Headers $headers `
                 -ContentType "application/json; charset=utf-8" `
                 -Body $json `
-                -TimeoutSec 25 `
+                -TimeoutSec $timeoutSec `
                 -UseBasicParsing
 
             $statusCode  = [int]$response.StatusCode
@@ -68,9 +90,12 @@ function Post-JsonWithRetry {
                 return [ordered]@{ ok = $true; statusCode = $statusCode; body = $body; error = ""; attempts = $attempt }
             }
 
-            $shouldRetry = (($statusCode -eq 429) -or ($statusCode -ge 500))
-            if ($shouldRetry -and $attempt -lt $MaxAttempts) {
-                $sleep = $backoffSeconds[[Math]::Min($attempt, $backoffSeconds.Count - 1)]
+                        $shouldRetry = (($statusCode -eq 429) -or ($statusCode -ge 500))
+            if ($shouldRetry -and $attempt -lt $MaxAttempts -and $statusRetryCount -lt $maxStatusRetries) {
+                $statusRetryCount += 1
+                $baseSleep = $backoffSeconds[[Math]::Min($attempt, $backoffSeconds.Count - 1)]
+                $jitter = [Math]::Round((Get-Random -Minimum 0 -Maximum 2000) / 1000.0, 2)
+                $sleep = $baseSleep + $jitter
                 Write-Log "http retry op=$Operation reason=status_$statusCode delay=${sleep}s"
                 Start-Sleep -Seconds $sleep
                 continue
@@ -89,15 +114,25 @@ function Post-JsonWithRetry {
             } else {
                 Write-Log "http error op=$Operation status=network attempt=$attempt/$MaxAttempts message=$errorMessage"
             }
-            $shouldRetry = (($null -eq $statusCode) -or ($statusCode -eq 429) -or ($statusCode -ge 500))
+                        $isNetwork = ($null -eq $statusCode)
+            $shouldRetry = ($isNetwork -or ($statusCode -eq 429) -or ($statusCode -ge 500))
             if ($shouldRetry -and $attempt -lt $MaxAttempts) {
-                $sleep = $backoffSeconds[[Math]::Min($attempt, $backoffSeconds.Count - 1)]
-                Write-Log "http retry op=$Operation reason=transient delay=${sleep}s"
-                Start-Sleep -Seconds $sleep
-                continue
+                $canRetry = if ($isNetwork) { $networkRetryCount -lt $maxNetworkRetries } else { $statusRetryCount -lt $maxStatusRetries }
+                if ($canRetry) {
+                    if ($isNetwork) { $networkRetryCount += 1 } else { $statusRetryCount += 1 }
+                    $baseSleep = $backoffSeconds[[Math]::Min($attempt, $backoffSeconds.Count - 1)]
+                    $jitter = [Math]::Round((Get-Random -Minimum 0 -Maximum 2000) / 1000.0, 2)
+                    $sleep = $baseSleep + $jitter
+                    Write-Log "http retry op=$Operation reason=transient delay=${sleep}s"
+                    Start-Sleep -Seconds $sleep
+                    continue
+                }
             }
             return [ordered]@{ ok = $false; statusCode = $statusCode; body = $errBody; error = $errorMessage; attempts = $attempt }
         }
     }
     return [ordered]@{ ok = $false; statusCode = $null; body = $null; error = "max_attempts_exceeded"; attempts = $MaxAttempts }
 }
+
+
+

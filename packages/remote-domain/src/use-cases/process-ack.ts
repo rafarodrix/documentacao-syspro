@@ -1,8 +1,13 @@
-import { processAckInputSchema, type ProcessAckOutput } from "../contracts";
+﻿import { processAckInputSchema, type ProcessAckOutput } from "../contracts";
 import type { RemoteAckPort } from "../ports";
 
 function normalizeMessage(value?: string | null): string | null {
   const next = value?.trim();
+  return next ? next : null;
+}
+
+function normalizeReasonCode(value?: string | null): string | null {
+  const next = value?.trim().toUpperCase();
   return next ? next : null;
 }
 
@@ -14,6 +19,10 @@ export async function processAck(
   },
 ): Promise<ProcessAckOutput> {
   const input = processAckInputSchema.parse(payload);
+  const reasonCode = normalizeReasonCode(input.reasonCode) ?? (input.status === "FAILED" ? null : "COMMAND_PROCESSED");
+  if (input.status === "FAILED" && !reasonCode) {
+    throw new Error("ACK_REASON_CODE_REQUIRED");
+  }
 
   const host = await deps.port.resolveHostByAgentToken(input.agentToken);
   if (!host) {
@@ -35,6 +44,7 @@ export async function processAck(
     hostId: host.hostId,
     commandId: command.id,
     status: input.status,
+    reasonCode: reasonCode!,
     message: normalizeMessage(input.message),
     details: input.details ?? null,
     executedAt,
@@ -50,6 +60,9 @@ export async function processAck(
   return {
     commandId: command.id,
     status: input.status,
+    reasonCode: reasonCode!,
     executedAt: executedAt.toISOString(),
   };
 }
+
+
