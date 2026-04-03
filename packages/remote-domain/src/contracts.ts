@@ -1,4 +1,5 @@
-﻿import { z } from "zod";
+import { z } from "zod";
+import { REMOTE_AGENT_ACK_REASON_CODES, type RemoteAgentAckReasonCode } from "./ack-reason-codes";
 
 export const AGENT_DISCOVER_SCHEMA_VERSION = "discover.payload.v1" as const;
 export const AGENT_SYNC_SCHEMA_VERSION = "sync.payload.v1" as const;
@@ -56,7 +57,7 @@ export const processAckInputSchema = z.object({
   agentToken: z.string().trim().min(1),
   commandId: z.string().trim().min(1),
   status: z.enum(["ACKNOWLEDGED", "FAILED"]),
-  reasonCode: z.string().trim().regex(/^[A-Z0-9_]{3,64}$/).nullable().optional(),
+  reasonCode: z.enum(REMOTE_AGENT_ACK_REASON_CODES).nullable().optional(),
   message: z.string().trim().nullable().optional(),
   details: z.record(z.string(), z.unknown()).nullable().optional(),
   metadata: z
@@ -235,7 +236,7 @@ export type ProcessBootstrapOutput = {
 export type ProcessAckOutput = {
   commandId: string;
   status: "ACKNOWLEDGED" | "FAILED";
-  reasonCode: string;
+  reasonCode: RemoteAgentAckReasonCode;
   executedAt: string;
 };
 

@@ -36,7 +36,8 @@
                     "test:e2e":  "npm run test:e2e -w @dosc-syspro/web",
                     "test:e2e:install":  "npm run test:e2e:install -w @dosc-syspro/web",
                     "test:e2e:headed":  "npm run test:e2e:headed -w @dosc-syspro/web",
-                    "test:e2e:ui":  "npm run test:e2e:ui -w @dosc-syspro/web"
+                    "test:e2e:ui":  "npm run test:e2e:ui -w @dosc-syspro/web",
+                    "lint:remote":  "npm run lint:remote -w @dosc-syspro/web"
                 },
     "dependencies":  {
                          "@hookform/resolvers":  "^5.2.2",

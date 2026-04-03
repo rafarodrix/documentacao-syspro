@@ -1,4 +1,4 @@
-﻿export const COMMAND_PROCESSED = "COMMAND_PROCESSED" as const;
+export const COMMAND_PROCESSED = "COMMAND_PROCESSED" as const;
 export const REAPPLY_ALIAS_NOOP = "REAPPLY_ALIAS_NOOP" as const;
 export const REAPPLY_CONFIG_NOOP = "REAPPLY_CONFIG_NOOP" as const;
 export const UPGRADE_CLIENT_SUCCESS = "UPGRADE_CLIENT_SUCCESS" as const;
@@ -24,3 +24,13 @@ export function isRemoteAgentAckReasonCode(value: string | null | undefined): va
   if (!value) return false;
   return REMOTE_AGENT_ACK_REASON_CODE_SET.has(value);
 }
+
+export const REMOTE_AGENT_ACK_REASON_LABELS: Record<RemoteAgentAckReasonCode, string> = {
+  COMMAND_PROCESSED: "Comando processado",
+  REAPPLY_ALIAS_NOOP: "Alias ja estava conforme",
+  REAPPLY_CONFIG_NOOP: "Configuracao ja estava conforme",
+  UPGRADE_CLIENT_SUCCESS: "Upgrade concluido",
+  ROTATE_TOKEN_REQUIRED: "Token marcado para rotacao",
+  COMMAND_UNKNOWN: "Comando desconhecido",
+  COMMAND_EXECUTION_FAILED: "Falha na execucao do comando",
+};

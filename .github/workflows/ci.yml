@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   pull_request:
@@ -43,6 +43,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Lint remote strict
+        run: npm run lint:remote
 
       - name: Typecheck contracts
         run: npm run typecheck:contracts

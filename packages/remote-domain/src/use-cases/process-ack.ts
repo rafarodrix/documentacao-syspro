@@ -1,14 +1,9 @@
-﻿import { COMMAND_PROCESSED, isRemoteAgentAckReasonCode } from "../ack-reason-codes";
+﻿import { COMMAND_PROCESSED } from "../ack-reason-codes";
 import { processAckInputSchema, type ProcessAckOutput } from "../contracts";
 import type { RemoteAckPort } from "../ports";
 
 function normalizeMessage(value?: string | null): string | null {
   const next = value?.trim();
-  return next ? next : null;
-}
-
-function normalizeReasonCode(value?: string | null): string | null {
-  const next = value?.trim().toUpperCase();
   return next ? next : null;
 }
 
@@ -20,14 +15,7 @@ export async function processAck(
   },
 ): Promise<ProcessAckOutput> {
   const input = processAckInputSchema.parse(payload);
-  const parsedReasonCode = normalizeReasonCode(input.reasonCode);
-  const reasonCode = parsedReasonCode
-    ? isRemoteAgentAckReasonCode(parsedReasonCode)
-      ? parsedReasonCode
-      : parsedReasonCode
-    : input.status === "FAILED"
-      ? null
-      : COMMAND_PROCESSED;
+  const reasonCode = input.reasonCode ?? (input.status === "FAILED" ? null : COMMAND_PROCESSED);
 
   if (input.status === "FAILED" && !reasonCode) {
     throw new Error("ACK_REASON_CODE_REQUIRED");

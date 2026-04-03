@@ -1,4 +1,4 @@
-﻿import { ZodError } from "zod";
+import { ZodError } from "zod";
 
 export type RemoteDomainHttpError = {
   code: string;
@@ -43,9 +43,14 @@ const REMOTE_DOMAIN_ERROR_MAP: Record<string, Omit<RemoteDomainHttpError, "data"
     message: "agentToken expirado.",
     httpStatus: 401,
   },
-ACK_REASON_CODE_REQUIRED: {
+  ACK_REASON_CODE_REQUIRED: {
     code: "ACK_REASON_CODE_REQUIRED",
     message: "reasonCode e obrigatorio quando status=FAILED.",
+    httpStatus: 400,
+  },
+  ACK_REASON_CODE_INVALID: {
+    code: "ACK_REASON_CODE_INVALID",
+    message: "reasonCode invalido para status=FAILED.",
     httpStatus: 400,
   },
   COMMAND_NOT_FOUND: {

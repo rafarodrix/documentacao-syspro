@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,6 +34,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
 import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
+import {
+  isRemoteAgentAckReasonCode,
+  REMOTE_AGENT_ACK_REASON_LABELS,
+  type RemoteAgentAckReasonCode,
+} from "@dosc-syspro/remote-domain/ack-reason-codes";
 
 function formatDateTime(value: string | null) {
   if (!value) return "Sem registro";
@@ -247,15 +252,7 @@ const AGENT_COMMAND_LABEL: Record<
   ROTATE_TOKEN_REQUIRED: "Renovacao de credencial obrigatoria",
 };
 
-const AGENT_ACK_REASON_LABEL: Record<string, string> = {
-  COMMAND_PROCESSED: "Comando processado",
-  REAPPLY_ALIAS_NOOP: "Alias ja estava conforme",
-  REAPPLY_CONFIG_NOOP: "Configuracao ja estava conforme",
-  UPGRADE_CLIENT_SUCCESS: "Upgrade concluido",
-  ROTATE_TOKEN_REQUIRED: "Token marcado para rotacao",
-  COMMAND_UNKNOWN: "Comando desconhecido",
-  COMMAND_EXECUTION_FAILED: "Falha na execucao do comando",
-};
+const AGENT_ACK_REASON_LABEL: Record<RemoteAgentAckReasonCode, string> = REMOTE_AGENT_ACK_REASON_LABELS;
 
 function getAgentTokenMeta(value: string | null) {
   const normalized = value?.toLowerCase() ?? "";
@@ -781,7 +778,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         paths: resolvedPaths,
       },
     };
-  }, [details.agentCommands, details.company.installationDirectory, installations, serviceStatus]);
+  }, [details.agentCommands, details.company.installationDirectory, host.serviceStatus, installations, serviceStatus]);
   const autoHealStatusIcon = useMemo(
     () => getAutoHealStatusIconMeta(agentHealthCard.autoHeal.status),
     [agentHealthCard.autoHeal.status]
@@ -1807,7 +1804,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </div>
 
                 <div className="mt-3 rounded-xl border border-border/50 bg-background/60 p-4">
-                  <p className="text-sm font-medium text-foreground">Saude do contrato Agente ↔ Portal</p>
+                  <p className="text-sm font-medium text-foreground">Saude do contrato Agente -> Portal</p>
                   <div className="mt-3 grid gap-3 md:grid-cols-3">
                     <div className="rounded-lg border border-border/40 bg-background/50 p-3">
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Discover schema</p>
@@ -1847,7 +1844,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </div>
 
               <details className="rounded-lg border border-border/40 bg-background/40 p-3">
-                <summary className="cursor-pointer text-sm font-medium text-foreground">MÃ©tricas do agente (raw)</summary>
+                <summary className="cursor-pointer text-sm font-medium text-foreground">Metricas do agente (raw)</summary>
                 <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
                   {JSON.stringify(agentMetrics ?? { status: "Sem leitura" }, null, 2)}
                 </pre>
@@ -2045,7 +2042,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     {details.agentCommands.map((command) => {
                       const structuredReasonCode = extractStringFromPayload(command.resultPayload, ["reasonCode", "reason_code"]);
                       const structuredReasonLabel = structuredReasonCode
-                        ? (AGENT_ACK_REASON_LABEL[structuredReasonCode] ?? "Codigo nao catalogado")
+                        ? (isRemoteAgentAckReasonCode(structuredReasonCode)
+                          ? AGENT_ACK_REASON_LABEL[structuredReasonCode]
+                          : "Codigo nao catalogado")
                         : null;
                       return (
                         <div key={command.id} className="rounded-xl border border-border/50 bg-background/60 p-4">
@@ -2197,6 +2196,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     </div>
   );
 }
+
 
 
 

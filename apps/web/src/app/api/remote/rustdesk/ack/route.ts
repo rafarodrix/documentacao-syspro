@@ -1,8 +1,8 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { createRemoteAckPort } from "@/features/remote/infrastructure/gateways/remote-domain/ack-port.gateway";
-import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
+import { createTrilinkRemote, isRemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain";
 import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 
 export const dynamic = "force-dynamic";
@@ -70,13 +70,22 @@ export async function POST(request: Request) {
       headers: responseHeaders,
     });
   }
-  const reasonCode = typeof body?.reasonCode === "string" ? body.reasonCode.trim() : "";
+  const reasonCode = typeof body?.reasonCode === "string" ? body.reasonCode.trim().toUpperCase() : "";
   if (status === "FAILED" && !reasonCode) {
     return remoteErrorResponse({
       code: "ACK_REASON_CODE_REQUIRED",
       message: "reasonCode e obrigatorio quando status=FAILED.",
       httpStatus: 400,
       headers: responseHeaders,
+    });
+  }
+  if (status === "FAILED" && !isRemoteAgentAckReasonCode(reasonCode)) {
+    return remoteErrorResponse({
+      code: "ACK_REASON_CODE_INVALID",
+      message: "reasonCode invalido para status=FAILED.",
+      httpStatus: 400,
+      headers: responseHeaders,
+      data: { received: reasonCode },
     });
   }
 
@@ -89,6 +98,7 @@ export async function POST(request: Request) {
   try {
     const data = await trilinkRemote.processAck({
       ...(typeof body === "object" && body !== null ? body : {}),
+      ...(reasonCode ? { reasonCode } : {}),
       metadata: {
         ip,
         userAgent: request.headers.get("user-agent"),

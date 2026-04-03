@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { processAck } from "../src/use-cases/process-ack";
 import { processDiscover } from "../src/use-cases/process-discover";
 import { processSync } from "../src/use-cases/process-sync";
@@ -324,6 +324,24 @@ describe("agent token lifecycle", () => {
     expect(result.mode).toBe("linked");
     expect(result.bootstrapFlow).toBe("host_bootstrap_required");
     expect(result.transition.requiresAuthenticatedBootstrap).toBe(true);
+  });
+
+
+  it("rejects ACK FAILED with invalid reasonCode", async () => {
+    const port = buildAckPort();
+
+    await expect(
+      processAck(
+        {
+          schemaVersion: "ack.payload.v1",
+          agentToken: "valid-token",
+          commandId: "cmd-1",
+          status: "FAILED",
+          reasonCode: "INVALID_REASON",
+        },
+        { port },
+      ),
+    ).rejects.toThrow();
   });
 
   it("rejects ACK FAILED without reasonCode", async () => {

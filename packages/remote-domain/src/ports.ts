@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   CreateSessionInput,
   CreateSessionOutput,
   ListSessionsInput,
@@ -41,6 +41,7 @@
   RevokeAddressBookCredentialInput,
   RevokeAddressBookCredentialOutput,
 } from "./contracts";
+import type { RemoteAgentAckReasonCode } from "./ack-reason-codes";
 
 export type RemoteHostContext = {
   hostId: string;
@@ -146,7 +147,7 @@ export type ProcessedAckRecord = {
   hostId: string;
   commandId: string;
   status: ProcessAckInput["status"];
-  reasonCode: string;
+  reasonCode: RemoteAgentAckReasonCode;
   message: string | null;
   details: Record<string, unknown> | null;
   executedAt: Date;
