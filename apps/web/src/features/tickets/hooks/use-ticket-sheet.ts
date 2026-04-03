@@ -19,6 +19,8 @@ type CustomerEmailOption = {
 export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOptions = {}) {
     const [files, setFiles] = useState<File[]>([]);
     const [customerEmail, setCustomerEmail] = useState("");
+    const [customerCompany, setCustomerCompany] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
     const [customerOptions, setCustomerOptions] = useState<CustomerEmailOption[]>([]);
     const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -59,9 +61,13 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
         const controller = new AbortController();
         const timer = setTimeout(async () => {
             try {
+                if (!searchQuery.trim()) {
+                    setCustomerOptions([]);
+                    return;
+                }
                 setIsCustomerOptionsLoading(true);
                 const params = new URLSearchParams();
-                params.set("q", customerEmail.trim());
+                params.set("q", searchQuery.trim());
                 params.set("limit", "15");
                 const response = await fetch(`/api/platform/tickets/customer-emails?${params.toString()}`, {
                     method: "GET",
@@ -80,13 +86,13 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
             } finally {
                 setIsCustomerOptionsLoading(false);
             }
-        }, 180);
+        }, 300);
 
         return () => {
             clearTimeout(timer);
             controller.abort();
         };
-    }, [customerEmail, options.isSystemUser]);
+    }, [searchQuery, options.isSystemUser]);
 
     const onSubmit = (data: TicketFormOutput) => {
         if (options.isSystemUser && !customerEmail.trim()) {
@@ -116,6 +122,8 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
                     form.reset();
                     setFiles([]);
                     setCustomerEmail("");
+                    setCustomerCompany(null);
+                    setSearchQuery("");
                     onSuccess();
                 } else {
                     toast.error(result.message || "Erro ao criar chamado.");
@@ -138,6 +146,10 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
         onSubmit: form.handleSubmit(onSubmit),
         customerEmail,
         setCustomerEmail,
+        customerCompany,
+        setCustomerCompany,
+        searchQuery,
+        setSearchQuery,
         customerOptions,
         isCustomerOptionsLoading,
     };

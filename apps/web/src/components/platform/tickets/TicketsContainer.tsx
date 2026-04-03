@@ -9,6 +9,8 @@ import { TicketsFilters } from "./TicketsFilters";
 import { TicketsTable } from "./TicketsTable";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Download as DownloadIcon } from "lucide-react";
+import { downloadCsv } from "@/features/tickets/utils/csv";
 import type { ClosedTicketsWindow, TicketListItem, TicketStatusCounts, TicketsPagination } from "./types";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 
@@ -106,6 +108,24 @@ export function TicketsContainer({
         });
     };
 
+    const handleExportCsv = () => {
+        if (!tickets || tickets.length === 0) return;
+        const csvRows = tickets.map(t => ({
+            "ID Chamado": t.id,
+            "Numero": t.number,
+            "Assunto": t.title,
+            "Grupo": t.group,
+            "Status": t.statusLabel,
+            "Prioridade": t.priority,
+            "Cliente": t.customer,
+            "Data de Criacao": new Date(t.createdAt).toLocaleString("pt-BR"),
+            "Ultima Atualizacao": new Date(t.updatedAt).toLocaleString("pt-BR"),
+            "Estourou SLA?": t.slaBreached ? "Sim" : "Nao",
+        }));
+        const exportedDate = new Date().toISOString().split("T")[0];
+        downloadCsv(`exportacao_chamados_${exportedDate}.csv`, csvRows);
+    };
+
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10 duration-700">
             {staleWarning && (
@@ -130,19 +150,27 @@ export function TicketsContainer({
             <TicketsStats counts={statusCounts} activeStatus={statusGroup} onSelectStatus={setStatusFilter} />
 
             {isAdmin && (
-                <div className="flex flex-wrap gap-2">
-                    <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("my_queue")}>
-                        Minha fila ({queueCounts.my_queue})
-                    </Button>
-                    <Button variant={queue === "unassigned" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("unassigned")}>
-                        Sem dono ({queueCounts.unassigned})
-                    </Button>
-                    <Button variant={queue === "critical" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("critical")}>
-                        Criticos ({queueCounts.critical})
-                    </Button>
-                    <Button variant={queue === "no_response" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("no_response")}>
-                        Sem resposta ({queueCounts.no_response})
-                    </Button>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("my_queue")}>
+                            Minha fila ({queueCounts.my_queue})
+                        </Button>
+                        <Button variant={queue === "unassigned" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("unassigned")}>
+                            Sem dono ({queueCounts.unassigned})
+                        </Button>
+                        <Button variant={queue === "critical" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("critical")}>
+                            Criticos ({queueCounts.critical})
+                        </Button>
+                        <Button variant={queue === "no_response" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("no_response")}>
+                            Sem resposta ({queueCounts.no_response})
+                        </Button>
+                    </div>
+                    <div>
+                        <Button variant="secondary" size="sm" className="gap-2" onClick={handleExportCsv} disabled={tickets.length === 0}>
+                            <DownloadIcon className="h-4 w-4" />
+                            Exportar CSV
+                        </Button>
+                    </div>
                 </div>
             )}
 

@@ -38,7 +38,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
     const {
         form, files, isPending, fileInputRef,
         handleFileChange, removeFile, triggerFileInput, onSubmit,
-        customerEmail, setCustomerEmail, customerOptions, isCustomerOptionsLoading
+        customerEmail, setCustomerEmail, customerCompany, setCustomerCompany, searchQuery, setSearchQuery, customerOptions, isCustomerOptionsLoading
     } = useTicketSheet(() => setOpen(false), { isSystemUser });
 
     return (
@@ -106,7 +106,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                             )}
                                                         >
                                                             <span className="truncate text-left">
-                                                                {customerEmail || "Selecione ou digite o e-mail do cliente"}
+                                                                {customerEmail ? `${customerEmail} (${customerCompany})` : "Buscar e-mail do cliente..."}
                                                             </span>
                                                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                                                         </Button>
@@ -114,10 +114,10 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                     <PopoverContent align="start" className="w-[420px] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
                                                         <div className="border-b p-2.5">
                                                             <Input
-                                                                type="email"
-                                                                value={customerEmail}
-                                                                onChange={(event) => setCustomerEmail(event.target.value)}
-                                                                placeholder="Buscar cliente@empresa.com"
+                                                                type="text"
+                                                                value={searchQuery}
+                                                                onChange={(event) => setSearchQuery(event.target.value)}
+                                                                placeholder="Digite nome ou e-mail para buscar..."
                                                                 className="bg-background"
                                                             />
                                                         </div>
@@ -130,6 +130,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                                         type="button"
                                                                         onClick={() => {
                                                                             setCustomerEmail(option.email);
+                                                                            setCustomerCompany(option.companyName);
                                                                             setCustomerPickerOpen(false);
                                                                         }}
                                                                         className={cn(

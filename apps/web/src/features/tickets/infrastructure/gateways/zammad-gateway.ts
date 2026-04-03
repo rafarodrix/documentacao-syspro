@@ -315,42 +315,63 @@ export const ZammadGateway: ZammadGatewayRepository = {
     if (!normalizedEmails.length) return [];
 
     try {
-      const emailQuery = buildCustomerEmailsQuery(normalizedEmails);
       const stateQuery = buildStateQuery(options?.stateIds);
-      const query = stateQuery ? `${emailQuery} AND ${stateQuery}` : emailQuery;
       const limit = options?.limit ?? 50;
       const page = Math.max(1, options?.page ?? 1);
-      const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
-      const data = await fetchZammad(endpoint, {}, {
-        cacheTtlSeconds: options?.cacheTtlSeconds,
-        tags: options?.tags,
-        routeKey: options?.routeKey,
-      });
-
-      const primary = normalizeSearchResponse(data)
-        .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
-        .filter((parsed) => parsed.success)
-        .map((parsed) => parsed.data);
-
-      if (primary.length > 0) {
-        return dedupeOperationalTickets(primary);
+      
+      const chunkSize = 15;
+      const emailChunks: string[][] = [];
+      for (let i = 0; i < normalizedEmails.length; i += chunkSize) {
+        emailChunks.push(normalizedEmails.slice(i, i + chunkSize));
       }
 
-      const fallbackEmailQuery = buildCustomerEmailsFallbackQuery(normalizedEmails);
-      const fallbackQuery = stateQuery ? `${fallbackEmailQuery} AND ${stateQuery}` : fallbackEmailQuery;
-      const fallbackEndpoint = `tickets/search?query=${encodeURIComponent(fallbackQuery)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
-      const fallbackData = await fetchZammad(fallbackEndpoint, {}, {
-        cacheTtlSeconds: options?.cacheTtlSeconds,
-        tags: options?.tags,
-        routeKey: options?.routeKey,
-      });
+      let allPrimary: ZammadOperationalTicket[] = [];
 
-      return dedupeOperationalTickets(
-        normalizeSearchResponse(fallbackData)
+      for (const chunk of emailChunks) {
+        const emailQuery = buildCustomerEmailsQuery(chunk);
+        const query = stateQuery ? `${emailQuery} AND ${stateQuery}` : emailQuery;
+        const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
+        const data = await fetchZammad(endpoint, {}, {
+          cacheTtlSeconds: options?.cacheTtlSeconds,
+          tags: options?.tags,
+          routeKey: options?.routeKey,
+        });
+
+        const primary = normalizeSearchResponse(data)
           .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
           .filter((parsed) => parsed.success)
-          .map((parsed) => parsed.data)
-      );
+          .map((parsed) => parsed.data);
+          
+        allPrimary = allPrimary.concat(primary);
+      }
+
+      if (allPrimary.length > 0) {
+        const sorted = dedupeOperationalTickets(allPrimary);
+        return sorted.slice(0, limit);
+      }
+
+      let allFallback: ZammadOperationalTicket[] = [];
+      
+      for (const chunk of emailChunks) {
+        const fallbackEmailQuery = buildCustomerEmailsFallbackQuery(chunk);
+        const fallbackQuery = stateQuery ? `${fallbackEmailQuery} AND ${stateQuery}` : fallbackEmailQuery;
+        const fallbackEndpoint = `tickets/search?query=${encodeURIComponent(fallbackQuery)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
+        const fallbackData = await fetchZammad(fallbackEndpoint, {}, {
+          cacheTtlSeconds: options?.cacheTtlSeconds,
+          tags: options?.tags,
+          routeKey: options?.routeKey,
+        });
+
+        const fallbacks = normalizeSearchResponse(fallbackData)
+            .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
+            .filter((parsed) => parsed.success)
+            .map((parsed) => parsed.data);
+            
+        allFallback = allFallback.concat(fallbacks);
+      }
+
+      const sortedFallback = dedupeOperationalTickets(allFallback);
+      return sortedFallback.slice(0, limit);
     } catch (err) {
       console.error("ZammadGateway.getTicketsForCustomerEmailsPaged:", err);
       return [];
