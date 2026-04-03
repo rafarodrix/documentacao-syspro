@@ -1,10 +1,11 @@
+import { NextRequest } from "next/server";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { ackEvents } from "@/features/remote/infrastructure/events/ack-events";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getProtectedSession();
