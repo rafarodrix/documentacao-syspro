@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+﻿import { createHash, randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 
 export type NormalizedSysproUpdate = {
@@ -173,12 +173,13 @@ export async function syncRemoteHostSysproUpdates(
   `;
 
   const existingKeyMap = new Map(existingUpdates.map((entry) => [`${entry.companyLabel}::${entry.path}`.toLowerCase(), entry.id]));
+  const existingPathMap = new Map(existingUpdates.map((entry) => [entry.path.toLowerCase(), entry.id]));
   const incomingPaths = new Set<string>();
 
   for (const entry of input.sysproUpdates) {
     const compositeKey = `${entry.companyLabel}::${entry.path}`.toLowerCase();
     incomingPaths.add(entry.path.toLowerCase());
-    const existingId = existingKeyMap.get(compositeKey);
+    const existingId = existingKeyMap.get(compositeKey) ?? existingPathMap.get(entry.path.toLowerCase());
     const normalizedLabel = normalizeCompareValue(entry.companyLabel);
 
     const resolvedCompanyId =
@@ -254,3 +255,5 @@ export function buildAddressBookToken() {
     tokenPreview: `${token.slice(0, 14)}...`,
   };
 }
+
+
