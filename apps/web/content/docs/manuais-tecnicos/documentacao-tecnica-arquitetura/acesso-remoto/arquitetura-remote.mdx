@@ -810,6 +810,42 @@ Integracoes:
 - Compliance audit quando token rotacionado
 - Dashboard de saude: % maquinas com heartbeat recente
 
+### Dashboard operacional (P1)
+
+No diretorio remoto, manter os indicadores operacionais abaixo como baseline de observabilidade:
+
+- `% bootstrap/ciclo 24h`
+- `pendingAckQueue`
+- `ackQueueFlush.failed`
+- `lastContractErrorCode`
+
+Objetivo operacional:
+
+- detectar regressao de contrato/campo em minutos (janela operacional), nao em dias
+- antecipar indisponibilidade de API quando a fila local de ACK comeca a crescer
+- isolar rapidamente hosts degradados por codigo de erro estruturado
+
+### SLO operacional do agente (P2)
+
+Politica oficial para confiabilidade:
+
+- watchdog por fase com codigo estruturado em `lastContractErrorCode`:
+  - `PHASE_TIMEOUT_DISCOVER`
+  - `PHASE_TIMEOUT_BOOTSTRAP`
+  - `PHASE_TIMEOUT_SYNC`
+  - `PHASE_TIMEOUT_ACK`
+- retry por endpoint com jitter e limites por tipo de erro:
+  - `discover`: `maxAttempts=4`, `timeoutSec=25`, `maxStatusRetries=3`, `maxNetworkRetries=3`
+  - `bootstrap`: `maxAttempts=4`, `timeoutSec=30`, `maxStatusRetries=3`, `maxNetworkRetries=3`
+  - `sync`: `maxAttempts=4`, `timeoutSec=30`, `maxStatusRetries=3`, `maxNetworkRetries=3`
+  - `ack`: `maxAttempts=3`, `timeoutSec=20`, `maxStatusRetries=2`, `maxNetworkRetries=2`
+
+SLO recomendado para rollout:
+
+- sucesso de ciclo (`sync_ok`) >= 99% em 24h por host
+- `bootstrap/ciclo 24h` <= 5% em host estavel
+- `ackQueueFlush.failed` com tendencia de queda para zero apos recuperar conectividade
+
 ## Problemas comuns
 
 ### `403` na descoberta

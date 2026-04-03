@@ -391,6 +391,33 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     const rebootPending = filteredItems.filter((item) => item.inventorySignals.rebootPending === true).length;
     return { online, stale, offline, rebootPending };
   }, [filteredItems]);
+  const operationalObservability = useMemo(() => {
+    const hostsWithBootstrapRate = filteredItems.filter((item) => typeof item.bootstrapRate24hPct === "number");
+    const bootstrapRateAvg = hostsWithBootstrapRate.length
+      ? Math.round(
+          (hostsWithBootstrapRate.reduce((sum, item) => sum + (item.bootstrapRate24hPct ?? 0), 0) / hostsWithBootstrapRate.length) * 10
+        ) / 10
+      : null;
+
+    const pendingAckQueueTotal = filteredItems.reduce((sum, item) => sum + (item.pendingAckQueueSize ?? 0), 0);
+    const ackQueueFlushFailedTotal = filteredItems.reduce((sum, item) => sum + (item.ackQueueFlushFailed ?? 0), 0);
+    const hostsWithContractError = filteredItems.filter((item) => !!item.contractErrorCode);
+    const contractErrorTop = hostsWithContractError.reduce<Record<string, number>>((acc, item) => {
+      const key = item.contractErrorCode ?? "UNKNOWN";
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    }, {});
+    const contractErrorTopEntry = Object.entries(contractErrorTop).sort((a, b) => b[1] - a[1])[0] ?? null;
+
+    return {
+      bootstrapRateAvg,
+      pendingAckQueueTotal,
+      ackQueueFlushFailedTotal,
+      contractErrorHosts: hostsWithContractError.length,
+      contractErrorTopCode: contractErrorTopEntry?.[0] ?? null,
+      contractErrorTopCount: contractErrorTopEntry?.[1] ?? 0,
+    };
+  }, [filteredItems]);
 
   return (
     <div className="space-y-5">
@@ -584,6 +611,40 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               </p>
               <p className="text-[11px] text-muted-foreground">
                 discover/bootstrap: {commandObservability.orchestrationMix.window24h.discoverBootstrap}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 overflow-hidden">
+        <CardContent className="space-y-4 p-5 sm:p-6">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">% bootstrap/ciclo 24h</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
+                {operationalObservability.bootstrapRateAvg === null ? "Sem leitura" : `${operationalObservability.bootstrapRateAvg}%`}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Media entre hosts filtrados com telemetria</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">pendingAckQueue</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{operationalObservability.pendingAckQueueTotal}</p>
+              <p className="text-[11px] text-muted-foreground">Total em fila local pendente de flush</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ackQueueFlush.failed</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{operationalObservability.ackQueueFlushFailedTotal}</p>
+              <p className="text-[11px] text-muted-foreground">Falhas de flush observadas no ultimo ciclo</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">lastContractErrorCode</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {operationalObservability.contractErrorTopCode ?? "Sem erro"}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {operationalObservability.contractErrorHosts} host(s) com degradacao
+                {operationalObservability.contractErrorTopCode ? ` | ${operationalObservability.contractErrorTopCount} ocorrencias` : ""}
               </p>
             </div>
           </div>
@@ -878,6 +939,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           {item.inventorySignals.sysproProcessDown ? (
                             <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
                               Processo Syspro parado
+                            </Badge>
+                          ) : null}
+                          {item.contractErrorCode ? (
+                            <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300">
+                              Contrato degradado: {item.contractErrorCode}
                             </Badge>
                           ) : null}
                         </div>

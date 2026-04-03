@@ -241,6 +241,9 @@ export type RemoteConfiguredHostItem = {
     | "body_parse_failed"
     | "unknown";
   contractErrorCode: string | null;
+  bootstrapRate24hPct: number | null;
+  pendingAckQueueSize: number | null;
+  ackQueueFlushFailed: number | null;
   lastKnownIp: string | null;
   lastRegisterAt: string | null;
   lastRegisterSource: string | null;

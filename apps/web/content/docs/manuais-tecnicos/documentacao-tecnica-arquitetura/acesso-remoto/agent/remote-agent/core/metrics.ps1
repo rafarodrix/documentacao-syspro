@@ -56,5 +56,10 @@ function Assert-PhaseWatchdog {
     )
     if ($MaxMs -le 0) { return }
     if ($ElapsedMs -le $MaxMs) { return }
-    throw "PHASE_TIMEOUT_${PhaseName}_${ElapsedMs}ms"
+    $phaseCode = if ([string]::IsNullOrWhiteSpace($PhaseName)) {
+        "UNKNOWN"
+    } else {
+        $PhaseName.ToUpperInvariant()
+    }
+    throw "PHASE_TIMEOUT_${phaseCode}"
 }

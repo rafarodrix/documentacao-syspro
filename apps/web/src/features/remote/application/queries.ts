@@ -134,6 +134,9 @@ function mapDirectoryItem(host: {
       return "linked_host_detected";
     })();
   const contractErrorCode = readContractErrorCodeFromMetrics(host.lastAgentMetrics);
+  const bootstrapRate24hPct = readBootstrapRatePctFromMetrics(host.lastAgentMetrics);
+  const pendingAckQueueSize = readPendingAckQueueSizeFromMetrics(host.lastAgentMetrics);
+  const ackQueueFlushFailed = readAckQueueFlushFailedFromMetrics(host.lastAgentMetrics);
   const openSessionCount = host.sessions.filter((session) => session.status === "REQUESTED" || session.status === "STARTED").length;
   const lastSessionAt = host.sessions[0]?.createdAt.toISOString() ?? null;
   const lastSessionStatus = (host.sessions[0]?.status as RemoteConfiguredHostItem["lastSessionStatus"]) ?? null;
@@ -199,6 +202,9 @@ function mapDirectoryItem(host: {
     lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage ?? null,
     bootstrapFlow,
     contractErrorCode,
+    bootstrapRate24hPct,
+    pendingAckQueueSize,
+    ackQueueFlushFailed,
     lastKnownIp: host.lastKnownIp ?? null,
     lastRegisterAt: host.lastRegisterAt?.toISOString() ?? null,
     lastRegisterSource: host.lastRegisterSource ?? null,
@@ -404,6 +410,46 @@ function readContractErrorCodeFromMetrics(metrics: unknown): string | null {
   if (typeof value !== "string") return null;
   const code = value.trim();
   return code ? code : null;
+}
+
+function readBootstrapRatePctFromMetrics(metrics: unknown): number | null {
+  const record = toRecord(metrics);
+  if (!record) return null;
+  const payload = toRecord(record.bootstrapRate24h);
+  if (!payload) return null;
+  const value = payload.bootstrapRatePct;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function readPendingAckQueueSizeFromMetrics(metrics: unknown): number | null {
+  const record = toRecord(metrics);
+  if (!record) return null;
+  const value = record.pendingAckQueueSize;
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, Math.floor(value));
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return Math.max(0, Math.floor(parsed));
+  }
+  return null;
+}
+
+function readAckQueueFlushFailedFromMetrics(metrics: unknown): number | null {
+  const record = toRecord(metrics);
+  if (!record) return null;
+  const flush = toRecord(record.ackQueueFlush);
+  if (!flush) return null;
+  const value = flush.failed;
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, Math.floor(value));
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return Math.max(0, Math.floor(parsed));
+  }
+  return null;
 }
 
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
