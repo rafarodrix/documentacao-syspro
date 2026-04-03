@@ -513,7 +513,14 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
           hostCompanyId: record.context.companyId,
           hostCompanyNames: record.context.companyPrimaryNames,
           heartbeatAt: record.heartbeatAt,
-          sysproUpdates: record.normalizedSysproUpdates,
+          sysproUpdates: record.normalizedSysproUpdates.map((u) => ({
+            ...u,
+            isServerHost: u.isServerHost ?? false,
+            hasClientFolder: u.hasClientFolder ?? false,
+            hasDllFolder: u.hasDllFolder ?? false,
+            firebirdVersion: u.firebirdVersion ?? null,
+            firebirdPath: u.firebirdPath ?? null,
+          })),
         });
 
         const existingCommands = await tx.remoteAgentCommand.findMany({
