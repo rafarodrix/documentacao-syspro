@@ -260,15 +260,34 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
     }
 
     const nextStatus = activeSession.status === "STARTED" ? "ENDED" : "CANCELLED";
+    const now = new Date();
     const updated = await prisma.remoteSession.update({
       where: { id: activeSession.id },
       data: {
         status: nextStatus,
-        endedAt: new Date(),
+        endedAt: now,
         expiresAt: null,
         metadata: buildSessionMetadata(context, context.rustdeskId ?? host.agentExternalId ?? null),
       },
     });
+
+    // Auditoria Zammad no Encerramento via Webhook
+    (async () => {
+      try {
+        const start = activeSession.startedAt || activeSession.createdAt;
+        let durationText = "";
+        if (start) {
+          const diffMs = now.getTime() - new Date(start).getTime();
+          const diffMins = Math.round(diffMs / 60000);
+          durationText = ` Duração aproximada: <b>${diffMins} minutos</b>.`;
+        }
+        
+        const note = `<b>Portal Trilink:</b> Sessão remota encerrada (via status do ticket Zammad).${durationText}`;
+        await ZammadGateway.addInternalTicketNote(context.ticketId, note);
+      } catch (err) {
+        console.error("Erro ao adicionar nota de auditoria via webhook:", err);
+      }
+    })();
 
     return { handled: true, action: "closed", sessionId: updated.id };
   }

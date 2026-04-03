@@ -51,6 +51,7 @@ export {
   zammadTicketDetailsSchema,
   zammadTicketArticleSchema,
   zammadUserSearchSchema,
+  zammadUserSchema,
 } from "./zammad-api";
 export type {
   ZammadTicketAPI,
@@ -58,6 +59,7 @@ export type {
   ZammadTicketDetails,
   ZammadTicketArticle,
   ZammadUserSearch,
+  ZammadUser,
 } from "./zammad-api";
 
 

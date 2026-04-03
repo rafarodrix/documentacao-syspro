@@ -12,6 +12,8 @@ import {
   type ZammadCatalogPriority,
   type ZammadCatalogOwner,
   type ZammadGlobalCatalog,
+  zammadUserSchema,
+  type ZammadUser,
 } from "@dosc-syspro/contracts";
 import { OPERATIONAL_STATE_IDS } from "@dosc-syspro/core";
 import type {
@@ -254,6 +256,26 @@ export const ZammadGateway: ZammadGatewayRepository = {
       return userId;
     } catch (err) {
       console.error("ZammadGateway.getUserIdByEmail:", err);
+      return null;
+    }
+  },
+
+  async getUserByEmail(email: string, routeKey = getDefaultZammadRouteKey()): Promise<ZammadUser | null> {
+    try {
+      const data = await fetchZammad(
+        `users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`,
+        { cache: "no-store" },
+        { routeKey }
+      );
+
+      if (!Array.isArray(data) || !data.length) {
+        return null;
+      }
+      
+      const parsed = zammadUserSchema.safeParse(data[0]);
+      return parsed.success ? parsed.data : null;
+    } catch (err) {
+      console.error("ZammadGateway.getUserByEmail:", err);
       return null;
     }
   },

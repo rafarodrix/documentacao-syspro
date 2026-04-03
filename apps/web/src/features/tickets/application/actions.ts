@@ -13,6 +13,7 @@ import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-
 import { getScopedCompanyZammadEmails, isSystemRole } from "@/features/tickets/application/services/ticket-scope.service";
 import { prisma } from "@/lib/prisma";
 import { getZammadGlobalSettingsSnapshot } from "@/features/tickets/application/zammad-global-settings-server";
+import { ticketNotificationService } from "@/features/tickets/application/services/ticket-notification.service";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
 import type { TicketDetailsResponse, TicketMutationResponse } from "@/features/tickets/domain/model";
 import type { ZammadGlobalSettings } from "@dosc-syspro/contracts";
@@ -171,6 +172,14 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
         });
 
         revalidateTicketCollections();
+        
+        // Notificacao via WhatsApp
+        const customerEmail = systemUser ? customerEmailInput : session.email;
+        if (newTicket && typeof newTicket === "object" && "number" in (newTicket as any)) {
+            const ticketData = newTicket as { number: string };
+            void ticketNotificationService.notifyClient(customerEmail, ticketData.number, "CREATED");
+        }
+
         return { success: true, message: "Chamado aberto com sucesso!", data: newTicket };
     } catch (error) {
         console.error("Erro ao criar chamado:", error);
@@ -282,6 +291,19 @@ export async function replyTicketAction(
 
         await ZammadGateway.addTicketReply(ticketId, body, attachments);
         revalidateTicketViews(ticketId);
+
+        // Notificacao via WhatsApp (apenas se for agente respondendo para cliente)
+        if (systemUser) {
+            try {
+                const ticket = await ZammadGateway.getTicketById(ticketId);
+                if (ticket && typeof ticket.customer === "string") {
+                    void ticketNotificationService.notifyClient(ticket.customer, ticket.number, "UPDATED");
+                }
+            } catch (err) {
+                console.error("Erro ao enviar notificacao de resposta:", err);
+            }
+        }
+
         return { success: true };
     } catch (error) {
         console.error("Erro ao responder chamado:", error);
@@ -327,5 +349,3 @@ export async function ticketQuickAction(input: {
 
 export const getMyTicketsAction = getTicketsAction;
 export const getAdminTicketsAction = getTicketsAction;
-
-

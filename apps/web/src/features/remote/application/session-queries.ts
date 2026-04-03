@@ -15,6 +15,24 @@ export async function getRemoteSessions(
 ): Promise<RemotePlatformOverview["recentSessions"]> {
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
+  // Lazy Cleanup de sessoes expiradas
+  void (async () => {
+    try {
+      await prisma.remoteSession.updateMany({
+        where: {
+          status: { in: ["REQUESTED", "STARTED"] },
+          expiresAt: { lt: new Date() },
+        },
+        data: {
+          status: "ENDED",
+          endedAt: new Date(),
+        },
+      });
+    } catch (err) {
+      console.error("Erro no cleanup de sessoes expiradas:", err);
+    }
+  })();
+
   const sessions = await prisma.remoteSession.findMany({
     where: {
       ...scopedWhere,

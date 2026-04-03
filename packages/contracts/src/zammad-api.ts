@@ -70,3 +70,15 @@ export const zammadUserSearchSchema = z.object({
 });
 
 export type ZammadUserSearch = z.infer<typeof zammadUserSearchSchema>;
+
+export const zammadUserSchema = z.object({
+  id: z.number(),
+  firstname: z.string().nullable().optional(),
+  lastname: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  mobile: z.string().nullable().optional(),
+  active: z.boolean().nullable().optional(),
+});
+
+export type ZammadUser = z.infer<typeof zammadUserSchema>;

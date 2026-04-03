@@ -26,6 +26,7 @@ export interface ZammadGatewayRepository {
   ): Promise<{ tickets: ZammadOperationalTicket[]; total: number | null }>;
   getTicketCount(query: string, routeKey?: string): Promise<number>;
   getUserIdByEmail(email: string, routeKey?: string): Promise<number | null>;
+  getUserByEmail(email: string, routeKey?: string): Promise<import("@dosc-syspro/contracts").ZammadUser | null>;
   searchTickets(query: string, limit?: number, routeKey?: string): Promise<ZammadTicketAPI[]>;
   getAllTickets(
     limit?: number,

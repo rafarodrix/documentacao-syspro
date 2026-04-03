@@ -196,24 +196,45 @@ export async function startRemoteSessionService(input: {
 export async function stopRemoteSessionService(sessionId: string, context: { userId: string; userName: string }) {
   const current = await prisma.remoteSession.findUnique({
     where: { id: sessionId },
-    select: { id: true, status: true, hostId: true, companyId: true, ticketNumber: true, ticketId: true, host: { select: { name: true } } }
+    select: { 
+      id: true, 
+      status: true, 
+      hostId: true, 
+      companyId: true, 
+      ticketNumber: true, 
+      ticketId: true, 
+      startedAt: true,
+      createdAt: true,
+      host: { select: { name: true } } 
+    }
   });
 
   if (!current) throw new Error("Sessao nao encontrada");
   if (current.status === "ENDED") return current;
 
+  const now = new Date();
   const updated = await prisma.remoteSession.update({
     where: { id: sessionId },
     data: {
       status: "ENDED",
-      endedAt: new Date(),
+      endedAt: now,
     },
   });
 
   // Integracao Zammad: Adicionar nota interna de encerramento
   if (current.ticketId || current.ticketNumber) {
     const zammadTicketId = current.ticketId || current.ticketNumber;
-    const zammadNote = `<b>Portal Trilink:</b> Sessão remota encerrada no host <b>${current.host.name}</b> pelo técnico <b>${context.userName}</b>.`;
+    
+    // Calcula duracao se a sessao foi iniciada
+    let durationText = "";
+    const start = current.startedAt || current.createdAt;
+    if (start) {
+      const diffMs = now.getTime() - new Date(start).getTime();
+      const diffMins = Math.round(diffMs / 60000);
+      durationText = ` Duração aproximada: <b>${diffMins} minutos</b>.`;
+    }
+
+    const zammadNote = `<b>Portal Trilink:</b> Sessão remota encerrada no host <b>${current.host.name}</b> pelo técnico <b>${context.userName}</b>.${durationText}`;
     
     ZammadGateway.addInternalTicketNote(zammadTicketId!, zammadNote).catch(err => 
       console.error(`Falha ao registrar nota de fim no Zammad para ticket ${zammadTicketId}:`, err)
