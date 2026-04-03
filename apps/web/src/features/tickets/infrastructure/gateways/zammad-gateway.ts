@@ -427,16 +427,24 @@ export const ZammadGateway: ZammadGatewayRepository = {
       .map((parsed) => parsed.data);
   },
 
-  async addTicketReply(ticketId: string | number, body: string): Promise<unknown> {
+  async addTicketReply(
+    ticketId: string | number,
+    body: string,
+    attachments?: { filename: string; data: string; "mime-type": string }[]
+  ): Promise<unknown> {
+    const payload: Record<string, any> = {
+      ticket_id: ticketId,
+      body,
+      type: "note",
+      content_type: "text/html",
+      internal: false,
+    };
+    if (attachments && attachments.length > 0) {
+      payload.attachments = attachments;
+    }
     return fetchZammad("ticket_articles", {
       method: "POST",
-      body: JSON.stringify({
-        ticket_id: ticketId,
-        body,
-        type: "note",
-        content_type: "text/html",
-        internal: false,
-      }),
+      body: JSON.stringify(payload),
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
     });

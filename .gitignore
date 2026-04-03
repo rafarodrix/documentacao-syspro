@@ -1,39 +1,72 @@
-# deps
-/node_modules
+# -----------------------------------------------------------------------------
+# Dependencies
+# -----------------------------------------------------------------------------
+node_modules/
+.pnp
+.pnp.js
 
-# generated content
-.contentlayer
-.content-collections
-.source
-
-# test & build
-/coverage
-/.next/
-apps/web/.next/
-/out/
-/build
+# -----------------------------------------------------------------------------
+# Build & Generated
+# -----------------------------------------------------------------------------
+.next/
+dist/
+build/
+out/
+.contentlayer/
+.content-collections/
+.source/
 *.tsbuildinfo
+next-env.d.ts
+.turbo/
+
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -----------------------------------------------------------------------------
+# Test & Coverage
+# -----------------------------------------------------------------------------
+coverage/
 apps/web/test-results/
 playwright-report/
 blob-report/
 
-# misc
-.DS_Store
-*.pem
-/.pnp
-.pnp.js
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# others
+# -----------------------------------------------------------------------------
+# Environment & Secrets (NEVER COMMIT SENSITIVE DATA)
+# -----------------------------------------------------------------------------
 .env
-.env*.local
 .env.e2e
+.env*.local
 apps/web/.env.e2e
-.vercel
-next-env.d.ts
-/generated/prisma
-/node_modules
-# E2E auth state
-apps/web/tests/e2e/.auth//node
+*.pem
+
+# -----------------------------------------------------------------------------
+# Deployment & Integration
+# -----------------------------------------------------------------------------
+.vercel/
+/generated/prisma/
+apps/web/tests/e2e/.auth/
+
+# -----------------------------------------------------------------------------
+# IDE & Editor Config
+# -----------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# -----------------------------------------------------------------------------
+# OS Files
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
