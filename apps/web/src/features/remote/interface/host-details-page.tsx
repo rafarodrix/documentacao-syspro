@@ -247,6 +247,16 @@ const AGENT_COMMAND_LABEL: Record<
   ROTATE_TOKEN_REQUIRED: "Renovacao de credencial obrigatoria",
 };
 
+const AGENT_ACK_REASON_LABEL: Record<string, string> = {
+  COMMAND_PROCESSED: "Comando processado",
+  REAPPLY_ALIAS_NOOP: "Alias ja estava conforme",
+  REAPPLY_CONFIG_NOOP: "Configuracao ja estava conforme",
+  UPGRADE_CLIENT_SUCCESS: "Upgrade concluido",
+  ROTATE_TOKEN_REQUIRED: "Token marcado para rotacao",
+  COMMAND_UNKNOWN: "Comando desconhecido",
+  COMMAND_EXECUTION_FAILED: "Falha na execucao do comando",
+};
+
 function getAgentTokenMeta(value: string | null) {
   const normalized = value?.toLowerCase() ?? "";
 
@@ -2034,6 +2044,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     {details.agentCommands.map((command) => {
                       const structuredReasonCode = extractStringFromPayload(command.resultPayload, ["reasonCode", "reason_code"]);
+                      const structuredReasonLabel = structuredReasonCode
+                        ? (AGENT_ACK_REASON_LABEL[structuredReasonCode] ?? "Codigo nao catalogado")
+                        : null;
                       return (
                         <div key={command.id} className="rounded-xl border border-border/50 bg-background/60 p-4">
                           <div className="flex items-center justify-between gap-3">
@@ -2047,7 +2060,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           </p>
                           {structuredReasonCode ? (
                             <p className="mt-1 text-xs text-muted-foreground">
-                              reasonCode: <span className="font-mono text-foreground">{structuredReasonCode}</span>
+                              reasonCode: <span className="font-mono text-foreground">{structuredReasonCode}</span>{structuredReasonLabel ? ` - ${structuredReasonLabel}` : ""}
                             </p>
                           ) : null}
                           {command.resultMessage ? (
@@ -2184,5 +2197,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     </div>
   );
 }
+
+
 
 

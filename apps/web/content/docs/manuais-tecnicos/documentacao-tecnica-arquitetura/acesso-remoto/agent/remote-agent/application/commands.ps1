@@ -1,4 +1,24 @@
-﻿function Get-RustDeskFileVersion {
+﻿$AckReasonCodes = [ordered]@{
+    CommandProcessed      = "COMMAND_PROCESSED"
+    ReapplyAliasNoop      = "REAPPLY_ALIAS_NOOP"
+    ReapplyConfigNoop     = "REAPPLY_CONFIG_NOOP"
+    UpgradeClientSuccess  = "UPGRADE_CLIENT_SUCCESS"
+    RotateTokenRequired   = "ROTATE_TOKEN_REQUIRED"
+    CommandUnknown        = "COMMAND_UNKNOWN"
+    CommandExecutionFailed = "COMMAND_EXECUTION_FAILED"
+}
+
+function Resolve-AckReasonCode {
+    param([string]$Key)
+    if ([string]::IsNullOrWhiteSpace($Key)) {
+        throw "ACK_REASON_CODE_KEY_REQUIRED"
+    }
+    if (-not $AckReasonCodes.Contains($Key)) {
+        throw "ACK_REASON_CODE_KEY_INVALID: $Key"
+    }
+    return [string]$AckReasonCodes[$Key]
+}
+function Get-RustDeskFileVersion {
     param([string]$Path)
     if ([string]::IsNullOrWhiteSpace($Path)) { return "" }
     if (-not (Test-Path -LiteralPath $Path)) { return "" }
@@ -170,7 +190,7 @@ function Execute-RemoteCommand {
     }
     $result = [ordered]@{
         status     = "ACKNOWLEDGED"
-        reasonCode = "COMMAND_PROCESSED"
+        reasonCode = (Resolve-AckReasonCode -Key "CommandProcessed")
         message    = "Comando processado."
         details = [ordered]@{
             commandType             = $cmdType
@@ -183,12 +203,12 @@ function Execute-RemoteCommand {
     try {
         switch ($cmdType.ToUpperInvariant()) {
             "REAPPLY_ALIAS" {
-                $result.reasonCode = "REAPPLY_ALIAS_NOOP"
+                $result.reasonCode = (Resolve-AckReasonCode -Key "ReapplyAliasNoop")
                 $result.message = "REAPPLY_ALIAS recebido; sem acao local no agente."
                 break
             }
             "REAPPLY_CONFIG" {
-                $result.reasonCode = "REAPPLY_CONFIG_NOOP"
+                $result.reasonCode = (Resolve-AckReasonCode -Key "ReapplyConfigNoop")
                 $result.message = "REAPPLY_CONFIG recebido; sem acao local no agente."
                 break
             }
@@ -196,26 +216,26 @@ function Execute-RemoteCommand {
                 $upgradeResult = Invoke-RustDeskUpgrade -Command $Command
                 $result.details.executed = $true
                 $result.details.upgrade = $upgradeResult
-                $result.reasonCode = "UPGRADE_CLIENT_SUCCESS"
+                $result.reasonCode = (Resolve-AckReasonCode -Key "UpgradeClientSuccess")
                 $result.message = "UPGRADE_CLIENT executado com sucesso."
                 break
             }
             "ROTATE_TOKEN_REQUIRED" {
-                $result.reasonCode = "ROTATE_TOKEN_REQUIRED"
+                $result.reasonCode = (Resolve-AckReasonCode -Key "RotateTokenRequired")
                 $result.message = "ROTATE_TOKEN_REQUIRED recebido; token local invalidado para rebootstrap."
                 $result.details.executed = $true
                 $result.details.invalidateTokenAfterAck = $true
                 break
             }
             default {
-                $result.reasonCode = "COMMAND_UNKNOWN"
+                $result.reasonCode = (Resolve-AckReasonCode -Key "CommandUnknown")
                 $result.message = "Comando desconhecido tratado sem execucao local."
                 break
             }
         }
     } catch {
         $result.status = "FAILED"
-        $result.reasonCode = "COMMAND_EXECUTION_FAILED"
+        $result.reasonCode = (Resolve-AckReasonCode -Key "CommandExecutionFailed")
         $result.message = "Falha ao executar comando ${cmdType}: $($_.Exception.Message)"
         $result.details.error = [ordered]@{
             message = [string]$_.Exception.Message
@@ -227,5 +247,6 @@ function Execute-RemoteCommand {
 
     return $result
 }
+
 
 
