@@ -1,5 +1,6 @@
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import { evolutionWhatsApp } from "@/features/conversations/infrastructure/gateways/evolution-whatsapp.gateway";
+import { prisma } from "@/lib/prisma";
 
 export type TicketNotificationType = "CREATED" | "UPDATED" | "RESOLVED";
 
@@ -9,19 +10,42 @@ export class TicketNotificationService {
    */
   async notifyClient(email: string, ticketNumber: string, type: TicketNotificationType): Promise<boolean> {
     try {
-      // 1. Busca o usuario no Zammad para obter o telefone
-      const user = await ZammadGateway.getUserByEmail(email);
+      let phone: string | null = null;
+
+      // 1. Tenta resolver localmente primeiro (User.phone ou CompanyContact.whatsapp)
+      const localUser = await prisma.user.findFirst({
+        where: { email: email.toLowerCase(), isActive: true, deletedAt: null },
+        select: { phone: true }
+      });
       
-      if (!user) {
-        console.warn(`[Notification] Usuario nao encontrado para o e-mail: ${email}`);
-        return false;
+      if (localUser?.phone) {
+        phone = localUser.phone;
+        console.log(`[Notification] Usando telefone local do usuario: ${phone}`);
+      } else {
+        const localContact = await prisma.companyContact.findFirst({
+          where: { email: email.toLowerCase(), status: "LINKED" },
+          select: { whatsapp: true }
+        });
+        
+        if (localContact?.whatsapp) {
+          phone = localContact.whatsapp;
+          console.log(`[Notification] Usando WhatsApp local do contato: ${phone}`);
+        }
       }
 
-      // 2. Resolve o numero de telefone (prioriza mobile)
-      const phone = user.mobile || user.phone;
+      // 2. Fallback: Busca o usuario no Zammad se nao tiver local
+      if (!phone) {
+        const zammadUser = await ZammadGateway.getUserByEmail(email);
+        if (zammadUser) {
+          phone = zammadUser.mobile || zammadUser.phone || null;
+          if (phone) {
+            console.log(`[Notification] Usando telefone do Zammad: ${phone}`);
+          }
+        }
+      }
       
       if (!phone) {
-        console.warn(`[Notification] Usuario ${email} nao possui telefone cadastrado no Zammad.`);
+        console.warn(`[Notification] Telefone nao encontrado para o e-mail: ${email} (Local/Zammad)`);
         return false;
       }
 

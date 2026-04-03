@@ -234,7 +234,40 @@ export async function stopRemoteSessionService(sessionId: string, context: { use
       durationText = ` Duração aproximada: <b>${diffMins} minutos</b>.`;
     }
 
-    const zammadNote = `<b>Portal Trilink:</b> Sessão remota encerrada no host <b>${current.host.name}</b> pelo técnico <b>${context.userName}</b>.${durationText}`;
+    // 3. Technical Snapshot (Fase 7)
+    let technicalSnapshotText = "";
+    try {
+      const host = await prisma.remoteHost.findUnique({
+        where: { id: current.hostId },
+        select: { 
+          machineName: true, 
+          agentVersion: true, 
+          lastKnownIp: true, 
+          lastSystemSnapshot: true,
+          lastAgentMetrics: true
+        }
+      });
+      
+      if (host) {
+        const sys = host.lastSystemSnapshot as any || {};
+        const cpu = sys.cpuBrand || "N/A";
+        const ram = sys.memTotalGb ? `${sys.memTotalGb}GB` : "N/A";
+        const os = sys.osRelease || "Windows";
+        const ip = host.lastKnownIp || "N/A";
+        
+        technicalSnapshotText = `<br/><br/><b>Snapshot Técnico (Encerramento):</b><br/>
+          • Host: ${host.machineName || current.host.name}<br/>
+          • IP: ${ip}<br/>
+          • OS: ${os}<br/>
+          • CPU: ${cpu}<br/>
+          • RAM: ${ram}<br/>
+          • Agente: ${host.agentVersion || "v1"}`;
+      }
+    } catch (err) {
+      console.error("Erro ao gerar snapshot técnico para Zammad:", err);
+    }
+
+    const zammadNote = `<b>Portal Trilink:</b> Sessão remota encerrada no host <b>${current.host.name}</b> pelo técnico <b>${context.userName}</b>.${durationText}${technicalSnapshotText}`;
     
     ZammadGateway.addInternalTicketNote(zammadTicketId!, zammadNote).catch(err => 
       console.error(`Falha ao registrar nota de fim no Zammad para ticket ${zammadTicketId}:`, err)
