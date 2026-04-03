@@ -5,10 +5,14 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { sessionEvents } from "@/features/remote/infrastructure/events/session-events";
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
+import { evolutionWhatsApp } from "@/features/conversations/infrastructure/gateways/evolution-whatsapp.gateway";
+import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://suporte.trilink.com.br";
 
 /**
- * Solicita o inicio de uma sessao remota.
- * Cria o registro de auditoria e emite evento para o barramento SSE.
+ * Action do Next.js para solicitar o inicio de uma sessao remota.
+ * Atua apenas como "Entry Point" (Controller) para o servico.
  */
 export async function requestRemoteSessionAction(input: {
   hostId: string;
@@ -22,35 +26,17 @@ export async function requestRemoteSessionAction(input: {
     return { success: false, error: "Nao autorizado" };
   }
 
-  // Apenas perfis tecnicos podem solicitar sessoes por enquanto
+  // Permissao: Apenas perfis tecnicos
   if (session.role === Role.CLIENTE_USER) {
     return { success: false, error: "Apenas administradores ou suporte podem iniciar sessoes" };
   }
 
   try {
-    const remoteSession = await prisma.remoteSession.create({
-      data: {
-        hostId: input.hostId,
-        companyId: input.companyId,
-        ticketId: input.ticketId ?? null,
-        ticketNumber: input.ticketNumber ?? null,
-        requestedByUserId: session.userId,
-        status: "REQUESTED",
-        reason: input.reason ?? "Acesso solicitado via portal",
-      },
-      include: {
-        host: { select: { name: true } },
-      },
-    });
-
-    // Emite evento para os interessados (contadores, dashboards live)
-    sessionEvents.emitSessionChange({
-      sessionId: remoteSession.id,
-      hostId: remoteSession.hostId,
-      companyId: remoteSession.companyId,
-      status: remoteSession.status,
-      ticketNumber: remoteSession.ticketNumber,
-      timestamp: new Date().toISOString(),
+    const remoteSession = await startRemoteSessionService({
+      ...input,
+      userId: session.userId,
+      userName: session.name || "Técnico Trilink",
+      userEmail: session.email,
     });
 
     revalidatePath("/portal/plataforma-remota/sessoes");
@@ -59,19 +45,16 @@ export async function requestRemoteSessionAction(input: {
     return { 
       success: true, 
       data: remoteSession,
-      // Retorna o deep link que o RustDesk deve usar
-      deepLink: `rustdesk://${remoteSession.id}` // Aqui o RustDesk deve saber resolver o ID da sessao ou do host?
-      // Nota: Na arquitetura atual, o RustDesk conecta no ID da maquina. 
-      // Mas para auditoria, queremos que ele registre o ID da sessao.
+      deepLink: `rustdesk://${remoteSession.id}`
     };
   } catch (error) {
-    console.error("Erro ao solicitar sessao remota:", error);
-    return { success: false, error: "Falha ao registrar solicitacao de sessao" };
+    console.error("Erro na requestRemoteSessionAction:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Falha ao solicitar sessao" };
   }
 }
 
 /**
- * Encerra uma sessao remota manualmente ou via webhook.
+ * Action do Next.js para encerrar uma sessao remota.
  */
 export async function stopRemoteSessionAction(sessionId: string) {
   const session = await getProtectedSession();
@@ -80,43 +63,172 @@ export async function stopRemoteSessionAction(sessionId: string) {
   }
 
   try {
-    const current = await prisma.remoteSession.findUnique({
-      where: { id: sessionId },
-      select: { status: true, hostId: true, companyId: true, ticketNumber: true }
-    });
-
-    if (!current) {
-      return { success: false, error: "Sessao nao encontrada" };
-    }
-
-    if (current.status === "ENDED") {
-      return { success: true, message: "Sessao ja encerrada" };
-    }
-
-    const updated = await prisma.remoteSession.update({
-      where: { id: sessionId },
-      data: {
-        status: "ENDED",
-        endedAt: new Date(),
-      },
-    });
-
-    // Emite evento de encerramento
-    sessionEvents.emitSessionChange({
-      sessionId: updated.id,
-      hostId: updated.hostId,
-      companyId: updated.companyId,
-      status: updated.status,
-      ticketNumber: updated.ticketNumber,
-      timestamp: new Date().toISOString(),
+    const result = await stopRemoteSessionService(sessionId, {
+      userId: session.userId,
+      userName: session.name || "Técnico Trilink",
     });
 
     revalidatePath("/portal/plataforma-remota/sessoes");
-    revalidatePath(`/portal/plataforma-remota/hosts/${updated.hostId}`);
-
     return { success: true };
   } catch (error) {
-    console.error("Erro ao encerrar sessao remota:", error);
-    return { success: false, error: "Falha ao encerrar sessao" };
+    console.error("Erro na stopRemoteSessionAction:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Falha ao encerrar sessao" };
   }
+}
+
+// =========================================================================
+// SERVICOS PUROS (PRONTOS PARA NESTJS)
+// Estas funcoes nao usam cookies, headers ou next/navigation.
+// =========================================================================
+
+/**
+ * Servico de inicio de sessao remota.
+ * Realiza as integracoes de WhatsApp, Zammad e Auditoria.
+ */
+export async function startRemoteSessionService(input: {
+  hostId: string;
+  companyId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  ticketId?: string | null;
+  ticketNumber?: string | null;
+  reason?: string | null;
+}) {
+  // 1. Criar registro no banco
+  const remoteSession = await prisma.remoteSession.create({
+    data: {
+      hostId: input.hostId,
+      companyId: input.companyId,
+      ticketId: input.ticketId ?? null,
+      ticketNumber: input.ticketNumber ?? null,
+      requestedByUserId: input.userId,
+      status: "REQUESTED",
+      reason: input.reason ?? "Acesso solicitado via portal",
+    },
+    include: {
+      host: { select: { name: true } },
+      company: { 
+        select: { 
+          nomeFantasia: true, 
+          whatsapp: true,
+          contacts: {
+            where: { isPrimary: true, whatsapp: { not: null } },
+            take: 1,
+            select: { whatsapp: true, name: true }
+          }
+        } 
+      },
+    },
+  });
+
+  // 2. Integracao Zammad: Adicionar nota interna de inicio e Sincronizar Owner (Fase 7)
+  if (input.ticketId || input.ticketNumber) {
+    const zammadTicketId = input.ticketId || input.ticketNumber;
+    const zammadNote = `<b>Portal Trilink:</b> Sessão remota iniciada no host <b>${remoteSession.host.name}</b> pelo técnico <b>${input.userName}</b>. Acesso auditado iniciado.`;
+    
+    // Dispara em background para nao travar o retorno
+    (async () => {
+      try {
+        // Encontra o ID do usuario no Zammad pelo email
+        const zammadUserId = await ZammadGateway.getUserIdByEmail(input.userEmail);
+        
+        // Adiciona a nota interna
+        await ZammadGateway.addInternalTicketNote(zammadTicketId!, zammadNote);
+        
+        // Se encontramos o usuario, definimos ele como dono do chamado
+        if (zammadUserId) {
+          await ZammadGateway.updateTicket(zammadTicketId!, { owner_id: zammadUserId });
+          console.log(`Ticket ${zammadTicketId} atribuido ao tecnico ${input.userEmail} (ID: ${zammadUserId})`);
+        }
+      } catch (err) {
+        console.error(`Erro na integracao Zammad para ticket ${zammadTicketId}:`, err);
+      }
+    })();
+  }
+
+  // 3. Notificacao WhatsApp (Fase 6)
+  const primaryContact = remoteSession.company.contacts[0];
+  const targetWhatsapp = primaryContact?.whatsapp || remoteSession.company.whatsapp;
+  
+  if (targetWhatsapp) {
+    const techName = input.userName;
+    const hostName = remoteSession.host.name;
+    const ticketInfo = input.ticketNumber ? ` (Ticket #${input.ticketNumber})` : "";
+    
+    const message = 
+      `💻 *Acesso Remoto Trilink*\n\n` +
+      `Olá! O técnico *${techName}* iniciou um acesso remoto na máquina *${hostName}*${ticketInfo}.\n\n` +
+      `Este acesso é auditado e faz parte do seu atendimento de suporte.`;
+
+    evolutionWhatsApp.sendTextMessage(targetWhatsapp, message).then(async (result) => {
+      await prisma.remoteSession.update({
+        where: { id: remoteSession.id },
+        data: {
+          metadata: {
+            ...(remoteSession.metadata as any || {}),
+            whatsappNotification: result.success ? "SENT" : "FAILED",
+            whatsappMessageId: result.messageId,
+            whatsappError: result.error,
+            whatsappTarget: targetWhatsapp,
+          }
+        }
+      }).catch(err => console.error("Erro ao atualizar metadados WhatsApp:", err));
+    });
+  }
+
+  // 4. Emitir evento SSE
+  sessionEvents.emitSessionChange({
+    sessionId: remoteSession.id,
+    hostId: remoteSession.hostId,
+    companyId: remoteSession.companyId,
+    status: remoteSession.status,
+    ticketNumber: remoteSession.ticketNumber,
+    timestamp: new Date().toISOString(),
+  });
+
+  return remoteSession;
+}
+
+/**
+ * Servico de encerramento de sessao remota.
+ */
+export async function stopRemoteSessionService(sessionId: string, context: { userId: string; userName: string }) {
+  const current = await prisma.remoteSession.findUnique({
+    where: { id: sessionId },
+    select: { id: true, status: true, hostId: true, companyId: true, ticketNumber: true, ticketId: true, host: { select: { name: true } } }
+  });
+
+  if (!current) throw new Error("Sessao nao encontrada");
+  if (current.status === "ENDED") return current;
+
+  const updated = await prisma.remoteSession.update({
+    where: { id: sessionId },
+    data: {
+      status: "ENDED",
+      endedAt: new Date(),
+    },
+  });
+
+  // Integracao Zammad: Adicionar nota interna de encerramento
+  if (current.ticketId || current.ticketNumber) {
+    const zammadTicketId = current.ticketId || current.ticketNumber;
+    const zammadNote = `<b>Portal Trilink:</b> Sessão remota encerrada no host <b>${current.host.name}</b> pelo técnico <b>${context.userName}</b>.`;
+    
+    ZammadGateway.addInternalTicketNote(zammadTicketId!, zammadNote).catch(err => 
+      console.error(`Falha ao registrar nota de fim no Zammad para ticket ${zammadTicketId}:`, err)
+    );
+  }
+
+  // Emitir evento de encerramento
+  sessionEvents.emitSessionChange({
+    sessionId: updated.id,
+    hostId: updated.hostId,
+    companyId: updated.companyId,
+    status: updated.status,
+    ticketNumber: updated.ticketNumber,
+    timestamp: new Date().toISOString(),
+  });
+
+  return updated;
 }

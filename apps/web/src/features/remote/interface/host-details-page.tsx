@@ -97,6 +97,24 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
+  
+  // --- Zammad Ticket Context (Fase 7) ---
+  const ticketNumber = useSearchParams().get("ticketNumber");
+  const [ticketDetails, setTicketDetails] = useState<{ title: string; state: string; priority: string } | null>(null);
+  const [isLoadingTicket, setIsLoadingTicket] = useState(false);
+
+  useEffect(() => {
+    if (ticketNumber) {
+      setIsLoadingTicket(true);
+      fetch(`/api/tickets/${ticketNumber}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.error) setTicketDetails(data);
+        })
+        .finally(() => setIsLoadingTicket(false));
+    }
+  }, [ticketNumber]);
+
   const normalizedProjectedHostName = projectedHostName.trim();
   const canSaveProjectedHostName =
     normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim();
@@ -758,8 +776,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
-  const searchParams = useSearchParams();
-  const ticketNumber = searchParams.get("ticketNumber");
   const [isStartingSession, startSessionTransition] = useTransition();
 
   const handleStartOrchestratedSession = async () => {
@@ -802,6 +818,53 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           Voltar
         </Link>
       </div>
+
+      {ticketNumber && (
+        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-5 shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-500">
+          <div className="flex items-start gap-4">
+            <div className="mt-1 rounded-full bg-blue-500/20 p-2 text-blue-400">
+              <Ticket className="h-5 w-5" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-blue-200">Suporte Contextual Ativo</h3>
+                {ticketDetails && (
+                  <Badge variant="outline" className="border-blue-400/50 text-blue-300 text-[10px] uppercase tracking-wider">
+                    {ticketDetails.state}
+                  </Badge>
+                )}
+              </div>
+              <div className="text-sm text-blue-100/80 leading-relaxed">
+                {isLoadingTicket ? (
+                  <span className="flex items-center gap-2">
+                    <RefreshCcw className="h-3 w-3 animate-spin" /> Buscando detalhes no Zammad...
+                  </span>
+                ) : (
+                  <>
+                    Você está operando associado ao chamado <strong>#{ticketNumber}</strong>
+                    {ticketDetails && (
+                      <div className="mt-1.5 flex flex-col gap-1">
+                        <span className="text-base text-white font-medium">{ticketDetails.title}</span>
+                        <div className="flex items-center gap-3 text-xs text-blue-200/60">
+                          <span className="flex items-center gap-1">Prioridade: {ticketDetails.priority}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-blue-500/50 bg-blue-500/5 text-blue-200 hover:bg-blue-500/20"
+              onClick={() => router.push("/portal/plataforma-remota")}
+            >
+              Limpar Contexto
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Card className="border-border/50 overflow-hidden">
         <CardContent className="grid gap-5 p-5 lg:grid-cols-[1.15fr_0.85fr]">

@@ -1,6 +1,7 @@
 import { Role } from "@prisma/client";
 import { requireRole } from "@/lib/auth-helpers";
 import { getRemoteSessions } from "@/features/remote/application/session-queries";
+import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { RemoteSessionsPanel } from "@/features/remote/interface/sessions-panel";
 import { History, Activity } from "lucide-react";
 
@@ -8,7 +9,8 @@ const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 
 export default async function RemoteSessionsPage() {
   await requireRole(ALLOWED_ROLES, "/portal");
-  const sessions = await getRemoteSessions({ limit: 50 });
+  const tenantScope = await getRemoteTenantScope();
+  const sessions = await getRemoteSessions(tenantScope, { limit: 50 });
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

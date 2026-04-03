@@ -1,16 +1,18 @@
 import { prisma } from "@/lib/prisma";
-import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import type { RemoteTenantScope } from "@/features/remote/domain/model";
 import type { RemoteSessionStatus, RemotePlatformOverview } from "@/features/remote/domain/model";
 
 function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
   return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
 }
 
-export async function getRemoteSessions(options?: {
-  status?: RemoteSessionStatus;
-  limit?: number;
-}): Promise<RemotePlatformOverview["recentSessions"]> {
-  const tenantScope = await getRemoteTenantScope();
+export async function getRemoteSessions(
+  tenantScope: RemoteTenantScope,
+  options?: {
+    status?: RemoteSessionStatus;
+    limit?: number;
+  }
+): Promise<RemotePlatformOverview["recentSessions"]> {
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
   const sessions = await prisma.remoteSession.findMany({
@@ -45,8 +47,7 @@ export async function getRemoteSessions(options?: {
   }));
 }
 
-export async function getActiveSessionsCount(): Promise<number> {
-  const tenantScope = await getRemoteTenantScope();
+export async function getActiveSessionsCount(tenantScope: RemoteTenantScope): Promise<number> {
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
 
   return prisma.remoteSession.count({
