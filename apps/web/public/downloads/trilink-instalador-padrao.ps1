@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$RustDeskPassword = 'Trilink098',
     [string]$DiscoveryToken = '3dacac7beba253a33e953e6b2f970ac594c06b3152ab285e7015085b4494ee44',
     [string]$ApiBaseUrl = 'https://ajuda.trilinksoftware.com.br'
@@ -15,74 +15,19 @@ $transcriptPath = Join-Path $agentDir 'transcript.log'
 $heartbeatPath  = Join-Path $agentDir 'heartbeat-discovery.ps1'
 $taskName       = 'Trilink_RemoteAgent_Discovery'
 
-function Write-Log {
-    param([string]$Message, [ConsoleColor]$Color = "White")
-    Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $Message" -ForegroundColor $Color
-}
+function Get-SystemMetrics {
+    $cpu = Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average | Select-Object -ExpandProperty Average
+    $mem = Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize, FreePhysicalMemory
+    $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'" | Select-Object Size, FreeSpace
 
-function Get-SysproUpdates {
-    $updates = @()
-    $paths = @("C:\syspro\sysptoserver.exe", "D:\syspro\sysptoserver.exe")
-
-    foreach ($p in $paths) {
-        if (Test-Path $p) {
-            $f = Get-Item $p
-            $updates += @{
-                empresa = $env:COMPUTERNAME
-                caminho = $p
-                ultimaAtualizacao = $f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
-            }
-        }
+    return @{
+        cpuLoad      = [int]$cpu
+        memTotalKb   = [long]$mem.TotalVisibleMemorySize
+        memFreeKb    = [long]$mem.FreePhysicalMemory
+        diskSize     = [long]$disk.Size
+        diskFree     = [long]$disk.FreeSpace
+        lastUpdate   = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss")
     }
-
-    return $updates
-}
-
-function Resolve-RustDeskId {
-    param([string]$ExePath)
-
-    $tmpFile = "$env:TEMP\rd_id_capture.txt"
-    try {
-        Start-Process -FilePath $ExePath -ArgumentList "--get-id" -RedirectStandardOutput $tmpFile -NoNewWindow -Wait
-        if (Test-Path $tmpFile) {
-            $rawId = Get-Content $tmpFile -Raw
-            Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
-            if ($rawId -match '(\d{7,10})') {
-                return $matches[1].Replace(" ", "").Trim()
-            }
-        }
-    } catch {}
-
-    $reg = "HKLM:\SOFTWARE\RustDesk"
-    if (Test-Path $reg) {
-        $val = Get-ItemProperty -Path $reg -Name "id" -ErrorAction SilentlyContinue
-        if ($val.id -match '\d{7,10}') {
-            return $val.id.ToString().Trim()
-        }
-    }
-
-    return $null
-}
-
-function Install-OrUpdateRustDesk {
-    $exePath = "C:\Program Files\RustDesk\rustdesk.exe"
-    if (Test-Path $exePath) { return $exePath }
-
-    Write-Log "Instalando RustDesk v1.4.6..." -Color Yellow
-    $url = "https://github.com/rustdesk/rustdesk/releases/download/1.4.6/rustdesk-1.4.6-x86_64.msi"
-    $msiPath = "$env:TEMP\rd.msi"
-
-    try {
-        Invoke-WebRequest -Uri $url -OutFile $msiPath -UseBasicParsing -TimeoutSec 120
-        Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /qn /norestart" -Wait
-        Start-Sleep -Seconds 15
-    } finally {
-        if (Test-Path $msiPath) {
-            Remove-Item $msiPath -Force -ErrorAction SilentlyContinue
-        }
-    }
-
-    return $exePath
 }
 
 function Invoke-DiscoveryPost {
@@ -100,6 +45,7 @@ function Invoke-DiscoveryPost {
         agentVersion   = $VersionTag
         serviceStatus  = $ServiceStatus
         sysproUpdates  = Get-SysproUpdates
+        systemMetrics  = Get-SystemMetrics
     } | ConvertTo-Json -Depth 5
 
     Invoke-RestMethod `
@@ -119,6 +65,22 @@ function Write-HeartbeatScript {
 `$ApiBaseUrl = '$ApiBaseUrl'
 `$agentDir = '$agentDir'
 `$machineName = `$env:COMPUTERNAME
+
+function Get-SystemMetrics {
+    try {
+        `$cpu = Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average | Select-Object -ExpandProperty Average
+        `$mem = Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize, FreePhysicalMemory
+        `$disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'" | Select-Object Size, FreeSpace
+        return @{
+            cpuLoad      = [int]`$cpu
+            memTotalKb   = [long]`$mem.TotalVisibleMemorySize
+            memFreeKb    = [long]`$mem.FreePhysicalMemory
+            diskSize     = [long]`$disk.Size
+            diskFree     = [long]`$disk.FreeSpace
+            lastUpdate   = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss")
+        }
+    } catch { return `$null }
+}
 
 function Get-SysproUpdates {
     `$updates = @()
@@ -164,6 +126,13 @@ function Resolve-RustDeskId {
 }
 
 try {
+    # Auto-Heal: Verifica se o servico RustDesk esta rodando
+    `$rdService = Get-Service -Name RustDesk -ErrorAction SilentlyContinue
+    if (`$rdService -and `$rdService.Status -ne 'Running') {
+        Start-Service RustDesk -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 5
+    }
+
     Get-ChildItem -Path `$agentDir -Filter "*.log" -ErrorAction SilentlyContinue |
         Where-Object { `$_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
         Remove-Item -Force -ErrorAction SilentlyContinue
@@ -175,9 +144,10 @@ try {
         discoveryToken = `$DiscoveryToken
         rustdeskId     = `$rustdeskId
         machineName    = `$machineName
-        agentVersion   = 'rustdesk-v3.2-heartbeat'
+        agentVersion   = 'rustdesk-v3.3-heartbeat'
         serviceStatus  = 'running'
         sysproUpdates  = Get-SysproUpdates
+        systemMetrics  = Get-SystemMetrics
     } | ConvertTo-Json -Depth 5
 
     Invoke-RestMethod `
@@ -223,7 +193,7 @@ try {
 
     Start-Transcript -Path $transcriptPath -Append -Force | Out-Null
 
-    Write-Log "=== INICIO TRILINK v3.2 (PRODUCAO) ===" -Color Cyan
+    Write-Log "=== INICIO TRILINK v3.3 (ENRIQUECIDO) ===" -Color Cyan
 
     $exe = Install-OrUpdateRustDesk
     Write-Log "Configurando RustDesk..."
@@ -250,7 +220,7 @@ try {
     Write-Log "Enviando para API: $ApiBaseUrl/api/remote/agents/discover" -Color Cyan
 
     try {
-        Invoke-DiscoveryPost -RustDeskId $id -MachineName $machineName -ServiceStatus "running" -VersionTag "rustdesk-v3.2-stable" | Out-Null
+        Invoke-DiscoveryPost -RustDeskId $id -MachineName $machineName -ServiceStatus "running" -VersionTag "rustdesk-v3.3-stable" | Out-Null
         Write-Log "REGISTRO CONCLUIDO COM SUCESSO!" -Color Green
     } catch {
         $statusCode = $null
@@ -278,7 +248,7 @@ try {
 
     Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$heartbeatPath`"" -WindowStyle Hidden
 
-    Write-Log "Heartbeat configurado para iniciar com o Windows e repetir a cada 5 minutos." -Color Green
+    Write-Log "Heartbeat enriquecido v3.3 configurado (Startup + 5min)." -Color Green
 }
 catch {
     Write-Log "ERRO: $($_.Exception.Message)" -Color Red

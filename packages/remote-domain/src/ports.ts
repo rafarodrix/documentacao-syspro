@@ -318,6 +318,7 @@ export type ProcessedDiscoverPayload = {
   description: string | null;
   serviceStatus: string | null;
   installationsSnapshot: unknown;
+  systemMetrics?: unknown;
   lastHeartbeatAt: Date;
   linkedAt?: Date | null;
   status: "PENDING_LINK" | "LINKED";
@@ -327,12 +328,14 @@ export interface RemoteDiscoverPort {
   getExpectedDiscoveryToken(): string | null;
   normalizeRustdeskId(value: string | null | undefined): string | null;
   normalizeSysproUpdates(value: unknown): ProcessDiscoverInput["sysproUpdates"];
+  normalizeSystemMetrics(value: unknown): unknown;
   serializeSysproUpdatesSnapshot(updates: ProcessDiscoverInput["sysproUpdates"]): unknown;
   getTransitions(): RemoteDiscoverTransitionMap;
   findDiscoveredHost(input: { rustdeskId: string | null; machineName: string | null }): Promise<RemoteDiscoverExistingHost | null>;
   findLinkedHost(linkedHostId: string): Promise<RemoteDiscoverLinkedHost | null>;
   updateDiscoveredHost(id: string, payload: ProcessedDiscoverPayload): Promise<{ id: string }>;
   createDiscoveredHost(payload: ProcessedDiscoverPayload): Promise<{ id: string }>;
+  updateLinkedHostMetrics(hostId: string, metrics: unknown): Promise<void>;
   logInfo(event: string, fields: Record<string, unknown>): Promise<void>;
   logWarning(event: string, fields: Record<string, unknown>): Promise<void>;
   logError(event: string, fields?: Record<string, unknown>): Promise<void>;

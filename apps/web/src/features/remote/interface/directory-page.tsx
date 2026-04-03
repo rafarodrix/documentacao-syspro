@@ -834,6 +834,23 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                             {item.environment}
                           </Badge>
                         ) : null}
+                        
+                        {/* Live Telemetry Badges for Triage */}
+                        {item.lastAgentMetrics?.cpuLoad !== undefined && (
+                          <Badge variant="outline" className="border-border/40 bg-background/50 font-mono text-[10px]">
+                            CPU: {item.lastAgentMetrics.cpuLoad}%
+                          </Badge>
+                        )}
+                        {item.lastAgentMetrics?.ramUsedPc !== undefined && (
+                          <Badge variant="outline" className="border-border/40 bg-background/50 font-mono text-[10px]">
+                            RAM: {item.lastAgentMetrics.ramUsedPc}%
+                          </Badge>
+                        )}
+                        {item.lastAgentMetrics?.diskFree !== undefined && (
+                          <Badge variant="outline" className="border-border/40 bg-background/50 font-mono text-[10px]">
+                            DISK: {(item.lastAgentMetrics.diskFree / (1024 * 1024 * 1024)).toFixed(1)}GB
+                          </Badge>
+                        )}
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-foreground">{item.machineName ?? "Maquina sem nome"}</p>

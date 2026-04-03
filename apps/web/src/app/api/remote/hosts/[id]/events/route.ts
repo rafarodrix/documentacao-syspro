@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { ackEvents } from "@/features/remote/infrastructure/events/ack-events";
+import { telemetryEvents } from "@/features/remote/infrastructure/events/telemetry-events";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +41,19 @@ export async function GET(
       }, 20000);
 
       // Subscreve aos eventos do Event Hub
-      const unsubscribe = ackEvents.onAck(hostId, (payload) => {
+      const unsubscribeAck = ackEvents.onAck(hostId, (payload) => {
         sendEvent(payload, "ack");
+      });
+
+      const unsubscribeTelemetry = telemetryEvents.onUpdate(hostId, (payload) => {
+        sendEvent(payload, "telemetry");
       });
 
       // Limpeza ao fechar a conexao
       request.signal.addEventListener("abort", () => {
         clearInterval(heartbeatInterval);
-        unsubscribe();
+        unsubscribeAck();
+        unsubscribeTelemetry();
         try {
           controller.close();
         } catch (e) {

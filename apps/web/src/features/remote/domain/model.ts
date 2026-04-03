@@ -299,6 +299,8 @@ export type RemoteDiscoveredHostItem = {
   status: RemoteDiscoveredHostStatus;
   linkedHostId: string | null;
   installationCompanies: string[];
+  lastAgentMetrics: Record<string, any> | null;
+  lastAgentMetricsAt: string | null;
 };
 
 export type RemotePlatformDirectory = {

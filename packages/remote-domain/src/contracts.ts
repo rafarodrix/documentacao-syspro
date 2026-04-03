@@ -116,6 +116,7 @@ export const processDiscoverInputSchema = z.object({
   provider: z.string().trim().min(1).nullable().optional(),
   description: z.string().trim().min(1).nullable().optional(),
   sysproUpdates: z.unknown().optional(),
+  systemMetrics: z.unknown().optional(),
   metadata: z
     .object({
       ip: z.string().trim().min(1).nullable().optional(),

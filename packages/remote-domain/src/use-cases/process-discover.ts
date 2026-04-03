@@ -32,6 +32,7 @@ export async function processDiscover(
 
   const heartbeatAt = deps.now ? deps.now() : new Date();
   const normalizedUpdates = deps.port.normalizeSysproUpdates(input.sysproUpdates);
+  const normalizedMetrics = deps.port.normalizeSystemMetrics(input.systemMetrics);
   const serviceStatus = normalizeNullable(input.serviceStatus);
   const transitions = deps.port.getTransitions();
 
@@ -44,6 +45,10 @@ export async function processDiscover(
     const linkedHost = await deps.port.findLinkedHost(discoveredHost.linkedHostId);
 
     if (linkedHost) {
+      if (normalizedMetrics) {
+        await deps.port.updateLinkedHostMetrics(linkedHost.id, normalizedMetrics);
+      }
+
       await deps.port.updateDiscoveredHost(discoveredHost.id, {
         machineName,
         agentExternalId: rustdeskId,
@@ -53,6 +58,7 @@ export async function processDiscover(
         description: normalizeNullable(input.description),
         serviceStatus,
         installationsSnapshot: deps.port.serializeSysproUpdatesSnapshot(normalizedUpdates),
+        systemMetrics: normalizedMetrics,
         lastHeartbeatAt: heartbeatAt,
         linkedAt: discoveredHost.linkedAt ?? heartbeatAt,
         status: "LINKED",
@@ -106,6 +112,7 @@ export async function processDiscover(
     description: normalizeNullable(input.description),
     serviceStatus,
     installationsSnapshot: deps.port.serializeSysproUpdatesSnapshot(normalizedUpdates),
+    systemMetrics: normalizedMetrics,
     lastHeartbeatAt: heartbeatAt,
     status: "PENDING_LINK" as const,
   };
@@ -125,4 +132,3 @@ export async function processDiscover(
       "Maquina descoberta com sucesso. Este fluxo serve apenas para triagem inicial; depois do vinculo, use o bootstrap autenticado do host para emitir agentToken.",
   };
 }
-

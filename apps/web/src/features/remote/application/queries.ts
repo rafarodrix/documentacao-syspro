@@ -950,9 +950,15 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
 
   const pendingItems: RemoteDiscoveredHostItem[] = discoveredHosts.map((host) => {
     const snapshot = Array.isArray(host.installationsSnapshot) ? host.installationsSnapshot : [];
+    
+    // Extrai o objeto de telemetria se existir (marcado com _telemetry: true/objeto)
+    const telemetryEntry = snapshot.find(entry => entry && typeof entry === 'object' && '_telemetry' in entry);
+    const lastAgentMetrics = (telemetryEntry as any)?._telemetry ?? null;
+
     const installationCompanies = snapshot
       .map((entry) => {
         if (!entry || typeof entry !== "object") return null;
+        if ("_telemetry" in entry) return null; // Ignora o entry de telemetria na listagem de empresas
         if ("empresa" in entry && typeof entry.empresa === "string") return entry.empresa.trim();
         if ("companyLabel" in entry && typeof entry.companyLabel === "string") return entry.companyLabel.trim();
         return null;
@@ -972,6 +978,8 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
       status: host.status as RemoteDiscoveredHostItem["status"],
       linkedHostId: host.linkedHostId,
       installationCompanies,
+      lastAgentMetrics,
+      lastAgentMetricsAt: host.lastHeartbeatAt?.toISOString() ?? null,
     };
   });
 

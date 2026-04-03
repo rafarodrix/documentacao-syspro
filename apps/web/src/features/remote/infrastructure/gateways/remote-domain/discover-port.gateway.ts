@@ -5,6 +5,7 @@ import {
   normalizeSysproUpdates,
   serializeSysproUpdatesSnapshot,
 } from "@/features/remote/application/agent-payload";
+import { telemetryEvents } from "@/features/remote/infrastructure/events/telemetry-events";
 import type { RemoteDiscoverPort, RemoteDiscoverTransitionMap } from "@dosc-syspro/remote-domain";
 
 type RemoteLogger = {
@@ -32,6 +33,10 @@ export function createRemoteDiscoverPort(params: {
     },
     normalizeSysproUpdates(value: unknown) {
       return normalizeSysproUpdates(value);
+    },
+    normalizeSystemMetrics(value: unknown) {
+      if (typeof value !== "object" || value === null) return null;
+      return value;
     },
     serializeSysproUpdatesSnapshot(updates) {
       return serializeSysproUpdatesSnapshot(normalizeSysproUpdates(updates));
@@ -81,7 +86,10 @@ export function createRemoteDiscoverPort(params: {
           provider: payload.provider,
           description: payload.description,
           serviceStatus: payload.serviceStatus,
-          installationsSnapshot: toJsonValue(payload.installationsSnapshot),
+          installationsSnapshot: toJsonValue({
+            ...(typeof payload.installationsSnapshot === "object" ? (payload.installationsSnapshot as any) : {}),
+            _telemetry: payload.systemMetrics,
+          }),
           lastHeartbeatAt: payload.lastHeartbeatAt,
           linkedAt: payload.linkedAt ?? undefined,
           status: payload.status,
@@ -109,6 +117,17 @@ export function createRemoteDiscoverPort(params: {
       });
 
       return record;
+    },
+    async updateLinkedHostMetrics(hostId, metrics) {
+      await prisma.remoteHost.update({
+        where: { id: hostId },
+        data: {
+          lastAgentMetrics: toJsonValue(metrics),
+          lastAgentMetricsAt: new Date(),
+        },
+      });
+
+      telemetryEvents.emitUpdate(hostId, metrics);
     },
     async logInfo(event: string, fields: Record<string, unknown>) {
       logger.info(event, fields);
