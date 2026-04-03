@@ -250,12 +250,20 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
     }
 }
 
-export async function replyTicketAction(ticketId: string, message: string): Promise<TicketMutationResponse> {
+export async function replyTicketAction(
+    ticketId: string,
+    message: string,
+    attachments?: { filename: string; data: string; "mime-type": string }[]
+): Promise<TicketMutationResponse> {
     const session = await getProtectedSession();
     if (!session) return { success: false, error: "Nao autorizado." };
 
     const body = message.trim();
-    if (!body) return { success: false, error: "Mensagem vazia." };
+    const hasAttachments = attachments && attachments.length > 0;
+
+    if (!body && !hasAttachments) {
+        return { success: false, error: "A resposta deve conter texto ou ao menos um anexo." };
+    }
 
     const systemUser = isSystemRole(session.role);
 
@@ -272,7 +280,7 @@ export async function replyTicketAction(ticketId: string, message: string): Prom
             }
         }
 
-        await ZammadGateway.addTicketReply(ticketId, body);
+        await ZammadGateway.addTicketReply(ticketId, body, attachments);
         revalidateTicketViews(ticketId);
         return { success: true };
     } catch (error) {

@@ -390,3 +390,44 @@
     scroll-margin-top: 88px;
   }
 }
+
+/* Custom ReactQuill Styles */
+.quill {
+  @apply rounded-xl overflow-hidden border border-border/50 bg-muted/20 transition-all;
+}
+
+.quill:focus-within {
+  @apply border-primary/40 ring-1 ring-primary/20;
+}
+
+.ql-toolbar.ql-snow {
+  @apply border-none bg-muted/40 px-3 py-2;
+}
+
+.ql-container.ql-snow {
+  @apply border-none text-sm font-sans min-h-24 max-h-60;
+}
+
+.ql-editor {
+  @apply p-4 leading-relaxed;
+}
+
+.ql-editor.ql-blank::before {
+  @apply text-muted-foreground/60 italic left-4;
+}
+
+.dark .ql-snow .ql-stroke {
+  stroke: oklch(0.985 0 0 / 80%);
+}
+
+.dark .ql-snow .ql-fill {
+  fill: oklch(0.985 0 0 / 80%);
+}
+
+.dark .ql-snow .ql-picker {
+  color: oklch(0.985 0 0 / 80%);
+}
+
+.dark .ql-snow .ql-picker-options {
+  @apply bg-card border-border shadow-lg rounded-md;
+}
