@@ -1712,6 +1712,34 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               </div>
 
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-sm font-medium text-foreground">Resumo operacional</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Heartbeat</p>
+                    <p className="mt-1 text-sm text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia</p>
+                    <p className="mt-1 text-sm text-foreground">{orchestrationStrategy}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fluxo atual</p>
+                    <p className="mt-1 font-mono text-xs text-foreground">{bootstrapFlowLabel}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Contrato</p>
+                    <p className="mt-1 text-sm text-foreground">{contractValidationError ?? "Sem erro"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <details className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                <summary className="cursor-pointer text-sm font-medium text-foreground">
+                  Avancado (telemetria, comandos e diagnostico)
+                </summary>
+                <div className="mt-4 space-y-4">
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <p className="text-sm font-medium text-foreground">Saude do agente</p>
                 <div className="mt-3 grid gap-3 md:grid-cols-3">
                   <div className="rounded-xl border border-border/50 bg-background/60 p-3">
@@ -2171,6 +2199,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <p>5. A descoberta e apenas etapa de triagem e nao reativa heartbeat autenticado em host ja vinculado.</p>
                   <p>6. Se o heartbeat nao vier, valide conectividade, tarefa do agente e URL do portal.</p>
                   {isMobileClient ? <p>7. No celular, prefira `Abrir no app` e mantenha o `RustDesk ID` como fallback manual.</p> : null}
+                </div>
+              </details>
                 </div>
               </details>
             </CardContent>

@@ -586,8 +586,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         ) : null}
       </section>
 
-      <Card className="border-border/50 overflow-hidden">
-        <CardContent className="space-y-4 p-5 sm:p-6">
+      <details className="rounded-xl border border-border/50 bg-muted/10 p-4">
+        <summary className="cursor-pointer text-sm font-medium text-foreground">
+          Observabilidade operacional (colapsado por padrao)
+        </summary>
+        <div className="mt-4 space-y-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fila de comandos</p>
@@ -614,11 +617,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/50 overflow-hidden">
-        <CardContent className="space-y-4 p-5 sm:p-6">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">% bootstrap/ciclo 24h</p>
@@ -648,8 +646,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </details>
 
       <Card className="border-border/50 overflow-hidden">
         <CardContent className="space-y-4 p-5 sm:p-6">
