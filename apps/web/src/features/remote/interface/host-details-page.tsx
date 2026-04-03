@@ -928,6 +928,51 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     if (raw === "discover_bootstrap") return "Discover + bootstrap";
     return raw;
   }, [agentMetrics]);
+  const machineIpv4 = useMemo(() => {
+    const fromSystem = extractStringFromPayload(systemSnapshot, [
+      "ipv4",
+      "ipV4",
+      "primaryIpv4",
+      "ipAddress",
+      "localIp",
+    ]);
+    if (fromSystem) return fromSystem;
+    const fromNetwork = extractStringFromPayload(networkSnapshot, [
+      "ipv4",
+      "ipV4",
+      "primaryIp",
+      "ipAddress",
+      "localIp",
+    ]);
+    return fromNetwork ?? host.lastKnownIp ?? null;
+  }, [host.lastKnownIp, networkSnapshot, systemSnapshot]);
+  const sysproServerInstallations = useMemo(
+    () => details.installationContexts.filter((context) => isSysproServerInstallation(context.update.path)),
+    [details.installationContexts],
+  );
+  const firebirdData = useMemo(() => {
+    const softwareItem = softwareSnapshot.find((entry) => {
+      const name = extractStringFromPayload(entry, ["displayName", "name", "productName", "title"]);
+      return !!name && name.toLowerCase().includes("firebird");
+    });
+    const softwareName = softwareItem
+      ? extractStringFromPayload(softwareItem, ["displayName", "name", "productName", "title"])
+      : null;
+    const softwareVersion = softwareItem
+      ? extractStringFromPayload(softwareItem, ["displayVersion", "version", "productVersion"])
+      : null;
+    const fbProcess = sysproProcessSnapshot.find((entry) => {
+      const processName = extractStringFromPayload(entry, ["processName", "name"]);
+      return !!processName && processName.toLowerCase().includes("fbserver");
+    });
+    const processRunningRaw = fbProcess?.["running"];
+    const processRunning = typeof processRunningRaw === "boolean" ? processRunningRaw : null;
+    return {
+      name: softwareName,
+      version: softwareVersion,
+      processRunning,
+    };
+  }, [softwareSnapshot, sysproProcessSnapshot]);
   const heartbeat = useMemo(() => {
     if (!host.lastHeartbeatAt) {
       return {
@@ -1285,62 +1330,108 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="infra" className="space-y-4">
+      <Tabs defaultValue="tecnicas" className="space-y-4">
         <div className="flex w-full md:justify-end">
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:w-auto md:grid-cols-3">
-            <TabsTrigger value="infra">{isMobileClient ? "Acesso" : "Infra"}</TabsTrigger>
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:w-auto md:grid-cols-4">
+            <TabsTrigger value="tecnicas">Informacoes tecnicas</TabsTrigger>
             <TabsTrigger value="instalacoes">Instalacoes</TabsTrigger>
+            <TabsTrigger value="infra">Infra</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="infra">
+        <TabsContent value="tecnicas">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Infraestrutura da maquina</CardTitle>
-              <CardDescription>Conexao, hardware e rede em um unico painel tecnico.</CardDescription>
+              <CardTitle className="text-lg">Informacoes tecnicas da maquina</CardTitle>
+              <CardDescription>Base de diagnostico rapido para atendimento tecnico.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome do computador (Windows)</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da maquina</p>
                   <p className="mt-1 text-sm text-foreground">{windowsComputerName ?? "Sem leitura do agente"}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao do agente</p>
-                  <p className="mt-1 text-sm text-foreground">{host.agentVersion ?? "Nao registrada"}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">IPv4 da maquina</p>
+                  <p className="mt-1 text-sm text-foreground">{machineIpv4 ?? "Sem leitura"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">IP reportado (agente)</p>
+                  <p className="mt-1 text-sm text-foreground">{host.lastKnownIp ?? "Sem leitura"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
+                  <p className="mt-1 text-sm text-foreground">{host.rustdeskId ?? "Sem leitura"}</p>
                 </div>
               </div>
 
-              <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
-                <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
-                  Diagnostico tecnico complementar
-                </summary>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Credencial do host</p>
-                    <p className="mt-1 break-all font-mono text-sm text-foreground">{host.installToken ?? "Nao configurado"}</p>
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-sm font-medium text-foreground">Dados Syspro Server</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Considera somente instalacoes com caminho `\\Syspro\\Server\\SysproServer.exe`.
+                </p>
+                {sysproServerInstallations.length ? (
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {sysproServerInstallations.map((context) => {
+                      const entry = context.update;
+                      const company = context.company;
+                      const health = getSysproUpdateHealthMeta({
+                        path: entry.path,
+                        lastFileWriteAt: entry.lastFileWriteAt,
+                      });
+                      return (
+                        <div key={entry.id} className="rounded-xl border border-border/40 bg-background/60 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Caminho</p>
+                          <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
+                          <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
+                          <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
+                          <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Servidor / Porta / Protocolo</p>
+                          <p className="mt-1 text-sm text-foreground">
+                            {(company?.serverHost ?? "Sem vinculo")} : {company?.serverPort ?? "-"} ({company?.serverProtocol ?? "-"})
+                          </p>
+                          <div className={cn("mt-2 rounded-lg border px-2 py-1 text-xs", health.className)}>
+                            {health.label} - {health.detail}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat valido</p>
-                    <p className="mt-1 text-sm text-foreground">{formatDateTime(host.lastHeartbeatSuccessAt)}</p>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">Nenhum Syspro Server detectado nesta maquina.</p>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-sm font-medium text-foreground">Dados Firebird</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-xl border border-border/40 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Produto</p>
+                    <p className="mt-1 text-sm text-foreground">{firebirdData.name ?? "Sem leitura"}</p>
                   </div>
-                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo IP reportado</p>
-                    <p className="mt-1 text-sm text-foreground">{host.lastKnownIp ?? "Sem leitura"}</p>
+                  <div className="rounded-xl border border-border/40 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao</p>
+                    <p className="mt-1 text-sm text-foreground">{firebirdData.version ?? "Sem leitura"}</p>
                   </div>
-                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</p>
-                    <p className="mt-1 text-sm text-foreground">{host.provider ?? "Nao definido"}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4 md:col-span-2">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo erro do heartbeat</p>
-                    <p className="mt-1 text-sm text-foreground">{host.lastHeartbeatErrorMessage ?? "Sem erro recente registrado"}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatErrorAt)}</p>
+                  <div className="rounded-xl border border-border/40 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Processo fbserver</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {firebirdData.processRunning === null ? "Sem leitura" : firebirdData.processRunning ? "Em execucao" : "Parado"}
+                    </p>
                   </div>
                 </div>
-              </details>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
+        <TabsContent value="infra">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Infra da maquina</CardTitle>
+              <CardDescription>Telemetria de sistema, rede, inventario e snapshots raw.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <p className="text-sm font-medium text-foreground">Hardware e conectividade reportados pelo agente</p>
                 <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
