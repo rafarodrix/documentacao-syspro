@@ -8,7 +8,7 @@ import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remo
 
 export const dynamic = "force-dynamic";
 
-type HostRemoteAction = "REBOOTSTRAP" | "RESEND_CONFIG" | "SELF_HEAL";
+type HostRemoteAction = "REBOOTSTRAP" | "RESEND_CONFIG" | "REAPPLY_ALIAS";
 
 function canManageHost(role: string): boolean {
   return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
@@ -17,7 +17,7 @@ function canManageHost(role: string): boolean {
 function parseRequestedAction(body: unknown): HostRemoteAction | null {
   if (!body || typeof body !== "object") return null;
   const value = "action" in body ? (body as { action?: unknown }).action : null;
-  if (value === "REBOOTSTRAP" || value === "RESEND_CONFIG" || value === "SELF_HEAL") {
+  if (value === "REBOOTSTRAP" || value === "RESEND_CONFIG" || value === "REAPPLY_ALIAS") {
     return value;
   }
   return null;
@@ -93,7 +93,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const reason =
     action === "RESEND_CONFIG"
       ? "Acao manual do portal: reenviar configuracao para o agente."
-      : "Acao manual do portal: solicitar auto-recuperacao (self-heal).";
+      : "Acao manual do portal: reaplicar alias no agente.";
 
   const existing = await prisma.remoteAgentCommand.findFirst({
     where: {
@@ -141,4 +141,3 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     message: "Comando remoto enfileirado. Aguarde ciclo de sync/ack do agente.",
   });
 }
-

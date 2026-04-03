@@ -510,7 +510,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [isRotatingInstallToken, startRotatingInstallToken] = useTransition();
   const [isRequestingResendConfig, startRequestingResendConfig] = useTransition();
   const [isRequestingSelfHeal, startRequestingSelfHeal] = useTransition();
-  const [isRequestingRebootstrap, startRequestingRebootstrap] = useTransition();
   const [isRelinkingInstallation, startRelinkingInstallation] = useTransition();
   const [isBulkRelinkingInstallations, startBulkRelinkingInstallations] = useTransition();
   const [installationFilter, setInstallationFilter] = useState<"all" | "unlinked">("all");
@@ -1015,7 +1014,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
-  function handleRequestRemoteAction(action: "REBOOTSTRAP" | "RESEND_CONFIG" | "SELF_HEAL") {
+  function handleRequestRemoteAction(action: "RESEND_CONFIG" | "REAPPLY_ALIAS") {
     const run = async () => {
       try {
         const result = await requestRemoteMutation<Record<string, unknown>>({
@@ -1029,11 +1028,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         toast.error(getRemoteApiErrorMessage(error));
       }
     };
-
-    if (action === "REBOOTSTRAP") {
-      startRequestingRebootstrap(run);
-      return;
-    }
 
     if (action === "RESEND_CONFIG") {
       startRequestingResendConfig(run);
@@ -1876,15 +1870,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 )}
                 <Button
                   variant="outline"
-                  onClick={() => handleRequestRemoteAction("REBOOTSTRAP")}
-                  disabled={isRequestingRebootstrap}
-                  className="w-full gap-2 sm:w-auto"
-                >
-                  <AlertTriangle className="h-4 w-4" />
-                  {isRequestingRebootstrap ? "Solicitando..." : "Rebootstrap"}
-                </Button>
-                <Button
-                  variant="outline"
                   onClick={() => handleRequestRemoteAction("RESEND_CONFIG")}
                   disabled={isRequestingResendConfig}
                   className="w-full gap-2 sm:w-auto"
@@ -1894,12 +1879,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleRequestRemoteAction("SELF_HEAL")}
+                  onClick={() => handleRequestRemoteAction("REAPPLY_ALIAS")}
                   disabled={isRequestingSelfHeal}
                   className="w-full gap-2 sm:w-auto"
                 >
                   <HardDriveDownload className="h-4 w-4" />
-                  {isRequestingSelfHeal ? "Solicitando..." : "Pedir self-heal"}
+                  {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar alias"}
                 </Button>
               </div>
 
