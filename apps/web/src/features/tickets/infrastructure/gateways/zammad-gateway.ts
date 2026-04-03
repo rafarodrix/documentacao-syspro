@@ -9,7 +9,14 @@ import {
   type ZammadTicketDetails,
 } from "@dosc-syspro/contracts";
 import { OPERATIONAL_STATE_IDS } from "@dosc-syspro/core";
-import type { ZammadGatewayRepository, ZammadCacheOptions } from "@/features/tickets/domain/repositories/zammad-gateway.repository";
+import type {
+  ZammadGatewayRepository,
+  ZammadCacheOptions,
+  ZammadCatalogGroup,
+  ZammadCatalogOwner,
+  ZammadCatalogPriority,
+  ZammadCatalogState,
+} from "@/features/tickets/domain/repositories/zammad-gateway.repository";
 import {
   buildAuthorizationHeader,
   fetchWithRetry,
@@ -76,6 +83,73 @@ function parseSearchTotal(headers: Headers): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeCatalogGroups(data: unknown): ZammadCatalogGroup[] {
+  if (!Array.isArray(data)) return [];
+  const groups = data
+    .map((item) => {
+      const row = item as Record<string, unknown>;
+      const id = typeof row.id === "number" ? row.id : Number(row.id);
+      const name = typeof row.name === "string" ? row.name.trim() : "";
+      if (!Number.isFinite(id) || id < 1 || !name) return null;
+      return { id, name };
+    })
+    .filter((row): row is ZammadCatalogGroup => Boolean(row));
+  return groups.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
+
+function normalizeCatalogStates(data: unknown): ZammadCatalogState[] {
+  if (!Array.isArray(data)) return [];
+  const states = data
+    .map((item) => {
+      const row = item as Record<string, unknown>;
+      const id = typeof row.id === "number" ? row.id : Number(row.id);
+      const name = typeof row.name === "string" ? row.name.trim() : "";
+      if (!Number.isFinite(id) || id < 1 || !name) return null;
+      return { id, name };
+    })
+    .filter((row): row is ZammadCatalogState => Boolean(row));
+  return states.sort((a, b) => a.id - b.id);
+}
+
+function normalizeCatalogPriorities(data: unknown): ZammadCatalogPriority[] {
+  if (!Array.isArray(data)) return [];
+  const priorities = data
+    .map((item) => {
+      const row = item as Record<string, unknown>;
+      const id = typeof row.id === "number" ? row.id : Number(row.id);
+      const name = typeof row.name === "string" ? row.name.trim() : "";
+      if (!Number.isFinite(id) || id < 1 || !name) return null;
+      return { id, name };
+    })
+    .filter((row): row is ZammadCatalogPriority => Boolean(row));
+  return priorities.sort((a, b) => a.id - b.id);
+}
+
+function normalizeCatalogOwners(data: unknown): ZammadCatalogOwner[] {
+  if (!Array.isArray(data)) return [];
+
+  const owners = data
+    .map((item) => {
+      const row = item as Record<string, unknown>;
+      const id = typeof row.id === "number" ? row.id : Number(row.id);
+      const firstname = typeof row.firstname === "string" ? row.firstname.trim() : "";
+      const lastname = typeof row.lastname === "string" ? row.lastname.trim() : "";
+      const fullname = typeof row.fullname === "string" ? row.fullname.trim() : "";
+      const name = fullname || `${firstname} ${lastname}`.trim();
+      const email = typeof row.email === "string" && row.email.trim() ? row.email.trim().toLowerCase() : null;
+      const active = row.active === undefined ? true : Boolean(row.active);
+      if (!active || !Number.isFinite(id) || id < 1 || !name) return null;
+      return { id, name, email };
+    })
+    .filter((row): row is ZammadCatalogOwner => Boolean(row));
+
+  const deduped = new Map<number, ZammadCatalogOwner>();
+  for (const owner of owners) {
+    deduped.set(owner.id, owner);
+  }
+  return Array.from(deduped.values()).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
+
 function buildStateQuery(stateIds?: number[]): string {
   if (!stateIds?.length) return "";
   return `(${stateIds.map((id) => `state_id:${id}`).join(" OR ")})`;
@@ -92,6 +166,31 @@ function buildCustomerEmailsFallbackQuery(emails: string[]): string {
 }
 
 export const ZammadGateway: ZammadGatewayRepository = {
+  async getGlobalCatalog(routeKey = "app-configuracoes-zammad"): Promise<{
+    fetchedAt: string;
+    groups: ZammadCatalogGroup[];
+    states: ZammadCatalogState[];
+    priorities: ZammadCatalogPriority[];
+    owners: ZammadCatalogOwner[];
+    articleTypes: Array<"note" | "phone" | "email">;
+  }> {
+    const [groupsRaw, statesRaw, prioritiesRaw, ownersRaw] = await Promise.all([
+      fetchZammad("groups?per_page=200", { cache: "no-store" }, { routeKey }),
+      fetchZammad("ticket_states?per_page=200", { cache: "no-store" }, { routeKey }),
+      fetchZammad("ticket_priorities?per_page=50", { cache: "no-store" }, { routeKey }),
+      fetchZammad("users?per_page=200", { cache: "no-store" }, { routeKey }),
+    ]);
+
+    return {
+      fetchedAt: new Date().toISOString(),
+      groups: normalizeCatalogGroups(groupsRaw),
+      states: normalizeCatalogStates(statesRaw),
+      priorities: normalizeCatalogPriorities(prioritiesRaw),
+      owners: normalizeCatalogOwners(ownersRaw),
+      articleTypes: ["note", "phone", "email"],
+    };
+  },
+
   async searchOperationalTicketsPage(
     query: string,
     options?: {

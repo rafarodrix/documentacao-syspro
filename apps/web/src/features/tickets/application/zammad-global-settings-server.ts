@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import {
+  ZAMMAD_GLOBAL_CATALOG_SNAPSHOT_KEY,
   getDefaultZammadGlobalSettings,
   ZAMMAD_GLOBAL_SETTINGS_KEY,
+  zammadGlobalCatalogSchema,
   zammadGlobalSettingsSchema,
+  type ZammadGlobalCatalog,
   type ZammadGlobalSettings,
 } from "@/features/tickets/application/zammad-global-settings";
 
@@ -29,3 +32,31 @@ export async function getZammadGlobalSettingsSnapshot(): Promise<ZammadGlobalSet
   }
 }
 
+export async function getZammadGlobalCatalogSnapshot(): Promise<ZammadGlobalCatalog | null> {
+  try {
+    const setting = await prisma.systemSetting.findUnique({
+      where: { key: ZAMMAD_GLOBAL_CATALOG_SNAPSHOT_KEY },
+      select: { value: true },
+    });
+
+    if (!setting?.value) return null;
+    const parsed = JSON.parse(setting.value);
+    const validation = zammadGlobalCatalogSchema.safeParse(parsed);
+    if (!validation.success) return null;
+    return validation.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveZammadGlobalCatalogSnapshot(catalog: ZammadGlobalCatalog): Promise<void> {
+  await prisma.systemSetting.upsert({
+    where: { key: ZAMMAD_GLOBAL_CATALOG_SNAPSHOT_KEY },
+    update: { value: JSON.stringify(catalog) },
+    create: {
+      key: ZAMMAD_GLOBAL_CATALOG_SNAPSHOT_KEY,
+      value: JSON.stringify(catalog),
+      description: "Snapshot do catalogo Zammad (grupos, estados, prioridades, owners).",
+    },
+  });
+}
