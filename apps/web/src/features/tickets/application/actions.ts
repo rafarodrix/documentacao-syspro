@@ -36,7 +36,7 @@ function resolveRoleDefaults(role: Role, config: ZammadGlobalSettings) {
 }
 
 export async function getTicketsAction(params: TicketQueryParams = {}): Promise<TicketsDataResponse> {
-    const session = await getProtectedSession();
+  const session = await getProtectedSession();
 
     if (!session) {
         return {
@@ -55,14 +55,32 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
         };
     }
 
-    return queryTicketsForViewer(
-        {
-            userId: session.userId,
-            email: session.email,
-            role: session.role,
-        },
-        params
+  try {
+    return await queryTicketsForViewer(
+      {
+        userId: session.userId,
+        email: session.email,
+        role: session.role,
+      },
+      params
     );
+  } catch (error) {
+    console.error("Erro inesperado ao consultar tickets:", error);
+    return {
+      success: false,
+      error: "Falha ao carregar chamados.",
+      data: [],
+      pagination: {
+        page: Math.max(1, params.page ?? 1),
+        pageSize: Math.min(20, Math.max(10, params.pageSize ?? 20)),
+        hasPreviousPage: false,
+        hasNextPage: false,
+        total: 0,
+      },
+      queueCounts: { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 },
+      statusCounts: { open: 0, pending: 0, closed: 0 },
+    };
+  }
 }
 
 export async function createTicketAction(_prevState: unknown, formData: FormData) {

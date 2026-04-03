@@ -234,6 +234,48 @@ function getAutoHealStatusIconMeta(value: string | null) {
   };
 }
 
+function getCommandStatusMeta(command: {
+  status: "PENDING" | "DELIVERED" | "ACKNOWLEDGED" | "CANCELLED" | "FAILED";
+  executedAt: string | null;
+  resultPayload: Record<string, unknown> | null;
+}) {
+  const payloadExecuted = command.resultPayload?.executed === true;
+  const isCompletedAck = command.status === "ACKNOWLEDGED" && (payloadExecuted || Boolean(command.executedAt));
+
+  if (isCompletedAck) {
+    return {
+      label: "Concluido",
+      className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  if (command.status === "ACKNOWLEDGED") {
+    return {
+      label: "Acknowledged",
+      className: "border-border/60 bg-background/70 text-foreground",
+    };
+  }
+
+  if (command.status === "PENDING" || command.status === "DELIVERED") {
+    return {
+      label: command.status,
+      className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    };
+  }
+
+  if (command.status === "FAILED") {
+    return {
+      label: "Falhou",
+      className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+    };
+  }
+
+  return {
+    label: command.status,
+    className: "border-border/60 bg-background/70 text-foreground",
+  };
+}
+
 function formatHourMinute(value: string | null) {
   if (!value) return "Sem registro";
   return new Date(value).toLocaleTimeString("pt-BR", {
@@ -655,6 +697,16 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     host.machineName,
     host.name,
   ]);
+  const visibleAgentCommands = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+    return details.agentCommands.filter((command) => {
+      if (command.status !== "ACKNOWLEDGED") return true;
+      const createdAtMs = new Date(command.createdAt).getTime();
+      return Number.isFinite(createdAtMs) && createdAtMs >= sevenDaysAgo;
+    });
+  }, [details.agentCommands]);
+  const hiddenAcknowledgedCount = Math.max(0, details.agentCommands.length - visibleAgentCommands.length);
   const dedupedInstallationContexts = useMemo(() => {
     const byPath = new Map<string, RemoteHostDetails["installationContexts"][number]>();
 
@@ -2242,13 +2294,19 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     </p>
                   </div>
                   <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
-                    {details.agentCommands.length} item(ns)
+                    {visibleAgentCommands.length} item(ns)
                   </Badge>
                 </div>
+                {hiddenAcknowledgedCount > 0 ? (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {hiddenAcknowledgedCount} ACK antigo(s) ocultado(s) automaticamente.
+                  </p>
+                ) : null}
 
-                {details.agentCommands.length ? (
+                {visibleAgentCommands.length ? (
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {details.agentCommands.map((command) => {
+                    {visibleAgentCommands.map((command) => {
+                      const statusMeta = getCommandStatusMeta(command);
                       const structuredReasonCode = extractStringFromPayload(command.resultPayload, ["reasonCode", "reason_code"]);
                       const structuredReasonLabel = structuredReasonCode
                         ? (isRemoteAgentAckReasonCode(structuredReasonCode)
@@ -2259,8 +2317,8 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                         <div key={command.id} className="rounded-xl border border-border/50 bg-background/60 p-4">
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-sm font-medium text-foreground">{AGENT_COMMAND_LABEL[command.type]}</p>
-                            <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                              {command.status}
+                            <Badge variant="outline" className={statusMeta.className}>
+                              {statusMeta.label}
                             </Badge>
                           </div>
                           <p className="mt-2 text-sm text-muted-foreground">

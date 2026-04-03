@@ -21,6 +21,13 @@ type TicketQueryExecutionOptions = {
   includeStatusCounts?: boolean;
 };
 
+type MetricsSnapshotInput = {
+  role: TicketViewer["role"];
+  email: string;
+  scopedEmails: string[];
+  zammadUserId: number | null;
+};
+
 function buildCacheFallbackWarning(input: { hasCache: boolean; staleMinutes: number | null }): string | undefined {
   if (!input.hasCache) {
     return "Zammad indisponivel e cache local ainda nao possui dados sincronizados.";
@@ -39,6 +46,33 @@ function buildCacheFallbackWarning(input: { hasCache: boolean; staleMinutes: num
 
 function shouldUseMetricsSnapshot(search: string): boolean {
   return search.length === 0;
+}
+
+async function safeGetMetricsSnapshot(input: MetricsSnapshotInput) {
+  try {
+    return await getTicketMetricsSnapshot(input);
+  } catch (error) {
+    console.error("Falha ao obter snapshot de metricas de tickets:", error);
+    return null;
+  }
+}
+
+async function safeGetQueueCountsFromCache(input: Parameters<typeof getQueueCountsFromCache>[0]) {
+  try {
+    return await getQueueCountsFromCache(input);
+  } catch (error) {
+    console.error("Falha ao calcular queueCounts do cache:", error);
+    return { ...EMPTY_QUEUE_COUNTS };
+  }
+}
+
+async function safeGetStatusCountsFromCache(input: Parameters<typeof getStatusCountsFromCache>[0]) {
+  try {
+    return await getStatusCountsFromCache(input);
+  } catch (error) {
+    console.error("Falha ao calcular statusCounts do cache:", error);
+    return { ...EMPTY_STATUS_COUNTS };
+  }
 }
 
 export async function queryTicketsForViewer(
@@ -103,7 +137,7 @@ export async function queryTicketsForViewer(
       search,
     };
     const snapshot = canUseMetricsSnapshot
-      ? await getTicketMetricsSnapshot({
+      ? await safeGetMetricsSnapshot({
           role: viewer.role,
           email: viewer.email,
           scopedEmails,
@@ -119,10 +153,10 @@ export async function queryTicketsForViewer(
         ])
       : await Promise.all([
           includeQueueCounts
-            ? getQueueCountsFromCache(cacheInput)
+            ? safeGetQueueCountsFromCache(cacheInput)
             : Promise.resolve({ ...EMPTY_QUEUE_COUNTS }),
           includeStatusCounts
-            ? getStatusCountsFromCache({ ...cacheInput, queue })
+            ? safeGetStatusCountsFromCache({ ...cacheInput, queue })
             : Promise.resolve({ ...EMPTY_STATUS_COUNTS }),
         ]);
 
@@ -166,15 +200,15 @@ export async function queryTicketsForViewer(
       getLatestOperationalTicketCacheFreshness(),
     ]);
     const snapshot = canUseMetricsSnapshot
-      ? await getTicketMetricsSnapshot({
+      ? await safeGetMetricsSnapshot({
           role: viewer.role,
           email: viewer.email,
           scopedEmails,
           zammadUserId,
         })
       : null;
-    const queueCounts = snapshot?.queueCounts ?? await getQueueCountsFromCache(cacheInput);
-    const statusCounts = snapshot?.statusCountsByQueue[queue] ?? await getStatusCountsFromCache({ ...cacheInput, queue });
+    const queueCounts = snapshot?.queueCounts ?? await safeGetQueueCountsFromCache(cacheInput);
+    const statusCounts = snapshot?.statusCountsByQueue[queue] ?? await safeGetStatusCountsFromCache({ ...cacheInput, queue });
 
     return {
       success: true,
