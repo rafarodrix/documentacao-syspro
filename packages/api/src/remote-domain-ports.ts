@@ -1,4 +1,4 @@
-﻿import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@dosc-syspro/database";
 import { getRemoteAgentTokenExpiresAt, isRemoteAgentTokenExpired } from "@dosc-syspro/remote-domain";
@@ -85,9 +85,29 @@ type NormalizedSysproUpdate = {
 function parseSysproDate(value?: string | null) {
   const trimmed = value?.trim();
   if (!trimmed) return null;
+
+  const directParsed = new Date(trimmed);
+  if (!Number.isNaN(directParsed.getTime())) return directParsed;
+
   const isoCandidate = trimmed.replace(" ", "T");
-  const parsed = new Date(isoCandidate);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  const isoParsed = new Date(isoCandidate);
+  if (!Number.isNaN(isoParsed.getTime())) return isoParsed;
+
+  const legacyPtBr = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(trimmed);
+  if (legacyPtBr) {
+    const [, dd, mm, yyyy, hh = "00", min = "00", ss = "00"] = legacyPtBr;
+    const parsed = new Date(
+      Number(yyyy),
+      Number(mm) - 1,
+      Number(dd),
+      Number(hh),
+      Number(min),
+      Number(ss),
+    );
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return null;
 }
 
 function normalizeSysproUpdates(value: unknown): NormalizedSysproUpdate[] {
@@ -110,7 +130,9 @@ function normalizeSysproUpdates(value: unknown): NormalizedSysproUpdate[] {
         ? (entry as any).path
         : "";
     const rawLastFileWriteAt =
-      "ultimaAtualizacao" in entry && typeof (entry as any).ultimaAtualizacao === "string"
+      "lastUpdateUtc" in entry && typeof (entry as any).lastUpdateUtc === "string"
+        ? (entry as any).lastUpdateUtc
+        : "ultimaAtualizacao" in entry && typeof (entry as any).ultimaAtualizacao === "string"
         ? (entry as any).ultimaAtualizacao
         : "lastFileWriteAt" in entry && typeof (entry as any).lastFileWriteAt === "string"
         ? (entry as any).lastFileWriteAt
@@ -819,6 +841,7 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
 }
 export { createRemoteHostAdminPort } from "./remote-host-admin-port";
 export { createRemoteAddressBookPort } from "./remote-address-book-port";
+
 
 
 

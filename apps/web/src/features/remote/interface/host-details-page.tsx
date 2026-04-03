@@ -64,6 +64,66 @@ function formatDateOnly(value: string | null) {
   return new Date(value).toLocaleDateString("pt-BR");
 }
 
+const SYSPRO_SERVER_EXECUTABLE_SUFFIX = "\\syspro\\server\\sysproserver.exe";
+
+function isSysproServerInstallation(path: string | null) {
+  if (!path) return false;
+  return path.trim().toLowerCase().endsWith(SYSPRO_SERVER_EXECUTABLE_SUFFIX);
+}
+
+function getSysproUpdateHealthMeta(input: { path: string; lastFileWriteAt: string | null }) {
+  if (!isSysproServerInstallation(input.path)) {
+    return {
+      label: "Nao aplicavel",
+      detail: "Indicador aplicado somente ao servidor Syspro.",
+      className: "border-border/60 bg-background/70 text-muted-foreground",
+    };
+  }
+
+  if (!input.lastFileWriteAt) {
+    return {
+      label: "Sem leitura",
+      detail: "Sem data de atualizacao recebida do agente.",
+      className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    };
+  }
+
+  const days = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(input.lastFileWriteAt).getTime()) / (1000 * 60 * 60 * 24)),
+  );
+
+  if (days > 180) {
+    return {
+      label: "Critico",
+      detail: `${days} dias sem atualizacao.`,
+      className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+    };
+  }
+
+  if (days > 90) {
+    return {
+      label: "Atencao",
+      detail: `${days} dias sem atualizacao.`,
+      className: "border-orange-500/20 bg-orange-500/10 text-orange-700 dark:text-orange-300",
+    };
+  }
+
+  if (days <= 45) {
+    return {
+      label: "Atualizado",
+      detail: `${days} dias desde a ultima atualizacao.`,
+      className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  return {
+    label: "Monitorar",
+    detail: `${days} dias desde a ultima atualizacao.`,
+    className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  };
+}
+
 function getServiceStatusMeta(value: string | null) {
   if (!value) {
     return {
@@ -1455,6 +1515,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       companyContext
                         ? (companyDirectory || primaryCompanyDirectory || DEFAULT_INSTALLATION_DIRECTORY)
                         : (entry.path?.trim() || DEFAULT_INSTALLATION_DIRECTORY);
+                    const updateHealthMeta = getSysproUpdateHealthMeta({
+                      path: entry.path,
+                      lastFileWriteAt: entry.lastFileWriteAt,
+                    });
 
                     return (
                       <div key={entry.id} className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
@@ -1541,10 +1605,15 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                           </div>
                         </details>
 
-                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                           <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima atualizacao</p>
                             <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
+                          </div>
+                          <div className={cn("rounded-lg border p-3", updateHealthMeta.className)}>
+                            <p className="text-[11px] uppercase tracking-wide opacity-80">Saude de atualizacao</p>
+                            <p className="mt-1 text-sm font-medium">{updateHealthMeta.label}</p>
+                            <p className="mt-1 text-xs opacity-90">{updateHealthMeta.detail}</p>
                           </div>
                           <div className="rounded-lg border border-border/40 bg-background/40 p-3">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo heartbeat</p>

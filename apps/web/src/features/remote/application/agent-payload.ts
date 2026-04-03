@@ -19,9 +19,29 @@ type ExistingSysproRow = {
 function parseSysproDate(value?: string | null) {
   const trimmed = value?.trim();
   if (!trimmed) return null;
+
+  const directParsed = new Date(trimmed);
+  if (!Number.isNaN(directParsed.getTime())) return directParsed;
+
   const isoCandidate = trimmed.replace(" ", "T");
-  const parsed = new Date(isoCandidate);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  const isoParsed = new Date(isoCandidate);
+  if (!Number.isNaN(isoParsed.getTime())) return isoParsed;
+
+  const legacyPtBr = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(trimmed);
+  if (legacyPtBr) {
+    const [, dd, mm, yyyy, hh = "00", min = "00", ss = "00"] = legacyPtBr;
+    const parsed = new Date(
+      Number(yyyy),
+      Number(mm) - 1,
+      Number(dd),
+      Number(hh),
+      Number(min),
+      Number(ss),
+    );
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return null;
 }
 
 export function normalizeCompareValue(value?: string | null) {
@@ -54,11 +74,13 @@ export function normalizeSysproUpdates(value: unknown): NormalizedSysproUpdate[]
           ? entry.path
           : "";
     const rawLastFileWriteAt =
-      "ultimaAtualizacao" in entry && typeof entry.ultimaAtualizacao === "string"
-        ? entry.ultimaAtualizacao
-        : "lastFileWriteAt" in entry && typeof entry.lastFileWriteAt === "string"
-          ? entry.lastFileWriteAt
-          : null;
+      "lastUpdateUtc" in entry && typeof entry.lastUpdateUtc === "string"
+        ? entry.lastUpdateUtc
+        : "ultimaAtualizacao" in entry && typeof entry.ultimaAtualizacao === "string"
+          ? entry.ultimaAtualizacao
+          : "lastFileWriteAt" in entry && typeof entry.lastFileWriteAt === "string"
+            ? entry.lastFileWriteAt
+            : null;
 
     const companyLabel = rawCompany.trim().slice(0, MAX_SYSPRO_LABEL_LENGTH);
     const path = rawPath.trim().slice(0, MAX_SYSPRO_PATH_LENGTH);
@@ -221,3 +243,4 @@ export async function syncRemoteHostSysproUpdates(
     `;
   }
 }
+
