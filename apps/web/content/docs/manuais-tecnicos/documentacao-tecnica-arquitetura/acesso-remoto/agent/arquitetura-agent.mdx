@@ -144,23 +144,30 @@ Checklist minimo:
 
 ## Plano de implementacao recomendado (proximas sprints)
 
-### Sprint A (P0): estabilidade operacional do ciclo
+### Sprint A (P0): estabilidade operacional do ciclo (concluido em 2026-04-03)
 
-Escopo:
+Escopo concluido:
 
-1. ajustar orquestracao no `trilink-agente.ps1` para priorizar `sync` com token valido e reduzir bootstrap recorrente.
-2. manter invalidacao de token apenas apos finalizar a fila de ACK (sem quebrar comandos subsequentes).
+1. orquestracao no `trilink-agente.ps1` ajustada para priorizar `sync` com token valido (estrategia `sync_token_first`) e reduzir bootstrap recorrente.
+2. invalidacao de token aplicada apenas apos finalizar a fila de ACK (`pendingTokenInvalidation` + `Decision=rebootstrap_required_after_ack_queue`).
+
+Evidencias no codigo:
+
+- `Decision=sync_token_first` quando ha token local reutilizavel.
+- `discover/bootstrap` executados apenas quando nao ha token util ou quando `rebootstrapRequired=true`.
+- bootstrap restrito a fluxos explicitos do contrato (`host_bootstrap_required` ou `token_invalid`).
+- loop de ACK usa `tokenForAck` estavel para todos os comandos do ciclo e posterga a invalidacao para o fim da fila.
 
 Status atual:
 
 - `UPGRADE_CLIENT` implementado em `application/commands.ps1` com download HTTPS, validacao SHA256 e ACK detalhado.
-- portal atualizado para so emitir `upgrade_client` quando metadados seguros de upgrade estiverem presentes.
+- portal atualizado para emitir `upgrade_client` somente quando metadados seguros de upgrade estiverem presentes.
 
-Definicao de pronto:
+Definicao de pronto (atingida):
 
-- comando `UPGRADE_CLIENT` tem caminho de sucesso e falha cobertos.
-- ciclo nominal de host ativo conclui sem bootstrap desnecessario.
-- testes locais do fluxo de comandos passam.
+- comando `UPGRADE_CLIENT` com caminho de sucesso/falha cobertos.
+- ciclo nominal de host ativo concluindo sem bootstrap desnecessario.
+- token nao e invalidado no meio da fila de ACK.
 
 ### Sprint B (P1): politica remota de execucao
 
