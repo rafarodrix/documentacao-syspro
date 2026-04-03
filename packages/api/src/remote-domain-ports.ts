@@ -1,6 +1,7 @@
 ﻿import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@dosc-syspro/database";
+import { getRemoteAgentTokenExpiresAt, isRemoteAgentTokenExpired } from "@dosc-syspro/remote-domain";
 import type {
   RemoteAckPort,
   RemoteBootstrapPort,
@@ -57,34 +58,9 @@ function hashRustDeskPublicKey(publicKey: string) {
   return createHash("sha256").update(publicKey.trim(), "utf8").digest("hex");
 }
 
-const DEFAULT_AGENT_TOKEN_TTL_DAYS = 30;
-
-function getRemoteAgentTokenTtlDays() {
-  const rawValue = process.env.REMOTE_AGENT_TOKEN_TTL_DAYS?.trim();
-  const parsed = rawValue ? Number(rawValue) : NaN;
-
-  if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 365) {
-    return Math.floor(parsed);
-  }
-
-  return DEFAULT_AGENT_TOKEN_TTL_DAYS;
-}
-
-function getRemoteAgentTokenExpiresAt(issuedAt: Date | null | undefined) {
-  if (!issuedAt) return null;
-  const expiresAt = new Date(issuedAt);
-  expiresAt.setDate(expiresAt.getDate() + getRemoteAgentTokenTtlDays());
-  return expiresAt;
-}
-
-function isRemoteAgentTokenExpired(issuedAt: Date | null | undefined, now = new Date()) {
-  const expiresAt = getRemoteAgentTokenExpiresAt(issuedAt);
-  if (!expiresAt) return false;
-  return expiresAt.getTime() <= now.getTime();
-}
-
 const isAgentTokenExpired = isRemoteAgentTokenExpired;
 const getAgentTokenExpiresAt = getRemoteAgentTokenExpiresAt;
+
 
 function normalizeCompareValue(value?: string | null) {
   return (value ?? "")
@@ -843,5 +819,8 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
 }
 export { createRemoteHostAdminPort } from "./remote-host-admin-port";
 export { createRemoteAddressBookPort } from "./remote-address-book-port";
+
+
+
 
 

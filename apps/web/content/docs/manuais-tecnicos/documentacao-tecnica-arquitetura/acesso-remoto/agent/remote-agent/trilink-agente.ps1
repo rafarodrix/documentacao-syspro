@@ -63,6 +63,8 @@ try {
         sync     = "sync.payload.v1"
         ack      = "ack.payload.v1"
     }
+    $bootstrapFlowResolved = ""
+    $lastContractErrorCode = ""
 
     Write-Log "cycle start id=$cycleId computer=$env:COMPUTERNAME user=$env:USERNAME ps=$($PSVersionTable.PSVersion.ToString()) script=$PSCommandPath"
 
@@ -77,6 +79,8 @@ try {
     Rotate-LogIfNeeded -FilePath $LogFile      -MaxSizeKb 2048
 
     $state = Load-AgentState
+    $bootstrapFlowResolved = [string]$state.lastBootstrapFlow
+    $lastContractErrorCode = [string]$state.lastContractErrorCode
     Write-Log "state loaded id=$cycleId failures=$($state.consecutiveFailures) hasAgentToken=$(-not [string]::IsNullOrWhiteSpace($state.agentToken)) hostId=$($state.hostId) rebootstrapRequired=$($state.rebootstrapRequired) lastSnapshotDate=$($state.lastFullSnapshotDate)"
 
     # FIX: detectar atualizacao do script entre ciclos
@@ -171,6 +175,7 @@ try {
     $hasUsableToken = -not [string]::IsNullOrWhiteSpace($agentToken)
     $orchestrationStrategy = if ($hasUsableToken) { "sync_token_first" } else { "discover_bootstrap" }
     if ($hasUsableToken) {
+        $bootstrapFlowResolved = "linked_host_detected"
         Write-Log "Decision=sync_token_first (token local reutilizado mask=$(Mask-Secret -Value $agentToken))."
     } else {
         # Discover (somente quando nao ha token local utilizavel)
@@ -195,6 +200,7 @@ try {
         Assert-PhaseWatchdog -PhaseName "discover" -ElapsedMs $phaseTimings.discover -MaxMs $maxDiscoverMs
 
         if (-not $discover.ok) {
+            $lastContractErrorCode = "DISCOVER_HTTP_$($discover.statusCode)"
             Write-Log "Decision=discover_failed status=$($discover.statusCode) error=$($discover.error)"
             Mark-FailureAndSave -State $state
             return
@@ -202,6 +208,8 @@ try {
 
         $discoverData = Normalize-ApiData -Body $discover.body
         $summary      = Get-DiscoverSummary -DiscoverData $discoverData
+        $bootstrapFlowResolved = [string]$summary.bootstrapFlow
+        $lastContractErrorCode = ""
         Write-Log "discover response: mode=$($summary.mode) bootstrapFlow=$($summary.bootstrapFlow) allowDiscoveryHeartbeat=$($summary.allowDiscoveryHeartbeat) nextEndpoint=$($summary.nextEndpoint)"
 
         if ($summary.bootstrapFlow -eq "pending_link") {
@@ -211,6 +219,8 @@ try {
                 $state.lastFullSnapshotDate = $todayUtc
             }
             $state.consecutiveFailures = 0
+            $state.lastBootstrapFlow = $bootstrapFlowResolved
+            $state.lastContractErrorCode = $lastContractErrorCode
             Save-AgentState -State $state
             return
         }
@@ -221,6 +231,8 @@ try {
         if (-not $bootstrapAllowed) {
             Write-Log "Decision=skip_bootstrap_non_explicit_flow flow=$bootstrapFlow"
             $state.consecutiveFailures = 0
+            $state.lastBootstrapFlow = $bootstrapFlowResolved
+            $state.lastContractErrorCode = $lastContractErrorCode
             Save-AgentState -State $state
             return
         }
@@ -232,6 +244,8 @@ try {
                 $state.lastFullSnapshotDate = $todayUtc
             }
             $state.consecutiveFailures = 0
+            $state.lastBootstrapFlow = "triagem_await_install_token"
+            $state.lastContractErrorCode = $lastContractErrorCode
             Save-AgentState -State $state
             return
         }
@@ -252,6 +266,7 @@ try {
         Assert-PhaseWatchdog -PhaseName "bootstrap" -ElapsedMs $phaseTimings.bootstrap -MaxMs $maxBootstrapMs
 
         if (-not $bootstrap.ok) {
+            $lastContractErrorCode = "BOOTSTRAP_HTTP_$($bootstrap.statusCode)"
             if ($bootstrap.statusCode -eq 401 -or $bootstrap.statusCode -eq 403) {
                 $state.agentToken           = ""
                 $state.rebootstrapRequired  = $true
@@ -271,6 +286,7 @@ try {
             $agentTokenFromApi = [string](Get-NestedPropertyValue -Object $bootstrap.body -Path @("data", "agentToken"))
         }
         if ([string]::IsNullOrWhiteSpace($agentTokenFromApi)) {
+            $lastContractErrorCode = "BOOTSTRAP_MISSING_TOKEN"
             Write-Log "Decision=bootstrap_failed_missing_token"
             Mark-FailureAndSave -State $state
             return
@@ -284,6 +300,7 @@ try {
         }
         $agentToken = $agentTokenFromApi
         $bootstrapTriggered = $true
+        $lastContractErrorCode = ""
         Write-Log "bootstrap concluido com sucesso. agentTokenMask=$(Mask-Secret -Value $agentToken) hostId=$($state.hostId)"
     }
 
@@ -360,7 +377,7 @@ try {
     $bootstrapRate24h = Get-BootstrapRate24h -State $state
 
     # Metricas e payload de sync
-    $metricsPreSync = New-AgentMetrics -CycleStopwatch $cycleWatch -PhaseTimings $phaseTimings -SelfHeal $selfHeal -ScriptVersion $scriptVersion -OrchestrationStrategy $orchestrationStrategy -BootstrapTriggered $bootstrapTriggered -BootstrapRate24h $bootstrapRate24h -SchemaVersions $schemaVersions
+    $metricsPreSync = New-AgentMetrics -CycleStopwatch $cycleWatch -PhaseTimings $phaseTimings -SelfHeal $selfHeal -ScriptVersion $scriptVersion -OrchestrationStrategy $orchestrationStrategy -BootstrapTriggered $bootstrapTriggered -BootstrapRate24h $bootstrapRate24h -SchemaVersions $schemaVersions -PendingAckQueueSize ([int]@($state.pendingAckQueue).Count) -AckQueueFlush $flushStats -LastBootstrapFlow $bootstrapFlowResolved -LastContractErrorCode $lastContractErrorCode
 
     $syncPayload = New-AgentSyncPayload `
         -AgentToken $agentToken `
@@ -384,6 +401,7 @@ try {
     Assert-PhaseWatchdog -PhaseName "sync" -ElapsedMs $phaseTimings.sync -MaxMs $maxSyncMs
 
     if (-not $sync.ok) {
+        $lastContractErrorCode = "SYNC_HTTP_$($sync.statusCode)"
         if ($sync.statusCode -eq 401 -or $sync.statusCode -eq 403) {
             $state.agentToken          = ""
             $state.rebootstrapRequired = $true
@@ -393,6 +411,7 @@ try {
         Mark-FailureAndSave -State $state
         return
     }
+    $lastContractErrorCode = ""
 
     $syncData       = Normalize-ApiData -Body $sync.body
     $hostIdFromSync = [string](Get-ObjectPropertyValue -Object $syncData -Name "hostId")
@@ -433,6 +452,7 @@ try {
         Assert-PhaseWatchdog -PhaseName "ack" -ElapsedMs $ackElapsed -MaxMs $maxAckMs
 
         if (-not $ack.ok) {
+            $lastContractErrorCode = "ACK_HTTP_$($ack.statusCode)"
             if ($ack.statusCode -eq 401 -or $ack.statusCode -eq 403) {
                 $pendingTokenInvalidation = $true
                 Write-Log "ack $commandId retornou $($ack.statusCode). Rebootstrap sera aplicado apos a fila de ACK."
@@ -443,6 +463,7 @@ try {
             }
             Write-Log "Decision=ack_failed commandId=$commandId status=$($ack.statusCode) error=$($ack.error)"
         } else {
+            $lastContractErrorCode = ""
             Write-Log "Decision=ack_sent commandId=$commandId status=$($exec.status)"
         }
 
@@ -470,6 +491,8 @@ try {
     if ($networkSnapshotChanged)  { $state.lastNetworkHash       = $networkSnapshotHash }
     if ($softwareScanPerformed)   { $state.lastSoftwareScanUtc   = (Get-Date).ToUniversalTime().ToString("o") }
     if ($systemSnapshotChanged)   { $state.lastSystemSnapshotUtc = (Get-Date).ToUniversalTime().ToString("o") }
+    $state.lastBootstrapFlow = [string]$bootstrapFlowResolved
+    $state.lastContractErrorCode = [string]$lastContractErrorCode
 
     # FIX: acesso seguro a phaseTimings - chaves podem nao existir se fase foi pulada
     $tDiscover  = if ($phaseTimings.ContainsKey('discover'))  { $phaseTimings['discover'] }  else { 0 }
@@ -483,10 +506,16 @@ try {
     Write-Log "cycle success id=$cycleId hostId=$($state.hostId) hasAgentToken=$(-not [string]::IsNullOrWhiteSpace($state.agentToken)) snapshotDate=$($state.lastFullSnapshotDate)"
 
 } catch {
+    $exceptionMessage = [string]$_.Exception.Message
+    if ($exceptionMessage -like "PHASE_TIMEOUT_*") {
+        $state.lastContractErrorCode = $exceptionMessage
+    } elseif (-not [string]::IsNullOrWhiteSpace($lastContractErrorCode)) {
+        $state.lastContractErrorCode = $lastContractErrorCode
+    }
     Mark-FailureAndSave -State $state
     # FIX: inclui numero da linha para facilitar diagnostico
     $errLine = if ($_.InvocationInfo) { " line=$($_.InvocationInfo.ScriptLineNumber)" } else { "" }
-    Write-Log "cycle failure message=$($_.Exception.Message)$errLine"
+    Write-Log "cycle failure message=$exceptionMessage$errLine"
 } finally {
     Release-RunLock
 }

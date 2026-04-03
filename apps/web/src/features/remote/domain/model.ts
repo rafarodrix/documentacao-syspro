@@ -232,6 +232,15 @@ export type RemoteConfiguredHostItem = {
   lastHeartbeatSuccessAt: string | null;
   lastHeartbeatErrorAt: string | null;
   lastHeartbeatErrorMessage: string | null;
+  bootstrapFlow:
+    | "pending_link"
+    | "linked_host_detected"
+    | "host_bootstrap_required"
+    | "token_invalid"
+    | "triagem_await_install_token"
+    | "body_parse_failed"
+    | "unknown";
+  contractErrorCode: string | null;
   lastKnownIp: string | null;
   lastRegisterAt: string | null;
   lastRegisterSource: string | null;
@@ -400,6 +409,7 @@ export type RemoteHostDetails = {
     agentVersion: string | null;
     tokenSource: string | null;
     serviceStatus: string | null;
+    contractErrorCode: string | null;
   };
   agentTelemetry: {
     systemSnapshot: Record<string, unknown> | null;

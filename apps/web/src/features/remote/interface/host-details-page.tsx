@@ -826,17 +826,32 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const agentMetrics = details.agentTelemetry.agentMetrics;
   const bootstrapRateMetrics = useMemo(() => readBootstrapRateMetrics(agentMetrics), [agentMetrics]);
   const contractSchemaVersions = useMemo(() => readContractSchemaVersions(agentMetrics), [agentMetrics]);
-  const contractValidationError = useMemo(
-    () => extractContractValidationError(host.lastHeartbeatErrorMessage),
-    [host.lastHeartbeatErrorMessage]
-  );
+  const contractValidationError = useMemo(() => {
+    if (details.agentHealth.contractErrorCode) return details.agentHealth.contractErrorCode;
+    return extractContractValidationError(host.lastHeartbeatErrorMessage);
+  }, [details.agentHealth.contractErrorCode, host.lastHeartbeatErrorMessage]);
   const ackQueueMetrics = useMemo(() => {
-    const pending = details.agentCommands.filter(
+    const pendingFromMetrics =
+      agentMetrics && typeof agentMetrics["pendingAckQueueSize"] === "number"
+        ? (agentMetrics["pendingAckQueueSize"] as number)
+        : null;
+    const ackQueueFlush =
+      agentMetrics && typeof agentMetrics["ackQueueFlush"] === "object" && !Array.isArray(agentMetrics["ackQueueFlush"])
+        ? (agentMetrics["ackQueueFlush"] as Record<string, unknown>)
+        : null;
+    const reprocessedFromMetrics =
+      ackQueueFlush && typeof ackQueueFlush["failed"] === "number" ? (ackQueueFlush["failed"] as number) : null;
+
+    const pendingFallback = details.agentCommands.filter(
       (command) => command.status === "PENDING" || command.status === "DELIVERED"
     ).length;
-    const reprocessed = details.agentCommands.filter((command) => command.attemptCount > 1).length;
-    return { pending, reprocessed };
-  }, [details.agentCommands]);
+    const reprocessedFallback = details.agentCommands.filter((command) => command.attemptCount > 1).length;
+
+    return {
+      pending: pendingFromMetrics ?? pendingFallback,
+      reprocessed: reprocessedFromMetrics ?? reprocessedFallback,
+    };
+  }, [agentMetrics, details.agentCommands]);
   const orchestrationStrategy = useMemo(() => {
     const raw =
       agentMetrics && typeof agentMetrics["orchestrationStrategy"] === "string"

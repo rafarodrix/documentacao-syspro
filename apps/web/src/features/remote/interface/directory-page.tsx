@@ -129,11 +129,11 @@ function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
 }
 
 function getOperationalStateFilter(item: DirectoryItem) {
-  const lastHeartbeatError = (item.lastHeartbeatErrorMessage ?? "").toLowerCase();
-  const tokenInvalid = /agenttoken (invalido|expirado|rotacionado|indisponivel)/.test(lastHeartbeatError);
-  if (tokenInvalid) return "token_invalid" as const;
+  if (item.bootstrapFlow === "token_invalid") return "token_invalid" as const;
 
   const bootstrapRequired =
+    item.bootstrapFlow === "host_bootstrap_required" ||
+    item.bootstrapFlow === "triagem_await_install_token" ||
     !item.installToken ||
     !item.rustdeskId ||
     item.agent.lifecycleStatus === "PENDING_INSTALL";

@@ -14,6 +14,8 @@
         lastScriptHash        = ""   # FIX: detectar atualizacao do script entre ciclos
         pendingAckQueue        = @()
         cycleHistory24h        = @()
+        lastBootstrapFlow      = ""
+        lastContractErrorCode  = ""
     }
 }
 
@@ -37,6 +39,8 @@ function Load-AgentState {
         if ($null -ne $obj.lastScriptHash)        { $state.lastScriptHash        = [string]$obj.lastScriptHash }
         if ($null -ne $obj.pendingAckQueue)       { $state.pendingAckQueue       = @(Normalize-StateArrayValue -Value $obj.pendingAckQueue) }
         if ($null -ne $obj.cycleHistory24h)       { $state.cycleHistory24h       = @(Normalize-StateArrayValue -Value $obj.cycleHistory24h) }
+        if ($null -ne $obj.lastBootstrapFlow)     { $state.lastBootstrapFlow     = [string]$obj.lastBootstrapFlow }
+        if ($null -ne $obj.lastContractErrorCode) { $state.lastContractErrorCode = [string]$obj.lastContractErrorCode }
         if ($null -ne $obj.consecutiveFailures) {
             $failures = 0
             [int]::TryParse([string]$obj.consecutiveFailures, [ref]$failures) | Out-Null
@@ -67,6 +71,8 @@ function Save-AgentState {
         lastScriptHash        = [string]$State.lastScriptHash
         pendingAckQueue        = @(Normalize-StateArrayValue -Value $State.pendingAckQueue)
         cycleHistory24h        = @(Normalize-StateArrayValue -Value $State.cycleHistory24h)
+        lastBootstrapFlow      = [string]$State.lastBootstrapFlow
+        lastContractErrorCode  = [string]$State.lastContractErrorCode
         updatedAtUtc          = (Get-Date).ToUniversalTime().ToString("o")
     }
     $payload | ConvertTo-Json -Depth 10 | Set-Content -Path $StateFile -Encoding utf8

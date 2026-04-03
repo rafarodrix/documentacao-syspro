@@ -95,6 +95,7 @@ function mapDirectoryItem(host: {
   lastHeartbeatSuccessAt?: Date | null;
   lastHeartbeatErrorAt?: Date | null;
   lastHeartbeatErrorMessage?: string | null;
+  lastAgentMetrics?: unknown;
   lastKnownIp?: string | null;
   lastRegisterAt?: Date | null;
   lastRegisterSource?: string | null;
@@ -120,6 +121,19 @@ function mapDirectoryItem(host: {
   sessions: Array<{ createdAt: Date; status: string; ticketNumber: string | null }>;
 }): RemoteConfiguredHostItem {
   const companyName = host.company.nomeFantasia ?? host.company.razaoSocial;
+  const bootstrapFlowFromMetrics = readBootstrapFlowFromMetrics(host.lastAgentMetrics);
+  const bootstrapFlow: RemoteConfiguredHostItem["bootstrapFlow"] =
+    bootstrapFlowFromMetrics ??
+    (() => {
+      if (!host.installToken) return "triagem_await_install_token";
+      if (!host.agentExternalId) return "host_bootstrap_required";
+      const lastHeartbeatError = (host.lastHeartbeatErrorMessage ?? "").toLowerCase();
+      if (/agenttoken (invalido|expirado|rotacionado|indisponivel)/.test(lastHeartbeatError)) {
+        return "token_invalid";
+      }
+      return "linked_host_detected";
+    })();
+  const contractErrorCode = readContractErrorCodeFromMetrics(host.lastAgentMetrics);
   const openSessionCount = host.sessions.filter((session) => session.status === "REQUESTED" || session.status === "STARTED").length;
   const lastSessionAt = host.sessions[0]?.createdAt.toISOString() ?? null;
   const lastSessionStatus = (host.sessions[0]?.status as RemoteConfiguredHostItem["lastSessionStatus"]) ?? null;
@@ -183,6 +197,8 @@ function mapDirectoryItem(host: {
     lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt?.toISOString() ?? null,
     lastHeartbeatErrorAt: host.lastHeartbeatErrorAt?.toISOString() ?? null,
     lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage ?? null,
+    bootstrapFlow,
+    contractErrorCode,
     lastKnownIp: host.lastKnownIp ?? null,
     lastRegisterAt: host.lastRegisterAt?.toISOString() ?? null,
     lastRegisterSource: host.lastRegisterSource ?? null,
@@ -359,6 +375,35 @@ function readNumberRecordValue(record: Record<string, unknown> | null, key: stri
     if (Number.isFinite(parsed)) return parsed;
   }
   return null;
+}
+
+function readBootstrapFlowFromMetrics(metrics: unknown): RemoteHostDetails["agentHealth"]["bootstrapFlow"] | null {
+  const record = toRecord(metrics);
+  if (!record) return null;
+  const value = record.lastBootstrapFlow;
+  if (typeof value !== "string") return null;
+  const flow = value.trim();
+  if (
+    flow === "pending_link" ||
+    flow === "linked_host_detected" ||
+    flow === "host_bootstrap_required" ||
+    flow === "token_invalid" ||
+    flow === "triagem_await_install_token" ||
+    flow === "body_parse_failed" ||
+    flow === "unknown"
+  ) {
+    return flow;
+  }
+  return null;
+}
+
+function readContractErrorCodeFromMetrics(metrics: unknown): string | null {
+  const record = toRecord(metrics);
+  if (!record) return null;
+  const value = record.lastContractErrorCode;
+  if (typeof value !== "string") return null;
+  const code = value.trim();
+  return code ? code : null;
 }
 
 export async function getRemotePlatformOverview(): Promise<RemotePlatformOverview> {
@@ -1171,18 +1216,16 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
     }
     return { count: acc.count, stopped: true };
   }, { count: 0, stopped: false }).count;
+  const bootstrapFlowFromMetrics = readBootstrapFlowFromMetrics(host.lastAgentMetrics);
   const bootstrapFlow: RemoteHostDetails["agentHealth"]["bootstrapFlow"] = (() => {
+    if (bootstrapFlowFromMetrics) return bootstrapFlowFromMetrics;
     if (!host.installToken) return "triagem_await_install_token";
     if (host.discoveryRecord?.status === "PENDING_LINK") return "pending_link";
     if (!host.agentTokenHash) return "host_bootstrap_required";
-
-    const lastHeartbeatError = (host.lastHeartbeatErrorMessage ?? "").toLowerCase();
-    const tokenInvalid = /agenttoken (invalido|expirado|rotacionado|indisponivel)/.test(lastHeartbeatError);
-    if (tokenInvalid) return "token_invalid";
-
     if (host.discoveryRecord?.status === "LINKED") return "linked_host_detected";
     return "unknown";
   })();
+  const contractErrorCode = readContractErrorCodeFromMetrics(host.lastAgentMetrics);
 
   return {
     tenantScope,
@@ -1212,6 +1255,7 @@ export async function getRemoteHostDetails(hostId: string): Promise<RemoteHostDe
       agentVersion: host.agentVersion ?? host.discoveryRecord?.agentVersion ?? null,
       tokenSource: host.lastRegisterSource ?? null,
       serviceStatus,
+      contractErrorCode,
     },
     agentTelemetry: {
       systemSnapshot: toRecord(host.lastSystemSnapshot),
