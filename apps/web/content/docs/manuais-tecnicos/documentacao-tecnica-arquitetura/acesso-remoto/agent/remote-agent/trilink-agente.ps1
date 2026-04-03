@@ -58,6 +58,11 @@ try {
     $maxSyncMs      = 30000
     $maxAckMs       = 20000
     $bootstrapTriggered = $false
+    $schemaVersions = [ordered]@{
+        discover = "discover.payload.v1"
+        sync     = "sync.payload.v1"
+        ack      = "ack.payload.v1"
+    }
 
     Write-Log "cycle start id=$cycleId computer=$env:COMPUTERNAME user=$env:USERNAME ps=$($PSVersionTable.PSVersion.ToString()) script=$PSCommandPath"
 
@@ -355,7 +360,7 @@ try {
     $bootstrapRate24h = Get-BootstrapRate24h -State $state
 
     # Metricas e payload de sync
-    $metricsPreSync = New-AgentMetrics -CycleStopwatch $cycleWatch -PhaseTimings $phaseTimings -SelfHeal $selfHeal -ScriptVersion $scriptVersion -OrchestrationStrategy $orchestrationStrategy -BootstrapTriggered $bootstrapTriggered -BootstrapRate24h $bootstrapRate24h
+    $metricsPreSync = New-AgentMetrics -CycleStopwatch $cycleWatch -PhaseTimings $phaseTimings -SelfHeal $selfHeal -ScriptVersion $scriptVersion -OrchestrationStrategy $orchestrationStrategy -BootstrapTriggered $bootstrapTriggered -BootstrapRate24h $bootstrapRate24h -SchemaVersions $schemaVersions
 
     $syncPayload = New-AgentSyncPayload `
         -AgentToken $agentToken `

@@ -128,6 +128,23 @@ function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
   };
 }
 
+function getOperationalStateFilter(item: DirectoryItem) {
+  const lastHeartbeatError = (item.lastHeartbeatErrorMessage ?? "").toLowerCase();
+  const tokenInvalid = /agenttoken (invalido|expirado|rotacionado|indisponivel)/.test(lastHeartbeatError);
+  if (tokenInvalid) return "token_invalid" as const;
+
+  const bootstrapRequired =
+    !item.installToken ||
+    !item.rustdeskId ||
+    item.agent.lifecycleStatus === "PENDING_INSTALL";
+  if (bootstrapRequired) return "bootstrap_required" as const;
+
+  const syncOk = item.operationalStatus === "ONLINE" || item.operationalStatus === "RECENT";
+  if (syncOk) return "sync_ok" as const;
+
+  return "other" as const;
+}
+
 async function copyTextWithFallback(value: string) {
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
@@ -165,6 +182,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [environmentFilter, setEnvironmentFilter] = useState("all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
   const [agentFilter, setAgentFilter] = useState<"all" | "pending" | "linked" | "online" | "stale">("all");
+  const [operationalFilter, setOperationalFilter] = useState<"all" | "token_invalid" | "bootstrap_required" | "sync_ok">("all");
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
   const [quickDescription, setQuickDescription] = useState("");
@@ -329,10 +347,12 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         (agentFilter === "online" && item.agent.lifecycleStatus === "ONLINE") ||
         (agentFilter === "stale" &&
           (item.agent.lifecycleStatus === "STALE" || item.agent.lifecycleStatus === "UNLINKED"));
+      const operationalState = getOperationalStateFilter(item);
+      const matchesOperational = operationalFilter === "all" || operationalState === operationalFilter;
 
-      return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent;
+      return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent && matchesOperational;
     });
-  }, [agentFilter, directory.items, environmentFilter, heartbeatFilter, searchTerm, statusFilter]);
+  }, [agentFilter, directory.items, environmentFilter, heartbeatFilter, operationalFilter, searchTerm, statusFilter]);
 
   const filteredPendingItems = useMemo(() => {
     const term = normalizeSearchValue(searchTerm);
@@ -640,6 +660,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           <SelectItem value="stale">Exige revisao</SelectItem>
                         </SelectContent>
                       </Select>
+
+                      <Select value={operationalFilter} onValueChange={(value) => setOperationalFilter(value as typeof operationalFilter)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Estado operacional" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Estado operacional: todos</SelectItem>
+                          <SelectItem value="token_invalid">Token invalido</SelectItem>
+                          <SelectItem value="bootstrap_required">Bootstrap obrigatorio</SelectItem>
+                          <SelectItem value="sync_ok">Sync OK</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -666,7 +698,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                     </DialogContent>
                   </Dialog>
 
-                  {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" ? (
+                  {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" || operationalFilter !== "all" ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -677,6 +709,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         setEnvironmentFilter("all");
                         setHeartbeatFilter("all");
                         setAgentFilter("all");
+                        setOperationalFilter("all");
                       }}
                     >
                       <X className="mr-2 h-4 w-4" />
@@ -709,7 +742,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 {activePendingCount} item(ns) em triagem
               </span>
             ) : null}
-            {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" ? (
+            {searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" || operationalFilter !== "all" ? (
               <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-primary">
                 filtros ativos
               </span>

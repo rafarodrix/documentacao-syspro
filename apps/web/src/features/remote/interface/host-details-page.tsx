@@ -231,6 +231,11 @@ const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string> = {
 };
 const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
 const UNLINKED_COMPANY_VALUE = "__unlinked__";
+const EXPECTED_SCHEMA_VERSIONS = {
+  discover: "discover.payload.v1",
+  sync: "sync.payload.v1",
+  ack: "ack.payload.v1",
+} as const;
 
 const AGENT_COMMAND_LABEL: Record<
   "REAPPLY_ALIAS" | "REAPPLY_CONFIG" | "UPGRADE_CLIENT" | "ROTATE_TOKEN_REQUIRED",
@@ -352,6 +357,30 @@ function readBootstrapRateMetrics(agentMetrics: Record<string, unknown> | null) 
   const cycles = typeof payload.cycles === "number" ? payload.cycles : null;
   const bootstrapCycles = typeof payload.bootstrapCycles === "number" ? payload.bootstrapCycles : null;
   return { ratePct: rate, cycles, bootstrapCycles };
+}
+
+function readContractSchemaVersions(agentMetrics: Record<string, unknown> | null) {
+  const raw = agentMetrics?.["schemaVersions"];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { discover: null as string | null, sync: null as string | null, ack: null as string | null };
+  }
+  const payload = raw as Record<string, unknown>;
+  const discover = typeof payload.discover === "string" ? payload.discover : null;
+  const sync = typeof payload.sync === "string" ? payload.sync : null;
+  const ack = typeof payload.ack === "string" ? payload.ack : null;
+  return { discover, sync, ack };
+}
+
+function extractContractValidationError(value: string | null) {
+  if (!value) return null;
+  const normalized = value.toLowerCase();
+  const looksLikeValidationError =
+    normalized.includes("schema") ||
+    normalized.includes("payload") ||
+    normalized.includes("obrigatorio") ||
+    normalized.includes("required") ||
+    normalized.includes("invalido");
+  return looksLikeValidationError ? value : null;
 }
 
 async function copyTextWithFallback(value: string) {
@@ -796,6 +825,18 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const rebootPending = details.agentTelemetry.rebootPending;
   const agentMetrics = details.agentTelemetry.agentMetrics;
   const bootstrapRateMetrics = useMemo(() => readBootstrapRateMetrics(agentMetrics), [agentMetrics]);
+  const contractSchemaVersions = useMemo(() => readContractSchemaVersions(agentMetrics), [agentMetrics]);
+  const contractValidationError = useMemo(
+    () => extractContractValidationError(host.lastHeartbeatErrorMessage),
+    [host.lastHeartbeatErrorMessage]
+  );
+  const ackQueueMetrics = useMemo(() => {
+    const pending = details.agentCommands.filter(
+      (command) => command.status === "PENDING" || command.status === "DELIVERED"
+    ).length;
+    const reprocessed = details.agentCommands.filter((command) => command.attemptCount > 1).length;
+    return { pending, reprocessed };
+  }, [details.agentCommands]);
   const orchestrationStrategy = useMemo(() => {
     const raw =
       agentMetrics && typeof agentMetrics["orchestrationStrategy"] === "string"
@@ -1739,6 +1780,45 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     ) : null}
                   </div>
                 </div>
+
+                <div className="mt-3 rounded-xl border border-border/50 bg-background/60 p-4">
+                  <p className="text-sm font-medium text-foreground">Saude do contrato Agente ↔ Portal</p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Discover schema</p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        esperado: <span className="font-mono text-foreground">{EXPECTED_SCHEMA_VERSIONS.discover}</span>
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        recebido: <span className="font-mono text-foreground">{contractSchemaVersions.discover ?? "Sem leitura"}</span>
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sync schema</p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        esperado: <span className="font-mono text-foreground">{EXPECTED_SCHEMA_VERSIONS.sync}</span>
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        recebido: <span className="font-mono text-foreground">{contractSchemaVersions.sync ?? "Sem leitura"}</span>
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ACK schema</p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        esperado: <span className="font-mono text-foreground">{EXPECTED_SCHEMA_VERSIONS.ack}</span>
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        recebido: <span className="font-mono text-foreground">{contractSchemaVersions.ack ?? "Sem leitura"}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 rounded-lg border border-border/40 bg-background/50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo erro de validacao</p>
+                    <p className="mt-1 break-all text-xs text-foreground">
+                      {contractValidationError ?? "Sem erro de validacao detectado no ultimo ciclo."}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <details className="rounded-lg border border-border/40 bg-background/40 p-3">
@@ -1989,7 +2069,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
                   Observabilidade operacional do host
                 </summary>
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-5">
                   <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 24h</p>
                     <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window24h}%</p>
@@ -2001,6 +2081,16 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 30d</p>
                     <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window30d}%</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ACK pendente</p>
+                    <p className="mt-1 text-2xl font-semibold text-foreground">{ackQueueMetrics.pending}</p>
+                    <p className="text-xs text-muted-foreground">PENDING/DELIVERED aguardando retorno final</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ACK reprocessado</p>
+                    <p className="mt-1 text-2xl font-semibold text-foreground">{ackQueueMetrics.reprocessed}</p>
+                    <p className="text-xs text-muted-foreground">Comandos com mais de 1 tentativa</p>
                   </div>
                 </div>
 
