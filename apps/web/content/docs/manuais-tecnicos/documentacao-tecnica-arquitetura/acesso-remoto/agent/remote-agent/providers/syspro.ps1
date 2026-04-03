@@ -7,10 +7,16 @@ function Get-SysproChangelogVersion {
             return ""
         }
 
-        # FIX: fallback para ANSI/Default — arquivos legados Syspro podem nao ser UTF-8
+        # FIX: fallback para ANSI/Default - arquivos legados Syspro podem nao ser UTF-8
         $content = $null
         try {
             $content = Get-Content -Path $changelogPath -Raw -Encoding UTF8 -ErrorAction Stop
+            if ($content -match ([char]0x00C3)) {
+                $ansiContent = Get-Content -Path $changelogPath -Raw -Encoding Default -ErrorAction Stop
+                if (-not [string]::IsNullOrWhiteSpace($ansiContent)) {
+                    $content = $ansiContent
+                }
+            }
         } catch {
             try {
                 $content = Get-Content -Path $changelogPath -Raw -Encoding Default -ErrorAction Stop
@@ -22,7 +28,7 @@ function Get-SysproChangelogVersion {
         # FIX: $regexMatch em vez de $match (variavel automatica reservada do PS)
         $regexMatch = [regex]::Match(
             $content,
-            'Revis[aã]o\s+Atual\s*[:\s]\s*(\d+)',
+            'Revis\w*\s+Atual\s*[:\s]\s*(\d+)',
             [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
         )
         if ($regexMatch.Success) { return $regexMatch.Groups[1].Value.Trim() }
