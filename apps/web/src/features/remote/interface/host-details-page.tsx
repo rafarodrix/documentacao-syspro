@@ -308,6 +308,52 @@ function getBootstrapFlowLabel(
   return "unknown";
 }
 
+function getBootstrapFlowMeta(
+  value:
+    | "pending_link"
+    | "linked_host_detected"
+    | "host_bootstrap_required"
+    | "token_invalid"
+    | "triagem_await_install_token"
+    | "body_parse_failed"
+    | "unknown"
+) {
+  if (value === "token_invalid") {
+    return {
+      tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+      hint: "Credencial do agente invalida/expirada. Rebootstrap necessario.",
+    };
+  }
+  if (value === "host_bootstrap_required" || value === "triagem_await_install_token") {
+    return {
+      tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      hint: "Host aguardando bootstrap para voltar ao sync autenticado.",
+    };
+  }
+  if (value === "linked_host_detected") {
+    return {
+      tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      hint: "Host vinculado e apto ao fluxo token-first.",
+    };
+  }
+  return {
+    tone: "border-border/60 bg-background/70 text-muted-foreground",
+    hint: "Fluxo reportado pelo dominio para a ultima avaliacao do agente.",
+  };
+}
+
+function readBootstrapRateMetrics(agentMetrics: Record<string, unknown> | null) {
+  const raw = agentMetrics?.["bootstrapRate24h"];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ratePct: null as number | null, cycles: null as number | null, bootstrapCycles: null as number | null };
+  }
+  const payload = raw as Record<string, unknown>;
+  const rate = typeof payload.bootstrapRatePct === "number" ? payload.bootstrapRatePct : null;
+  const cycles = typeof payload.cycles === "number" ? payload.cycles : null;
+  const bootstrapCycles = typeof payload.bootstrapCycles === "number" ? payload.bootstrapCycles : null;
+  return { ratePct: rate, cycles, bootstrapCycles };
+}
+
 async function copyTextWithFallback(value: string) {
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
@@ -707,6 +753,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     () => getBootstrapFlowLabel(details.agentHealth.bootstrapFlow),
     [details.agentHealth.bootstrapFlow]
   );
+  const bootstrapFlowMeta = useMemo(
+    () => getBootstrapFlowMeta(details.agentHealth.bootstrapFlow),
+    [details.agentHealth.bootstrapFlow]
+  );
   const shouldShowDiagnosticsPlaybook = useMemo(
     () =>
       details.agentHealth.bootstrapFlow === "token_invalid" ||
@@ -745,6 +795,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const windowsUpdateStatus = details.agentTelemetry.windowsUpdateStatus;
   const rebootPending = details.agentTelemetry.rebootPending;
   const agentMetrics = details.agentTelemetry.agentMetrics;
+  const bootstrapRateMetrics = useMemo(() => readBootstrapRateMetrics(agentMetrics), [agentMetrics]);
   const orchestrationStrategy = useMemo(() => {
     const raw =
       agentMetrics && typeof agentMetrics["orchestrationStrategy"] === "string"
@@ -1663,7 +1714,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   </div>
                   <div className="rounded-xl border border-border/50 bg-background/60 p-3">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bootstrap flow</p>
-                    <p className="mt-2 break-all font-mono text-xs text-foreground">{bootstrapFlowLabel}</p>
+                    <Badge variant="outline" className={cn("mt-2 font-mono text-[11px]", bootstrapFlowMeta.tone)}>
+                      {bootstrapFlowLabel}
+                    </Badge>
+                    <p className="mt-2 text-xs text-muted-foreground">{bootstrapFlowMeta.hint}</p>
                   </div>
                   <div className="rounded-xl border border-border/50 bg-background/60 p-3">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Falhas consecutivas</p>
@@ -1672,6 +1726,17 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   <div className="rounded-xl border border-border/50 bg-background/60 p-3">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia do ciclo</p>
                     <p className="mt-2 text-sm text-foreground">{orchestrationStrategy}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bootstrap 24h</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      {bootstrapRateMetrics.ratePct === null ? "Sem leitura" : `${bootstrapRateMetrics.ratePct}%`}
+                    </p>
+                    {bootstrapRateMetrics.cycles !== null ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {bootstrapRateMetrics.bootstrapCycles ?? 0}/{bootstrapRateMetrics.cycles} ciclos
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -1872,37 +1937,45 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
                 {details.agentCommands.length ? (
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {details.agentCommands.map((command) => (
-                      <div key={command.id} className="rounded-xl border border-border/50 bg-background/60 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-foreground">{AGENT_COMMAND_LABEL[command.type]}</p>
-                          <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                            {command.status}
-                          </Badge>
-                        </div>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {command.reason ?? "Sem justificativa adicional registrada."}
-                        </p>
-                        {command.resultMessage ? (
-                          <p className="mt-2 text-sm text-foreground">Resultado: {command.resultMessage}</p>
-                        ) : null}
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          Criado em {formatDateTime(command.createdAt)}
-                          {command.deliveredAt ? ` | entregue em ${formatDateTime(command.deliveredAt)}` : ""}
-                          {command.executedAt ? ` | executado em ${formatDateTime(command.executedAt)}` : ""}
-                          {command.failedAt ? ` | falhou em ${formatDateTime(command.failedAt)}` : ""}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">Tentativas de entrega: {command.attemptCount}</p>
-                        {command.resultPayload ? (
-                          <div className="mt-3 rounded-lg border border-border/50 bg-muted/20 p-3">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Telemetria do agente</p>
-                            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
-                              {JSON.stringify(command.resultPayload, null, 2)}
-                            </pre>
+                    {details.agentCommands.map((command) => {
+                      const structuredReasonCode = extractStringFromPayload(command.resultPayload, ["reasonCode", "reason_code"]);
+                      return (
+                        <div key={command.id} className="rounded-xl border border-border/50 bg-background/60 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-medium text-foreground">{AGENT_COMMAND_LABEL[command.type]}</p>
+                            <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                              {command.status}
+                            </Badge>
                           </div>
-                        ) : null}
-                      </div>
-                    ))}
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            {command.reason ?? "Sem justificativa adicional registrada."}
+                          </p>
+                          {structuredReasonCode ? (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              reasonCode: <span className="font-mono text-foreground">{structuredReasonCode}</span>
+                            </p>
+                          ) : null}
+                          {command.resultMessage ? (
+                            <p className="mt-2 text-sm text-foreground">Resultado: {command.resultMessage}</p>
+                          ) : null}
+                          <p className="mt-3 text-xs text-muted-foreground">
+                            Criado em {formatDateTime(command.createdAt)}
+                            {command.deliveredAt ? ` | entregue em ${formatDateTime(command.deliveredAt)}` : ""}
+                            {command.executedAt ? ` | executado em ${formatDateTime(command.executedAt)}` : ""}
+                            {command.failedAt ? ` | falhou em ${formatDateTime(command.failedAt)}` : ""}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">Tentativas de entrega: {command.attemptCount}</p>
+                          {command.resultPayload ? (
+                            <div className="mt-3 rounded-lg border border-border/50 bg-muted/20 p-3">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Telemetria do agente</p>
+                              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
+                                {JSON.stringify(command.resultPayload, null, 2)}
+                              </pre>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
