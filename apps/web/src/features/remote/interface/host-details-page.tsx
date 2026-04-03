@@ -1804,7 +1804,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </div>
 
                 <div className="mt-3 rounded-xl border border-border/50 bg-background/60 p-4">
-                  <p className="text-sm font-medium text-foreground">Saude do contrato Agente -> Portal</p>
+                  <p className="text-sm font-medium text-foreground">Saude do contrato Agente para Portal</p>
                   <div className="mt-3 grid gap-3 md:grid-cols-3">
                     <div className="rounded-lg border border-border/40 bg-background/50 p-3">
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Discover schema</p>
