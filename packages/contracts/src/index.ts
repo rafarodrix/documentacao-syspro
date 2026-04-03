@@ -1,4 +1,4 @@
-export { settingsSchema, SETTING_KEYS } from "./settings";
+﻿export { settingsSchema, SETTING_KEYS } from "./settings";
 export type { SettingsInput, SettingsOutput } from "./settings";
 
 export { sefazRouteSchema, sefazRoutesSchema } from "./sefaz-routes";
@@ -60,3 +60,24 @@ export type {
   ZammadUserSearch,
 } from "./zammad-api";
 
+
+export {
+  zammadOwnerModeSchema,
+  zammadArticleTypeSchema,
+  zammadGlobalSettingsSchema,
+  zammadCatalogGroupSchema,
+  zammadCatalogStateSchema,
+  zammadCatalogPrioritySchema,
+  zammadCatalogOwnerSchema,
+  zammadGlobalCatalogSchema,
+} from "./zammad-global-settings";
+export type {
+  ZammadOwnerMode,
+  ZammadArticleType,
+  ZammadGlobalSettings,
+  ZammadCatalogGroup,
+  ZammadCatalogState,
+  ZammadCatalogPriority,
+  ZammadCatalogOwner,
+  ZammadGlobalCatalog,
+} from "./zammad-global-settings";

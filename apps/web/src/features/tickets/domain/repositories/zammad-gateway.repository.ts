@@ -1,22 +1,10 @@
-import type {
+﻿import type {
   ZammadOperationalTicket,
   ZammadTicketAPI,
   ZammadTicketArticle,
   ZammadTicketDetails,
+  ZammadGlobalCatalog,
 } from "@dosc-syspro/contracts";
-
-export type ZammadCatalogGroup = { id: number; name: string };
-export type ZammadCatalogState = { id: number; name: string };
-export type ZammadCatalogPriority = { id: number; name: string };
-export type ZammadCatalogOwner = { id: number; name: string; email: string | null };
-export type ZammadGlobalCatalogPayload = {
-  fetchedAt: string;
-  groups: ZammadCatalogGroup[];
-  states: ZammadCatalogState[];
-  priorities: ZammadCatalogPriority[];
-  owners: ZammadCatalogOwner[];
-  articleTypes: Array<"note" | "phone" | "email">;
-};
 
 export type ZammadCacheOptions = {
   cacheTtlSeconds?: number;
@@ -25,7 +13,7 @@ export type ZammadCacheOptions = {
 };
 
 export interface ZammadGatewayRepository {
-  getGlobalCatalog(routeKey?: string): Promise<ZammadGlobalCatalogPayload>;
+  getGlobalCatalog(routeKey?: string): Promise<ZammadGlobalCatalog>;
   searchOperationalTicketsPage(
     query: string,
     options?: {

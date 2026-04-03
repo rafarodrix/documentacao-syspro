@@ -1,4 +1,4 @@
-import {
+﻿import {
   zammadOperationalTicketSchema,
   zammadTicketAPISchema,
   zammadTicketArticleSchema,
@@ -7,15 +7,16 @@ import {
   type ZammadTicketAPI,
   type ZammadTicketArticle,
   type ZammadTicketDetails,
+  type ZammadCatalogGroup,
+  type ZammadCatalogState,
+  type ZammadCatalogPriority,
+  type ZammadCatalogOwner,
+  type ZammadGlobalCatalog,
 } from "@dosc-syspro/contracts";
 import { OPERATIONAL_STATE_IDS } from "@dosc-syspro/core";
 import type {
   ZammadGatewayRepository,
   ZammadCacheOptions,
-  ZammadCatalogGroup,
-  ZammadCatalogOwner,
-  ZammadCatalogPriority,
-  ZammadCatalogState,
 } from "@/features/tickets/domain/repositories/zammad-gateway.repository";
 import {
   buildAuthorizationHeader,
@@ -166,14 +167,7 @@ function buildCustomerEmailsFallbackQuery(emails: string[]): string {
 }
 
 export const ZammadGateway: ZammadGatewayRepository = {
-  async getGlobalCatalog(routeKey = "app-configuracoes-zammad"): Promise<{
-    fetchedAt: string;
-    groups: ZammadCatalogGroup[];
-    states: ZammadCatalogState[];
-    priorities: ZammadCatalogPriority[];
-    owners: ZammadCatalogOwner[];
-    articleTypes: Array<"note" | "phone" | "email">;
-  }> {
+  async getGlobalCatalog(routeKey = "app-configuracoes-zammad"): Promise<ZammadGlobalCatalog> {
     const [groupsRaw, statesRaw, prioritiesRaw, ownersRaw] = await Promise.all([
       fetchZammad("groups?per_page=200", { cache: "no-store" }, { routeKey }),
       fetchZammad("ticket_states?per_page=200", { cache: "no-store" }, { routeKey }),
@@ -448,3 +442,5 @@ export const ZammadGateway: ZammadGatewayRepository = {
     });
   },
 };
+
+
