@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, Save, Settings2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   getDefaultZammadGlobalSettings,
   zammadGlobalSettingsSchema,
-  type ZammadGlobalSettings,
 } from "@/features/tickets/application/zammad-global-settings";
 import {
   getZammadGlobalSettingsAction,
@@ -25,7 +25,9 @@ export function ZammadGlobalSettingsForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, startSaving] = useTransition();
 
-  const form = useForm<ZammadGlobalSettings>({
+  type ZammadGlobalSettingsFormValues = z.input<typeof zammadGlobalSettingsSchema>;
+
+  const form = useForm<ZammadGlobalSettingsFormValues>({
     resolver: zodResolver(zammadGlobalSettingsSchema),
     defaultValues: getDefaultZammadGlobalSettings(),
     mode: "onChange",
@@ -54,7 +56,7 @@ export function ZammadGlobalSettingsForm() {
     };
   }, [form]);
 
-  const onSubmit: SubmitHandler<ZammadGlobalSettings> = (values) => {
+  const onSubmit: SubmitHandler<ZammadGlobalSettingsFormValues> = (values) => {
     startSaving(async () => {
       try {
         const parsed = zammadGlobalSettingsSchema.parse(values);
@@ -167,4 +169,3 @@ export function ZammadGlobalSettingsForm() {
     </form>
   );
 }
-
