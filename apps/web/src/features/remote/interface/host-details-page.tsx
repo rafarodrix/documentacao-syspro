@@ -69,12 +69,14 @@ import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
 import { HostInfraTab } from "./host-details/components/HostInfraTab";
 import { HostInstallationsTab } from "./host-details/components/HostInstallationsTab";
 import { HostAgentTab } from "./host-details/components/HostAgentTab";
+import { useAckStream } from "../hooks/use-ack-stream";
 
 
 
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const router = useRouter();
   const { host } = details;
+  const { isConnected } = useAckStream(host.id);
   const [projectedHostName, setProjectedHostName] = useState(host.name);
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
@@ -776,6 +778,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                   {host.environment}
                 </Badge>
               ) : null}
+              {isConnected && (
+                <Badge variant="outline" className="animate-pulse border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Live Sync
+                </Badge>
+              )}
             </div>
 
             <div className="space-y-2">
