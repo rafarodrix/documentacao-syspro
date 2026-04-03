@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashAgentToken } from "@/features/remote/application/rustdesk-sync";
 import { isRemoteAgentTokenExpired } from "@/features/remote/application/agent-token";
+import { ackEvents } from "../../events/ack-events";
 import type { RemoteAckPort } from "@dosc-syspro/remote-domain";
 
 type RemoteLogger = {
@@ -59,7 +60,7 @@ export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAck
         reasonCode: record.reasonCode,
       } as Record<string, unknown>;
 
-      await prisma.remoteAgentCommand.update({
+      const updatedCommand = await prisma.remoteAgentCommand.update({
         where: { id: record.commandId },
         data: {
           status: record.status,
@@ -68,7 +69,19 @@ export function createRemoteAckPort(params: { logger: RemoteLogger }): RemoteAck
           resultPayload: toJsonValue(resultPayload),
           failedAt: record.status === "FAILED" ? record.executedAt : null,
         },
+        select: {
+          hostId: true,
+        },
       });
+
+      if (updatedCommand?.hostId) {
+        ackEvents.emitAck(
+          updatedCommand.hostId,
+          record.commandId,
+          record.status,
+          record.message ?? record.reasonCode
+        );
+      }
     },
     async logInfo(event: string, fields: Record<string, unknown>) {
       logger.info(event, fields);
