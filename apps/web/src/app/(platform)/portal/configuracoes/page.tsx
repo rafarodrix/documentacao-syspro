@@ -61,7 +61,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     Configuracoes
                 </h1>
                 <p className="text-muted-foreground text-lg max-w-2xl">
-                    Gerencie parametros globais do sistema. Operacao remota, cadastro e manutencao de hosts ficam em Plataforma Remota.
+                    Gerencie parametros globais do sistema. Nesta pagina, a aba Remoto cobre apenas governanca global; operacao de hosts e sessoes fica na Plataforma Remota.
                 </p>
             </div>
 
@@ -80,7 +80,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
                         <TabsTrigger value="remote" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Monitor className="h-4 w-4" />
-                            <span className="font-medium">Remoto</span>
+                            <span className="font-medium">Remoto (Global)</span>
                         </TabsTrigger>
 
                         <TabsTrigger value="access" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">

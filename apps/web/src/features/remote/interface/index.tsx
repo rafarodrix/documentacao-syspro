@@ -2,7 +2,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import type { RemotePlatformOverview, RemotePlatformStatus } from "@/features/remote/domain/model";
-import { RemotePlatformControls } from "@/features/remote/interface/remote-controls";
 import { Building2, Database, KeyRound, LaptopMinimal } from "lucide-react";
 
 const statusLabel: Record<RemotePlatformStatus, string> = {
@@ -99,8 +98,6 @@ function RecentItemCard({
 export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlatformOverview }) {
   return (
     <div className="space-y-8">
-      <RemotePlatformControls overview={overview} />
-
       <section className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-3 border-border/50 bg-background/70 backdrop-blur-sm">
           <CardHeader className="space-y-3">
