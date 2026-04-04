@@ -27,6 +27,7 @@
     "./remote-session-port": "./src/remote-session-port.ts"
   },
   "dependencies": {
+    "@dosc-syspro/config": "0.0.0",
     "@dosc-syspro/remote-domain": "0.0.0",
     "@dosc-syspro/database": "0.0.0"
   }

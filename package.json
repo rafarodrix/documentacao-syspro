@@ -14,8 +14,10 @@
                     "start":  "npm run start -w @dosc-syspro/web",
                     "typecheck":  "npm run typecheck -w @dosc-syspro/web",
                     "typecheck:contracts":  "npm run typecheck -w @dosc-syspro/contracts",
-                    "test":  "npm run test -w @dosc-syspro/web",
+                    "test":  "turbo run test --filter=@dosc-syspro/web",
                     "docs:check":  "npm run docs:check -w @dosc-syspro/web",
+                    "test:web":  "turbo run test --filter=@dosc-syspro/web",
+                    "test:packages":  "turbo run test --filter=@dosc-syspro/api --filter=@dosc-syspro/remote-domain",
                     "test:authz":  "npm run test:authz -w @dosc-syspro/web",
                     "test:tickets":  "npm run test:tickets -w @dosc-syspro/web",
                     "postinstall":  "npm run postinstall -w @dosc-syspro/web",
@@ -28,8 +30,8 @@
                     "build:api":  "npm run build -w @dosc-syspro/app-api",
                     "dev:api":  "npm run dev -w @dosc-syspro/app-api",
                     "start:api":  "npm run start -w @dosc-syspro/app-api",
-                    "typecheck:api":  "npm run typecheck -w @dosc-syspro/app-api",
-                    "test:api":  "npm run test -w @dosc-syspro/app-api",
+                    "typecheck:api":  "turbo run typecheck --filter=@dosc-syspro/app-api",
+                    "test:api":  "turbo run test --filter=@dosc-syspro/app-api",
                     "build:mobile":  "npm run build -w @dosc-syspro/app-mobile",
                     "dev:mobile":  "npm run dev -w @dosc-syspro/app-mobile",
                     "start:mobile":  "npm run start -w @dosc-syspro/app-mobile",
@@ -114,6 +116,7 @@
                             "vitest":  "^4.1.0",
                             "eslint":  "^9.23.0",
                             "eslint-config-next":  "^15.5.14",
-                            "@playwright/test":  "^1.54.2"
+                            "@playwright/test":  "^1.54.2",
+                            "turbo": "^2.0.0"
                         }
 }

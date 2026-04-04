@@ -7,6 +7,8 @@
     "target": "es2022",
     "allowJs": false,
     "paths": {
+      "@dosc-syspro/config": ["../config/src/index.ts"],
+      "@dosc-syspro/config/*": ["../config/src/*"],
       "@dosc-syspro/remote-domain": ["../remote-domain/src/index.ts"],
       "@dosc-syspro/remote-domain/contracts": ["../remote-domain/src/contracts.ts"],
       "@dosc-syspro/remote-domain/errors": ["../remote-domain/src/errors.ts"],

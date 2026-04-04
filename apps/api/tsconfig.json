@@ -6,7 +6,7 @@
     "moduleResolution": "node16",
     "target": "es2022",
     "types": ["node"],
-    "rootDir": ".",
+    "rootDir": "../../",
     "outDir": "./dist",
     "allowJs": false,
     "jsx": "preserve",
@@ -16,6 +16,8 @@
     "paths": {
       "@dosc-syspro/api": ["../../packages/api/src/index.ts"],
       "@dosc-syspro/api/*": ["../../packages/api/src/*"],
+      "@dosc-syspro/config": ["../../packages/config/src/index.ts"],
+      "@dosc-syspro/config/*": ["../../packages/config/src/*"],
       "@dosc-syspro/contracts": ["../../packages/contracts/src/index.ts"],
       "@dosc-syspro/contracts/*": ["../../packages/contracts/src/*"],
       "@dosc-syspro/remote-domain": ["../../packages/remote-domain/src/index.ts"],

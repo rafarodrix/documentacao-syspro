@@ -22,6 +22,7 @@ apps/
   web/
 packages/
   api/
+  config/
   contracts/
   core/
   database/
@@ -92,6 +93,10 @@ Nucleo modular do BFF, com contexto, procedures e roteadores.
 ### `@dosc-syspro/contracts`
 
 DTOs e schemas de fronteira compartilhados.
+
+### `@dosc-syspro/config`
+
+Leitura e validacao centralizada de configuracoes de runtime (env).
 
 ### `@dosc-syspro/core`
 

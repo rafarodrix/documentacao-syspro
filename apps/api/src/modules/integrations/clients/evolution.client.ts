@@ -1,24 +1,9 @@
-type EvolutionConfig = {
-  apiUrl: string;
-  apiKey: string;
-  instance: string;
-  webhookSecret: string;
-};
+import { readEvolutionRuntimeConfig } from "@dosc-syspro/config";
 
-function readRuntimeEnv(): Record<string, string | undefined> {
-  const runtime = globalThis as Record<string, unknown>;
-  const processLike = runtime["process"] as { env?: Record<string, string | undefined> } | undefined;
-  return processLike?.env ?? {};
-}
+type EvolutionConfig = ReturnType<typeof readEvolutionRuntimeConfig>;
 
 export function readEvolutionConfigFromRuntime(): EvolutionConfig {
-  const env = readRuntimeEnv();
-  return {
-    apiUrl: env.EVOLUTION_API_URL?.trim() ?? "",
-    apiKey: env.EVOLUTION_API_KEY?.trim() ?? "",
-    instance: env.EVOLUTION_INSTANCE?.trim() || "Syspro",
-    webhookSecret: env.EVOLUTION_WEBHOOK_SECRET?.trim() ?? "",
-  };
+  return readEvolutionRuntimeConfig();
 }
 
 export class EvolutionClient {

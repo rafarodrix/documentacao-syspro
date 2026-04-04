@@ -2,6 +2,7 @@
   "name": "@dosc-syspro/app-api",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build -p tsconfig.build.json",
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "@dosc-syspro/api": "0.0.0",
+    "@dosc-syspro/config": "0.0.0",
     "@dosc-syspro/contracts": "0.0.0",
     "@dosc-syspro/remote-domain": "0.0.0",
     "@nestjs/common": "^11.1.18",

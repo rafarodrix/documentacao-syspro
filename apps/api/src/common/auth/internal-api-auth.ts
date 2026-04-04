@@ -1,7 +1,8 @@
 import { ForbiddenException, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
+import { readCommonRuntimeConfig } from "@dosc-syspro/config";
 
 export function assertInternalApiKey(internalApiKeyHeader: string | undefined) {
-  const expected = process.env.INTERNAL_API_KEY?.trim();
+  const expected = readCommonRuntimeConfig().INTERNAL_API_KEY?.trim();
 
   if (!expected) {
     throw new InternalServerErrorException("INTERNAL_API_KEY_NOT_CONFIGURED");

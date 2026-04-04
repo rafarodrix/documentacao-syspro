@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { readCommonRuntimeConfig } from "@dosc-syspro/config";
 
 type ZammadTicket = {
   id: number;
@@ -20,16 +21,10 @@ type FetchResponseLike = {
 
 type FetchLike = (input: string, init?: RequestInitLike) => Promise<FetchResponseLike>;
 
-function readRuntimeEnv(): Record<string, string | undefined> {
-  const runtime = globalThis as Record<string, unknown>;
-  const processLike = runtime["process"] as { env?: Record<string, string | undefined> } | undefined;
-  return processLike?.env ?? {};
-}
-
 @Injectable()
 export class ZammadClient {
-  private readonly baseUrl = readRuntimeEnv().ZAMMAD_URL?.trim() ?? "";
-  private readonly token = readRuntimeEnv().ZAMMAD_TOKEN?.trim() ?? "";
+  private readonly baseUrl = readCommonRuntimeConfig().ZAMMAD_URL?.trim() ?? "";
+  private readonly token = readCommonRuntimeConfig().ZAMMAD_TOKEN?.trim() ?? "";
 
   private buildAuthHeader() {
     if (!this.token) return "";

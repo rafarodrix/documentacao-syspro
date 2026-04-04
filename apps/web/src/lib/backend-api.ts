@@ -1,3 +1,5 @@
+import { readCommonRuntimeConfig } from "@dosc-syspro/config";
+
 export function getBackendApiBaseUrl(): string {
   const value =
     process.env.APP_API_URL?.trim() ||
@@ -7,7 +9,7 @@ export function getBackendApiBaseUrl(): string {
 }
 
 export function getBackendApiKey(): string {
-  const key = process.env.INTERNAL_API_KEY?.trim();
+  const key = readCommonRuntimeConfig().INTERNAL_API_KEY?.trim();
   if (!key) {
     throw new Error("INTERNAL_API_KEY nao configurada para chamadas internas web -> api.");
   }
