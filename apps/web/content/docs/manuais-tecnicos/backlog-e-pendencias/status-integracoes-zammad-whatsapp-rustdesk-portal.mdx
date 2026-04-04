@@ -51,7 +51,7 @@ Este documento consolida o estado real da integracao entre:
   - trilha auditavel em `Conversation` e `ConversationMessage`
   - dedupe basico por `externalMessageId`
 - Contrato compartilhado implementado:
-  - `@dosc-syspro/contracts` com schema `messages.upsert`
+  - `@dosc-syspro/contracts` com schema de envelope de webhook (`event` + `data`)
   - padronizacao de env:
     - `EVOLUTION_API_URL`
     - `EVOLUTION_API_KEY`

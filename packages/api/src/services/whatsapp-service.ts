@@ -4,7 +4,7 @@ export class WhatsAppService {
   constructor(
     private readonly baseUrl: string,
     private readonly apiKey: string,
-    private readonly instanceName: string
+    private readonly instance: string
   ) {}
 
   static fromEnv(env: NodeJS.ProcessEnv = process.env): WhatsAppService {
@@ -18,7 +18,7 @@ export class WhatsAppService {
       return;
     }
 
-    const url = `${this.baseUrl}/message/sendText/${this.instanceName}`;
+    const url = `${this.baseUrl}/send/text`;
     
     const response = await fetch(url, {
       method: "POST",
@@ -27,10 +27,10 @@ export class WhatsAppService {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        id: this.instance,
         number: this.normalizeNumber(number),
         text,
         delay: 1200,
-        linkPreview: false
       }),
     });
 

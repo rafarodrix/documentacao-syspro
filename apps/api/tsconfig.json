@@ -1,11 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "lib": ["esnext"],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "Node16",
+    "moduleResolution": "node16",
     "target": "es2022",
+    "rootDir": "./src",
     "outDir": "./dist",
     "allowJs": false,
     "jsx": "preserve",
@@ -15,6 +15,8 @@
     "paths": {
       "@dosc-syspro/api": ["../../packages/api/src/index.ts"],
       "@dosc-syspro/api/*": ["../../packages/api/src/*"],
+      "@dosc-syspro/contracts": ["../../packages/contracts/src/index.ts"],
+      "@dosc-syspro/contracts/*": ["../../packages/contracts/src/*"],
       "@dosc-syspro/remote-domain": ["../../packages/remote-domain/src/index.ts"],
       "@dosc-syspro/remote-domain/*": ["../../packages/remote-domain/src/*"],
       "@dosc-syspro/database": ["../../packages/database/src/index.ts"],

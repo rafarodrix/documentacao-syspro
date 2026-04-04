@@ -5,15 +5,12 @@
 import { hasEvolutionApiCredentials, readEvolutionConfig } from "@dosc-syspro/api/services/evolution-config";
 
 interface EvolutionSendTextResponse {
-  key: {
-    remoteJid: string;
-    fromMe: boolean;
-    id: string;
+  success?: boolean;
+  message?: string;
+  messageId?: string;
+  key?: {
+    id?: string;
   };
-  message: {
-    conversation: string;
-  };
-  status: string;
 }
 
 export class EvolutionWhatsAppGateway {
@@ -52,7 +49,7 @@ export class EvolutionWhatsAppGateway {
     }
 
     const number = this.normalizeNumber(to);
-    const endpoint = `${this.apiUrl}/message/sendText/${this.instance}`;
+    const endpoint = `${this.apiUrl}/send/text`;
 
     try {
       const response = await fetch(endpoint, {
@@ -62,13 +59,10 @@ export class EvolutionWhatsAppGateway {
           "apikey": this.apiKey,
         },
         body: JSON.stringify({
-          number: number,
-          text: text,
-          options: {
-            delay: 1200,
-            presence: "composing",
-            linkPreview: true,
-          }
+          id: this.instance,
+          number,
+          text,
+          delay: 1200,
         }),
       });
 
@@ -79,7 +73,7 @@ export class EvolutionWhatsAppGateway {
       }
 
       const result = await response.json() as EvolutionSendTextResponse;
-      return { success: true, messageId: result.key.id };
+      return { success: true, messageId: result.messageId || result.key?.id };
     } catch (error) {
       console.error("Excecao ao enviar mensagem WhatsApp:", error);
       return { success: false, error: "Falha na comunicacao com Evolution API" };

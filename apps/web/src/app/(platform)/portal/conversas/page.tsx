@@ -177,7 +177,7 @@ export default function ConversasOmnichannelPage() {
   return (
     <div className="flex h-[calc(100vh-80px)] w-full">
       {/* Coluna Esquerda - Lista de Conversas / Contatos */}
-      <div className="w-[350px] border-r bg-muted/30 dark:bg-muted/10 flex flex-col shrink-0">
+      <div className="w-87.5 border-r bg-muted/30 dark:bg-muted/10 flex flex-col shrink-0">
         
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="flex-1 flex flex-col w-full h-full">
           <div className="p-3 border-b bg-card sticky top-0 z-10 space-y-3">
@@ -264,7 +264,7 @@ export default function ConversasOmnichannelPage() {
         {activeConv ? (
           <>
             {/* Header do Chat */}
-            <header className="h-[73px] border-b px-6 flex items-center justify-between bg-card shrink-0 shadow-sm z-10 relative">
+            <header className="h-18.25 border-b px-6 flex items-center justify-between bg-card shrink-0 shadow-sm z-10 relative">
               <div className="flex flex-col">
                 <h3 className="font-bold text-lg tracking-tight">{activeConv.contactNameSnapshot || activeConv.contactWhatsappSnapshot}</h3>
                 <span className="text-xs text-muted-foreground">{activeConv.contactWhatsappSnapshot} <Badge variant="secondary" className="ml-2 font-normal text-[10px] uppercase border-none">{activeConv.status}</Badge></span>
@@ -288,7 +288,7 @@ export default function ConversasOmnichannelPage() {
                           <Input placeholder="Buscar por Nome ou CNPJ..." value={matchQuery} onChange={e => setMatchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchComps()}/>
                           <Button onClick={searchComps}><Search className="w-4 h-4"/></Button>
                         </div>
-                        <div className="max-h-[300px] overflow-y-auto space-y-2">
+                        <div className="max-h-75 overflow-y-auto space-y-2">
                           {matchResults.map(c => (
                             <div key={c.id} className="p-3 border rounded-md flex justify-between items-center">
                               <div>
@@ -323,10 +323,10 @@ export default function ConversasOmnichannelPage() {
                       <div className={`max-w-[70%] rounded-lg p-3 ${isOut ? "bg-emerald-100 text-foreground rounded-tr-none dark:bg-emerald-500/20 dark:text-emerald-100" : "bg-card text-foreground rounded-tl-none shadow-sm border border-border/60"}`}>
                         
                         {msg.type === "IMAGE" && msg.mediaUrl && (
-                          <img src={msg.mediaUrl} alt="Imagem recebida" className="max-w-[250px] rounded mb-2 object-cover" />
+                          <img src={msg.mediaUrl} alt="Imagem recebida" className="max-w-62.5 rounded mb-2 object-cover" />
                         )}
                         {msg.type === "AUDIO" && msg.mediaUrl && (
-                          <audio controls src={msg.mediaUrl} className="max-w-[250px] h-10 mb-2" />
+                          <audio controls src={msg.mediaUrl} className="max-w-62.5 h-10 mb-2" />
                         )}
                         {msg.type === "DOCUMENT" && msg.mediaUrl && (
                           <a href={msg.mediaUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-muted p-2 rounded-md mb-2 text-xs text-blue-600 dark:text-blue-300 hover:underline">

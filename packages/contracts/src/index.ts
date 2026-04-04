@@ -84,5 +84,5 @@ export type {
   ZammadGlobalCatalog,
 } from "./zammad-global-settings";
 
-export { evolutionMessageUpsertPayloadSchema } from "./whatsapp-evolution";
-export type { EvolutionMessageUpsertPayload } from "./whatsapp-evolution";
+export { evolutionWebhookEnvelopeSchema, evolutionMessageEventSchema } from "./whatsapp-evolution";
+export type { EvolutionWebhookEnvelope, EvolutionMessageEvent } from "./whatsapp-evolution";

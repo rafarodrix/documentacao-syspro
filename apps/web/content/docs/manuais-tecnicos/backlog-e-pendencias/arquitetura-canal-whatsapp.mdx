@@ -49,7 +49,7 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
   - abertura/atualizacao de ticket no Zammad
   - persistencia de conversa/mensagem para trilha auditavel
 - Implementado como base de contrato:
-  - payload `messages.upsert` formalizado em `@dosc-syspro/contracts`
+  - envelope de webhook Evolution (`event` + `data`) formalizado em `@dosc-syspro/contracts`
   - padronizacao de env para Evolution: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE`
 - Ainda pendente:
   - materializar casos de uso no `apps/api`

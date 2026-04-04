@@ -26,7 +26,7 @@ export async function getEvolutionConnectionState() {
   }
 
   try {
-    const url = `${evolutionUrl}/instance/connectionState/${evolutionInstance}`;
+    const url = `${evolutionUrl}/instance/status`;
     const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
     if (!res.ok) {
       if (res.status === 404) {
@@ -35,8 +35,16 @@ export async function getEvolutionConnectionState() {
       return { error: "API_ERROR", state: "unknown" };
     }
     const data = await res.json();
-    // Evo API returns: { instance: { state: "open" | "close" | "connecting" } }
-    return { error: null, state: data.instance?.state || "unknown", data };
+    const state = (
+      data?.state ??
+      data?.status ??
+      data?.instance?.state ??
+      data?.instance?.status ??
+      data?.data?.state ??
+      data?.data?.status ??
+      "unknown"
+    ) as string;
+    return { error: null, state, data };
   } catch (error) {
     console.error("Evolution getConnectionState error:", error);
     return { error: "FETCH_ERROR", state: "unknown" };
@@ -50,8 +58,14 @@ export async function getEvolutionQrCode() {
   }
 
   try {
-    const url = `${evolutionUrl}/instance/connect/${evolutionInstance}`;
-    // Pode retornar { base64: "...", count: 1 } se deslogado
+    const connectUrl = `${evolutionUrl}/instance/connect`;
+    await fetch(connectUrl, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ name: evolutionInstance }),
+    }).catch(() => undefined);
+
+    const url = `${evolutionUrl}/instance/qr`;
     const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
     if (!res.ok) {
       if(res.status === 404) {
@@ -61,7 +75,13 @@ export async function getEvolutionQrCode() {
       return { error: "API_ERROR", base64: null };
     }
     const data = await res.json();
-    return { error: null, base64: data.base64 || null };
+    const qrCode =
+      data?.data?.Qrcode ||
+      data?.data?.qrcode ||
+      data?.qrCode ||
+      data?.base64 ||
+      null;
+    return { error: null, base64: qrCode };
   } catch (error) {
     console.error("Evolution getQrCode error:", error);
     return { error: "FETCH_ERROR", base64: null };
@@ -80,12 +100,11 @@ export async function createEvolutionInstance() {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({
-        instanceName: evolutionInstance,
-        token: evolutionKey, // Opcional, forcar token proprio
-        qrcode: true
+        name: evolutionInstance,
+        token: evolutionKey || undefined,
       })
     });
-    if (!res.ok) return { error: "CREATE_FAILED" };
+    if (!res.ok && res.status !== 409) return { error: "CREATE_FAILED" };
     return { error: null, success: true };
   } catch (error) {
     console.error("Evolution create instance error:", error);

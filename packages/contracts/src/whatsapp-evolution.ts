@@ -1,16 +1,53 @@
 import { z } from "zod";
 
-export const evolutionMessageUpsertPayloadSchema = z.object({
-  event: z.literal("messages.upsert"),
-  data: z.object({
-    key: z.object({
-      id: z.string().min(1),
-      remoteJid: z.string().min(1),
-      fromMe: z.boolean(),
-    }),
-    pushName: z.string().optional(),
-    message: z.record(z.unknown()),
-  }),
+export const evolutionWebhookEnvelopeSchema = z.object({
+  event: z.string().min(1),
+  data: z.unknown().optional(),
 });
 
-export type EvolutionMessageUpsertPayload = z.infer<typeof evolutionMessageUpsertPayloadSchema>;
+const evolutionMessageContentSchema = z
+  .object({
+    conversation: z.string().optional(),
+    extendedTextMessage: z
+      .object({
+        text: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+    imageMessage: z
+      .object({
+        caption: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
+const evolutionMessageInfoSchema = z
+  .object({
+    ID: z.string().optional(),
+    Chat: z.string().optional(),
+    chat: z.string().optional(),
+    PushName: z.string().optional(),
+    IsFromMe: z.boolean().optional(),
+  })
+  .passthrough();
+
+export const evolutionMessageEventSchema = z.object({
+  event: z.literal("MESSAGE"),
+  data: z
+    .object({
+      Info: evolutionMessageInfoSchema.optional(),
+      info: evolutionMessageInfoSchema.optional(),
+      Message: evolutionMessageContentSchema.optional(),
+      message: evolutionMessageContentSchema.optional(),
+      remoteJid: z.string().optional(),
+      fromMe: z.boolean().optional(),
+      pushName: z.string().optional(),
+      id: z.string().optional(),
+    })
+    .passthrough(),
+});
+
+export type EvolutionWebhookEnvelope = z.infer<typeof evolutionWebhookEnvelopeSchema>;
+export type EvolutionMessageEvent = z.infer<typeof evolutionMessageEventSchema>;
