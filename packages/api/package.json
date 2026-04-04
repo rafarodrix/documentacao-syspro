@@ -28,7 +28,11 @@
   },
   "dependencies": {
     "@dosc-syspro/config": "0.0.0",
+    "@dosc-syspro/database": "0.0.0",
     "@dosc-syspro/remote-domain": "0.0.0",
-    "@dosc-syspro/database": "0.0.0"
+    "nodemailer": "^8.0.4"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.17"
   }
 }
