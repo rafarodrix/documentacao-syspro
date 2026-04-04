@@ -14,10 +14,10 @@
                     "start":  "npm run start -w @dosc-syspro/web",
                     "typecheck":  "npm run typecheck -w @dosc-syspro/web",
                     "typecheck:contracts":  "npm run typecheck -w @dosc-syspro/contracts",
-                    "test":  "turbo run test --filter=@dosc-syspro/web",
+                    "test":  "npm run test -w @dosc-syspro/web",
                     "docs:check":  "npm run docs:check -w @dosc-syspro/web",
-                    "test:web":  "turbo run test --filter=@dosc-syspro/web",
-                    "test:packages":  "turbo run test --filter=@dosc-syspro/api --filter=@dosc-syspro/remote-domain",
+                    "test:web":  "npm run test -w @dosc-syspro/web",
+                    "test:packages":  "npm run test -w @dosc-syspro/api && npm run test -w @dosc-syspro/remote-domain",
                     "test:authz":  "npm run test:authz -w @dosc-syspro/web",
                     "test:tickets":  "npm run test:tickets -w @dosc-syspro/web",
                     "postinstall":  "npm run postinstall -w @dosc-syspro/web",
@@ -117,7 +117,6 @@
                             "vitest":  "^4.1.0",
                             "eslint":  "^9.23.0",
                             "eslint-config-next":  "^15.5.14",
-                            "@playwright/test":  "^1.54.2",
-                            "turbo": "^2.0.0"
+                            "@playwright/test":  "^1.54.2"
                         }
 }
