@@ -3,7 +3,7 @@
 import { ModeToggle } from "@/components/ModeToggle"
 import { Button } from "@/components/ui/button"
 import { PanelLeftClose, PanelLeftOpen, Plus, Ticket } from "lucide-react"
-import { Breadcrumbs } from "./breadcrumbs"
+import { Breadcrumbs } from "./Breadcrumbs"
 import { CommandPaletteTrigger } from "./CommandPaletteTrigger"
 import { UserProfile } from "./UserProfile"
 import { NotificationsMenu } from "./NotificationsMenu"
