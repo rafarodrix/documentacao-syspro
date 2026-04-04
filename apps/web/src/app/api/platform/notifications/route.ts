@@ -247,11 +247,9 @@ export async function GET() {
       });
 
   try {
-    const upsertPromise = upsertOperationalTicketsToCache(tickets);
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout Zammad cache upsert")), 4000));
-    await Promise.race([upsertPromise, timeoutPromise]);
+    await upsertOperationalTicketsToCache(tickets);
   } catch (err) {
-    console.warn("Skipping cached upsert to prevent Vercel Timeout:", err);
+    console.warn("Failed cached upsert during notifications polling:", err);
   }
 
   const ticketNotifications = buildTicketNotifications(tickets);
