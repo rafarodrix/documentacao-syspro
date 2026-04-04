@@ -40,7 +40,8 @@ export function TicketsFilters({
     return (
         <div className="flex flex-col gap-4 p-1">
             <div className="flex flex-col items-center justify-between gap-4 lg:flex-row">
-                <div className="flex w-full flex-wrap gap-2 lg:w-auto">
+                <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:w-auto">
+                    <div className="flex min-w-max gap-2">
                     <Button type="button" variant={statusFilter === "open" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("open")}>
                         Abertos ({counts.open})
                     </Button>
@@ -50,6 +51,7 @@ export function TicketsFilters({
                     <Button type="button" variant={statusFilter === "closed" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("closed")}>
                         Fechados ({counts.closed})
                     </Button>
+                    </div>
                 </div>
 
                 <div className="group relative w-full lg:w-96">
@@ -64,10 +66,10 @@ export function TicketsFilters({
             </div>
 
             {statusFilter === "closed" && (
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <span className="text-sm text-muted-foreground whitespace-nowrap">Periodo dos fechados</span>
                     <Select value={closedWindow} onValueChange={(value) => setClosedWindow(value as ClosedTicketsWindow)}>
-                        <SelectTrigger className="w-full max-w-60 bg-background">
+                        <SelectTrigger className="w-full bg-background sm:max-w-60">
                             <SelectValue placeholder="Selecione o periodo" />
                         </SelectTrigger>
                         <SelectContent>

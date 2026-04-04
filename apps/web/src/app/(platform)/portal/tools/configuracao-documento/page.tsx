@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import DocumentosContainer from "@/components/platform/tools/configuracao-documentos/documentos";
+import DocumentosContainer from "@/components/platform/tools/configuracao-documentos/Documentos";
 
 export const metadata: Metadata = {
     title: "Configuração de Documentos | Syspro",

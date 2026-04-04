@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import type { Prisma } from "@prisma/client";
 import type { ElementType } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NumberTicker } from "@/components/magicui/number-ticker";
+import { NumberTicker } from "@/components/magicui/NumberTicker";
 
 type ContractLike = {
     status: string;
@@ -119,3 +119,4 @@ export function ContractStats({ contracts }: { contracts: ContractLike[] }) {
         </div>
     );
 }
+

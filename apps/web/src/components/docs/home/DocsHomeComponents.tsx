@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import type { ReactNode, CSSProperties } from 'react';
 import Link from 'next/link';
@@ -6,15 +6,15 @@ import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MagicCard } from '@/components/magicui/magic-card';
-import { ShineBorder } from '@/components/magicui/shine-border';
-import { NumberTicker } from '@/components/magicui/number-ticker';
+import { MagicCard } from '@/components/magicui/MagicCard';
+import { ShineBorder } from '@/components/magicui/ShineBorder';
+import { NumberTicker } from '@/components/magicui/NumberTicker';
 import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
 import type { QuickLink } from './docs-home-config';
 import { TONE_STYLES } from './docs-home-config';
 
 // ---------------------------------------------------------------------------
-// HeroMetric — transformado em Link (Actionable)
+// HeroMetric â€” transformado em Link (Actionable)
 // ---------------------------------------------------------------------------
 
 export function HeroMetric({
@@ -65,7 +65,7 @@ export function CountBadge({ count }: { count: number }) {
 }
 
 // ---------------------------------------------------------------------------
-// InsightLink — Aumento de touch target (py-3) e sem bordas excessivas
+// InsightLink â€” Aumento de touch target (py-3) e sem bordas excessivas
 // ---------------------------------------------------------------------------
 
 export function InsightLink({

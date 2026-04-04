@@ -1,4 +1,4 @@
-import { requireSession } from "@/lib/auth-helpers";
+﻿import { requireSession } from "@/lib/auth-helpers";
 import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { MagicCard } from "@/components/magicui/magic-card";
-import { NumberTicker } from "@/components/magicui/number-ticker";
-import { ShineBorder } from "@/components/magicui/shine-border";
+import { MagicCard } from "@/components/magicui/MagicCard";
+import { NumberTicker } from "@/components/magicui/NumberTicker";
+import { ShineBorder } from "@/components/magicui/ShineBorder";
 import { ArrowUpRight, BookOpen, Headset, Sparkles, Users } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
   }
 
   const hasMultipleCompanies = data.companyCount > 1;
-  const previewCompanies = data.companyNames.slice(0, 2).join(" • ");
+  const previewCompanies = data.companyNames.slice(0, 2).join(" â€¢ ");
   const extraCompaniesCount = Math.max(data.companyCount - 2, 0);
 
   return (
@@ -183,3 +183,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

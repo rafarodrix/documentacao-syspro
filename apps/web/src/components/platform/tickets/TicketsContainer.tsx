@@ -135,8 +135,8 @@ export function TicketsContainer({
                 </Alert>
             )}
 
-            <div className="flex items-start justify-between">
-                <div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">
                         {isAdmin ? "Central de Atendimento" : "Meus Chamados"}
                     </h1>
@@ -144,14 +144,17 @@ export function TicketsContainer({
                         {isAdmin ? "Gerencie a fila de suporte e solicitacoes." : "Acompanhe o status das suas solicitacoes."}
                     </p>
                 </div>
-                <TicketSheet isSystemUser={isAdmin} />
+                <div className="w-full sm:w-auto">
+                    <TicketSheet isSystemUser={isAdmin} />
+                </div>
             </div>
 
             <TicketsStats counts={statusCounts} activeStatus={statusGroup} onSelectStatus={setStatusFilter} />
 
             {isAdmin && (
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <div className="flex min-w-max gap-2">
                         <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("my_queue")}>
                             Minha fila ({queueCounts.my_queue})
                         </Button>
@@ -164,9 +167,10 @@ export function TicketsContainer({
                         <Button variant={queue === "no_response" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("no_response")}>
                             Sem resposta ({queueCounts.no_response})
                         </Button>
+                        </div>
                     </div>
-                    <div>
-                        <Button variant="secondary" size="sm" className="gap-2" onClick={handleExportCsv} disabled={tickets.length === 0}>
+                    <div className="w-full sm:w-auto">
+                        <Button variant="secondary" size="sm" className="w-full gap-2 sm:w-auto" onClick={handleExportCsv} disabled={tickets.length === 0}>
                             <DownloadIcon className="h-4 w-4" />
                             Exportar CSV
                         </Button>
@@ -187,14 +191,14 @@ export function TicketsContainer({
 
             <TicketsTable tickets={tickets} isAdmin={isAdmin} />
 
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                 <span>Total filtrado: {pagination.total ?? tickets.length}</span>
                 <span>Itens nesta pagina: {tickets.length}</span>
             </div>
 
             {(pagination.hasPreviousPage || pagination.hasNextPage) && (
-                <div className="flex items-center justify-end gap-2 pt-2">
-                    <span className="mr-2 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center justify-start gap-2 pt-2 sm:justify-end">
+                    <span className="w-full text-sm text-muted-foreground sm:mr-2 sm:w-auto">
                         Pagina {pagination.page}
                         {pagination.total !== null ? ` de ${Math.max(1, Math.ceil(pagination.total / pagination.pageSize))}` : ""}
                     </span>

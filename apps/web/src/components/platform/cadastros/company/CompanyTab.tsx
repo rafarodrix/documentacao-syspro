@@ -329,8 +329,9 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
+          <div className="w-full sm:w-auto space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+            <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="inline-flex min-w-max items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
               <button
                 onClick={() => setFilterStatus("ALL")}
                 className={cn(
@@ -357,9 +358,11 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
                   </button>
                 )
               })}
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
+            <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="inline-flex min-w-max items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
               <button
                 onClick={() => setFilterBlocked("ALL")}
                 className={cn(
@@ -378,10 +381,11 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
               >
                 Bloqueadas <span className="ml-1.5 text-[10px] text-muted-foreground">{blockedCount}</span>
               </button>
+              </div>
             </div>
 
             {canCreate && (
-              <Link href="/portal/cadastros/empresa/novo" className="w-full sm:w-auto">
+              <Link href="/portal/cadastros/empresa/novo" className="block w-full sm:w-auto">
                 <Button
                   type="button"
                   className="inline-flex w-full sm:w-auto items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"

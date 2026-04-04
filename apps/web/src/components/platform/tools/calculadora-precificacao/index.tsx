@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { usePricingCalculator } from './usePricingCalculator';
+import { usePricingCalculator } from './use-pricing-calculator';
 import { Step1Custos } from './components/Step1Custos';
 import { Step2Precificacao } from './components/Step2Precificacao';
 import { PricingResults } from './components/PricingResults';

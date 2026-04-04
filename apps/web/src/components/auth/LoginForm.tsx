@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState } from "react"
 import Link from "next/link"
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2, Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
+import { AuthLayoutWrapper } from "@/components/auth/AuthLayoutWrapper"
 
 export function LoginForm() {
   const {
@@ -50,7 +50,7 @@ export function LoginForm() {
           onSubmit={handleSubmit}
           className="space-y-4"
           noValidate
-          aria-label="Formulário de login"
+          aria-label="FormulÃ¡rio de login"
         >
           <div className="space-y-2">
             <Label
@@ -195,7 +195,7 @@ export function LoginForm() {
           <p className="text-center text-sm text-muted-foreground">
             Entre em contato pelo{" "}
             <Link
-              href="https://wa.me/5534997713731?text=Olá"
+              href="https://wa.me/5534997713731?text=OlÃ¡"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
@@ -207,7 +207,7 @@ export function LoginForm() {
               href="/docs/suporte"
               className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
             >
-              suporte técnico
+              suporte tÃ©cnico
             </Link>
             .
           </p>
@@ -216,5 +216,6 @@ export function LoginForm() {
     </AuthLayoutWrapper>
   )
 }
+
 
 

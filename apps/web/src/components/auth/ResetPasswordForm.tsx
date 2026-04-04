@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { useResetPassword } from "@/features/auth/hooks/use-reset-password"
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Lock, AlertCircle, Eye, EyeOff } from "lucide-react"
-import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
+import { AuthLayoutWrapper } from "@/components/auth/AuthLayoutWrapper"
 import { cn } from "@/lib/utils"
 
 export function ResetPasswordForm() {
@@ -29,12 +29,12 @@ export function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <AuthLayoutWrapper title="Link Inválido" description="Solicitação não encontrada." backButton>
+      <AuthLayoutWrapper title="Link InvÃ¡lido" description="SolicitaÃ§Ã£o nÃ£o encontrada." backButton>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro</AlertTitle>
           <AlertDescription>
-            O link de recuperação é inválido ou expirou. Links são válidos por 1 hora.
+            O link de recuperaÃ§Ã£o Ã© invÃ¡lido ou expirou. Links sÃ£o vÃ¡lidos por 1 hora.
           </AlertDescription>
         </Alert>
         <Button className="w-full mt-4" asChild>
@@ -77,7 +77,7 @@ export function ResetPasswordForm() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Mínimo 8 caracteres"
+                placeholder="MÃ­nimo 8 caracteres"
                 required
                 autoComplete="new-password"
                 value={password}
@@ -117,7 +117,7 @@ export function ResetPasswordForm() {
                   )}
                 >
                   {passwordStrength.label}
-                  {!passwordStrength.passes && " - adicione letras maiúsculas, números ou símbolos"}
+                  {!passwordStrength.passes && " - adicione letras maiÃºsculas, nÃºmeros ou sÃ­mbolos"}
                 </p>
               </div>
             )}
@@ -151,7 +151,7 @@ export function ResetPasswordForm() {
               />
               <button
                 type="button"
-                aria-label={showConfirm ? "Ocultar confirmação" : "Mostrar confirmação"}
+                aria-label={showConfirm ? "Ocultar confirmaÃ§Ã£o" : "Mostrar confirmaÃ§Ã£o"}
                 onClick={() => setShowConfirm((p) => !p)}
                 disabled={loading}
                 className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
@@ -161,7 +161,7 @@ export function ResetPasswordForm() {
             </div>
             {confirmPassword.length > 0 && password !== confirmPassword && (
               <p className="text-[11px] text-orange-500 animate-in fade-in duration-200">
-                As senhas não coincidem ainda
+                As senhas nÃ£o coincidem ainda
               </p>
             )}
           </div>
@@ -181,5 +181,6 @@ export function ResetPasswordForm() {
     </AuthLayoutWrapper>
   )
 }
+
 
 

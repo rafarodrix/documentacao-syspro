@@ -15,6 +15,7 @@
 - Testes: `*.test.ts` ou `*.test.tsx`
 - Excecao controlada: componentes vendorizados em `apps/web/src/components/ui/*` podem manter `kebab-case.tsx` para compatibilidade com o ecossistema shadcn/radix.
 - Evitar duplicidade por estilo (ex.: `ThemeProvider.tsx` e `theme-provider.tsx` para a mesma responsabilidade).
+- Excecao de entrypoint: `index.tsx` e `index.ts` sao permitidos quando o objetivo for apenas expor o modulo/pasta.
 
 ## Convencoes de responsabilidade
 

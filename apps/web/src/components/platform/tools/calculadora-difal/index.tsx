@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { useDifalCalculator } from './useDifalCalculator';
+import { useDifalCalculator } from './use-difal-calculator';
 import { DifalResults } from './components/DifalResults';
 import { DifalExplanation } from './components/DifalExplanation';
 import { DifalStep1 } from './components/DifalStep1';
@@ -24,7 +24,7 @@ export function CalculadoraDifal() {
                 baseDeCalculo={baseDeCalculo}
             />
 
-            {/* Componente 2: Configuração de Impostos */}
+            {/* Componente 2: ConfiguraÃ§Ã£o de Impostos */}
             <DifalStep2
                 valores={valores}
                 handleChange={handleChange}
@@ -38,7 +38,7 @@ export function CalculadoraDifal() {
                 finalidade={finalidade}
             />
 
-            {/* Componente 4: Teoria/Explicação */}
+            {/* Componente 4: Teoria/ExplicaÃ§Ã£o */}
             <DifalExplanation />
 
         </div>

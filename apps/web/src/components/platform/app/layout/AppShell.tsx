@@ -1,8 +1,8 @@
-"use client"
+﻿"use client"
 
 import type { Role } from "@prisma/client"
 import { useEffect, useState, type ReactNode } from "react"
-import { AppSidebar } from "@/components/platform/app/layout/app-sidebar"
+import { AppSidebar } from "@/components/platform/app/layout/AppSidebar"
 import { MobileHeader } from "@/components/platform/app/layout/MobileHeader"
 import { ClientHeader } from "@/components/platform/app/header/ClientHeader"
 
@@ -59,4 +59,5 @@ export function AppShell({ user, children, initialActiveSessionsCount }: AppShel
     </div>
   )
 }
+
 

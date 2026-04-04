@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getReleases } from "@/features/releases/application/queries";
-import { ReleasesClientPage } from "@/components/releases/client-page";
+import { ReleasesClientPage } from "@/components/releases/ClientPage";
 import { monthNames } from "@/features/releases/infrastructure/mappers/zammad-release.mapper";
 
-// Mantém a geração estática para performance máxima em docs
+// MantÃ©m a geraÃ§Ã£o estÃ¡tica para performance mÃ¡xima em docs
 export async function generateStaticParams() {
   const allReleases = await getReleases();
 
@@ -24,7 +24,7 @@ export async function generateStaticParams() {
     });
 }
 
-// 1. Geração de Metadata Dinâmica para SEO e Título da Aba
+// 1. GeraÃ§Ã£o de Metadata DinÃ¢mica para SEO e TÃ­tulo da Aba
 export async function generateMetadata({
   params,
 }: {
@@ -34,12 +34,12 @@ export async function generateMetadata({
   const monthName = monthNames[Number(month) - 1] || month;
 
   return {
-    title: `Atualizações de ${monthName} de ${year}`,
-    description: `Confira as melhorias e correções lançadas em ${monthName} de ${year}.`,
+    title: `AtualizaÃ§Ãµes de ${monthName} de ${year}`,
+    description: `Confira as melhorias e correÃ§Ãµes lanÃ§adas em ${monthName} de ${year}.`,
   };
 }
 
-// 2. Componente de Página (Server Component)
+// 2. Componente de PÃ¡gina (Server Component)
 export default async function MonthlyReleasePage({
   params,
 }: {
@@ -47,7 +47,7 @@ export default async function MonthlyReleasePage({
 }) {
   const { year, month } = await params;
 
-  // Validação básica
+  // ValidaÃ§Ã£o bÃ¡sica
   const monthIndex = Number(month);
   if (isNaN(monthIndex) || monthIndex < 1 || monthIndex > 12) {
     return notFound();
@@ -55,15 +55,15 @@ export default async function MonthlyReleasePage({
 
   const allReleases = await getReleases();
 
-  // Filtramos apenas pelo mês/ano no servidor.
-  // Deixamos a separação (Bug/Melhoria) para o Client Component fazer via abas.
+  // Filtramos apenas pelo mÃªs/ano no servidor.
+  // Deixamos a separaÃ§Ã£o (Bug/Melhoria) para o Client Component fazer via abas.
   const releasesForMonth = allReleases.filter((release) => {
     if (!release.isoDate) return false;
     const [releaseYear, releaseMonth] = release.isoDate.split("-");
     return releaseYear === year && releaseMonth === month;
   });
 
-  // Se não houver nada para este mês (URL manual inválida), 404
+  // Se nÃ£o houver nada para este mÃªs (URL manual invÃ¡lida), 404
   if (!releasesForMonth || releasesForMonth.length === 0) {
     return notFound();
   }
@@ -77,4 +77,5 @@ export default async function MonthlyReleasePage({
     />
   );
 }
+
 

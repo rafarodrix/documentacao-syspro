@@ -1,11 +1,11 @@
-"use client"
+﻿"use client"
 
 import { ModeToggle } from "@/components/ModeToggle"
 import { Button } from "@/components/ui/button"
 import { PanelLeftClose, PanelLeftOpen, Plus, Ticket } from "lucide-react"
 import { Breadcrumbs } from "./breadcrumbs"
-import { CommandPaletteTrigger } from "./command-palette-trigger"
-import { UserProfile } from "./user-profile"
+import { CommandPaletteTrigger } from "./CommandPaletteTrigger"
+import { UserProfile } from "./UserProfile"
 import { NotificationsMenu } from "./NotificationsMenu"
 import Link from "next/link"
 import type { Role } from "@prisma/client"
@@ -72,3 +72,4 @@ export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialA
     </header>
   )
 }
+

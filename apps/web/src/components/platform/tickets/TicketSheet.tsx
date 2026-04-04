@@ -100,7 +100,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
         >
             <SheetTrigger asChild>
                 <Button
-                    className="h-10 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-linear-to-r from-primary to-primary/90 gap-2"
+                    className="h-10 w-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-linear-to-r from-primary to-primary/90 gap-2 sm:w-auto"
                     onClick={() => logInfo("sheet.trigger_click", { openBeforeClick: open })}
                 >
                     <PlusCircle className="h-4 w-4" />
@@ -109,7 +109,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                 </Button>
             </SheetTrigger>
 
-            <SheetContent className="sm:max-w-150 w-full p-0 flex flex-col bg-background/95 backdrop-blur-xl border-l-border/50">
+            <SheetContent className="w-full p-0 flex flex-col bg-background/95 backdrop-blur-xl border-l-border/50 sm:max-w-150">
 
                 {/* HEADER */}
                 <div className="p-6 border-b border-border/40 bg-muted/10">
@@ -181,7 +181,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                                                         </Button>
                                                     </PopoverTrigger>
-                                                    <PopoverContent align="start" className="w-[420px] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                                                    <PopoverContent align="start" className="w-[min(26rem,calc(100vw-2rem))] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
                                                         <div className="border-b p-2.5">
                                                             <Input
                                                                 type="text"
@@ -235,7 +235,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                         </FormItem>
                                     )}
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <FormField control={form.control} name="type" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Tipo</FormLabel>

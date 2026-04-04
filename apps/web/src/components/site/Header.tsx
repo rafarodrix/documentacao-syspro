@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import Image from "next/image";
 import { headers } from "next/headers";
 import {
@@ -15,7 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { SYSTEM_ROLES, hasAllowedRole } from "@dosc-syspro/core";
-import { SignOutButton } from "@/components/auth/sign-out-button";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -326,3 +326,4 @@ function MobileNavLink({ href, children, external }: { href: string; children: R
     </Link>
   );
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import type { ElementType } from "react";
@@ -48,8 +48,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MagicCard } from "@/components/magicui/magic-card";
-import { ShineBorder } from "@/components/magicui/shine-border";
+import { MagicCard } from "@/components/magicui/MagicCard";
+import { ShineBorder } from "@/components/magicui/ShineBorder";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -427,7 +427,7 @@ export function CreateCompanyPageForm({
       return;
     }
     if (zammadEmails.some((item) => item.email === email)) {
-      toast.error("Este e-mail já foi adicionado.");
+      toast.error("Este e-mail jÃ¡ foi adicionado.");
       return;
     }
     setZammadEmails((prev) => [
@@ -1112,4 +1112,5 @@ export function CreateCompanyPageForm({
     </div>
   );
 }
+
 

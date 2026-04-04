@@ -1,4 +1,4 @@
-// src/components/tools/calculadora-precificacao/usePricingCalculator.ts
+﻿// src/components/tools/calculadora-precificacao/use-pricing-calculator.ts
 
 import { useState, useMemo, ChangeEvent } from 'react';
 import { PricingState, Segmento, ModoCalculo, PricingResult } from '@/components/platform/tools/calculadora-precificacao/types';

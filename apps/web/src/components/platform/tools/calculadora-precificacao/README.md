@@ -1,4 +1,4 @@
-# Calculadora de Precificacao e Markup
+﻿# Calculadora de Precificacao e Markup
 
 Ferramenta para calculo de preco de venda, margem, markup e leitura basica de custo fixo.
 
@@ -9,7 +9,7 @@ Ajudar na simulacao de precificacao com foco em cenarios operacionais simples e 
 ## Estrutura do modulo
 
 - `index.tsx`: entrada visual da calculadora
-- `usePricingCalculator.ts`: estado e inputs da interface
+- `use-pricing-calculator.ts`: estado e inputs da interface
 - `calculations.ts`: funcoes matematicas puras
 - `constants.ts`: benchmarks e textos auxiliares
 - `types.ts`: contratos do modulo
@@ -55,3 +55,4 @@ const resultado = calculatePricing({
   modo: "venda",
 });
 ```
+

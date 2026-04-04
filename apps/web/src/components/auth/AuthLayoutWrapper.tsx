@@ -40,13 +40,13 @@ export function AuthLayoutWrapper({
                 )}
 
                 {/* Background Grids Sutil */}
-                <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+                <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-size-[24px_24px]"></div>
 
-                <div className="mx-auto w-full max-w-[400px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 py-12 lg:py-0">
+                <div className="mx-auto w-full max-w-100 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 py-12 lg:py-0">
 
                     {/* Cabeçalho */}
                     <div className="flex flex-col space-y-2 text-center">
-                        <div className="mx-auto mb-6 h-12 w-12 rounded-xl bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+                        <div className="mx-auto mb-6 h-12 w-12 rounded-xl bg-linear-to-tr from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
                             <Terminal className="h-6 w-6 text-primary-foreground" />
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
@@ -67,8 +67,8 @@ export function AuthLayoutWrapper({
 
                 {/* Background Effects */}
                 <div className="absolute inset-0 z-0 pointer-events-none">
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] opacity-50 mix-blend-screen animate-pulse-slow"></div>
-                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] opacity-30 mix-blend-screen"></div>
+                    <div className="absolute top-0 right-0 w-125 h-125 bg-primary/20 rounded-full blur-[120px] opacity-50 mix-blend-screen animate-pulse-slow"></div>
+                    <div className="absolute bottom-0 left-0 w-125 h-125 bg-purple-500/10 rounded-full blur-[120px] opacity-30 mix-blend-screen"></div>
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
                 </div>
 

@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import type { ElementType } from "react";
 import { Inbox, Clock, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NumberTicker } from "@/components/magicui/number-ticker";
+import { NumberTicker } from "@/components/magicui/NumberTicker";
 import { cn } from "@/lib/utils";
 import type { TicketStatusCounts } from "./types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
@@ -109,3 +109,4 @@ export function TicketsStats({ counts, activeStatus, onSelectStatus }: TicketsSt
         </div>
     );
 }
+

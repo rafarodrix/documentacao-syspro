@@ -1,7 +1,7 @@
-"use client"
+﻿"use client"
 
 import { useForgotPassword } from "@/features/auth/hooks/use-forgot-password"
-import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
+import { AuthLayoutWrapper } from "@/components/auth/AuthLayoutWrapper"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,7 +22,7 @@ export function ForgotPasswordForm() {
   return (
     <AuthLayoutWrapper
       title="Recuperar Senha"
-      description="Digite seu e-mail para receber as instruções."
+      description="Digite seu e-mail para receber as instruÃ§Ãµes."
       backButton
     >
       {success ? (
@@ -33,8 +33,8 @@ export function ForgotPasswordForm() {
           <div className="space-y-2">
             <h3 className="text-xl font-semibold">Verifique seu e-mail</h3>
             <p className="text-sm text-muted-foreground">
-              Se houver uma conta cadastrada para <strong>{email}</strong>, você receberá
-              um link de recuperação em breve. Verifique também a pasta de spam.
+              Se houver uma conta cadastrada para <strong>{email}</strong>, vocÃª receberÃ¡
+              um link de recuperaÃ§Ã£o em breve. Verifique tambÃ©m a pasta de spam.
             </p>
           </div>
           <Button variant="outline" className="w-full" onClick={() => setSuccess(false)}>
@@ -99,11 +99,12 @@ export function ForgotPasswordForm() {
           >
             {loading
               ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Enviando...</span>
-              : "Enviar Link de Recuperação"}
+              : "Enviar Link de RecuperaÃ§Ã£o"}
           </Button>
         </form>
       )}
     </AuthLayoutWrapper>
   )
 }
+
 

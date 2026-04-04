@@ -1,4 +1,4 @@
-# Calculadora de DIFAL e Antecipacao de ICMS
+﻿# Calculadora de DIFAL e Antecipacao de ICMS
 
 Ferramenta para calculo do Diferencial de Aliquota (DIFAL) e da antecipacao parcial de ICMS em operacoes interestaduais.
 
@@ -9,7 +9,7 @@ Oferecer uma calculadora educativa e operacional para comparar base de origem, c
 ## Estrutura do modulo
 
 - `index.tsx`: entrada visual da ferramenta
-- `useDifalCalculator.ts`: estado do formulario e interacoes
+- `use-difal-calculator.ts`: estado do formulario e interacoes
 - `calculations.ts`: regras matematicas puras e reutilizaveis
 - `constants.ts`: aliquotas internas padrao por UF
 - `types.ts`: contratos do modulo
@@ -56,3 +56,4 @@ const resultado = calcularDifalPorDentro(baseInicial, 12, 18, 0);
 
 - as aliquotas internas de `constants.ts` sao referenciais
 - a ferramenta permite ajuste manual quando houver regra especifica por produto ou UF
+

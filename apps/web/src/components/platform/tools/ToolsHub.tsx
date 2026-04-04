@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ElementType } from "react";
 import Link from "next/link";
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MagicCard } from "@/components/magicui/magic-card";
+import { MagicCard } from "@/components/magicui/MagicCard";
 import { Badge } from "@/components/ui/badge";
 
 type Category = "calculadoras" | "simuladores" | "utilitarios" | "reforma";
@@ -194,3 +194,4 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
     </div>
   );
 }
+
