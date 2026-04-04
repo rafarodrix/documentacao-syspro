@@ -1,11 +1,12 @@
 "use server"
 
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { z } from "zod";
+import { hasEvolutionApiCredentials, readEvolutionConfig } from "@dosc-syspro/api/services/evolution-config";
 
-const evolutionUrl = process.env.EVOLUTION_URL || "";
-const evolutionKey = process.env.EVOLUTION_API_KEY || "";
-const evolutionInstance = process.env.EVOLUTION_INSTANCE_NAME || "Syspro";
+const evolutionConfig = readEvolutionConfig(process.env);
+const evolutionUrl = evolutionConfig.apiUrl;
+const evolutionKey = evolutionConfig.apiKey;
+const evolutionInstance = evolutionConfig.instance;
 
 function getHeaders() {
   return {
@@ -20,7 +21,7 @@ export async function getEvolutionConnectionState() {
     return { error: "UNAUTHORIZED", state: "unknown" };
   }
 
-  if (!evolutionUrl || !evolutionKey) {
+  if (!hasEvolutionApiCredentials({ apiUrl: evolutionUrl, apiKey: evolutionKey })) {
     return { error: "NOT_CONFIGURED", state: "unknown" };
   }
 

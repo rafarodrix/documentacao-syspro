@@ -1,0 +1,32 @@
+---
+title: Webhook Oficial do Zammad
+description: Estado atual das rotas de webhook do Zammad e politica de seguranca.
+lastUpdated: 2026-04-04
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - manuais-tecnicos
+  - documentacao-tecnica-arquitetura
+  - integracao-zammad
+  - webhook
+audience:
+  - admin
+  - developer
+  - suporte
+---
+
+## Endpoint oficial
+
+- `POST /api/platform/zammad/webhook`
+- autenticacao obrigatoria por assinatura HMAC
+
+## Alias suportado
+
+- `POST /api/integrations/zammad/webhook`
+- aponta para a mesma implementacao oficial
+
+## Endpoint legado
+
+- `POST /api/webhooks/zammad`
+- status atual: **desativado** (HTTP `410`)
+- motivo: eliminar rota sem HMAC e reduzir superficie de risco operacional

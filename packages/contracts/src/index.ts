@@ -83,3 +83,6 @@ export type {
   ZammadCatalogOwner,
   ZammadGlobalCatalog,
 } from "./zammad-global-settings";
+
+export { evolutionMessageUpsertPayloadSchema } from "./whatsapp-evolution";
+export type { EvolutionMessageUpsertPayload } from "./whatsapp-evolution";

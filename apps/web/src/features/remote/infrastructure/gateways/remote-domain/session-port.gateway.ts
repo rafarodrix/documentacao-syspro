@@ -2,12 +2,7 @@ import { createRemoteSessionPort as createSharedRemoteSessionPort } from "@dosc-
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import type { RemoteSessionPort } from "@dosc-syspro/remote-domain";
 import { WhatsAppService } from "@dosc-syspro/api/services/whatsapp-service";
-
-const whatsAppServiceUrl = process.env.EVOLUTION_URL || "";
-const whatsAppServiceKey = process.env.EVOLUTION_API_KEY || "";
-const whatsAppServiceInstance = process.env.EVOLUTION_INSTANCE_NAME || "Syspro";
-
-const whatsAppService = new WhatsAppService(whatsAppServiceUrl, whatsAppServiceKey, whatsAppServiceInstance);
+const whatsAppService = WhatsAppService.fromEnv(process.env);
 
 type RemoteLogger = {
   info(event: string, fields?: Record<string, unknown>): void;

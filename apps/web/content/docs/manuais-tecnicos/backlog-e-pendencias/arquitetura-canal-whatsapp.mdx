@@ -1,7 +1,7 @@
 ---
-title: Arquitetura Futura do Canal WhatsApp
+title: Arquitetura do Canal WhatsApp
 description: Diretrizes tecnicas para introduzir o canal WhatsApp sem acoplar conversas, atendimento e remoto ao frontend.
-lastUpdated: 2026-03-24
+lastUpdated: 2026-04-04
 owner: Engenharia de Plataforma
 status: draft
 tags:
@@ -38,8 +38,23 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
   - `ConversationAssignment`
 
 <Callout type="info" title="Leitura correta do estado atual">
-  A base ja comporta um canal conversacional futuro, mas ainda nao existe backend materializado com casos de uso reais, fila operacional dedicada ou bridge de WhatsApp em producao.
+  O canal ja possui operacao parcial em producao no `apps/web` (webhook Evolution, abertura/atualizacao de ticket no Zammad e painel administrativo). O backend dedicado em `apps/api`, o bridge isolado (`apps/whatsapp-bridge`) e a fila operacional dedicada continuam pendentes.
 </Callout>
+
+## Estado atual real (2026-04-04)
+
+- Em producao no `apps/web`:
+  - webhook inbound da Evolution
+  - conciliacao com `CompanyContact`
+  - abertura/atualizacao de ticket no Zammad
+  - persistencia de conversa/mensagem para trilha auditavel
+- Implementado como base de contrato:
+  - payload `messages.upsert` formalizado em `@dosc-syspro/contracts`
+  - padronizacao de env para Evolution: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE`
+- Ainda pendente:
+  - materializar casos de uso no `apps/api`
+  - separar bridge de sessao em `apps/whatsapp-bridge`
+  - introduzir fila operacional dedicada (Redis/BullMQ)
 
 ## Decisao arquitetural
 

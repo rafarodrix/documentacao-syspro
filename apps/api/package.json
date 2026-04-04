@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@dosc-syspro/api": "0.0.0",
+    "@dosc-syspro/contracts": "0.0.0",
     "@dosc-syspro/remote-domain": "0.0.0",
     "@nestjs/common": "^11.1.18",
     "@nestjs/core": "^11.1.18",

@@ -15,6 +15,7 @@
     "documentacao-tecnica-arquitetura/portal-web/diff-highlighting-shiki",
     "---Zammad---",
     "documentacao-tecnica-arquitetura/zammad/integracao-zammad",
+    "documentacao-tecnica-arquitetura/zammad/webhook-oficial-zammad",
     "---Acesso Remoto---",
     "documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote",
     "documentacao-tecnica-arquitetura/acesso-remoto/resiliencia-remote",
@@ -31,6 +32,7 @@
     "documentacao-tecnica-arquitetura/modulo-documentacao/templates/template-tecnico",
     "---Backlog e Pendencias---",
     "backlog-e-pendencias/backlog-infra-monorepo",
+    "backlog-e-pendencias/status-integracoes-zammad-whatsapp-rustdesk-portal",
     "backlog-e-pendencias/operacao-backup-agendado-remoto",
     "backlog-e-pendencias/arquitetura-canal-whatsapp"
   ]

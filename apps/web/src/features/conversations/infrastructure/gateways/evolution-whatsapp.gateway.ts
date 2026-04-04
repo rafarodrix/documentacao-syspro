@@ -2,6 +2,7 @@
  * Gateway para integracao com WhatsApp via Evolution API.
  * Gerencia o envio de mensagens e tratamento de respostas da API.
  */
+import { hasEvolutionApiCredentials, readEvolutionConfig } from "@dosc-syspro/api/services/evolution-config";
 
 interface EvolutionSendTextResponse {
   key: {
@@ -21,9 +22,10 @@ export class EvolutionWhatsAppGateway {
   private readonly instance: string;
 
   constructor() {
-    this.apiUrl = process.env.EVOLUTION_API_URL || "";
-    this.apiKey = process.env.EVOLUTION_API_KEY || "";
-    this.instance = process.env.EVOLUTION_INSTANCE || "Main";
+    const config = readEvolutionConfig(process.env);
+    this.apiUrl = config.apiUrl;
+    this.apiKey = config.apiKey;
+    this.instance = config.instance;
   }
 
   /**
@@ -45,7 +47,7 @@ export class EvolutionWhatsAppGateway {
    * Envia uma mensagem de texto simples.
    */
   async sendTextMessage(to: string, text: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    if (!this.apiUrl || !this.apiKey) {
+    if (!hasEvolutionApiCredentials({ apiUrl: this.apiUrl, apiKey: this.apiKey })) {
       return { success: false, error: "Configuracao Evolution API ausente no servidor" };
     }
 

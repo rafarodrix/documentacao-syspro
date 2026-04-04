@@ -20,6 +20,7 @@ npm run typecheck -w @dosc-syspro/app-api
 
 - `GET /health`
 - `POST /rpc/:namespace/:procedure`
+- `POST /webhooks/evolution` (contrato de transicao, ainda `not-wired`)
 
 ## Headers de sessao aceitos
 

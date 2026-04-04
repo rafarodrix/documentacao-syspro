@@ -1,0 +1,87 @@
+---
+title: Status Real das Integracoes (Zammad, WhatsApp, RustDesk, Portal)
+description: Consolidado tecnico do que esta em producao, do que esta parcial e do que ainda e backlog.
+lastUpdated: 2026-04-04
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - manuais-tecnicos
+  - backlog-e-pendencias
+  - status-integracoes
+audience:
+  - admin
+  - developer
+  - suporte
+---
+
+## Escopo
+
+Este documento consolida o estado real da integracao entre:
+
+- Zammad
+- WhatsApp (Evolution)
+- RustDesk
+- Portal
+
+## Resumo executivo (2026-04-04)
+
+- Zammad: **producao** com cache em banco, sync worker e webhook oficial com HMAC.
+- WhatsApp: **producao parcial** no `apps/web` (inbound/outbound, ticketing no Zammad e trilha de mensagens).
+- RustDesk: **MVP funcional** com `discover -> bootstrap -> sync -> ack` em codigo; validacao E2E em campo ainda pendente.
+- Portal: **operacao principal** de tickets, remoto e configuracoes.
+
+## Estado por frente
+
+### Zammad
+
+- Em producao:
+  - `POST /api/platform/zammad/webhook` (HMAC)
+  - alias `POST /api/integrations/zammad/webhook`
+  - `POST /api/platform/zammad/sync`
+  - `ZammadTicketCache` + `ZammadSyncState`
+- Mudanca aplicada:
+  - endpoint legado `POST /api/webhooks/zammad` desativado (HTTP 410).
+
+### WhatsApp (Evolution)
+
+- Em producao parcial no `apps/web`:
+  - `POST /api/webhooks/evolution`
+  - conciliacao por `CompanyContact`
+  - abertura/atualizacao de ticket no Zammad
+  - trilha auditavel em `Conversation` e `ConversationMessage`
+  - dedupe basico por `externalMessageId`
+- Contrato compartilhado implementado:
+  - `@dosc-syspro/contracts` com schema `messages.upsert`
+  - padronizacao de env:
+    - `EVOLUTION_API_URL`
+    - `EVOLUTION_API_KEY`
+    - `EVOLUTION_INSTANCE`
+    - `EVOLUTION_WEBHOOK_SECRET`
+- Pendente:
+  - migrar casos de uso para backend dedicado (`apps/api`)
+  - extrair bridge para `apps/whatsapp-bridge`
+  - fila operacional dedicada (Redis/BullMQ)
+
+### RustDesk + Portal
+
+- Em codigo:
+  - fluxo oficial `discover -> bootstrap -> sync -> ack`
+  - sessao remota com lifecycle e politicas
+  - observabilidade e sinais de compliance
+- Pendente:
+  - fechamento da matriz E2E por perfil em ambiente com agente real
+  - evidencia operacional por cenario (print/log/link)
+
+## Evidencia de execucao E2E (local)
+
+- Data: 2026-04-04
+- Comando tentado: `npm run test:e2e -w @dosc-syspro/web`
+- Resultado: bloqueado no host local (`npm` ausente)
+- Acao necessaria: executar em runner com Node.js + npm instalados e anexar evidencias da matriz.
+
+## Proximos passos objetivos
+
+1. Conectar inbound/outbound WhatsApp ao backend dedicado em `apps/api`.
+2. Publicar bridge isolado de sessao de canal (`apps/whatsapp-bridge`).
+3. Executar a matriz E2E remoto por perfil com evidencia obrigatoria.
+4. Atualizar este documento ao fim de cada lote de validacao.

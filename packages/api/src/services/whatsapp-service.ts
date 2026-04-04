@@ -1,3 +1,5 @@
+import { hasEvolutionApiCredentials, readEvolutionConfig } from "./evolution-config";
+
 export class WhatsAppService {
   constructor(
     private readonly baseUrl: string,
@@ -5,8 +7,13 @@ export class WhatsAppService {
     private readonly instanceName: string
   ) {}
 
+  static fromEnv(env: NodeJS.ProcessEnv = process.env): WhatsAppService {
+    const config = readEvolutionConfig(env);
+    return new WhatsAppService(config.apiUrl, config.apiKey, config.instance);
+  }
+
   async sendMessage(number: string, text: string): Promise<void> {
-    if (!this.baseUrl || !this.apiKey) {
+    if (!hasEvolutionApiCredentials({ apiUrl: this.baseUrl, apiKey: this.apiKey })) {
       console.warn("[WhatsAppService] Credenciais faltando. Pulo de envio de mensagem.");
       return;
     }

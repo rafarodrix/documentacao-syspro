@@ -87,10 +87,7 @@ export async function sendConversationMessage(conversationId: string, text: stri
     })
 
     // Dispara WhatsApp
-    const whatsAppServiceUrl = process.env.EVOLUTION_URL || "";
-    const whatsAppServiceKey = process.env.EVOLUTION_API_KEY || "";
-    const whatsAppServiceInstance = process.env.EVOLUTION_INSTANCE_NAME || "Syspro";
-    const whatsAppService = new WhatsAppService(whatsAppServiceUrl, whatsAppServiceKey, whatsAppServiceInstance);
+    const whatsAppService = WhatsAppService.fromEnv(process.env);
 
     await whatsAppService.sendMessage(conversation.contactWhatsappSnapshot, text)
 

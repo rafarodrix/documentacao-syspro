@@ -1,78 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
+import { evolutionMessageUpsertPayloadSchema } from "@dosc-syspro/contracts";
+import { readEvolutionConfig } from "@dosc-syspro/api/services/evolution-config";
 import { whatsAppInboundService } from "@/features/conversations/application/whatsapp-inbound.service";
 import { evolutionWhatsApp } from "@/features/conversations/infrastructure/gateways/evolution-whatsapp.gateway";
 
-/**
- * Webhook para receber eventos da Evolution API (WhatsApp).
- * Foco: 'messages.upsert' para capturar novas mensagens recebidas.
- */
+function extractMessageText(message: Record<string, unknown>): string {
+  const conversation = typeof message.conversation === "string" ? message.conversation : "";
+  const extendedText = (message.extendedTextMessage as { text?: string } | undefined)?.text ?? "";
+  const imageCaption = (message.imageMessage as { caption?: string } | undefined)?.caption ?? "";
+  return (conversation || extendedText || imageCaption || "").trim();
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // 1. Validacao basica de seguranca (opcional, se a Evolution enviar segredo)
+    const config = readEvolutionConfig(process.env);
     const apiKey = req.headers.get("apikey");
-    if (process.env.EVOLUTION_WEBHOOK_SECRET && apiKey !== process.env.EVOLUTION_WEBHOOK_SECRET) {
+
+    if (config.webhookSecret && apiKey !== config.webhookSecret) {
       console.warn("[WebhookEvolution] Chamada com apikey invalida.");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = await req.json();
-    const event = payload.event;
-    
-    // 2. Filtra apenas mensagens recebidas (upsert)
-    // A Evolution API envia 'messages.upsert' para novas mensagens
-    if (event !== "messages.upsert") {
+    const payloadRaw = await req.json();
+    const payloadParsed = evolutionMessageUpsertPayloadSchema.safeParse(payloadRaw);
+
+    if (!payloadParsed.success) {
+      const event = typeof payloadRaw?.event === "string" ? payloadRaw.event : "unknown";
       return NextResponse.json({ status: "ignored_event", event });
     }
 
-    const data = payload.data;
-    if (!data || !data.message) {
-      return NextResponse.json({ status: "no_message_data" });
-    }
+    const payload = payloadParsed.data;
+    const { key, message, pushName } = payload.data;
 
-    // 3. Extrai dados da mensagem
-    const remoteJid = data.key.remoteJid;
-    const fromMe = data.key.fromMe;
-    
-    // Ignora mensagens enviadas pelo proprio bot
-    if (fromMe) {
+    if (key.fromMe) {
       return NextResponse.json({ status: "ignored_from_me" });
     }
 
-    // Extrai o texto da mensagem (pode estar em varios formatos na Evolution)
-    const messageText = 
-      data.message.conversation || 
-      data.message.extendedTextMessage?.text || 
-      data.message.imageMessage?.caption || 
-      "";
-
+    const messageText = extractMessageText(message);
     if (!messageText) {
       return NextResponse.json({ status: "no_text_content" });
     }
 
-    // 4. Extrai o telefone (remove @s.whatsapp.net)
-    const phone = remoteJid.split("@")[0];
-    const pushName = data.pushName || "Cliente WhatsApp";
-
-    // 5. Encaminha para o Service de Inbound (Integracao Zammad)
-    const result = await whatsAppInboundService.handleInboundMessage(
+    const phone = key.remoteJid.split("@")[0] ?? "";
+    const result = await whatsAppInboundService.handleInboundMessage({
       phone,
-      messageText,
-      pushName
-    );
+      text: messageText,
+      contactName: pushName || "Cliente WhatsApp",
+      externalMessageId: key.id,
+      providerPayload: payload,
+    });
 
-    // 6. Responde ao usuario no WhatsApp com o status do ticket
-    if (result.success && result.ticketNumber) {
-      const confirmationMsg = `✅ *Recebido!*\n\nSeu atendimento foi registrado no chamado *#${result.ticketNumber}*.\n\nNossa equipe analisará sua mensagem em breve.\n\n_Para acompanhar detalhes, acesse o Portal Syspro._`;
-      
+    if (result.success && result.ticketNumber && !result.duplicate) {
+      const confirmationMsg =
+        `Recebido.\n\nSeu atendimento foi registrado no chamado #${result.ticketNumber}.\n\n` +
+        "Nossa equipe analisara sua mensagem em breve.\n\n" +
+        "_Para acompanhar detalhes, acesse o Portal Syspro._";
       await evolutionWhatsApp.sendTextMessage(phone, confirmationMsg);
     }
 
-    return NextResponse.json({ 
-      status: "processed", 
-      success: result.success, 
-      ticketNumber: result.ticketNumber 
+    return NextResponse.json({
+      status: "processed",
+      success: result.success,
+      duplicate: Boolean(result.duplicate),
+      ticketNumber: result.ticketNumber,
     });
-
   } catch (error) {
     console.error("[WebhookEvolution] Erro no processamento:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
