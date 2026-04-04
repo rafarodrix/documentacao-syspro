@@ -1,6 +1,7 @@
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
-import { prisma } from "@/lib/prisma";
+import { Injectable } from "@nestjs/common";
 import { ConversationStatus } from "@prisma/client";
+import { PrismaService } from "./prisma/prisma.service";
+import { ZammadClient } from "./integrations/zammad.client";
 
 type WhatsAppInboundMessageInput = {
   phone: string;
@@ -28,27 +29,25 @@ function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
+@Injectable()
 export class WhatsAppInboundService {
-  /**
-   * Processa uma mensagem recebida via WhatsApp (Evolution API).
-   * 1. Identifica o contato pelo telefone.
-   * 2. Garante que existe um usuario no Zammad.
-   * 3. Abre um novo ticket ou atualiza um existente.
-   */
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly zammadClient: ZammadClient
+  ) {}
+
   async handleInboundMessage(input: WhatsAppInboundMessageInput): Promise<WhatsAppInboundResult> {
     try {
       const normalizedPhone = normalizePhone(input.phone);
       const text = input.text.trim();
       const externalMessageId = input.externalMessageId?.trim() || null;
 
-      console.log(`[WhatsAppInbound] Recebida mensagem de ${normalizedPhone}: ${text.substring(0, 50)}...`);
-
       if (!text) {
         return { success: false, error: "Mensagem sem conteudo textual." };
       }
 
       if (externalMessageId) {
-        const duplicated = await prisma.conversationMessage.findFirst({
+        const duplicated = await this.prisma.conversationMessage.findFirst({
           where: { externalMessageId },
           select: { id: true },
         });
@@ -58,22 +57,21 @@ export class WhatsAppInboundService {
         }
       }
 
-      // 1. Identifica o contato localmente
-      const contact = await prisma.companyContact.findFirst({
+      const contact = await this.prisma.companyContact.findFirst({
         where: {
           OR: [
             { whatsapp: normalizedPhone },
             { phone: normalizedPhone },
-            { whatsapp: { endsWith: normalizedPhone.substring(normalizedPhone.length - 8) } }
+            { whatsapp: { endsWith: normalizedPhone.substring(Math.max(0, normalizedPhone.length - 8)) } },
           ],
-          status: "LINKED"
+          status: "LINKED",
         },
         include: {
-          company: true
-        }
+          company: true,
+        },
       });
 
-      const activeConversation = await prisma.conversation.findFirst({
+      const activeConversation = await this.prisma.conversation.findFirst({
         where: {
           contactWhatsappSnapshot: normalizedPhone,
           status: { in: ACTIVE_CONVERSATION_STATUSES },
@@ -83,7 +81,7 @@ export class WhatsAppInboundService {
 
       const conversation = activeConversation
         ? activeConversation
-        : await prisma.conversation.create({
+        : await this.prisma.conversation.create({
             data: {
               channel: "WHATSAPP",
               status: contact ? "NEW" : "UNASSIGNED",
@@ -102,7 +100,7 @@ export class WhatsAppInboundService {
           });
 
       if (!activeConversation) {
-        await prisma.conversationQueueEvent.create({
+        await this.prisma.conversationQueueEvent.create({
           data: {
             conversationId: conversation.id,
             queueKey: "new",
@@ -114,7 +112,7 @@ export class WhatsAppInboundService {
         });
       }
 
-      await prisma.conversationMessage.create({
+      await this.prisma.conversationMessage.create({
         data: {
           conversationId: conversation.id,
           direction: "INBOUND",
@@ -132,7 +130,7 @@ export class WhatsAppInboundService {
         },
       });
 
-      await prisma.conversation.update({
+      await this.prisma.conversation.update({
         where: { id: conversation.id },
         data: {
           lastMessagePreview: text.substring(0, 100),
@@ -142,59 +140,32 @@ export class WhatsAppInboundService {
       });
 
       if (!contact) {
-        console.warn(`[WhatsAppInbound] Contato nao identificado para o telefone: ${normalizedPhone}`);
         return { success: false, error: "Contato nao identificado no portal." };
       }
 
       const clientEmail = contact.email || `${normalizedPhone}@whatsapp.trilink.com.br`;
-
-      // --- TRATAMENTO DE COMANDOS (Fase 7) ---
       const isClosureCommand = text.toLowerCase().includes("#resolvido") || text.toLowerCase().includes("#fechar");
-      
-      if (isClosureCommand) {
-        const activeTicketsForClosure = await ZammadGateway.getTicketsForCustomerEmailsPaged([clientEmail], {
-          stateIds: [1, 2, 4], // new, open, pending
-          limit: 1
-        });
 
+      if (isClosureCommand) {
+        const activeTicketsForClosure = await this.zammadClient.getTicketsForCustomerEmailsPaged([clientEmail], 1);
         if (activeTicketsForClosure.length > 0) {
           const ticket = activeTicketsForClosure[0];
-          console.log(`[WhatsAppInbound] Comando de fechamento detectado para ticket #${ticket.number}`);
-          
-          await ZammadGateway.addTicketReply(ticket.id, "<b>Finalização via WhatsApp:</b> O cliente confirmou a resolução do problema (#resolvido).");
-          await ZammadGateway.updateTicket(ticket.id, { state_id: 4 }); // 4 = closed
-
+          await this.zammadClient.addTicketReply(
+            ticket.id,
+            "<b>Finalizacao via WhatsApp:</b> O cliente confirmou a resolucao do problema (#resolvido)."
+          );
+          await this.zammadClient.updateTicket(ticket.id, { state_id: 4 });
           return { success: true, ticketNumber: ticket.number };
-        } else {
-          return { success: false, error: "Não foi encontrado nenhum chamado aberto para finalizar com este comando." };
         }
+        return { success: false, error: "Nao foi encontrado chamado aberto para finalizar." };
       }
 
-      // 2. Garante usuario no Zammad
-      let zammadUserId = await ZammadGateway.getUserIdByEmail(clientEmail);
-      
-      if (!zammadUserId) {
-        console.log(`[WhatsAppInbound] Criando usuario no Zammad para ${clientEmail}`);
-        // Se nao existe, o Zammad cria automaticamente ao abrir o ticket se enviarmos os dados do customer
-      }
-
-      // 3. Busca tickets ABERTOS para este usuario
-      // OPERATIONAL_STATE_IDS: [1, 2, 4] (new, open, pending)
-      const openTickets = await ZammadGateway.getTicketsForCustomerEmailsPaged([clientEmail], {
-        stateIds: [1, 2, 4],
-        limit: 1
-      });
-
+      const openTickets = await this.zammadClient.getTicketsForCustomerEmailsPaged([clientEmail], 1);
       if (openTickets.length > 0) {
         const existingTicket = openTickets[0];
-        console.log(`[WhatsAppInbound] Atualizando ticket existente #${existingTicket.number}`);
-        
-        await ZammadGateway.addTicketReply(
-          existingTicket.id,
-          `<b>Mensagem via WhatsApp:</b><br/>${text}`
-        );
+        await this.zammadClient.addTicketReply(existingTicket.id, `<b>Mensagem via WhatsApp:</b><br/>${text}`);
 
-        await prisma.conversation.update({
+        await this.prisma.conversation.update({
           where: { id: conversation.id },
           data: {
             ticketId: String(existingTicket.id),
@@ -206,28 +177,21 @@ export class WhatsAppInboundService {
         return { success: true, ticketNumber: existingTicket.number };
       }
 
-      // 4. Cria NOVO ticket
-      console.log(`[WhatsAppInbound] Abrindo NOVO ticket para ${contact.company.nomeFantasia}`);
-      
-      const ticketPayload = {
+      const newTicketResponse = await this.zammadClient.createTicket({
         title: `Suporte WhatsApp: ${contact.company.nomeFantasia}`,
-        group: "Users", // TODO: Tornar configuravel ou buscar do catalogo
+        group: "Users",
         customer: clientEmail,
-        priority_id: 2, // 2 = normal
+        priority_id: 2,
         article: {
           subject: "Abertura via WhatsApp",
           body: `<b>Mensagem de abertura:</b><br/>${text}`,
           type: "note",
           internal: false,
         },
-      };
+      }) as { id?: number; number?: string | number };
 
-      const newTicketResponse = await ZammadGateway.createTicket(ticketPayload) as any;
-      
       if (newTicketResponse && newTicketResponse.number) {
-        console.log(`[WhatsAppInbound] Novo ticket criado: #${newTicketResponse.number}`);
-
-        await prisma.conversation.update({
+        await this.prisma.conversation.update({
           where: { id: conversation.id },
           data: {
             ticketId: newTicketResponse.id ? String(newTicketResponse.id) : null,
@@ -235,16 +199,13 @@ export class WhatsAppInboundService {
             status: "IN_PROGRESS",
           },
         });
-
-        return { success: true, ticketNumber: newTicketResponse.number };
+        return { success: true, ticketNumber: String(newTicketResponse.number) };
       }
 
       return { success: false, error: "Erro ao criar ticket no Zammad." };
     } catch (error) {
-      console.error("[WhatsAppInbound] Erro critico ao processar mensagem:", error);
       return { success: false, error: String(error) };
     }
   }
 }
 
-export const whatsAppInboundService = new WhatsAppInboundService();

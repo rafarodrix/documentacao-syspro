@@ -13,6 +13,7 @@ interface TicketsPageProps {
 }
 
 export default async function TicketsPage({ searchParams }: TicketsPageProps) {
+  const renderStartedAt = Date.now();
   const session = await requireSession();
   const params = searchParams ? await searchParams : undefined;
   const pageParam = typeof params?.page === "string" ? Number(params.page) : 1;
@@ -30,6 +31,17 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     ? (closedWindowParam as ClosedTicketsWindow)
     : "30d";
 
+  console.info("[TicketsDiag][page] loading", {
+    at: new Date().toISOString(),
+    userId: session.userId,
+    role: session.role,
+    page,
+    queue,
+    statusGroup,
+    closedWindow,
+    hasSearch: Boolean(search.trim()),
+  });
+
   const { data, success, pagination, staleWarning, queueCounts, statusCounts } = await getTicketsAction({
     page,
     pageSize: 20,
@@ -40,6 +52,12 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   });
 
   if (!success || !data) {
+    console.error("[TicketsDiag][page] load_failed", {
+      at: new Date().toISOString(),
+      userId: session.userId,
+      role: session.role,
+      elapsedMs: Date.now() - renderStartedAt,
+    });
     return (
       <div className="p-10 text-center text-muted-foreground flex flex-col items-center gap-2">
         <h3 className="font-semibold">Erro ao carregar chamados</h3>
@@ -57,6 +75,15 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   };
   const safeQueueCounts = queueCounts ?? { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 };
   const safeStatusCounts = statusCounts ?? { open: 0, pending: 0, closed: 0 };
+
+  console.info("[TicketsDiag][page] load_success", {
+    at: new Date().toISOString(),
+    userId: session.userId,
+    role: session.role,
+    ticketsCount: data.length,
+    elapsedMs: Date.now() - renderStartedAt,
+    pagination: safePagination,
+  });
 
   return (
     <TicketsContainer

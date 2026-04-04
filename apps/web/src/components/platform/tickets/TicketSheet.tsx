@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTicketSheet } from '@/features/tickets/hooks/use-ticket-sheet';
 
 import {
@@ -33,6 +33,50 @@ interface TicketSheetProps {
 export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
     const [open, setOpen] = useState(false);
     const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+    const diagPrefix = "[TicketsDiag][TicketSheet]";
+
+    const logInfo = (event: string, payload?: Record<string, unknown>) => {
+        console.info(diagPrefix, {
+            event,
+            at: new Date().toISOString(),
+            isSystemUser,
+            ...payload,
+        });
+    };
+
+    const logError = (event: string, error: unknown, payload?: Record<string, unknown>) => {
+        const normalized = error instanceof Error
+            ? { message: error.message, stack: error.stack }
+            : { message: String(error) };
+        console.error(diagPrefix, {
+            event,
+            at: new Date().toISOString(),
+            isSystemUser,
+            ...payload,
+            error: normalized,
+        });
+    };
+
+    useEffect(() => {
+        const onWindowError = (event: ErrorEvent) => {
+            logError("window.error", event.error ?? event.message, {
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno,
+                open,
+            });
+        };
+        const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+            logError("window.unhandled_rejection", event.reason, { open });
+        };
+
+        window.addEventListener("error", onWindowError);
+        window.addEventListener("unhandledrejection", onUnhandledRejection);
+        return () => {
+            window.removeEventListener("error", onWindowError);
+            window.removeEventListener("unhandledrejection", onUnhandledRejection);
+        };
+    }, [open]);
 
     // Toda a lógica vem do Hook
     const {
@@ -42,9 +86,23 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
     } = useTicketSheet(() => setOpen(false), { isSystemUser });
 
     return (
-        <Sheet open={open} onOpenChange={setOpen}>
+        <Sheet
+            open={open}
+            onOpenChange={(nextOpen) => {
+                try {
+                    logInfo("sheet.open_change", { nextOpen });
+                    setOpen(nextOpen);
+                } catch (error) {
+                    logError("sheet.open_change_failed", error, { nextOpen });
+                    throw error;
+                }
+            }}
+        >
             <SheetTrigger asChild>
-                <Button className="h-10 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-linear-to-r from-primary to-primary/90 gap-2">
+                <Button
+                    className="h-10 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-linear-to-r from-primary to-primary/90 gap-2"
+                    onClick={() => logInfo("sheet.trigger_click", { openBeforeClick: open })}
+                >
                     <PlusCircle className="h-4 w-4" />
                     <span className="hidden sm:inline">Abrir Novo Chamado</span>
                     <span className="sm:hidden">Novo</span>
@@ -72,7 +130,19 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                 <ScrollArea className="flex-1">
                     <div className="p-6">
                         <Form {...form}>
-                            <form id="ticket-form" onSubmit={onSubmit} className="space-y-6">
+                            <form
+                                id="ticket-form"
+                                onSubmit={(event) => {
+                                    logInfo("sheet.submit_start", { filesCount: files.length });
+                                    try {
+                                        onSubmit(event);
+                                    } catch (error) {
+                                        logError("sheet.submit_sync_throw", error, { filesCount: files.length });
+                                        throw error;
+                                    }
+                                }}
+                                className="space-y-6"
+                            >
 
                                 {/* DADOS BÁSICOS */}
                                 <div className="space-y-4">

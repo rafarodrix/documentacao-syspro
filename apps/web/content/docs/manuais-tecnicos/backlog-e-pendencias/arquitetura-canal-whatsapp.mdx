@@ -38,21 +38,25 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
   - `ConversationAssignment`
 
 <Callout type="info" title="Leitura correta do estado atual">
-  O canal ja possui operacao parcial em producao no `apps/web` (webhook Evolution, abertura/atualizacao de ticket no Zammad e painel administrativo). O backend dedicado em `apps/api`, o bridge isolado (`apps/whatsapp-bridge`) e a fila operacional dedicada continuam pendentes.
+  O canal ja opera com backend central em `apps/api` para inbound/outbound/listagem/resolucao/vinculo/start outbound. O `apps/web` permanece como UI/admin e proxy controlado. Bridge isolado (`apps/whatsapp-bridge`) e fila operacional dedicada continuam pendentes.
 </Callout>
 
 ## Estado atual real (2026-04-04)
 
-- Em producao no `apps/web`:
+- Em producao com backend central no `apps/api`:
   - webhook inbound da Evolution
   - conciliacao com `CompanyContact`
   - abertura/atualizacao de ticket no Zammad
   - persistencia de conversa/mensagem para trilha auditavel
+  - endpoints de conversas (`list/get/messages/send/resolve/link/start-outbound`)
+- Em producao no `apps/web`:
+  - painel operacional `/portal/conversas`
+  - proxy `POST /api/webhooks/evolution` para `apps/api`
+  - autenticacao de servico `x-internal-api-key` nas chamadas `web -> api`
 - Implementado como base de contrato:
   - envelope de webhook Evolution (`event` + `data`) formalizado em `@dosc-syspro/contracts`
   - padronizacao de env para Evolution: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE`
 - Ainda pendente:
-  - materializar casos de uso no `apps/api`
   - separar bridge de sessao em `apps/whatsapp-bridge`
   - introduzir fila operacional dedicada (Redis/BullMQ)
 

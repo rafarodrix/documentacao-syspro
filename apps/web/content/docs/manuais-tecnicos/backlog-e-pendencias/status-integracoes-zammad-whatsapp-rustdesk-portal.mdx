@@ -26,7 +26,7 @@ Este documento consolida o estado real da integracao entre:
 ## Resumo executivo (2026-04-04)
 
 - Zammad: **producao** com cache em banco, sync worker e webhook oficial com HMAC.
-- WhatsApp: **producao parcial** no `apps/web` (inbound/outbound, ticketing no Zammad e trilha de mensagens).
+- WhatsApp: **producao parcial com backend consolidado** (`apps/api` para inbound/outbound/listagem/resolucao/vinculo/start outbound; `apps/web` como UI/admin).
 - RustDesk: **MVP funcional** com `discover -> bootstrap -> sync -> ack` em codigo; validacao E2E em campo ainda pendente.
 - Portal: **operacao principal** de tickets, remoto e configuracoes.
 
@@ -44,12 +44,21 @@ Este documento consolida o estado real da integracao entre:
 
 ### WhatsApp (Evolution)
 
-- Em producao parcial no `apps/web`:
-  - `POST /api/webhooks/evolution`
-  - conciliacao por `CompanyContact`
-  - abertura/atualizacao de ticket no Zammad
-  - trilha auditavel em `Conversation` e `ConversationMessage`
-  - dedupe basico por `externalMessageId`
+- Ja migrado para `apps/api`:
+  - `POST /api/webhooks/evolution` (orquestracao inbound)
+  - `GET /api/conversations?filter=ATENDENDO|ESPERA`
+  - `GET /api/conversations/:conversationId`
+  - `GET /api/conversations/:conversationId/messages`
+  - `POST /api/conversations/send`
+  - `POST /api/conversations/resolve`
+  - `POST /api/conversations/link`
+  - `POST /api/conversations/start-outbound`
+- `apps/web` mantido como camada UI/admin:
+  - rota interna `POST /api/webhooks/evolution` apenas como proxy para o backend
+  - tela `/portal/conversas` consumindo casos de uso via `apps/api`
+- Seguranca de servico entre `web -> api`:
+  - header obrigatorio `x-internal-api-key`
+  - chave em `INTERNAL_API_KEY` nos dois runtimes (`apps/web` e `apps/api`)
 - Contrato compartilhado implementado:
   - `@dosc-syspro/contracts` com schema de envelope de webhook (`event` + `data`)
   - padronizacao de env:
@@ -58,7 +67,6 @@ Este documento consolida o estado real da integracao entre:
     - `EVOLUTION_INSTANCE`
     - `EVOLUTION_WEBHOOK_SECRET`
 - Pendente:
-  - migrar casos de uso para backend dedicado (`apps/api`)
   - extrair bridge para `apps/whatsapp-bridge`
   - fila operacional dedicada (Redis/BullMQ)
 

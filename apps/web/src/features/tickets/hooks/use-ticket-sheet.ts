@@ -25,6 +25,29 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
     const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const diagPrefix = "[TicketsDiag][useTicketSheet]";
+
+    const logInfo = (event: string, payload?: Record<string, unknown>) => {
+        console.info(diagPrefix, {
+            event,
+            at: new Date().toISOString(),
+            isSystemUser: options.isSystemUser ?? false,
+            ...payload,
+        });
+    };
+
+    const logError = (event: string, error: unknown, payload?: Record<string, unknown>) => {
+        const normalized = error instanceof Error
+            ? { message: error.message, stack: error.stack }
+            : { message: String(error) };
+        console.error(diagPrefix, {
+            event,
+            at: new Date().toISOString(),
+            isSystemUser: options.isSystemUser ?? false,
+            ...payload,
+            error: normalized,
+        });
+    };
 
     const form = useForm<TicketFormInput, undefined, TicketFormOutput>({
         resolver: zodResolver(ticketFormSchema),
@@ -40,6 +63,7 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
         if (e.target.files) {
             const newFiles = Array.from(e.target.files);
             const totalSize = [...files, ...newFiles].reduce((acc, f) => acc + f.size, 0);
+            logInfo("files.change", { newFilesCount: newFiles.length, totalSize });
 
             if (totalSize > 5 * 1024 * 1024) {
                 toast.error("O tamanho total dos arquivos nao pode exceder 5MB.");
@@ -74,6 +98,7 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
                     signal: controller.signal,
                 });
                 if (!response.ok) {
+                    logInfo("customer_emails.non_ok_response", { status: response.status, query: searchQuery.trim() });
                     setCustomerOptions([]);
                     return;
                 }
@@ -81,6 +106,7 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
                 setCustomerOptions(Array.isArray(json.options) ? json.options : []);
             } catch (error) {
                 if ((error as Error).name !== "AbortError") {
+                    logError("customer_emails.fetch_failed", error, { query: searchQuery.trim() });
                     setCustomerOptions([]);
                 }
             } finally {
@@ -95,6 +121,7 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
     }, [searchQuery, options.isSystemUser]);
 
     const onSubmit = (data: TicketFormOutput) => {
+        logInfo("submit.invoked", { filesCount: files.length, hasCustomerEmail: Boolean(customerEmail.trim()) });
         if (options.isSystemUser && !customerEmail.trim()) {
             toast.error("Informe o e-mail do cliente para abrir o chamado.");
             return;
@@ -102,6 +129,7 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
 
         startTransition(async () => {
             try {
+                logInfo("submit.start_transition");
                 const formData = new FormData();
                 formData.append("subject", data.subject);
                 formData.append("description", data.description);
@@ -116,6 +144,7 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
                 });
 
                 const result = await createTicketAction(null, formData);
+                logInfo("submit.result", { success: result.success, message: result.message });
 
                 if (result.success) {
                     toast.success("Chamado aberto com sucesso!");
@@ -129,6 +158,7 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
                     toast.error(result.message || "Erro ao criar chamado.");
                 }
             } catch (error) {
+                logError("submit.failed", error);
                 const message = error instanceof Error ? error.message : "Erro inesperado ao criar chamado.";
                 toast.error(message);
             }
