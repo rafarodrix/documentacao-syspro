@@ -1,23 +1,18 @@
-"use client";
+﻿"use client";
 
+import { useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Activity, 
-  Clock, 
-  ExternalLink, 
-  History, 
-  Monitor, 
-  PauseCircle, 
-  PlayCircle, 
-  StopCircle, 
-  Ticket, 
-  User 
-} from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Activity, Clock, History, Monitor, Ticket, User, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RemoteSessionSummary, RemoteSessionStatus } from "@/features/remote/domain/model";
-import { formatDateTime, formatDateOnly } from "./host-details/utils";
+import { formatDateOnly, formatDateTime } from "./host-details/utils";
 
 interface SessionItem extends RemoteSessionSummary {
   hostName: string;
@@ -28,21 +23,204 @@ interface SessionItem extends RemoteSessionSummary {
   endedAt: string | null;
 }
 
-export function RemoteSessionsPanel({ sessions }: { sessions: SessionItem[] }) {
-  const activeSessions = sessions.filter(s => s.status === "REQUESTED" || s.status === "STARTED");
-  const pastSessions = sessions.filter(s => s.status !== "REQUESTED" && s.status !== "STARTED");
+type StatusFilter = "ALL" | "ACTIVE" | RemoteSessionStatus;
+
+interface RemoteSessionsPanelProps {
+  sessions: SessionItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  };
+  hostOptions: Array<{ id: string; name: string }>;
+  filters: {
+    status: StatusFilter;
+    hostId: string;
+    ticket: string;
+  };
+}
+
+const STATUS_LABELS: Record<StatusFilter, string> = {
+  ALL: "Todos",
+  ACTIVE: "Ativas",
+  REQUESTED: "Solicitadas",
+  STARTED: "Conectadas",
+  ENDED: "Finalizadas",
+  FAILED: "Falhas",
+  CANCELLED: "Canceladas",
+};
+
+function formatRelativeStart(value: string | null) {
+  if (!value) return "Sem inicio";
+
+  const diffMinutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000);
+  if (diffMinutes < 1) return "agora";
+  if (diffMinutes < 60) return `ha ${diffMinutes} min`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `ha ${diffHours}h`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `ha ${diffDays}d`;
+}
+
+export function RemoteSessionsPanel({ sessions, pagination, hostOptions, filters }: RemoteSessionsPanelProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [isPending, startTransition] = useTransition();
+  const [stoppingSessionId, setStoppingSessionId] = useState<string | null>(null);
+  const [statusDraft, setStatusDraft] = useState<StatusFilter>(filters.status);
+  const [hostDraft, setHostDraft] = useState(filters.hostId);
+  const [ticketDraft, setTicketDraft] = useState(filters.ticket);
+
+  const activeSessions = sessions.filter((s) => s.status === "REQUESTED" || s.status === "STARTED");
+  const pastSessions = sessions.filter((s) => s.status !== "REQUESTED" && s.status !== "STARTED");
+
+  const updateParams = (mutate: (params: URLSearchParams) => void) => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    mutate(params);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const applyFilters = () => {
+    updateParams((params) => {
+      if (!statusDraft || statusDraft === "ALL") {
+        params.delete("status");
+      } else {
+        params.set("status", statusDraft);
+      }
+
+      if (hostDraft) {
+        params.set("host", hostDraft);
+      } else {
+        params.delete("host");
+      }
+
+      if (ticketDraft.trim()) {
+        params.set("ticket", ticketDraft.trim());
+      } else {
+        params.delete("ticket");
+      }
+
+      params.set("page", "1");
+    });
+  };
+
+  const clearFilters = () => {
+    setStatusDraft("ALL");
+    setHostDraft("");
+    setTicketDraft("");
+
+    updateParams((params) => {
+      params.delete("status");
+      params.delete("host");
+      params.delete("ticket");
+      params.set("page", "1");
+    });
+  };
+
+  const goToPage = (nextPage: number) => {
+    updateParams((params) => {
+      params.set("page", String(Math.max(1, nextPage)));
+    });
+  };
+
+  const handleStopSession = (sessionId: string) => {
+    setStoppingSessionId(sessionId);
+
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/remote/sessions/${sessionId}/stop`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        const json = (await response.json()) as { success?: boolean; message?: string };
+        if (!response.ok || !json.success) {
+          toast.error(json.message ?? "Nao foi possivel encerrar a sessao.");
+          return;
+        }
+
+        toast.success("Sessao encerrada com sucesso.");
+        router.refresh();
+      } catch {
+        toast.error("Erro de conexao ao encerrar a sessao.");
+      } finally {
+        setStoppingSessionId(null);
+      }
+    });
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Resumo de Sessoes Ativas */}
+    <div className="space-y-6">
+      <Card className="border-border/50 bg-background/70">
+        <CardContent className="p-4 grid gap-3 md:grid-cols-[180px_220px_1fr_auto_auto] md:items-end">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Status</label>
+            <Select value={statusDraft} onValueChange={(value) => setStatusDraft(value as StatusFilter)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Host</label>
+            <Select value={hostDraft || "ALL"} onValueChange={(value) => setHostDraft(value === "ALL" ? "" : value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos</SelectItem>
+                {hostOptions.map((host) => (
+                  <SelectItem key={host.id} value={host.id}>
+                    {host.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Ticket</label>
+            <Input
+              value={ticketDraft}
+              onChange={(event) => setTicketDraft(event.target.value)}
+              placeholder="Ex.: 12345"
+            />
+          </div>
+
+          <Button type="button" onClick={applyFilters} className="gap-2" disabled={isPending}>
+            <Filter className="h-4 w-4" />
+            Filtrar
+          </Button>
+
+          <Button type="button" variant="outline" onClick={clearFilters} disabled={isPending}>
+            Limpar
+          </Button>
+        </CardContent>
+      </Card>
+
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <Activity className="h-5 w-5 text-emerald-500" />
-              Sessões em Andamento
+              Sessoes em andamento
             </h2>
-            <p className="text-sm text-muted-foreground">Monitoramento de técnicos conectados a máquinas agora.</p>
+            <p className="text-sm text-muted-foreground">Monitoramento de tecnicos conectados em tempo real.</p>
           </div>
           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
             {activeSessions.length} Ativas
@@ -52,48 +230,77 @@ export function RemoteSessionsPanel({ sessions }: { sessions: SessionItem[] }) {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {activeSessions.length > 0 ? (
             activeSessions.map((session) => (
-              <SessionCard key={session.id} session={session} isActive />
+              <SessionCard
+                key={session.id}
+                session={session}
+                isActive
+                isStopping={isPending && stoppingSessionId === session.id}
+                onStopSession={handleStopSession}
+              />
             ))
           ) : (
             <Card className="col-span-full border-dashed bg-muted/5">
               <CardContent className="flex flex-col items-center justify-center py-10 text-center">
                 <Monitor className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                <p className="text-sm font-medium text-muted-foreground">Nenhuma sessão ativa no momento.</p>
+                <p className="text-sm font-medium text-muted-foreground">Nenhuma sessao ativa no momento.</p>
               </CardContent>
             </Card>
           )}
         </div>
       </section>
 
-      {/* Historico de Sessoes */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <History className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">Histórico Recente</h2>
+          <h2 className="text-xl font-semibold">Historico recente</h2>
         </div>
 
         <Card className="border-border/50">
           <CardContent className="p-0">
             <div className="divide-y divide-border/40">
               {pastSessions.length > 0 ? (
-                pastSessions.map((session) => (
-                  <SessionListRow key={session.id} session={session} />
-                ))
+                pastSessions.map((session) => <SessionListRow key={session.id} session={session} />)
               ) : (
-                <div className="py-8 text-center text-sm text-muted-foreground">
-                  Nenhum histórico de sessões encontrado.
-                </div>
+                <div className="py-8 text-center text-sm text-muted-foreground">Nenhum historico de sessoes encontrado.</div>
               )}
             </div>
           </CardContent>
         </Card>
       </section>
+
+      <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <span>
+          Pagina {pagination.page} de {pagination.totalPages}
+        </span>
+        <span>Total filtrado: {pagination.total}</span>
+      </div>
+
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => goToPage(pagination.page - 1)}
+          disabled={!pagination.hasPreviousPage || isPending}
+          className="h-8 w-8"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => goToPage(pagination.page + 1)}
+          disabled={!pagination.hasNextPage || isPending}
+          className="h-8 w-8"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: RemoteSessionStatus }) {
-  const meta: Record<RemoteSessionStatus, { label: string, tone: string }> = {
+  const meta: Record<RemoteSessionStatus, { label: string; tone: string }> = {
     REQUESTED: { label: "Solicitada", tone: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
     STARTED: { label: "Conectada", tone: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
     ENDED: { label: "Finalizada", tone: "bg-muted text-muted-foreground border-border" },
@@ -108,12 +315,27 @@ function StatusBadge({ status }: { status: RemoteSessionStatus }) {
   );
 }
 
-function SessionCard({ session, isActive }: { session: SessionItem, isActive?: boolean }) {
+function SessionCard({
+  session,
+  isActive,
+  isStopping = false,
+  onStopSession,
+}: {
+  session: SessionItem;
+  isActive?: boolean;
+  isStopping?: boolean;
+  onStopSession?: (sessionId: string) => void;
+}) {
+  const startReference = session.startedAt ?? session.createdAt;
+  const startAbsolute = formatDateTime(startReference);
+
   return (
-    <Card className={cn(
-      "border-border/50 transition-all hover:border-primary/30",
-      isActive && "border-emerald-500/20 shadow-sm shadow-emerald-500/5"
-    )}>
+    <Card
+      className={cn(
+        "border-border/50 transition-all hover:border-primary/30",
+        isActive && "border-emerald-500/20 shadow-sm shadow-emerald-500/5",
+      )}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1">
@@ -126,6 +348,7 @@ function SessionCard({ session, isActive }: { session: SessionItem, isActive?: b
           <StatusBadge status={session.status} />
         </div>
       </CardHeader>
+
       <CardContent className="space-y-4">
         <div className="grid gap-2">
           {session.ticketNumber && (
@@ -140,18 +363,22 @@ function SessionCard({ session, isActive }: { session: SessionItem, isActive?: b
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            <span>Iniciada há {new Date(session.createdAt).toLocaleString()}</span>
+            <span title={startAbsolute}>Iniciada {formatRelativeStart(startReference)}</span>
           </div>
         </div>
 
         <div className="pt-2 flex gap-2">
           <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-1.5" asChild>
-            <a href={`/portal/plataforma-remota/hosts/${session.hostId}`}>
-              Ver Maquina
-            </a>
+            <Link href={`/portal/plataforma-remota/${session.hostId}`}>Ver maquina</Link>
           </Button>
           {isActive && (
-            <Button variant="secondary" size="sm" className="w-full h-8 text-xs gap-1.5 border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full h-8 text-xs gap-1.5 border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600"
+              onClick={() => onStopSession?.(session.id)}
+              disabled={isStopping}
+            >
               Encerrar
             </Button>
           )}
@@ -162,6 +389,9 @@ function SessionCard({ session, isActive }: { session: SessionItem, isActive?: b
 }
 
 function SessionListRow({ session }: { session: SessionItem }) {
+  const startReference = session.startedAt ?? session.createdAt;
+  const startAbsolute = formatDateTime(startReference);
+
   return (
     <div className="group flex items-center justify-between gap-4 p-4 hover:bg-muted/5 transition-colors">
       <div className="flex items-center gap-4 flex-1">
@@ -172,10 +402,10 @@ function SessionListRow({ session }: { session: SessionItem }) {
           <p className="text-sm font-semibold truncate">{session.hostName}</p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>{session.companyName}</span>
-            <span>•</span>
+            <span>-</span>
             <div className="flex items-center gap-1">
-               <User className="h-3 w-3" />
-               <span className="truncate">{session.requestedByName}</span>
+              <User className="h-3 w-3" />
+              <span className="truncate">{session.requestedByName}</span>
             </div>
           </div>
         </div>
@@ -188,10 +418,10 @@ function SessionListRow({ session }: { session: SessionItem }) {
             #{session.ticketNumber}
           </div>
         )}
-        
-        <div className="hidden md:block text-right space-y-0.5">
-          <p className="text-xs font-medium">{new Date(session.createdAt).toLocaleDateString()}</p>
-          <p className="text-[10px] text-muted-foreground uppercase">{new Date(session.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+
+        <div className="hidden md:block text-right space-y-0.5" title={startAbsolute}>
+          <p className="text-xs font-medium">{formatDateOnly(startReference)}</p>
+          <p className="text-[10px] text-muted-foreground uppercase">{formatRelativeStart(startReference)}</p>
         </div>
 
         <div className="w-24 flex justify-end">
