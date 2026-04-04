@@ -24,7 +24,7 @@ const BankingExport = () => {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(40, 40, 40);
-        doc.text("Check-list de Dados para Homologa??o de Boleto ", margin, 25);
+        doc.text("Check-list de Dados para Homologação de Boleto ", margin, 25);
 
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
@@ -32,7 +32,7 @@ const BankingExport = () => {
         const introText = "Para realizarmos a homologa??o junto ao banco e configurar a emissão de boletos, preencha os dados abaixo:";
         doc.text(doc.splitTextToSize(introText, pageWidth - (margin * 2)), margin, 40);
 
-        // --- FUN??O AUXILIAR PARA CRIAR SE??ES ---
+        // --- FUN??O AUXILIAR PARA CRIAR SEÇÕES ---
         const createFormTable = (title: string, data: string[][], startY: number) => {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(11);
@@ -56,29 +56,29 @@ const BankingExport = () => {
         // --- 1. DADOS DA CONTA ---
         let nextY = createFormTable("Dados da Conta", [
             ['Banco', ''],
-            ['Ag?ncia', ''],
-            ['D?gito da Ag?ncia', ''],
+            ['Agência', ''],
+            ['Dígito da Agência', ''],
             ['Conta', ''],
-            ['D?gito da Conta', ''],
+            ['Dígito da Conta', ''],
             ['CNPJ', ''],
-            ['Raz?o Social', '']
+            ['Razão Social', '']
         ], 50);
 
         // --- 2. DADOS DO BOLETO ---
-        nextY = createFormTable("Dados T?cnicos do Boleto", [
-            ['C?digo do Cedente', ''],
-            ['C?digo do Conv?nio', ''],
+        nextY = createFormTable("Dados Técnicos do Boleto", [
+            ['Código do Cedente', ''],
+            ['Código do Convênio', ''],
             ['Modalidade', ''],
             ['Carteira', ''],
-            ['C?digo Transmissão', ''],
+            ['Código Transmissão', ''],
         ], nextY);
 
-        // --- 3. INSTRU??ES E FAIXAS ---
-        nextY = createFormTable("Configura??es e Instru??es", [
-            ['Taxa Juros ao M?s (%)', ''],
+        // --- 3. INSTRUÇÕES E FAIXAS ---
+        nextY = createFormTable("Configurações e Instruções", [
+            ['Taxa Juros ao Mês (%)', ''],
             ['Taxa Multa (%)', ''],
-            ['Envia para protesto?', '[   ] Não [   ] Sim [          ] dias (Obs: Caso seja informado "Sim" ? obrigat?rio informar o prazo em dias)'],
-            ['Nosso número (In?cio)/(Fim)', ''],
+            ['Envia para protesto?', '[   ] Não [   ] Sim [          ] dias (Obs: Caso seja informado "Sim" ? obrigatório informar o prazo em dias)'],
+            ['Nosso número (Início)/(Fim)', ''],
             ['Layout Remessa', ' [   ] 240 [   ] 400 [   ] 444 (Obs: O layout remessa 444 ? exclusivo para inclusão da chave da NF-e no arquivo)'],
         ], nextY);
 
@@ -89,9 +89,9 @@ const BankingExport = () => {
         doc.rect(margin, nextY + 2, pageWidth - (margin * 2), 15);
         doc.setFont("helvetica", "italic");
         doc.setFontSize(8);
-        doc.text("Ex: Ap?s o vencimento, o t?tulo poder? ser encaminhado a protesto.", margin + 2, nextY + 6);
+        doc.text("Ex: Após o vencimento, o título poderá ser encaminhado a protesto.", margin + 2, nextY + 6);
 
-        // --- RODAP? ---
+        // --- RODAPÉ ---
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
