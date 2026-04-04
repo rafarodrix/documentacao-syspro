@@ -18,7 +18,11 @@ function createPrismaMock() {
     companyContact: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
+    },
+    company: {
+      findMany: vi.fn(),
     },
   };
 }
@@ -148,5 +152,29 @@ describe("ConversationsController", () => {
     });
 
     expect(result).toEqual({ success: false, error: "INVALID_PAYLOAD" });
+  });
+
+  it("busca empresas por query", async () => {
+    const prisma = createPrismaMock();
+    prisma.company.findMany.mockResolvedValue([{ id: "c1", razaoSocial: "Empresa A" }]);
+    const controller = new ConversationsController(prisma as never);
+
+    const result = await controller.searchCompanies("test-internal-key", "empresa");
+
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.data)).toBe(true);
+    expect(prisma.company.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("busca contatos por query", async () => {
+    const prisma = createPrismaMock();
+    prisma.companyContact.findMany.mockResolvedValue([{ id: "ct1", name: "Contato A" }]);
+    const controller = new ConversationsController(prisma as never);
+
+    const result = await controller.searchContacts("test-internal-key", "contato");
+
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.data)).toBe(true);
+    expect(prisma.companyContact.findMany).toHaveBeenCalledTimes(1);
   });
 });

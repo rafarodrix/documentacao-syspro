@@ -1,6 +1,5 @@
 "use server"
 
-import { prisma } from "@/lib/prisma"
 import { getProtectedSession } from "@/lib/auth-helpers"
 import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api"
 
@@ -142,20 +141,17 @@ export async function searchCompanies(query: string) {
   if (!session) return { error: "UNAUTHORIZED", data: [] }
 
   try {
-    const companies = await prisma.company.findMany({
-      where: {
-        OR: [
-          { razaoSocial: { contains: query, mode: "insensitive" } },
-          { nomeFantasia: { contains: query, mode: "insensitive" } },
-          { cnpj: { contains: query } }
-        ]
-      },
-      take: 10,
-      select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true }
-    })
-    return { error: null, data: companies }
+    const params = new URLSearchParams({ q: query });
+    const response = await fetch(`${getBackendApiBaseUrl()}/conversations/search/companies?${params.toString()}`, {
+      method: "GET",
+      headers: withInternalApiHeaders(),
+      cache: "no-store",
+    });
+    const result = await parseBackendResponse<any[]>(response);
+    if (!result.success) return { error: result.error || "BACKEND_ERROR", data: [] };
+    return { error: null, data: result.data ?? [] }
   } catch {
-    return { error: "DB_ERROR", data: [] }
+    return { error: "BACKEND_ERROR", data: [] }
   }
 }
 
@@ -164,19 +160,17 @@ export async function searchSystemContacts(query: string) {
   if (!session) return { error: "UNAUTHORIZED", data: [] }
 
   try {
-    const contacts = await prisma.companyContact.findMany({
-      where: {
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { whatsapp: { contains: query } }
-        ]
-      },
-      take: 20,
-      include: { company: true }
-    })
-    return { error: null, data: contacts }
+    const params = new URLSearchParams({ q: query });
+    const response = await fetch(`${getBackendApiBaseUrl()}/conversations/search/contacts?${params.toString()}`, {
+      method: "GET",
+      headers: withInternalApiHeaders(),
+      cache: "no-store",
+    });
+    const result = await parseBackendResponse<any[]>(response);
+    if (!result.success) return { error: result.error || "BACKEND_ERROR", data: [] };
+    return { error: null, data: result.data ?? [] }
   } catch {
-    return { error: "DB_ERROR", data: [] }
+    return { error: "BACKEND_ERROR", data: [] }
   }
 }
 

@@ -100,6 +100,65 @@ export class ConversationsController {
     }
   }
 
+  @Get("search/companies")
+  @HttpCode(HttpStatus.OK)
+  async searchCompanies(
+    @Headers("x-internal-api-key") internalApiKeyHeader: string | undefined,
+    @Query("q") query: string | undefined,
+  ) {
+    this.ensureInternalAuth(internalApiKeyHeader);
+    const q = query?.trim() ?? "";
+    if (!q) {
+      return { success: true, data: [] };
+    }
+
+    try {
+      const data = await this.prisma.company.findMany({
+        where: {
+          OR: [
+            { razaoSocial: { contains: q, mode: "insensitive" } },
+            { nomeFantasia: { contains: q, mode: "insensitive" } },
+            { cnpj: { contains: q } },
+          ],
+        },
+        take: 10,
+        select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true },
+      });
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: "DB_ERROR" as const, detail: String(error) };
+    }
+  }
+
+  @Get("search/contacts")
+  @HttpCode(HttpStatus.OK)
+  async searchContacts(
+    @Headers("x-internal-api-key") internalApiKeyHeader: string | undefined,
+    @Query("q") query: string | undefined,
+  ) {
+    this.ensureInternalAuth(internalApiKeyHeader);
+    const q = query?.trim() ?? "";
+    if (!q) {
+      return { success: true, data: [] };
+    }
+
+    try {
+      const data = await this.prisma.companyContact.findMany({
+        where: {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { whatsapp: { contains: q } },
+          ],
+        },
+        take: 20,
+        include: { company: true },
+      });
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: "DB_ERROR" as const, detail: String(error) };
+    }
+  }
+
   @Post("send")
   @HttpCode(HttpStatus.OK)
   async sendConversationMessage(

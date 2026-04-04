@@ -1,8 +1,7 @@
 import { createRemoteSessionPort as createSharedRemoteSessionPort } from "@dosc-syspro/api/remote-session-port";
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import type { RemoteSessionPort } from "@dosc-syspro/remote-domain";
-import { WhatsAppService } from "@dosc-syspro/api/services/whatsapp-service";
-const whatsAppService = WhatsAppService.fromEnv(process.env);
+import { evolutionWhatsApp } from "@/features/conversations/infrastructure/gateways/evolution-whatsapp.gateway";
 
 type RemoteLogger = {
   info(event: string, fields?: Record<string, unknown>): void;
@@ -23,7 +22,7 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }): Remot
       await ZammadGateway.addInternalTicketNote(input.ticketId, input.body);
     },
     sendWhatsAppAlert: async (input) => {
-      await whatsAppService.sendMessage(input.number, input.body);
+      await evolutionWhatsApp.sendTextMessage(input.number, input.body);
     },
   });
 }
