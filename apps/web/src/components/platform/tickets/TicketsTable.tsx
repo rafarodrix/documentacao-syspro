@@ -62,6 +62,60 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
     return (
         <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl animate-in fade-in duration-700">
             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="md:hidden divide-y">
+                {tickets.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                        <p className="text-sm font-medium text-foreground">Nenhum chamado encontrado</p>
+                        <p className="text-xs mt-1">Tente ajustar os filtros ou busque por outro termo.</p>
+                    </div>
+                ) : (
+                    tickets.map((ticket) => (
+                        <div key={ticket.id} className="p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold truncate">{ticket.title}</p>
+                                    <p className="text-[11px] text-muted-foreground mt-1">#{ticket.number} - {ticket.group}</p>
+                                </div>
+                                <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />
+                            </div>
+                            {isAdmin && (
+                                <p className="text-xs text-muted-foreground truncate">{ticket.customer}</p>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <PriorityBadge priority={ticket.priority} />
+                                <SlaBadge ticket={ticket} />
+                                <span className="text-[11px] text-muted-foreground ml-auto">{formatDateSafe(ticket.updatedAt)}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {isAdmin && (
+                                    <>
+                                        <QuickButton
+                                            label="Assumir"
+                                            pending={isPending && loadingAction === `${ticket.id}:assume`}
+                                            onClick={() => runQuickAction(ticket.id, "assume")}
+                                        />
+                                        <QuickButton
+                                            label="Alta"
+                                            pending={isPending && loadingAction === `${ticket.id}:priority_high`}
+                                            onClick={() => runQuickAction(ticket.id, "priority_high")}
+                                        />
+                                        <QuickButton
+                                            label="Macro"
+                                            pending={isPending && loadingAction === `${ticket.id}:macro_followup`}
+                                            onClick={() => runQuickAction(ticket.id, "macro_followup")}
+                                        />
+                                    </>
+                                )}
+                                <Button variant="outline" size="sm" asChild className="ml-auto">
+                                    <Link href={`/portal/chamados/${ticket.id}`}>Abrir</Link>
+                                </Button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            <div className="hidden md:block">
             <Table>
                 <TableHeader className="bg-muted/20">
                     <TableRow className="hover:bg-transparent border-b border-border/60">
@@ -154,6 +208,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                     )}
                 </TableBody>
             </Table>
+            </div>
         </Card>
     );
 }

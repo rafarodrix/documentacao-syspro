@@ -145,7 +145,7 @@ function SystemActions({ user, isLoading, canManage, onToggleStatus }: SystemAct
             "h-8 w-8 rounded-md transition-all",
             "text-muted-foreground hover:text-foreground",
             "border border-transparent hover:border-border/50 hover:bg-muted",
-            "opacity-0 group-hover:opacity-100 focus:opacity-100",
+            "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
           )}
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -295,10 +295,10 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
           </div>
 
           {canManage && (
-            <Link href="/portal/cadastros/sistema/novo">
+            <Link href="/portal/cadastros/sistema/novo" className="w-full sm:w-auto">
               <Button
                 type="button"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"
+                className="inline-flex w-full sm:w-auto items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"
               >
                 <UserPlus className="h-4 w-4" />
                 Novo analista
@@ -309,7 +309,46 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
 
         <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <div className="w-full overflow-x-auto">
+          <div className="md:hidden divide-y">
+            {filteredData.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <p className="font-medium text-foreground">Nenhum analista encontrado</p>
+                <p className="text-xs mt-1">Ajuste os filtros para continuar.</p>
+              </div>
+            ) : (
+              filteredData.map((user) => (
+                <div key={user.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar className="h-9 w-9 border-2 border-purple-100 dark:border-purple-900/30 shrink-0">
+                        <AvatarImage src={user.image ?? undefined} />
+                        <AvatarFallback className="bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold text-xs">
+                          {getInitials(user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{user.name || "Sem nome"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <SystemActions
+                      user={user}
+                      isLoading={loadingId === user.id}
+                      canManage={canManage}
+                      onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <RoleBadge role={user.role} />
+                    <StatusBadge isActive={user.isActive} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">CPF: {formatCPF(user.cpf)}</p>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden md:block w-full overflow-x-auto">
             <Table>
             <TableHeader className="bg-muted/20">
               <TableRow className="hover:bg-transparent border-b border-border/60">

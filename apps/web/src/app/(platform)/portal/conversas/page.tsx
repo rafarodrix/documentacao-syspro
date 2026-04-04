@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Loader2, Send, CheckCircle, Search, Link2, Building, MessageSquare, Paperclip, UserPlus } from "lucide-react"
+import { Loader2, Send, CheckCircle, Search, Link2, Building, MessageSquare, Paperclip, UserPlus, ArrowLeft } from "lucide-react"
 
 type TabType = "ATENDENDO" | "ESPERA" | "CONTATOS"
 
@@ -175,9 +175,9 @@ export default function ConversasOmnichannelPage() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-80px)] w-full">
+    <div className="flex h-[calc(100vh-80px)] w-full flex-col md:flex-row">
       {/* Coluna Esquerda - Lista de Conversas / Contatos */}
-      <div className="w-87.5 border-r bg-muted/30 dark:bg-muted/10 flex flex-col shrink-0">
+      <div className={`${activeConv ? "hidden md:flex" : "flex"} w-full md:w-87.5 border-b md:border-b-0 md:border-r bg-muted/30 dark:bg-muted/10 flex-col shrink-0`}>
         
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="flex-1 flex flex-col w-full h-full">
           <div className="p-3 border-b bg-card sticky top-0 z-10 space-y-3">
@@ -260,17 +260,26 @@ export default function ConversasOmnichannelPage() {
       </div>
 
       {/* Coluna Direita - Chat Area */}
-      <div className="flex-1 flex flex-col bg-background">
+      <div className={`${activeConv ? "flex" : "hidden md:flex"} flex-1 flex-col bg-background`}>
         {activeConv ? (
           <>
             {/* Header do Chat */}
-            <header className="h-18.25 border-b px-6 flex items-center justify-between bg-card shrink-0 shadow-sm z-10 relative">
+            <header className="min-h-18.25 border-b px-3 md:px-6 py-2 md:py-0 flex flex-col md:flex-row md:items-center justify-between gap-2 bg-card shrink-0 shadow-sm z-10 relative">
               <div className="flex flex-col">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-fit px-2 md:hidden mb-1"
+                  onClick={() => setActiveConv(null)}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Voltar
+                </Button>
                 <h3 className="font-bold text-lg tracking-tight">{activeConv.contactNameSnapshot || activeConv.contactWhatsappSnapshot}</h3>
                 <span className="text-xs text-muted-foreground">{activeConv.contactWhatsappSnapshot} <Badge variant="secondary" className="ml-2 font-normal text-[10px] uppercase border-none">{activeConv.status}</Badge></span>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {!activeConv.companyId && (
                   <Dialog open={matchDialogOpen} onOpenChange={setMatchDialogOpen}>
                     <DialogTrigger asChild>
@@ -312,7 +321,7 @@ export default function ConversasOmnichannelPage() {
             </header>
 
             {/* Mensagens */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 bg-muted/40 dark:bg-[#0f1720] space-y-4">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 md:p-6 bg-muted/40 dark:bg-[#0f1720] space-y-4">
               {loadingMessages ? (
                 <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground"/></div>
               ) : (
@@ -320,13 +329,13 @@ export default function ConversasOmnichannelPage() {
                   const isOut = msg.direction === "OUTBOUND"
                   return (
                     <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[70%] rounded-lg p-3 ${isOut ? "bg-emerald-100 text-foreground rounded-tr-none dark:bg-emerald-500/20 dark:text-emerald-100" : "bg-card text-foreground rounded-tl-none shadow-sm border border-border/60"}`}>
+                      <div className={`max-w-[82%] md:max-w-[70%] rounded-lg p-3 ${isOut ? "bg-emerald-100 text-foreground rounded-tr-none dark:bg-emerald-500/20 dark:text-emerald-100" : "bg-card text-foreground rounded-tl-none shadow-sm border border-border/60"}`}>
                         
                         {msg.type === "IMAGE" && msg.mediaUrl && (
-                          <img src={msg.mediaUrl} alt="Imagem recebida" className="max-w-62.5 rounded mb-2 object-cover" />
+                          <img src={msg.mediaUrl} alt="Imagem recebida" className="max-w-52 md:max-w-62.5 rounded mb-2 object-cover" />
                         )}
                         {msg.type === "AUDIO" && msg.mediaUrl && (
-                          <audio controls src={msg.mediaUrl} className="max-w-62.5 h-10 mb-2" />
+                          <audio controls src={msg.mediaUrl} className="max-w-52 md:max-w-62.5 h-10 mb-2" />
                         )}
                         {msg.type === "DOCUMENT" && msg.mediaUrl && (
                           <a href={msg.mediaUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-muted p-2 rounded-md mb-2 text-xs text-blue-600 dark:text-blue-300 hover:underline">
@@ -347,7 +356,7 @@ export default function ConversasOmnichannelPage() {
             </div>
 
             {/* Input Área */}
-            <div className="p-4 bg-card border-t flex gap-2 items-center">
+            <div className="p-3 md:p-4 bg-card border-t flex gap-2 items-center">
               <input 
                 type="file" 
                 ref={fileInputRef} 

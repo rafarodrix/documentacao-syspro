@@ -112,7 +112,7 @@ function CompanyActionsMenu({
             "h-8 w-8 rounded-md transition-all",
             "text-muted-foreground hover:text-foreground",
             "border border-transparent hover:border-border/50 hover:bg-muted",
-            "opacity-0 group-hover:opacity-100 focus:opacity-100",
+            "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
           )}
           disabled={isLoading}
         >
@@ -329,8 +329,8 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
             )}
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="flex items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
               <button
                 onClick={() => setFilterStatus("ALL")}
                 className={cn(
@@ -359,7 +359,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
               })}
             </div>
 
-            <div className="flex items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
               <button
                 onClick={() => setFilterBlocked("ALL")}
                 className={cn(
@@ -381,10 +381,10 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
             </div>
 
             {canCreate && (
-              <Link href="/portal/cadastros/empresa/novo">
+              <Link href="/portal/cadastros/empresa/novo" className="w-full sm:w-auto">
                 <Button
                   type="button"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"
+                  className="inline-flex w-full sm:w-auto items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"
                 >
                   <Plus className="h-4 w-4" />
                   Nova Empresa
@@ -396,7 +396,59 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
 
         <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
           <div className="absolute top-0 left-0 w-full h-0.5 bg-linear-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <div className="w-full overflow-x-auto">
+          <div className="md:hidden divide-y">
+            {filteredData.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <p className="font-medium text-foreground">Nenhuma empresa encontrada</p>
+                <p className="text-xs mt-1">Ajuste os filtros ou cadastre uma nova empresa.</p>
+              </div>
+            ) : (
+              filteredData.map((company) => {
+                const memberCount = company._count?.memberships ?? company.usersCount ?? 0
+                return (
+                  <div key={company.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{company.nomeFantasia || company.razaoSocial}</p>
+                        <p className="text-xs text-muted-foreground truncate">{company.razaoSocial}</p>
+                      </div>
+                      <CompanyActionsMenu
+                        company={company}
+                        canEdit={canEdit}
+                        canToggleStatus={canToggleStatus}
+                        canDelete={canDelete}
+                        isLoading={loadingId === company.id}
+                        onToggleStatus={() => setConfirmDialog({ type: "status", company })}
+                        onDelete={() => setConfirmDialog({ type: "delete", company })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <code className="text-[11px] font-mono bg-muted/50 px-2 py-1 rounded-md text-muted-foreground border border-border/30">
+                        {formatCNPJ(company.cnpj)}
+                      </code>
+                      <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        {getCompanySegmentLabel(company.segment)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <StatusBadge status={company.status} />
+                      <div className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Users className="w-3.5 h-3.5" />
+                        <span className="font-medium tabular-nums">{memberCount}</span>
+                      </div>
+                    </div>
+                    {company.isBlockedByContract && (
+                      <span className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+                        Bloqueada por contrato
+                      </span>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          <div className="hidden md:block w-full overflow-x-auto">
             <Table>
             <TableHeader className="bg-muted/20">
               <TableRow className="hover:bg-transparent border-b border-border/60">
