@@ -108,6 +108,7 @@ export default function WhatsAppSettingsPage() {
               
               {qrCodeData ? (
                 <div className="bg-white p-4 rounded-xl shadow-sm border mt-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={qrCodeData} alt="QR Code" className="w-[240px] h-[240px] object-contain" />
                 </div>
               ) : (
@@ -118,7 +119,7 @@ export default function WhatsAppSettingsPage() {
               )}
               
               <p className="text-xs text-muted-foreground mt-2">
-                Abra o WhatsApp no celular do suporte, vá em "Aparelhos Conectados" e escaneie o código acima.
+                Abra o WhatsApp no celular do suporte, vá em &quot;Aparelhos Conectados&quot; e escaneie o código acima.
               </p>
             </div>
           )}
