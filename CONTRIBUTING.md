@@ -13,6 +13,8 @@
 - Hooks, actions, services, gateways, controllers e utilitarios: `kebab-case.ts`
 - Arquivos de tipos locais: `types.ts`
 - Testes: `*.test.ts` ou `*.test.tsx`
+- Excecao controlada: componentes vendorizados em `apps/web/src/components/ui/*` podem manter `kebab-case.tsx` para compatibilidade com o ecossistema shadcn/radix.
+- Evitar duplicidade por estilo (ex.: `ThemeProvider.tsx` e `theme-provider.tsx` para a mesma responsabilidade).
 
 ## Convencoes de responsabilidade
 

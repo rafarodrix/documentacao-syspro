@@ -32,6 +32,9 @@ jobs:
       - name: UTF-8 check
         run: npm run check:utf8
 
+      - name: Generated JS check (src/tests)
+        run: npm run check:generated-js
+
       - name: Prisma schema validate
         run: npm run db:validate
 

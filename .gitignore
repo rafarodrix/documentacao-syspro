@@ -19,6 +19,10 @@ packages/api/src/**/*.js
 packages/config/src/**/*.js
 apps/api/src/**/*.js
 apps/api/tests/**/*.js
+apps/*/src/**/*.js
+apps/*/tests/**/*.js
+packages/*/src/**/*.js
+packages/*/tests/**/*.js
 build_output.log
 *.tsbuildinfo
 next-env.d.ts
