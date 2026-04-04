@@ -172,10 +172,12 @@ const STATUS_STYLES = {
     closed: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400",
 } as const;
 
-function StatusBadge({ status, rawStatus }: { status: string; rawStatus: string }) {
-    const category = getTicketStatusGroup(rawStatus || status || "");
+function StatusBadge({ status, rawStatus }: { status?: string | null; rawStatus?: string | null }) {
+    const resolvedStatus = typeof status === "string" ? status : "";
+    const resolvedRawStatus = typeof rawStatus === "string" ? rawStatus : "";
+    const category = getTicketStatusGroup(resolvedRawStatus || resolvedStatus);
     const style = STATUS_STYLES[category];
-    const label = status.replace(/^\d+\.\s*/, "");
+    const label = (resolvedStatus || resolvedRawStatus || "Sem status").replace(/^\d+\.\s*/, "");
     return (
         <Badge variant="outline" className={`border ${style} font-medium px-2.5 py-0.5 rounded-full text-[10px] whitespace-nowrap`}>
             {label}

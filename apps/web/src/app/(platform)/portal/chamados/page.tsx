@@ -48,15 +48,25 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     );
   }
 
+  const safePagination = pagination ?? {
+    page,
+    pageSize: 20,
+    hasPreviousPage: false,
+    hasNextPage: false,
+    total: data.length,
+  };
+  const safeQueueCounts = queueCounts ?? { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 };
+  const safeStatusCounts = statusCounts ?? { open: 0, pending: 0, closed: 0 };
+
   return (
     <TicketsContainer
       tickets={data}
       isAdmin={SYSTEM_ROLES.includes(session.role)}
-      pagination={pagination}
+      pagination={safePagination}
       staleWarning={staleWarning}
       queue={queue}
-      queueCounts={queueCounts}
-      statusCounts={statusCounts}
+      queueCounts={safeQueueCounts}
+      statusCounts={safeStatusCounts}
       search={search}
       statusGroup={statusGroup}
       closedWindow={closedWindow}
