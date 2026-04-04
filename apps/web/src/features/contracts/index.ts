@@ -1,3 +1,5 @@
-export * as ContractActions from "@/features/contracts/application/actions";
-export * as ContractQueries from "@/features/contracts/application/queries";
-export * as ContractInterface from "@/features/contracts/interface";
+﻿export * as Application from './application';
+export * as Domain from './domain';
+export * as Infrastructure from './infrastructure';
+export * as Interface from './interface';
+

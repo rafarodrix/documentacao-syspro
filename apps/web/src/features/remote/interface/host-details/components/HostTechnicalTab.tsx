@@ -1,7 +1,7 @@
 ﻿import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { formatDateTime, getSysproUpdateHealthMeta } from "../utils";
 import { cn } from "@/lib/utils";
-import { useAckStream } from "@/features/remote/interface/hooks/use-ack-stream";
+import { useAckStream } from "@/features/remote/interface/hooks";
 import { Progress } from "@/components/ui/progress";
 import { Activity, HardDrive, Layout, Cpu } from "lucide-react";
 
@@ -180,4 +180,5 @@ export function HostTechnicalTab({
     </Card>
   );
 }
+
 

@@ -10,7 +10,7 @@ import { TicketsTable } from "./TicketsTable";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Download as DownloadIcon } from "lucide-react";
-import { downloadCsv } from "@/features/tickets/application/utils/csv";
+import { downloadCsv } from "@/features/tickets/application";
 import type { ClosedTicketsWindow, TicketListItem, TicketStatusCounts, TicketsPagination } from "./types";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 
@@ -225,4 +225,5 @@ export function TicketsContainer({
         </div>
     );
 }
+
 

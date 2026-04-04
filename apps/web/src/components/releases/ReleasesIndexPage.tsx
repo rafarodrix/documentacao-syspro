@@ -1,7 +1,7 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Calendar, Bug, Rocket, Sparkles } from "lucide-react";
 import { getReleases } from '@/features/releases/application/queries';
-import { groupReleasesByDate, monthNames } from "@/features/releases/infrastructure/mappers/zammad-release.mapper";
+import { groupReleasesByDate, monthNames } from "@/features/releases/infrastructure";
 
 // Shadcn Imports
 import {
@@ -23,7 +23,7 @@ export async function ReleasesIndexPage() {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted/30 rounded-lg border border-dashed">
         <Bug className="w-10 h-10 mb-2 opacity-20" />
-        <p>Nenhuma atualização encontrada.</p>
+        <p>Nenhuma atualizaÃ§Ã£o encontrada.</p>
       </div>
     );
   }
@@ -80,7 +80,7 @@ export async function ReleasesIndexPage() {
                       </CardTitle>
 
                       <CardDescription className="line-clamp-2">
-                        Atualizações acumuladas de {monthNames[monthIndex].toLowerCase()}.
+                        AtualizaÃ§Ãµes acumuladas de {monthNames[monthIndex].toLowerCase()}.
                       </CardDescription>
                     </CardHeader>
 
@@ -100,7 +100,7 @@ export async function ReleasesIndexPage() {
                         <div className="flex items-center justify-between p-2 rounded-md bg-amber-500/5 border border-amber-500/10">
                           <span className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                             <Bug className="w-4 h-4" />
-                            Correções
+                            CorreÃ§Ãµes
                           </span>
                           <span className="font-bold text-amber-700 dark:text-amber-300 font-mono bg-amber-500/10 px-2 py-0.5 rounded">
                             {bugs}
@@ -122,3 +122,4 @@ export async function ReleasesIndexPage() {
     </div>
   );
 }
+

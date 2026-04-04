@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useTicketChat } from "@/features/tickets/interface/hooks/use-ticket-chat";
+import { useTicketChat } from "@/features/tickets/interface";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -190,4 +190,5 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
         </Card>
     );
 }
+
 

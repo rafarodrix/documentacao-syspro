@@ -37,7 +37,7 @@ import {
   updateCompanyAction,
 } from "@/features/company/application/actions";
 import { COMPANY_SEGMENT_LABELS } from "@/features/company/domain/company-segments";
-import { useAddressLookup } from "@/features/company/interface/hooks/use-address-lookup";
+import { useAddressLookup } from "@/features/company/interface";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -1112,6 +1112,7 @@ export function CreateCompanyPageForm({
     </div>
   );
 }
+
 
 
 

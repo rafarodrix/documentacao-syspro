@@ -1,3 +1,5 @@
-export * as UserAccessActions from "@/features/user-access/application/actions";
-export * as UserAccessQueries from "@/features/user-access/application/queries";
-export * as UserAccessInterface from "@/features/user-access/interface";
+﻿export * as Application from './application';
+export * as Domain from './domain';
+export * as Infrastructure from './infrastructure';
+export * as Interface from './interface';
+

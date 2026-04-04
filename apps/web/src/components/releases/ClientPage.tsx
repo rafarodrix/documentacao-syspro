@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 // Importe seus componentes refatorados anteriormente
 import { ReleasesFilter, type FilterType } from "./ReleasesFilter";
 import { MonthlyReleasesClient } from "./MonthlyReleasesClient";
-import { monthNames } from "@/features/releases/infrastructure/mappers/zammad-release.mapper";
+import { monthNames } from "@/features/releases/infrastructure";
 import type { Release } from "@dosc-syspro/core";
 
 interface ReleasesClientPageProps {

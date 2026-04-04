@@ -4,3 +4,4 @@ export { TicketsFilters } from "@/components/platform/tickets/TicketsFilters";
 export { TicketsStats } from "@/components/platform/tickets/TicketsStats";
 export { TicketsTable } from "@/components/platform/tickets/TicketsTable";
 export { TicketsSummary } from "@/components/platform/app/dashboard/TicketsSummary";
+export * from "./hooks";

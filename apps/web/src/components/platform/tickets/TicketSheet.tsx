@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from 'react';
-import { useTicketSheet } from '@/features/tickets/interface/hooks/use-ticket-sheet';
+import { useTicketSheet } from '@/features/tickets/interface';
 
 import {
     PlusCircle, Loader2, Send, FileText, AlertCircle,
@@ -352,4 +352,5 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
         </Sheet>
     );
 }
+
 

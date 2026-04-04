@@ -85,7 +85,7 @@ import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
 import { HostInfraTab } from "./host-details/components/HostInfraTab";
 import { HostInstallationsTab } from "./host-details/components/HostInstallationsTab";
 import { HostAgentTab } from "./host-details/components/HostAgentTab";
-import { useAckStream } from "../hooks/use-ack-stream";
+import { useAckStream } from "./hooks/use-ack-stream";
 
 
 

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { useDocumentoForm } from "@/features/documentos/interface/hooks/use-documento-form";
+import { useDocumentoForm } from "@/features/documentos/interface";
 import { documentoSchema, type DocumentoFormValues } from "@dosc-syspro/contracts";
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
 import { COMPORTAMENTOS_DOCUMENTO } from "@dosc-syspro/contracts";
@@ -10,8 +10,8 @@ import { TIPOS_NOTA_CREDITO, TIPOS_NOTA_DEBITO } from "@dosc-syspro/contracts";
 import { useWatch } from "react-hook-form";
 import { Printer, Save, PanelRightOpen, PanelRightClose, Info, Truck, Users, Box } from "lucide-react";
 
-import { TechnicalPanel } from "./technical-panel";
-import { PrintableConfig } from "./printable-config";
+import { TechnicalPanel } from "./TechnicalPanel";
+import { PrintableConfig } from "./PrintableConfig";
 
 import {
     Form,
@@ -451,3 +451,4 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
         </div>
     );
 }
+
