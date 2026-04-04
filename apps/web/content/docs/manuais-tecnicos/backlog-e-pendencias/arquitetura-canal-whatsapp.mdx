@@ -60,6 +60,21 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
   - separar bridge de sessao em `apps/whatsapp-bridge`
   - introduzir fila operacional dedicada (Redis/BullMQ)
 
+## Infra de publicacao (estado operacional)
+
+- `Nginx Proxy Manager` roda no mesmo servidor de `RustDesk` e `Evolution Go`.
+- painel do proxy para operacao:
+  - `http://85.239.248.141:81/nginx/proxy`
+- dominios atuais:
+  - `acesso.<dominio>` -> RustDesk
+  - `api.<dominio>` -> Evolution Go
+- dominio recomendado para backend dedicado:
+  - `backend.<dominio>` -> `apps/api` (Railway)
+
+<Callout type="warn" title="Separacao obrigatoria de papeis">
+  Nao reutilizar `api.<dominio>` da Evolution para o backend Nest. O web deve apontar para `backend.<dominio>/api`.
+</Callout>
+
 ## Decisao arquitetural
 
 O desenho recomendado continua sendo:

@@ -14,6 +14,8 @@ audience:
   - suporte
 ---
 
+import { Callout } from "fumadocs-ui/components/callout";
+
 ## Escopo
 
 Este documento consolida o estado real da integracao entre:
@@ -29,6 +31,21 @@ Este documento consolida o estado real da integracao entre:
 - WhatsApp: **producao parcial com backend consolidado** (`apps/api` para inbound/outbound/listagem/resolucao/vinculo/start outbound; `apps/web` como UI/admin).
 - RustDesk: **MVP funcional** com `discover -> bootstrap -> sync -> ack` em codigo; validacao E2E em campo ainda pendente.
 - Portal: **operacao principal** de tickets, remoto e configuracoes.
+
+## Topologia de borda (infra atual)
+
+- `Nginx Proxy Manager` instalado no mesmo servidor de `RustDesk` e `Evolution Go`.
+- painel operacional atual do proxy:
+  - `http://85.239.248.141:81/nginx/proxy`
+- mapeamento de dominio em uso:
+  - `acesso.<dominio>` -> RustDesk (VPS)
+  - `api.<dominio>` -> Evolution Go (VPS)
+- mapeamento previsto para backend dedicado:
+  - `backend.<dominio>` -> `apps/api` (Railway)
+
+<Callout type="warn" title="Regra operacional">
+  Nao expor a API da Evolution por IP:porta em ambiente publico. Manter publicacao via proxy reverso com TLS.
+</Callout>
 
 ## Estado por frente
 
@@ -54,7 +71,7 @@ Este documento consolida o estado real da integracao entre:
   - `POST /api/conversations/link`
   - `POST /api/conversations/start-outbound`
 - `apps/web` mantido como camada UI/admin:
-  - rota interna `POST /api/webhooks/evolution` apenas como proxy para o backend
+  - rota interna `POST /api/webhooks/evolution` apenas como proxy para o backend (transicao)
   - tela `/portal/conversas` consumindo casos de uso via `apps/api`
 - Seguranca de servico entre `web -> api`:
   - header obrigatorio `x-internal-api-key`

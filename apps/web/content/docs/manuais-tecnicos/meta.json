@@ -32,7 +32,7 @@
     "documentacao-tecnica-arquitetura/modulo-documentacao/templates/template-tecnico",
     "---Backlog e Pendencias---",
     "backlog-e-pendencias/backlog-infra-monorepo",
-    "backlog-e-pendencias/status-integracoes-zammad-whatsapp-rustdesk-portal",
+    "backlog-e-pendencias/infraestrutura-portal",
     "backlog-e-pendencias/operacao-backup-agendado-remoto",
     "backlog-e-pendencias/arquitetura-canal-whatsapp"
   ]
