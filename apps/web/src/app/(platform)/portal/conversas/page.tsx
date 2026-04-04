@@ -11,7 +11,6 @@ import {
   searchSystemContacts,
   startOutboundConversation
 } from "@/features/conversations/application/conversation-actions"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -152,7 +151,7 @@ export default function ConversasOmnichannelPage() {
     <button 
       key={conv.id}
       onClick={() => handleSelectConv(conv)}
-      className={`w-full text-left p-3 rounded-lg transition-colors border ${activeConv?.id === conv.id ? "bg-primary/5 border-primary/20" : "bg-white hover:bg-slate-100 border-transparent shadow-sm"}`}
+      className={`w-full text-left p-3 rounded-lg transition-colors border ${activeConv?.id === conv.id ? "bg-primary/10 border-primary/30" : "bg-card hover:bg-muted/60 border-transparent shadow-sm"}`}
     >
       <div className="flex justify-between items-start mb-1">
         <span className="font-medium text-sm truncate flex-1">
@@ -164,12 +163,12 @@ export default function ConversasOmnichannelPage() {
       </div>
       <div className="flex gap-2 items-center mb-1">
         {conv.companyId ? (
-          <Badge variant="secondary" className="text-[9px] px-1 py-0 w-fit flex gap-1 bg-green-100 text-green-800 hover:bg-green-100"><Building className="w-2 h-2"/> {conv.company?.nomeFantasia?.substring(0, 10)}...</Badge>
+          <Badge variant="secondary" className="text-[9px] px-1 py-0 w-fit flex gap-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/20"><Building className="w-2 h-2"/> {conv.company?.nomeFantasia?.substring(0, 10)}...</Badge>
         ) : (
-          <Badge variant="outline" className="text-[9px] px-1 py-0 w-fit text-amber-600 border-amber-300 bg-amber-50">S/ VÍNCULO</Badge>
+          <Badge variant="outline" className="text-[9px] px-1 py-0 w-fit text-amber-700 border-amber-300 bg-amber-50 dark:text-amber-300 dark:border-amber-500/40 dark:bg-amber-500/10">S/ VÍNCULO</Badge>
         )}
       </div>
-      <p className="text-xs text-slate-500 line-clamp-1 mt-1">
+      <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
         {conv.lastMessagePreview || "Iniciou uma conversa..."}
       </p>
     </button>
@@ -178,15 +177,15 @@ export default function ConversasOmnichannelPage() {
   return (
     <div className="flex h-[calc(100vh-80px)] w-full">
       {/* Coluna Esquerda - Lista de Conversas / Contatos */}
-      <div className="w-[350px] border-r bg-slate-50 flex flex-col shrink-0">
+      <div className="w-[350px] border-r bg-muted/30 dark:bg-muted/10 flex flex-col shrink-0">
         
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="flex-1 flex flex-col w-full h-full">
-          <div className="p-3 border-b bg-white sticky top-0 z-10 space-y-3">
+          <div className="p-3 border-b bg-card sticky top-0 z-10 space-y-3">
             <h2 className="font-bold text-lg flex items-center gap-2 tracking-tight">
               <MessageSquare className="w-5 h-5 text-primary" />
               Chat Omnichannel
             </h2>
-            <TabsList className="grid grid-cols-3 w-full h-9 bg-slate-100/80">
+            <TabsList className="grid grid-cols-3 w-full h-9 bg-muted/70">
               <TabsTrigger value="ATENDENDO" className="text-xs">Atendendo</TabsTrigger>
               <TabsTrigger value="ESPERA" className="text-xs flex gap-1">Espera {esperaList.length > 0 && <span className="bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[9px]">{esperaList.length}</span>}</TabsTrigger>
               <TabsTrigger value="CONTATOS" className="text-xs">Contatos</TabsTrigger>
@@ -196,7 +195,7 @@ export default function ConversasOmnichannelPage() {
           <div className="flex-1 overflow-y-auto px-2 py-2">
             <TabsContent value="ATENDENDO" className="m-0 h-full flex flex-col space-y-1">
               {atendendoList.length === 0 && !loadingList && (
-                <div className="flex flex-col items-center justify-center p-8 text-slate-400 gap-2 h-full">
+                <div className="flex flex-col items-center justify-center p-8 text-muted-foreground gap-2 h-full">
                   <CheckCircle className="w-8 h-8 opacity-20" />
                   <p className="text-xs text-center">Nenhum atendimento em andamento no momento.</p>
                 </div>
@@ -206,7 +205,7 @@ export default function ConversasOmnichannelPage() {
 
             <TabsContent value="ESPERA" className="m-0 h-full flex flex-col space-y-1">
               {esperaList.length === 0 && !loadingList && (
-                <div className="flex flex-col items-center justify-center p-8 text-slate-400 gap-2 h-full">
+                <div className="flex flex-col items-center justify-center p-8 text-muted-foreground gap-2 h-full">
                   <CheckCircle className="w-8 h-8 opacity-20" />
                   <p className="text-xs text-center">Ninguém aguardando na fila.</p>
                 </div>
@@ -218,7 +217,7 @@ export default function ConversasOmnichannelPage() {
               <div className="flex gap-2">
                 <Input 
                   placeholder="Buscar contato ou número..." 
-                  className="bg-white text-xs h-8"
+                  className="bg-background text-xs h-8"
                   value={contatosQuery}
                   onChange={e => setContatosQuery(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") loadContacts() }}
@@ -230,12 +229,12 @@ export default function ConversasOmnichannelPage() {
 
               <div className="flex-1 space-y-1 mt-2">
                 {loadingContacts ? (
-                  <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin text-slate-400" /></div>
+                  <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
                 ) : contatosList.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center p-4">Nenhum contato encontrado.</p>
+                  <p className="text-xs text-muted-foreground text-center p-4">Nenhum contato encontrado.</p>
                 ) : (
                   contatosList.map(c => (
-                    <div key={c.id} className="p-3 bg-white border rounded-lg shadow-sm flex flex-col gap-2 hover:border-primary/30 transition-colors">
+                    <div key={c.id} className="p-3 bg-card border rounded-lg shadow-sm flex flex-col gap-2 hover:border-primary/30 transition-colors">
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-semibold text-sm">{c.name}</p>
@@ -243,7 +242,7 @@ export default function ConversasOmnichannelPage() {
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="text-[9px] text-slate-500 bg-slate-50 border-slate-200">
+                        <Badge variant="outline" className="text-[9px] text-muted-foreground bg-muted/50 border-border">
                           {c.company?.nomeFantasia || "Sem Empresa"}
                         </Badge>
                         <Button size="sm" variant="secondary" className="h-7 text-xs bg-primary/10 text-primary hover:bg-primary/20" onClick={() => handleStartOutbound(c)}>
@@ -261,11 +260,11 @@ export default function ConversasOmnichannelPage() {
       </div>
 
       {/* Coluna Direita - Chat Area */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-background">
         {activeConv ? (
           <>
             {/* Header do Chat */}
-            <header className="h-[73px] border-b px-6 flex items-center justify-between bg-white shrink-0 shadow-sm z-10 relative">
+            <header className="h-[73px] border-b px-6 flex items-center justify-between bg-card shrink-0 shadow-sm z-10 relative">
               <div className="flex flex-col">
                 <h3 className="font-bold text-lg tracking-tight">{activeConv.contactNameSnapshot || activeConv.contactWhatsappSnapshot}</h3>
                 <span className="text-xs text-muted-foreground">{activeConv.contactWhatsappSnapshot} <Badge variant="secondary" className="ml-2 font-normal text-[10px] uppercase border-none">{activeConv.status}</Badge></span>
@@ -275,7 +274,7 @@ export default function ConversasOmnichannelPage() {
                 {!activeConv.companyId && (
                   <Dialog open={matchDialogOpen} onOpenChange={setMatchDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100">
+                      <Button variant="outline" size="sm" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/40 dark:hover:bg-amber-500/20">
                         <Link2 className="w-4 h-4 mr-2" />
                         Vincular Empresa
                       </Button>
@@ -305,7 +304,7 @@ export default function ConversasOmnichannelPage() {
                   </Dialog>
                 )}
 
-                <Button variant="default" size="sm" onClick={handleResolve} className="bg-slate-800">
+                <Button variant="default" size="sm" onClick={handleResolve} className="bg-foreground text-background hover:bg-foreground/90">
                   <CheckCircle className="w-4 h-4 mr-2" />
                   Finalizar
                 </Button>
@@ -313,15 +312,15 @@ export default function ConversasOmnichannelPage() {
             </header>
 
             {/* Mensagens */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 bg-[#efeae2] space-y-4">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 bg-muted/40 dark:bg-[#0f1720] space-y-4">
               {loadingMessages ? (
-                <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-slate-400"/></div>
+                <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground"/></div>
               ) : (
                 messages.map(msg => {
                   const isOut = msg.direction === "OUTBOUND"
                   return (
                     <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[70%] rounded-lg p-3 ${isOut ? "bg-[#d9fdd3] text-slate-800 rounded-tr-none" : "bg-white text-slate-800 rounded-tl-none shadow-sm"}`}>
+                      <div className={`max-w-[70%] rounded-lg p-3 ${isOut ? "bg-emerald-100 text-foreground rounded-tr-none dark:bg-emerald-500/20 dark:text-emerald-100" : "bg-card text-foreground rounded-tl-none shadow-sm border border-border/60"}`}>
                         
                         {msg.type === "IMAGE" && msg.mediaUrl && (
                           <img src={msg.mediaUrl} alt="Imagem recebida" className="max-w-[250px] rounded mb-2 object-cover" />
@@ -330,7 +329,7 @@ export default function ConversasOmnichannelPage() {
                           <audio controls src={msg.mediaUrl} className="max-w-[250px] h-10 mb-2" />
                         )}
                         {msg.type === "DOCUMENT" && msg.mediaUrl && (
-                          <a href={msg.mediaUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-slate-100 p-2 rounded-md mb-2 text-xs text-blue-600 hover:underline">
+                          <a href={msg.mediaUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-muted p-2 rounded-md mb-2 text-xs text-blue-600 dark:text-blue-300 hover:underline">
                             📎 Visualizar Documento
                           </a>
                         )}
@@ -348,7 +347,7 @@ export default function ConversasOmnichannelPage() {
             </div>
 
             {/* Input Área */}
-            <div className="p-4 bg-white border-t flex gap-2 items-center">
+            <div className="p-4 bg-card border-t flex gap-2 items-center">
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -363,7 +362,7 @@ export default function ConversasOmnichannelPage() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-slate-400 hover:text-primary shrink-0" 
+                className="text-muted-foreground hover:text-primary shrink-0" 
                 onClick={() => fileInputRef.current?.click()}
                 disabled={sendingMessage}
                 title="Anexar arquivo ou mídia"
@@ -384,7 +383,7 @@ export default function ConversasOmnichannelPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/20">
             <MessageSquare className="w-16 h-16 mb-4 opacity-20" />
             <p>Selecione uma conversa na lateral esquerda.</p>
           </div>
