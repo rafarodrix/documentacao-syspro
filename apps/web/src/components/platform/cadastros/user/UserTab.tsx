@@ -307,7 +307,8 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
 
         <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
             <TableHeader className="bg-muted/20">
               <TableRow className="hover:bg-transparent border-b border-border/60">
                 <TableHead className="py-3.5 px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificacao</TableHead>
@@ -401,6 +402,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
               )}
             </TableBody>
           </Table>
+          </div>
         </Card>
 
         {filteredData.length > 0 && (

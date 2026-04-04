@@ -503,8 +503,8 @@ export function CreateCompanyPageForm({
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-[calc(100vh-260px)]">
-          <aside className="w-56 border-r border-border/50 bg-muted/20 p-3 space-y-1 backdrop-blur-sm">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col md:flex-row min-h-[calc(100vh-260px)]">
+          <aside className="w-full md:w-56 border-b md:border-b-0 md:border-r border-border/50 bg-muted/20 p-3 flex md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-x-visible backdrop-blur-sm hide-scrollbar">
             {SECTIONS.map((section) => {
               const Icon = section.icon;
               const isCurrent = section.id === currentSection;
@@ -518,7 +518,7 @@ export function CreateCompanyPageForm({
                   type="button"
                   onClick={() => setCurrentSection(section.id)}
                   className={cn(
-                    "group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-all border",
+                    "group shrink-0 w-48 md:w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-all border",
                     isCurrent ? "bg-primary/10 border-primary/20 shadow-sm" : "hover:bg-muted/70 border-transparent hover:border-border/50",
                   )}
                 >
