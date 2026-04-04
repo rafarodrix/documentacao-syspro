@@ -9,7 +9,7 @@ import { Loader2, RefreshCw, Smartphone, CheckCircle, XCircle } from "lucide-rea
 
 type EvoStateType = "open" | "close" | "connecting" | "unknown" | "missing_instance"
 
-export default function WhatsAppSettingsPage() {
+export default function WhatsAppSettingsTab() {
   const [evoState, setEvoState] = useState<EvoStateType>("unknown")
   const [qrCodeData, setQrCodeData] = useState<string | null>(null)
   const [deviceInfo, setDeviceInfo] = useState<any>(null)

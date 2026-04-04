@@ -7,6 +7,7 @@ import { getSettingsAdminViewData } from "@/features/settings/application/querie
 import { getRemotePlatformOverview } from "@/features/remote/application/queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-tab";
+import WhatsAppSettingsTab from "./whatsapp-tab";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files, Wallet, Boxes, Monitor } from "lucide-react";
@@ -29,7 +30,7 @@ interface SettingsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const TAB_VALUES = new Set(["general", "remote", "zammad", "access", "tax", "contracts", "sefaz", "observability"]);
+const TAB_VALUES = new Set(["general", "remote", "whatsapp", "zammad", "access", "tax", "contracts", "sefaz", "observability"]);
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
     const session = await requireSession();
@@ -88,6 +89,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                         <TabsTrigger value="zammad" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Monitor className="h-4 w-4" />
                             <span className="font-medium">Zammad (Global)</span>
+                        </TabsTrigger>
+
+                        <TabsTrigger value="whatsapp" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
+                            <Monitor className="h-4 w-4" />
+                            <span className="font-medium">WhatsApp</span>
                         </TabsTrigger>
 
                         <TabsTrigger value="access" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
@@ -154,6 +160,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <TabsContent value="zammad" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-4xl">
                         <ZammadGlobalSettingsForm />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="whatsapp" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
+                    <div className="max-w-4xl">
+                        <WhatsAppSettingsTab />
                     </div>
                 </TabsContent>
 

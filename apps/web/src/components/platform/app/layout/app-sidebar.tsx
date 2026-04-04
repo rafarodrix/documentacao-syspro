@@ -59,6 +59,7 @@ const NAV_MAIN: NavItemType[] = [
   { title: "Dashboard", href: "/portal", icon: LayoutDashboard },
   { title: "Meus Chamados", href: "/portal/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
   { title: "Tickets", href: "/portal/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
+  { title: "Conversas", href: "/portal/conversas", icon: MessageSquare, roles: [...SYSTEM_ROLES] },
 ]
 
 const NAV_CADASTROS: NavItemType[] = [
@@ -70,11 +71,6 @@ const NAV_CADASTROS: NavItemType[] = [
 const NAV_SYSTEM: NavItemType[] = [
   { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
   { title: "Plataforma Remota", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
-]
-
-const NAV_OMNICHANNEL: NavItemType[] = [
-  { title: "Conversas", href: "/portal/conversas", icon: MessageSquare, roles: [...SYSTEM_ROLES] },
-  { title: "WhatsApp (Evo)", href: "/portal/configuracoes/whatsapp", icon: Smartphone, roles: [...SYSTEM_ROLES] },
 ]
 
 const NAV_DOCS_USER: NavItemType[] = [
@@ -315,17 +311,6 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
             <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
           ))}
         </NavGroup>
-
-        {filterByRole(NAV_OMNICHANNEL, user.role).length > 0 && (
-          <>
-            <Separator className="bg-border/30 mx-1" />
-            <NavGroup title="Omnichannel" collapsed={isSidebarCollapsed}>
-              {filterByRole(NAV_OMNICHANNEL, user.role).map((item) => (
-                <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
-              ))}
-            </NavGroup>
-          </>
-        )}
 
         <Separator className="bg-border/30 mx-1" />
 

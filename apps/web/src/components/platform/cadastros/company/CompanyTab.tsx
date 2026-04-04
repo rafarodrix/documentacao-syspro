@@ -194,7 +194,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
         normalizedRazao.includes(term) ||
         normalizedFantasia.includes(term) ||
         normalizedId.includes(term) ||
-        company.cnpj.includes(cnpjRaw)
+        (cnpjRaw.length > 0 && company.cnpj.includes(cnpjRaw))
 
       const matchesStatus = filterStatus === "ALL" || company.status === filterStatus
       const matchesBlocked = filterBlocked === "ALL" || company.isBlockedByContract
