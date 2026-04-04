@@ -2,7 +2,6 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
-import { RootProvider } from 'fumadocs-ui/provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 
 const inter = Inter({
@@ -24,17 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <body className="min-h-screen bg-background text-foreground antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <RootProvider
-            search={{
-              enabled: true,
-              options: {
-                type: 'static',
-                api: '/api/search',
-              },
-            }}
-          >
-            {children}
-          </RootProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>

@@ -16,6 +16,7 @@ out/
 .content-collections/
 .source/
 packages/api/src/**/*.js
+packages/config/src/**/*.js
 apps/api/src/**/*.js
 apps/api/tests/**/*.js
 build_output.log
