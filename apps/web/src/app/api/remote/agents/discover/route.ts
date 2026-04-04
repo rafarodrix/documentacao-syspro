@@ -139,12 +139,9 @@ export async function POST(request: Request) {
     });
 
     if (response.status >= 500) {
-      logger.error("remote.agent.discover.unexpected_error", {
-        error: error instanceof Error ? error.message : "unknown",
-      });
+      logger.error("remote.agent.discover.unexpected_error", error);
     }
 
     return response;
   }
 }
-

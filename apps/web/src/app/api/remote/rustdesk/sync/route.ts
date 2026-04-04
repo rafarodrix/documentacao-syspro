@@ -109,9 +109,7 @@ export async function POST(request: Request) {
       await revokeExpiredSyncAgentToken((body as { agentToken?: string } | null)?.agentToken);
     }
 
-    logger.error("remote.rustdesk.sync.unexpected_error", {
-      error: error instanceof Error ? error.message : "unknown",
-    });
+    logger.error("remote.rustdesk.sync.unexpected_error", error);
     const missingAgentToken =
       error instanceof ZodError && error.issues.some((issue) => issue.path.join(".") === "agentToken");
     return toRemoteDomainErrorResponse(error, {
@@ -121,4 +119,3 @@ export async function POST(request: Request) {
     });
   }
 }
-

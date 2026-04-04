@@ -68,9 +68,7 @@ export async function GET(request: Request) {
     }, { headers: responseHeaders });
 
   } catch (error) {
-    logger.error("remote.fleet_stats.failed", {
-      error: error instanceof Error ? error.message : "unknown",
-    });
+    logger.error("remote.fleet_stats.failed", error);
 
     return NextResponse.json({
       success: false,

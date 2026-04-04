@@ -74,9 +74,7 @@ export async function POST(request: Request) {
       logger.warn("remote.rustdesk.bootstrap.invalid_install_token");
     }
 
-    logger.error("remote.rustdesk.bootstrap.unexpected_error", {
-      error: error instanceof Error ? error.message : "unknown",
-    });
+    logger.error("remote.rustdesk.bootstrap.unexpected_error", error);
     return toRemoteDomainErrorResponse(error, {
       headers: responseHeaders,
       validationMessage:

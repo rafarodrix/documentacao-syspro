@@ -114,9 +114,7 @@ export async function POST(request: Request) {
       { headers: responseHeaders },
     );
   } catch (error) {
-    logger.error("remote.rustdesk.ack.unexpected_error", {
-      error: error instanceof Error ? error.message : "unknown",
-    });
+    logger.error("remote.rustdesk.ack.unexpected_error", error);
     return toRemoteDomainErrorResponse(error, {
       headers: responseHeaders,
       validationMessage: "agentToken, commandId e status validos sao obrigatorios.",
@@ -124,5 +122,3 @@ export async function POST(request: Request) {
     });
   }
 }
-
-
