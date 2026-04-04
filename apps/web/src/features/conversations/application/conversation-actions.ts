@@ -3,15 +3,22 @@
 import { prisma } from "@/lib/prisma"
 import { getProtectedSession } from "@/lib/auth-helpers"
 import { WhatsAppService } from "@dosc-syspro/api/services/whatsapp-service"
+import { ConversationStatus } from "@prisma/client"
 
-export async function getConversations() {
+export type ConversationTabFilter = "ATENDENDO" | "ESPERA";
+
+export async function getConversations(filter: ConversationTabFilter = "ATENDENDO") {
   const session = await getProtectedSession()
   if (!session) return { error: "UNAUTHORIZED", data: [] }
 
   try {
+    const statusFilter = filter === "ATENDENDO" 
+      ? { in: ["IN_PROGRESS", "WAITING_CUSTOMER"] as ConversationStatus[] }
+      : { in: ["NEW", "UNASSIGNED"] as ConversationStatus[] };
+
     const list = await prisma.conversation.findMany({
       where: {
-        status: { in: ["NEW", "UNASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER"] }
+        status: statusFilter
       },
       orderBy: { lastMessageAt: "desc" },
       include: {
@@ -172,5 +179,74 @@ export async function searchCompanies(query: string) {
     return { error: null, data: companies }
   } catch(e) {
     return { error: "DB_ERROR", data: [] }
+  }
+}
+
+export async function searchSystemContacts(query: string) {
+  const session = await getProtectedSession()
+  if (!session) return { error: "UNAUTHORIZED", data: [] }
+
+  try {
+    const contacts = await prisma.companyContact.findMany({
+      where: {
+        OR: [
+          { name: { contains: query, mode: "insensitive" } },
+          { whatsapp: { contains: query } }
+        ]
+      },
+      take: 20,
+      include: { company: true }
+    })
+    return { error: null, data: contacts }
+  } catch(e) {
+    return { error: "DB_ERROR", data: [] }
+  }
+}
+
+export async function startOutboundConversation(contactId: string) {
+  const session = await getProtectedSession()
+  if (!session) return { error: "UNAUTHORIZED" }
+
+  try {
+    const contact = await prisma.companyContact.findUnique({
+      where: { id: contactId },
+      include: { company: true }
+    })
+
+    if (!contact || !contact.whatsapp) {
+      return { error: "CONTACT_NOT_FOUND" }
+    }
+
+    // Verifica se já não tem uma conversa ativa em andamento para este numero
+    const activeConv = await prisma.conversation.findFirst({
+      where: {
+        contactWhatsappSnapshot: contact.whatsapp,
+        status: { in: ["NEW", "UNASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER"] as ConversationStatus[] }
+      }
+    })
+
+    if (activeConv) {
+      return { error: null, data: activeConv } // Retorna a existente
+    }
+
+    const conversation = await prisma.conversation.create({
+      data: {
+        channel: "WHATSAPP",
+        status: "IN_PROGRESS", // Já vai direto para ATENDENDO
+        entryPoint: "OUTBOUND",
+        companyId: contact.companyId,
+        companyContactId: contact.id,
+        assignedUserId: session.userId, // auto-atribui-se
+        contactNameSnapshot: contact.name,
+        contactWhatsappSnapshot: contact.whatsapp,
+        lastMessagePreview: "Novo atendimento ativo iniciado.",
+        lastMessageAt: new Date()
+      }
+    })
+
+    return { error: null, data: conversation }
+  } catch(e) {
+    console.error("Start outbound error:", e)
+    return { error: "DB_ERROR" }
   }
 }
