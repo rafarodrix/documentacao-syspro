@@ -38,6 +38,15 @@ describe("ConversationsController", () => {
     });
   });
 
+  it("rejeita chamada com x-internal-api-key invalida", async () => {
+    const prisma = createPrismaMock();
+    const controller = new ConversationsController(prisma as never);
+
+    await expect(controller.listConversations("wrong-key", "ATENDENDO")).rejects.toMatchObject({
+      response: { message: "INVALID_INTERNAL_API_KEY" },
+    });
+  });
+
   it("lista conversas com sucesso", async () => {
     const prisma = createPrismaMock();
     prisma.conversation.findMany.mockResolvedValue([{ id: "conv-1", status: "IN_PROGRESS" }]);
@@ -76,6 +85,45 @@ describe("ConversationsController", () => {
     expect(sendTextMessage).toHaveBeenCalledWith("5511999999999", "Ola cliente");
   });
 
+  it("retorna INVALID_PAYLOAD em send quando faltam campos obrigatorios", async () => {
+    const prisma = createPrismaMock();
+    const controller = new ConversationsController(prisma as never);
+
+    const result = await controller.sendConversationMessage("test-internal-key", {
+      conversationId: "",
+      text: "",
+      userId: "",
+    });
+
+    expect(result).toEqual({ success: false, error: "INVALID_PAYLOAD" });
+  });
+
+  it("retorna DISPATCH_FAILED em send quando integracao Evolution falha", async () => {
+    const prisma = createPrismaMock();
+    prisma.conversation.findUnique.mockResolvedValue({
+      id: "conv-1",
+      status: "IN_PROGRESS",
+      contactWhatsappSnapshot: "5511999999999",
+    });
+    prisma.conversationMessage.create.mockResolvedValue({ id: "msg-1" });
+    prisma.conversation.update.mockResolvedValue({ id: "conv-1" });
+
+    const sendTextMessage = vi.fn().mockRejectedValue(new Error("evolution_down"));
+    vi.spyOn(EvolutionClient, "fromRuntime").mockReturnValue({
+      sendTextMessage,
+    } as unknown as EvolutionClient);
+
+    const controller = new ConversationsController(prisma as never);
+    const result = await controller.sendConversationMessage("test-internal-key", {
+      conversationId: "conv-1",
+      text: "Falha esperada",
+      userId: "user-1",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("DISPATCH_FAILED");
+  });
+
   it("resolve conversa com sucesso", async () => {
     const prisma = createPrismaMock();
     prisma.conversation.update.mockResolvedValue({ id: "conv-1", status: "RESOLVED" });
@@ -88,5 +136,17 @@ describe("ConversationsController", () => {
 
     expect(result).toEqual({ success: true });
     expect(prisma.conversation.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("retorna INVALID_PAYLOAD em resolve quando faltam campos obrigatorios", async () => {
+    const prisma = createPrismaMock();
+    const controller = new ConversationsController(prisma as never);
+
+    const result = await controller.resolveConversation("test-internal-key", {
+      conversationId: "",
+      userId: "",
+    });
+
+    expect(result).toEqual({ success: false, error: "INVALID_PAYLOAD" });
   });
 });

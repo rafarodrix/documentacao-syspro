@@ -30,6 +30,21 @@ describe("WhatsAppController", () => {
     });
   });
 
+  it("rejeita webhook sem x-internal-api-key", async () => {
+    const inboundService = createInboundServiceMock();
+    const controller = new WhatsAppController(inboundService as never);
+
+    await expect(
+      controller.handleEvolutionWebhook(
+        { event: "MESSAGE", data: {} },
+        "test-webhook-secret",
+        undefined,
+      ),
+    ).rejects.toMatchObject({
+      response: { message: "MISSING_INTERNAL_API_KEY" },
+    });
+  });
+
   it("ignora eventos nao-MESSAGE", async () => {
     const inboundService = createInboundServiceMock();
     const controller = new WhatsAppController(inboundService as never);
@@ -87,5 +102,64 @@ describe("WhatsAppController", () => {
     });
     expect(inboundService.handleInboundMessage).toHaveBeenCalledTimes(1);
     expect(sendTextMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("retorna no_text_content quando payload MESSAGE nao tem texto", async () => {
+    const inboundService = createInboundServiceMock();
+    const controller = new WhatsAppController(inboundService as never);
+
+    const result = await controller.handleEvolutionWebhook(
+      {
+        event: "MESSAGE",
+        data: {
+          Info: {
+            Chat: "5511999999999@s.whatsapp.net",
+            IsFromMe: false,
+            PushName: "Cliente Teste",
+            ID: "msg-external-2",
+          },
+          Message: {},
+        },
+      },
+      "test-webhook-secret",
+      "test-internal-key",
+    );
+
+    expect(result).toEqual({ status: "no_text_content" });
+    expect(inboundService.handleInboundMessage).not.toHaveBeenCalled();
+  });
+
+  it("propaga erro quando envio de confirmacao Evolution falha", async () => {
+    const inboundService = createInboundServiceMock();
+    inboundService.handleInboundMessage.mockResolvedValue({
+      success: true,
+      ticketNumber: "12345",
+      duplicate: false,
+    });
+    const controller = new WhatsAppController(inboundService as never);
+
+    const sendTextMessage = vi.fn().mockRejectedValue(new Error("evolution_send_fail"));
+    vi.spyOn(EvolutionClient, "fromRuntime").mockReturnValue({
+      sendTextMessage,
+    } as unknown as EvolutionClient);
+
+    const payload = {
+      event: "MESSAGE",
+      data: {
+        Info: {
+          Chat: "5511999999999@s.whatsapp.net",
+          IsFromMe: false,
+          PushName: "Cliente Teste",
+          ID: "msg-external-3",
+        },
+        Message: {
+          conversation: "Mensagem valida",
+        },
+      },
+    };
+
+    await expect(
+      controller.handleEvolutionWebhook(payload, "test-webhook-secret", "test-internal-key"),
+    ).rejects.toBeInstanceOf(Error);
   });
 });
