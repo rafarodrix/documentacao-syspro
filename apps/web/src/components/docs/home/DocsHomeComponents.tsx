@@ -80,7 +80,7 @@ export function InsightLink({
   return (
     <Link
       href={href}
-      className="group relative flex min-h-[44px] items-center justify-between gap-2 rounded-lg border border-transparent bg-transparent px-3 py-3 text-sm transition-all hover:bg-accent/60 hover:border-border/50"
+      className="group relative flex min-h-[48px] items-center justify-between gap-3 rounded-xl border border-transparent bg-transparent px-4 py-3.5 text-sm transition-all hover:bg-accent/70 hover:border-border/60"
     >
       <span className="absolute inset-y-1.5 left-0 w-1 rounded-r bg-primary opacity-0 transition-opacity group-hover:opacity-100" />
       <span className="line-clamp-2 leading-snug">{title}</span>
@@ -111,7 +111,7 @@ export function InsightCard({
   return (
     <div
       className={cn(
-        'relative h-full overflow-hidden rounded-2xl border border-border/60 bg-card/60 p-4 shadow-[0_10px_24px_-24px_rgba(15,23,42,0.55)]',
+        'relative h-full overflow-hidden rounded-3xl border border-border/50 bg-background/40 backdrop-blur-xl p-5 shadow-lg transition-all hover:shadow-xl',
         className,
       )}
     >
@@ -148,8 +148,8 @@ export function PremiumLinkCard({
 
   return (
     <Link href={item.href} className="group block animate-docs-fade-up opacity-0" style={style}>
-      <MagicCard className="h-full rounded-2xl">
-        <div className="relative h-full rounded-2xl border border-border/70 bg-card/70 p-4 transition-colors sm:p-5 group-hover:bg-card">
+      <MagicCard className="h-full rounded-3xl">
+        <div className="relative h-full rounded-3xl border border-border/50 bg-background/30 backdrop-blur-2xl p-5 sm:p-6 transition-all group-hover:bg-background/50">
           <div
             className={cn(
               'pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br to-transparent opacity-20',

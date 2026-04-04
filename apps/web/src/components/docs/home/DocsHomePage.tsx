@@ -70,8 +70,8 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         className="relative animate-docs-fade-up overflow-hidden rounded-2xl border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] bg-card p-5 opacity-0 md:p-6"
         style={staggerStyle(0)}
       >
-        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-primary/5 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-20 h-60 w-60 rounded-full bg-primary/5 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-sky-500/10 blur-[80px]" />
 
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <h1 className="max-w-3xl text-2xl font-semibold tracking-tight md:text-4xl">
@@ -147,11 +147,11 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
             </Badge>
           </div>
 
-          {/* Carrossel Horizontal no Mobile / Grid no Desktop */}
-          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 sm:snap-none">
+          {/* Grid Flexível Responsiva */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             
             {/* Últimas atualizações */}
-            <div className="w-[85vw] shrink-0 snap-center sm:w-auto">
+            <div className="w-full shrink-0">
               <InsightCard icon={Clock} label="Últimas atualizações">
                 {derived.latestUpdates.length === 0 ? (
                   <DocsEmptyState message="Explore os manuais básicos para começar." />
@@ -177,7 +177,7 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
             </div>
 
             {/* Mais acessados por você */}
-            <div className="w-[85vw] shrink-0 snap-center sm:w-auto">
+            <div className="w-full shrink-0">
               <InsightCard icon={Flame} label="Mais acessados por você">
                 {derived.mostAccessed.length === 0 ? (
                   <DocsEmptyState message="Seu histórico aparecerá aqui em breve." />
@@ -197,7 +197,7 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
             </div>
 
             {/* Populares por perfil */}
-            <div className="w-[85vw] shrink-0 snap-center sm:w-auto">
+            <div className="w-full shrink-0">
               <InsightCard
                 icon={Users}
                 label={ROLE_LABELS[status.roleSegment]}
@@ -221,7 +221,7 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
             </div>
 
             {/* Populares na base */}
-            <div className="w-[85vw] shrink-0 snap-center sm:w-auto">
+            <div className="w-full shrink-0">
               <InsightCard
                 icon={TrendingUp}
                 label="Populares na base"
@@ -257,14 +257,6 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
             0% { opacity: 0; transform: translateY(8px); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
           }
-        }
-        /* Esconder scrollbar do carrossel mobile mantendo a funcionalidade */
-        .overflow-x-auto::-webkit-scrollbar {
-          display: none;
-        }
-        .overflow-x-auto {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
         }
       `}</style>
     </div>

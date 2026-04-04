@@ -60,7 +60,7 @@ export function DocsLayoutClient({
     return (
       <NotebookLayout
         tree={docsTree}
-        nav={{ title: null, children: null, mode: 'top' }}
+        nav={{ title: <span className="font-semibold text-sm">Central Trilink</span>, mode: 'top' }}
         themeSwitch={{ enabled: false }}
         searchToggle={{ enabled: true }}
         sidebar={sharedSidebarProps}
@@ -73,7 +73,7 @@ export function DocsLayoutClient({
   return (
     <DocsLayout
       tree={docsTree}
-      nav={{ title: null, children: null }}
+      nav={{ title: <span className="font-semibold text-sm">Central Trilink</span> }}
       themeSwitch={{ enabled: false }}
       searchToggle={{ enabled: true }}
       sidebar={{ ...sharedSidebarProps, enabled: !isDocsHome }}
