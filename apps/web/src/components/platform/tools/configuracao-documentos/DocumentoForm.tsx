@@ -90,7 +90,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                         <form onSubmit={form.handleSubmit(onSave)} className="space-y-6">
 
                             <Tabs defaultValue="geral" className="w-full">
-                                <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+                                <TabsList className="grid w-full grid-cols-2 lg:w-100">
                                     <TabsTrigger value="geral">Dados Gerais</TabsTrigger>
                                     <TabsTrigger value="comportamentos">Comportamentos</TabsTrigger>
                                 </TabsList>
@@ -110,7 +110,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                                                 <SelectTrigger className="h-12 bg-background text-lg" onFocus={handleFocus("grupoDocumento")}>
                                                                     <SelectValue placeholder="Selecione..." />
                                                                 </SelectTrigger>
-                                                                <SelectContent className="max-h-[300px]">
+                                                                <SelectContent className="max-h-75">
                                                                     {GRUPOS_DOCUMENTO.map((grupo, index) => (
                                                                         <SelectItem key={`${grupo.value}-${index}`} value={grupo.value}>
                                                                             <span className="font-mono font-bold mr-2">{grupo.value}</span> - {grupo.label}
@@ -385,7 +385,7 @@ export function DocumentoForm({ initialValues, onSave, onCancel }: DocumentoForm
                                             <h3 className="text-sm font-medium">Regras de Negocio</h3>
                                             <p className="text-xs text-muted-foreground">Selecione os comportamentos autom?ticos.</p>
                                         </div>
-                                        <ScrollArea className="h-[400px] pr-4">
+                                        <ScrollArea className="h-100 pr-4">
                                             <FormField
                                                 control={form.control}
                                                 name="comportamentos"

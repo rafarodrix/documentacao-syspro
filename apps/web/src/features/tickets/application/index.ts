@@ -4,6 +4,5 @@ export * from './queries';
 export * from './zammad-global-settings-actions';
 export * from './zammad-global-settings-config';
 export * from './zammad-global-settings-server';
-export * from './services';
 export * from './utils';
 

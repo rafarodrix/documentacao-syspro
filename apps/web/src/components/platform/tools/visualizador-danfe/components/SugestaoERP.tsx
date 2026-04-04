@@ -143,7 +143,7 @@ export const SugestaoERP: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDe
 };
 
 // =============================================================
-// 5. UI ? COMPONENTES DE APOIO E VISUALIZACAO
+// 5. UI COMPONENTES DE APOIO E VISUALIZACAO
 // =============================================================
 
 /** Card de Detalhes Tribut?rios de um Item */
