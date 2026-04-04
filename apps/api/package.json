@@ -2,15 +2,30 @@
   "name": "@dosc-syspro/app-api",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "build": "node -e \"console.log('apps/api shell: no build step')\"",
-    "dev": "node --watch --experimental-strip-types src/server.ts",
-    "start": "node --experimental-strip-types src/server.ts",
+    "prebuild": "rimraf dist",
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@dosc-syspro/api": "0.0.0",
-    "@dosc-syspro/remote-domain": "0.0.0"
+    "@dosc-syspro/remote-domain": "0.0.0",
+    "@nestjs/common": "^11.1.18",
+    "@nestjs/core": "^11.1.18",
+    "@nestjs/platform-express": "^11.1.18",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.17",
+    "@nestjs/schematics": "^11.0.10",
+    "@types/express": "^5.0.6",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0"
   }
 }
