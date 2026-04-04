@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from 'react';
-import { useTicketSheet } from '@/features/tickets/hooks/use-ticket-sheet';
+import { useTicketSheet } from '@/features/tickets/interface/hooks/use-ticket-sheet';
 
 import {
     PlusCircle, Loader2, Send, FileText, AlertCircle,
@@ -78,7 +78,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
         };
     }, [open]);
 
-    // Toda a lógica vem do Hook
+    // Toda a lÃ³gica vem do Hook
     const {
         form, files, isPending, fileInputRef,
         handleFileChange, removeFile, triggerFileInput, onSubmit,
@@ -121,12 +121,12 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                             Nova Solicitacao
                         </SheetTitle>
                         <SheetDescription>
-                            Descreva seu problema ou dúvida detalhadamente.
+                            Descreva seu problema ou dÃºvida detalhadamente.
                         </SheetDescription>
                     </SheetHeader>
                 </div>
 
-                {/* FORMULÁRIO */}
+                {/* FORMULÃRIO */}
                 <ScrollArea className="flex-1">
                     <div className="p-6">
                         <Form {...form}>
@@ -144,11 +144,11 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                 className="space-y-6"
                             >
 
-                                {/* DADOS BÁSICOS */}
+                                {/* DADOS BÃSICOS */}
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit border border-primary/10">
                                         <FileText className="h-3.5 w-3.5" />
-                                        <span>Informações Básicas</span>
+                                        <span>InformaÃ§Ãµes BÃ¡sicas</span>
                                     </div>
 
                                     <FormField control={form.control} name="subject" render={({ field }) => (
@@ -245,7 +245,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                     </FormControl>
                                                     <SelectContent>
                                                         <SelectItem value="incident">Incidente / Erro</SelectItem>
-                                                        <SelectItem value="question">Dúvida</SelectItem>
+                                                        <SelectItem value="question">DÃºvida</SelectItem>
                                                         <SelectItem value="request">Solicitacao</SelectItem>
                                                     </SelectContent>
                                                 </Select>
@@ -301,7 +301,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                 <Paperclip className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
                                             </div>
                                             <p className="text-sm font-medium text-foreground">Clique para adicionar arquivos</p>
-                                            <p className="text-xs text-muted-foreground mt-1">Imagens ou PDFs (Máx. 5MB)</p>
+                                            <p className="text-xs text-muted-foreground mt-1">Imagens ou PDFs (MÃ¡x. 5MB)</p>
                                             <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*,application/pdf" onChange={handleFileChange} />
                                         </div>
 
@@ -352,3 +352,4 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
         </Sheet>
     );
 }
+

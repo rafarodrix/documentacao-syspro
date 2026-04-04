@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import Link from "next/link"
-import { useRegister } from "@/features/auth/hooks/use-register"
+import { useRegister } from "@/features/auth/interface/hooks/use-register"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -145,6 +145,7 @@ export function RegisterForm() {
     </AuthLayoutWrapper>
   )
 }
+
 
 
 

@@ -23,6 +23,16 @@
 - Integracoes e regras de negocio novas devem entrar no `apps/api` ou `packages/*`.
 - Nao commitar artefatos gerados em `src` (`*.js` compilado, `node_modules`, outputs de teste).
 
+## Arquitetura por feature no web
+
+- Cada modulo em `apps/web/src/features/*` deve manter sempre as camadas:
+  - `application/`
+  - `domain/`
+  - `infrastructure/`
+  - `interface/`
+- `hooks` de UI ficam em `interface/hooks`.
+- Utilitarios compartilhados da feature ficam em `application/utils` (ou em `infrastructure/*` quando forem tecnicos de adaptadores).
+
 ## Comandos principais
 
 - Web:
