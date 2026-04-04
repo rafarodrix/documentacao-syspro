@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ConversationsController } from "../src/conversations.controller";
-import { EvolutionClient } from "../src/integrations/evolution.client";
+import { ConversationsController } from "../src/modules/conversations/controllers/conversations.controller";
+import { EvolutionClient } from "../src/modules/integrations/clients/evolution.client";
 
 function createPrismaMock() {
   return {

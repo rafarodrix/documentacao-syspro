@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConversationStatus } from "@prisma/client";
-import { PrismaService } from "./prisma/prisma.service";
-import { ZammadClient } from "./integrations/zammad.client";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { ZammadClient } from "../../integrations/clients/zammad.client";
 
 type WhatsAppInboundMessageInput = {
   phone: string;
@@ -208,4 +208,3 @@ export class WhatsAppInboundService {
     }
   }
 }
-

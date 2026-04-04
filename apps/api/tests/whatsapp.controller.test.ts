@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { WhatsAppController } from "../src/whatsapp.controller";
-import { EvolutionClient } from "../src/integrations/evolution.client";
+import { WhatsAppController } from "../src/modules/whatsapp/controllers/whatsapp.controller";
+import { EvolutionClient } from "../src/modules/integrations/clients/evolution.client";
 
 function createInboundServiceMock() {
   return {

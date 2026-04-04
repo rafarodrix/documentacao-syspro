@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Headers, UnauthorizedException } from "@nestjs/common";
-import { WhatsAppInboundService } from "./whatsapp-inbound.service";
-import { assertInternalApiKey } from "./internal-api-auth";
-import { EvolutionClient, readEvolutionConfigFromRuntime } from "./integrations/evolution.client";
+import { WhatsAppInboundService } from "../services/whatsapp-inbound.service";
+import { assertInternalApiKey } from "../../../common/auth/internal-api-auth";
+import { EvolutionClient, readEvolutionConfigFromRuntime } from "../../integrations/clients/evolution.client";
 
 type EvolutionMessageContent = {
   conversation?: string;

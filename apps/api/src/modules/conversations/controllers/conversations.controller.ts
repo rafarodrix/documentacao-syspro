@@ -10,9 +10,9 @@ import {
   Query,
 } from "@nestjs/common";
 import { ConversationStatus } from "@prisma/client";
-import { PrismaService } from "./prisma/prisma.service";
-import { assertInternalApiKey } from "./internal-api-auth";
-import { EvolutionClient } from "./integrations/evolution.client";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { assertInternalApiKey } from "../../../common/auth/internal-api-auth";
+import { EvolutionClient } from "../../integrations/clients/evolution.client";
 
 type ConversationTabFilter = "ATENDENDO" | "ESPERA";
 
