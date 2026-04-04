@@ -4,6 +4,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { cleanupExpiredRemoteSessions } from "@/features/remote/application/session-queries";
 
 export const dynamic = "force-dynamic";
+const OPERATOR_ROLES: Role[] = [Role.ADMIN, Role.SUPORTE, Role.DEVELOPER];
 
 function hasValidInternalKey(request: Request) {
   const expected = process.env.INTERNAL_API_KEY?.trim();
@@ -14,9 +15,7 @@ function hasValidInternalKey(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getProtectedSession();
-  const isOperator = Boolean(
-    session && [Role.ADMIN, Role.SUPORTE, Role.DEVELOPER].includes(session.role),
-  );
+  const isOperator = Boolean(session && OPERATOR_ROLES.includes(session.role));
 
   if (!isOperator && !hasValidInternalKey(request)) {
     return NextResponse.json(
