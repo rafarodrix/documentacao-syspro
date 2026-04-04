@@ -210,7 +210,21 @@ export default function ConversasOmnichannelPage() {
                   return (
                     <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[70%] rounded-lg p-3 ${isOut ? "bg-[#d9fdd3] text-slate-800 rounded-tr-none" : "bg-white text-slate-800 rounded-tl-none shadow-sm"}`}>
-                        <p className="text-sm whitespace-pre-wrap">{msg.body}</p>
+                        
+                        {msg.type === "IMAGE" && msg.mediaUrl && (
+                          <img src={msg.mediaUrl} alt="Imagem recebida" className="max-w-[250px] rounded mb-2 object-cover" />
+                        )}
+                        {msg.type === "AUDIO" && msg.mediaUrl && (
+                          <audio controls src={msg.mediaUrl} className="max-w-[250px] h-10 mb-2" />
+                        )}
+                        {msg.type === "DOCUMENT" && msg.mediaUrl && (
+                          <a href={msg.mediaUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-slate-100 p-2 rounded-md mb-2 text-xs text-blue-600 hover:underline">
+                            📎 Visualizar Documento
+                          </a>
+                        )}
+
+                        {msg.body && <p className="text-sm whitespace-pre-wrap">{msg.body}</p>}
+                        
                         <div className="text-[10px] text-right mt-1 opacity-60">
                           {new Date(msg.createdAt || msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
