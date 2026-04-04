@@ -69,7 +69,8 @@ export async function upsertOperationalTicketsToCache(
     }
   }
 
-  const dedupedTickets = Array.from(newestByTicketId.values());
+  // Sort by ID to mathematically prevent PostgreSQL distributed deadlocks during concurrent chunk UPSERTS
+  const dedupedTickets = Array.from(newestByTicketId.values()).sort((a, b) => a.id - b.id);
 
   for (let i = 0; i < dedupedTickets.length; i += CACHE_UPSERT_CHUNK_SIZE) {
     const chunk = dedupedTickets.slice(i, i + CACHE_UPSERT_CHUNK_SIZE);
