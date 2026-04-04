@@ -53,7 +53,7 @@ export type ZammadCatalogPriority = z.infer<typeof zammadCatalogPrioritySchema>;
 export const zammadCatalogOwnerSchema = z.object({
   id: z.coerce.number().int().min(1),
   name: z.string().trim().min(1),
-  email: z.string().trim().email().optional().nullable(),
+  email: z.string().trim().optional().nullable(),
 });
 export type ZammadCatalogOwner = z.infer<typeof zammadCatalogOwnerSchema>;
 

@@ -19,7 +19,9 @@ export async function loadZammadCatalogWithFallback(routeKey: string): Promise<Z
     const liveCatalogRaw = await ZammadGateway.getGlobalCatalog(routeKey);
     const liveValidation = zammadGlobalCatalogSchema.safeParse(liveCatalogRaw);
     if (!liveValidation.success) {
-      throw new Error("catalog_live_parse_failed");
+      const issues = liveValidation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(' | ');
+      console.error("[ZammadGlobalCatalog] Parse Failed:", JSON.stringify(liveValidation.error.issues, null, 2));
+      throw new Error(`catalog_live_parse_failed: ${issues}`);
     }
 
     await saveZammadGlobalCatalogSnapshot(liveValidation.data);
