@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Menu, Sparkles, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { AppSidebar, SidebarUser } from "./app-sidebar"
+import { AppSidebar, SidebarUser } from "./AppSidebar"
 import { cn } from "@/lib/utils"
 import { SYSTEM_ROLES } from "@dosc-syspro/core"
 
