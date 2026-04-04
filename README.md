@@ -53,6 +53,7 @@ Scripts especificos do workspace:
 npm run build:api
 npm run dev:api
 npm run typecheck:api
+npm run test:api
 
 npm run build:mobile
 npm run dev:mobile

@@ -10,7 +10,9 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run tests --reporter=verbose",
+    "test:watch": "vitest tests"
   },
   "dependencies": {
     "@dosc-syspro/api": "0.0.0",

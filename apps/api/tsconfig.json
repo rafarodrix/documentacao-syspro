@@ -6,7 +6,7 @@
     "moduleResolution": "node16",
     "target": "es2022",
     "types": ["node"],
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
     "allowJs": false,
     "jsx": "preserve",
@@ -24,6 +24,6 @@
       "@dosc-syspro/database/*": ["../../packages/database/src/*"]
     }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

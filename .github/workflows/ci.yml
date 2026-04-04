@@ -56,6 +56,9 @@ jobs:
       - name: Typecheck app-api
         run: npm run typecheck:api
 
+      - name: Test app-api
+        run: npm run test:api
+
       - name: Typecheck package-api
         run: npm run typecheck -w @dosc-syspro/api
 

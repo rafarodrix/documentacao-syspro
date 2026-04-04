@@ -29,6 +29,7 @@
                     "dev:api":  "npm run dev -w @dosc-syspro/app-api",
                     "start:api":  "npm run start -w @dosc-syspro/app-api",
                     "typecheck:api":  "npm run typecheck -w @dosc-syspro/app-api",
+                    "test:api":  "npm run test -w @dosc-syspro/app-api",
                     "build:mobile":  "npm run build -w @dosc-syspro/app-mobile",
                     "dev:mobile":  "npm run dev -w @dosc-syspro/app-mobile",
                     "start:mobile":  "npm run start -w @dosc-syspro/app-mobile",
