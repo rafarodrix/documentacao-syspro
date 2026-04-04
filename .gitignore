@@ -15,6 +15,7 @@ out/
 .contentlayer/
 .content-collections/
 .source/
+packages/api/src/**/*.js
 *.tsbuildinfo
 next-env.d.ts
 .turbo/
