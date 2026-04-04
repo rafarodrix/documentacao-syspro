@@ -9,7 +9,6 @@ type RequestInitLike = {
   method?: string;
   headers?: Record<string, string>;
   body?: string;
-  cache?: string;
 };
 
 type FetchResponseLike = {
@@ -59,7 +58,6 @@ export class ZammadClient {
         "Content-Type": "application/json",
         ...(init?.headers ?? {}),
       },
-      cache: "no-store",
     });
     if (!res.ok) {
       const body = await res.text();
