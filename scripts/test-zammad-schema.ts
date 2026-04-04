@@ -1,4 +1,4 @@
-import { ZammadGateway } from './apps/web/src/features/tickets/infrastructure/gateways/zammad-gateway';
+import { ZammadGateway } from '../apps/web/src/features/tickets/infrastructure/gateways/zammad-gateway';
 import { zammadGlobalCatalogSchema } from '@dosc-syspro/contracts';
 
 async function run() {

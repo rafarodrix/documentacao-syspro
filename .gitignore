@@ -16,6 +16,9 @@ out/
 .content-collections/
 .source/
 packages/api/src/**/*.js
+apps/api/src/**/*.js
+apps/api/tests/**/*.js
+build_output.log
 *.tsbuildinfo
 next-env.d.ts
 .turbo/
