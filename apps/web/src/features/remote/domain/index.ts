@@ -1,3 +1,5 @@
-﻿export * from './model';
-export * from './operational-status';
-
+export * from "./model";
+export {
+  resolveRemoteOperationalStatus,
+  getRemoteOperationalStatusMeta,
+} from "./operational-status";
