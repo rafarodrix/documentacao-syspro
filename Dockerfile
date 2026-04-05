@@ -1,17 +1,20 @@
 FROM node:20-alpine AS builder
 
+# Instala o OpenSSL para o Prisma funcionar corretamente no Alpine
+RUN apk update && apk add --no-cache openssl
+
 WORKDIR /app
 
 # Copia os arquivos de configuração do workspace
 COPY package*.json ./
 COPY tsconfig*.json ./
 
-# Copia os apps e packages do monorepo
-COPY apps ./apps
+# Copia apenas o app da API e os packages (ignora o frontend)
+COPY apps/api ./apps/api
 COPY packages ./packages
 
-# Instala as dependências (isso criará os symlinks dos workspaces)
-RUN npm install
+# Instala as dependências focadas apenas na API e nos pacotes base
+RUN npm ci -w @dosc-syspro/app-api --include-workspace-root
 
 # Gera o Prisma Client do pacote de banco de dados
 RUN npm run db:generate
@@ -20,6 +23,9 @@ RUN npm run db:generate
 RUN npm run build -w @dosc-syspro/app-api
 
 FROM node:20-alpine AS runner
+
+# Garante que o OpenSSL também esteja no contêiner final para o Prisma conectar ao banco
+RUN apk update && apk add --no-cache openssl
 
 WORKDIR /app
 
