@@ -1,26 +1,36 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EvolutionClient } from '../../evolution/infrastructure/evolution.client';
-// import { PrismaService } from '...'; // Para persistência futura
+import { PrismaService } from '../../../../prisma/prisma.service';
 
 @Injectable()
 export class ProcessOutgoingMessageUseCase {
   private readonly logger = new Logger(ProcessOutgoingMessageUseCase.name);
 
-  constructor(private readonly evolutionClient: EvolutionClient) {}
+  constructor(
+    private readonly evolutionClient: EvolutionClient,
+    private readonly prisma: PrismaService
+  ) {}
 
   async execute(payload: any) {
     // Ignora mensagens que não foram enviadas pelo agente (outgoing)
     if (payload.message_type !== 'outgoing') return;
 
     const content = payload.content;
-    const chatwootConversationId = payload.conversation?.id;
+    const chatwootConversationId = payload.conversation?.id?.toString();
 
     if (!content || !chatwootConversationId) return;
 
-    // TODO: Buscar o ConversationLink no banco de dados para descobrir o telefone
-    // const link = await this.prisma.conversationLink.findFirst({ where: { chatwootConversationId } });
-    // const phone = link.whatsappNumber;
-    const phone = "553499999999"; // Fixo para teste - substituir pela busca no banco
+    // Busca o telefone do cliente usando o ID da conversa do Chatwoot
+    const link = await this.prisma.conversationLink.findUnique({
+      where: { chatwootConversationId }
+    });
+
+    if (!link) {
+      this.logger.warn(`Chatwoot -> WhatsApp: Vínculo não encontrado para a conversa ${chatwootConversationId}`);
+      return;
+    }
+
+    const phone = link.whatsappNumber;
 
     this.logger.log(`Chatwoot -> WhatsApp: Respondendo para ${phone} via Evolution`);
 

@@ -1270,3 +1270,21 @@ model ZammadSyncState {
   lastProcessedAt   DateTime?
   updatedAt         DateTime @updatedAt
 }
+
+model ConversationLink {
+  id                     String   @id @default(cuid())
+  
+  // O número do cliente no WhatsApp (ex: 553499999999)
+  whatsappNumber         String   @unique
+  
+  // Os IDs gerados dentro do Chatwoot para esse cliente
+  chatwootContactId      String
+  chatwootConversationId String   @unique
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([whatsappNumber])
+  @@index([chatwootConversationId])
+}
+

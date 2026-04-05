@@ -9,7 +9,9 @@ async function bootstrap() {
   
   // Porta paralela à operacao de Next.js (que usa 3000)
   const port = process.env.PORT || 3001;
-  await app.listen(port);
+  
+  // O host 0.0.0.0 é OBRIGATÓRIO em contêineres Docker para receber tráfego externo
+  await app.listen(port, '0.0.0.0');
   Logger.log(`Backend NestJS Standalone rodando na porta ${port}`, 'Bootstrap');
 }
 bootstrap();

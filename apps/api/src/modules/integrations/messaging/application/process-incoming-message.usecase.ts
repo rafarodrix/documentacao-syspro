@@ -1,12 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ChatwootClient } from '../../chatwoot/infrastructure/chatwoot.client';
-// import { PrismaService } from '...'; // Para persistência futura
+import { PrismaService } from '../../../../prisma/prisma.service';
 
 @Injectable()
 export class ProcessIncomingMessageUseCase {
   private readonly logger = new Logger(ProcessIncomingMessageUseCase.name);
 
-  constructor(private readonly chatwootClient: ChatwootClient) {}
+  constructor(
+    private readonly chatwootClient: ChatwootClient,
+    private readonly prisma: PrismaService
+  ) {}
 
   async execute(payload: any) {
     const messages = Array.isArray(payload) ? payload : (payload?.messages || [payload?.message || payload]);
@@ -28,21 +31,35 @@ export class ProcessIncomingMessageUseCase {
       this.logger.log(`WhatsApp -> Chatwoot: ${phone} disse: ${textContent}`);
 
       try {
-        // 1. Resolve Contato no Chatwoot
-        const contactResponse = (await this.chatwootClient.createOrFindContact(phone, pushName)) as any;
-        const contactIdentifier = contactResponse?.payload?.contact?.source_id;
+        // 1. Busca se já temos uma conversa ativa para este número
+        let link = await this.prisma.conversationLink.findUnique({
+          where: { whatsappNumber: phone }
+        });
 
-        if (!contactIdentifier) throw new Error('Não foi possível resolver o source_id do contato no Chatwoot');
+        let contactIdentifier = link?.chatwootContactId;
+        let conversationId = link?.chatwootConversationId;
 
-        // 2. Resolve/Cria Conversa
-        const convResponse = (await this.chatwootClient.createConversation(contactIdentifier)) as any;
-        const conversationId = convResponse?.id;
+        // 2. Se não existir o vínculo, cria tudo no Chatwoot e salva no banco
+        if (!link) {
+          const contactResponse = (await this.chatwootClient.createOrFindContact(phone, pushName)) as any;
+          contactIdentifier = contactResponse?.payload?.contact?.source_id?.toString();
 
-        // TODO: Mapear no banco de dados (ConversationLink)
-        // await this.prisma.conversationLink.upsert({ ... })
+          if (!contactIdentifier) throw new Error('Não foi possível resolver o source_id do contato no Chatwoot');
 
-        // 3. Cria Mensagem na Inbox
-        await this.chatwootClient.createIncomingMessage(contactIdentifier, conversationId, textContent);
+          const convResponse = (await this.chatwootClient.createConversation(contactIdentifier)) as any;
+          conversationId = convResponse?.id?.toString();
+
+          link = await this.prisma.conversationLink.create({
+            data: {
+              whatsappNumber: phone,
+              chatwootContactId: contactIdentifier!,
+              chatwootConversationId: conversationId!
+            }
+          });
+        }
+
+        // 3. Cria Mensagem na Inbox do Chatwoot usando os IDs persistidos
+        await this.chatwootClient.createIncomingMessage(contactIdentifier!, conversationId!, textContent);
         
       } catch (error: any) {
         this.logger.error(`Erro ao processar incoming message: ${error.message}`);
