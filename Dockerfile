@@ -14,7 +14,7 @@ COPY apps/api ./apps/api
 COPY packages ./packages
 
 # Instala as dependências focadas apenas na API e nos pacotes base
-RUN npm ci -w @dosc-syspro/app-api --include-workspace-root
+RUN npm install -w @dosc-syspro/app-api --include-workspace-root --no-audit --no-fund
 
 # Gera o Prisma Client do pacote de banco de dados
 RUN npm run db:generate
