@@ -8,7 +8,7 @@ import {
   Post,
 } from "@nestjs/common";
 import { assertInternalApiKey } from "../../../common/auth/internal-api-auth";
-import { EvolutionClient, readEvolutionConfigFromRuntime } from "../../integrations/clients/evolution.client";
+import { EvolutionClient, readEvolutionConfigFromRuntime } from "../../integrations/evolution/infrastructure/evolution.client";
 
 @Controller("whatsapp")
 export class WhatsAppAdminController {
@@ -41,7 +41,7 @@ export class WhatsAppAdminController {
         return { success: false, error: "API_ERROR", state: "unknown" };
       }
 
-      const data = await res.json();
+      const data = (await res.json()) as any;
       const state = (
         data?.state ??
         data?.status ??
@@ -92,7 +92,7 @@ export class WhatsAppAdminController {
         return { success: false, error: "API_ERROR", base64: null };
       }
 
-      const data = await res.json();
+      const data = (await res.json()) as any;
       const base64 = data?.data?.Qrcode || data?.data?.qrcode || data?.qrCode || data?.base64 || null;
       return { success: true, base64 };
     } catch (error) {

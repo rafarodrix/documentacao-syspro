@@ -1,0 +1,10 @@
+node_modules
+.git
+.next
+dist
+coverage
+.env
+.env.*
+npm-debug.log
+apps/web/.next
+apps/mobile/.expo
