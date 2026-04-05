@@ -13,6 +13,9 @@ COPY tsconfig*.json ./
 COPY apps/api ./apps/api
 COPY packages ./packages
 
+# Remove o postinstall da raiz para não tentar rodar scripts do frontend ausente
+RUN npm pkg delete scripts.postinstall
+
 # Instala as dependências focadas apenas na API e nos pacotes base
 RUN npm install -w @dosc-syspro/app-api --include-workspace-root --no-audit --no-fund
 
