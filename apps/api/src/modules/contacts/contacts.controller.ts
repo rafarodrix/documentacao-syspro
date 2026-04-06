@@ -24,7 +24,7 @@ export class ContactsController {
   }
 
   @Post('sync-evolution')
-  syncEvolution(@Body('instanceName') instanceName: string) {
+  syncEvolution(@Body('instanceName') instanceName?: string) {
     return this.contactsService.syncFromEvolution(instanceName);
   }
 }

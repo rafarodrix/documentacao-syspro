@@ -12,7 +12,6 @@ import { Loader2, Link2, Trash2, RefreshCw, Search, CheckCircle } from "lucide-r
 export default function ContatosPendentesPage() {
   const [unlinkedContacts, setUnlinkedContacts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [syncing, setSyncing] = useState(false)
   
   // Estado para busca de empresas
   const [searchQuery, setSearchQuery] = useState("")
@@ -53,23 +52,6 @@ export default function ContatosPendentesPage() {
     return () => clearTimeout(delay);
   }, [searchQuery])
 
-  const handleSyncEvolution = async () => {
-    setSyncing(true)
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contacts/sync-evolution`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instanceName: 'sua-instancia-aqui' }) // Ajuste conforme necessário
-      });
-      const data = await res.json();
-      alert(data.message);
-      await loadUnlinkedContacts();
-    } catch (error) {
-      alert("Erro ao sincronizar com Evolution");
-    }
-    setSyncing(false)
-  }
-
   const handleLink = async (contactId: string, companyId: string) => {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contacts/${contactId}/link`, {
@@ -101,11 +83,6 @@ export default function ContatosPendentesPage() {
           <h1 className="text-2xl font-bold tracking-tight">Tratamento de Contatos</h1>
           <p className="text-muted-foreground text-sm">Vincule os contatos órfãos às suas respectivas empresas.</p>
         </div>
-        
-        <Button onClick={handleSyncEvolution} disabled={syncing} variant="outline" className="bg-primary/5 border-primary/20 text-primary hover:bg-primary/10">
-          {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-          Importar do WhatsApp
-        </Button>
       </div>
 
       <div className="bg-card border rounded-lg shadow-sm">

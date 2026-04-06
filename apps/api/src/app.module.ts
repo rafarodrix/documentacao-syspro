@@ -7,6 +7,7 @@ import { ChatwootModule } from './modules/integrations/chatwoot/chatwoot.module'
 import { MessagingModule } from './modules/integrations/messaging/messaging.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
 import { CompaniesModule } from './modules/companies/companies.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { CompaniesModule } from './modules/companies/companies.module';
     MessagingModule,
     ContactsModule,
     CompaniesModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

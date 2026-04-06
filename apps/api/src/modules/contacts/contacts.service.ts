@@ -39,7 +39,18 @@ export class ContactsService {
   }
 
   // Sincroniza contatos puxando diretamente da Evolution API
-  async syncFromEvolution(instanceName: string) {
+  async syncFromEvolution(providedInstanceName?: string) {
+    let instanceName = providedInstanceName;
+
+    if (!instanceName) {
+      const setting = await this.prisma.systemSetting.findUnique({ where: { key: 'evolution_instance_name' } });
+      instanceName = setting?.value;
+    }
+
+    if (!instanceName) {
+      throw new Error('O Nome da Instância não foi configurado nas Opções Globais do sistema.');
+    }
+
     this.logger.log(`Iniciando sincronização de contatos da instância: ${instanceName}`);
     
     const evolutionApiUrl = process.env.EVOLUTION_API_URL;
