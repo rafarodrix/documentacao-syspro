@@ -43,6 +43,9 @@ COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
+# Copia o motor nativo do Prisma para a pasta onde a API Webpack procura
+COPY --from=builder /app/node_modules/.prisma/client/*.node ./apps/api/
+
 EXPOSE 3000
 
 CMD ["node", "apps/api/dist/main.js"]
