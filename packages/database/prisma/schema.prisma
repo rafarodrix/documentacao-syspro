@@ -305,8 +305,8 @@ model Company {
 model CompanyContact {
   id String @id @default(cuid())
 
-  companyId String
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String?
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   name String
   email String?
@@ -1287,4 +1287,3 @@ model ConversationLink {
   @@index([whatsappNumber])
   @@index([chatwootConversationId])
 }
-

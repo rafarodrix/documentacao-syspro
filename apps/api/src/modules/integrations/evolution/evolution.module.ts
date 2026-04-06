@@ -1,6 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { EvolutionWebhookController } from './interface/evolution-webhook.controller';
-import { EvolutionClient } from './infrastructure/evolution.client';
+import { EvolutionWebhookController } from './evolution-webhook.controller';
+import { EvolutionClient } from './evolution.client';
 import { MessagingModule } from '../messaging/messaging.module';
 
 @Module({

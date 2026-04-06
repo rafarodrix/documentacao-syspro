@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ChatwootClient } from '../../chatwoot/infrastructure/chatwoot.client';
+import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 
 @Injectable()
@@ -42,12 +42,26 @@ export class ProcessIncomingMessageUseCase {
         // 2. Se não existir o vínculo, cria tudo no Chatwoot e salva no banco
         if (!link) {
           // Busca no Syspro se esse número já é um contato cadastrado em alguma empresa
-          const sysproContact = await this.prisma.companyContact.findFirst({
+          let sysproContact = await this.prisma.companyContact.findFirst({
             where: { whatsapp: phone },
             include: { company: true },
           });
 
-          const contactName = sysproContact ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}` : pushName;
+          // Se não existir no banco, cadastra como contato "órfão" para entrar na rotina de vinculação
+          if (!sysproContact) {
+            sysproContact = await this.prisma.companyContact.create({
+              data: {
+                name: String(pushName),
+                whatsapp: String(phone),
+              },
+              include: { company: true },
+            });
+          }
+
+          // Garante ao TypeScript que sysproContact não é nulo a partir deste ponto
+          if (!sysproContact) throw new Error('Falha ao processar o contato no banco de dados');
+
+          const contactName = sysproContact.company ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}` : sysproContact.name;
 
           const contactResponse = (await this.chatwootClient.createOrFindContact(phone, contactName)) as any;
           contactIdentifier = contactResponse?.payload?.contact?.source_id?.toString();

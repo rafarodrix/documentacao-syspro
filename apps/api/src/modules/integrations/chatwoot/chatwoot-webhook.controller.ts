@@ -1,5 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ProcessOutgoingMessageUseCase } from '../../messaging/application/process-outgoing-message.usecase';
+import { ProcessOutgoingMessageUseCase } from '../messaging/application/process-outgoing-message.usecase';
 
 @Controller('webhooks/chatwoot')
 export class ChatwootWebhookController {

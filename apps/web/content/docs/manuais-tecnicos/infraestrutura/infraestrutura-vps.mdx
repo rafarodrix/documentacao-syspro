@@ -1,0 +1,97 @@
+---
+title: Infraestrutura Traefik v3 + Dokploy
+description: Guia definitivo para configurar o Traefik v3 com Dokploy, evitando erros comuns e garantindo um roteamento eficiente.
+lastUpdated: 2026-04-04
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - manuais-tecnicos
+  - infraestrutura
+  - vps
+audience:
+  - admin
+  - developer
+  - suporte
+---
+
+
+# Traefik v3 + Dokploy
+### (Roteamento, SSL e Resolução de Conflitos)
+
+## 1. Configuração do "Porteiro" (Traefik v3)
+O Traefik v3 mudou a forma como conversa com o Docker. Para que ele enxergue tudo no Dokploy, o arquivo `docker-compose.yml` do Traefik **precisa** declarar os provedores de forma independente.
+
+### Comandos estáticos obrigatórios:
+```yaml
+command:
+  - --providers.docker=true              # Habilita containers comuns (Compose)
+  - --providers.swarm=true               # Habilita serviços do Swarm
+  - --providers.docker.exposedbydefault=false
+  - --providers.swarm.exposedbydefault=false
+  - --entrypoints.web.address=:80
+  - --entrypoints.websecure.address=:443
+  - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+```
+
+---
+
+## 2. A "Bíblia" das Labels (O segredo do Sucesso)
+O erro mais comum no Traefik v3 é o **"too many services"**. Ele ocorre quando o Traefik encontra múltiplas definições de porta ou serviço para o mesmo container.
+
+### A Solução Definitiva: O Vínculo Explícito
+Sempre que criar uma rota manual, você **deve** dar um nome ao serviço e vincular o roteador a ele.
+
+| Label | Função |
+| :--- | :--- |
+| `traefik.http.routers.NOME.service=MEU-SVC` | **Vínculo:** Diz ao roteador exatamente qual serviço usar. |
+| `traefik.http.services.MEU-SVC.loadbalancer.server.port=8080` | **Definição:** Define a porta interna do container. |
+| `traefik.docker.network=dokploy-network` | **Rede:** Garante que o Traefik use a rede correta para o tráfego. |
+
+---
+
+## 3. Padrões de Implementação
+
+### Cenário A: Instalação via Docker Compose (Ex: Evolution Go)
+Labels ficam no nível da aplicação.
+
+> **Importante:** Se o Dokploy criar roteadores automáticos, o seu roteador manual deve ter um nome único (ex: `evogo-secure`) para não conflitar.
+
+
+
+### Cenário B: Instalação via Docker Swarm (Ex: Backend Syspro)
+As labels **devem** estar dentro do bloco `deploy`.
+
+```yaml
+deploy:
+  labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.backend.rule=Host(`backend.trilink.com.br`)"
+    - "traefik.http.routers.backend.service=backend-svc"
+    - "traefik.http.services.backend-svc.loadbalancer.server.port=3000"
+```
+
+---
+
+## 4. Diagnóstico Rápido (Checklist de Crise)
+
+Se o site der **404**, siga esta ordem de inspeção:
+
+1.  **O Roteador apareceu no Dashboard?**
+    * Acesse `http://IP:8081`. Se o roteador não estiver lá, o Traefik não leu suas labels.
+    * **Causa:** Erro de indentação no YAML ou falta da flag `--providers.swarm=true`.
+2.  **O erro é "too many services" no Log?**
+    * Rode `docker logs traefik --tail 50`.
+    * **Causa:** Você esqueceu da label `router.NOME.service=VINCULO`.
+3.  **O erro é "Gateway Timeout" ou "Bad Gateway"?**
+    * **Causa:** O container não está na rede `dokploy-network` ou a porta interna (ex: 8080) está errada na label.
+
+---
+
+## 5. Manutenção de SSL (LetsEncrypt)
+O arquivo `acme.json` armazena seus certificados. Se o SSL parar de funcionar:
+1.  Verifique se o arquivo tem permissões `600` (`chmod 600 /opt/traefik/letsencrypt/acme.json`).
+2.  Certifique-se de que o DNS (A Record) aponta corretamente para o IP do servidor **antes** de subir o container.
+
+---
+
+> **Dica de Ouro:** Sempre que fizer uma alteração grande no YAML de uma aplicação, remova o container antigo manualmente (`docker rm -f nome`) antes de dar o deploy no Dokploy. Isso limpa "labels fantasmas" que o Docker às vezes mantém no cache.

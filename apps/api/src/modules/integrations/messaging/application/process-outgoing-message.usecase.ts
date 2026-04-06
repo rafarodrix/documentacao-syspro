@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EvolutionClient } from '../../evolution/infrastructure/evolution.client';
+import { EvolutionClient } from '../../evolution/evolution.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 
 @Injectable()

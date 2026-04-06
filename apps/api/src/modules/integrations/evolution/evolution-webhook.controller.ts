@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Headers, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common';
-import { ProcessIncomingMessageUseCase } from '../../messaging/application/process-incoming-message.usecase';
+import { ProcessIncomingMessageUseCase } from '../messaging/application/process-incoming-message.usecase';
 
 @Controller('webhooks/evolution')
 export class EvolutionWebhookController {

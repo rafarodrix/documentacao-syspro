@@ -1,6 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { ChatwootWebhookController } from './interface/chatwoot-webhook.controller';
-import { ChatwootClient } from './infrastructure/chatwoot.client';
+import { ChatwootWebhookController } from './chatwoot-webhook.controller';
+import { ChatwootClient } from './chatwoot.client';
 import { MessagingModule } from '../messaging/messaging.module';
 
 @Module({
