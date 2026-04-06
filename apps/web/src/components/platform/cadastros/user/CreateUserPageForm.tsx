@@ -251,8 +251,8 @@ export function CreateUserPageForm({
     if (mode === "edit" && !payload.password) payload.password = undefined;
 
     const url = mode === "edit" && userId 
-      ? `${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${userId}` 
-      : `${process.env.NEXT_PUBLIC_API_URL || ''}/api/users`;
+      ? `/api/users/${userId}` 
+      : "/api/users";
       
     const method = mode === "edit" && userId ? "PUT" : "POST";
 

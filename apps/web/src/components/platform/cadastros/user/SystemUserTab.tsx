@@ -226,7 +226,7 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${userId}`, {
+      const res = await fetch(`/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: nextActive }),
