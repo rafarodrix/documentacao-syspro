@@ -8,6 +8,7 @@ import { MessagingModule } from './modules/integrations/messaging/messaging.modu
 import { ContactsModule } from './modules/contacts/contacts.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { SettingsModule } from './modules/settings/settings.module';
     ContactsModule,
     CompaniesModule,
     SettingsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
