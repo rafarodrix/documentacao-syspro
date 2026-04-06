@@ -45,4 +45,5 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
 EXPOSE 3000
 
-CMD ["node", "apps/api/dist/main.js"]
+# Usa o 'find' do Linux para localizar o main.js dinamicamente, ignorando a estrutura de subpastas que o TypeScript gera no monorepo
+CMD ["sh", "-c", "node $(find apps/api/dist -name main.js | head -n 1)"]

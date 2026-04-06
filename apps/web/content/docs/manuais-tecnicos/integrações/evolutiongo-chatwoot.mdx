@@ -1,6 +1,6 @@
 ---
-title: Integração Evolution Go + Chatwoot (Integração Nativa)
-description: Descrição da arquitetura de integração direta e nativa entre Evolution Go e Chatwoot.
+title: Integração Evolution Go + Chatwoot (Orquestrada via Backend)
+description: Descrição da arquitetura de integração entre Evolution Go e Chatwoot orquestrada pelo backend NestJS do Syspro.
 lastUpdated: 2026-04-05
 owner: Integracoes
 status: published
@@ -16,21 +16,21 @@ audience:
 ---
 
 
-# 📡 Integração Evolution Go + Chatwoot (Integração Nativa)
+# 📡 Integração Evolution Go + Chatwoot (Orquestrada via Backend)
 
 ## Introdução
 
 A integração entre **Evolution Go** e **Chatwoot** permite transformar o WhatsApp em um canal omnichannel dentro do seu portal de suporte.
 
-Nesta nova rota de implementação, adotamos a **integração nativa** oferecida pelo Evolution API, eliminando a necessidade de uma camada intermediária (backend NestJS) para orquestrar as mensagens. Isso reduz a complexidade da infraestrutura, diminui a latência e facilita a manutenção.
+Nesta arquitetura, utilizamos o **Backend central do Syspro (`apps/api` em NestJS)** como orquestrador. Isso nos permite cruzar os dados do WhatsApp com o nosso banco de dados (Prisma), enriquecendo os contatos automaticamente (identificando a Empresa do cliente) antes de enviá-los para o painel de atendimento.
 
 ---
 
-### Fluxo principal (Direto)
+### Fluxo principal
 
 ```text
-WhatsApp → Evolution Go → Chatwoot
-Chatwoot → Evolution Go → WhatsApp
+WhatsApp → Evolution Go → (Webhook) → Backend NestJS → (API) → Chatwoot
+Chatwoot → (Webhook) → Backend NestJS → (API) → Evolution Go → WhatsApp
 ```
 
 ---
