@@ -6,7 +6,6 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
-import { createUserAction, updateUserAction } from "@/features/user-access/application/actions";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -251,19 +250,32 @@ export function CreateUserPageForm({
 
     if (mode === "edit" && !payload.password) payload.password = undefined;
 
-    const result =
-      mode === "edit" && userId
-        ? await updateUserAction(userId, payload)
-        : await createUserAction(payload);
+    const url = mode === "edit" && userId 
+      ? `${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${userId}` 
+      : `${process.env.NEXT_PUBLIC_API_URL || ''}/api/users`;
+      
+    const method = mode === "edit" && userId ? "PUT" : "POST";
 
-    if (!result.success) {
-      toast.error(result.message ?? (mode === "edit" ? "Erro ao atualizar usuário." : "Erro ao cadastrar usuário."));
-      return;
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        toast.error(errData?.message || (mode === "edit" ? "Erro ao atualizar usuário." : "Erro ao cadastrar usuário."));
+        return;
+      }
+
+      toast.success(mode === "edit" ? "Usuário atualizado com sucesso." : "Usuário cadastrado com sucesso.");
+      router.push(backHref);
+      router.refresh();
+    } catch (err) {
+      toast.error("Erro na comunicação com o servidor.");
     }
-
-    toast.success(result.message ?? (mode === "edit" ? "Usuário atualizado com sucesso." : "Usuário cadastrado com sucesso."));
-    router.push(backHref);
-    router.refresh();
   };
 
   const currentSectionConfig = sections.find((s) => s.id === currentSection) ?? sections[0];

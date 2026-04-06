@@ -1,532 +1,344 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { createUserSchema, type CreateUserInput, linkUserToCompanySchema, type LinkUserToCompanyInput } from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { Prisma, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { z } from "zod";
 import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
-import { userListSelect, mapClientUserListItem } from "@/features/user-access/domain/selects";
-import type { UserAccessActionResponse, UserAccessListItem, UserAccessValidationErrors, } from "@/features/user-access/domain/model";
-import { SYSTEM_ROLES, CLIENT_ROLES, READ_ROLES, } from "@/features/user-access/domain/constants";
-import { getUserCompanyIds } from "@/features/user-access/infrastructure/membership-helpers";
+import type { UserAccessActionResponse, UserAccessValidationErrors } from "@/features/user-access/domain/model";
+import { SYSTEM_ROLES } from "@/features/user-access/domain/constants";
 import { handleActionError } from "@dosc-syspro/api/errors/action-error-handler";
+import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 
 interface GetUsersParams {
-    search?: string;
-    role?: string;
+  search?: string;
+  role?: string;
 }
-
 
 const CREATE_USER_RATE_LIMIT = { max: 8, windowMs: 60_000 };
 
-async function canManageTargetUser(session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>, targetUserId: string): Promise<boolean> {
-    if (SYSTEM_ROLES.includes(session.role)) return true;
-    if (session.role !== Role.CLIENTE_ADMIN) return false;
-
-    const targetUser = await prisma.user.findUnique({
-        where: { id: targetUserId },
-        select: { role: true, deletedAt: true },
-    });
-    if (!targetUser || targetUser.deletedAt) return false;
-    if (!CLIENT_ROLES.includes(targetUser.role)) return false;
-
-    const managedCompanyIds = await getUserCompanyIds(session.userId);
-    if (managedCompanyIds.length === 0) return false;
-    const targetMembership = await prisma.membership.findFirst({
-        where: { userId: targetUserId, companyId: { in: managedCompanyIds } },
-        select: { id: true },
-    });
-    return !!targetMembership;
-}
-
-type RemoveUserInput = {
-    body: { userId: string };
-    headers: Awaited<ReturnType<typeof headers>>;
+type ApiErrorResponse = {
+  message?: string | string[];
 };
-
-type CreateAuthUserInput = {
-    body: {
-        email: string;
-        password: string;
-        name: string;
-        role?: string;
-        data?: Record<string, unknown>;
-    };
-    headers: Awaited<ReturnType<typeof headers>>;
-};
-
-type AdminApiShape = {
-    createUser: (input: CreateAuthUserInput) => Promise<{ user?: { id: string } } | null | undefined>;
-    removeUser: (input: RemoveUserInput) => Promise<unknown>;
-};
-
-function getAdminApi(): AdminApiShape | null {
-    const createCandidate = auth.api.createUser;
-    const removeCandidate = auth.api.removeUser;
-    if (typeof createCandidate !== "function" || typeof removeCandidate !== "function") return null;
-    return {
-        createUser: createCandidate as AdminApiShape["createUser"],
-        removeUser: removeCandidate as AdminApiShape["removeUser"],
-    };
-}
 
 function toValidationErrors(
-    fieldErrors: z.inferFlattenedErrors<typeof createUserSchema>["fieldErrors"],
+  fieldErrors: z.inferFlattenedErrors<typeof createUserSchema>["fieldErrors"],
 ): UserAccessValidationErrors {
-    return fieldErrors as UserAccessValidationErrors;
+  return fieldErrors as UserAccessValidationErrors;
 }
 
+function toApiErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== "object") return fallback;
+  const body = payload as ApiErrorResponse;
+  if (Array.isArray(body.message) && body.message.length > 0) return body.message.join(", ");
+  if (typeof body.message === "string" && body.message.trim()) return body.message;
+  return fallback;
+}
 
+async function callApi(path: string, init?: RequestInit) {
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie");
 
-//LISTAR USUARIOS
-export async function getUsersAction(
-  filters?: GetUsersParams,
-): Promise<UserAccessActionResponse<UserAccessListItem[]>> {
+  return fetch(`${getBackendApiBaseUrl()}${path}`, {
+    ...init,
+    headers: withInternalApiHeaders({
+      ...(cookie ? { cookie } : {}),
+      ...(init?.headers ?? {}),
+    }),
+    cache: "no-store",
+  });
+}
+
+export async function getUsersAction(filters?: GetUsersParams) {
   const session = await getProtectedSession();
-  if (!session || !READ_ROLES.includes(session.role)) {
-    return { success: false, message: "Não autorizado." };
+  if (!session) {
+    return { success: false, message: "Nao autorizado." };
   }
 
   try {
-    const where: Prisma.UserWhereInput = { deletedAt: null };
-    const isSystemRole = SYSTEM_ROLES.includes(session.role);
+    const params = new URLSearchParams();
+    if (filters?.search) params.set("search", filters.search);
+    if (filters?.role) params.set("role", filters.role);
 
-    if (!isSystemRole) {
-      const companyIds = await getUserCompanyIds(session.userId);
-      if (!companyIds.length) return { success: true, data: [] };
-
-      where.role = { in: CLIENT_ROLES };
-      where.memberships = { some: { companyId: { in: companyIds } } };
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    const response = await callApi(`/users${suffix}`);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      return { success: false, message: toApiErrorMessage(payload, "Erro ao carregar usuarios.") };
     }
 
-    if (filters?.search) {
-      where.OR = [
-        { name: { contains: filters.search, mode: "insensitive" } },
-        { email: { contains: filters.search, mode: "insensitive" } },
-        { cpf: { contains: filters.search.replace(/\D/g, "") } },
-      ];
-    }
-
-    if (filters?.role && filters.role !== "ALL" && isSystemRole) {
-      where.role = filters.role as Role;
-    }
-
-    const users = await prisma.user.findMany({
-      where,
-      select: userListSelect,
-      orderBy: { createdAt: "desc" },
-    });
-
-    return { success: true, data: users.map(mapClientUserListItem) };
-
-  } catch (error) {
-    return { success: false, message: "Erro ao carregar usuários." };
+    const data = await response.json();
+    return { success: true, data };
+  } catch {
+    return { success: false, message: "Erro ao carregar usuarios." };
   }
 }
 
-
-//CRIAR USUARIO
 type UserUpsertInput = CreateUserInput & {
-    additionalCompanyIds?: string[];
+  additionalCompanyIds?: string[];
 };
 
 export async function createUserAction(data: UserUpsertInput): Promise<UserAccessActionResponse> {
-    const session = await getProtectedSession();
-    if (!session) return { success: false, message: "Permissao negada." };
+  const session = await getProtectedSession();
+  if (!session) return { success: false, message: "Permissao negada." };
 
-    const isSystemRole = SYSTEM_ROLES.includes(session.role);
-    const isClientManager = session.role === Role.CLIENTE_ADMIN;
-    if (!isSystemRole && !isClientManager) return { success: false, message: "Permissao negada." };
+  const isSystemRole = SYSTEM_ROLES.includes(session.role);
+  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  if (!isSystemRole && !isClientManager) return { success: false, message: "Permissao negada." };
 
-    const validation = createUserSchema.safeParse(data);
-    if (!validation.success) {
-        return {
-            success: false,
-            errors: toValidationErrors(validation.error.flatten().fieldErrors),
-            message: "Dados invalidos.",
-        };
-    }
-    const ip = await getRequestIp();
-    const rateLimit = consumeActionRateLimit({
-        action: "createUserAction",
-        max: CREATE_USER_RATE_LIMIT.max,
-        windowMs: CREATE_USER_RATE_LIMIT.windowMs,
-        userId: session.userId,
-        ip,
+  const validation = createUserSchema.safeParse(data);
+  if (!validation.success) {
+    return {
+      success: false,
+      errors: toValidationErrors(validation.error.flatten().fieldErrors),
+      message: "Dados invalidos.",
+    };
+  }
+
+  const ip = await getRequestIp();
+  const rateLimit = consumeActionRateLimit({
+    action: "createUserAction",
+    max: CREATE_USER_RATE_LIMIT.max,
+    windowMs: CREATE_USER_RATE_LIMIT.windowMs,
+    userId: session.userId,
+    ip,
+  });
+  if (!rateLimit.allowed) {
+    return {
+      success: false,
+      message: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s e tente novamente.`,
+    };
+  }
+
+  const additionalCompanyIds = Array.isArray(data.additionalCompanyIds)
+    ? data.additionalCompanyIds.filter(Boolean)
+    : [];
+
+  try {
+    const response = await callApi("/users", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email: validation.data.email,
+        password: validation.data.password || data.password,
+        name: validation.data.name,
+        role: validation.data.role as Role,
+        companyId: data.companyId,
+        additionalCompanyIds,
+        cpf: validation.data.cpf ?? null,
+        jobTitle: validation.data.jobTitle || null,
+        phone: validation.data.phone || null,
+      }),
     });
-    if (!rateLimit.allowed) {
-        return {
-            success: false,
-            message: `Muitas tentativas. Aguarde ${rateLimit.retryAfterSeconds}s e tente novamente.`,
-        };
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      return { success: false, message: toApiErrorMessage(payload, "Falha na criacao da conta.") };
     }
 
-    const additionalCompanyIds = Array.isArray(data.additionalCompanyIds)
-        ? data.additionalCompanyIds.filter(Boolean)
-        : [];
-    const desiredCompanyIds = Array.from(new Set([data.companyId, ...additionalCompanyIds].filter(Boolean) as string[]));
-
-    if (isClientManager) {
-        const managedCompanyIds = await getUserCompanyIds(session.userId);
-        if (!data.companyId || !managedCompanyIds.includes(data.companyId)) {
-            return { success: false, message: "Empresa invalida para este gestor." };
-        }
-        if (desiredCompanyIds.some((companyId) => !managedCompanyIds.includes(companyId))) {
-            return { success: false, message: "Uma ou mais empresas informadas sao invalidas para este gestor." };
-        }
-
-        if (data.role !== Role.CLIENTE_USER && data.role !== Role.CLIENTE_ADMIN) {
-            return { success: false, message: "Gestor pode cadastrar apenas usuarios da unidade." };
-        }
-    }
-
-    let createdAuthUserId: string | undefined;
-    const adminApi = getAdminApi();
-    if (!adminApi) {
-        return {
-            success: false,
-            message: "Configuracao incompleta do auth: plugin admin.createUser/removeUser indisponivel.",
-        };
-    }
-
-    try {
-        // 1. Registro administrativo no Auth para nao depender do signup publico.
-        const authResponse = await adminApi.createUser({
-            body: {
-                email: validation.data.email,
-                password: validation.data.password || data.password || "",
-                name: validation.data.name,
-                role: "user",
-            },
-            headers: await headers()
-        });
-
-        if (!authResponse?.user) return { success: false, message: "Falha na criacao da conta." };
-        createdAuthUserId = authResponse.user.id;
-
-        // 2. Transacao Prisma
-        await prisma.$transaction(async (tx) => {
-            await tx.user.update({
-                where: { id: createdAuthUserId },
-                data: {
-                    role: validation.data.role as Role,
-                    cpf: validation.data.cpf ?? null,
-                    jobTitle: validation.data.jobTitle || null,
-                    phone: validation.data.phone || null,
-                    isActive: true,
-                    emailVerified: true
-                }
-            });
-
-            if (desiredCompanyIds.length) {
-                await tx.membership.createMany({
-                    data: desiredCompanyIds.map((companyId) => ({
-                        userId: createdAuthUserId!,
-                        companyId,
-                        role: validation.data.role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER,
-                    })),
-                    skipDuplicates: true,
-                });
-            }
-        });
-
-        revalidateCadastrosViews();
-        return { success: true, message: "Usuario criado com sucesso!" };
-
-    } catch (error) {
-        // ROLLBACK: Remove do Auth se o banco falhar
-        if (createdAuthUserId) {
-            try {
-                const adminApi = getAdminApi();
-                if (!adminApi) throw new Error("Rollback indisponivel: admin.removeUser nao configurado.");
-                await adminApi.removeUser({
-                    body: { userId: createdAuthUserId },
-                    headers: await headers()
-                });
-            } catch (rollbackError) {
-                console.error("Erro critico no Rollback:", rollbackError);
-            }
-        }
-        return handleActionError(error);
-    }
+    revalidateCadastrosViews();
+    return { success: true, message: "Usuario criado com sucesso!" };
+  } catch (error) {
+    return handleActionError(error);
+  }
 }
 
-
-//ATUALIZAR USUARIO
 export async function updateUserAction(id: string, data: Partial<UserUpsertInput>): Promise<UserAccessActionResponse> {
-    const session = await getProtectedSession();
-    if (!session) return { success: false, message: "Acesso negado." };
+  const session = await getProtectedSession();
+  if (!session) return { success: false, message: "Acesso negado." };
 
-    const isSystemRole = SYSTEM_ROLES.includes(session.role);
-    const isClientManager = session.role === Role.CLIENTE_ADMIN;
-    if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
-    const updateValidation = createUserSchema.partial().safeParse(data);
-    if (!updateValidation.success) {
-        return {
-            success: false,
-            errors: toValidationErrors(updateValidation.error.flatten().fieldErrors),
-            message: "Dados invalidos.",
-        };
+  const isSystemRole = SYSTEM_ROLES.includes(session.role);
+  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+
+  const updateValidation = createUserSchema.partial().safeParse(data);
+  if (!updateValidation.success) {
+    return {
+      success: false,
+      errors: toValidationErrors(updateValidation.error.flatten().fieldErrors),
+      message: "Dados invalidos.",
+    };
+  }
+
+  try {
+    const response = await callApi(`/users/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        ...updateValidation.data,
+        additionalCompanyIds: Array.isArray(data.additionalCompanyIds) ? data.additionalCompanyIds.filter(Boolean) : undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      return { success: false, message: toApiErrorMessage(payload, "Falha ao atualizar usuario.") };
     }
 
-    const additionalCompanyIds = Array.isArray(data.additionalCompanyIds)
-        ? data.additionalCompanyIds.filter(Boolean)
-        : [];
-    const desiredCompanyIds = data.companyId
-        ? Array.from(new Set([data.companyId, ...additionalCompanyIds]))
-        : null;
-
-    let managedCompanyIdsForClientManager: string[] = [];
-
-    if (isClientManager) {
-        const canManage = await canManageTargetUser(session, id);
-        if (!canManage) return { success: false, message: "Voce nao pode editar este usuario." };
-
-        if (data.role && data.role !== Role.CLIENTE_USER && data.role !== Role.CLIENTE_ADMIN) {
-            return { success: false, message: "Gestor nao pode atribuir perfil interno." };
-        }
-
-        if (desiredCompanyIds?.length) {
-            managedCompanyIdsForClientManager = await getUserCompanyIds(session.userId);
-            if (desiredCompanyIds.some((companyId) => !managedCompanyIdsForClientManager.includes(companyId))) {
-                return { success: false, message: "Uma ou mais empresas informadas sao invalidas para este gestor." };
-            }
-        }
-    }
-
-    try {
-        await prisma.$transaction(async (tx) => {
-            await tx.user.update({
-                where: { id },
-                data: {
-                    name: updateValidation.data.name,
-                    email: updateValidation.data.email,
-                    role: updateValidation.data.role as Role | undefined,
-                    jobTitle: updateValidation.data.jobTitle,
-                    phone: updateValidation.data.phone,
-                    cpf: updateValidation.data.cpf,
-                }
-            });
-
-            if (desiredCompanyIds?.length) {
-                const membershipRole =
-                    updateValidation.data.role === Role.CLIENTE_ADMIN
-                        ? Role.CLIENTE_ADMIN
-                        : Role.CLIENTE_USER;
-
-                if (isClientManager) {
-                    await tx.membership.deleteMany({
-                        where: {
-                            userId: id,
-                            companyId: { in: managedCompanyIdsForClientManager, notIn: desiredCompanyIds },
-                        },
-                    });
-                } else {
-                    await tx.membership.deleteMany({
-                        where: {
-                            userId: id,
-                            companyId: { notIn: desiredCompanyIds },
-                        },
-                    });
-                }
-
-                await Promise.all(desiredCompanyIds.map((companyId) => tx.membership.upsert({
-                    where: { userId_companyId: { userId: id, companyId } },
-                    create: {
-                        userId: id,
-                        companyId,
-                        role: membershipRole,
-                    },
-                    update: { role: membershipRole },
-                })));
-            } else if (!isClientManager) {
-                await tx.membership.deleteMany({
-                    where: { userId: id },
-                });
-            }
-        });
-
-        revalidateCadastrosViews();
-        return { success: true, message: "Usuario atualizado com sucesso." };
-    } catch (error) {
-        return handleActionError(error);
-    }
+    revalidateCadastrosViews();
+    return { success: true, message: "Usuario atualizado com sucesso." };
+  } catch (error) {
+    return handleActionError(error);
+  }
 }
 
-
-// SOFT DELETE
 export async function deleteUserAction(id: string): Promise<UserAccessActionResponse> {
-    const session = await getProtectedSession();
-    if (!session || id === session.userId) return { success: false, message: "Operacao invalida." };
+  const session = await getProtectedSession();
+  if (!session || id === session.userId) return { success: false, message: "Operacao invalida." };
 
-    const isSystemRole = SYSTEM_ROLES.includes(session.role);
-    const isClientManager = session.role === Role.CLIENTE_ADMIN;
-    if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
-    if (isClientManager && !(await canManageTargetUser(session, id))) {
-        return { success: false, message: "Voc\u00EA n\u00E3o pode remover este usu\u00E1rio." };
+  const isSystemRole = SYSTEM_ROLES.includes(session.role);
+  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+
+  try {
+    const response = await callApi(`/users/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      return { success: false, message: toApiErrorMessage(payload, "Falha ao remover usuario.") };
     }
 
-    try {
-        await prisma.user.update({
-            where: { id },
-            data: { deletedAt: new Date(), isActive: false }
-        });
-        revalidateCadastrosViews();
-        return { success: true, message: "Removido com sucesso." };
-    } catch (error) {
-        return handleActionError(error);
-    }
+    revalidateCadastrosViews();
+    return { success: true, message: "Removido com sucesso." };
+  } catch (error) {
+    return handleActionError(error);
+  }
 }
-
-
-//VINCULAR A EMPRESA
 
 export async function linkUserToCompanyAction(data: LinkUserToCompanyInput): Promise<UserAccessActionResponse> {
-    const session = await getProtectedSession();
-    if (!session) return { success: false, message: "Acesso negado." };
+  const session = await getProtectedSession();
+  if (!session) return { success: false, message: "Acesso negado." };
 
-    const isSystemRole = SYSTEM_ROLES.includes(session.role);
-    const isClientManager = session.role === Role.CLIENTE_ADMIN;
-    if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+  const isSystemRole = SYSTEM_ROLES.includes(session.role);
+  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
 
-    const validation = linkUserToCompanySchema.safeParse(data);
-    if (!validation.success) {
-        return {
-            success: false,
-            message: validation.error.issues[0]?.message ?? "Dados invalidos.",
-        };
+  const validation = linkUserToCompanySchema.safeParse(data);
+  if (!validation.success) {
+    return {
+      success: false,
+      message: validation.error.issues[0]?.message ?? "Dados invalidos.",
+    };
+  }
+
+  try {
+    const userLookup = await callApi(`/users?search=${encodeURIComponent(validation.data.email)}`);
+    if (!userLookup.ok) {
+      return { success: false, message: "Usuario nao encontrado." };
     }
 
-    const payload = validation.data;
+    const users = (await userLookup.json().catch(() => [])) as Array<{ id: string; email: string }>;
+    const user = users.find((u) => u.email.toLowerCase() === validation.data.email.toLowerCase());
+    if (!user) return { success: false, message: "Usuario nao encontrado." };
 
-    try {
-        if (isClientManager) {
-            const managedCompanyIds = await getUserCompanyIds(session.userId);
-            if (!managedCompanyIds.includes(payload.companyId)) {
-                return { success: false, message: "Empresa invalida para este gestor." };
-            }
-            if (payload.role !== Role.CLIENTE_ADMIN && payload.role !== Role.CLIENTE_USER) {
-                return { success: false, message: "Perfil invalido para contexto de cliente." };
-            }
-        }
+    const response = await callApi(`/users/${encodeURIComponent(user.id)}/companies`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ companyId: validation.data.companyId, role: validation.data.role }),
+    });
 
-        const user = await prisma.user.findUnique({ where: { email: payload.email } });
-        if (!user) return { success: false, message: "Usuario nao encontrado." };
-        if (isClientManager && !CLIENT_ROLES.includes(user.role)) {
-            return { success: false, message: "N\u00E3o \u00E9 permitido vincular usu\u00E1rio interno." };
-        }
-
-        await prisma.membership.upsert({
-            where: { userId_companyId: { userId: user.id, companyId: payload.companyId } },
-            create: { userId: user.id, companyId: payload.companyId, role: payload.role },
-            update: { role: payload.role }
-        });
-
-        revalidateCadastrosViews();
-        return { success: true, message: "Vinculo atualizado." };
-    } catch (error) {
-        return handleActionError(error);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      return { success: false, message: toApiErrorMessage(payload, "Falha ao atualizar vinculo.") };
     }
+
+    revalidateCadastrosViews();
+    return { success: true, message: "Vinculo atualizado." };
+  } catch (error) {
+    return handleActionError(error);
+  }
 }
 
-/**
- * ALTERAR STATUS (Ativo/Inativo)
- */
 export async function toggleUserStatusAction(id: string, active: boolean): Promise<UserAccessActionResponse> {
-    const session = await getProtectedSession();
-    if (!session) return { success: false, message: "Acesso negado." };
+  const session = await getProtectedSession();
+  if (!session) return { success: false, message: "Acesso negado." };
 
-    const isSystemRole = SYSTEM_ROLES.includes(session.role);
-    const isClientManager = session.role === Role.CLIENTE_ADMIN;
-    if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
-    if (isClientManager && !(await canManageTargetUser(session, id))) {
-        return { success: false, message: "Voce nao pode alterar este usuario." };
+  const isSystemRole = SYSTEM_ROLES.includes(session.role);
+  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+
+  try {
+    const response = await callApi(`/users/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ isActive: active }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      return { success: false, message: toApiErrorMessage(payload, "Falha ao atualizar status do usuario.") };
     }
 
-    try {
-        await prisma.user.update({
-            where: { id },
-            data: { isActive: active }
-        });
-        revalidateCadastrosViews();
-        return { success: true, message: `Usuario ${active ? 'ativado' : 'desativado'} com sucesso.` };
-    } catch (error) {
-        return handleActionError(error);
-    }
+    revalidateCadastrosViews();
+    return { success: true, message: `Usuario ${active ? "ativado" : "desativado"} com sucesso.` };
+  } catch (error) {
+    return handleActionError(error);
+  }
 }
 
-/**
- * REMOVER USU?RIO DE UMA EMPRESA (Remover Membership)
- */
 export async function removeUserFromCompanyAction(userId: string, companyId: string): Promise<UserAccessActionResponse> {
-    const session = await getProtectedSession();
-    if (!session) return { success: false, message: "Acesso negado." };
+  const session = await getProtectedSession();
+  if (!session) return { success: false, message: "Acesso negado." };
 
-    const isSystemRole = SYSTEM_ROLES.includes(session.role);
-    const isClientManager = session.role === Role.CLIENTE_ADMIN;
-    if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
-    if (isClientManager) {
-        if (!(await canManageTargetUser(session, userId))) {
-            return { success: false, message: "Voce nao pode alterar este usuario." };
-        }
-        const managedCompanyIds = await getUserCompanyIds(session.userId);
-        if (!managedCompanyIds.includes(companyId)) {
-            return { success: false, message: "Empresa invalida para este gestor." };
-        }
+  const isSystemRole = SYSTEM_ROLES.includes(session.role);
+  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+
+  try {
+    const response = await callApi(`/users/${encodeURIComponent(userId)}/companies/${encodeURIComponent(companyId)}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      return { success: false, message: toApiErrorMessage(payload, "Falha ao remover vinculo.") };
     }
 
-    try {
-        await prisma.membership.delete({
-            where: {
-                userId_companyId: { userId, companyId }
-            }
-        });
-        revalidateCadastrosViews();
-        return { success: true, message: "Vinculo removido com sucesso." };
-    } catch (error) {
-        return handleActionError(error);
-    }
+    revalidateCadastrosViews();
+    return { success: true, message: "Vinculo removido com sucesso." };
+  } catch (error) {
+    return handleActionError(error);
+  }
 }
 
-/**
- * ATUALIZAR CARGO NA EMPRESA
- */
 export async function updateMembershipRoleAction(userId: string, companyId: string, role: Role): Promise<UserAccessActionResponse> {
-    const session = await getProtectedSession();
-    if (!session) return { success: false, message: "Acesso negado." };
+  const session = await getProtectedSession();
+  if (!session) return { success: false, message: "Acesso negado." };
 
-    const isSystemRole = SYSTEM_ROLES.includes(session.role);
-    const isClientManager = session.role === Role.CLIENTE_ADMIN;
-    if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
-    if (isClientManager) {
-        if (!(await canManageTargetUser(session, userId))) {
-            return { success: false, message: "Voce nao pode alterar este usuario." };
-        }
-        const managedCompanyIds = await getUserCompanyIds(session.userId);
-        if (!managedCompanyIds.includes(companyId)) {
-            return { success: false, message: "Empresa invalida para este gestor." };
-        }
-        if (role !== Role.CLIENTE_ADMIN && role !== Role.CLIENTE_USER) {
-            return { success: false, message: "Perfil invalido para contexto de cliente." };
-        }
+  const isSystemRole = SYSTEM_ROLES.includes(session.role);
+  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+
+  try {
+    const response = await callApi(`/users/${encodeURIComponent(userId)}/companies/${encodeURIComponent(companyId)}`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ role }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      return { success: false, message: toApiErrorMessage(payload, "Falha ao atualizar cargo do vinculo.") };
     }
 
-    try {
-        await prisma.membership.update({
-            where: {
-                userId_companyId: { userId, companyId }
-            },
-            data: { role }
-        });
-        revalidateCadastrosViews();
-        return { success: true, message: "Cargo atualizado com sucesso." };
-    } catch (error) {
-        return handleActionError(error);
-    }
+    revalidateCadastrosViews();
+    return { success: true, message: "Cargo atualizado com sucesso." };
+  } catch (error) {
+    return handleActionError(error);
+  }
 }
-

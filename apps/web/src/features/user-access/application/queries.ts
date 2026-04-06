@@ -1,260 +1,93 @@
 import { notFound } from "next/navigation";
-import { Role } from "@prisma/client";
-import { getProtectedSession } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
-import { getUserCompanyIds } from "@/features/user-access/infrastructure/membership-helpers";
 import type {
   ClientUserEditViewData,
-  SystemUserListItem,
   SystemUserEditViewData,
-  UserAccessCompanyOption,
   UserAccessListItem,
+  SystemUserListItem,
 } from "@/features/user-access/domain/model";
-import {
-  userListSelect,
-  companyOptionSelect,
-  mapClientUserListItem,
-  mapSystemUserListItem,
-} from "@/features/user-access/domain/selects";
+import { mapClientUserListItem, mapSystemUserListItem, type UserListSelectResult } from "@/features/user-access/domain/selects";
+import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { headers } from "next/headers";
 
-import {
-  SYSTEM_ROLES,
-  CLIENT_ROLES,
-} from "@/features/user-access/domain/constants";
-
-// ─── Tipos internos ────────────────────────────────────────────────────────────
 
 type ActionError = { error: string };
-type SessionContext = {
-  session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>;
-  isSystemRole: boolean;
+
+type ClientAdminViewApiResponse = {
+  companies: ClientUserEditViewData["companies"];
+  users: UserListSelectResult[];
+  isGlobalView: boolean;
 };
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+type SystemAdminViewApiResponse = {
+  users: UserListSelectResult[];
+  isGlobalView: boolean;
+};
 
-async function getSessionContext(): Promise<SessionContext | ActionError> {
-  const session = await getProtectedSession();
-  if (!session) return { error: "Não autorizado" };
-  return { session, isSystemRole: SYSTEM_ROLES.includes(session.role) };
+async function apiRequest(path: string, init?: RequestInit) {
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie");
+
+  return fetch(`${getBackendApiBaseUrl()}${path}`, {
+    ...init,
+    headers: withInternalApiHeaders({
+      ...(cookie ? { cookie } : {}),
+      ...(init?.headers ?? {}),
+    }),
+    cache: "no-store",
+  });
 }
 
-function hasError(value: unknown): value is ActionError {
-  return Boolean(
-    value &&
-    typeof value === "object" &&
-    "error" in (value as Record<string, unknown>),
-  );
-}
-
-// ─── Mappers ───────────────────────────────────────────────────────────────────
-
-// ─── Queries ───────────────────────────────────────────────────────────────────
-
-export async function getClientUsersAdminViewData() {
-  const ctx = await getSessionContext();
-  if (hasError(ctx)) return ctx;
-
+export async function getClientUsersAdminViewData(): Promise<
+  | { companies: ClientUserEditViewData["companies"]; users: UserAccessListItem[]; isGlobalView: boolean }
+  | ActionError
+> {
   try {
-    if (ctx.isSystemRole) {
-      const [companies, users] = await Promise.all([
-        prisma.company.findMany({
-          where: { deletedAt: null },
-          orderBy: { razaoSocial: "asc" },
-          select: companyOptionSelect,
-        }),
-        prisma.user.findMany({
-          where: { deletedAt: null, role: { in: CLIENT_ROLES } },
-          orderBy: { name: "asc" },
-          select: userListSelect,
-        }),
-      ]);
-
-      return {
-        companies,
-        users: users.map(mapClientUserListItem),
-        isGlobalView: true,
-      };
+    const response = await apiRequest("/users/view/client-admin");
+    if (!response.ok) {
+      return { error: "Erro ao buscar usuarios." };
     }
 
-    const companyIds = await getUserCompanyIds(ctx.session.userId);
-    if (!companyIds.length) {
-      return { companies: [], users: [] as UserAccessListItem[], isGlobalView: false };
-    }
-
-    const [companies, users] = await Promise.all([
-      prisma.company.findMany({
-        where: { id: { in: companyIds }, deletedAt: null },
-        orderBy: { razaoSocial: "asc" },
-        select: companyOptionSelect,
-      }),
-      prisma.user.findMany({
-        where: {
-          deletedAt: null,
-          role: { in: CLIENT_ROLES },
-          memberships: { some: { companyId: { in: companyIds } } },
-        },
-        select: {
-          ...userListSelect,
-          memberships: {
-            where: { companyId: { in: companyIds } },
-            select: userListSelect.memberships.select,
-          },
-        },
-        orderBy: { name: "asc" },
-      }),
-    ]);
-
+    const payload = (await response.json()) as ClientAdminViewApiResponse;
     return {
-      companies,
-      users: users.map(mapClientUserListItem),
-      isGlobalView: false,
+      companies: payload.companies,
+      users: payload.users.map(mapClientUserListItem),
+      isGlobalView: payload.isGlobalView,
     };
-  } catch (error) {
-    console.error(error);
-    return { error: "Erro ao buscar usuários." };
+  } catch {
+    return { error: "Erro ao buscar usuarios." };
   }
 }
 
-export async function getSystemUsersAdminViewData() {
-  const ctx = await getSessionContext();
-  if (hasError(ctx)) return ctx;
-
+export async function getSystemUsersAdminViewData(): Promise<
+  | { users: SystemUserListItem[]; isGlobalView: boolean }
+  | ActionError
+> {
   try {
-    if (!ctx.isSystemRole) {
-      return { users: [] as SystemUserListItem[], isGlobalView: false };
+    const response = await apiRequest("/users/view/system-admin");
+    if (!response.ok) {
+      return { error: "Erro ao buscar equipe interna." };
     }
 
-    const users = await prisma.user.findMany({
-      where: { deletedAt: null, role: { in: SYSTEM_ROLES } },
-      orderBy: { name: "asc" },
-      select: userListSelect,
-    });
-
+    const payload = (await response.json()) as SystemAdminViewApiResponse;
     return {
-      users: users.map(mapSystemUserListItem),
-      isGlobalView: true,
+      users: payload.users.map(mapSystemUserListItem),
+      isGlobalView: payload.isGlobalView,
     };
-  } catch (error) {
-    console.error(error);
+  } catch {
     return { error: "Erro ao buscar equipe interna." };
   }
 }
 
-export async function getClientUserEditViewData(
-  userId: string,
-): Promise<ClientUserEditViewData> {
-  const session = await getProtectedSession();
-  if (!session) notFound();
+export async function getClientUserEditViewData(userId: string): Promise<ClientUserEditViewData> {
+  const response = await apiRequest(`/users/view/client/${encodeURIComponent(userId)}/edit`);
+  if (!response.ok) notFound();
 
-  const managedCompanyIds =
-    session.role === Role.CLIENTE_ADMIN
-      ? (
-        await prisma.membership.findMany({
-          where: { userId: session.userId },
-          select: { companyId: true },
-        })
-      ).map((m) => m.companyId)
-      : null;
-
-  const safeCompanyFilter =
-    managedCompanyIds?.length ? managedCompanyIds : ["__none__"];
-
-  const user = await prisma.user.findFirst({
-    where: {
-      id: userId,
-      deletedAt: null,
-      role: { in: CLIENT_ROLES },
-      ...(session.role === Role.CLIENTE_ADMIN
-        ? { memberships: { some: { companyId: { in: safeCompanyFilter } } } }
-        : {}),
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      jobTitle: true,
-      phone: true,
-      cpf: true,
-      memberships: {
-        select: { companyId: true },
-      },
-    },
-  });
-
-  if (!user) notFound();
-
-  const companies = await prisma.company.findMany({
-    where: {
-      deletedAt: null,
-      ...(session.role === Role.CLIENTE_ADMIN
-        ? { id: { in: safeCompanyFilter } }
-        : {}),
-    },
-    orderBy: { razaoSocial: "asc" },
-    select: {
-      id: true,
-      razaoSocial: true,
-      nomeFantasia: true,
-    },
-  });
-
-  return {
-    userId: user.id,
-    companies: companies as UserAccessCompanyOption[],
-    isAdmin: session.role !== Role.CLIENTE_ADMIN,
-    initialData: {
-      name: user.name ?? "",
-      email: user.email,
-      role: user.role,
-      companyId: user.memberships[0]?.companyId ?? "",
-      additionalCompanyIds: user.memberships.slice(1).map((m) => m.companyId),
-      jobTitle: user.jobTitle ?? "",
-      phone: user.phone ?? "",
-      cpf: user.cpf ?? "",
-      password: "",
-    },
-  };
+  return (await response.json()) as ClientUserEditViewData;
 }
 
-export async function getSystemUserEditViewData(
-  userId: string,
-): Promise<SystemUserEditViewData> {
-  const session = await getProtectedSession();
-  if (!session || !SYSTEM_ROLES.includes(session.role) || session.role !== Role.ADMIN) {
-    notFound();
-  }
+export async function getSystemUserEditViewData(userId: string): Promise<SystemUserEditViewData> {
+  const response = await apiRequest(`/users/view/system/${encodeURIComponent(userId)}/edit`);
+  if (!response.ok) notFound();
 
-  const user = await prisma.user.findFirst({
-    where: {
-      id: userId,
-      deletedAt: null,
-      role: { in: SYSTEM_ROLES },
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      jobTitle: true,
-      phone: true,
-      cpf: true,
-    },
-  });
-
-  if (!user) notFound();
-
-  return {
-    userId: user.id,
-    initialData: {
-      name: user.name ?? "",
-      email: user.email,
-      role: user.role,
-      jobTitle: user.jobTitle ?? "",
-      phone: user.phone ?? "",
-      cpf: user.cpf ?? "",
-      password: "",
-    },
-  };
+  return (await response.json()) as SystemUserEditViewData;
 }
-

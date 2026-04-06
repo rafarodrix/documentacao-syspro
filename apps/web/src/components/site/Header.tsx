@@ -1,6 +1,5 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import Image from "next/image";
-import { headers } from "next/headers";
 import {
   BookOpen,
   ChevronDown,
@@ -17,6 +16,7 @@ import {
 import { SYSTEM_ROLES, hasAllowedRole } from "@dosc-syspro/core";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { ModeToggle } from "@/components/ModeToggle";
+import { getProtectedSession } from "@/lib/auth-helpers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,24 +29,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-async function getSiteSession() {
-  try {
-    const { auth } = await import("@/lib/auth");
-    return await auth.api.getSession({
-      headers: await headers(),
-    });
-  } catch {
-    return null;
-  }
-}
-
-type SiteSession = Awaited<ReturnType<typeof getSiteSession>>;
-type SiteSessionUser = NonNullable<SiteSession>["user"];
-
 export async function SiteHeader() {
-  const session = await getSiteSession();
-
-  const user: SiteSessionUser | undefined = session?.user;
+  const session = await getProtectedSession();
+  const user = session
+    ? {
+        email: session.email,
+        name: session.name,
+        image: session.image,
+        role: session.role,
+      }
+    : null;
   const canViewTechnical = user?.role ? hasAllowedRole(user.role, SYSTEM_ROLES) : false;
   const dashboardUrl = "/portal";
   const docsNavItems = [

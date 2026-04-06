@@ -2,14 +2,24 @@
 
 import { createAuthClient } from "better-auth/react";
 
+function stripTrailingApiPath(url: string): string {
+    const normalized = url.replace(/\/+$/, "");
+    return normalized.endsWith("/api")
+        ? normalized.slice(0, -4)
+        : normalized;
+}
+
 function resolveAuthClientBaseUrl(): string {
-    if (typeof window !== "undefined") {
-        return window.location.origin;
-    }
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (apiUrl) return stripTrailingApiPath(apiUrl);
 
     const explicitBaseUrl = process.env.NEXT_PUBLIC_BETTER_AUTH_URL?.trim();
     if (explicitBaseUrl) {
-        return explicitBaseUrl.replace(/\/$/, "");
+        return explicitBaseUrl.replace(/\/+$/, "");
+    }
+
+    if (typeof window !== "undefined") {
+        return window.location.origin;
     }
 
     return "http://localhost:3000";

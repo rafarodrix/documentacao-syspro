@@ -9,6 +9,7 @@ import { ContactsModule } from './modules/contacts/contacts.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UsersModule } from './modules/users/users.module';
     CompaniesModule,
     SettingsModule,
     UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

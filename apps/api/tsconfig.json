@@ -25,6 +25,6 @@
       "@dosc-syspro/database/*": ["../../packages/database/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "tests/**/*.ts", "tests/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

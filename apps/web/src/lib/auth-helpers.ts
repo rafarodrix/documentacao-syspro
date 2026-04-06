@@ -1,9 +1,9 @@
 import { cache } from "react"
-import { auth } from "./auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client"
 import { redirect } from "next/navigation"
+import { getBackendApiBaseUrl } from "@/lib/backend-api"
 
 export type UserRole = Role
 
@@ -15,6 +15,29 @@ export type ProtectedSession = {
   image: string | null
 }
 
+type AuthSessionResponse = {
+  user?: {
+    email?: string | null
+  } | null
+} | null
+
+async function getAuthSessionFromApi(): Promise<AuthSessionResponse> {
+  const requestHeaders = await headers()
+  const cookie = requestHeaders.get("cookie")
+
+  const response = await fetch(`${getBackendApiBaseUrl()}/auth/get-session`, {
+    method: "GET",
+    headers: {
+      ...(cookie ? { cookie } : {}),
+      accept: "application/json",
+    },
+    cache: "no-store",
+  })
+
+  if (!response.ok) return null
+  return (await response.json()) as AuthSessionResponse
+}
+
 /**
  * Valida a sessao e retorna os dados do usuario direto do banco.
  * Retorna null se: nao autenticado, usuario nao encontrado ou conta inativa.
@@ -24,9 +47,7 @@ export type ProtectedSession = {
  */
 export const getProtectedSession = cache(async (): Promise<ProtectedSession | null> => {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getAuthSessionFromApi()
 
     if (!session?.user?.email) return null
 

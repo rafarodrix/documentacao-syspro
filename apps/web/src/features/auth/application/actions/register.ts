@@ -1,23 +1,7 @@
 "use server"
 
-import { Role } from "@prisma/client"
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
-
-type AuthApiError = {
-    body?: {
-        message?: string
-    }
-}
-
-function getAuthErrorMessage(error: unknown): string | null {
-    if (typeof error !== "object" || error === null) return null
-
-    const authError = error as AuthApiError
-    return authError.body?.message ?? null
-}
+import { getBackendApiBaseUrl } from "@/lib/backend-api"
 
 export async function registerUser(formData: FormData) {
     const name = formData.get("name") as string
@@ -29,32 +13,30 @@ export async function registerUser(formData: FormData) {
     }
 
     try {
-        const authResponse = await auth.api.signUpEmail({
-            body: {
+        const response = await fetch(`${getBackendApiBaseUrl()}/auth/register`, {
+            method: "POST",
+            headers: {
+                "content-type": "application/json",
+            },
+            body: JSON.stringify({
                 email,
                 password,
                 name,
-            },
-            headers: await headers()
+            }),
+            cache: "no-store",
         })
 
-        if (!authResponse?.user) {
-            return { error: "Erro ao registrar usuario." }
+        const data = (await response.json().catch(() => null)) as
+            | { success?: boolean; error?: string }
+            | null
+
+        if (!response.ok || !data?.success) {
+            return { error: data?.error || "Erro ao registrar usuario." }
         }
-
-        await prisma.user.update({
-            where: { id: authResponse.user.id },
-            data: {
-                role: Role.CLIENTE_USER,
-                isActive: true
-            }
-        })
-
     } catch (error: unknown) {
-        const authMessage = getAuthErrorMessage(error)
-        if (authMessage) return { error: authMessage }
+        if (error instanceof Error && error.message) return { error: error.message }
         return { error: "Erro ao processar cadastro." }
     }
 
-    redirect("/portal")
+    redirect("/login")
 }

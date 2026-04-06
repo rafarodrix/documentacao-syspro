@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { toast } from "sonner";
-import { toggleUserStatusAction } from "@/features/user-access/application/actions";
 import type { UserAccessListItem } from "@/features/user-access/domain/model";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -225,14 +224,21 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
     try {
-      const result = await toggleUserStatusAction(userId, nextActive);
-      if (result.success) {
-        toast.success(result.message ?? "Status alterado.");
-        setFeedback({ type: "success", message: result.message ?? "Status alterado com sucesso." });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextActive }),
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        toast.success("Status alterado.");
+        setFeedback({ type: "success", message: "Status alterado com sucesso." });
         setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isActive: nextActive } : u)));
       } else {
-        toast.error(result.message ?? "Erro ao alterar status.");
-        setFeedback({ type: "error", message: result.message ?? "Erro ao alterar status." });
+        const errData = await res.json().catch(() => null);
+        toast.error(errData?.message || "Erro ao alterar status.");
+        setFeedback({ type: "error", message: errData?.message || "Erro ao alterar status." });
       }
     } catch {
       toast.error("Erro na comunicacao com o servidor.");
@@ -464,4 +470,3 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
     </>
   );
 }
-
