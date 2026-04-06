@@ -41,7 +41,15 @@ export class ProcessIncomingMessageUseCase {
 
         // 2. Se não existir o vínculo, cria tudo no Chatwoot e salva no banco
         if (!link) {
-          const contactResponse = (await this.chatwootClient.createOrFindContact(phone, pushName)) as any;
+          // Busca no Syspro se esse número já é um contato cadastrado em alguma empresa
+          const sysproContact = await this.prisma.companyContact.findFirst({
+            where: { whatsapp: phone },
+            include: { company: true },
+          });
+
+          const contactName = sysproContact ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}` : pushName;
+
+          const contactResponse = (await this.chatwootClient.createOrFindContact(phone, contactName)) as any;
           contactIdentifier = contactResponse?.payload?.contact?.source_id?.toString();
 
           if (!contactIdentifier) throw new Error('Não foi possível resolver o source_id do contato no Chatwoot');
