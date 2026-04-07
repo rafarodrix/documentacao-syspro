@@ -83,6 +83,25 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    const backendApiBase =
+      process.env.APP_BACKEND_API_URL?.trim() ||
+      process.env.APP_BACKEND_API?.trim() ||
+      process.env.APP_API_URL?.trim();
+
+    if (!backendApiBase) {
+      return [];
+    }
+
+    const normalizedBackendApiBase = backendApiBase.replace(/\/+$/, '');
+
+    return [
+      {
+        source: '/api/auth/:path*',
+        destination: `${normalizedBackendApiBase}/auth/:path*`,
+      },
+    ];
+  },
 };
 
 export default withMDX(nextConfig);
