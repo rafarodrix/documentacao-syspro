@@ -1,15 +1,15 @@
 import { cache } from "react"
 import { headers } from "next/headers"
-import { Role } from "@prisma/client"
+import type { AppRole } from "@dosc-syspro/core"
 import { redirect } from "next/navigation"
-import { getBackendApiBaseUrl } from "@/lib/backend-api"
+import { resolveServerOrigin } from "@/lib/server-origin"
 
-export type UserRole = Role
+export type UserRole = AppRole
 
 export type ProtectedSession = {
   userId: string
   email: string
-  role: Role
+  role: AppRole
   name: string | null
   image: string | null
 }
@@ -17,8 +17,9 @@ export type ProtectedSession = {
 async function getProtectedSessionFromApi(): Promise<ProtectedSession | null> {
   const requestHeaders = await headers()
   const cookie = requestHeaders.get("cookie")
+  const appOrigin = resolveServerOrigin(requestHeaders)
 
-  const response = await fetch(`${getBackendApiBaseUrl()}/auth/protected-session`, {
+  const response = await fetch(`${appOrigin}/api/auth/protected-session`, {
     method: "GET",
     headers: {
       ...(cookie ? { cookie } : {}),
@@ -57,7 +58,7 @@ export async function requireSession(): Promise<ProtectedSession> {
  * Redireciona para /login se nao autenticado, ou para /portal se sem permissao.
  */
 export async function requireRole(
-  allowedRoles: Role[],
+  allowedRoles: AppRole[],
   unauthorizedRedirect = "/portal"
 ): Promise<ProtectedSession> {
   const session = await requireSession()

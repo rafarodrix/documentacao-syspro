@@ -1,7 +1,8 @@
 "use server"
 
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { getBackendApiBaseUrl } from "@/lib/backend-api"
+import { resolveServerOrigin } from "@/lib/server-origin"
 
 export async function registerUser(formData: FormData) {
     const name = formData.get("name") as string
@@ -13,7 +14,10 @@ export async function registerUser(formData: FormData) {
     }
 
     try {
-        const response = await fetch(`${getBackendApiBaseUrl()}/auth/register`, {
+        const requestHeaders = await headers()
+        const appOrigin = resolveServerOrigin(requestHeaders)
+
+        const response = await fetch(`${appOrigin}/api/auth/register`, {
             method: "POST",
             headers: {
                 "content-type": "application/json",
