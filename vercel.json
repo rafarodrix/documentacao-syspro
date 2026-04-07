@@ -1,6 +1,5 @@
 {
   "framework": "nextjs",
   "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "npm run build -w @dosc-syspro/web",
-  "outputDirectory": "apps/web/.next"
+  "buildCommand": "npm run build -w @dosc-syspro/web"
 }
