@@ -182,7 +182,7 @@ export async function SiteHeader() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-transparent">
                     <Avatar className="h-9 w-9 cursor-pointer border border-border/50 transition-all hover:ring-2 hover:ring-primary/20">
-                      <AvatarImage src={user.image || ""} alt={user.name} />
+                      <AvatarImage src={user.image || ""} alt={user.name ?? undefined} />
                       <AvatarFallback className="bg-primary/10 font-bold text-primary">
                         {user.name?.substring(0, 2).toUpperCase()}
                       </AvatarFallback>

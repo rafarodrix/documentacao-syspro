@@ -1,4 +1,4 @@
-import { Controller, All, Req, Res, Post, Body } from '@nestjs/common';
+import { Controller, All, Req, Res, Post, Get, Body } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { toNodeHandler } from 'better-auth/node';
@@ -13,6 +13,11 @@ export class AuthController {
     @Req() req: Request,
   ) {
     return this.authService.register(body, req.headers);
+  }
+
+  @Get('protected-session')
+  getProtectedSession(@Req() req: Request) {
+    return this.authService.getProtectedSession(req.headers);
   }
 
   // Captura qualquer requisicao em /api/auth/* e repassa para o engine do better-auth

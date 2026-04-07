@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Role } from '@prisma/client';
+import { CompanyStatus, ContractStatus, Role } from '@prisma/client';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { admin } from 'better-auth/plugins';
-import { nodemailer } from 'nodemailer';
+import nodemailer from 'nodemailer';
 import type { IncomingHttpHeaders } from 'node:http';
 
 type RegisterInput = {
@@ -17,6 +17,14 @@ type AuthApiError = {
   body?: {
     message?: string;
   };
+};
+
+export type ProtectedSessionPayload = {
+  userId: string;
+  email: string;
+  role: Role;
+  name: string | null;
+  image: string | null;
 };
 
 @Injectable()
@@ -81,6 +89,66 @@ export class AuthService {
     } catch (error: unknown) {
       const authMessage = this.getAuthErrorMessage(error);
       return { success: false, error: authMessage ?? 'Erro ao processar cadastro.' };
+    }
+  }
+
+  async getProtectedSession(rawHeaders?: IncomingHttpHeaders): Promise<ProtectedSessionPayload | null> {
+    try {
+      const session = await this.auth.api.getSession({
+        headers: this.toHeaders(rawHeaders),
+      });
+
+      if (!session?.user?.email) return null;
+
+      const dbUser = await this.prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          role: true,
+          isActive: true,
+          deletedAt: true,
+          lockoutUntil: true,
+        },
+      });
+
+      if (!dbUser) return null;
+      if (dbUser.deletedAt) return null;
+      if (!dbUser.isActive) return null;
+      if (dbUser.lockoutUntil && dbUser.lockoutUntil > new Date()) return null;
+
+      if (dbUser.role === Role.CLIENTE_ADMIN || dbUser.role === Role.CLIENTE_USER) {
+        const activeMembership = await this.prisma.membership.findFirst({
+          where: {
+            userId: dbUser.id,
+            company: {
+              deletedAt: null,
+              status: CompanyStatus.ACTIVE,
+              contracts: {
+                some: {
+                  status: ContractStatus.ACTIVE,
+                  OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+                },
+              },
+            },
+          },
+          select: { id: true },
+        });
+
+        if (!activeMembership) return null;
+      }
+
+      return {
+        userId: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        image: dbUser.image,
+        role: dbUser.role,
+      };
+    } catch {
+      return null;
     }
   }
 
