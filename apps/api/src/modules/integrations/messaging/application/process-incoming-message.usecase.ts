@@ -7,6 +7,7 @@ export class ProcessIncomingMessageUseCase {
   private readonly logger = new Logger(ProcessIncomingMessageUseCase.name);
   private readonly processedMessageIds = new Map<string, number>();
   private readonly processedMessageTtlMs = 10 * 60 * 1000;
+  private dedupTableUnavailableLogged = false;
 
   constructor(
     private readonly chatwootClient: ChatwootClient,
@@ -163,17 +164,37 @@ export class ProcessIncomingMessageUseCase {
   }
 
   private async claimDedupEvent(provider: string, eventKey: string, instanceId: string | null): Promise<boolean> {
-    const rows = await this.prisma.$executeRawUnsafe(
-      `
-      INSERT INTO "integration_webhook_dedup" ("id", "provider", "eventKey", "instanceId", "createdAt")
-      VALUES ($1 || ':' || $2, $1, $2, $3, NOW())
-      ON CONFLICT ("provider", "eventKey") DO NOTHING
-      `,
-      provider,
-      eventKey,
-      instanceId
-    );
-    return Number(rows) > 0;
+    try {
+      const rows = await this.prisma.$executeRawUnsafe(
+        `
+        INSERT INTO "integration_webhook_dedup" ("id", "provider", "eventKey", "instanceId", "createdAt")
+        VALUES ($1 || ':' || $2, $1, $2, $3, NOW())
+        ON CONFLICT ("provider", "eventKey") DO NOTHING
+        `,
+        provider,
+        eventKey,
+        instanceId
+      );
+      return Number(rows) > 0;
+    } catch (error: any) {
+      const relationMissing =
+        error?.code === "P2010" &&
+        (error?.meta?.code === "42P01" ||
+          String(error?.meta?.message || "").toLowerCase().includes("does not exist"));
+
+      if (relationMissing) {
+        if (!this.dedupTableUnavailableLogged) {
+          this.logger.warn(
+            "Tabela integration_webhook_dedup ausente. Deduplicacao em banco desabilitada ate aplicar migracoes."
+          );
+          this.dedupTableUnavailableLogged = true;
+        }
+        // Nao bloqueia o fluxo de webhook enquanto a migracao nao foi aplicada.
+        return true;
+      }
+
+      throw error;
+    }
   }
 
   private isDuplicateMessage(messageId: string): boolean {
