@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Role } from '@prisma/client';
+import { RootProvider } from 'fumadocs-ui/provider';
 import { source } from '@/lib/source';
 import { SiteHeader } from "@/components/site/Header";
 import { requireSession } from "@/lib/auth-helpers";
@@ -24,15 +25,17 @@ export default async function Layout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <div className="hidden md:block">
-        <SiteHeader />
+    <RootProvider>
+      <div className="flex min-h-screen flex-col bg-background">
+        <div className="hidden md:block">
+          <SiteHeader />
+        </div>
+        <main className="flex-1 min-h-0 [--fd-banner-height:0px] md:[--fd-banner-height:64px]">
+          <DocsLayoutClient docsTree={docsTree} role={session.role}>
+            {children}
+          </DocsLayoutClient>
+        </main>
       </div>
-      <main className="flex-1 min-h-0 [--fd-banner-height:0px] md:[--fd-banner-height:64px]">
-        <DocsLayoutClient docsTree={docsTree} role={session.role}>
-          {children}
-        </DocsLayoutClient>
-      </main>
-    </div>
+    </RootProvider>
   );
 }
