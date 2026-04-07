@@ -1,14 +1,16 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import axios from 'axios';
+import { EvolutionClient } from '../integrations/evolution/evolution.client';
 
 @Injectable()
 export class ContactsService {
   private readonly logger = new Logger(ContactsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly evolutionClient: EvolutionClient,
+  ) {}
 
-  // Lista todos os contatos que ainda não possuem vínculo com uma Empresa
   async getUnlinkedContacts() {
     return this.prisma.companyContact.findMany({
       where: {
@@ -20,10 +22,9 @@ export class ContactsService {
     });
   }
 
-  // Vincula o contato a uma empresa existente
   async linkContactToCompany(contactId: string, companyId: string) {
     const contact = await this.prisma.companyContact.findUnique({ where: { id: contactId } });
-    if (!contact) throw new NotFoundException('Contato não encontrado');
+    if (!contact) throw new NotFoundException('Contato nao encontrado');
 
     return this.prisma.companyContact.update({
       where: { id: contactId },
@@ -31,64 +32,43 @@ export class ContactsService {
     });
   }
 
-  // Exclui um contato (útil para spam ou enganos)
   async deleteContact(contactId: string) {
     return this.prisma.companyContact.delete({
       where: { id: contactId },
     });
   }
 
-  // Sincroniza contatos puxando diretamente da Evolution API
-  async syncFromEvolution(providedInstanceName?: string) {
-    let instanceName = providedInstanceName;
-
-    if (!instanceName) {
-      const setting = await this.prisma.systemSetting.findUnique({ where: { key: 'evolution_instance_name' } });
-      instanceName = setting?.value;
-    }
-
-    if (!instanceName) {
-      throw new Error('O Nome da Instância não foi configurado nas Opções Globais do sistema.');
-    }
-
-    this.logger.log(`Iniciando sincronização de contatos da instância: ${instanceName}`);
-    
-    const evolutionApiUrl = process.env.EVOLUTION_API_URL;
-    const evolutionApiKey = process.env.EVOLUTION_API_KEY;
-
-    if (!evolutionApiUrl || !evolutionApiKey) {
-      throw new Error('Credenciais do Evolution GO não configuradas no ambiente.');
-    }
+  // Sincronizacao incremental via integracao oficial (Evolution -> nossa API)
+  async syncFromIntegration(instanceName?: string) {
+    this.logger.log(`Iniciando sincronizacao de contatos${instanceName ? ` da instancia: ${instanceName}` : ''}`);
 
     let syncedCount = 0;
     try {
-      // Chamada real ao endpoint do Evolution GO para buscar contatos
-      const response = await axios.get(`${evolutionApiUrl}/chat/findContacts/${instanceName}`, {
-        headers: { apikey: evolutionApiKey },
-      });
-
-      const evolutionContacts = response.data || [];
+      const evolutionContacts = await this.evolutionClient.findContacts(instanceName);
 
       for (const ec of evolutionContacts) {
-        // O Evolution GO retorna o ID com o sufixo @s.whatsapp.net (Limpamos para ficar apenas os números)
         const phoneId = ec.id?.split('@')[0] || ec.remoteJid?.split('@')[0];
         if (!phoneId) continue;
 
         const exists = await this.prisma.companyContact.findFirst({ where: { whatsapp: phoneId } });
-        
+
         if (!exists) {
           await this.prisma.companyContact.create({
-            // Evolution GO usa pushName ou name
             data: { name: ec.pushName || ec.name || 'Sem Nome', whatsapp: phoneId },
           });
           syncedCount++;
         }
       }
     } catch (error: any) {
-      this.logger.error(`Erro ao sincronizar do Evolution GO: ${error.message}`);
-      throw new Error('Falha na comunicação com o Evolution GO');
+      this.logger.error(`Erro ao sincronizar contatos: ${error.message}`);
+      throw new Error('Falha na sincronizacao de contatos da integracao');
     }
 
-    return { success: true, syncedCount, message: `${syncedCount} novos contatos importados.` };
+    return {
+      success: true,
+      syncedCount,
+      mode: 'incremental',
+      message: `${syncedCount} novos contatos importados.`,
+    };
   }
 }

@@ -5,6 +5,8 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 @Injectable()
 export class ProcessIncomingMessageUseCase {
   private readonly logger = new Logger(ProcessIncomingMessageUseCase.name);
+  private readonly processedMessageIds = new Map<string, number>();
+  private readonly processedMessageTtlMs = 10 * 60 * 1000;
 
   constructor(
     private readonly chatwootClient: ChatwootClient,
@@ -13,12 +15,23 @@ export class ProcessIncomingMessageUseCase {
 
   async execute(payload: any) {
     const messages = Array.isArray(payload) ? payload : (payload?.messages || [payload?.message || payload]);
+    this.cleanupProcessedMessages();
 
     for (const msg of messages) {
       if (!msg || msg?.key?.fromMe) continue;
 
+      const messageId = msg?.key?.id?.toString();
+      if (messageId && this.isDuplicateMessage(messageId)) {
+        this.logger.debug(`Mensagem duplicada ignorada: ${messageId}`);
+        continue;
+      }
+
       const remoteJid = msg?.key?.remoteJid;
       if (!remoteJid) continue;
+      if (!remoteJid.endsWith('@s.whatsapp.net')) {
+        this.logger.debug(`JID nao suportado ignorado: ${remoteJid}`);
+        continue;
+      }
 
       const phone = remoteJid.replace('@s.whatsapp.net', '');
       const pushName = msg?.pushName || 'Cliente WhatsApp';
@@ -71,13 +84,31 @@ export class ProcessIncomingMessageUseCase {
           const convResponse = (await this.chatwootClient.createConversation(contactIdentifier)) as any;
           conversationId = convResponse?.id?.toString();
 
-          link = await this.prisma.conversationLink.create({
-            data: {
-              whatsappNumber: phone,
-              chatwootContactId: contactIdentifier!,
-              chatwootConversationId: conversationId!
+          try {
+            link = await this.prisma.conversationLink.create({
+              data: {
+                whatsappNumber: phone,
+                chatwootContactId: contactIdentifier!,
+                chatwootConversationId: conversationId!,
+              },
+            });
+          } catch (error: any) {
+            // Outra requisição pode ter criado o vinculo em paralelo.
+            if (error?.code === 'P2002') {
+              link = await this.prisma.conversationLink.findUnique({
+                where: { whatsappNumber: phone },
+              });
+            } else {
+              throw error;
             }
-          });
+          }
+
+          if (!link) {
+            throw new Error('Falha ao recuperar vinculo de conversa apos concorrencia');
+          }
+
+          contactIdentifier = link.chatwootContactId;
+          conversationId = link.chatwootConversationId;
         }
 
         // 3. Cria Mensagem na Inbox do Chatwoot usando os IDs persistidos
@@ -85,6 +116,25 @@ export class ProcessIncomingMessageUseCase {
         
       } catch (error: any) {
         this.logger.error(`Erro ao processar incoming message: ${error.message}`);
+      }
+    }
+  }
+
+  private isDuplicateMessage(messageId: string): boolean {
+    const now = Date.now();
+    const existing = this.processedMessageIds.get(messageId);
+    if (existing && now - existing <= this.processedMessageTtlMs) {
+      return true;
+    }
+    this.processedMessageIds.set(messageId, now);
+    return false;
+  }
+
+  private cleanupProcessedMessages(): void {
+    const now = Date.now();
+    for (const [messageId, timestamp] of this.processedMessageIds.entries()) {
+      if (now - timestamp > this.processedMessageTtlMs) {
+        this.processedMessageIds.delete(messageId);
       }
     }
   }

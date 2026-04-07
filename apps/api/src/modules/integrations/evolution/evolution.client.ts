@@ -43,6 +43,37 @@ export class EvolutionClient {
     }
   }
 
+  async findContacts(instanceOverride?: string): Promise<any[]> {
+    if (!this.baseUrl || !this.apiKey) {
+      console.warn("[EvolutionClient] Credenciais ausentes. Busca de contatos ignorada.");
+      return [];
+    }
+
+    const instance = this.resolveInstance(instanceOverride);
+    const response = await fetch(`${this.baseUrl}/chat/findContacts/${instance}`, {
+      method: "GET",
+      headers: {
+        apikey: this.apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "unknown_error");
+      throw new Error(`Evolution contacts failed: ${response.status} - ${errorText}`);
+    }
+
+    const payload = await response.json().catch(() => []);
+    return Array.isArray(payload) ? payload : [];
+  }
+
+  private resolveInstance(instanceOverride?: string): string {
+    const resolved = instanceOverride?.trim() || this.instance?.trim();
+    if (!resolved) {
+      throw new Error("Evolution instance nao configurada.");
+    }
+    return resolved;
+  }
+
   private normalizeNumber(number: string): string {
     const digits = number.replace(/\D/g, "");
     if (!digits) return digits;

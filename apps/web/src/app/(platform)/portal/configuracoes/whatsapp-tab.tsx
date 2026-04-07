@@ -1,11 +1,11 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { getEvolutionConnectionState, getEvolutionQrCode, createEvolutionInstance } from "@/features/whatsapp/application/whatsapp-actions"
+import { getEvolutionConnectionState, getEvolutionQrCode, createEvolutionInstance, syncContactsFromIntegration } from "@/features/whatsapp/application/whatsapp-actions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw, Smartphone, CheckCircle, XCircle } from "lucide-react"
+import { Loader2, RefreshCw, Smartphone, CheckCircle, XCircle, Users } from "lucide-react"
 
 type EvoStateType = "open" | "close" | "connecting" | "unknown" | "missing_instance"
 
@@ -14,6 +14,8 @@ export default function WhatsAppSettingsTab() {
   const [qrCodeData, setQrCodeData] = useState<string | null>(null)
   const [deviceInfo, setDeviceInfo] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSyncingContacts, setIsSyncingContacts] = useState(false)
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null)
 
   const pollStatus = async () => {
     setIsLoading(true)
@@ -40,6 +42,18 @@ export default function WhatsAppSettingsTab() {
     setIsLoading(true)
     await createEvolutionInstance()
     await pollStatus()
+  }
+
+  const handleSyncContacts = async () => {
+    setIsSyncingContacts(true)
+    setSyncFeedback(null)
+    const result = await syncContactsFromIntegration()
+    if (result.success) {
+      setSyncFeedback(result.message || `${result.syncedCount} contatos sincronizados.`)
+    } else {
+      setSyncFeedback("Falha ao sincronizar contatos. Verifique a integracao Evolution/Chatwoot.")
+    }
+    setIsSyncingContacts(false)
   }
 
   useEffect(() => {
@@ -148,10 +162,19 @@ export default function WhatsAppSettingsTab() {
 
         </CardContent>
         <CardFooter className="pt-6">
-          <Button variant="outline" onClick={pollStatus} disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-            Atualizar Status
-          </Button>
+          <div className="w-full flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={pollStatus} disabled={isLoading}>
+                <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                Atualizar Status
+              </Button>
+              <Button variant="secondary" onClick={handleSyncContacts} disabled={isSyncingContacts}>
+                {isSyncingContacts ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
+                Sincronizar Contatos
+              </Button>
+            </div>
+            {syncFeedback && <p className="text-xs text-muted-foreground">{syncFeedback}</p>}
+          </div>
         </CardFooter>
       </Card>
     </div>

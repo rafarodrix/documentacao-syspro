@@ -80,3 +80,40 @@ export async function createEvolutionInstance() {
     return { error: "BACKEND_ERROR" };
   }
 }
+
+export async function syncContactsFromIntegration() {
+  const session = await getProtectedSession();
+  if (!session || !["ADMIN", "DEVELOPER"].includes(session.role)) {
+    return { error: "UNAUTHORIZED", success: false, syncedCount: 0 };
+  }
+
+  try {
+    const res = await fetch(`${getBackendApiBaseUrl()}/contacts/sync`, {
+      method: "POST",
+      headers: withInternalApiHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: "{}",
+      cache: "no-store",
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.success) {
+      return {
+        error: data?.error || data?.message || "SYNC_FAILED",
+        success: false,
+        syncedCount: 0,
+      };
+    }
+
+    return {
+      error: null,
+      success: true,
+      syncedCount: Number(data?.syncedCount ?? 0),
+      message: data?.message || "Sincronizacao concluida.",
+    };
+  } catch (error) {
+    console.error("Contacts sync error:", error);
+    return { error: "BACKEND_ERROR", success: false, syncedCount: 0 };
+  }
+}

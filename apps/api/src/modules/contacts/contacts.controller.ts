@@ -23,8 +23,8 @@ export class ContactsController {
     return this.contactsService.deleteContact(contactId);
   }
 
-  @Post('sync-evolution')
-  syncEvolution(@Body('instanceName') instanceName?: string) {
-    return this.contactsService.syncFromEvolution(instanceName);
+  @Post('sync')
+  sync(@Body('instanceName') instanceName?: string) {
+    return this.contactsService.syncFromIntegration(instanceName);
   }
 }
