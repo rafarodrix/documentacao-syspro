@@ -1,6 +1,6 @@
 ---
-title: Infraestrutura Traefik v3 + Dokploy
-description: Guia definitivo para configurar o Traefik v3 com Dokploy, evitando erros comuns e garantindo um roteamento eficiente.
+title: Infraestrutura Configurações e Segurança - Traefik v3 + Dokploy
+description: Guia para configurar o Traefik v3 com Dokploy, evitando erros comuns e garantindo um roteamento eficiente.
 lastUpdated: 2026-04-04
 owner: Engenharia de Plataforma
 status: published
@@ -13,6 +13,153 @@ audience:
   - developer
   - suporte
 ---
+
+# Docker
+
+## Como saber se está em **container** ou **service**
+
+### 1. Ver containers “normais”
+
+```bash
+docker ps
+```
+
+Se aparecer aqui, é **container comum (docker run / compose)**
+
+Exemplo:
+
+```
+CONTAINER ID   IMAGE     NAME
+abc123         nginx     meu-container
+```
+
+---
+
+## 2. Ver serviços (Docker Swarm)
+
+```bash
+docker service ls
+```
+
+Se aparecer aqui, é **service (Swarm)**
+
+Exemplo:
+
+```
+ID       NAME                     MODE        REPLICAS
+xyz123   portal-backend-qxusgq    replicated  1/1
+```
+
+---
+
+## 3. Confirmar de verdade (o mais importante)
+
+Se você viu algo no `docker ps`, rode:
+
+```bash
+docker inspect <container_id> | grep -i swarm
+```
+
+ou melhor:
+
+```bash
+docker inspect <container_id> --format '{{.Config.Labels}}'
+```
+
+Se tiver algo tipo:
+
+```
+com.docker.swarm.service.name=portal-backend-qxusgq
+```
+
+Isso significa:
+
+> Mesmo aparecendo no `docker ps`, ele é um **container gerenciado por um SERVICE**
+
+---
+
+# Regra de ouro (memoriza isso)
+
+| Tipo             | Comando que gerencia        |
+| ---------------- | --------------------------- |
+| Container normal | `docker stop/start/restart` |
+| Docker Compose   | `docker compose`            |
+| Swarm Service    | `docker service`            |
+
+---
+
+## No seu caso (IMPORTANTE)
+
+Você mostrou isso:
+
+```
+portal-backend-qxusgq.1.s03ypsasuuo48kwqqkqtyr2ry
+```
+
+Isso aqui entrega tudo:
+
+* `.1.` = réplica
+* nome grande = padrão do **Swarm**
+
+CONCLUSÃO:
+Você está usando **Docker Swarm (service)**
+
+---
+
+## Erro comum que você quase caiu
+
+Rodar isso:
+
+```bash
+docker ps
+```
+
+E achar que é container comum
+
+Mas na verdade: é **container filho de um service**
+
+---
+
+## Como agir corretamente agora
+
+Se for SERVICE (seu caso):
+
+### Atualizar labels (Traefik)
+
+```bash
+docker service update ...
+```
+
+### NÃO usar:
+
+```bash
+docker container update
+docker restart
+```
+
+---
+
+## Dica profissional (nível infra)
+
+Pra ver tudo organizado:
+
+```bash
+docker service ps portal-backend-qxusgq
+```
+
+Mostra:
+
+* onde está rodando
+* status
+* reinícios
+
+---
+
+## Resumo simples
+
+* `docker ps` → mostra TUDO (inclusive filhos do swarm)
+* `docker service ls` → mostra se é SWARM
+* nome com `.1.xxxxx` → 💯 é service
 
 
 # Traefik v3 + Dokploy
