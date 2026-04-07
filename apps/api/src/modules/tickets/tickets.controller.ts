@@ -1,36 +1,53 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { CreateTicketDto } from './create-ticket.dto';
 import { TicketsService } from './tickets.service';
-import { CreateTicketDto } from './dto/create-ticket.dto';
-import { UpdateTicketDto } from './dto/update-ticket.dto';
-
-// Assumindo que você tem um AuthGuard configurado no Nest
-// import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { UpdateTicketDto } from './update-ticket.dto';
 
 @Controller('tickets')
-// @UseGuards(JwtAuthGuard)
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
   @Post()
-  create(@Body() createTicketDto: CreateTicketDto, @Req() req: any) {
-    const userId = req.user?.id || 'system'; // Ajustar conforme a sua estratégia de Autenticação no Nest
-    return this.ticketsService.create(userId, createTicketDto);
+  create(@Req() req: Request, @Body() createTicketDto: CreateTicketDto) {
+    return this.ticketsService.create(createTicketDto, req.headers);
   }
 
   @Get()
-  findAll(@Query() query: any) {
-    return this.ticketsService.findAll(query);
+  findAll(
+    @Req() req: Request,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('assignedUserId') assignedUserId?: string,
+    @Query('companyId') companyId?: string,
+  ) {
+    return this.ticketsService.findAll(
+      {
+        page,
+        pageSize,
+        search,
+        status,
+        assignedUserId,
+        companyId,
+      },
+      req.headers,
+    );
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ticketsService.findOne(id);
+  findOne(@Req() req: Request, @Param('id') id: string) {
+    return this.ticketsService.findOne(id, req.headers);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTicketDto: UpdateTicketDto) {
-    return this.ticketsService.update(id, updateTicketDto);
+  @Post(':id/reply')
+  reply(@Req() req: Request, @Param('id') id: string, @Body('message') message?: string) {
+    return this.ticketsService.reply(id, message, req.headers);
   }
 
-  // Talvez a deleção seja restrita a administradores apenas, ou substituída por soft-delete (arquivamento).
+  @Patch(':id/status')
+  updateStatus(@Req() req: Request, @Param('id') id: string, @Body() updateTicketDto: UpdateTicketDto) {
+    return this.ticketsService.updateStatus(id, updateTicketDto, req.headers);
+  }
 }

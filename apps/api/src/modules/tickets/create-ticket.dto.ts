@@ -1,22 +1,17 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsEnum } from 'class-validator';
-
-export enum TicketPriority {
-  LOW = 'LOW',
-  NORMAL = 'NORMAL',
-  HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL',
-}
+import { ConversationChannel, ConversationEntryPoint, ConversationPriority } from '@prisma/client';
 
 export class CreateTicketDto {
-  @IsString()
-  @IsNotEmpty()
-  title: string;
+  title: string = '';
 
-  @IsString()
-  @IsNotEmpty()
-  description: string;
+  description: string = '';
 
-  @IsOptional()
-  @IsEnum(TicketPriority)
-  priority?: TicketPriority;
+  priority?: ConversationPriority;
+
+  channel?: ConversationChannel;
+
+  entryPoint?: ConversationEntryPoint;
+
+  companyId?: string;
+
+  companyContactId?: string;
 }
