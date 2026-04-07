@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -126,7 +126,7 @@ export async function updateZammadGlobalSettingsAction(
     });
 
     revalidatePath("/portal/configuracoes");
-    revalidatePath("/portal/chamados");
+    revalidatePath("/portal/tickets");
     return {
       success: true,
       message:
@@ -139,3 +139,4 @@ export async function updateZammadGlobalSettingsAction(
     return { success: false, error: "Erro ao salvar configuracoes globais do Zammad." };
   }
 }
+

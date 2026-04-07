@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ComponentType, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -34,7 +34,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [loadingAction, setLoadingAction] = useState<"assume" | "priority_high" | "macro_followup" | null>(null);
-    const backUrl = "/portal/chamados";
+    const backUrl = "/portal/tickets";
 
     const runQuickAction = (action: "assume" | "priority_high" | "macro_followup") => {
         if (!ticket) return;
@@ -243,3 +243,4 @@ function StatusBadge({ status }: { status?: string | null }) {
         </Badge>
     );
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,8 +35,8 @@ type ApiResponse = {
 
 const ROUTE_LABELS: Record<string, string> = {
   "app-dashboard": "/portal",
-  "app-chamados": "/portal/chamados",
-  notifications: "notificações",
+  "app-chamados": "/portal/tickets",
+  notifications: "notificaÃ§Ãµes",
 };
 
 export function ZammadObservabilityTab() {
@@ -66,7 +66,7 @@ export function ZammadObservabilityTab() {
   }, []);
 
   if (loading && !data) {
-    return <p className="text-sm text-muted-foreground">Carregando métricas do Zammad...</p>;
+    return <p className="text-sm text-muted-foreground">Carregando mÃ©tricas do Zammad...</p>;
   }
 
   if (error && !data) {
@@ -77,8 +77,8 @@ export function ZammadObservabilityTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">Observabilidade da Integração Zammad</h3>
-          <p className="text-sm text-muted-foreground">Janela de 60 minutos, com atualização a cada 30 segundos.</p>
+          <h3 className="text-lg font-medium">Observabilidade da IntegraÃ§Ã£o Zammad</h3>
+          <p className="text-sm text-muted-foreground">Janela de 60 minutos, com atualizaÃ§Ã£o a cada 30 segundos.</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
           Atualizar
@@ -104,7 +104,7 @@ export function ZammadObservabilityTab() {
                 <p>Total: <strong>{metric.total}</strong></p>
                 <p>Erro: <strong>{metric.errorRate}%</strong> ({metric.errors})</p>
                 <p>Timeout: <strong>{metric.timeoutRate}%</strong> ({metric.timeouts})</p>
-                <p>Latência média: <strong>{metric.avgLatencyMs} ms</strong></p>
+                <p>LatÃªncia mÃ©dia: <strong>{metric.avgLatencyMs} ms</strong></p>
               </CardContent>
             </Card>
           );
@@ -131,8 +131,9 @@ export function ZammadObservabilityTab() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Última atualização: {data?.generatedAt ? new Date(data.generatedAt).toLocaleString("pt-BR") : "-"}
+        Ãšltima atualizaÃ§Ã£o: {data?.generatedAt ? new Date(data.generatedAt).toLocaleString("pt-BR") : "-"}
       </p>
     </div>
   );
 }
+

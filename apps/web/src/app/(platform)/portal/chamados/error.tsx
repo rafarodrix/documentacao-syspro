@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ export default function ChamadosError({ error, reset }: ChamadosErrorProps) {
       message: error.message,
       stack: error.stack,
       digest: error.digest,
-      pathname: "/portal/chamados",
+      pathname: "/portal/tickets",
     });
   }, [error]);
 
@@ -23,7 +23,7 @@ export default function ChamadosError({ error, reset }: ChamadosErrorProps) {
     <div className="mx-auto mt-12 max-w-lg rounded-xl border border-border/60 bg-card/70 p-6 text-center shadow-sm">
       <h2 className="text-xl font-semibold text-foreground">Falha ao carregar chamados</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Nao foi possivel concluir esta acao em /portal/chamados.
+        Nao foi possivel concluir esta acao em /portal/tickets.
       </p>
       <Button className="mt-5" onClick={reset}>
         Tentar novamente
@@ -31,3 +31,4 @@ export default function ChamadosError({ error, reset }: ChamadosErrorProps) {
     </div>
   );
 }
+

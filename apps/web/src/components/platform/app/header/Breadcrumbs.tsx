@@ -1,13 +1,14 @@
-"use client";
+﻿"use client";
 
 import { usePathname } from "next/navigation";
 import { ChevronRight, LayoutDashboard, Ticket, FileText, User } from "lucide-react";
 import React from "react";
 
-// Mapa de ícones e nomes amigáveis por rota
+// Mapa de Ã­cones e nomes amigÃ¡veis por rota
 const routeConfig: Record<string, { label: string, icon: React.ElementType }> = {
-    'client': { label: 'Visão Geral', icon: LayoutDashboard },
+    'client': { label: 'VisÃ£o Geral', icon: LayoutDashboard },
     'chamados': { label: 'Meus Tickets', icon: Ticket },
+    'tickets': { label: 'Meus Tickets', icon: Ticket },
     'faturas': { label: 'Financeiro', icon: FileText },
     'perfil': { label: 'Meu Perfil', icon: User },
 };
@@ -15,12 +16,12 @@ const routeConfig: Record<string, { label: string, icon: React.ElementType }> = 
 export function Breadcrumbs() {
     const pathname = usePathname();
 
-    // Pega o último segmento da URL (ex: /client/chamados -> chamados)
+    // Pega o Ãºltimo segmento da URL (ex: /client/chamados -> chamados)
     const segment = pathname.split("/").pop() || "client";
     const config = routeConfig[segment] || { label: segment, icon: LayoutDashboard };
     const Icon = config.icon;
 
-    // Formata o nome se não estiver no config
+    // Formata o nome se nÃ£o estiver no config
     const label = config.label === segment
         ? segment.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase())
         : config.label;

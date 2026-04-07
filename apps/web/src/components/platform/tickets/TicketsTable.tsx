@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -107,7 +107,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                                     </>
                                 )}
                                 <Button variant="outline" size="sm" asChild className="ml-auto">
-                                    <Link href={`/portal/chamados/${ticket.id}`}>Abrir</Link>
+                                    <Link href={`/portal/tickets/${ticket.id}`}>Abrir</Link>
                                 </Button>
                             </div>
                         </div>
@@ -196,7 +196,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                                             </>
                                         )}
                                         <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10 hover:text-primary h-8 px-3 rounded-full">
-                                            <Link href={`/portal/chamados/${ticket.id}`}>
+                                            <Link href={`/portal/tickets/${ticket.id}`}>
                                                 <span className="hidden sm:inline mr-1 text-xs font-medium">Abrir</span>
                                                 <ArrowUpRight className="h-3 w-3" />
                                             </Link>
@@ -273,3 +273,4 @@ function EmptyState({ isAdmin }: { isAdmin: boolean }) {
         </TableRow>
     );
 }
+

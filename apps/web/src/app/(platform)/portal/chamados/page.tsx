@@ -1,102 +1,31 @@
-import { requireSession } from "@/lib/auth-helpers";
-import { getTicketsAction } from "@/features/tickets/application/actions";
-import { TicketsContainer } from "@/features/tickets/interface";
-import { Role } from "@prisma/client";
-import { type QueueKey, type TicketStatusGroup, TICKET_QUEUE_KEYS, isTicketStatusGroup } from "@dosc-syspro/core";
-import type { ClosedTicketsWindow } from "@/features/tickets/domain/model";
+import { redirect } from "next/navigation";
 
-const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const CLOSED_WINDOW_OPTIONS: ClosedTicketsWindow[] = ["30d", "60d", "90d", "180d", "365d", "all"];
-
-interface TicketsPageProps {
+interface ChamadosPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function TicketsPage({ searchParams }: TicketsPageProps) {
-  const renderStartedAt = Date.now();
-  const session = await requireSession();
-  const params = searchParams ? await searchParams : undefined;
-  const pageParam = typeof params?.page === "string" ? Number(params.page) : 1;
-  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
-  const queueParam = typeof params?.queue === "string" ? params.queue : "all";
-  const search = typeof params?.search === "string" ? params.search : "";
-  const statusParam = typeof params?.status === "string" ? params.status : "open";
-  const closedWindowParam = typeof params?.closedWindow === "string" ? params.closedWindow : "30d";
+function stringifySearchParams(params?: Record<string, string | string[] | undefined>): string {
+  if (!params) return "";
+  const query = new URLSearchParams();
 
-  const queue = TICKET_QUEUE_KEYS.includes(queueParam as QueueKey)
-    ? (queueParam as QueueKey)
-    : "all";
-  const statusGroup: TicketStatusGroup = isTicketStatusGroup(statusParam) ? statusParam : "open";
-  const closedWindow: ClosedTicketsWindow = CLOSED_WINDOW_OPTIONS.includes(closedWindowParam as ClosedTicketsWindow)
-    ? (closedWindowParam as ClosedTicketsWindow)
-    : "30d";
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") {
+      query.set(key, value);
+      continue;
+    }
 
-  console.info("[TicketsDiag][page] loading", {
-    at: new Date().toISOString(),
-    userId: session.userId,
-    role: session.role,
-    page,
-    queue,
-    statusGroup,
-    closedWindow,
-    hasSearch: Boolean(search.trim()),
-  });
-
-  const { data, success, pagination, staleWarning, queueCounts, statusCounts } = await getTicketsAction({
-    page,
-    pageSize: 20,
-    queue,
-    search,
-    statusGroup,
-    closedWindow,
-  });
-
-  if (!success || !data) {
-    console.error("[TicketsDiag][page] load_failed", {
-      at: new Date().toISOString(),
-      userId: session.userId,
-      role: session.role,
-      elapsedMs: Date.now() - renderStartedAt,
-    });
-    return (
-      <div className="p-10 text-center text-muted-foreground flex flex-col items-center gap-2">
-        <h3 className="font-semibold">Erro ao carregar chamados</h3>
-        <p>Verifique sua conexao ou as configuracoes do Zammad.</p>
-      </div>
-    );
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        query.append(key, item);
+      }
+    }
   }
 
-  const safePagination = pagination ?? {
-    page,
-    pageSize: 20,
-    hasPreviousPage: false,
-    hasNextPage: false,
-    total: data.length,
-  };
-  const safeQueueCounts = queueCounts ?? { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 };
-  const safeStatusCounts = statusCounts ?? { open: 0, pending: 0, closed: 0 };
+  const serialized = query.toString();
+  return serialized ? `?${serialized}` : "";
+}
 
-  console.info("[TicketsDiag][page] load_success", {
-    at: new Date().toISOString(),
-    userId: session.userId,
-    role: session.role,
-    ticketsCount: data.length,
-    elapsedMs: Date.now() - renderStartedAt,
-    pagination: safePagination,
-  });
-
-  return (
-    <TicketsContainer
-      tickets={data}
-      isAdmin={SYSTEM_ROLES.includes(session.role)}
-      pagination={safePagination}
-      staleWarning={staleWarning}
-      queue={queue}
-      queueCounts={safeQueueCounts}
-      statusCounts={safeStatusCounts}
-      search={search}
-      statusGroup={statusGroup}
-      closedWindow={closedWindow}
-    />
-  );
+export default async function ChamadosPage({ searchParams }: ChamadosPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  redirect(`/portal/tickets${stringifySearchParams(params)}`);
 }

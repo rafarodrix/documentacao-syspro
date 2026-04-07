@@ -1,4 +1,4 @@
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+﻿import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
 import { evolutionWhatsApp } from "@/features/conversations/infrastructure/gateways/evolution-whatsapp.gateway";
 import { prisma } from "@/lib/prisma";
 
@@ -73,18 +73,19 @@ export class TicketNotificationService {
     
     switch (type) {
       case "CREATED":
-        return `✅ *Novo Chamado Aberto*\n\nOlá! Seu chamado *#${ticketNumber}* foi registrado com sucesso em nossa central.\n\nVocê pode acompanhar o andamento pelo portal:\n${baseUrl}/portal/chamados`;
+        return `âœ… *Novo Chamado Aberto*\n\nOlÃ¡! Seu chamado *#${ticketNumber}* foi registrado com sucesso em nossa central.\n\nVocÃª pode acompanhar o andamento pelo portal:\n${baseUrl}/portal/tickets`;
       
       case "UPDATED":
-        return `📩 *Nova Resposta no Chamado*\n\nOlá! Há uma nova atualização no seu chamado *#${ticketNumber}*.\n\nConfira os detalhes no portal:\n${baseUrl}/portal/chamados`;
+        return `ðŸ“© *Nova Resposta no Chamado*\n\nOlÃ¡! HÃ¡ uma nova atualizaÃ§Ã£o no seu chamado *#${ticketNumber}*.\n\nConfira os detalhes no portal:\n${baseUrl}/portal/tickets`;
       
       case "RESOLVED":
-        return `🎉 *Chamado Finalizado*\n\nOlá! O seu chamado *#${ticketNumber}* foi marcado como resolvido.\n\nCaso precise de mais ajuda, você pode reabri-lo pelo portal:\n${baseUrl}/portal/chamados`;
+        return `ðŸŽ‰ *Chamado Finalizado*\n\nOlÃ¡! O seu chamado *#${ticketNumber}* foi marcado como resolvido.\n\nCaso precise de mais ajuda, vocÃª pode reabri-lo pelo portal:\n${baseUrl}/portal/tickets`;
       
       default:
-        return `ℹ️ *Atualização de Chamado*\n\nO chamado *#${ticketNumber}* teve uma atualização de status.\n\nConfira no portal: ${baseUrl}/portal/chamados`;
+        return `â„¹ï¸ *AtualizaÃ§Ã£o de Chamado*\n\nO chamado *#${ticketNumber}* teve uma atualizaÃ§Ã£o de status.\n\nConfira no portal: ${baseUrl}/portal/tickets`;
     }
   }
 }
 
 export const ticketNotificationService = new TicketNotificationService();
+

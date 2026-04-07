@@ -1,4 +1,4 @@
-import crypto from "crypto";
+﻿import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 
@@ -53,12 +53,12 @@ export async function POST(request: Request) {
       revalidateTag("tickets-list");
       revalidateTag("tickets-dashboard");
       revalidatePath("/portal");
-      revalidatePath("/portal/chamados");
+      revalidatePath("/portal/tickets");
       revalidatedTags.push("tickets-list", "tickets-dashboard");
-      revalidatedPaths.push("/portal", "/portal/chamados");
+      revalidatedPaths.push("/portal", "/portal/tickets");
       if (ticketId) {
-        revalidatePath(`/portal/chamados/${ticketId}`);
-        revalidatedPaths.push(`/portal/chamados/${ticketId}`);
+        revalidatePath(`/portal/tickets/${ticketId}`);
+        revalidatedPaths.push(`/portal/tickets/${ticketId}`);
       }
     }
 
@@ -74,4 +74,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Error revalidating" }, { status: 500 });
   }
 }
+
 

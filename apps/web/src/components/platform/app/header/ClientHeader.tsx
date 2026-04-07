@@ -55,7 +55,7 @@ export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialA
           className="h-8 gap-1.5 text-xs"
           asChild
         >
-          <Link href={isSystemUser ? "/portal/chamados" : "/portal/chamados?novo=1"}>
+          <Link href={isSystemUser ? "/portal/tickets" : "/portal/tickets?novo=1"}>
             {isSystemUser ? <Ticket className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
             {isSystemUser ? "Central" : "Novo chamado"}
           </Link>
@@ -72,4 +72,5 @@ export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialA
     </header>
   )
 }
+
 

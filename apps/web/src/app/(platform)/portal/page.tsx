@@ -79,7 +79,7 @@ export default async function DashboardPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" className="gap-2">
-              <Link href="/portal/chamados">
+              <Link href="/portal/tickets">
                 <Headset className="h-4 w-4" />
                 Ver chamados
               </Link>
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
 
       <div className="flex justify-end">
         <Button asChild variant="ghost" className="gap-2 text-muted-foreground">
-          <Link href="/portal/chamados">
+          <Link href="/portal/tickets">
             Ver todos os chamados
             <ArrowUpRight className="h-4 w-4" />
           </Link>
@@ -183,4 +183,5 @@ export default async function DashboardPage() {
     </div>
   );
 }
+
 

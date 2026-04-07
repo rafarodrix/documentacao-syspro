@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+﻿import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Headset, ArrowUpRight, Clock, AlertTriangle, CheckCircle2, Inbox } from "lucide-react"
@@ -13,14 +13,14 @@ interface TicketsSummaryProps {
 
 const STATUS_CONFIG = {
   Aberto: { icon: Inbox, color: "text-blue-500", bg: "bg-blue-500/10", label: "Aberto" },
-  "Em Análise": { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Em Análise" },
+  "Em AnÃ¡lise": { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Em AnÃ¡lise" },
   Pendente: { icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-500/10", label: "Pendente" },
   Resolvido: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Resolvido" },
 } as const
 
 const PRIORITY_CONFIG = {
   Alta: { class: "bg-red-500/10 text-red-600 border-red-500/20" },
-  Média: { class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  MÃ©dia: { class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   Baixa: { class: "bg-muted text-muted-foreground border-border" },
 } as const
 
@@ -51,7 +51,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
-            <Link href="/portal/chamados">
+            <Link href="/portal/tickets">
               Ver todos
               <ArrowUpRight className="h-3 w-3" />
             </Link>
@@ -80,7 +80,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
               return (
                 <Link
                   key={ticket.id}
-                  href={`/portal/chamados/${ticket.id}`}
+                  href={`/portal/tickets/${ticket.id}`}
                   className="flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
                 >
                   <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", statusCfg.bg)}>
@@ -114,3 +114,4 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
     </Card>
   )
 }
+

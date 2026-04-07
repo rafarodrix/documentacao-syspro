@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type { Role } from "@prisma/client"
 import type { ReactNode } from "react"
@@ -57,8 +57,8 @@ export interface AppSidebarProps {
 
 const NAV_MAIN: NavItemType[] = [
   { title: "Dashboard", href: "/portal", icon: LayoutDashboard },
-  { title: "Meus Chamados", href: "/portal/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
-  { title: "Tickets", href: "/portal/chamados", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
+  { title: "Meus Chamados", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
+  { title: "Tickets", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
   { title: "Conversas", href: "/portal/conversas", icon: MessageSquare, roles: [...SYSTEM_ROLES] },
 ]
 
@@ -336,3 +336,4 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
     </div>
   )
 }
+

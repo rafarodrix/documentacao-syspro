@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+﻿import { revalidatePath, revalidateTag } from "next/cache";
 
 export const CACHE_TAGS = {
   ticketsList: "tickets-list",
@@ -53,7 +53,7 @@ export function revalidateDocumentosViews() {
 export function revalidateTicketCollections() {
   revalidateTag(CACHE_TAGS.ticketsList);
   revalidateTag(CACHE_TAGS.ticketsDashboard);
-  revalidatePath("/portal/chamados");
+  revalidatePath("/portal/tickets");
 }
 
 export function revalidateDashboardCollections() {
@@ -66,8 +66,9 @@ export function revalidateDashboardCollections() {
 
 export function revalidateTicketViews(ticketId?: string | number) {
   if (ticketId !== undefined && ticketId !== null) {
-    revalidatePath(`/portal/chamados/${ticketId}`);
+    revalidatePath(`/portal/tickets/${ticketId}`);
   }
 
   revalidateTicketCollections();
 }
+

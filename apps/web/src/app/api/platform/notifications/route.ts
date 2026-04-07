@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
@@ -57,7 +57,7 @@ function buildTicketNotifications(
 
     const mins = minutesBetween(now, ticket.updated_at);
     const hours = Math.max(1, Math.floor(mins / 60));
-    const href = `/portal/chamados/${ticket.id}`;
+    const href = `/portal/tickets/${ticket.id}`;
     const sla = computeTicketSla({
       createdAt: new Date(ticket.created_at),
       firstResponseAt: ticket.first_response_at ? new Date(ticket.first_response_at) : null,
@@ -262,3 +262,4 @@ export async function GET() {
     generatedAt: new Date().toISOString(),
   });
 }
+
