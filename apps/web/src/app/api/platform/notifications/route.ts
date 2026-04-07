@@ -1,11 +1,9 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
-import { isAnalysisOrDevelopmentStateId, isAnalysisOrDevelopmentStateName } from "@/features/tickets/infrastructure/mappers/zammad-ticket.mapper";
+import { getTicketsAction } from "@/features/tickets/application/actions";
 import { Role } from "@prisma/client";
-import { upsertOperationalTicketsToCache } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
-import { computeTicketSla } from "@dosc-syspro/core";
+import type { TicketListItem } from "@/features/tickets/domain/model";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +19,6 @@ type NotificationItem = {
 };
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const ACTIVE_STATES = [2, 3];
 
 function isSystemRole(role: Role): boolean {
   return SYSTEM_ROLES.includes(role);
@@ -32,72 +29,27 @@ function minutesBetween(now: Date, dateLike: string | Date): number {
   return Math.floor((now.getTime() - date.getTime()) / 1000 / 60);
 }
 
-function buildTicketNotifications(
-  tickets: Array<{
-    id: number;
-    title: string;
-    updated_at: string;
-    created_at: string;
-    first_response_at?: string | null;
-    close_at?: string | null;
-    priority_id?: number | null;
-    state?: string | null;
-    state_id?: number | null;
-  }>
-): NotificationItem[] {
+function buildTicketNotifications(tickets: TicketListItem[]): NotificationItem[] {
   const now = new Date();
   const items: NotificationItem[] = [];
 
   for (const ticket of tickets) {
-    const isActiveState =
-      isAnalysisOrDevelopmentStateId(ticket.state_id) ||
-      isAnalysisOrDevelopmentStateName(ticket.state);
+    const status = String(ticket.status || "").toUpperCase();
+    if (status === "RESOLVED" || status === "ARCHIVED") continue;
 
-    if (!isActiveState) continue;
-
-    const mins = minutesBetween(now, ticket.updated_at);
+    const mins = minutesBetween(now, ticket.updatedAt);
     const hours = Math.max(1, Math.floor(mins / 60));
     const href = `/portal/tickets/${ticket.id}`;
-    const sla = computeTicketSla({
-      createdAt: new Date(ticket.created_at),
-      firstResponseAt: ticket.first_response_at ? new Date(ticket.first_response_at) : null,
-      resolvedAt: ticket.close_at ? new Date(ticket.close_at) : null,
-      priorityId: ticket.priority_id ?? null,
-      now,
-    });
+    const number = ticket.number || String(ticket.id);
 
-    if (sla.warning) {
-      items.push({
-        id: `ticket-sla-warning-${ticket.id}`,
-        level: "warning",
-        title: "SLA perto do limite",
-        description: `#${ticket.id} ${ticket.title} estoura em ${Math.max(1, sla.minutesToBreach)} min.`,
-        href,
-        createdAt: ticket.updated_at,
-      });
-      continue;
-    }
-
-    if (sla.breached) {
-      items.push({
-        id: `ticket-sla-breached-${ticket.id}`,
-        level: "critical",
-        title: "SLA estourado",
-        description: `#${ticket.id} ${ticket.title} ultrapassou SLA de primeira resposta.`,
-        href,
-        createdAt: ticket.updated_at,
-      });
-      continue;
-    }
-
-    if (ticket.priority_id === 3 && mins >= 240) {
+    if (ticket.priority >= 3 && mins >= 240) {
       items.push({
         id: `ticket-high-${ticket.id}`,
         level: "critical",
         title: "Chamado critico sem resposta",
-        description: `#${ticket.id} ${ticket.title} sem atualizacao ha ${hours}h.`,
+        description: `#${number} ${ticket.title} sem atualizacao ha ${hours}h.`,
         href,
-        createdAt: ticket.updated_at,
+        createdAt: ticket.updatedAt,
       });
       continue;
     }
@@ -107,9 +59,9 @@ function buildTicketNotifications(
         id: `ticket-stale-${ticket.id}`,
         level: "warning",
         title: "Chamado parado ha mais de 24h",
-        description: `#${ticket.id} ${ticket.title} sem atualizacao ha ${hours}h.`,
+        description: `#${number} ${ticket.title} sem atualizacao ha ${hours}h.`,
         href,
-        createdAt: ticket.updated_at,
+        createdAt: ticket.updatedAt,
       });
       continue;
     }
@@ -119,9 +71,9 @@ function buildTicketNotifications(
         id: `ticket-recent-${ticket.id}`,
         level: "info",
         title: "Chamado atualizado recentemente",
-        description: `#${ticket.id} ${ticket.title} atualizado nos ultimos ${Math.max(1, mins)} min.`,
+        description: `#${number} ${ticket.title} atualizado nos ultimos ${Math.max(1, mins)} min.`,
         href,
-        createdAt: ticket.updated_at,
+        createdAt: ticket.updatedAt,
       });
     }
   }
@@ -202,27 +154,6 @@ function sortNotifications(items: NotificationItem[]): NotificationItem[] {
   });
 }
 
-async function getScopedCompanyUserEmails(userId: string): Promise<string[]> {
-  const memberships = await prisma.membership.findMany({
-    where: { userId },
-    select: { companyId: true },
-  });
-
-  const companyIds = memberships.map((membership) => membership.companyId);
-  if (!companyIds.length) return [];
-
-  const users = await prisma.user.findMany({
-    where: {
-      deletedAt: null,
-      isActive: true,
-      memberships: { some: { companyId: { in: companyIds } } },
-    },
-    select: { email: true },
-  });
-
-  return Array.from(new Set(users.map((user) => user.email.trim().toLowerCase()).filter(Boolean)));
-}
-
 export async function GET() {
   const session = await getProtectedSession();
   if (!session) {
@@ -230,29 +161,8 @@ export async function GET() {
   }
 
   const systemUser = isSystemRole(session.role);
-
-  const scopedEmails = systemUser ? [] : await getScopedCompanyUserEmails(session.userId);
-  const tickets = systemUser
-    ? await ZammadGateway.getAllTickets(30, {
-        cacheTtlSeconds: 30,
-        tags: ["tickets-dashboard"],
-        routeKey: "notifications",
-      })
-    : await ZammadGateway.getTicketsForCustomerEmailsPaged(scopedEmails, {
-        stateIds: ACTIVE_STATES,
-        limit: 30,
-        cacheTtlSeconds: 30,
-        tags: ["tickets-dashboard"],
-        routeKey: "notifications",
-      });
-
-  try {
-    await upsertOperationalTicketsToCache(tickets);
-  } catch (err) {
-    console.warn("Failed cached upsert during notifications polling:", err);
-  }
-
-  const ticketNotifications = buildTicketNotifications(tickets);
+  const ticketsResponse = await getTicketsAction({ page: 1, pageSize: 50, queue: "all", statusGroup: "all" });
+  const ticketNotifications = ticketsResponse.success ? buildTicketNotifications(ticketsResponse.data) : [];
   const operational = systemUser ? await buildSystemOperationalNotifications(session.role === Role.ADMIN) : [];
   const merged = sortNotifications([...ticketNotifications, ...operational]).slice(0, 12);
 
@@ -262,4 +172,3 @@ export async function GET() {
     generatedAt: new Date().toISOString(),
   });
 }
-

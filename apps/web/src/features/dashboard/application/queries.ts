@@ -3,13 +3,10 @@ import { Role } from "@prisma/client";
 import { buildTicketKpis, toTicketSummaryItems } from "@/features/tickets/application/dashboard";
 import { getTicketsAction } from "@/features/tickets/application/actions";
 import type { AdminDashboardViewData, ClientDashboardViewData, TicketsDataResponse } from "@/features/tickets/domain/model";
-import { getLatestOperationalTicketCacheFreshness } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
-import { getZammadRouteHealth } from "@/features/tickets/infrastructure/observability/zammad-observability";
 import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const TRANSPARENT_CACHE_THRESHOLD_MINUTES = 15;
 const DASHBOARD_ZAMMAD_TIMEOUT_MS = 4000;
 
 function timeoutError(label: string, timeoutMs: number) {
@@ -31,13 +28,13 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   }
 }
 
-function mergeZammadWarnings(...warnings: Array<string | undefined>): string | undefined {
+function mergeTicketWarnings(...warnings: Array<string | undefined>): string | undefined {
   const unique = Array.from(new Set(warnings.filter(Boolean)));
   return unique.length > 0 ? unique.join(" ") : undefined;
 }
 
 function getDashboardTimeoutWarning() {
-  return "Integracao Zammad em contingencia no dashboard. Alguns cards foram carregados com dados reduzidos.";
+  return "Modulo de tickets em contingencia no dashboard. Alguns cards foram carregados com dados reduzidos.";
 }
 
 function getLast7DaysRange() {
@@ -160,22 +157,6 @@ const getSefazRecordsCached = unstable_cache(
   }
 );
 
-async function getDashboardZammadWarning(routeKey: string): Promise<string | undefined> {
-  const routeHealth = getZammadRouteHealth(routeKey);
-  if (!routeHealth.stale) return undefined;
-
-  const freshness = await getLatestOperationalTicketCacheFreshness();
-  if (freshness.hasCache && freshness.staleMinutes !== null && freshness.staleMinutes <= TRANSPARENT_CACHE_THRESHOLD_MINUTES) {
-    return undefined;
-  }
-
-  if (freshness.hasCache && freshness.staleMinutes !== null) {
-    return `Integracao Zammad instavel. Cache local com ${freshness.staleMinutes} min sem sincronizacao.`;
-  }
-
-  return "Integracao Zammad instavel e sem cache local recente.";
-}
-
 async function getUserDashboardUF(userId: string): Promise<string> {
   const membership = await prisma.membership.findFirst({
     where: {
@@ -206,7 +187,6 @@ export async function getDashboardData(
 ): Promise<AdminDashboardViewData | ClientDashboardViewData> {
   const isSystemUser = SYSTEM_ROLES.includes(role);
   const dashboardUF = await getUserDashboardUF(userId);
-  const zammadWarning = await getDashboardZammadWarning("app-chamados");
 
   if (isSystemUser) {
     const [
@@ -267,7 +247,7 @@ export async function getDashboardData(
 
     return {
       mode: "admin",
-      zammadWarning: mergeZammadWarnings(zammadWarning, dashboardTicketWarning),
+      zammadWarning: mergeTicketWarnings(dashboardTicketWarning),
       companiesCount,
       companiesGrowth: companiesThisMonth - companiesLastMonth,
       usersCount,
@@ -325,7 +305,7 @@ export async function getDashboardData(
 
   return {
     mode: "client",
-    zammadWarning: mergeZammadWarnings(zammadWarning, dashboardTicketWarning),
+    zammadWarning: mergeTicketWarnings(dashboardTicketWarning),
     companyName: primaryMembership?.company?.nomeFantasia || primaryMembership?.company?.razaoSocial || "Sem empresa vinculada",
     companyUsers: primaryMembership?.company?._count?.memberships || 0,
     companyCount: companyNames.length,

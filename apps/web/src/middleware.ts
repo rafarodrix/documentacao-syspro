@@ -28,8 +28,6 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/search") ||
     pathname.startsWith("/api/revalidate") ||
-    pathname.startsWith("/api/integrations/zammad") ||
-    pathname.startsWith("/api/platform/zammad") ||
     pathname.startsWith("/api/remote/agents") ||
     // Remote agent endpoints: these requests come from machine/service accounts
     // without browser session cookies, so they must bypass portal auth middleware.

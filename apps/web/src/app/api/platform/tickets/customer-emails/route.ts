@@ -25,9 +25,10 @@ export async function GET(request: Request) {
       ? Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limitRaw)))
       : DEFAULT_LIMIT;
 
-    const rows = await prisma.companyZammadEmail.findMany({
+    const rows = await prisma.companyContact.findMany({
       where: {
-        isActive: true,
+        email: { not: null },
+        status: "LINKED",
         company: {
           deletedAt: null,
         },
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
 
     const dedup = new Map<string, CustomerEmailOption>();
     for (const row of rows) {
-      const email = row.email.trim().toLowerCase();
+      const email = String(row.email || "").trim().toLowerCase();
       if (!email || dedup.has(email)) continue;
       dedup.set(email, {
         email,

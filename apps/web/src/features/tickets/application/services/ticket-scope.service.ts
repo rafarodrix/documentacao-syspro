@@ -22,15 +22,16 @@ export async function getScopedCompanyZammadEmails(userId: string): Promise<stri
   const companyIds = memberships.map((membership) => membership.companyId);
   if (!companyIds.length) return [];
 
-  const configured = await prisma.companyZammadEmail.findMany({
+  const configured = await prisma.companyContact.findMany({
     where: {
       companyId: { in: companyIds },
-      isActive: true,
+      status: "LINKED",
+      email: { not: null },
     },
     select: { email: true },
   });
 
   return Array.from(
-    new Set(configured.map((item) => item.email.trim().toLowerCase()).filter(Boolean))
+    new Set(configured.map((item) => String(item.email || "").trim().toLowerCase()).filter(Boolean))
   );
 }

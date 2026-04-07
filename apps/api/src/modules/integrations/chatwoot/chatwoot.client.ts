@@ -8,29 +8,39 @@ export class ChatwootClient {
   private readonly accountId = process.env.CHATWOOT_ACCOUNT_ID;
   private readonly inboxId = process.env.CHATWOOT_INBOX_IDENTIFIER;
 
-  private async request(endpoint: string, method: string = 'GET', body?: any) {
+  private async request(endpoint: string, method: string = 'GET', body?: any, retries: number = 3) {
     if (!this.baseUrl || !this.token) {
       this.logger.warn('CHATWOOT_URL ou CHATWOOT_API_TOKEN não configurados.');
       return null;
     }
 
     const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'api_access_token': this.token,
-        'Content-Type': 'application/json',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'api_access_token': this.token,
+            'Content-Type': 'application/json',
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'unknown_error');
-      this.logger.error(`Chatwoot API error: ${response.status} - ${errorText}`);
-      throw new Error(`Chatwoot API error: ${response.status}`);
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'unknown_error');
+          this.logger.error(`Chatwoot API error (attempt ${attempt}): ${response.status} - ${errorText}`);
+          if (attempt === retries) throw new Error(`Chatwoot API error: ${response.status}`);
+          await new Promise(res => setTimeout(res, attempt * 1000)); // Espera incremental antes de tentar de novo
+          continue;
+        }
+        return await response.json();
+      } catch (error: any) {
+        if (attempt === retries) throw error;
+        this.logger.error(`Network error on Chatwoot API (attempt ${attempt}): ${error.message}`);
+        await new Promise(res => setTimeout(res, attempt * 1000));
+      }
     }
-
-    return response.json();
   }
 
   async createOrFindContact(phoneNumber: string, name: string) {
