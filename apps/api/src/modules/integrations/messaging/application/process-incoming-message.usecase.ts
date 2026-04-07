@@ -105,9 +105,11 @@ export class ProcessIncomingMessageUseCase {
           const contactName = sysproContact.company ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}` : sysproContact.name;
 
           const contactResponse = (await this.chatwootClient.createOrFindContact(phone, contactName)) as any;
-          contactIdentifier = contactResponse?.payload?.contact?.source_id?.toString();
+          const contact = contactResponse?.payload?.contact;
+          
+          contactIdentifier = contact?.source_id?.toString() ?? contact?.contact_inboxes?.[0]?.source_id?.toString() ?? contact?.id?.toString();
 
-          if (!contactIdentifier) throw new Error('Não foi possível resolver o source_id do contato no Chatwoot');
+          if (!contactIdentifier) throw new Error('Não foi possível resolver o identificador do contato no Chatwoot');
 
           const convResponse = (await this.chatwootClient.createConversation(contactIdentifier)) as any;
           conversationId = convResponse?.id?.toString();

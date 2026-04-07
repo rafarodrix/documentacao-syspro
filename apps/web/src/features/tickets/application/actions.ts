@@ -60,6 +60,14 @@ type ApiTicketsListResponse = {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
+  queueCounts?: {
+    all: number;
+    my_queue: number;
+    unassigned: number;
+    critical: number;
+    no_response: number;
+  };
+  statusCounts?: TicketStatusCounts;
   error?: string;
 };
 
@@ -109,23 +117,6 @@ function mapStatusLabel(status: ConversationStatusApi | string): string {
     default:
       return status;
   }
-}
-
-function statusGroupFromConversation(status: ConversationStatusApi | string): "open" | "pending" | "closed" {
-  if (status === "WAITING_CUSTOMER") return "pending";
-  if (status === "RESOLVED" || status === "ARCHIVED") return "closed";
-  return "open";
-}
-
-function inClosedWindow(dateLike: string, window: ClosedTicketsWindow): boolean {
-  if (window === "all") return true;
-  const days = Number(window.replace("d", ""));
-  if (!Number.isFinite(days)) return true;
-  const date = new Date(dateLike);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const maxMs = days * 24 * 60 * 60 * 1000;
-  return diffMs <= maxMs;
 }
 
 function toTicketListItem(ticket: ApiTicket): TicketListItem {
@@ -192,37 +183,17 @@ async function callTicketsApi<T>(path: string, init?: RequestInit): Promise<T> {
   return json as T;
 }
 
-async function listVisibleTicketsForSession(params: { search?: string; pageSizeHint?: number }) {
-  const session = await getProtectedSession();
-  if (!session) return { session: null, tickets: [] as ApiTicket[] };
-
-  const query = new URLSearchParams();
-  query.set("page", "1");
-  query.set("pageSize", String(Math.min(200, Math.max(20, params.pageSizeHint ?? 200))));
-  if (params.search?.trim()) query.set("search", params.search.trim());
-
-  const response = await callTicketsApi<ApiTicketsListResponse>(`?${query.toString()}`);
-  const all = Array.isArray(response.data) ? response.data : [];
-
-  if (isSystemRole(session.role)) {
-    return { session, tickets: all };
-  }
-
-  const memberships = await prisma.membership.findMany({
-    where: { userId: session.userId },
-    select: { companyId: true },
-  });
-  const allowedCompanyIds = new Set(memberships.map((m) => m.companyId));
-  const scoped = all.filter((ticket) => ticket.companyId && allowedCompanyIds.has(ticket.companyId));
-  return { session, tickets: scoped };
-}
-
 export async function getTicketsAction(params: TicketQueryParams = {}): Promise<TicketsDataResponse> {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(50, Math.max(10, params.pageSize ?? 20));
-  const queue = params.queue ?? "all";
-  const statusGroup = params.statusGroup ?? "open";
-  const closedWindow = params.closedWindow ?? "30d";
+
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("pageSize", String(pageSize));
+  if (params.queue) query.set("queue", params.queue);
+  if (params.statusGroup) query.set("statusGroup", params.statusGroup);
+  if (params.closedWindow) query.set("closedWindow", params.closedWindow);
+  if (params.search?.trim()) query.set("search", params.search.trim());
 
   const emptyResult: TicketsDataResponse = {
     success: false,
@@ -240,54 +211,20 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
   };
 
   try {
-    const { session, tickets } = await listVisibleTicketsForSession({ search: params.search, pageSizeHint: 200 });
-    if (!session) return emptyResult;
+    const response = await callTicketsApi<ApiTicketsListResponse>(`?${query.toString()}`);
+    
+    if (!response.success || !response.data) {
+      return { ...emptyResult, error: response.error || "Falha ao carregar chamados." };
+    }
 
-    const queueFiltered = tickets.filter((ticket) => {
-      if (queue === "all") return true;
-      if (queue === "my_queue") return ticket.assignedUserId === session.userId;
-      if (queue === "unassigned") return !ticket.assignedUserId;
-      if (queue === "critical") return ticket.priority === "HIGH" || ticket.priority === "CRITICAL";
-      if (queue === "no_response") return ticket.status === "NEW" || ticket.status === "UNASSIGNED";
-      return true;
-    });
-
-    const queueCounts = {
-      all: tickets.length,
-      my_queue: tickets.filter((t) => t.assignedUserId === session.userId).length,
-      unassigned: tickets.filter((t) => !t.assignedUserId).length,
-      critical: tickets.filter((t) => t.priority === "HIGH" || t.priority === "CRITICAL").length,
-      no_response: tickets.filter((t) => t.status === "NEW" || t.status === "UNASSIGNED").length,
-    };
-
-    const statusCounts: TicketStatusCounts = {
-      open: queueFiltered.filter((t) => statusGroupFromConversation(t.status) === "open").length,
-      pending: queueFiltered.filter((t) => statusGroupFromConversation(t.status) === "pending").length,
-      closed: queueFiltered.filter((t) => statusGroupFromConversation(t.status) === "closed").length,
-    };
-
-    const statusFiltered = queueFiltered.filter((ticket) => {
-      if (statusGroup === "all") return true;
-      if (statusGroupFromConversation(ticket.status) !== statusGroup) return false;
-      if (statusGroup === "closed") return inClosedWindow(ticket.updatedAt, closedWindow);
-      return true;
-    });
-
-    const start = (page - 1) * pageSize;
-    const paged = statusFiltered.slice(start, start + pageSize).map(toTicketListItem);
+    const paged = response.data.map(toTicketListItem);
 
     return {
       success: true,
       data: paged,
-      pagination: {
-        page,
-        pageSize,
-        hasPreviousPage: page > 1,
-        hasNextPage: start + pageSize < statusFiltered.length,
-        total: statusFiltered.length,
-      },
-      queueCounts,
-      statusCounts,
+      pagination: response.pagination ?? emptyResult.pagination,
+      queueCounts: response.queueCounts ?? emptyResult.queueCounts,
+      statusCounts: response.statusCounts ?? emptyResult.statusCounts,
     };
   } catch (error) {
     console.error("Erro ao consultar tickets via backend:", error);
@@ -394,17 +331,6 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
     }
 
     const ticket = response.data;
-
-    if (!isSystemRole(session.role)) {
-      const memberships = await prisma.membership.findMany({
-        where: { userId: session.userId },
-        select: { companyId: true },
-      });
-      const allowedCompanyIds = new Set(memberships.map((m) => m.companyId));
-      if (ticket.companyId && !allowedCompanyIds.has(ticket.companyId)) {
-        return { success: false, error: "Voce nao tem permissao para acessar este chamado." };
-      }
-    }
 
     return {
       success: true,
