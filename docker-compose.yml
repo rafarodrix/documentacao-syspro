@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: portal-backend
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
@@ -23,3 +22,10 @@ services:
       EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE}
     expose:
       - "3000"
+    # Habilite apenas se sua instância Dokploy exigir rede externa explícita.
+    # networks:
+    #   - dokploy-network
+
+# networks:
+#   dokploy-network:
+#     external: true
