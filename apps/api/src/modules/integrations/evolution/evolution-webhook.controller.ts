@@ -16,7 +16,13 @@ export class EvolutionWebhookController {
       throw new UnauthorizedException('Invalid Evolution webhook secret');
     }
 
-    if (payload?.event === 'messages.upsert' || payload?.event === 'MESSAGES_UPSERT') {
+    const normalizedEvent = String(payload?.event ?? '').trim().toLowerCase();
+    const isInboundMessageEvent =
+      normalizedEvent === 'message' ||
+      normalizedEvent === 'messages.upsert' ||
+      normalizedEvent === 'messages_upsert';
+
+    if (isInboundMessageEvent) {
       await this.processIncomingMessage.execute(payload.data);
     }
     return { ok: true };

@@ -18,15 +18,18 @@ export class ProcessIncomingMessageUseCase {
     this.cleanupProcessedMessages();
 
     for (const msg of messages) {
-      if (!msg || msg?.key?.fromMe) continue;
+      if (!msg) continue;
 
-      const messageId = msg?.key?.id?.toString();
+      const fromMe = Boolean(msg?.key?.fromMe ?? msg?.Info?.IsFromMe ?? msg?.info?.IsFromMe);
+      if (fromMe) continue;
+
+      const messageId = (msg?.key?.id ?? msg?.Info?.ID ?? msg?.info?.ID)?.toString();
       if (messageId && this.isDuplicateMessage(messageId)) {
         this.logger.debug(`Mensagem duplicada ignorada: ${messageId}`);
         continue;
       }
 
-      const remoteJid = msg?.key?.remoteJid;
+      const remoteJid = msg?.key?.remoteJid ?? msg?.Info?.Chat ?? msg?.info?.Chat;
       if (!remoteJid) continue;
       if (!remoteJid.endsWith('@s.whatsapp.net')) {
         this.logger.debug(`JID nao suportado ignorado: ${remoteJid}`);
@@ -34,11 +37,15 @@ export class ProcessIncomingMessageUseCase {
       }
 
       const phone = remoteJid.replace('@s.whatsapp.net', '');
-      const pushName = msg?.pushName || 'Cliente WhatsApp';
+      const pushName = msg?.pushName ?? msg?.Info?.PushName ?? msg?.info?.PushName ?? 'Cliente WhatsApp';
+      const messagePayload = msg?.message ?? msg?.Message;
       
       let textContent = '';
-      if (msg?.message?.conversation) textContent = msg.message.conversation;
-      else if (msg?.message?.extendedTextMessage?.text) textContent = msg.message.extendedTextMessage.text;
+      if (messagePayload?.conversation) textContent = messagePayload.conversation;
+      else if (messagePayload?.extendedTextMessage?.text) textContent = messagePayload.extendedTextMessage.text;
+      else if (messagePayload?.imageMessage?.caption) textContent = messagePayload.imageMessage.caption;
+      else if (messagePayload?.videoMessage?.caption) textContent = messagePayload.videoMessage.caption;
+      else if (messagePayload?.documentMessage?.caption) textContent = messagePayload.documentMessage.caption;
       else textContent = '[Mensagem de mídia recebida]';
 
       this.logger.log(`WhatsApp -> Chatwoot: ${phone} disse: ${textContent}`);

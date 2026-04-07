@@ -34,7 +34,7 @@ const evolutionMessageInfoSchema = z
   .passthrough();
 
 export const evolutionMessageEventSchema = z.object({
-  event: z.literal("MESSAGE"),
+  event: z.union([z.literal("MESSAGE"), z.literal("Message")]),
   data: z
     .object({
       Info: evolutionMessageInfoSchema.optional(),

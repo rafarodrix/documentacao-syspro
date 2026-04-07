@@ -24,23 +24,48 @@ export class EvolutionClient {
       return;
     }
 
-    const response = await fetch(`${this.baseUrl}/message/sendText/${this.instance}`, {
-      method: "POST",
-      headers: {
-        apikey: this.apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        number: this.normalizeNumber(number),
-        text,
-        delay: 1200,
-      }),
-    });
+    const normalizedNumber = this.normalizeNumber(number);
+    const instance = this.resolveInstance();
+    const baseUrl = this.baseUrl.replace(/\/+$/, "");
 
-    if (!response.ok) {
+    const requestBody = {
+      id: instance,
+      number: normalizedNumber,
+      text,
+      delay: 1200,
+    };
+
+    const endpoints = [
+      `${baseUrl}/send/text`,
+      `${baseUrl}/message/sendText/${instance}`,
+    ];
+
+    let lastError: string | null = null;
+    for (let index = 0; index < endpoints.length; index += 1) {
+      const response = await fetch(endpoints[index], {
+        method: "POST",
+        headers: {
+          apikey: this.apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.ok) {
+        return;
+      }
+
       const errorText = await response.text().catch(() => "unknown_error");
-      throw new Error(`Evolution send failed: ${response.status} - ${errorText}`);
+      lastError = `${response.status} - ${errorText}`;
+
+      const isNotFound = response.status === 404;
+      const hasFallback = index < endpoints.length - 1;
+      if (!(isNotFound && hasFallback)) {
+        break;
+      }
     }
+
+    throw new Error(`Evolution send failed: ${lastError ?? "unknown_error"}`);
   }
 
   async findContacts(instanceOverride?: string): Promise<any[]> {
