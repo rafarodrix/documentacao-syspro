@@ -47,11 +47,12 @@ export class ProcessOutgoingMessageUseCase {
     }));
 
     // Dispara para o WhatsApp
-    await this.evolutionClient.sendTextMessage(phone, content);
+    const sendResult = await this.evolutionClient.sendTextMessage(phone, content);
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'sent',
       messageId,
+      providerMessageId: sendResult.messageId,
       chatwootConversationId,
       whatsappNumber: phone,
     }));

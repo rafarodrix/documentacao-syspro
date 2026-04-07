@@ -18,10 +18,10 @@ export class EvolutionClient {
     return new EvolutionClient(config.apiUrl, config.apiKey, config.instance);
   }
 
-  async sendTextMessage(number: string, text: string): Promise<void> {
+  async sendTextMessage(number: string, text: string): Promise<{ messageId?: string }> {
     if (!this.baseUrl || !this.apiKey) {
       console.warn("[EvolutionClient] Credenciais ausentes. Envio de mensagem ignorado.");
-      return;
+      return {};
     }
 
     const normalizedNumber = this.normalizeNumber(number);
@@ -52,7 +52,8 @@ export class EvolutionClient {
       });
 
       if (response.ok) {
-        return;
+        const payload = await response.json().catch(() => ({}));
+        return { messageId: this.extractMessageId(payload) };
       }
 
       const errorText = await response.text().catch(() => "unknown_error");
@@ -103,5 +104,20 @@ export class EvolutionClient {
     const digits = number.replace(/\D/g, "");
     if (!digits) return digits;
     return digits.startsWith("55") ? digits : `55${digits}`;
+  }
+
+  private extractMessageId(payload: any): string | undefined {
+    const candidates = [
+      payload?.messageId,
+      payload?.id,
+      payload?.key?.id,
+      payload?.data?.id,
+      payload?.data?.key?.id,
+      payload?.messages?.[0]?.id,
+      payload?.messages?.[0]?.key?.id,
+    ];
+
+    const found = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
+    return typeof found === "string" ? found : undefined;
   }
 }

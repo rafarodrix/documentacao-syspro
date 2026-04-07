@@ -49,6 +49,9 @@ Variaveis minimas:
 - `GET /health`
 - `POST /rpc/:namespace/:procedure`
 - `POST /webhooks/evolution` (inbound Evolution Go + orquestracao de conversa/ticket)
+- `POST /integrations/evolution/messages/send` (envio direto outbound via Evolution, protegido por `x-internal-api-key`)
+- `GET /settings/evolution` (configuracao global do canal Evolution)
+- `PUT /settings/evolution` (persistencia das configuracoes globais do canal)
 - `GET /conversations` (listagem de conversas por filtro)
 - `GET /conversations/:conversationId` (detalhe de conversa)
 - `GET /conversations/:conversationId/messages` (mensagens da conversa)

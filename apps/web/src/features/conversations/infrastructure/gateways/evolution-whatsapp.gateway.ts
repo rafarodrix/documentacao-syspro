@@ -7,7 +7,7 @@ import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api"
 export class EvolutionWhatsAppGateway {
   async sendTextMessage(to: string, text: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      const response = await fetch(`${getBackendApiBaseUrl()}/whatsapp/send`, {
+      const response = await fetch(`${getBackendApiBaseUrl()}/integrations/evolution/messages/send`, {
         method: "POST",
         headers: withInternalApiHeaders({
           "Content-Type": "application/json",
