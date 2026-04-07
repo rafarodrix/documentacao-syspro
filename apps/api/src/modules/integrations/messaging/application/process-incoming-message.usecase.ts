@@ -13,9 +13,10 @@ export class ProcessIncomingMessageUseCase {
     private readonly prisma: PrismaService
   ) {}
 
-  async execute(payload: any) {
+  async execute(payload: any, context?: { instanceId?: string }) {
     const messages = Array.isArray(payload) ? payload : (payload?.messages || [payload?.message || payload]);
     this.cleanupProcessedMessages();
+    const instanceId = context?.instanceId ?? null;
 
     for (const msg of messages) {
       if (!msg) continue;
@@ -27,6 +28,19 @@ export class ProcessIncomingMessageUseCase {
       if (messageId && this.isDuplicateMessage(messageId)) {
         this.logger.debug(`Mensagem duplicada ignorada: ${messageId}`);
         continue;
+      }
+
+      if (messageId) {
+        const dedupeClaimed = await this.claimDedupEvent('evolution_inbound', messageId, instanceId);
+        if (!dedupeClaimed) {
+          this.logger.debug(JSON.stringify({
+            flow: 'evolution_to_chatwoot',
+            dedup: 'db_hit',
+            instanceId,
+            messageId,
+          }));
+          continue;
+        }
       }
 
       const remoteJid = msg?.key?.remoteJid ?? msg?.Info?.Chat ?? msg?.info?.Chat;
@@ -48,7 +62,13 @@ export class ProcessIncomingMessageUseCase {
       else if (messagePayload?.documentMessage?.caption) textContent = messagePayload.documentMessage.caption;
       else textContent = '[Mensagem de mídia recebida]';
 
-      this.logger.log(`WhatsApp -> Chatwoot: ${phone} disse: ${textContent}`);
+      this.logger.log(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'received',
+        instanceId,
+        messageId,
+        whatsappNumber: phone,
+      }));
 
       try {
         // 1. Busca se já temos uma conversa ativa para este número
@@ -120,11 +140,40 @@ export class ProcessIncomingMessageUseCase {
 
         // 3. Cria Mensagem na Inbox do Chatwoot usando os IDs persistidos
         await this.chatwootClient.createIncomingMessage(contactIdentifier!, conversationId!, textContent);
+        this.logger.log(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'forwarded',
+          instanceId,
+          messageId,
+          chatwootConversationId: conversationId,
+          whatsappNumber: phone,
+        }));
         
       } catch (error: any) {
-        this.logger.error(`Erro ao processar incoming message: ${error.message}`);
+        this.logger.error(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'failed',
+          instanceId,
+          messageId,
+          whatsappNumber: phone,
+          error: error?.message ?? 'unknown_error',
+        }));
       }
     }
+  }
+
+  private async claimDedupEvent(provider: string, eventKey: string, instanceId: string | null): Promise<boolean> {
+    const rows = await this.prisma.$executeRawUnsafe(
+      `
+      INSERT INTO "integration_webhook_dedup" ("id", "provider", "eventKey", "instanceId", "createdAt")
+      VALUES ($1 || ':' || $2, $1, $2, $3, NOW())
+      ON CONFLICT ("provider", "eventKey") DO NOTHING
+      `,
+      provider,
+      eventKey,
+      instanceId
+    );
+    return Number(rows) > 0;
   }
 
   private isDuplicateMessage(messageId: string): boolean {

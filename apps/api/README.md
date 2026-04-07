@@ -33,6 +33,16 @@ Variaveis minimas:
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL`
 - `INTERNAL_API_KEY`
+- `EVOLUTION_API_URL`
+- `EVOLUTION_API_KEY`
+- `EVOLUTION_INSTANCE`
+- `EVOLUTION_WEBHOOK_SECRET` (segredo de entrada do webhook Evolution)
+- `CHATWOOT_URL`
+- `CHATWOOT_ACCOUNT_ID`
+- `CHATWOOT_API_TOKEN`
+- `CHATWOOT_INBOX_IDENTIFIER`
+- `CHATWOOT_WEBHOOK_SECRET` (usado para HMAC assinatura do webhook Chatwoot)
+- `CHATWOOT_WEBHOOK_MAX_SKEW_SECONDS` (opcional, default `300`)
 
 ## Rotas atuais
 

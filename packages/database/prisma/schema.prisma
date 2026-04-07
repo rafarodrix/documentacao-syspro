@@ -1288,3 +1288,15 @@ model ConversationLink {
   @@index([whatsappNumber])
   @@index([chatwootConversationId])
 }
+
+model IntegrationWebhookDedup {
+  id         String   @id
+  provider   String
+  eventKey   String
+  instanceId String?
+  createdAt  DateTime @default(now())
+
+  @@unique([provider, eventKey])
+  @@index([provider, createdAt])
+  @@map("integration_webhook_dedup")
+}

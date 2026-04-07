@@ -12,10 +12,11 @@ export class ProcessOutgoingMessageUseCase {
   ) {}
 
   async execute(payload: any) {
-    // Ignora mensagens que não foram enviadas pelo agente (outgoing)
+    // Ignora mensagens que nao foram enviadas pelo agente (outgoing)
     if (payload.message_type !== 'outgoing') return;
 
     const content = payload.content;
+    const messageId = payload?.id?.toString?.();
     const chatwootConversationId = payload.conversation?.id?.toString();
 
     if (!content || !chatwootConversationId) return;
@@ -26,15 +27,33 @@ export class ProcessOutgoingMessageUseCase {
     });
 
     if (!link) {
-      this.logger.warn(`Chatwoot -> WhatsApp: Vínculo não encontrado para a conversa ${chatwootConversationId}`);
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'link_not_found',
+        messageId,
+        chatwootConversationId,
+      }));
       return;
     }
 
     const phone = link.whatsappNumber;
 
-    this.logger.log(`Chatwoot -> WhatsApp: Respondendo para ${phone} via Evolution`);
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'sending',
+      messageId,
+      chatwootConversationId,
+      whatsappNumber: phone,
+    }));
 
     // Dispara para o WhatsApp
     await this.evolutionClient.sendTextMessage(phone, content);
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'sent',
+      messageId,
+      chatwootConversationId,
+      whatsappNumber: phone,
+    }));
   }
 }

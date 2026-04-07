@@ -23,7 +23,9 @@ export class EvolutionWebhookController {
       normalizedEvent === 'messages_upsert';
 
     if (isInboundMessageEvent) {
-      await this.processIncomingMessage.execute(payload.data);
+      await this.processIncomingMessage.execute(payload.data, {
+        instanceId: payload?.instanceId?.toString(),
+      });
     }
     return { ok: true };
   }
