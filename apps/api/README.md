@@ -16,6 +16,24 @@ npm run start -w @dosc-syspro/app-api
 npm run typecheck -w @dosc-syspro/app-api
 ```
 
+## Deploy dedicado (backend separado)
+
+Use `apps/api/Dockerfile` com contexto na raiz do monorepo:
+
+```bash
+docker build -f apps/api/Dockerfile -t dosc-syspro-api .
+docker run --rm -p 3001:3001 --env-file .env dosc-syspro-api
+```
+
+Variaveis minimas:
+
+- `PORT` (opcional, default local `3001`)
+- `DATABASE_URL`
+- `DIRECT_URL` (quando usar migrations/Prisma em runtime)
+- `BETTER_AUTH_SECRET`
+- `BETTER_AUTH_URL`
+- `INTERNAL_API_KEY`
+
 ## Rotas atuais
 
 - `GET /health`

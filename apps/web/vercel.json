@@ -1,5 +1,5 @@
 {
   "framework": "nextjs",
-  "installCommand": "cd ../.. && npm install --legacy-peer-deps",
-  "buildCommand": "cd ../.. && npm run build -w @dosc-syspro/web"
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build"
 }
