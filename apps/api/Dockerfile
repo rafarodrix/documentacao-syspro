@@ -23,6 +23,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
 
 COPY package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
@@ -30,6 +31,8 @@ COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/.prisma ./apps/api/node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./apps/api/node_modules/@prisma
 
 EXPOSE 3000
 

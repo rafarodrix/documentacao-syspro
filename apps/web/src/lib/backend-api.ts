@@ -2,8 +2,9 @@ import { readCommonRuntimeConfig } from "@dosc-syspro/config";
 
 export function getBackendApiBaseUrl(): string {
   const value =
+    process.env.APP_BACKEND_API_URL?.trim() ||
+    process.env.APP_BACKEND_API?.trim() ||
     process.env.APP_API_URL?.trim() ||
-    process.env.NEXT_PUBLIC_API_URL?.trim() ||
     "http://localhost:3001/api";
   return value.replace(/\/+$/, "");
 }

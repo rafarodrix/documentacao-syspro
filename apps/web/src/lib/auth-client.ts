@@ -19,6 +19,9 @@ function resolveAppOrigin(): string {
 }
 
 function resolveAuthClientBaseUrl(): string {
+    const isBrowser = typeof window !== "undefined";
+    const browserOrigin = isBrowser ? window.location.origin.replace(/\/+$/, "") : null;
+
     const explicitBaseUrl = process.env.NEXT_PUBLIC_AUTH_BASE_URL?.trim();
     if (explicitBaseUrl) {
         if (explicitBaseUrl.startsWith("http://") || explicitBaseUrl.startsWith("https://")) {
@@ -26,11 +29,13 @@ function resolveAuthClientBaseUrl(): string {
         }
 
         if (explicitBaseUrl.startsWith("/")) {
-            return `${resolveAppOrigin()}${explicitBaseUrl}`.replace(/\/+$/, "");
+            const origin = browserOrigin ?? resolveAppOrigin();
+            return `${origin}${explicitBaseUrl}`.replace(/\/+$/, "");
         }
     }
 
-    return `${resolveAppOrigin()}/api/auth`;
+    const origin = browserOrigin ?? resolveAppOrigin();
+    return `${origin}/api/auth`;
 }
 
 export const authClient = createAuthClient({

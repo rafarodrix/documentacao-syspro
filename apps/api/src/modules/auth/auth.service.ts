@@ -32,10 +32,16 @@ export class AuthService {
   public readonly auth;
 
   constructor(private prisma: PrismaService) {
+    const trustedOrigins = (process.env.EXTRA_TRUSTED_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+
     // Instancia o nucleo do better-auth rodando 100% no backend NestJS
     this.auth = betterAuth({
       database: prismaAdapter(this.prisma, { provider: 'postgresql' }),
       plugins: [admin()],
+      ...(trustedOrigins.length > 0 ? { trustedOrigins } : {}),
       emailAndPassword: {
         enabled: true,
         requireEmailVerification: false,
