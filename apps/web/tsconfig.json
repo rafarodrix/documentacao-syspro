@@ -22,6 +22,6 @@
     },
     "plugins": [{ "name": "next" }]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts", ".next/types/**/*.ts", "../api/src/modules/tickets/create-ticket.dto.ts", "../api/src/modules/tickets/tickets.controller.ts", "../api/src/modules/tickets/tickets.module.ts", "../api/src/modules/tickets/tickets.service.ts", "../api/src/modules/tickets/update-ticket.dto.ts"],
   "exclude": ["node_modules"]
 }
