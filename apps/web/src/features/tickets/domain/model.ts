@@ -4,7 +4,7 @@ import type { ActivityPoint } from "@/components/platform/app/dashboard/Activity
 export type TicketPriorityLevel = number;
 
 export interface TicketListItem {
-    id: number;
+    id: string | number;
     number: string;
     title: string;
     group: string;
@@ -12,7 +12,7 @@ export interface TicketListItem {
     statusLabel: string;
     priority: TicketPriorityLevel;
     customer: string;
-    ownerId?: number | null;
+    ownerId?: string | number | null;
     firstResponseAt?: string | null;
     resolvedAt?: string | null;
     slaBreached?: boolean;
@@ -72,12 +72,12 @@ export type TicketsDataFailure = TicketActionFailure & {
 export type TicketsDataResponse = TicketsDataSuccess | TicketsDataFailure;
 
 export interface TicketDetailsItem {
-    id: number;
+    id: string | number;
     title: string;
     status: string;
     number: string;
     priority: number;
-    ownerId?: number | null;
+    ownerId?: string | number | null;
     updatedAt?: string | null;
     firstResponseAt?: string | null;
     resolvedAt?: string | null;
@@ -88,7 +88,7 @@ export interface TicketDetailsItem {
 }
 
 export interface TicketArticleItem {
-    id: number;
+    id: string | number;
     from: string;
     body: string;
     createdAt: string;

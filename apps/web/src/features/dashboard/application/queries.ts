@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { buildTicketKpis, toTicketSummaryItems } from "@/features/tickets/application/dashboard";
-import { queryTicketsForViewer } from "@/features/tickets/application/queries";
+import { getTicketsAction } from "@/features/tickets/application/actions";
 import type { AdminDashboardViewData, ClientDashboardViewData, TicketsDataResponse } from "@/features/tickets/domain/model";
 import { getLatestOperationalTicketCacheFreshness } from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
 import { getZammadRouteHealth } from "@/features/tickets/infrastructure/observability/zammad-observability";
@@ -176,26 +176,6 @@ async function getDashboardZammadWarning(routeKey: string): Promise<string | und
   return "Integracao Zammad instavel e sem cache local recente.";
 }
 
-async function getScopedCompanyZammadEmailsByUserId(userId: string): Promise<string[]> {
-  const memberships = await prisma.membership.findMany({
-    where: { userId },
-    select: { companyId: true },
-  });
-
-  const companyIds = memberships.map((membership) => membership.companyId);
-  if (!companyIds.length) return [];
-
-  const configured = await prisma.companyZammadEmail.findMany({
-    where: {
-      companyId: { in: companyIds },
-      isActive: true,
-    },
-    select: { email: true },
-  });
-
-  return Array.from(new Set(configured.map((item) => item.email.trim().toLowerCase()).filter(Boolean)));
-}
-
 async function getUserDashboardUF(userId: string): Promise<string> {
   const membership = await prisma.membership.findFirst({
     where: {
@@ -247,11 +227,7 @@ export async function getDashboardData(
 
     try {
       ticketsResponse = await withTimeout(
-        queryTicketsForViewer(
-          { userId, email, role },
-          { page: 1, pageSize: 50, queue: "all", statusGroup: "all" },
-          { includeQueueCounts: false, includeStatusCounts: true }
-        ),
+        getTicketsAction({ page: 1, pageSize: 50, queue: "all", statusGroup: "all" }),
         DASHBOARD_ZAMMAD_TIMEOUT_MS,
         "Consulta de tickets do dashboard"
       );
@@ -305,40 +281,31 @@ export async function getDashboardData(
     };
   }
 
-  const [memberships, scopedEmails] = await Promise.all([
-    prisma.membership.findMany({
-      where: { userId, company: { deletedAt: null } },
-      orderBy: { company: { razaoSocial: "asc" } },
-      include: {
-        company: {
-          select: {
-            nomeFantasia: true,
-            razaoSocial: true,
-            _count: { select: { memberships: true } },
-          },
+  const memberships = await prisma.membership.findMany({
+    where: { userId, company: { deletedAt: null } },
+    orderBy: { company: { razaoSocial: "asc" } },
+    include: {
+      company: {
+        select: {
+          nomeFantasia: true,
+          razaoSocial: true,
+          _count: { select: { memberships: true } },
         },
       },
-    }),
-    getScopedCompanyZammadEmailsByUserId(userId),
-  ]);
+    },
+  });
 
   let ticketsResponse: TicketsDataResponse | null = null;
   let dashboardTicketWarning: string | undefined;
 
-  if (scopedEmails.length) {
-    try {
-      ticketsResponse = await withTimeout(
-        queryTicketsForViewer(
-          { userId, email, role },
-          { page: 1, pageSize: 20, queue: "all", statusGroup: "all" },
-          { includeQueueCounts: false, includeStatusCounts: true }
-        ),
-        DASHBOARD_ZAMMAD_TIMEOUT_MS,
-        "Consulta de tickets do dashboard"
-      );
-    } catch {
-      dashboardTicketWarning = getDashboardTimeoutWarning();
-    }
+  try {
+    ticketsResponse = await withTimeout(
+      getTicketsAction({ page: 1, pageSize: 20, queue: "all", statusGroup: "all" }),
+      DASHBOARD_ZAMMAD_TIMEOUT_MS,
+      "Consulta de tickets do dashboard"
+    );
+  } catch {
+    dashboardTicketWarning = getDashboardTimeoutWarning();
   }
 
   const normalizedTickets = ticketsResponse?.success ? toTicketSummaryItems(ticketsResponse.data) : [];

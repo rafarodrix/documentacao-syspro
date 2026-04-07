@@ -24,7 +24,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
     const [isPending, startTransition] = useTransition();
     const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-    const runQuickAction = (ticketId: number, action: "assume" | "priority_high" | "macro_followup") => {
+    const runQuickAction = (ticketId: string | number, action: "assume" | "priority_high" | "macro_followup") => {
         const actionKey = `${ticketId}:${action}`;
         setLoadingAction(actionKey);
 
