@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
       className={inter.className}
     >
-      <body className="min-h-screen bg-background text-foreground antialiased">
+      <body suppressHydrationWarning className="min-h-screen bg-background text-foreground antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
         </ThemeProvider>
