@@ -13,14 +13,14 @@ interface TicketsSummaryProps {
 
 const STATUS_CONFIG = {
   Aberto: { icon: Inbox, color: "text-blue-500", bg: "bg-blue-500/10", label: "Aberto" },
-  "Em AnÃ¡lise": { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Em AnÃ¡lise" },
+  "Em Análise": { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Em AnÃ¡lise" },
   Pendente: { icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-500/10", label: "Pendente" },
   Resolvido: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Resolvido" },
 } as const
 
 const PRIORITY_CONFIG = {
   Alta: { class: "bg-red-500/10 text-red-600 border-red-500/20" },
-  MÃ©dia: { class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  Média: { class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   Baixa: { class: "bg-muted text-muted-foreground border-border" },
 } as const
 
