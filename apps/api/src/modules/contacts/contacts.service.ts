@@ -12,8 +12,18 @@ type ContactQueryInput = {
   limit?: string;
 };
 
-type UpsertContactInput = {
+type CreateContactInput = {
   name: string;
+  email?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  notes?: string | null;
+  companyId?: string | null;
+  companyIds?: string[] | null;
+};
+
+type UpdateContactInput = {
+  name?: string;
   email?: string | null;
   phone?: string | null;
   whatsapp?: string | null;
@@ -92,7 +102,7 @@ export class ContactsService {
     return this.serializeContact(contact);
   }
 
-  async createContact(input: UpsertContactInput) {
+  async createContact(input: CreateContactInput) {
     const name = String(input.name ?? '').trim();
     if (!name) {
       throw new BadRequestException('Nome do contato obrigatorio');
@@ -164,7 +174,7 @@ export class ContactsService {
     return serialized;
   }
 
-  async updateContact(contactId: string, input: UpsertContactInput) {
+  async updateContact(contactId: string, input: UpdateContactInput) {
     const existing = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
       include: this.contactInclude(),
