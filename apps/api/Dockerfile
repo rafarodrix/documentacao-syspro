@@ -14,7 +14,7 @@ COPY packages/database/package.json ./packages/database/package.json
 COPY packages/remote-domain/package.json ./packages/remote-domain/package.json
 
 RUN npm pkg delete scripts.postinstall
-RUN npm ci -w @dosc-syspro/app-api --include-workspace-root --no-audit --no-fund
+RUN npm install -w @dosc-syspro/app-api --include-workspace-root --no-audit --no-fund
 
 COPY apps/api ./apps/api
 COPY packages/api ./packages/api
