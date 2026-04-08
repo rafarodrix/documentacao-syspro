@@ -85,6 +85,14 @@ export class ChatwootClient {
     }
   }
 
+  async updateContact(contactIdentifier: string, data: { name?: string; phone_number?: string; email?: string }) {
+    return this.request(
+      `/api/v1/accounts/${this.accountId}/contacts/${contactIdentifier}`,
+      'PUT',
+      data
+    );
+  }
+
   async createConversation(contactIdentifier: string) {
     // Cria conversa usando a API Pública de Inboxes
     return this.request(
