@@ -194,7 +194,7 @@ export class ProcessOutgoingMessageUseCase {
         flow: 'chatwoot_to_evolution', stage: 'sent_media', messageId, providerMessageId: sendResult.messageId, chatwootConversationId, whatsappNumber: phone,
       }));
 
-      if (sendResult.messageId) {
+      if (sendResult.messageId && messageId) {
         try {
           await this.prisma.messageLink.create({
             data: {
@@ -221,7 +221,8 @@ export class ProcessOutgoingMessageUseCase {
       return;
     }
 
-    const sendResult = await this.evolutionClient.sendTextMessage(linkContext.evolution, phone, content);
+    const outboundContent = content ?? '';
+    const sendResult = await this.evolutionClient.sendTextMessage(linkContext.evolution, phone, outboundContent);
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'sent',
@@ -231,7 +232,7 @@ export class ProcessOutgoingMessageUseCase {
       whatsappNumber: phone,
     }));
 
-    if (sendResult.messageId) {
+    if (sendResult.messageId && messageId) {
       try {
         await this.prisma.messageLink.create({
           data: {

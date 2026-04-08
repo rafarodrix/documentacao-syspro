@@ -213,41 +213,41 @@ export class EvolutionClient {
   private normalizeContactList(payload: any): EvolutionContact[] {
     if (!Array.isArray(payload)) return [];
 
-    const contacts = payload
-      .map((item: any) => {
-        const rawNumber =
-          item?.number ??
-          item?.Jid ??
-          item?.jid ??
-          item?.Phone ??
-          item?.phone;
-        const whatsapp = this.extractWhatsAppNumber(rawNumber);
-        if (!whatsapp) return null;
+    const contacts: EvolutionContact[] = [];
 
-        const name =
-          String(
-            item?.pushName ??
-            item?.PushName ??
-            item?.FullName ??
-            item?.fullName ??
-            item?.FirstName ??
-            item?.firstName ??
-            item?.BusinessName ??
-            item?.businessName ??
-            whatsapp
-          ).trim() || whatsapp;
+    for (const item of payload) {
+      const rawNumber =
+        item?.number ??
+        item?.Jid ??
+        item?.jid ??
+        item?.Phone ??
+        item?.phone;
+      const whatsapp = this.extractWhatsAppNumber(rawNumber);
+      if (!whatsapp) continue;
 
-        return {
-          remoteId: String(item?.id ?? item?.ID ?? item?.Jid ?? item?.jid ?? '').trim() || undefined,
-          name,
-          whatsapp,
-          profilePictureUrl:
-            item?.profilePictureUrl ??
-            item?.ProfilePictureUrl ??
-            null,
-        } satisfies EvolutionContact;
-      })
-      .filter((item: EvolutionContact | null): item is EvolutionContact => Boolean(item));
+      const name =
+        String(
+          item?.pushName ??
+          item?.PushName ??
+          item?.FullName ??
+          item?.fullName ??
+          item?.FirstName ??
+          item?.firstName ??
+          item?.BusinessName ??
+          item?.businessName ??
+          whatsapp
+        ).trim() || whatsapp;
+
+      contacts.push({
+        remoteId: String(item?.id ?? item?.ID ?? item?.Jid ?? item?.jid ?? '').trim() || undefined,
+        name,
+        whatsapp,
+        profilePictureUrl:
+          item?.profilePictureUrl ??
+          item?.ProfilePictureUrl ??
+          null,
+      });
+    }
 
     return contacts;
   }
