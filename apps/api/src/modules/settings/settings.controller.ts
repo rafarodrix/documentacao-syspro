@@ -1,5 +1,6 @@
-import { Controller, Get, Put, Body, Param } from '@nestjs/common';
+import { Controller, Get, Put, Body, Param, Post, Delete, Query, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { IntegrationConnectionsService } from './integration-connections.service';
 import {
   DEFAULT_EVOLUTION_SETTINGS,
   evolutionSettingsSchema,
@@ -11,7 +12,10 @@ export class SettingsController {
   private static readonly EVOLUTION_CONFIG_KEY = 'evolution_config';
   private static readonly LEGACY_EVOLUTION_CONFIG_KEY = 'whatsapp_evolution_config';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly integrationConnections: IntegrationConnectionsService,
+  ) {}
 
   @Get('evolution')
   async getEvolutionSettings() {
@@ -62,6 +66,45 @@ export class SettingsController {
     };
   }
 
+  @Get('integrations/connections')
+  async listIntegrationConnections(@Query('companyId') companyId?: string) {
+    const rows = await this.integrationConnections.list(companyId?.trim() || undefined);
+    return { success: true, data: rows };
+  }
+
+  @Get('integrations/connections/:id')
+  async getIntegrationConnection(@Param('id') id: string) {
+    const row = await this.integrationConnections.getById(id);
+    if (!row) throw new NotFoundException('Integracao nao encontrada');
+    return { success: true, data: row };
+  }
+
+  @Post('integrations/connections')
+  async createIntegrationConnection(@Body() body: any) {
+    const created = await this.integrationConnections.create(body);
+    return { success: true, data: created };
+  }
+
+  @Put('integrations/connections/:id')
+  async updateIntegrationConnection(@Param('id') id: string, @Body() body: any) {
+    const updated = await this.integrationConnections.update(id, body);
+    if (!updated) throw new NotFoundException('Integracao nao encontrada');
+    return { success: true, data: updated };
+  }
+
+  @Delete('integrations/connections/:id')
+  async deleteIntegrationConnection(@Param('id') id: string) {
+    await this.integrationConnections.remove(id);
+    return { success: true };
+  }
+
+  @Post('integrations/connections/:id/test')
+  async testIntegrationConnection(@Param('id') id: string) {
+    const result = await this.integrationConnections.test(id);
+    if (!result) throw new NotFoundException('Integracao nao encontrada');
+    return { success: true, data: result };
+  }
+
   @Get(':key')
   async getSetting(@Param('key') key: string) {
     const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
@@ -73,7 +116,7 @@ export class SettingsController {
     const setting = await this.prisma.systemSetting.upsert({
       where: { key },
       update: { value },
-      create: { key, value, description: 'Configuração Global' },
+      create: { key, value, description: 'Configuracao Global' },
     });
     return { success: true, value: setting.value };
   }

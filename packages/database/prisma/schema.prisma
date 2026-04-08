@@ -230,6 +230,11 @@ enum ConversationQueueKey {
   archived
 }
 
+enum IntegrationConnectionStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -292,6 +297,7 @@ model Company {
   remoteSessions    RemoteSession[]
   remoteAddressBookCredentials RemoteAddressBookCredential[]
   ticketEmails      CompanyTicketEmail[]
+  integrationConnections IntegrationConnection[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -1291,4 +1297,38 @@ model IntegrationWebhookDedup {
   @@index([provider, createdAt])
   @@index([expiresAt])
   @@map("integration_webhook_dedup")
+}
+
+model IntegrationConnection {
+  id String @id @default(cuid())
+
+  companyId String?
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  name String
+  status IntegrationConnectionStatus @default(ACTIVE)
+
+  evolutionApiUrl String
+  evolutionApiKeyEncrypted String
+  evolutionInstance String
+  evolutionInstanceId String?
+  evolutionWebhookSecretEncrypted String?
+
+  chatwootUrl String
+  chatwootApiTokenEncrypted String
+  chatwootAccountId String
+  chatwootInboxId String?
+  chatwootInboxIdentifier String?
+  chatwootWebhookSecretEncrypted String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([status, companyId])
+  @@index([evolutionInstance])
+  @@index([evolutionInstanceId])
+  @@map("integration_connection")
 }

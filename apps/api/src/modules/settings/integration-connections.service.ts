@@ -1,0 +1,265 @@
+import { Injectable } from '@nestjs/common';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
+import { PrismaService } from '../../prisma/prisma.service';
+
+type UpsertConnectionInput = {
+  companyId?: string | null;
+  name: string;
+  status?: 'ACTIVE' | 'INACTIVE';
+  evolutionApiUrl: string;
+  evolutionApiKey: string;
+  evolutionInstance: string;
+  evolutionInstanceId?: string | null;
+  evolutionWebhookSecret?: string | null;
+  chatwootUrl: string;
+  chatwootApiToken: string;
+  chatwootAccountId: string;
+  chatwootInboxId?: string | null;
+  chatwootInboxIdentifier?: string | null;
+  chatwootWebhookSecret?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+@Injectable()
+export class IntegrationConnectionsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async list(companyId?: string) {
+    const rows = await (this.prisma as any).integrationConnection.findMany({
+      where: companyId ? { companyId } : undefined,
+      orderBy: [{ status: 'asc' }, { name: 'asc' }],
+    });
+
+    return (rows as any[]).map((row: any) => this.toOutput(row));
+  }
+
+  async getById(id: string) {
+    const row = await (this.prisma as any).integrationConnection.findUnique({ where: { id } });
+    if (!row) return null;
+    return this.toOutput(row);
+  }
+
+  async create(input: UpsertConnectionInput) {
+    this.validateInput(input);
+    const created = await (this.prisma as any).integrationConnection.create({
+      data: this.toDatabaseInput(input),
+    });
+    return this.toOutput(created);
+  }
+
+  async update(id: string, input: Partial<UpsertConnectionInput>) {
+    const current = await (this.prisma as any).integrationConnection.findUnique({ where: { id } });
+    if (!current) return null;
+
+    const merged: UpsertConnectionInput = {
+      companyId: input.companyId ?? current.companyId,
+      name: input.name ?? current.name,
+      status: input.status ?? current.status,
+      evolutionApiUrl: input.evolutionApiUrl ?? current.evolutionApiUrl,
+      evolutionApiKey: input.evolutionApiKey ?? this.decrypt(current.evolutionApiKeyEncrypted),
+      evolutionInstance: input.evolutionInstance ?? current.evolutionInstance,
+      evolutionInstanceId: input.evolutionInstanceId ?? current.evolutionInstanceId,
+      evolutionWebhookSecret: input.evolutionWebhookSecret ?? this.decryptOptional(current.evolutionWebhookSecretEncrypted),
+      chatwootUrl: input.chatwootUrl ?? current.chatwootUrl,
+      chatwootApiToken: input.chatwootApiToken ?? this.decrypt(current.chatwootApiTokenEncrypted),
+      chatwootAccountId: input.chatwootAccountId ?? current.chatwootAccountId,
+      chatwootInboxId: input.chatwootInboxId ?? current.chatwootInboxId,
+      chatwootInboxIdentifier: input.chatwootInboxIdentifier ?? current.chatwootInboxIdentifier,
+      chatwootWebhookSecret: input.chatwootWebhookSecret ?? this.decryptOptional(current.chatwootWebhookSecretEncrypted),
+      metadata: (input.metadata ?? current.metadata) as Record<string, unknown> | null,
+    };
+
+    this.validateInput(merged);
+    const updated = await (this.prisma as any).integrationConnection.update({
+      where: { id },
+      data: this.toDatabaseInput(merged),
+    });
+    return this.toOutput(updated);
+  }
+
+  async remove(id: string) {
+    await (this.prisma as any).integrationConnection.delete({ where: { id } });
+    return { success: true };
+  }
+
+  async test(id: string) {
+    const row = await (this.prisma as any).integrationConnection.findUnique({ where: { id } });
+    if (!row) return null;
+
+    const evolutionApiKey = this.decrypt(row.evolutionApiKeyEncrypted);
+    const chatwootApiToken = this.decrypt(row.chatwootApiTokenEncrypted);
+
+    const evolution = await this.testEvolution(row.evolutionApiUrl, evolutionApiKey, row.evolutionInstance);
+    const chatwoot = await this.testChatwoot(
+      row.chatwootUrl,
+      chatwootApiToken,
+      row.chatwootAccountId,
+      row.chatwootInboxId,
+      row.chatwootInboxIdentifier
+    );
+
+    return {
+      connectionId: row.id,
+      status: evolution.ok && chatwoot.ok ? 'ok' : 'error',
+      checkedAt: new Date().toISOString(),
+      evolution,
+      chatwoot,
+    };
+  }
+
+  private async testEvolution(apiUrl: string, apiKey: string, instance: string) {
+    const base = apiUrl.replace(/\/+$/, '');
+    const headers = { apikey: apiKey };
+
+    const candidates = [
+      { method: 'GET', endpoint: `/webhook/find/${encodeURIComponent(instance)}` },
+      { method: 'GET', endpoint: '/instance/fetchInstances' },
+    ];
+
+    for (const item of candidates) {
+      try {
+        const res = await fetch(`${base}${item.endpoint}`, { method: item.method, headers });
+        if (res.ok) return { ok: true, endpoint: item.endpoint };
+        const body = await res.text().catch(() => 'unknown_error');
+        if (res.status !== 404) return { ok: false, endpoint: item.endpoint, error: `${res.status} - ${body}` };
+      } catch (error: any) {
+        return { ok: false, endpoint: item.endpoint, error: error?.message ?? 'network_error' };
+      }
+    }
+
+    return { ok: false, endpoint: candidates[0].endpoint, error: 'Evolution endpoint nao encontrado (404)' };
+  }
+
+  private async testChatwoot(
+    url: string,
+    apiToken: string,
+    accountId: string,
+    inboxId?: string | null,
+    inboxIdentifier?: string | null
+  ) {
+    const base = url.replace(/\/+$/, '');
+    const endpoint = `/api/v1/accounts/${accountId}/inboxes`;
+    try {
+      const res = await fetch(`${base}${endpoint}`, {
+        method: 'GET',
+        headers: { api_access_token: apiToken },
+      });
+
+      if (!res.ok) {
+        const body = await res.text().catch(() => 'unknown_error');
+        return { ok: false, endpoint, error: `${res.status} - ${body}` };
+      }
+
+      const payload: any = await res.json().catch(() => null);
+      const list = Array.isArray(payload) ? payload : Array.isArray(payload?.payload) ? payload.payload : [];
+
+      if (inboxId) {
+        const hit = list.find((item: any) => item?.id?.toString?.() === inboxId);
+        if (!hit) return { ok: false, endpoint, error: `Inbox id ${inboxId} nao encontrado na conta ${accountId}` };
+      }
+
+      if (inboxIdentifier) {
+        const hit = list.find((item: any) => item?.identifier?.toString?.() === inboxIdentifier);
+        if (!hit) return { ok: false, endpoint, error: `Inbox identifier ${inboxIdentifier} nao encontrado` };
+      }
+
+      return { ok: true, endpoint };
+    } catch (error: any) {
+      return { ok: false, endpoint, error: error?.message ?? 'network_error' };
+    }
+  }
+
+  private validateInput(input: UpsertConnectionInput) {
+    if (!input.name?.trim()) throw new Error('name obrigatorio');
+    if (!input.evolutionApiUrl?.trim()) throw new Error('evolutionApiUrl obrigatorio');
+    if (!input.evolutionApiKey?.trim()) throw new Error('evolutionApiKey obrigatorio');
+    if (!input.evolutionInstance?.trim()) throw new Error('evolutionInstance obrigatorio');
+    if (!input.chatwootUrl?.trim()) throw new Error('chatwootUrl obrigatorio');
+    if (!input.chatwootApiToken?.trim()) throw new Error('chatwootApiToken obrigatorio');
+    if (!input.chatwootAccountId?.toString().trim()) throw new Error('chatwootAccountId obrigatorio');
+    if (!input.chatwootInboxId && !input.chatwootInboxIdentifier) {
+      throw new Error('Defina chatwootInboxId ou chatwootInboxIdentifier');
+    }
+    if (input.chatwootInboxIdentifier && /^\d+$/.test(input.chatwootInboxIdentifier)) {
+      throw new Error('chatwootInboxIdentifier nao deve ser numerico');
+    }
+  }
+
+  private toDatabaseInput(input: UpsertConnectionInput) {
+    return {
+      companyId: input.companyId ?? null,
+      name: input.name.trim(),
+      status: input.status ?? 'ACTIVE',
+      evolutionApiUrl: input.evolutionApiUrl.trim(),
+      evolutionApiKeyEncrypted: this.encrypt(input.evolutionApiKey.trim()),
+      evolutionInstance: input.evolutionInstance.trim(),
+      evolutionInstanceId: input.evolutionInstanceId?.trim() || null,
+      evolutionWebhookSecretEncrypted: input.evolutionWebhookSecret?.trim() ? this.encrypt(input.evolutionWebhookSecret.trim()) : null,
+      chatwootUrl: input.chatwootUrl.trim(),
+      chatwootApiTokenEncrypted: this.encrypt(input.chatwootApiToken.trim()),
+      chatwootAccountId: input.chatwootAccountId.toString().trim(),
+      chatwootInboxId: input.chatwootInboxId?.toString().trim() || null,
+      chatwootInboxIdentifier: input.chatwootInboxIdentifier?.trim() || null,
+      chatwootWebhookSecretEncrypted: input.chatwootWebhookSecret?.trim() ? this.encrypt(input.chatwootWebhookSecret.trim()) : null,
+      metadata: input.metadata ?? null,
+    };
+  }
+
+  private toOutput(row: any) {
+    return {
+      id: row.id,
+      companyId: row.companyId,
+      name: row.name,
+      status: row.status,
+      evolutionApiUrl: row.evolutionApiUrl,
+      evolutionInstance: row.evolutionInstance,
+      evolutionInstanceId: row.evolutionInstanceId,
+      chatwootUrl: row.chatwootUrl,
+      chatwootAccountId: row.chatwootAccountId,
+      chatwootInboxId: row.chatwootInboxId,
+      chatwootInboxIdentifier: row.chatwootInboxIdentifier,
+      hasEvolutionApiKey: Boolean(row.evolutionApiKeyEncrypted),
+      hasEvolutionWebhookSecret: Boolean(row.evolutionWebhookSecretEncrypted),
+      hasChatwootApiToken: Boolean(row.chatwootApiTokenEncrypted),
+      hasChatwootWebhookSecret: Boolean(row.chatwootWebhookSecretEncrypted),
+      metadata: row.metadata,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  private resolveEncryptionKey(): Buffer {
+    const raw = process.env.INTEGRATION_CONFIG_ENCRYPTION_KEY || process.env.BETTER_AUTH_SECRET;
+    if (!raw || !raw.trim()) {
+      throw new Error('INTEGRATION_CONFIG_ENCRYPTION_KEY (ou BETTER_AUTH_SECRET) obrigatoria para criptografia');
+    }
+    return createHash('sha256').update(raw).digest();
+  }
+
+  private encrypt(plain: string): string {
+    const key = this.resolveEncryptionKey();
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+    const ciphertext = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return `${iv.toString('base64')}:${tag.toString('base64')}:${ciphertext.toString('base64')}`;
+  }
+
+  private decrypt(payload: string): string {
+    const [ivB64, tagB64, dataB64] = String(payload || '').split(':');
+    if (!ivB64 || !tagB64 || !dataB64) throw new Error('Payload criptografado invalido');
+    const key = this.resolveEncryptionKey();
+    const iv = Buffer.from(ivB64, 'base64');
+    const tag = Buffer.from(tagB64, 'base64');
+    const encrypted = Buffer.from(dataB64, 'base64');
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    const plain = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return plain.toString('utf8');
+  }
+
+  private decryptOptional(payload?: string | null): string | null {
+    if (!payload) return null;
+    return this.decrypt(payload);
+  }
+}

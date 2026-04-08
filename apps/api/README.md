@@ -45,6 +45,7 @@ Variaveis minimas:
 - `CHATWOOT_WEBHOOK_SECRET` (usado para HMAC assinatura do webhook Chatwoot)
 - `CHATWOOT_WEBHOOK_MAX_SKEW_SECONDS` (opcional, default `300`)
 - `INTEGRATION_WEBHOOK_DEDUP_TTL_SECONDS` (opcional, default `86400`)
+- `INTEGRATION_CONFIG_ENCRYPTION_KEY` (opcional, recomendado para criptografar credenciais de conexoes; fallback usa `BETTER_AUTH_SECRET`)
 
 ## Rotas atuais
 
@@ -55,6 +56,12 @@ Variaveis minimas:
 - `POST /integrations/evolution/messages/send` (envio direto outbound via Evolution, protegido por `x-internal-api-key`)
 - `GET /settings/evolution` (configuracao global do canal Evolution)
 - `PUT /settings/evolution` (persistencia das configuracoes globais do canal)
+- `GET /settings/integrations/connections` (listar conexoes de integracao por empresa/opcional)
+- `GET /settings/integrations/connections/:id` (detalhe da conexao)
+- `POST /settings/integrations/connections` (criar conexao Evolution + Chatwoot)
+- `PUT /settings/integrations/connections/:id` (atualizar conexao)
+- `DELETE /settings/integrations/connections/:id` (remover conexao)
+- `POST /settings/integrations/connections/:id/test` (testar conectividade Evolution + Chatwoot)
 - `GET /conversations` (listagem de conversas por filtro)
 - `GET /conversations/:conversationId` (detalhe de conversa)
 - `GET /conversations/:conversationId/messages` (mensagens da conversa)

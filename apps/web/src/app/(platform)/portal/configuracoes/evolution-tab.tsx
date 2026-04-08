@@ -12,12 +12,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Save, RefreshCw } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Loader2, Save, RefreshCw, CircleHelp } from "lucide-react";
 import { toast } from "sonner";
 import {
   getEvolutionSettingsAction,
   updateEvolutionSettingsAction,
 } from "@/features/evolution/application/evolution-actions";
+
+function LabelWithHelp({ htmlFor, label, help }: { htmlFor?: string; label: string; help: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex h-4 w-4 items-center justify-center text-muted-foreground hover:text-foreground"
+            aria-label={`Ajuda: ${label}`}
+          >
+            <CircleHelp className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-80 whitespace-pre-line text-left text-xs" side="top">
+          {help}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
+}
 
 export default function EvolutionSettingsTab() {
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +129,15 @@ export default function EvolutionSettingsTab() {
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="webhookUrl">Webhook URL</Label>
+                  <LabelWithHelp
+                    htmlFor="webhookUrl"
+                    label="Webhook URL"
+                    help={
+                      "URL publica do backend que recebe eventos do Evolution.\n" +
+                      "Preencher com: https://SEU_BACKEND/api/webhooks/evolution\n" +
+                      "Essa URL vem do deploy do backend/API."
+                    }
+                  />
                   <Input
                     id="webhookUrl"
                     value={settings.webhookUrl}
@@ -115,7 +146,15 @@ export default function EvolutionSettingsTab() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone (pairing code)</Label>
+                  <LabelWithHelp
+                    htmlFor="phone"
+                    label="Phone (pairing code)"
+                    help={
+                      "Numero para pareamento da instancia no Evolution.\n" +
+                      "Formato recomendado: 55DDDNUMERO (apenas digitos).\n" +
+                      "Use o numero WhatsApp oficial da conexao."
+                    }
+                  />
                   <Input
                     id="phone"
                     value={settings.phone}
@@ -126,7 +165,14 @@ export default function EvolutionSettingsTab() {
               </div>
 
               <div className="space-y-3">
-                <Label>Eventos Assinados (subscribe)</Label>
+                <LabelWithHelp
+                  label="Eventos Assinados (subscribe)"
+                  help={
+                    "Define quais eventos o Evolution enviara para o webhook.\n" +
+                    "Para iniciar, mantenha ALL ou inclua messages.upsert e messages.update.\n" +
+                    "Esses nomes seguem o padrao da documentacao do Evolution."
+                  }
+                />
                 <div className="grid gap-3 md:grid-cols-2">
                   {subscribeOptions.map((option) => (
                     <label key={option} className="flex items-center gap-2 rounded-md border p-2 text-sm">
@@ -141,7 +187,14 @@ export default function EvolutionSettingsTab() {
               </div>
 
               <div className="space-y-3">
-                <Label>Flags de Comportamento</Label>
+                <LabelWithHelp
+                  label="Flags de Comportamento"
+                  help={
+                    "Ajustes de envio do webhook.\n" +
+                    "Recomendado: eventIgnoreGroup=true e eventIgnoreStatus=true para reduzir ruido.\n" +
+                    "Ative RabbitMQ/WebSocket/NATS apenas se sua infraestrutura usar esses canais."
+                  }
+                />
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="flex items-center gap-2 rounded-md border p-2 text-sm">
                     <Checkbox
