@@ -805,6 +805,11 @@ model Conversation {
   ticketId String?
   ticketNumber String?
   subject String?
+  resolutionSummary String? @db.Text
+  resolutionVideoUrl String?
+  releaseType String?
+  releaseModule String?
+  publishToReleases Boolean @default(false)
   externalThreadId String?
   connectionId String?
 
@@ -832,6 +837,7 @@ model Conversation {
   @@index([assignedUserId, status])
   @@index([ticketNumber])
   @@index([lastMessageAt])
+  @@index([publishToReleases, closedAt])
   @@map("conversation")
 }
 

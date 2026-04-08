@@ -214,16 +214,53 @@ export class TicketsService {
     const exists = await this.prisma.conversation.findUnique({ where: { id }, select: { id: true, status: true } });
     if (!exists) throw new NotFoundException('Ticket nao encontrado.');
 
+    const resolutionSummary = input.resolutionSummary?.trim();
+    const resolutionVideoUrl = input.resolutionVideoUrl?.trim();
+    const releaseType = input.releaseType?.trim().toUpperCase();
+    const releaseModule = input.releaseModule?.trim();
+    const publishToReleases = input.publishToReleases;
+
+    if (publishToReleases && !resolutionSummary) {
+      throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
+    }
+
+    if (publishToReleases && !releaseType) {
+      throw new BadRequestException('Tipo de release obrigatorio para publicar em releases.');
+    }
+
+    if (releaseType && !['BUG', 'MELHORIA'].includes(releaseType)) {
+      throw new BadRequestException('Tipo de release invalido. Use BUG ou MELHORIA.');
+    }
+
+    if (resolutionVideoUrl) {
+      try {
+        new URL(resolutionVideoUrl);
+      } catch {
+        throw new BadRequestException('Link de video invalido.');
+      }
+    }
+
     const updated = await this.prisma.$transaction(async (tx) => {
+      const data: Record<string, unknown> = {};
+
+      if (input.status !== undefined) {
+        data.status = input.status;
+        data.closedAt =
+          input.status === TicketStatus.RESOLVED || input.status === TicketStatus.ARCHIVED ? new Date() : null;
+        data.resolvedByUserId = input.status === TicketStatus.RESOLVED ? requester.userId : null;
+      }
+
+      if (input.priority !== undefined) data.priority = input.priority;
+      if (input.assignedUserId !== undefined) data.assignedUserId = input.assignedUserId;
+      if (input.resolutionSummary !== undefined) data.resolutionSummary = resolutionSummary || null;
+      if (input.resolutionVideoUrl !== undefined) data.resolutionVideoUrl = resolutionVideoUrl || null;
+      if (input.releaseType !== undefined) data.releaseType = releaseType || null;
+      if (input.releaseModule !== undefined) data.releaseModule = releaseModule || null;
+      if (input.publishToReleases !== undefined) data.publishToReleases = Boolean(publishToReleases);
+
       const conversation = await tx.conversation.update({
         where: { id },
-        data: {
-          status: input.status,
-          priority: input.priority,
-          assignedUserId: input.assignedUserId,
-          closedAt: input.status === TicketStatus.RESOLVED || input.status === TicketStatus.ARCHIVED ? new Date() : null,
-          resolvedByUserId: input.status === TicketStatus.RESOLVED ? requester.userId : null,
-        },
+        data: data as Prisma.ConversationUncheckedUpdateInput,
       });
 
       if (input.assignedUserId) {

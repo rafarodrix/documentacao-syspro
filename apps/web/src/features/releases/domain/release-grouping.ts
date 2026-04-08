@@ -1,5 +1,20 @@
 import type { Release } from "@dosc-syspro/core";
 
+export const releaseMonthNames = [
+  "Janeiro",
+  "Fevereiro",
+  "Marco",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+] as const;
+
 export type ReleaseMonthSummary = {
   year: string;
   month: string;
@@ -9,8 +24,6 @@ export type ReleaseMonthSummary = {
 };
 
 export function groupReleasesByMonth(releases: Release[]): ReleaseMonthSummary[] {
-  const monthNames = ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
   const grouped = releases.reduce((acc, release) => {
     if (!release.isoDate || !release.type) return acc;
 
@@ -18,7 +31,7 @@ export function groupReleasesByMonth(releases: Release[]): ReleaseMonthSummary[]
     const key = `${year}-${month}`;
 
     if (!acc[key]) {
-      acc[key] = { year, month, monthName: monthNames[Number(month) - 1], bugs: 0, melhorias: 0 };
+      acc[key] = { year, month, monthName: releaseMonthNames[Number(month) - 1], bugs: 0, melhorias: 0 };
     }
 
     if (release.type.toLowerCase() === "bug") {
@@ -31,4 +44,29 @@ export function groupReleasesByMonth(releases: Release[]): ReleaseMonthSummary[]
   }, {} as Record<string, ReleaseMonthSummary>);
 
   return Object.values(grouped).sort((a, b) => b.year.localeCompare(a.year) || b.month.localeCompare(a.month));
+}
+
+export function groupReleasesByDate(releases: Release[]) {
+  const grouped = releases.reduce((acc, release) => {
+    if (!release.isoDate || !release.type) return acc;
+
+    const [year, month] = release.isoDate.split("-");
+    if (!acc[year]) acc[year] = {};
+    if (!acc[year][month]) acc[year][month] = { bugs: 0, melhorias: 0 };
+
+    const type = release.type.toLowerCase();
+    if (type === "bug") acc[year][month].bugs++;
+    else if (type === "melhoria" || type === "feature") acc[year][month].melhorias++;
+
+    return acc;
+  }, {} as Record<string, Record<string, { bugs: number; melhorias: number }>>);
+
+  return Object.entries(grouped)
+    .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
+    .map(([year, monthsData]) => ({
+      year,
+      months: Object.entries(monthsData)
+        .sort(([monthA], [monthB]) => Number(monthB) - Number(monthA))
+        .map(([month, counts]) => ({ month, ...counts })),
+    }));
 }

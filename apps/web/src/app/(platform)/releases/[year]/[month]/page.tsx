@@ -2,7 +2,7 @@
 import { notFound } from "next/navigation";
 import { getReleases } from "@/features/releases/application/queries";
 import { ReleasesClientPage } from "@/components/releases/ClientPage";
-import { monthNames } from "@/features/releases/infrastructure";
+import { releaseMonthNames } from "@/features/releases/domain";
 
 // MantÃ©m a geraÃ§Ã£o estÃ¡tica para performance mÃ¡xima em docs
 export async function generateStaticParams() {
@@ -31,7 +31,7 @@ export async function generateMetadata({
   params: Promise<{ year: string; month: string }>;
 }): Promise<Metadata> {
   const { year, month } = await params;
-  const monthName = monthNames[Number(month) - 1] || month;
+  const monthName = releaseMonthNames[Number(month) - 1] || month;
 
   return {
     title: `AtualizaÃ§Ãµes de ${monthName} de ${year}`,

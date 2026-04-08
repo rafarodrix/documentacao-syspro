@@ -1,16 +1,14 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { Calendar, Bug, Rocket, Sparkles } from "lucide-react";
-import { getReleases } from '@/features/releases/application/queries';
-import { groupReleasesByDate, monthNames } from "@/features/releases/infrastructure";
-
-// Shadcn Imports
+import { getReleases } from "@/features/releases/application/queries";
+import { groupReleasesByDate, releaseMonthNames } from "@/features/releases/domain";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
   CardDescription,
-  CardFooter
+  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -34,11 +32,8 @@ export async function ReleasesIndexPage() {
     <div className="space-y-16 py-8">
       {monthsByYear.map(({ year, months }) => (
         <section key={year} className="relative">
-          {/* Indicador de Ano Lateral (Estilo Timeline) */}
           <div className="flex items-center gap-4 mb-8">
-            <h2 className="text-4xl font-bold tracking-tight text-foreground/80">
-              {year}
-            </h2>
+            <h2 className="text-4xl font-bold tracking-tight text-foreground/80">{year}</h2>
             <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
           </div>
 
@@ -51,36 +46,31 @@ export async function ReleasesIndexPage() {
 
               return (
                 <Link key={month} href={href} className="group block h-full outline-none">
-                  {/* DICA MAGIC UI: Se estiver usando a lib 'magic-ui', 
-                     substitua <Card> por <MagicCard gradientColor="#D9D9D955"> 
-                  */}
                   <Card className="h-full flex flex-col transition-all duration-300 border-border/50 bg-background/50 hover:bg-accent/5 hover:border-accent/50 hover:shadow-lg hover:-translate-y-1 overflow-hidden relative">
-
-                    {/* Efeito de brilho no topo para o card mais recente */}
-                    {isLatest && (
+                    {isLatest ? (
                       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-                    )}
+                    ) : null}
 
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between mb-1">
                         <Badge variant="outline" className="w-fit text-muted-foreground border-border/50 font-normal">
                           {year}
                         </Badge>
-                        {isLatest && (
+                        {isLatest ? (
                           <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0 animate-in fade-in zoom-in duration-500 flex gap-1 items-center">
                             <Sparkles className="w-3 h-3" />
                             Novo
                           </Badge>
-                        )}
+                        ) : null}
                       </div>
 
                       <CardTitle className="text-xl flex items-center gap-2 group-hover:text-primary transition-colors">
                         <Calendar className="w-5 h-5 text-muted-foreground group-hover:text-primary/80 transition-colors" />
-                        {monthNames[monthIndex]}
+                        {releaseMonthNames[monthIndex]}
                       </CardTitle>
 
                       <CardDescription className="line-clamp-2">
-                        Atualizações acumuladas de {monthNames[monthIndex].toLowerCase()}.
+                        Atualizações acumuladas de {releaseMonthNames[monthIndex].toLowerCase()}.
                       </CardDescription>
                     </CardHeader>
 
@@ -110,7 +100,7 @@ export async function ReleasesIndexPage() {
                     </CardContent>
 
                     <CardFooter className="pt-0 text-xs text-muted-foreground/60 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                      Clique para ver detalhes ?
+                      Clique para ver detalhes
                     </CardFooter>
                   </Card>
                 </Link>
@@ -122,4 +112,3 @@ export async function ReleasesIndexPage() {
     </div>
   );
 }
-

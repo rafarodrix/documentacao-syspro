@@ -9,4 +9,14 @@ export class UpdateTicketDto {
   priority?: TicketPriority;
 
   assignedUserId?: string;
+
+  resolutionSummary?: string;
+
+  resolutionVideoUrl?: string;
+
+  releaseType?: string;
+
+  releaseModule?: string;
+
+  publishToReleases?: boolean;
 }

@@ -44,6 +44,11 @@ type ApiTicket = {
   resolvedByUserId: string | null;
   ticketNumber: string | null;
   subject: string | null;
+  resolutionSummary?: string | null;
+  resolutionVideoUrl?: string | null;
+  releaseType?: string | null;
+  releaseModule?: string | null;
+  publishToReleases?: boolean;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
@@ -82,6 +87,60 @@ type ApiMutationResponse = {
   message?: string;
   error?: string;
 };
+
+export async function finalizeTicketAction(input: {
+  ticketId: string | number;
+  resolutionSummary: string;
+  resolutionVideoUrl?: string;
+  releaseType?: "BUG" | "MELHORIA";
+  releaseModule?: string;
+  publishToReleases?: boolean;
+}): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !isSystemRole(session.role)) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  const resolutionSummary = input.resolutionSummary.trim();
+  if (!resolutionSummary) {
+    return { success: false, error: "Resolucao obrigatoria para finalizar o ticket." };
+  }
+
+  const video = input.resolutionVideoUrl?.trim() || undefined;
+  if (video) {
+    try {
+      new URL(video);
+    } catch {
+      return { success: false, error: "Link de video invalido." };
+    }
+  }
+
+  try {
+    const result = await callTicketsApi<ApiMutationResponse>(`/${String(input.ticketId)}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "RESOLVED",
+        resolutionSummary,
+        resolutionVideoUrl: video,
+        releaseType: input.releaseType,
+        releaseModule: input.releaseModule?.trim() || undefined,
+        publishToReleases: Boolean(input.publishToReleases),
+      }),
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error || result.message || "Falha ao finalizar ticket." };
+    }
+
+    revalidateTicketCollections();
+    revalidateTicketViews(String(input.ticketId));
+    return { success: true, message: "Ticket finalizado com sucesso." };
+  } catch (error) {
+    console.error("Erro ao finalizar ticket:", error);
+    return { success: false, error: "Falha ao finalizar ticket." };
+  }
+}
 
 function isSystemRole(role: Role): boolean {
   return SYSTEM_ROLES.has(role);
@@ -344,6 +403,11 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
         updatedAt: ticket.updatedAt,
         firstResponseAt: null,
         resolvedAt: ticket.closedAt,
+        resolutionSummary: ticket.resolutionSummary || null,
+        resolutionVideoUrl: ticket.resolutionVideoUrl || null,
+        releaseType: ticket.releaseType || null,
+        releaseModule: ticket.releaseModule || null,
+        publishToReleases: Boolean(ticket.publishToReleases),
         slaBreached: false,
         slaWarning: false,
         minutesToBreach: undefined,

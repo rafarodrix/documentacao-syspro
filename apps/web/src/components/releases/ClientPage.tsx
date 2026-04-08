@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 // Importe seus componentes refatorados anteriormente
 import { ReleasesFilter, type FilterType } from "./ReleasesFilter";
 import { MonthlyReleasesClient } from "./MonthlyReleasesClient";
-import { monthNames } from "@/features/releases/infrastructure";
+import { releaseMonthNames } from "@/features/releases/domain";
 import type { Release } from "@dosc-syspro/core";
 
 interface ReleasesClientPageProps {
@@ -50,7 +50,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
         return { filteredBugs: bugs, filteredMelhorias: melhorias };
     }, [initialReleases, searchTerm, activeFilter]);
 
-    const monthName = monthNames[Number(month) - 1] || month;
+    const monthName = releaseMonthNames[Number(month) - 1] || month;
 
     return (
         <div className="container max-w-5xl py-10 mx-auto space-y-8">

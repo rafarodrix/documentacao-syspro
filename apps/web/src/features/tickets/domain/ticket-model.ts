@@ -81,6 +81,11 @@ export interface TicketDetailsItem {
     updatedAt?: string | null;
     firstResponseAt?: string | null;
     resolvedAt?: string | null;
+    resolutionSummary?: string | null;
+    resolutionVideoUrl?: string | null;
+    releaseType?: string | null;
+    releaseModule?: string | null;
+    publishToReleases?: boolean;
     slaBreached?: boolean;
     slaWarning?: boolean;
     minutesToBreach?: number;
