@@ -332,6 +332,7 @@ export class ProcessIncomingMessageUseCase {
           },
         }
       });
+      const linkExisted = Boolean(link);
 
       let contactIdentifier = link?.chatwootContactId;
       let conversationId = link?.chatwootConversationId;
@@ -390,6 +391,25 @@ export class ProcessIncomingMessageUseCase {
           sourceIdFromInbox ??
           contact?.contact_inboxes?.[0]?.source_id?.toString?.();
 
+        this.logger.log(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'contact_resolved',
+          whatsappNumber: phone,
+          connectionKey: connection.connectionKey,
+          chatwootContactId: contact?.id?.toString?.() ?? null,
+          sourceId: contactIdentifier ?? null,
+          inboxIdentifier: connection.chatwoot.inboxIdentifier ?? null,
+          inboxId: connection.chatwoot.inboxId ?? null,
+          contactInboxes: Array.isArray(contact?.contact_inboxes)
+            ? contact.contact_inboxes.map((item: any) => ({
+                inboxId: item?.inbox?.id?.toString?.() ?? item?.inbox_id?.toString?.() ?? null,
+                inboxIdentifier:
+                  item?.inbox?.identifier?.toString?.() ?? item?.inbox_identifier?.toString?.() ?? null,
+                sourceId: item?.source_id?.toString?.() ?? null,
+              }))
+            : [],
+        }));
+
         if (!contactIdentifier) {
           throw new Error(`Nao foi possivel resolver source_id publico do contato no Chatwoot (contact_id=${contact?.id ?? 'n/a'})`);
         }
@@ -447,6 +467,16 @@ export class ProcessIncomingMessageUseCase {
       if (!contactIdentifier || !conversationId) {
         throw new Error(`Vinculo de conversa invalido para ${phone}`);
       }
+
+      this.logger.log(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'link_resolved',
+        whatsappNumber: phone,
+        contactIdentifier,
+        conversationId,
+        isNew: !linkExisted,
+        connectionKey: connection.connectionKey,
+      }));
 
       return { contactIdentifier, conversationId };
     });

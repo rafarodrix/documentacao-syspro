@@ -191,13 +191,20 @@ export class ChatwootClient {
     const inboxIdentifier = await this.resolveInboxIdentifier(config);
     if (inboxIdentifier) {
       try {
-        return await this.request(
+        const result = await this.request(
           config,
           `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations`,
           'POST'
         );
+        this.logger.debug(
+          `[ChatwootClient] Conversa criada via rota publica (inboxIdentifier=${inboxIdentifier}, contactIdentifier=${contactIdentifier})`
+        );
+        return result;
       } catch (error: any) {
         if (!this.isNotFoundError(error)) throw error;
+        this.logger.warn(
+          `[ChatwootClient] 404 ao criar conversa via rota publica (inboxIdentifier=${inboxIdentifier}, contactIdentifier=${contactIdentifier}). Tentando rota de conta...`
+        );
       }
     }
 
@@ -206,7 +213,7 @@ export class ChatwootClient {
       throw new Error('CHATWOOT_INBOX_ID nao configurado/resolvido para criar conversa via API de conta');
     }
 
-    return this.request(
+    const result = await this.request(
       config,
       `/api/v1/accounts/${config.accountId}/conversations`,
       'POST',
@@ -216,6 +223,10 @@ export class ChatwootClient {
         ...(contactId ? { contact_id: Number(contactId) } : {}),
       }
     );
+    this.logger.debug(
+      `[ChatwootClient] Conversa criada via rota de conta (inboxId=${inboxId}, contactIdentifier=${contactIdentifier}, contactId=${contactId ?? 'n/a'})`
+    );
+    return result;
   }
 
   async createIncomingMessage(
@@ -239,23 +250,34 @@ export class ChatwootClient {
 
         if (inboxIdentifier) {
           try {
-            return await this.request(
+            const result = await this.request(
               config,
               `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
               'POST',
               formData
             );
+            this.logger.debug(
+              `[ChatwootClient] Mensagem com anexo criada via rota publica (inboxIdentifier=${inboxIdentifier}, conversationId=${conversationId})`
+            );
+            return result;
           } catch (error: any) {
             if (!this.isNotFoundError(error)) throw error;
+            this.logger.warn(
+              `[ChatwootClient] 404 na rota publica de mensagem com anexo (inboxIdentifier=${inboxIdentifier}, conversationId=${conversationId}). Tentando rota de conta...`
+            );
           }
         }
 
-        return await this.request(
+        const result = await this.request(
           config,
           `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
           'POST',
           this.appendAccountIncomingFields(formData)
         );
+        this.logger.debug(
+          `[ChatwootClient] Mensagem com anexo criada via rota de conta (conversationId=${conversationId})`
+        );
+        return result;
       } catch (e: any) {
         this.logger.error(`Erro ao processar anexo para o Chatwoot: ${e.message}`);
       }
@@ -268,18 +290,25 @@ export class ChatwootClient {
 
     if (inboxIdentifier) {
       try {
-        return await this.request(
+        const result = await this.request(
           config,
           `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
           'POST',
           payload
         );
+        this.logger.debug(
+          `[ChatwootClient] Mensagem criada via rota publica (inboxIdentifier=${inboxIdentifier}, conversationId=${conversationId})`
+        );
+        return result;
       } catch (error: any) {
         if (!this.isNotFoundError(error)) throw error;
+        this.logger.warn(
+          `[ChatwootClient] 404 na rota publica de mensagem (inboxIdentifier=${inboxIdentifier}, conversationId=${conversationId}). Tentando rota de conta...`
+        );
       }
     }
 
-    return this.request(
+    const result = await this.request(
       config,
       `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
       'POST',
@@ -291,6 +320,10 @@ export class ChatwootClient {
         content_attributes: {},
       }
     );
+    this.logger.debug(
+      `[ChatwootClient] Mensagem criada via rota de conta (conversationId=${conversationId})`
+    );
+    return result;
   }
 
   async getIntegrationHealth(config: ChatwootConnectionConfig): Promise<{
@@ -339,15 +372,30 @@ export class ChatwootClient {
   }
 
   private async resolveInboxIdentifier(config: ChatwootConnectionConfig): Promise<string | undefined> {
+    const inboxes: any[] | null = await this.fetchInboxes(config);
     if (config.inboxIdentifier && !/^\d+$/.test(config.inboxIdentifier)) {
-      return config.inboxIdentifier;
+      if (!inboxes?.length) {
+        this.logger.warn(
+          `[ChatwootClient] Nao foi possivel validar inboxIdentifier configurado (${config.inboxIdentifier}); usando valor configurado por falta de resposta da API de inboxes.`
+        );
+        return config.inboxIdentifier;
+      }
+
+      const matchedConfiguredIdentifier = inboxes.find(
+        (inbox: any) => inbox?.identifier?.toString?.() === config.inboxIdentifier
+      );
+      if (matchedConfiguredIdentifier?.identifier) {
+        return matchedConfiguredIdentifier.identifier.toString();
+      }
+
+      this.logger.warn(
+        `[ChatwootClient] inboxIdentifier configurado nao encontrado nas inboxes da conta (${config.inboxIdentifier}). Ignorando rota publica e usando fallback da API de conta.`
+      );
+      return undefined;
     }
 
-    const inboxes: any[] | null = await this.fetchInboxes(config);
     if (!inboxes?.length) {
-      return config.inboxIdentifier && !/^\d+$/.test(config.inboxIdentifier)
-        ? config.inboxIdentifier
-        : undefined;
+      return undefined;
     }
 
     const matchedByIdentifier = config.inboxIdentifier

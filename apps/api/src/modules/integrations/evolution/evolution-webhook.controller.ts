@@ -17,25 +17,32 @@ export class EvolutionWebhookController {
     const resolvedContext = await this.integrationContext.resolveForEvolutionWebhook(payload);
     const expectedInstanceToken = resolvedContext?.evolution.instanceToken;
     const payloadInstanceToken = payload?.instanceToken?.toString?.();
+    const resolvedInstanceId =
+      payload?.instanceId?.toString?.() ??
+      payload?.data?.instanceId?.toString?.();
 
     if (expectedInstanceToken && payloadInstanceToken !== expectedInstanceToken) {
       throw new UnauthorizedException('Invalid Evolution instance token');
     }
 
     const normalizedEvent = String(payload?.event ?? '').trim().toLowerCase();
-    const isInboundMessageEvent = normalizedEvent === 'message';
-    const isReceiptEvent = normalizedEvent === 'receipt';
+    const isInboundMessageEvent =
+      normalizedEvent === 'message' ||
+      normalizedEvent === 'messages.upsert';
+    const isReceiptEvent =
+      normalizedEvent === 'receipt' ||
+      normalizedEvent === 'messages.update';
 
     if (isInboundMessageEvent) {
-      await this.processIncomingMessage.execute(payload.data, {
-        instanceId: payload?.instanceId?.toString(),
+      await this.processIncomingMessage.execute(payload?.data ?? payload, {
+        instanceId: resolvedInstanceId,
         connection: resolvedContext ?? undefined,
       });
     } else if (isReceiptEvent) {
       await this.processIncomingMessage.handleStatusUpdate(
-        payload,
+        normalizedEvent === 'messages.update' ? (payload?.data ?? payload) : payload,
         {
-          instanceId: payload?.instanceId?.toString(),
+          instanceId: resolvedInstanceId,
           connection: resolvedContext ?? undefined,
         }
       );

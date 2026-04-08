@@ -61,7 +61,8 @@ export class ProcessOutgoingMessageUseCase {
       const dedupeClaimed = await this.dedupService.claim(
         'chatwoot_outbound',
         `message:${messageId}:${hasAttachment ? 'media' : 'text'}`,
-        chatwootConversationId
+        chatwootConversationId,
+        300
       );
       if (!dedupeClaimed) {
         this.logger.debug(JSON.stringify({
