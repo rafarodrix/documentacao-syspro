@@ -19,7 +19,9 @@ export class ProcessOutgoingMessageUseCase {
     const messageId = payload?.id?.toString?.();
     const chatwootConversationId = payload.conversation?.id?.toString();
 
-    if (!content || !chatwootConversationId) return;
+    const attachments = payload.attachments;
+    const hasAttachment = attachments && attachments.length > 0;
+    if (!content && !hasAttachment || !chatwootConversationId) return;
 
     // Busca o telefone do cliente usando o ID da conversa do Chatwoot
     const link = await this.prisma.conversationLink.findUnique({
@@ -45,6 +47,20 @@ export class ProcessOutgoingMessageUseCase {
       chatwootConversationId,
       whatsappNumber: phone,
     }));
+
+    // Se houver arquivo anexado pelo atendente do Chatwoot
+    if (hasAttachment) {
+      const attachment = attachments[0];
+      const mediaUrl = attachment.data_url;
+      const fileType = attachment.file_type || 'document';
+      const fileName = attachment.data?.filename || 'arquivo';
+      
+      const sendResult = await this.evolutionClient.sendMedia(phone, mediaUrl, fileType, fileName, content || '');
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution', stage: 'sent_media', messageId, providerMessageId: sendResult.messageId, chatwootConversationId, whatsappNumber: phone,
+      }));
+      return; // Encerra, pois sendMedia ja envia texto junto (caption)
+    }
 
     // Dispara para o WhatsApp
     const sendResult = await this.evolutionClient.sendTextMessage(phone, content);

@@ -69,6 +69,70 @@ export class EvolutionClient {
     throw new Error(`Evolution send failed: ${lastError ?? "unknown_error"}`);
   }
 
+  async sendMedia(number: string, mediaUrlOrBase64: string, mediaType: string, fileName?: string, caption?: string): Promise<{ messageId?: string }> {
+    if (!this.baseUrl || !this.apiKey) {
+      console.warn("[EvolutionClient] Credenciais ausentes. Envio de midia ignorado.");
+      return {};
+    }
+
+    const normalizedNumber = this.normalizeNumber(number);
+    const instance = this.resolveInstance();
+    const baseUrl = this.baseUrl.replace(/\/+$/, "");
+
+    let evMediaType = 'document';
+    if (mediaType.includes('image')) evMediaType = 'image';
+    else if (mediaType.includes('video')) evMediaType = 'video';
+    else if (mediaType.includes('audio')) evMediaType = 'audio';
+
+    const requestBody = {
+      number: normalizedNumber,
+      mediatype: evMediaType,
+      media: mediaUrlOrBase64,
+      fileName: fileName || 'arquivo',
+      caption: caption || '',
+      delay: 1200,
+    };
+
+    const response = await fetch(`${baseUrl}/message/sendMedia/${instance}`, {
+      method: "POST",
+      headers: { apikey: this.apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      return { messageId: this.extractMessageId(payload) };
+    }
+    const errorText = await response.text().catch(() => "unknown_error");
+    throw new Error(`Evolution sendMedia failed: ${response.status} - ${errorText}`);
+  }
+
+  async fetchProfilePicture(number: string): Promise<{ profilePictureUrl?: string }> {
+    if (!this.baseUrl || !this.apiKey) return {};
+    const instance = this.resolveInstance();
+    const baseUrl = this.baseUrl.replace(/\/+$/, "");
+    const response = await fetch(`${baseUrl}/chat/fetchProfilePicture/${instance}`, {
+      method: "POST",
+      headers: { apikey: this.apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ number: this.normalizeNumber(number) })
+    });
+    if (response.ok) return (await response.json().catch(() => ({}))) as { profilePictureUrl?: string };
+    return {};
+  }
+
+  async getBase64FromMediaMessage(message: any): Promise<{ base64?: string, mimetype?: string }> {
+    if (!this.baseUrl || !this.apiKey) return {};
+    const instance = this.resolveInstance();
+    const baseUrl = this.baseUrl.replace(/\/+$/, "");
+    const response = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${instance}`, {
+      method: "POST",
+      headers: { apikey: this.apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    });
+    if (response.ok) return (await response.json().catch(() => ({}))) as { base64?: string, mimetype?: string };
+    return {};
+  }
+
   async findContacts(instanceOverride?: string): Promise<any[]> {
     if (!this.baseUrl || !this.apiKey) {
       console.warn("[EvolutionClient] Credenciais ausentes. Busca de contatos ignorada.");

@@ -47,9 +47,16 @@ export class ChatwootWebhookController {
       }
     }
 
-    // Chatwoot dispara o evento "message_created"
-    if (payload?.event === 'message_created') {
-      await this.processOutgoingMessage.execute(payload);
+    switch (payload?.event) {
+      case 'message_created':
+        await this.processOutgoingMessage.execute(payload);
+        break;
+      case 'contact_updated':
+        this.logger.log(`Sincronizacao pendente: Contato atualizado no Chatwoot (ID: ${payload?.id})`);
+        // TODO: Chamar um UseCase para buscar o contato no Prisma via chatwootContactId e atualizar o nome/email.
+        break;
+      default:
+        this.logger.debug(`Evento Chatwoot não processado/ignorado: ${payload?.event}`);
     }
 
     return { ok: true };

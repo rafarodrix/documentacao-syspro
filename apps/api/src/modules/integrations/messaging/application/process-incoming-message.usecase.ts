@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { EvolutionClient } from '../../evolution/evolution.client';
 
 @Injectable()
 export class ProcessIncomingMessageUseCase {
@@ -11,7 +12,8 @@ export class ProcessIncomingMessageUseCase {
 
   constructor(
     private readonly chatwootClient: ChatwootClient,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly evolutionClient: EvolutionClient
   ) {}
 
   async execute(payload: any, context?: { instanceId?: string }) {
@@ -63,6 +65,24 @@ export class ProcessIncomingMessageUseCase {
       else if (messagePayload?.documentMessage?.caption) textContent = messagePayload.documentMessage.caption;
       else textContent = '[Mensagem de mídia recebida]';
 
+      let attachment: any = undefined;
+      let isMedia = false;
+      let mimeType = '';
+      let fileName = 'arquivo';
+
+      if (messagePayload?.imageMessage) { isMedia = true; mimeType = messagePayload.imageMessage.mimetype || 'image/jpeg'; fileName = 'imagem.jpg'; }
+      else if (messagePayload?.videoMessage) { isMedia = true; mimeType = messagePayload.videoMessage.mimetype || 'video/mp4'; fileName = 'video.mp4'; }
+      else if (messagePayload?.documentMessage) { isMedia = true; mimeType = messagePayload.documentMessage.mimetype || 'application/pdf'; fileName = messagePayload.documentMessage.fileName || 'documento.pdf'; }
+      else if (messagePayload?.audioMessage) { isMedia = true; mimeType = messagePayload.audioMessage.mimetype || 'audio/ogg'; fileName = 'audio.ogg'; }
+
+      if (isMedia) {
+         // Puxa o arquivo na Evolution em base64
+         const baseResult = msg.base64 ? { base64: msg.base64 } : await this.evolutionClient.getBase64FromMediaMessage(msg);
+         if (baseResult?.base64) {
+             attachment = { base64: baseResult.base64, mimetype: mimeType, filename: fileName };
+         }
+      }
+
       this.logger.log(JSON.stringify({
         flow: 'evolution_to_chatwoot',
         stage: 'received',
@@ -104,7 +124,10 @@ export class ProcessIncomingMessageUseCase {
 
           const contactName = sysproContact.company ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}` : sysproContact.name;
 
-          const contactResponse = (await this.chatwootClient.createOrFindContact(phone, contactName)) as any;
+          // Captura Avatar do WhatsApp
+          const picResult = await this.evolutionClient.fetchProfilePicture(phone);
+
+          const contactResponse = (await this.chatwootClient.createOrFindContact(phone, contactName, picResult?.profilePictureUrl)) as any;
           const contact = contactResponse?.payload?.contact;
           
           contactIdentifier = contact?.source_id?.toString() ?? contact?.contact_inboxes?.[0]?.source_id?.toString() ?? contact?.id?.toString();
@@ -142,7 +165,7 @@ export class ProcessIncomingMessageUseCase {
         }
 
         // 3. Cria Mensagem na Inbox do Chatwoot usando os IDs persistidos
-        await this.chatwootClient.createIncomingMessage(contactIdentifier!, conversationId!, textContent);
+        await this.chatwootClient.createIncomingMessage(contactIdentifier!, conversationId!, textContent, attachment);
         this.logger.log(JSON.stringify({
           flow: 'evolution_to_chatwoot',
           stage: 'forwarded',

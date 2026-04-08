@@ -18,13 +18,20 @@ export class ChatwootClient {
     
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
+        const headers: any = { 'api_access_token': this.token };
+        let requestBody: any;
+        
+        if (body instanceof FormData) {
+          requestBody = body; // o fetch define o Content-Type: multipart/form-data automaticamente com boundary
+        } else if (body) {
+          headers['Content-Type'] = 'application/json';
+          requestBody = JSON.stringify(body);
+        }
+
         const response = await fetch(url, {
           method,
-          headers: {
-            'api_access_token': this.token,
-            'Content-Type': 'application/json',
-          },
-          body: body ? JSON.stringify(body) : undefined,
+          headers,
+          body: requestBody,
         });
 
         if (!response.ok) {
@@ -48,7 +55,7 @@ export class ChatwootClient {
     }
   }
 
-  async createOrFindContact(phoneNumber: string, name: string) {
+  async createOrFindContact(phoneNumber: string, name: string, avatarUrl?: string) {
     const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
 
     // 1. Tenta buscar o contato existente primeiro
@@ -66,11 +73,13 @@ export class ChatwootClient {
 
     // 2. Se nao existir, tenta criar
     try {
-      return await this.request(`/api/v1/accounts/${this.accountId}/contacts`, 'POST', {
+      const payload: any = {
         inbox_id: this.inboxId,
         name,
         phone_number: formattedPhone,
-      });
+      };
+      if (avatarUrl) payload.avatar_url = avatarUrl;
+      return await this.request(`/api/v1/accounts/${this.accountId}/contacts`, 'POST', payload);
     } catch (error: any) {
       // 3. Fallback em caso de concorrencia (422 Phone number already taken)
       if (error.message.includes('422')) {
@@ -101,7 +110,26 @@ export class ChatwootClient {
     );
   }
 
-  async createIncomingMessage(contactIdentifier: string, conversationId: string, content: string) {
+  async createIncomingMessage(contactIdentifier: string, conversationId: string, content: string, attachment?: { base64: string, mimetype: string, filename: string }) {
+    if (attachment && attachment.base64) {
+      const formData = new FormData();
+      formData.append('content', content || '');
+      formData.append('message_type', 'incoming');
+      try {
+        const buffer = Buffer.from(attachment.base64, 'base64');
+        const blob = new Blob([buffer], { type: attachment.mimetype });
+        formData.append('attachments[]', blob, attachment.filename);
+        
+        return this.request(
+          `/public/api/v1/inboxes/${this.inboxId}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
+          'POST',
+          formData
+        );
+      } catch (e: any) {
+        this.logger.error(`Erro ao processar anexo para o Chatwoot: ${e.message}`);
+      }
+    }
+
     // Envia mensagem simulando o usuário na API Pública
     return this.request(
       `/public/api/v1/inboxes/${this.inboxId}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,

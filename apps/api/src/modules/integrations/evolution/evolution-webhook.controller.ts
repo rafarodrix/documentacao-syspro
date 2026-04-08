@@ -22,10 +22,18 @@ export class EvolutionWebhookController {
       normalizedEvent === 'messages.upsert' ||
       normalizedEvent === 'messages_upsert';
 
+    const isUpdateEvent =
+      normalizedEvent === 'messages.update' ||
+      normalizedEvent === 'messages_update';
+
     if (isInboundMessageEvent) {
       await this.processIncomingMessage.execute(payload.data, {
         instanceId: payload?.instanceId?.toString(),
       });
+    } else if (isUpdateEvent) {
+      // Melhoria 4: Interceptar atualizacao de status (Check azul)
+      // TODO: Usar APIs baseadas no messageId para atualizar UI do Chatwoot
+      console.log('[Evolution Webhook] Status de mensagem atualizado (Read Receipt):', JSON.stringify(payload?.data));
     }
     return { ok: true };
   }
