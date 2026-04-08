@@ -11,12 +11,16 @@ import {
 } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { ProcessOutgoingMessageUseCase } from '../messaging/application/process-outgoing-message.usecase';
+import { PrismaService } from '../../../../prisma/prisma.service';
 
 @Controller('webhooks/chatwoot')
 export class ChatwootWebhookController {
   private readonly logger = new Logger(ChatwootWebhookController.name);
 
-  constructor(private readonly processOutgoingMessage: ProcessOutgoingMessageUseCase) {}
+  constructor(
+    private readonly processOutgoingMessage: ProcessOutgoingMessageUseCase,
+    private readonly prisma: PrismaService
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
@@ -53,7 +57,25 @@ export class ChatwootWebhookController {
         break;
       case 'contact_updated':
         this.logger.log(`Sincronizacao pendente: Contato atualizado no Chatwoot (ID: ${payload?.id})`);
-        // TODO: Chamar um UseCase para buscar o contato no Prisma via chatwootContactId e atualizar o nome/email.
+        if (payload?.id && payload?.name) {
+          // Busca qual número de WhatsApp está vinculado a este ID do Chatwoot
+          const link = await this.prisma.conversationLink.findFirst({
+            where: { chatwootContactId: payload.id.toString() }
+          });
+          if (link) {
+            // Atualiza o cadastro base (CompanyContact)
+            const existingContact = await this.prisma.companyContact.findFirst({
+              where: { whatsapp: link.whatsappNumber }
+            });
+            if (existingContact) {
+              await this.prisma.companyContact.update({
+                where: { id: existingContact.id },
+                data: { name: payload.name } // Também poderia atualizar email, se adicionado ao schema
+              });
+              this.logger.log(`Contato ${link.whatsappNumber} atualizado no banco via Chatwoot: ${payload.name}`);
+            }
+          }
+        }
         break;
       default:
         this.logger.debug(`Evento Chatwoot não processado/ignorado: ${payload?.event}`);

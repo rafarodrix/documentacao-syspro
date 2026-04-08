@@ -176,6 +176,14 @@ export class ProcessIncomingMessageUseCase {
         }));
         
       } catch (error: any) {
+        // Sistema de auto-cura: Se o Chatwoot retornar 404, possivelmente o contato/conversa foi apagado no painel.
+        if (error?.message?.includes('404')) {
+          this.logger.warn(`Detectado 404 no Chatwoot para o número ${phone}. Removendo vínculo local para forçar recriação na próxima mensagem.`);
+          await this.prisma.conversationLink.deleteMany({
+            where: { whatsappNumber: phone }
+          });
+        }
+
         this.logger.error(JSON.stringify({
           flow: 'evolution_to_chatwoot',
           stage: 'failed',
@@ -184,6 +192,36 @@ export class ProcessIncomingMessageUseCase {
           whatsappNumber: phone,
           error: error?.message ?? 'unknown_error',
         }));
+      }
+    }
+  }
+
+  async handleStatusUpdate(payload: any) {
+    const updates = Array.isArray(payload) ? payload : [payload];
+    
+    for (const item of updates) {
+      const evolutionMsgId = item?.key?.id;
+      const statusVal = item?.update?.status;
+      
+      if (!evolutionMsgId || statusVal === undefined) continue;
+
+      let chatwootStatus: 'delivered' | 'read' | null = null;
+      // Status da biblioteca Bailey (Evolution): 3 = entregue, 4 = lido
+      if (statusVal === 3 || String(statusVal).toUpperCase().includes('DELIVER')) chatwootStatus = 'delivered';
+      else if (statusVal === 4 || String(statusVal).toUpperCase().includes('READ')) chatwootStatus = 'read';
+
+      if (!chatwootStatus) continue;
+
+      try {
+        const link = await (this.prisma as any).messageLink.findUnique({
+          where: { evolutionMessageId: evolutionMsgId }
+        });
+
+        if (link) {
+          await this.chatwootClient.updateMessageStatus(link.chatwootConversationId, link.chatwootMessageId, chatwootStatus);
+        }
+      } catch (error: any) {
+        this.logger.debug(`Nao foi possivel atualizar status de leitura: ${error.message}`);
       }
     }
   }

@@ -59,6 +59,19 @@ export class ProcessOutgoingMessageUseCase {
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution', stage: 'sent_media', messageId, providerMessageId: sendResult.messageId, chatwootConversationId, whatsappNumber: phone,
       }));
+
+      if (sendResult.messageId) {
+        try {
+          await (this.prisma as any).messageLink.create({
+            data: {
+              chatwootMessageId: messageId,
+              chatwootConversationId: chatwootConversationId,
+              evolutionMessageId: sendResult.messageId,
+            }
+          });
+        } catch (e: any) { /* ignora erro caso a tabela ainda nao exista */ }
+      }
+
       return; // Encerra, pois sendMedia ja envia texto junto (caption)
     }
 
@@ -72,5 +85,17 @@ export class ProcessOutgoingMessageUseCase {
       chatwootConversationId,
       whatsappNumber: phone,
     }));
+
+    if (sendResult.messageId) {
+      try {
+        await (this.prisma as any).messageLink.create({
+          data: {
+            chatwootMessageId: messageId,
+            chatwootConversationId: chatwootConversationId,
+            evolutionMessageId: sendResult.messageId,
+          }
+        });
+      } catch (e: any) { /* ignora erro caso a tabela ainda nao exista */ }
+    }
   }
 }

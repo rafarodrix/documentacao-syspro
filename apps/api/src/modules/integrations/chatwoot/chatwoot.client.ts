@@ -40,7 +40,9 @@ export class ChatwootClient {
 
           // Erros de validação (422) e cliente não devem causar retentativas
           if ([400, 401, 403, 404, 422].includes(response.status) || attempt === retries) {
-            throw new Error(`Chatwoot API error: ${response.status} - ${errorText}`);
+            const err = new Error(`Chatwoot API error: ${response.status} - ${errorText}`);
+            (err as any).isClientError = true;
+            throw err;
           }
 
           await new Promise(res => setTimeout(res, attempt * 1000)); // Espera incremental antes de tentar de novo
@@ -48,7 +50,7 @@ export class ChatwootClient {
         }
         return await response.json();
       } catch (error: any) {
-        if (attempt === retries) throw error;
+        if (error.isClientError || attempt === retries) throw error;
         this.logger.error(`Network error on Chatwoot API (attempt ${attempt}): ${error.message}`);
         await new Promise(res => setTimeout(res, attempt * 1000));
       }
@@ -99,6 +101,14 @@ export class ChatwootClient {
       `/api/v1/accounts/${this.accountId}/contacts/${contactIdentifier}`,
       'PUT',
       data
+    );
+  }
+
+  async updateMessageStatus(conversationId: string, messageId: string, status: 'delivered' | 'read') {
+    return this.request(
+      `/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages/${messageId}`,
+      'PUT',
+      { status }
     );
   }
 
