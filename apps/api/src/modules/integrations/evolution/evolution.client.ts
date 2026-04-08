@@ -107,6 +107,36 @@ export class EvolutionClient {
     throw new Error(`Evolution sendMedia failed: ${response.status} - ${errorText}`);
   }
 
+  async deleteMessage(number: string, messageId: string): Promise<boolean> {
+    if (!this.baseUrl || !this.apiKey) return false;
+    
+    const normalizedNumber = this.normalizeNumber(number);
+    const instance = this.resolveInstance();
+    const baseUrl = this.baseUrl.replace(/\/+$/, "");
+
+    const requestBody = {
+      number: normalizedNumber,
+      messageId: messageId
+    };
+
+    let response = await fetch(`${baseUrl}/chat/deleteMessageForEveryone/${instance}`, {
+      method: "DELETE",
+      headers: { apikey: this.apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (response.status === 404 || response.status === 405) {
+      // Fallback: Algumas versões da Evolution utilizam POST para esta rota
+      response = await fetch(`${baseUrl}/chat/deleteMessageForEveryone/${instance}`, {
+        method: "POST",
+        headers: { apikey: this.apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+    }
+
+    return response.ok;
+  }
+
   async fetchProfilePicture(number: string): Promise<{ profilePictureUrl?: string }> {
     if (!this.baseUrl || !this.apiKey) return {};
     const instance = this.resolveInstance();

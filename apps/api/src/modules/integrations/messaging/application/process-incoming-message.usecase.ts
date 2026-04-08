@@ -178,10 +178,15 @@ export class ProcessIncomingMessageUseCase {
       } catch (error: any) {
         // Sistema de auto-cura: Se o Chatwoot retornar 404, possivelmente o contato/conversa foi apagado no painel.
         if (error?.message?.includes('404')) {
-          this.logger.warn(`Detectado 404 no Chatwoot para o número ${phone}. Removendo vínculo local para forçar recriação na próxima mensagem.`);
-          await this.prisma.conversationLink.deleteMany({
-            where: { whatsappNumber: phone }
-          });
+          this.logger.warn(`[AUTO-CURA] Detectado erro 404 no Chatwoot para o número ${phone}. Removendo vínculo quebrado no banco...`);
+          try {
+            await this.prisma.conversationLink.deleteMany({
+              where: { whatsappNumber: phone }
+            });
+            this.logger.log(`[AUTO-CURA] Vínculo do número ${phone} apagado. A próxima mensagem recriará o chat.`);
+          } catch (dbErr: any) {
+            this.logger.error(`[AUTO-CURA] Falha ao tentar apagar vínculo: ${dbErr.message}`);
+          }
         }
 
         this.logger.error(JSON.stringify({
