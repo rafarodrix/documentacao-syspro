@@ -223,7 +223,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
 
   if (!company) notFound();
 
-  const [companies, zammadEmailsResult] = await Promise.all([
+  const [companies, ticketEmailsResult] = await Promise.all([
     getCompanyOptionsAction(),
     getCompanyTicketEmailsQuery(company.id),
   ]);
@@ -244,7 +244,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
           },
         ]
       : [];
-  const initialZammadEmails: CompanyTicketEmailInput[] = zammadEmailsResult;
+  const initialTicketEmails: CompanyTicketEmailInput[] = ticketEmailsResult;
   const initialContacts: CompanyContactInput[] = company.contacts.map((contact: any) => ({
     name: contact.name,
     email: contact.email ?? undefined,
@@ -260,7 +260,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
     companyId: company.id,
     companies,
     canEditCnpj: session.role !== Role.CLIENTE_ADMIN,
-    initialZammadEmails,
+    initialTicketEmails,
     initialContacts,
     initialData: {
       cnpj: company.cnpj,

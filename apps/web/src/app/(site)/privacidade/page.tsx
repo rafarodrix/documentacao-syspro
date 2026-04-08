@@ -52,7 +52,7 @@ export default function PrivacidadePage() {
                 <section>
                     <h2 className="text-2xl font-bold mb-4 text-foreground">4. Compartilhamento de Dados</h2>
                     <p className="text-muted-foreground">
-                        A Trilink Software <strong>não vende</strong> seus dados pessoais. O compartilhamento ocorre apenas com parceiros estritamente necessários para a operação do serviço (ex: provedor de hospedagem em nuvem, sistema de tickets Zammad), sob contratos de confidencialidade, ou quando exigido por lei.
+                        A Trilink Software <strong>não vende</strong> seus dados pessoais. O compartilhamento ocorre apenas com parceiros estritamente necessários para a operação do serviço (ex: provedor de hospedagem em nuvem), sob contratos de confidencialidade, ou quando exigido por lei.
                     </p>
                 </section>
 

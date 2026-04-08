@@ -100,7 +100,7 @@ interface CreateCompanyPageFormProps {
   mode?: "create" | "edit";
   companyId?: string;
   initialData?: Partial<CreateCompanyInput>;
-  initialZammadEmails?: CompanyTicketEmailInput[];
+  initialTicketEmails?: CompanyTicketEmailInput[];
   initialContacts?: CompanyContactInput[];
   canEditCnpj?: boolean;
 }
@@ -188,13 +188,13 @@ export function CreateCompanyPageForm({
   mode = "create",
   companyId,
   initialData,
-  initialZammadEmails = [],
+  initialTicketEmails = [],
   initialContacts = [],
   canEditCnpj = true,
 }: CreateCompanyPageFormProps) {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<SectionId>("geral");
-  const normalizeZammadEmails = (items: CompanyTicketEmailInput[]) =>
+  const normalizeTicketEmails = (items: CompanyTicketEmailInput[]) =>
     items
       .map((item) => ({
         email: item.email.trim().toLowerCase(),
@@ -203,13 +203,13 @@ export function CreateCompanyPageForm({
       }))
       .filter((item) => item.email.length > 0)
       .sort((a, b) => a.email.localeCompare(b.email));
-  const initialNormalizedZammadEmails = useMemo(
-    () => normalizeZammadEmails(Array.isArray(initialZammadEmails) ? initialZammadEmails : []),
-    [initialZammadEmails],
+  const initialNormalizedTicketEmails = useMemo(
+    () => normalizeTicketEmails(Array.isArray(initialTicketEmails) ? initialTicketEmails : []),
+    [initialTicketEmails],
   );
-  const [zammadEmails, setZammadEmails] = useState<CompanyTicketEmailInput[]>(initialNormalizedZammadEmails);
-  const [zammadEmailInput, setZammadEmailInput] = useState("");
-  const [zammadEmailLabel, setZammadEmailLabel] = useState("");
+  const [ticketEmails, setTicketEmails] = useState<CompanyTicketEmailInput[]>(initialNormalizedTicketEmails);
+  const [ticketEmailInput, setTicketEmailInput] = useState("");
+  const [ticketEmailLabel, setTicketEmailLabel] = useState("");
   const initialNormalizedContacts = useMemo(
     () =>
       (Array.isArray(initialContacts) ? initialContacts : [])
@@ -294,10 +294,10 @@ export function CreateCompanyPageForm({
     name: "remoteConnections",
   });
   const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue);
-  const zammadEmailsDirty =
-    JSON.stringify(normalizeZammadEmails(zammadEmails)) !== JSON.stringify(initialNormalizedZammadEmails);
+  const ticketEmailsDirty =
+    JSON.stringify(normalizeTicketEmails(ticketEmails)) !== JSON.stringify(initialNormalizedTicketEmails);
   const contactsDirty = JSON.stringify(contacts) !== JSON.stringify(initialNormalizedContacts);
-  const canSubmit = isDirty || zammadEmailsDirty || contactsDirty;
+  const canSubmit = isDirty || ticketEmailsDirty || contactsDirty;
   const currentCnpj = form.watch("cnpj");
   const currentServerType = form.watch("serverType");
   const linkedContactsCount = contacts.filter((contact) => contact.status === CompanyContactStatus.LINKED).length;
@@ -375,7 +375,7 @@ export function CreateCompanyPageForm({
   }
 
   const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
-    const normalizedZammadEmails = normalizeZammadEmails(zammadEmails);
+    const normalizedTicketEmails = normalizeTicketEmails(ticketEmails);
     const normalizedContacts: CompanyContactInput[] = contacts.map((contact, index) => ({
       name: contact.name.trim(),
       email: contact.email.trim() || undefined,
@@ -389,8 +389,8 @@ export function CreateCompanyPageForm({
 
     const result =
       mode === "edit" && companyId
-        ? await updateCompanyAction(companyId, data, normalizedZammadEmails, normalizedContacts)
-        : await createCompanyAction(data, normalizedZammadEmails, normalizedContacts);
+        ? await updateCompanyAction(companyId, data, normalizedTicketEmails, normalizedContacts)
+        : await createCompanyAction(data, normalizedTicketEmails, normalizedContacts);
     if (!result.success) {
       toast.error(result.message ?? (mode === "edit" ? "Erro ao atualizar empresa." : "Erro ao cadastrar empresa."));
       return;
@@ -418,28 +418,28 @@ export function CreateCompanyPageForm({
     }, {} as Record<SectionId, "error" | "ready" | "idle">);
   }, [dirtyFields, errors]);
 
-  function addZammadEmail() {
-    const email = zammadEmailInput.trim().toLowerCase();
+  function addTicketEmail() {
+    const email = ticketEmailInput.trim().toLowerCase();
     if (!email) return;
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!valid) {
-      toast.error("Informe um e-mail valido para integracao Zammad.");
+      toast.error("Informe um e-mail valido para tickets.");
       return;
     }
-    if (zammadEmails.some((item) => item.email === email)) {
+    if (ticketEmails.some((item) => item.email === email)) {
       toast.error("Este e-mail jÃ¡ foi adicionado.");
       return;
     }
-    setZammadEmails((prev) => [
+    setTicketEmails((prev) => [
       ...prev,
       {
         email,
-        label: zammadEmailLabel.trim() || undefined,
+        label: ticketEmailLabel.trim() || undefined,
         isActive: true,
       },
     ]);
-    setZammadEmailInput("");
-    setZammadEmailLabel("");
+    setTicketEmailInput("");
+    setTicketEmailLabel("");
   }
 
   function addCompanyContact() {
@@ -855,7 +855,7 @@ export function CreateCompanyPageForm({
                         <TabsList className="grid w-full grid-cols-3">
                           <TabsTrigger value="listagem">Contatos</TabsTrigger>
                           <TabsTrigger value="novo">Novo contato</TabsTrigger>
-                          <TabsTrigger value="zammad">Zammad</TabsTrigger>
+                          <TabsTrigger value="tickets">Tickets</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="listagem" className="space-y-3">
@@ -1011,9 +1011,9 @@ export function CreateCompanyPageForm({
                           </div>
                         </TabsContent>
 
-                        <TabsContent value="zammad" className="space-y-3">
+                        <TabsContent value="tickets" className="space-y-3">
                           <div>
-                            <p className="text-sm font-medium">E-mails vinculados ao Zammad</p>
+                            <p className="text-sm font-medium">E-mails vinculados aos tickets</p>
                             <p className="text-xs text-muted-foreground">
                               Use esta lista para incluir caixas compartilhadas da empresa (ex.: suporte@, fiscal@).
                             </p>
@@ -1022,23 +1022,23 @@ export function CreateCompanyPageForm({
                             <Input
                               type="email"
                               placeholder="suporte@empresa.com.br"
-                              value={zammadEmailInput}
-                              onChange={(event) => setZammadEmailInput(event.target.value)}
+                              value={ticketEmailInput}
+                              onChange={(event) => setTicketEmailInput(event.target.value)}
                             />
                             <Input
                               placeholder="Label (opcional)"
-                              value={zammadEmailLabel}
-                              onChange={(event) => setZammadEmailLabel(event.target.value)}
+                              value={ticketEmailLabel}
+                              onChange={(event) => setTicketEmailLabel(event.target.value)}
                             />
-                            <Button type="button" variant="outline" onClick={addZammadEmail}>
+                            <Button type="button" variant="outline" onClick={addTicketEmail}>
                               Adicionar
                             </Button>
                           </div>
-                          {zammadEmails.length === 0 ? (
+                          {ticketEmails.length === 0 ? (
                             <p className="text-xs text-muted-foreground">Nenhum e-mail adicional configurado.</p>
                           ) : (
                             <div className="space-y-2">
-                              {zammadEmails.map((item) => (
+                              {ticketEmails.map((item) => (
                                 <div key={item.email} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-2 py-1.5">
                                   <div className="flex items-center gap-2">
                                     <Badge variant={item.isActive ? "default" : "outline"}>{item.isActive ? "Ativo" : "Inativo"}</Badge>
@@ -1051,7 +1051,7 @@ export function CreateCompanyPageForm({
                                       size="sm"
                                       variant="ghost"
                                       onClick={() =>
-                                        setZammadEmails((prev) =>
+                                        setTicketEmails((prev) =>
                                           prev.map((current) =>
                                             current.email === item.email
                                               ? { ...current, isActive: !(current.isActive ?? true) }
@@ -1067,7 +1067,7 @@ export function CreateCompanyPageForm({
                                       size="sm"
                                       variant="ghost"
                                       className="text-destructive hover:text-destructive"
-                                      onClick={() => setZammadEmails((prev) => prev.filter((current) => current.email !== item.email))}
+                                      onClick={() => setTicketEmails((prev) => prev.filter((current) => current.email !== item.email))}
                                     >
                                       Remover
                                     </Button>

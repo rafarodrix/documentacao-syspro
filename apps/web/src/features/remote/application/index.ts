@@ -11,5 +11,4 @@ export * from './scope';
 export * from './session-actions';
 export * from './session-policy';
 export * from './session-queries';
-export * from './ticket-integration';
 

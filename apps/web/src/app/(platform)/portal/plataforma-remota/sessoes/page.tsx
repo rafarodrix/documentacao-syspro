@@ -56,7 +56,7 @@ export default async function RemoteSessionsPage({ searchParams }: RemoteSession
           <div className="flex-1">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Sessoes e auditoria</h1>
             <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-              Gestao centralizada de sessoes remotas vinculadas a chamados do Zammad.
+              Gestao centralizada de sessoes remotas vinculadas a chamados do portal.
               Acompanhe conexoes ativas e historico de acesso tecnico.
             </p>
           </div>

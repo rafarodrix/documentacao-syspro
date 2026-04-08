@@ -12,12 +12,12 @@ export interface CompanyWriteRepository {
   ): Promise<CompanyActionResponse<CompanyRegistryLookupResponse>>;
   createCompany(
     data: CreateCompanyInput,
-    zammadEmails?: CompanyTicketEmailInput[],
+    ticketEmails?: CompanyTicketEmailInput[],
   ): Promise<CompanyActionResponse>;
   updateCompany(
     id: string,
     data: CreateCompanyInput,
-    zammadEmails?: CompanyTicketEmailInput[],
+    ticketEmails?: CompanyTicketEmailInput[],
   ): Promise<CompanyActionResponse>;
   updateCompanyStatus(id: string, status: CompanyStatus): Promise<CompanyActionResponse>;
   deleteCompany(id: string): Promise<CompanyActionResponse>;

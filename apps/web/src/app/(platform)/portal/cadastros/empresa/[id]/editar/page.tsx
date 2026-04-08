@@ -28,7 +28,7 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
       canEditCnpj={view.canEditCnpj}
       backHref="/portal/cadastros/empresa"
       companies={view.companies}
-      initialZammadEmails={view.initialZammadEmails}
+      initialTicketEmails={view.initialTicketEmails}
       initialContacts={view.initialContacts}
       initialData={view.initialData}
     />

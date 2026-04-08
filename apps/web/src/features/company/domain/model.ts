@@ -168,7 +168,7 @@ export interface CompanyEditViewData {
   companies: CompanyOption[];
   canEditCnpj: boolean;
   initialData: CompanyEditInitialData;
-  initialZammadEmails: CompanyTicketEmailInput[];
+  initialTicketEmails: CompanyTicketEmailInput[];
   initialContacts: CompanyContactInput[];
 }
 

@@ -1,34 +1,8 @@
 import { Release } from "@dosc-syspro/core";
-import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
-import { getTicketBaseUrl, getTicketToken } from "@/features/tickets/infrastructure/gateways/ticket-http-client";
 import { unstable_cache } from "next/cache";
 
-const TICKET_RELEASE_STATE_ID = 4;
-const TICKET_RELEASE_GROUP_ID = 3;
-
 async function fetchReleases(): Promise<Release[]> {
-    if (!getTicketBaseUrl() || !getTicketToken()) {
-        return [];
-    }
-
-    const query = `(type:"Melhoria" OR type:"Bug") AND state_id:${TICKET_RELEASE_STATE_ID} AND group_id:${TICKET_RELEASE_GROUP_ID}`;
-
-    const tickets = await TicketGateway.searchTickets(query, 100, "releases");
-
-    return tickets.map((t) => {
-        const mainModule = t.modulo?.split("::")[0] || "Geral";
-
-        return {
-            id: t.number,
-            type: t.type || "Indefinido",
-            isoDate: (t.close_at || t.updated_at).split("T")[0],
-            title: t.title,
-            summary: t.release_summary?.trim() || t.title,
-            link: `${getTicketBaseUrl()}/#ticket/zoom/${t.id}`,
-            videoLink: t.video_link || null,
-            tags: [mainModule],
-        };
-    });
+    return [];
 }
 
 const getReleasesCached = unstable_cache(fetchReleases, ["releases-tickets-v1"], {

@@ -50,7 +50,7 @@ async function getSessionCompanyIds(userId: string): Promise<string[]> {
   return memberships.map((m) => m.companyId);
 }
 
-function normalizeZammadEmails(items: CompanyTicketEmailInput[] | undefined): CompanyTicketEmailInput[] {
+function normalizeTicketEmails(items: CompanyTicketEmailInput[] | undefined): CompanyTicketEmailInput[] {
   if (!Array.isArray(items)) return [];
   const map = new Map<string, CompanyTicketEmailInput>();
   for (const item of items) {
@@ -91,7 +91,7 @@ function normalizeCompanyContacts(items: CompanyContactInput[] | undefined): Com
 }
 
 async function replaceCompanyTicketEmails(companyId: string, items: CompanyTicketEmailInput[] | undefined) {
-  const normalized = normalizeZammadEmails(items);
+  const normalized = normalizeTicketEmails(items);
 
   await prisma.companyTicketEmail.deleteMany({
     where: { companyId },
@@ -178,7 +178,7 @@ export async function lookupCompanyProfileByCnpjAction(
 
 export async function createCompanyAction(
   data: CreateCompanyInput | CreateCompanyOutput,
-  zammadEmails?: CompanyTicketEmailInput[],
+  ticketEmails?: CompanyTicketEmailInput[],
   contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
   const session = await getProtectedSession();
@@ -228,8 +228,8 @@ export async function createCompanyAction(
       } as any,
     });
 
-    if (zammadEmails !== undefined) {
-      await replaceCompanyTicketEmails(result.id, zammadEmails);
+    if (ticketEmails !== undefined) {
+      await replaceCompanyTicketEmails(result.id, ticketEmails);
     }
     const contactsToPersist = contacts ?? validatedContacts;
     if (contactsToPersist !== undefined) {
@@ -249,7 +249,7 @@ export async function createCompanyAction(
 export async function updateCompanyAction(
   id: string,
   data: CreateCompanyInput | CreateCompanyOutput,
-  zammadEmails?: CompanyTicketEmailInput[],
+  ticketEmails?: CompanyTicketEmailInput[],
   contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
   const session = await getProtectedSession();
@@ -327,8 +327,8 @@ export async function updateCompanyAction(
       } as any,
     });
 
-    if (zammadEmails !== undefined) {
-      await replaceCompanyTicketEmails(id, zammadEmails);
+    if (ticketEmails !== undefined) {
+      await replaceCompanyTicketEmails(id, ticketEmails);
     }
     const contactsToPersist = contacts ?? validatedContacts;
     if (contactsToPersist !== undefined) {

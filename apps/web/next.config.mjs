@@ -71,16 +71,6 @@ const nextConfig = {
         destination: '/docs/manuais-tecnicos/estrategia/estrategia-plataforma-remota',
         permanent: true,
       },
-      {
-        source: '/docs/suporte/processos/integra%C3%A7%C3%A3o%20zammad',
-        destination: '/docs/suporte/processos/integracao-zammad',
-        permanent: true,
-      },
-      {
-        source: '/docs/suporte/processos/integracao zammad',
-        destination: '/docs/suporte/processos/integracao-zammad',
-        permanent: true,
-      },
     ];
   },
   async rewrites() {

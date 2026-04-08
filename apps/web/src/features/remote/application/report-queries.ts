@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
 import { RemoteTenantScope } from "@/features/remote/domain/model";
 import { buildScopedWhere } from "./queries";
 
@@ -22,7 +21,7 @@ export interface EfficiencyMetrics {
 
 /**
  * Consulta de metricas de eficiencia para o dashboard de suporte remoto.
- * Foca no "Time to Remote" (tempo entre a abertura do ticket e o primeiro acesso).
+ * Foca no tempo entre a abertura do ticket interno e o primeiro acesso.
  */
 export async function getRemoteEfficiencyMetrics(tenantScope: RemoteTenantScope): Promise<EfficiencyMetrics> {
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
@@ -39,7 +38,7 @@ export async function getRemoteEfficiencyMetrics(tenantScope: RemoteTenantScope)
       requestedByUser: { select: { name: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: 100, // Limite para os ultimos atendimentos para performance
+    take: 100,
   });
 
   const processedSessions = await Promise.all(
@@ -47,28 +46,28 @@ export async function getRemoteEfficiencyMetrics(tenantScope: RemoteTenantScope)
       let timeToRemoteSeconds: number | null = null;
       let durationSeconds: number | null = null;
 
-      // 1. Calcular Duracao da Sessao
       if (session.startedAt && session.endedAt) {
         durationSeconds = Math.floor((session.endedAt.getTime() - session.startedAt.getTime()) / 1000);
       } else if (session.endedAt) {
         durationSeconds = Math.floor((session.endedAt.getTime() - session.createdAt.getTime()) / 1000);
       }
 
-      // 2. Calcular Time to Remote (Sessao - Ticket)
       try {
         if (session.ticketNumber) {
-            // Nota: Em producao, isso deveria ser otimizado com cache ou busca em lote
-            const ticket = await TicketGateway.getTicketById(session.ticketNumber).catch(() => null);
-            if (ticket && ticket.created_at) {
-                const ticketCreatedAt = new Date(ticket.created_at);
-                timeToRemoteSeconds = Math.floor((session.createdAt.getTime() - ticketCreatedAt.getTime()) / 1000);
-                
-                // Sanitizacao: Se o ticket foi aberto DEPOIS da sessao (retroativo), ignorar
-                if (timeToRemoteSeconds < 0) timeToRemoteSeconds = null;
-            }
+          const ticket = await prisma.conversation.findFirst({
+            where: {
+              OR: [{ id: session.ticketNumber }, { ticketNumber: session.ticketNumber }],
+            },
+            select: { createdAt: true },
+          });
+
+          if (ticket?.createdAt) {
+            timeToRemoteSeconds = Math.floor((session.createdAt.getTime() - ticket.createdAt.getTime()) / 1000);
+            if (timeToRemoteSeconds < 0) timeToRemoteSeconds = null;
+          }
         }
       } catch (err) {
-        console.error(`Erro ao buscar ticket ${session.ticketNumber} para métricas:`, err);
+        console.error(`Erro ao buscar ticket ${session.ticketNumber} para metricas:`, err);
       }
 
       return {
@@ -76,12 +75,12 @@ export async function getRemoteEfficiencyMetrics(tenantScope: RemoteTenantScope)
         ticketNumber: session.ticketNumber,
         hostName: session.host.name,
         companyName: session.company.nomeFantasia ?? session.company.razaoSocial,
-        requestedByName: session.requestedByUser.name || "Técnico Trilink",
+        requestedByName: session.requestedByUser.name || "Tecnico Trilink",
         timeToRemoteSeconds,
         durationSeconds,
         createdAt: session.createdAt.toISOString(),
       };
-    })
+    }),
   );
 
   const sessionsWithTimeToRemote = processedSessions.filter((s) => s.timeToRemoteSeconds !== null);
@@ -104,5 +103,3 @@ export async function getRemoteEfficiencyMetrics(tenantScope: RemoteTenantScope)
     sessions: processedSessions,
   };
 }
-
-

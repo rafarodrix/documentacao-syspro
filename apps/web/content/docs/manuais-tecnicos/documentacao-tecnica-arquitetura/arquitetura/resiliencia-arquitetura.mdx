@@ -836,7 +836,7 @@ interface HealthCheckResult {
     checks: {
         database: { status: boolean; latency: number };
         redis: { status: boolean; latency: number };
-        zammad: { status: boolean; latency: number };
+        tickets: { status: boolean; latency: number };
     };
 }
 
@@ -856,7 +856,7 @@ export async function performHealthCheck(): Promise<HealthCheckResult> {
         checks: {
             database: dbCheck,
             redis: redisCheck,
-            zammad: extCheck
+            tickets: extCheck
         }
     };
 }

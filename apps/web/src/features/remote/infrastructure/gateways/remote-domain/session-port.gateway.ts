@@ -1,5 +1,4 @@
 import { createRemoteSessionPort as createSharedRemoteSessionPort } from "@dosc-syspro/api/remote-session-port";
-import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
 import type { RemoteSessionPort } from "@dosc-syspro/remote-domain";
 import { evolutionWhatsApp } from "@/lib/integrations/evolution-whatsapp.gateway";
 
@@ -19,7 +18,10 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }): Remot
       error: (event, fields) => logger.error(event, undefined, fields),
     },
     addInternalTicketNote: async (input) => {
-      await TicketGateway.addInternalTicketNote(input.ticketId, input.body);
+      logger.info("remote.ticket_note.skipped", {
+        ticketId: input.ticketId,
+        reason: "external_ticket_integration_removed",
+      });
     },
     sendWhatsAppAlert: async (input) => {
       await evolutionWhatsApp.sendTextMessage(input.number, input.body);

@@ -6,7 +6,6 @@ import { sessionEvents } from "@/features/remote/infrastructure/events/session-e
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { evolutionWhatsApp } from "@/lib/integrations/evolution-whatsapp.gateway";
-import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://suporte.trilink.com.br";
 
@@ -83,7 +82,7 @@ export async function stopRemoteSessionAction(sessionId: string) {
 
 /**
  * Servico de inicio de sessao remota.
- * Realiza as integracoes de WhatsApp, Tickets e Auditoria.
+ * Realiza as integracoes de WhatsApp e auditoria interna.
  */
 export async function startRemoteSessionService(input: {
   hostId: string;
@@ -122,32 +121,7 @@ export async function startRemoteSessionService(input: {
     },
   });
 
-  // 2. Integracao Tickets: Adicionar nota interna de inicio e Sincronizar Owner (Fase 7)
-  if (input.ticketId || input.ticketNumber) {
-    const ticketExternalId = input.ticketId || input.ticketNumber;
-    const ticketNote = `<b>Portal Trilink:</b> Sessao remota iniciada no host <b>${remoteSession.host.name}</b> pelo tecnico <b>${input.userName}</b>. Acesso auditado iniciado.`;
-    
-    // Dispara em background para nao travar o retorno
-    (async () => {
-      try {
-        // Encontra o ID do usuario no Tickets pelo email
-        const ticketUserId = await TicketGateway.getUserIdByEmail(input.userEmail);
-        
-        // Adiciona a nota interna
-        await TicketGateway.addInternalTicketNote(ticketExternalId!, ticketNote);
-        
-        // Se encontramos o usuario, definimos ele como dono do chamado
-        if (ticketUserId) {
-          await TicketGateway.updateTicket(ticketExternalId!, { owner_id: ticketUserId });
-          console.log(`Ticket ${ticketExternalId} atribuido ao tecnico ${input.userEmail} (ID: ${ticketUserId})`);
-        }
-      } catch (err) {
-        console.error(`Erro na integracao Tickets para ticket ${ticketExternalId}:`, err);
-      }
-    })();
-  }
-
-  // 3. Notificacao WhatsApp (Fase 6)
+  // 2. Notificacao WhatsApp
   const primaryContact = remoteSession.company.contacts[0];
   const targetWhatsapp = primaryContact?.whatsapp || remoteSession.company.whatsapp;
   
@@ -177,7 +151,7 @@ export async function startRemoteSessionService(input: {
     });
   }
 
-  // 4. Emitir evento SSE
+  // 3. Emitir evento SSE
   sessionEvents.emitSessionChange({
     sessionId: remoteSession.id,
     hostId: remoteSession.hostId,
@@ -220,59 +194,6 @@ export async function stopRemoteSessionService(sessionId: string, context: { use
       endedAt: now,
     },
   });
-
-  // Integracao Tickets: Adicionar nota interna de encerramento
-  if (current.ticketId || current.ticketNumber) {
-    const ticketExternalId = current.ticketId || current.ticketNumber;
-    
-    // Calcula duracao se a sessao foi iniciada
-    let durationText = "";
-    const start = current.startedAt || current.createdAt;
-    if (start) {
-      const diffMs = now.getTime() - new Date(start).getTime();
-      const diffMins = Math.round(diffMs / 60000);
-      durationText = ` Duracao aproximada: <b>${diffMins} minutos</b>.`;
-    }
-
-    // 3. Technical Snapshot (Fase 7)
-    let technicalSnapshotText = "";
-    try {
-      const host = await prisma.remoteHost.findUnique({
-        where: { id: current.hostId },
-        select: { 
-          machineName: true, 
-          agentVersion: true, 
-          lastKnownIp: true, 
-          lastSystemSnapshot: true,
-          lastAgentMetrics: true
-        }
-      });
-      
-      if (host) {
-        const sys = host.lastSystemSnapshot as any || {};
-        const cpu = sys.cpuBrand || "N/A";
-        const ram = sys.memTotalGb ? `${sys.memTotalGb}GB` : "N/A";
-        const os = sys.osRelease || "Windows";
-        const ip = host.lastKnownIp || "N/A";
-        
-        technicalSnapshotText = `<br/><br/><b>Snapshot Tecnico (Encerramento):</b><br/>
-          - Host: ${host.machineName || current.host.name}<br/>
-          - IP: ${ip}<br/>
-          - OS: ${os}<br/>
-          - CPU: ${cpu}<br/>
-          - RAM: ${ram}<br/>
-          - Agente: ${host.agentVersion || "v1"}`;
-      }
-    } catch (err) {
-      console.error("Erro ao gerar snapshot tecnico para Tickets:", err);
-    }
-
-    const ticketNote = `<b>Portal Trilink:</b> Sessao remota encerrada no host <b>${current.host.name}</b> pelo tecnico <b>${context.userName}</b>.${durationText}${technicalSnapshotText}`;
-    
-    TicketGateway.addInternalTicketNote(ticketExternalId!, ticketNote).catch(err => 
-      console.error(`Falha ao registrar nota de fim no Tickets para ticket ${ticketExternalId}:`, err)
-    );
-  }
 
   // Emitir evento de encerramento
   sessionEvents.emitSessionChange({

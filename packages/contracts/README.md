@@ -16,7 +16,7 @@ Concentrar contratos de entrada e saida para evitar shapes locais improvisados e
 - documento
 - documento config
 - user
-- zammad api
+- ticket provider api legado removido
 
 ## Scripts
 

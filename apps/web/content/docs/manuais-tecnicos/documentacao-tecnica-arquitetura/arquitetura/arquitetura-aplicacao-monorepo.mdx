@@ -327,12 +327,12 @@ Padrao sugerido:
 
 - `TicketReadRepository`
 - `TicketCacheRepository`
-- `TicketGatewayAdapter`
+- `TicketApiAdapter` somente se houver integracao externa futura
 
 Status atual do recorte:
 
 - contratos criados em `src/features/tickets/domain/repositories`
-- `ticket-query-service` continua como orquestrador, agora com contrato-alvo explicito para a proxima extracao
+- listagem de tickets passou a consumir apenas a API interna `/api/tickets`
 
 #### Company
 
