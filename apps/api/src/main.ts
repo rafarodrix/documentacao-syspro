@@ -2,8 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { json, urlencoded } from 'express';
+import { validateChatwootRuntimeConfigOrThrow } from './modules/integrations/chatwoot/chatwoot-config';
 
 async function bootstrap() {
+  validateChatwootRuntimeConfigOrThrow();
   const app = await NestFactory.create(AppModule, { rawBody: true });
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));

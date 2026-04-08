@@ -29,11 +29,11 @@ export function buildEmailScopeQuery(emails: string[]): string {
     .join(" OR ")})`;
 }
 
-export function buildQueueQuery(queue: QueueKey, zammadUserId?: number | null): string {
+export function buildQueueQuery(queue: QueueKey, ticketUserId?: number | null): string {
   if (queue === "critical") return "priority_id:3";
   if (queue === "unassigned") return "owner_id:null";
   if (queue === "no_response") return "first_response_at:null";
-  if (queue === "my_queue") return zammadUserId ? `owner_id:${zammadUserId}` : "id:-1";
+  if (queue === "my_queue") return ticketUserId ? `owner_id:${ticketUserId}` : "id:-1";
   return "";
 }
 

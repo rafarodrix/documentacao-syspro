@@ -7,7 +7,7 @@ import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const DASHBOARD_ZAMMAD_TIMEOUT_MS = 4000;
+const DASHBOARD_TICKETS_TIMEOUT_MS = 4000;
 
 function timeoutError(label: string, timeoutMs: number) {
   return new Error(`${label} excedeu ${timeoutMs}ms.`);
@@ -208,7 +208,7 @@ export async function getDashboardData(
     try {
       ticketsResponse = await withTimeout(
         getTicketsAction({ page: 1, pageSize: 50, queue: "all", statusGroup: "all" }),
-        DASHBOARD_ZAMMAD_TIMEOUT_MS,
+        DASHBOARD_TICKETS_TIMEOUT_MS,
         "Consulta de tickets do dashboard"
       );
     } catch {
@@ -247,7 +247,7 @@ export async function getDashboardData(
 
     return {
       mode: "admin",
-      zammadWarning: mergeTicketWarnings(dashboardTicketWarning),
+      ticketWarning: mergeTicketWarnings(dashboardTicketWarning),
       companiesCount,
       companiesGrowth: companiesThisMonth - companiesLastMonth,
       usersCount,
@@ -281,7 +281,7 @@ export async function getDashboardData(
   try {
     ticketsResponse = await withTimeout(
       getTicketsAction({ page: 1, pageSize: 20, queue: "all", statusGroup: "all" }),
-      DASHBOARD_ZAMMAD_TIMEOUT_MS,
+      DASHBOARD_TICKETS_TIMEOUT_MS,
       "Consulta de tickets do dashboard"
     );
   } catch {
@@ -305,7 +305,7 @@ export async function getDashboardData(
 
   return {
     mode: "client",
-    zammadWarning: mergeTicketWarnings(dashboardTicketWarning),
+    ticketWarning: mergeTicketWarnings(dashboardTicketWarning),
     companyName: primaryMembership?.company?.nomeFantasia || primaryMembership?.company?.razaoSocial || "Sem empresa vinculada",
     companyUsers: primaryMembership?.company?._count?.memberships || 0,
     companyCount: companyNames.length,

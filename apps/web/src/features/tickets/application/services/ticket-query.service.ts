@@ -48,7 +48,7 @@ export async function queryTicketsForViewer(
 
   const routeKey = "app-chamados";
   const trackedStatusQuery = buildTrackedStatusQuery();
-  const zammadUserId = isSystemRole(viewer.role)
+  const ticketUserId = isSystemRole(viewer.role)
     ? await TicketGateway.getUserIdByEmail(viewer.email, routeKey)
     : null;
   const scopedEmails = isSystemRole(viewer.role) ? [] : await getScopedCompanyTicketEmails(viewer.userId);
@@ -65,7 +65,7 @@ export async function queryTicketsForViewer(
 
   const viewerScopeQuery = isSystemRole(viewer.role) ? "" : buildEmailScopeQuery(scopedEmails);
   const searchQuery = buildSearchQuery(search, isSystemRole(viewer.role));
-  const queueQuery = buildQueueQuery(queue, zammadUserId);
+  const queueQuery = buildQueueQuery(queue, ticketUserId);
   const scopedQuery = combineQueryParts(viewerScopeQuery, searchQuery, queueQuery);
   const finalQuery = combineQueryParts(
     scopedQuery,
@@ -85,31 +85,31 @@ export async function queryTicketsForViewer(
       all: buildCountQuery({
         viewerScopeQuery,
         searchQuery,
-        queueQuery: buildQueueQuery("all", zammadUserId),
+        queueQuery: buildQueueQuery("all", ticketUserId),
         statusQuery: trackedStatusQuery,
       }),
       my_queue: buildCountQuery({
         viewerScopeQuery,
         searchQuery,
-        queueQuery: buildQueueQuery("my_queue", zammadUserId),
+        queueQuery: buildQueueQuery("my_queue", ticketUserId),
         statusQuery: trackedStatusQuery,
       }),
       unassigned: buildCountQuery({
         viewerScopeQuery,
         searchQuery,
-        queueQuery: buildQueueQuery("unassigned", zammadUserId),
+        queueQuery: buildQueueQuery("unassigned", ticketUserId),
         statusQuery: trackedStatusQuery,
       }),
       critical: buildCountQuery({
         viewerScopeQuery,
         searchQuery,
-        queueQuery: buildQueueQuery("critical", zammadUserId),
+        queueQuery: buildQueueQuery("critical", ticketUserId),
         statusQuery: trackedStatusQuery,
       }),
       no_response: buildCountQuery({
         viewerScopeQuery,
         searchQuery,
-        queueQuery: buildQueueQuery("no_response", zammadUserId),
+        queueQuery: buildQueueQuery("no_response", ticketUserId),
         statusQuery: trackedStatusQuery,
       }),
     };

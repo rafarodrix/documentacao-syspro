@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
+import { ChatwootClient } from './modules/integrations/chatwoot/chatwoot.client';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatwootClient: ChatwootClient,
+  ) {}
 
   async getHealthcheck() {
     // Validação real de conexão no pool do NestJS
@@ -16,5 +20,9 @@ export class AppService {
       dbRecordsCount: sefazCount,
       timestamp: new Date().toISOString()
     };
+  }
+
+  async getChatwootIntegrationHealth() {
+    return this.chatwootClient.getIntegrationHealth();
   }
 }

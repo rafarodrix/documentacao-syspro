@@ -142,7 +142,7 @@ export interface TicketDashboardCompanySummary {
 
 export interface AdminDashboardViewData {
     mode: "admin";
-    zammadWarning?: string;
+    ticketWarning?: string;
     companiesCount: number;
     companiesGrowth: number;
     usersCount: number;
@@ -157,7 +157,7 @@ export interface AdminDashboardViewData {
 
 export interface ClientDashboardViewData {
     mode: "client";
-    zammadWarning?: string;
+    ticketWarning?: string;
     companyName: string;
     companyUsers: number;
     companyCount: number;

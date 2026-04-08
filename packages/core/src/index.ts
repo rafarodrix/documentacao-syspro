@@ -20,7 +20,6 @@ export {
 export type { AppRole } from "./config/route-access";
 export { ROLE_LABELS, getRoleLabel } from "./config/role-labels";
 export { getTicketStateMatrix } from "./config/ticket-state-matrix";
-export { getZammadStateMatrix } from "./config/zammad-state-matrix";
 export {
   TICKET_QUEUE_KEYS,
   TICKET_STATUS_GROUPS,

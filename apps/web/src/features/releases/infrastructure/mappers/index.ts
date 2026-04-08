@@ -1,2 +1,3 @@
-﻿export * from './zammad-release.mapper';
+export * from './ticket-release.mapper';
+
 

@@ -1,6 +1,6 @@
 import { computeTicketSla } from "@dosc-syspro/core";
 import { mapTicketStateLabel } from "@/features/tickets/infrastructure/mappers/ticket.mapper";
-import type { OperationalTicket } from "@dosc-syspro/contracts";
+import type { OperationalTicket } from "@dosc-syspro/contracts/ticket-api";
 import type { TicketListItem, TicketsPagination } from "@/components/platform/tickets/types";
 
 export function formatTickets(ticketsRaw: OperationalTicket[]): TicketListItem[] {

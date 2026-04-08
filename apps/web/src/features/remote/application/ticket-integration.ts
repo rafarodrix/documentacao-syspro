@@ -6,7 +6,7 @@ import {
 import { normalizeRustdeskId } from "@/features/remote/application/rustdesk-sync";
 import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
 
-type ZammadRemoteContext = {
+type TicketRemoteContext = {
   eventType: string;
   ticketId: string;
   ticketNumber: string;
@@ -63,11 +63,11 @@ function getCustomerEmailFromTicket(ticket: Record<string, unknown>): string | n
   return null;
 }
 
-function parseZammadRemoteContext(payload: Record<string, unknown>): ZammadRemoteContext {
+function parseTicketRemoteContext(payload: Record<string, unknown>): TicketRemoteContext {
   const ticket = extractTicketPayload(payload);
   const ticketId = String(ticket.id ?? payload.ticket_id ?? "");
   const ticketNumber = String(ticket.number ?? ticket.id ?? payload.ticket_number ?? "");
-  const title = String(ticket.title ?? payload.title ?? "Ticket Zammad");
+  const title = String(ticket.title ?? payload.title ?? "Ticket");
   const state = toStringOrNull(ticket.state);
   const closeAt = toStringOrNull(ticket.close_at);
   const customerEmail =
@@ -96,18 +96,18 @@ function parseZammadRemoteContext(payload: Record<string, unknown>): ZammadRemot
   };
 }
 
-function shouldHandleRemoteEvent(context: ZammadRemoteContext): boolean {
+function shouldHandleRemoteEvent(context: TicketRemoteContext): boolean {
   if (context.rustdeskId) return true;
   return context.tags.includes("suporte-remoto") || context.tags.includes("remote-support");
 }
 
-function buildReason(context: ZammadRemoteContext): string {
-  return `Zammad ticket #${context.ticketNumber} - ${context.title}`;
+function buildReason(context: TicketRemoteContext): string {
+  return `Ticket #${context.ticketNumber} - ${context.title}`;
 }
 
-function buildSessionMetadata(context: ZammadRemoteContext, rustdeskId: string | null) {
+function buildSessionMetadata(context: TicketRemoteContext, rustdeskId: string | null) {
   return {
-    source: "zammad",
+    source: "tickets",
     eventType: context.eventType,
     ticketId: context.ticketId,
     ticketNumber: context.ticketNumber,
@@ -117,7 +117,7 @@ function buildSessionMetadata(context: ZammadRemoteContext, rustdeskId: string |
   };
 }
 
-function buildTicketLocator(context: ZammadRemoteContext) {
+function buildTicketLocator(context: TicketRemoteContext) {
   if (context.ticketId) {
     return { ticketId: context.ticketId };
   }
@@ -129,7 +129,7 @@ function buildTicketLocator(context: ZammadRemoteContext) {
   return {};
 }
 
-function isClosedLike(context: ZammadRemoteContext): boolean {
+function isClosedLike(context: TicketRemoteContext): boolean {
   const state = context.state?.toLowerCase() ?? "";
   return Boolean(context.closeAt) || state.includes("close") || state.includes("fech");
 }
@@ -226,8 +226,8 @@ export async function resolveRustdeskDeepLink(input: {
   };
 }
 
-export async function handleZammadRemoteWebhook(payload: Record<string, unknown>) {
-  const context = parseZammadRemoteContext(payload);
+export async function handleTicketRemoteWebhook(payload: Record<string, unknown>) {
+  const context = parseTicketRemoteContext(payload);
   if (!shouldHandleRemoteEvent(context)) {
     return { handled: false, reason: "Evento sem sinalizacao remota." };
   }
@@ -271,7 +271,7 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
       },
     });
 
-    // Auditoria Zammad no Encerramento via Webhook
+    // Auditoria de Ticket no Encerramento via evento
     (async () => {
       try {
         const start = activeSession.startedAt || activeSession.createdAt;
@@ -279,13 +279,13 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
         if (start) {
           const diffMs = now.getTime() - new Date(start).getTime();
           const diffMins = Math.round(diffMs / 60000);
-          durationText = ` Duração aproximada: <b>${diffMins} minutos</b>.`;
+          durationText = ` Duracao aproximada: <b>${diffMins} minutos</b>.`;
         }
         
-        const note = `<b>Portal Trilink:</b> Sessão remota encerrada (via status do ticket Zammad).${durationText}`;
+        const note = `<b>Portal Trilink:</b> Sessao remota encerrada (via status do ticket).${durationText}`;
         await TicketGateway.addInternalTicketNote(context.ticketId, note);
       } catch (err) {
-        console.error("Erro ao adicionar nota de auditoria via webhook:", err);
+        console.error("Erro ao adicionar nota de auditoria via evento:", err);
       }
     })();
 
@@ -327,5 +327,6 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
 
   return { handled: true, action: "created", sessionId: created.id };
 }
+
 
 

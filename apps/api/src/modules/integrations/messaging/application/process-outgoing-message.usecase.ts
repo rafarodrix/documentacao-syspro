@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EvolutionClient } from '../../evolution/evolution.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { IntegrationWebhookDedupService } from './integration-webhook-dedup.service';
 
 @Injectable()
 export class ProcessOutgoingMessageUseCase {
@@ -8,7 +9,8 @@ export class ProcessOutgoingMessageUseCase {
 
   constructor(
     private readonly evolutionClient: EvolutionClient,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly dedupService: IntegrationWebhookDedupService,
   ) {}
 
   async execute(payload: any) {
@@ -22,6 +24,23 @@ export class ProcessOutgoingMessageUseCase {
     const attachments = payload.attachments;
     const hasAttachment = attachments && attachments.length > 0;
     if (!content && !hasAttachment || !chatwootConversationId) return;
+
+    if (messageId) {
+      const dedupeClaimed = await this.dedupService.claim(
+        'chatwoot_outbound',
+        `message:${messageId}:${hasAttachment ? 'media' : 'text'}`,
+        chatwootConversationId
+      );
+      if (!dedupeClaimed) {
+        this.logger.debug(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'dedup_skipped',
+          messageId,
+          chatwootConversationId,
+        }));
+        return;
+      }
+    }
 
     // Busca o telefone do cliente usando o ID da conversa do Chatwoot
     const link = await this.prisma.conversationLink.findUnique({

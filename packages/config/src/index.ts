@@ -15,8 +15,8 @@ const commonRuntimeConfigSchema = z.object({
   CHATWOOT_INBOX_IDENTIFIER: z.string().trim().optional(),
   CHATWOOT_WEBHOOK_SECRET: z.string().trim().optional(),
   CHATWOOT_WEBHOOK_MAX_SKEW_SECONDS: z.coerce.number().int().positive().optional(),
-  ZAMMAD_URL: z.string().trim().optional(),
-  ZAMMAD_TOKEN: z.string().trim().optional(),
+  TICKET_URL: z.string().trim().optional(),
+  TICKET_TOKEN: z.string().trim().optional(),
 });
 
 export type CommonRuntimeConfig = z.infer<typeof commonRuntimeConfigSchema>;

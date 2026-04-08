@@ -134,15 +134,32 @@ export class ChatwootClient {
     );
   }
 
-  async createConversation(contactIdentifier: string) {
+  async createConversation(contactIdentifier: string, contactId?: string) {
     const inboxIdentifier = await this.resolveInboxIdentifier();
-    if (!inboxIdentifier) {
-      throw new Error('CHATWOOT_INBOX_IDENTIFIER nao configurado para endpoints publicos do Chatwoot');
+    if (inboxIdentifier) {
+      try {
+        return await this.request(
+          `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations`,
+          'POST'
+        );
+      } catch (error: any) {
+        if (!this.isNotFoundError(error)) throw error;
+      }
+    }
+
+    const inboxId = await this.resolveInboxId();
+    if (!inboxId) {
+      throw new Error('CHATWOOT_INBOX_ID nao configurado/resolvido para criar conversa via API de conta');
     }
 
     return this.request(
-      `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations`,
-      'POST'
+      `/api/v1/accounts/${this.accountId}/conversations`,
+      'POST',
+      {
+        source_id: contactIdentifier,
+        inbox_id: Number(inboxId),
+        ...(contactId ? { contact_id: Number(contactId) } : {}),
+      }
     );
   }
 
@@ -153,9 +170,6 @@ export class ChatwootClient {
     attachment?: { base64: string; mimetype: string; filename: string }
   ) {
     const inboxIdentifier = await this.resolveInboxIdentifier();
-    if (!inboxIdentifier) {
-      throw new Error('CHATWOOT_INBOX_IDENTIFIER nao configurado para endpoints publicos do Chatwoot');
-    }
 
     if (attachment && attachment.base64) {
       const formData = new FormData();
@@ -166,8 +180,20 @@ export class ChatwootClient {
         const blob = new Blob([buffer], { type: attachment.mimetype });
         formData.append('attachments[]', blob, attachment.filename);
 
-        return this.request(
-          `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
+        if (inboxIdentifier) {
+          try {
+            return await this.request(
+              `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
+              'POST',
+              formData
+            );
+          } catch (error: any) {
+            if (!this.isNotFoundError(error)) throw error;
+          }
+        }
+
+        return await this.request(
+          `/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`,
           'POST',
           formData
         );
@@ -176,14 +202,73 @@ export class ChatwootClient {
       }
     }
 
-    return this.request(
-      `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
-      'POST',
-      {
-        content,
-        message_type: 'incoming',
+    const payload = {
+      content,
+      message_type: 'incoming',
+    };
+
+    if (inboxIdentifier) {
+      try {
+        return await this.request(
+          `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
+          'POST',
+          payload
+        );
+      } catch (error: any) {
+        if (!this.isNotFoundError(error)) throw error;
       }
+    }
+
+    return this.request(
+      `/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`,
+      'POST',
+      payload
     );
+  }
+
+  async getIntegrationHealth(): Promise<{
+    status: 'ok' | 'error';
+    checkedAt: string;
+    accountRoute: { endpoint: string; ok: boolean; error?: string };
+    inbox: {
+      configuredInboxId?: string;
+      configuredInboxIdentifier?: string;
+      resolvedInboxId?: string;
+      resolvedInboxIdentifier?: string;
+    };
+  }> {
+    const endpoint = `/api/v1/accounts/${this.accountId}/inboxes`;
+    try {
+      await this.request(endpoint, 'GET', undefined, 1);
+      const resolvedInboxId = await this.resolveInboxId();
+      const resolvedInboxIdentifier = await this.resolveInboxIdentifier();
+
+      return {
+        status: 'ok',
+        checkedAt: new Date().toISOString(),
+        accountRoute: { endpoint, ok: true },
+        inbox: {
+          configuredInboxId: this.configuredInboxId,
+          configuredInboxIdentifier: this.configuredInboxIdentifier,
+          resolvedInboxId,
+          resolvedInboxIdentifier,
+        },
+      };
+    } catch (error: any) {
+      return {
+        status: 'error',
+        checkedAt: new Date().toISOString(),
+        accountRoute: {
+          endpoint,
+          ok: false,
+          error: error?.message ?? 'unknown_error',
+        },
+        inbox: {
+          configuredInboxId: this.configuredInboxId,
+          configuredInboxIdentifier: this.configuredInboxIdentifier,
+        },
+      };
+    }
   }
 
   private async resolveInboxIdentifier(): Promise<string | undefined> {
@@ -196,7 +281,10 @@ export class ChatwootClient {
 
     const inboxes: any[] | null = await this.fetchInboxes();
     if (!inboxes?.length) {
-      this.resolvedInboxIdentifier = this.configuredInboxIdentifier;
+      this.resolvedInboxIdentifier =
+        this.configuredInboxIdentifier && !/^\d+$/.test(this.configuredInboxIdentifier)
+          ? this.configuredInboxIdentifier
+          : undefined;
       return this.resolvedInboxIdentifier;
     }
 
@@ -220,7 +308,10 @@ export class ChatwootClient {
       return this.resolvedInboxIdentifier;
     }
 
-    this.resolvedInboxIdentifier = this.configuredInboxIdentifier;
+    this.resolvedInboxIdentifier =
+      this.configuredInboxIdentifier && !/^\d+$/.test(this.configuredInboxIdentifier)
+        ? this.configuredInboxIdentifier
+        : undefined;
     return this.resolvedInboxIdentifier;
   }
 
@@ -255,5 +346,10 @@ export class ChatwootClient {
       this.logger.warn(`Nao foi possivel listar inboxes do Chatwoot para resolver configuracao: ${error?.message}`);
       return null;
     }
+  }
+
+  private isNotFoundError(error: any): boolean {
+    const message = String(error?.message ?? '');
+    return message.includes('Chatwoot API error') && message.includes(': 404 -');
   }
 }

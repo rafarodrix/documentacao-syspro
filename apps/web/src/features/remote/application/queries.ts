@@ -586,11 +586,11 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
         nextStep: "Materializar trilha de auditoria por sessao, job de expiracao e resolucao de host por ticket.",
       },
       {
-        id: "zammad-rustdesk",
-        title: "Integracao Zammad + RustDesk",
+        id: "ticket-rustdesk",
+        title: "Integracao Tickets + RustDesk",
         description: "Link rapido no ticket com rustdesk://<id>, vinculo do ticket com sessao remota e webhook para auditoria.",
         status: "planned",
-        nextStep: "Criar rustdesk_id no contexto do Zammad e payload webhook para o orquestrador remoto.",
+        nextStep: "Criar rustdesk_id no contexto do Tickets e payload webhook para o orquestrador remoto.",
       },
       {
         id: "credential-vault",
@@ -625,8 +625,8 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
       { method: "POST", path: "/api/remote/sessions", purpose: "Solicitar sessao remota" },
       { method: "POST", path: "/api/remote/sessions/:id/start", purpose: "Iniciar sessao remota solicitada" },
       { method: "POST", path: "/api/remote/sessions/:id/stop", purpose: "Encerrar sessao remota iniciada" },
-      { method: "POST", path: "/api/integrations/zammad/webhook", purpose: "Receber evento do ticket remoto e vincular sessao" },
-      { method: "GET", path: "/api/integrations/zammad/rustdesk-link/:ticketId", purpose: "Resolver deep-link rustdesk:// para o ticket" },
+      { method: "POST", path: "/api/integrations/tickets/webhook", purpose: "Receber evento do ticket remoto e vincular sessao" },
+      { method: "GET", path: "/api/integrations/tickets/rustdesk-link/:ticketId", purpose: "Resolver deep-link rustdesk:// para o ticket" },
       { method: "POST", path: "/api/credentials/request", purpose: "Solicitar segredo por referencia" },
       { method: "POST", path: "/api/backup/run", purpose: "Disparar backup" },
       { method: "GET", path: "/api/backup/jobs", purpose: "Listar jobs e artefatos" },
@@ -637,7 +637,7 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
       {
         id: "phase-1",
         title: "Fase 1 - Fundacao",
-        summary: "RustDesk self-hosted, companyId em host/sessao, integracao inicial com Zammad, controle de sessao, auditoria minima e backup padrao com gbak.",
+        summary: "RustDesk self-hosted, companyId em host/sessao, integracao inicial com Tickets, controle de sessao, auditoria minima e backup padrao com gbak.",
         status: "foundation",
       },
       {

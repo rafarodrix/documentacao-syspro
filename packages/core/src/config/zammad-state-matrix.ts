@@ -35,7 +35,7 @@ function isTicketStatus(value: unknown): value is TicketStatus {
 }
 
 function parseStateMatrixFromEnv(): ParsedStateMatrix | null {
-  const raw = process.env.ZAMMAD_STATE_MATRIX_JSON;
+  const raw = process.env.TICKET_STATE_MATRIX_JSON;
   if (!raw) return null;
 
   try {

@@ -63,23 +63,6 @@ export type {
 } from "./ticket-api";
 
 export {
-  zammadTicketAPISchema,
-  zammadOperationalTicketSchema,
-  zammadTicketDetailsSchema,
-  zammadTicketArticleSchema,
-  zammadUserSearchSchema,
-  zammadUserSchema,
-} from "./zammad-api";
-export type {
-  ZammadTicketAPI,
-  ZammadOperationalTicket,
-  ZammadTicketDetails,
-  ZammadTicketArticle,
-  ZammadUserSearch,
-  ZammadUser,
-} from "./zammad-api";
-
-export {
   ticketOwnerModeSchema,
   ticketArticleTypeSchema,
   ticketGlobalSettingsSchema,
@@ -100,27 +83,6 @@ export type {
   TicketGlobalCatalog,
 } from "./ticket-global-settings";
 
-
-export {
-  zammadOwnerModeSchema,
-  zammadArticleTypeSchema,
-  zammadGlobalSettingsSchema,
-  zammadCatalogGroupSchema,
-  zammadCatalogStateSchema,
-  zammadCatalogPrioritySchema,
-  zammadCatalogOwnerSchema,
-  zammadGlobalCatalogSchema,
-} from "./zammad-global-settings";
-export type {
-  ZammadOwnerMode,
-  ZammadArticleType,
-  ZammadGlobalSettings,
-  ZammadCatalogGroup,
-  ZammadCatalogState,
-  ZammadCatalogPriority,
-  ZammadCatalogOwner,
-  ZammadGlobalCatalog,
-} from "./zammad-global-settings";
 
 export { evolutionWebhookEnvelopeSchema, evolutionMessageEventSchema } from "./evolution-webhook";
 export type { EvolutionWebhookEnvelope, EvolutionMessageEvent } from "./evolution-webhook";

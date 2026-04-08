@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolveRustdeskDeepLink } from "@/features/remote/application/zammad-integration";
+import { resolveRustdeskDeepLink } from "@/features/remote/application/ticket-integration";
 
 export const dynamic = "force-dynamic";
 

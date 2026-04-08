@@ -41,13 +41,15 @@ Variaveis minimas:
 - `CHATWOOT_ACCOUNT_ID`
 - `CHATWOOT_API_TOKEN`
 - `CHATWOOT_INBOX_ID` (id numerico do inbox, usado na API `/api/v1/accounts/...`)
-- `CHATWOOT_INBOX_IDENTIFIER`
+- `CHATWOOT_INBOX_IDENTIFIER` (identificador publico nao numerico, usado na API `/public/api/v1/inboxes/...`)
 - `CHATWOOT_WEBHOOK_SECRET` (usado para HMAC assinatura do webhook Chatwoot)
 - `CHATWOOT_WEBHOOK_MAX_SKEW_SECONDS` (opcional, default `300`)
+- `INTEGRATION_WEBHOOK_DEDUP_TTL_SECONDS` (opcional, default `86400`)
 
 ## Rotas atuais
 
 - `GET /health`
+- `GET /health/integrations/chatwoot` (valida rota critica da API Chatwoot e resolucao de inbox)
 - `POST /rpc/:namespace/:procedure`
 - `POST /webhooks/evolution` (inbound Evolution Go + orquestracao de conversa/ticket)
 - `POST /integrations/evolution/messages/send` (envio direto outbound via Evolution, protegido por `x-internal-api-key`)

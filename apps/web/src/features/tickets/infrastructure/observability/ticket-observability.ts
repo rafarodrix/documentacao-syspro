@@ -32,7 +32,7 @@ export function recordTicketMetric(entry: TicketMetricEntry) {
   // structured log for external log collectors
   console.info(
     JSON.stringify({
-      type: "zammad_request",
+      type: "ticket_request",
       ts: new Date(entry.ts).toISOString(),
       routeKey: entry.routeKey,
       endpoint: entry.endpoint,

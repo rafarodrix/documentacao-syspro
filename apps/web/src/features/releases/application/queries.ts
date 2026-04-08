@@ -3,15 +3,15 @@ import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket
 import { getTicketBaseUrl, getTicketToken } from "@/features/tickets/infrastructure/gateways/ticket-http-client";
 import { unstable_cache } from "next/cache";
 
-const ZAMMAD_RELEASE_STATE_ID = 4;
-const ZAMMAD_RELEASE_GROUP_ID = 3;
+const TICKET_RELEASE_STATE_ID = 4;
+const TICKET_RELEASE_GROUP_ID = 3;
 
 async function fetchReleases(): Promise<Release[]> {
     if (!getTicketBaseUrl() || !getTicketToken()) {
         return [];
     }
 
-    const query = `(type:"Melhoria" OR type:"Bug") AND state_id:${ZAMMAD_RELEASE_STATE_ID} AND group_id:${ZAMMAD_RELEASE_GROUP_ID}`;
+    const query = `(type:"Melhoria" OR type:"Bug") AND state_id:${TICKET_RELEASE_STATE_ID} AND group_id:${TICKET_RELEASE_GROUP_ID}`;
 
     const tickets = await TicketGateway.searchTickets(query, 100, "releases");
 
@@ -24,14 +24,14 @@ async function fetchReleases(): Promise<Release[]> {
             isoDate: (t.close_at || t.updated_at).split("T")[0],
             title: t.title,
             summary: t.release_summary?.trim() || t.title,
-            link: `${process.env.ZAMMAD_URL}/#ticket/zoom/${t.id}`,
+            link: `${getTicketBaseUrl()}/#ticket/zoom/${t.id}`,
             videoLink: t.video_link || null,
             tags: [mainModule],
         };
     });
 }
 
-const getReleasesCached = unstable_cache(fetchReleases, ["releases-zammad-v1"], {
+const getReleasesCached = unstable_cache(fetchReleases, ["releases-tickets-v1"], {
     revalidate: 1800,
     tags: ["releases"],
 });

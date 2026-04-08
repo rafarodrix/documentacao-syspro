@@ -1280,13 +1280,15 @@ model ConversationLink {
 }
 
 model IntegrationWebhookDedup {
-  id         String   @id
-  provider   String
-  eventKey   String
-  instanceId String?
-  createdAt  DateTime @default(now())
+  id              String   @id
+  provider        String
+  providerEventId String
+  instanceId      String?
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
 
-  @@unique([provider, eventKey])
+  @@unique([provider, providerEventId])
   @@index([provider, createdAt])
+  @@index([expiresAt])
   @@map("integration_webhook_dedup")
 }

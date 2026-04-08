@@ -7,8 +7,8 @@ export type TicketSlaMeta = {
   minutesToBreach: number;
 };
 
-const DEFAULT_FIRST_RESPONSE_MINUTES = Number(process.env.ZAMMAD_SLA_FIRST_RESPONSE_MINUTES ?? 120);
-const DEFAULT_WARNING_MINUTES = Number(process.env.ZAMMAD_SLA_WARNING_MINUTES ?? 15);
+const DEFAULT_FIRST_RESPONSE_MINUTES = Number(process.env.TICKET_SLA_FIRST_RESPONSE_MINUTES ?? 120);
+const DEFAULT_WARNING_MINUTES = Number(process.env.TICKET_SLA_WARNING_MINUTES ?? 15);
 
 function getPriorityMultiplier(priorityId?: number | null): number {
   if (priorityId === 3) return 0.5;

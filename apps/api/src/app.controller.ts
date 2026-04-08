@@ -9,4 +9,9 @@ export class AppController {
   async getHealthcheck() {
     return await this.appService.getHealthcheck();
   }
+
+  @Get('integrations/chatwoot')
+  async getChatwootIntegrationHealth() {
+    return await this.appService.getChatwootIntegrationHealth();
+  }
 }

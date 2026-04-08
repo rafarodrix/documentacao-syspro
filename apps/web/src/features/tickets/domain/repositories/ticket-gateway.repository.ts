@@ -3,9 +3,9 @@ import type {
   TicketApi,
   TicketArticle,
   TicketDetails,
-  TicketGlobalCatalog,
   TicketUser,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/ticket-api";
+import type { TicketGlobalCatalog } from "@dosc-syspro/contracts/ticket-global-settings";
 
 export type TicketRequestOptions = {
   cacheTtlSeconds?: number;

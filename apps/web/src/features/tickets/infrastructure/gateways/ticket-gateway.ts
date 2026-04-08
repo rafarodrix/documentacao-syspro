@@ -3,18 +3,20 @@ import {
   ticketApiSchema,
   ticketArticleSchema,
   ticketDetailsSchema,
+  ticketUserSchema,
   type OperationalTicket,
   type TicketApi,
   type TicketArticle,
   type TicketDetails,
+  type TicketUser,
+} from "@dosc-syspro/contracts/ticket-api";
+import {
   type TicketCatalogGroup,
   type TicketCatalogState,
   type TicketCatalogPriority,
   type TicketCatalogOwner,
   type TicketGlobalCatalog,
-  ticketUserSchema,
-  type TicketUser,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/ticket-global-settings";
 import { OPERATIONAL_STATE_IDS } from "@dosc-syspro/core";
 import type {
   TicketGatewayRepository,
@@ -29,7 +31,7 @@ import {
   getTicketToken,
 } from "./ticket-http-client";
 
-const ZAMMAD_USER_ID_CACHE_TTL_MS = Number(process.env.ZAMMAD_USER_ID_CACHE_TTL_MS ?? 300000);
+const TICKET_USER_ID_CACHE_TTL_MS = Number(process.env.TICKET_USER_ID_CACHE_TTL_MS ?? 300000);
 const userIdCache = new Map<string, { value: number | null; expiresAt: number }>();
 
 function getUserIdCacheKey(email: string): string {
@@ -51,7 +53,7 @@ function cacheUserId(email: string, value: number | null) {
   const key = getUserIdCacheKey(email);
   userIdCache.set(key, {
     value,
-    expiresAt: Date.now() + ZAMMAD_USER_ID_CACHE_TTL_MS,
+    expiresAt: Date.now() + TICKET_USER_ID_CACHE_TTL_MS,
   });
 }
 
@@ -172,7 +174,7 @@ function buildCustomerEmailsFallbackQuery(emails: string[]): string {
 }
 
 export const TicketGateway: TicketGatewayRepository = {
-  async getGlobalCatalog(routeKey = "app-configuracoes-zammad"): Promise<TicketGlobalCatalog> {
+  async getGlobalCatalog(routeKey = "app-configuracoes-tickets"): Promise<TicketGlobalCatalog> {
     const [groupsRaw, statesRaw, prioritiesRaw, ownersRaw] = await Promise.all([
       fetchTicketApi("groups?per_page=200", { cache: "no-store" }, { routeKey }),
       fetchTicketApi("ticket_states?per_page=200", { cache: "no-store" }, { routeKey }),
@@ -435,7 +437,7 @@ export const TicketGateway: TicketGatewayRepository = {
   async getTicketById(ticketId: string | number): Promise<TicketDetails> {
     const data = await fetchTicketApi(`tickets/${ticketId}`, { cache: "no-store" });
     const parsed = ticketDetailsSchema.safeParse(data);
-    if (!parsed.success) throw new Error("Formato de ticket invalido retornado pelo Zammad.");
+    if (!parsed.success) throw new Error("Formato de ticket invalido retornado pelo backend.");
     return parsed.data;
   },
 

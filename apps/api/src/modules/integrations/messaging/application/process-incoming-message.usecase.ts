@@ -2,23 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { EvolutionClient } from '../../evolution/evolution.client';
+import { IntegrationWebhookDedupService } from './integration-webhook-dedup.service';
 
 @Injectable()
 export class ProcessIncomingMessageUseCase {
   private readonly logger = new Logger(ProcessIncomingMessageUseCase.name);
-  private readonly processedMessageIds = new Map<string, number>();
-  private readonly processedMessageTtlMs = 10 * 60 * 1000;
-  private dedupTableUnavailableLogged = false;
 
   constructor(
     private readonly chatwootClient: ChatwootClient,
     private readonly prisma: PrismaService,
-    private readonly evolutionClient: EvolutionClient
+    private readonly evolutionClient: EvolutionClient,
+    private readonly dedupService: IntegrationWebhookDedupService,
   ) {}
 
   async execute(payload: any, context?: { instanceId?: string }) {
     const messages = Array.isArray(payload) ? payload : (payload?.messages || [payload?.message || payload]);
-    this.cleanupProcessedMessages();
     const instanceId = context?.instanceId ?? null;
 
     for (const msg of messages) {
@@ -28,13 +26,9 @@ export class ProcessIncomingMessageUseCase {
       if (fromMe) continue;
 
       const messageId = (msg?.key?.id ?? msg?.Info?.ID ?? msg?.info?.ID)?.toString();
-      if (messageId && this.isDuplicateMessage(messageId)) {
-        this.logger.debug(`Mensagem duplicada ignorada: ${messageId}`);
-        continue;
-      }
-
       if (messageId) {
-        const dedupeClaimed = await this.claimDedupEvent('evolution_inbound', messageId, instanceId);
+        const providerEventId = `message:${messageId}`;
+        const dedupeClaimed = await this.dedupService.claim('evolution_inbound', providerEventId, instanceId);
         if (!dedupeClaimed) {
           this.logger.debug(JSON.stringify({
             flow: 'evolution_to_chatwoot',
@@ -179,6 +173,13 @@ export class ProcessIncomingMessageUseCase {
 
       if (!chatwootStatus) continue;
 
+      const dedupeClaimed = await this.dedupService.claim(
+        'evolution_status',
+        `status:${evolutionMsgId}:${chatwootStatus}`,
+        null
+      );
+      if (!dedupeClaimed) continue;
+
       try {
         const link = await (this.prisma as any).messageLink.findUnique({
           where: { evolutionMessageId: evolutionMsgId }
@@ -252,7 +253,10 @@ export class ProcessIncomingMessageUseCase {
         throw new Error(`Nao foi possivel resolver source_id publico do contato no Chatwoot (contact_id=${contact?.id ?? 'n/a'})`);
       }
 
-      const convResponse = (await this.chatwootClient.createConversation(contactIdentifier)) as any;
+      const convResponse = (await this.chatwootClient.createConversation(
+        contactIdentifier,
+        contact?.id?.toString?.()
+      )) as any;
       conversationId =
         convResponse?.id?.toString?.() ??
         convResponse?.payload?.id?.toString?.() ??
@@ -292,57 +296,5 @@ export class ProcessIncomingMessageUseCase {
     }
 
     return { contactIdentifier, conversationId };
-  }
-
-  private async claimDedupEvent(provider: string, eventKey: string, instanceId: string | null): Promise<boolean> {
-    try {
-      const rows = await this.prisma.$executeRawUnsafe(
-        `
-        INSERT INTO "integration_webhook_dedup" ("id", "provider", "eventKey", "instanceId", "createdAt")
-        VALUES ($1 || ':' || $2, $1, $2, $3, NOW())
-        ON CONFLICT ("provider", "eventKey") DO NOTHING
-        `,
-        provider,
-        eventKey,
-        instanceId
-      );
-      return Number(rows) > 0;
-    } catch (error: any) {
-      const relationMissing =
-        error?.code === 'P2010' &&
-        (error?.meta?.code === '42P01' ||
-          String(error?.meta?.message || '').toLowerCase().includes('does not exist'));
-
-      if (relationMissing) {
-        if (!this.dedupTableUnavailableLogged) {
-          this.logger.warn(
-            'Tabela integration_webhook_dedup ausente. Deduplicacao em banco desabilitada ate aplicar migracoes.'
-          );
-          this.dedupTableUnavailableLogged = true;
-        }
-        return true;
-      }
-
-      throw error;
-    }
-  }
-
-  private isDuplicateMessage(messageId: string): boolean {
-    const now = Date.now();
-    const existing = this.processedMessageIds.get(messageId);
-    if (existing && now - existing <= this.processedMessageTtlMs) {
-      return true;
-    }
-    this.processedMessageIds.set(messageId, now);
-    return false;
-  }
-
-  private cleanupProcessedMessages(): void {
-    const now = Date.now();
-    for (const [messageId, timestamp] of this.processedMessageIds.entries()) {
-      if (now - timestamp > this.processedMessageTtlMs) {
-        this.processedMessageIds.delete(messageId);
-      }
-    }
   }
 }
