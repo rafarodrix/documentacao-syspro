@@ -14,16 +14,16 @@ import type { TicketDetailsResponse, TicketMutationResponse, ClosedTicketsWindow
 const CREATE_TICKET_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
 
-type ConversationStatusApi = "NEW" | "UNASSIGNED" | "IN_PROGRESS" | "WAITING_CUSTOMER" | "RESOLVED" | "ARCHIVED";
-type ConversationPriorityApi = "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
-type ConversationChannelApi = "WHATSAPP" | "EMAIL" | "PORTAL" | "PHONE";
-type ConversationDirectionApi = "INBOUND" | "OUTBOUND" | "INTERNAL";
-type ConversationMessageTypeApi = "TEXT" | "IMAGE" | "DOCUMENT" | "AUDIO";
+type TicketStatusApi = "NEW" | "UNASSIGNED" | "IN_PROGRESS" | "WAITING_CUSTOMER" | "RESOLVED" | "ARCHIVED";
+type TicketPriorityApi = "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
+type TicketChannelApi = "WHATSAPP" | "EMAIL" | "PORTAL" | "PHONE";
+type TicketDirectionApi = "INBOUND" | "OUTBOUND" | "INTERNAL";
+type TicketMessageTypeApi = "TEXT" | "IMAGE" | "DOCUMENT" | "AUDIO";
 
 type ApiTicketMessage = {
   id: string;
-  direction: ConversationDirectionApi;
-  type: ConversationMessageTypeApi;
+  direction: TicketDirectionApi;
+  type: TicketMessageTypeApi;
   body: string | null;
   createdAt: string;
   authorUser?: { id: string; name: string | null; email: string } | null;
@@ -32,9 +32,9 @@ type ApiTicketMessage = {
 
 type ApiTicket = {
   id: string;
-  channel: ConversationChannelApi;
-  status: ConversationStatusApi;
-  priority: ConversationPriorityApi;
+  channel: TicketChannelApi;
+  status: TicketStatusApi;
+  priority: TicketPriorityApi;
   companyId: string | null;
   company?: { id: string; razaoSocial: string; nomeFantasia: string | null } | null;
   companyContactId: string | null;
@@ -87,20 +87,20 @@ function isSystemRole(role: Role): boolean {
   return SYSTEM_ROLES.has(role);
 }
 
-function mapPriorityToLevel(priority: ConversationPriorityApi | string | null | undefined): number {
+function mapPriorityToLevel(priority: TicketPriorityApi | string | null | undefined): number {
   if (priority === "LOW") return 1;
   if (priority === "HIGH" || priority === "CRITICAL") return 3;
   return 2;
 }
 
-function parsePriorityFromForm(value: string): ConversationPriorityApi {
+function parsePriorityFromForm(value: string): TicketPriorityApi {
   const firstToken = (value || "").trim().toLowerCase().split(/\s+/)[0];
   if (firstToken === "1" || firstToken === "low" || firstToken === "baixa") return "LOW";
   if (firstToken === "3" || firstToken === "high" || firstToken === "alta" || firstToken === "urgent") return "HIGH";
   return "NORMAL";
 }
 
-function mapStatusLabel(status: ConversationStatusApi | string): string {
+function mapStatusLabel(status: TicketStatusApi | string): string {
   switch (status) {
     case "NEW":
       return "Novo";

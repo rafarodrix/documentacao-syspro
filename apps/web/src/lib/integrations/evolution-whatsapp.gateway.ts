@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Gateway para envio de mensagens WhatsApp via apps/api.
  * O apps/web nao deve acessar Evolution API diretamente.
  */

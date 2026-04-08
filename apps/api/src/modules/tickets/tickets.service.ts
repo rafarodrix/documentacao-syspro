@@ -1,15 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import {
-  ConversationAssignmentStatus,
-  ConversationAssignmentType,
-  ConversationMessageDirection,
-  ConversationMessageStatus,
-  ConversationMessageType,
-  ConversationParticipantKind,
-  ConversationChannel,
-  ConversationEntryPoint,
-  ConversationPriority,
-  ConversationStatus,
+  ConversationAssignmentStatus as TicketAssignmentStatus,
+  ConversationAssignmentType as TicketAssignmentType,
+  ConversationMessageDirection as TicketMessageDirection,
+  ConversationMessageStatus as TicketMessageStatus,
+  ConversationMessageType as TicketMessageType,
+  ConversationParticipantKind as TicketParticipantKind,
+  ConversationChannel as TicketChannel,
+  ConversationEntryPoint as TicketEntryPoint,
+  ConversationPriority as TicketPriority,
+  ConversationStatus as TicketStatus,
   Prisma,
   Role,
 } from '@prisma/client';
@@ -41,10 +41,10 @@ export class TicketsService {
 
     const conversation = await this.prisma.conversation.create({
       data: {
-        channel: data.channel ?? ConversationChannel.PORTAL,
-        entryPoint: data.entryPoint ?? ConversationEntryPoint.INBOUND,
-        status: ConversationStatus.NEW,
-        priority: data.priority ?? ConversationPriority.NORMAL,
+        channel: data.channel ?? TicketChannel.PORTAL,
+        entryPoint: data.entryPoint ?? TicketEntryPoint.INBOUND,
+        status: TicketStatus.NEW,
+        priority: data.priority ?? TicketPriority.NORMAL,
         subject: data.title,
         ticketNumber,
         companyId: data.companyId,
@@ -52,12 +52,12 @@ export class TicketsService {
         assignedUserId: requester.userId,
         messages: {
           create: {
-            direction: ConversationMessageDirection.INTERNAL,
-            type: ConversationMessageType.TEXT,
-            authorKind: ConversationParticipantKind.USER,
+            direction: TicketMessageDirection.INTERNAL,
+            type: TicketMessageType.TEXT,
+            authorKind: TicketParticipantKind.USER,
             authorUserId: requester.userId,
             body: data.description,
-            status: ConversationMessageStatus.SENT,
+            status: TicketMessageStatus.SENT,
             sentAt: new Date(),
           },
         },
@@ -83,8 +83,8 @@ export class TicketsService {
 
     const where: Prisma.ConversationWhereInput = {};
 
-    if (input.status && Object.values(ConversationStatus).includes(input.status as ConversationStatus)) {
-      where.status = input.status as ConversationStatus;
+    if (input.status && Object.values(TicketStatus).includes(input.status as TicketStatus)) {
+      where.status = input.status as TicketStatus;
     }
 
     if (input.assignedUserId) {
@@ -181,12 +181,12 @@ export class TicketsService {
     const created = await this.prisma.conversationMessage.create({
       data: {
         conversationId: id,
-        direction: ConversationMessageDirection.INTERNAL,
-        type: ConversationMessageType.TEXT,
-        authorKind: ConversationParticipantKind.USER,
+        direction: TicketMessageDirection.INTERNAL,
+        type: TicketMessageType.TEXT,
+        authorKind: TicketParticipantKind.USER,
         authorUserId: requester.userId,
         body: message.trim(),
-        status: ConversationMessageStatus.SENT,
+        status: TicketMessageStatus.SENT,
         sentAt: new Date(),
       },
       include: {
@@ -221,8 +221,8 @@ export class TicketsService {
           status: input.status,
           priority: input.priority,
           assignedUserId: input.assignedUserId,
-          closedAt: input.status === ConversationStatus.RESOLVED || input.status === ConversationStatus.ARCHIVED ? new Date() : null,
-          resolvedByUserId: input.status === ConversationStatus.RESOLVED ? requester.userId : null,
+          closedAt: input.status === TicketStatus.RESOLVED || input.status === TicketStatus.ARCHIVED ? new Date() : null,
+          resolvedByUserId: input.status === TicketStatus.RESOLVED ? requester.userId : null,
         },
       });
 
@@ -232,8 +232,8 @@ export class TicketsService {
             conversationId: id,
             assignedUserId: input.assignedUserId,
             assignedByUserId: requester.userId,
-            assignmentType: ConversationAssignmentType.MANUAL,
-            status: ConversationAssignmentStatus.ACTIVE,
+            assignmentType: TicketAssignmentType.MANUAL,
+            status: TicketAssignmentStatus.ACTIVE,
           },
         });
       }

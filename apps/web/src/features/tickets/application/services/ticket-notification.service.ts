@@ -1,4 +1,4 @@
-import { evolutionWhatsApp } from "@/features/conversations/infrastructure/gateways/evolution-whatsapp.gateway";
+import { evolutionWhatsApp } from "@/lib/integrations/evolution-whatsapp.gateway";
 import { prisma } from "@/lib/prisma";
 
 export type TicketNotificationType = "CREATED" | "UPDATED" | "RESOLVED";

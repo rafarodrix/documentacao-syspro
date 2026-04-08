@@ -221,15 +221,6 @@ enum ConversationAssignmentType {
   TRANSFER
 }
 
-enum ConversationQueueKey {
-  new
-  unassigned
-  in_progress
-  waiting_customer
-  resolved
-  archived
-}
-
 enum IntegrationConnectionStatus {
   ACTIVE
   INACTIVE
@@ -834,7 +825,6 @@ model Conversation {
 
   messages ConversationMessage[]
   assignments ConversationAssignment[]
-  queueEvents ConversationQueueEvent[]
 
   @@index([channel, status])
   @@index([companyId, status])
@@ -891,29 +881,6 @@ model ConversationMessage {
   @@index([authorUserId])
   @@index([authorContactId])
   @@map("conversation_message")
-}
-
-model ConversationQueueEvent {
-  id String @id @default(cuid())
-
-  conversationId String
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  queueKey ConversationQueueKey
-  enteredAt DateTime @default(now())
-  leftAt DateTime?
-  position Int?
-  assignedTeam String?
-  slaDeadlineAt DateTime?
-  breachedAt DateTime?
-  metadata Json?
-
-  createdAt DateTime @default(now())
-
-  @@index([conversationId, enteredAt])
-  @@index([queueKey, leftAt])
-  @@index([slaDeadlineAt])
-  @@map("conversation_queue_event")
 }
 
 model ConversationAssignment {

@@ -1,9 +1,12 @@
-import { ConversationPriority, ConversationStatus } from '@prisma/client';
+import {
+  ConversationPriority as TicketPriority,
+  ConversationStatus as TicketStatus,
+} from '@prisma/client';
 
 export class UpdateTicketDto {
-  status?: ConversationStatus;
+  status?: TicketStatus;
 
-  priority?: ConversationPriority;
+  priority?: TicketPriority;
 
   assignedUserId?: string;
 }

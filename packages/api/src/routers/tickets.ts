@@ -1,5 +1,5 @@
 import { prisma } from "@dosc-syspro/database";
-import { ConversationStatus, Prisma } from "@prisma/client";
+import { ConversationStatus as TicketStatus, Prisma } from "@prisma/client";
 import { ApiError, createRouter, defineMutation, defineQuery } from "../router";
 
 function parseTicketIdentifier(value: string) {
@@ -84,14 +84,14 @@ export const ticketsRouter = createRouter({
         throw new ApiError("Ticket nao encontrado.", "BAD_REQUEST");
       }
 
-      let nextStatus: ConversationStatus | undefined;
-      if (action === "resolve") nextStatus = ConversationStatus.RESOLVED;
-      if (action === "archive") nextStatus = ConversationStatus.ARCHIVED;
+      let nextStatus: TicketStatus | undefined;
+      if (action === "resolve") nextStatus = TicketStatus.RESOLVED;
+      if (action === "archive") nextStatus = TicketStatus.ARCHIVED;
       if (action === "reopen") {
         nextStatus =
-          current.status === ConversationStatus.NEW || current.status === ConversationStatus.UNASSIGNED
+          current.status === TicketStatus.NEW || current.status === TicketStatus.UNASSIGNED
             ? current.status
-            : ConversationStatus.IN_PROGRESS;
+            : TicketStatus.IN_PROGRESS;
       }
 
       const metadataPatch: Prisma.JsonObject = {
@@ -104,9 +104,9 @@ export const ticketsRouter = createRouter({
         data: {
           status: nextStatus,
           closedAt:
-            nextStatus === ConversationStatus.RESOLVED || nextStatus === ConversationStatus.ARCHIVED
+            nextStatus === TicketStatus.RESOLVED || nextStatus === TicketStatus.ARCHIVED
               ? new Date()
-              : nextStatus === ConversationStatus.IN_PROGRESS || action === "touch"
+              : nextStatus === TicketStatus.IN_PROGRESS || action === "touch"
                 ? null
                 : undefined,
           metadata: metadataPatch,

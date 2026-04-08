@@ -1,6 +1,6 @@
 ---
 title: Arquitetura do Canal WhatsApp
-description: Diretrizes tecnicas para introduzir o canal WhatsApp sem acoplar conversas, atendimento e remoto ao frontend.
+description: Diretrizes tecnicas para introduzir o canal WhatsApp sem acoplar atendimento e remoto ao frontend.
 lastUpdated: 2026-04-04
 owner: Engenharia de Plataforma
 status: draft
@@ -33,11 +33,10 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
 - o dominio e o Prisma ja possuem base para:
   - `Conversation`
   - `ConversationMessage`
-  - `ConversationQueueEvent`
   - `ConversationAssignment`
 
 <Callout type="info" title="Leitura correta do estado atual">
-  O canal ja opera com backend central em `apps/api` para inbound/outbound/listagem/resolucao/vinculo/start outbound. O `apps/web` permanece como UI/admin e proxy controlado. Bridge isolado (`apps/whatsapp-bridge`) e fila operacional dedicada continuam pendentes.
+  O canal ja opera com backend central em `apps/api` para inbound/outbound entre Evolution Go e Chatwoot. O `apps/web` permanece como UI/admin e proxy controlado, sem painel legado de mensagens. Bridge isolado (`apps/whatsapp-bridge`) e fila operacional dedicada continuam pendentes.
 </Callout>
 
 ## Estado atual real (2026-04-04)
@@ -46,9 +45,7 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
   - webhook inbound da Evolution
   - conciliacao com `CompanyContact`
   - persistencia de conversa/mensagem para trilha auditavel
-  - endpoints de conversas (`list/get/messages/send/resolve/link/start-outbound`)
 - Em producao no `apps/web`:
-  - painel operacional `/portal/conversas`
   - proxy `POST /api/webhooks/evolution` para `apps/api`
   - autenticacao de servico `x-internal-api-key` nas chamadas `web -> api`
 - Implementado como base de contrato:
@@ -127,7 +124,6 @@ RustDesk
 - `CompanyContact` para identidade operacional
 - `Conversation` para o fio da conversa
 - `ConversationMessage` para inbound e outbound
-- `ConversationQueueEvent` para fila e SLA
 - `ConversationAssignment` para assuncao e transferencia
 
 Separacao obrigatoria:
@@ -148,7 +144,7 @@ Separacao obrigatoria:
 <Steps>
   <Step>
     ### Fase 1 - Dominio e persistencia
-    Fechar migrations, contratos e adapters minimos de conversas.
+    Fechar migrations, contratos e adapters minimos do canal.
   </Step>
   <Step>
     ### Fase 2 - Backend dedicado
@@ -177,4 +173,3 @@ Esses itens ficam no backlog central para nao duplicar fonte de verdade.
 - backlog vivo: [`/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo`](/docs/manuais-tecnicos/backlog-e-pendencias/backlog-infra-monorepo)
 - arquitetura geral: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/arquitetura-aplicacao-monorepo`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/arquitetura/arquitetura-aplicacao-monorepo)
 - fonte unica do remoto: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote)
-

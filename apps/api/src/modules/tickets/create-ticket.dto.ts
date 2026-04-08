@@ -1,15 +1,19 @@
-import { ConversationChannel, ConversationEntryPoint, ConversationPriority } from '@prisma/client';
+import {
+  ConversationChannel as TicketChannel,
+  ConversationEntryPoint as TicketEntryPoint,
+  ConversationPriority as TicketPriority,
+} from '@prisma/client';
 
 export class CreateTicketDto {
   title: string = '';
 
   description: string = '';
 
-  priority?: ConversationPriority;
+  priority?: TicketPriority;
 
-  channel?: ConversationChannel;
+  channel?: TicketChannel;
 
-  entryPoint?: ConversationEntryPoint;
+  entryPoint?: TicketEntryPoint;
 
   companyId?: string;
 

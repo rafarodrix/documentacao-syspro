@@ -5,7 +5,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { sessionEvents } from "@/features/remote/infrastructure/events/session-events";
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
-import { evolutionWhatsApp } from "@/features/conversations/infrastructure/gateways/evolution-whatsapp.gateway";
+import { evolutionWhatsApp } from "@/lib/integrations/evolution-whatsapp.gateway";
 import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://suporte.trilink.com.br";

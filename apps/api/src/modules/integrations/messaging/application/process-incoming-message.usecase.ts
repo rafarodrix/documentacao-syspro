@@ -231,6 +231,21 @@ export class ProcessIncomingMessageUseCase {
     return { messageIds, chatwootStatus };
   }
 
+  private mapLegacyStatusToChatwoot(status: unknown): 'delivered' | 'read' | null {
+    const normalized = String(status ?? '').trim().toUpperCase();
+    if (!normalized) return null;
+
+    if (normalized === 'DELIVERED' || normalized === 'SERVER_ACK' || normalized === '2') {
+      return 'delivered';
+    }
+
+    if (normalized === 'READ' || normalized === 'READSELF' || normalized === 'PLAYED' || normalized === '4') {
+      return 'read';
+    }
+
+    return null;
+  }
+
   private mapReceiptStateToChatwoot(state: string): 'delivered' | 'read' | null {
     const normalized = state.toUpperCase();
     if (normalized === 'DELIVERED') return 'delivered';

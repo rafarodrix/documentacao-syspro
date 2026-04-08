@@ -35,7 +35,6 @@ import {
   HelpCircle,
   BookLock,
   Monitor,
-  MessageSquare,
   Smartphone,
 } from "lucide-react"
 
@@ -59,7 +58,6 @@ const NAV_MAIN: NavItemType[] = [
   { title: "Dashboard", href: "/portal", icon: LayoutDashboard },
   { title: "Meus Chamados", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
   { title: "Tickets", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
-  { title: "Conversas", href: "/portal/conversas", icon: MessageSquare, roles: [...SYSTEM_ROLES] },
 ]
 
 const NAV_CADASTROS: NavItemType[] = [

@@ -77,16 +77,6 @@ Observacao sobre Evolution Go:
   - `integration_webhook_dedup`
   - `company_contact`
 
-Rotas de conversa:
-
-- `GET /conversations` (listagem de conversas por filtro)
-- `GET /conversations/:conversationId` (detalhe de conversa)
-- `GET /conversations/:conversationId/messages` (mensagens da conversa)
-- `POST /conversations/send` (outbound WhatsApp para conversa existente)
-- `POST /conversations/resolve` (encerrar atendimento)
-- `POST /conversations/link` (vincular conversa a empresa/contato)
-- `POST /conversations/start-outbound` (iniciar atendimento outbound)
-
 ## Roteiro de teste ponta a ponta
 
 1. Preparar ambiente
@@ -223,8 +213,6 @@ Rotas de conversa:
 - consumo direto do `packages/api`
 - authz e error mapping reaproveitados do core do BFF
 - webhook inbound WhatsApp movido para `apps/api`
-- envio outbound de mensagens de conversa movido para `apps/api`
-- listagem/mensagens/resolucao/vinculo/start outbound de conversas movidos para `apps/api`
 - fluxo principal operando como bridge entre Evolution Go e Chatwoot
 
 ## Limite atual
