@@ -1,7 +1,6 @@
-// apps/web/src/components/platform/cadastros/user/CreateUserPageForm.tsx
 "use client";
 
-import { useEffect, useMemo, useState, type ElementType } from "react";
+import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -15,20 +14,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
-  Save,
-  Loader2,
-  Sparkles,
-  ChevronRight,
-  CheckCircle2,
   AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  ChevronRight,
+  Loader2,
+  Save,
   Shield,
+  Sparkles,
   UserRound,
-  IdCard,
 } from "lucide-react";
 import { CompanyMultiPicker, type CompanyOption } from "./CompanyMultiPicker";
-
-// ─── Constantes ────────────────────────────────────────────────────────────────
 
 const ROLE = {
   ADMIN: "ADMIN",
@@ -38,9 +34,7 @@ const ROLE = {
   CLIENTE_USER: "CLIENTE_USER",
 } as const;
 
-// ─── Tipos ─────────────────────────────────────────────────────────────────────
-
-type SectionId = "acesso" | "identidade" | "perfil";
+type SectionId = "acesso" | "identidade";
 
 type SectionConfig = {
   id: SectionId;
@@ -48,6 +42,13 @@ type SectionConfig = {
   description: string;
   icon: ElementType;
   fields: string[];
+};
+
+type ContactOption = {
+  id: string;
+  name: string;
+  whatsapp?: string | null;
+  email?: string | null;
 };
 
 export interface CreateUserPageFormProps {
@@ -59,8 +60,6 @@ export interface CreateUserPageFormProps {
   userId?: string;
   initialData?: Partial<CreateUserInput> & { additionalCompanyIds?: string[] };
 }
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function hasPath(obj: unknown, path: string): boolean {
   if (!obj || typeof obj !== "object") return false;
@@ -74,8 +73,6 @@ function hasPath(obj: unknown, path: string): boolean {
 }
 
 const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
-
-// ─── Subcomponentes ────────────────────────────────────────────────────────────
 
 function SectionNav({
   sections,
@@ -134,14 +131,6 @@ function SectionNav({
                 {hasError && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
               </div>
               <p className="text-[11px] text-muted-foreground/70 truncate">{section.description}</p>
-              {isReady && !hasError && (
-                <Badge
-                  variant="outline"
-                  className="mt-1 h-5 rounded-full border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] text-emerald-600"
-                >
-                  Pronto
-                </Badge>
-              )}
             </div>
 
             {isCurrent && <ChevronRight className="h-3.5 w-3.5 text-primary/70 mt-1 shrink-0" />}
@@ -151,8 +140,6 @@ function SectionNav({
     </aside>
   );
 }
-
-// ─── Componente principal ──────────────────────────────────────────────────────
 
 export function CreateUserPageForm({
   companies,
@@ -168,7 +155,6 @@ export function CreateUserPageForm({
 
   const [currentSection, setCurrentSection] = useState<SectionId>("acesso");
 
-  // Estado unificado de empresas: [0] = principal, [1..] = adicionais
   const [companyIds, setCompanyIds] = useState<string[]>(() => {
     const primary = initialData?.companyId;
     const additional = Array.isArray(initialData?.additionalCompanyIds)
@@ -177,12 +163,17 @@ export function CreateUserPageForm({
     return primary ? [primary, ...additional] : additional;
   });
 
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const primaryCompanyIdRef = useRef<string | undefined>(companyIds[0]);
+
   const sections: SectionConfig[] = useMemo(
     () => [
       {
         id: "acesso",
         title: "Acesso",
-        description: context === "SYSTEM" ? "Perfil interno" : "Empresa e perfil",
+        description: context === "SYSTEM" ? "Perfil interno" : "Empresa e permissoes",
         icon: Shield,
         fields: context === "CLIENT" ? ["companyId", "role"] : ["role"],
       },
@@ -191,14 +182,14 @@ export function CreateUserPageForm({
         title: "Identidade",
         description: "Dados principais de login",
         icon: UserRound,
-        fields: mode === "create" ? ["name", "email", "password"] : ["name", "email"],
-      },
-      {
-        id: "perfil",
-        title: "Perfil",
-        description: "Dados complementares",
-        icon: IdCard,
-        fields: ["jobTitle", "phone", "cpf"],
+        fields:
+          context === "CLIENT"
+            ? mode === "create"
+              ? ["name", "email", "password", "primaryContactId"]
+              : ["name", "email", "primaryContactId"]
+            : mode === "create"
+              ? ["name", "email", "password"]
+              : ["name", "email"],
       },
     ],
     [context, mode],
@@ -207,31 +198,80 @@ export function CreateUserPageForm({
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
-      name: "",
-      email: "",
+      name: initialData?.name ?? "",
+      email: initialData?.email ?? "",
       password: "",
-      role: defaultRole,
-      companyId: context === "CLIENT" ? "" : undefined,
-      jobTitle: "",
-      phone: "",
-      cpf: "",
-      ...(initialData ?? {}),
+      role: initialData?.role ?? defaultRole,
+      companyId: context === "CLIENT" ? initialData?.companyId ?? "" : undefined,
+      primaryContactId: initialData?.primaryContactId ?? "",
     },
     mode: "onTouched",
   });
 
   const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
 
-  // Sincroniza o picker com o campo companyId do form
   useEffect(() => {
     if (context !== "CLIENT") return;
     form.setValue("companyId", companyIds[0] ?? "", { shouldDirty: true, shouldValidate: true });
   }, [companyIds, context, form]);
 
+  useEffect(() => {
+    if (context !== "CLIENT") return;
+    const currentPrimary = companyIds[0];
+    const previousPrimary = primaryCompanyIdRef.current;
+
+    if (previousPrimary !== undefined && previousPrimary !== currentPrimary) {
+      form.setValue("primaryContactId", "", { shouldDirty: true, shouldValidate: true });
+    }
+
+    primaryCompanyIdRef.current = currentPrimary;
+  }, [companyIds, context, form]);
+
+  useEffect(() => {
+    if (context !== "CLIENT") return;
+    const companyId = companyIds[0];
+    if (!companyId) {
+      setContactOptions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setLoadingContacts(true);
+        const params = new URLSearchParams({ companyId, limit: "100" });
+        if (contactSearch.trim()) {
+          params.set("q", contactSearch.trim());
+        }
+
+        const response = await fetch(`/api/contacts?${params.toString()}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          setContactOptions([]);
+          return;
+        }
+
+        const payload = (await response.json()) as ContactOption[];
+        setContactOptions(Array.isArray(payload) ? payload : []);
+      } catch {
+        setContactOptions([]);
+      } finally {
+        setLoadingContacts(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [companyIds, contactSearch, context]);
+
   const sectionStateMap = useMemo(() => {
     return sections.reduce<Record<SectionId, "error" | "ready" | "idle">>((acc, section) => {
       const hasError = section.fields.some((field) => hasPath(errors, field));
-      if (hasError) { acc[section.id] = "error"; return acc; }
+      if (hasError) {
+        acc[section.id] = "error";
+        return acc;
+      }
       const touched = section.fields.some((field) => hasPath(dirtyFields, field));
       acc[section.id] = touched ? "ready" : "idle";
       return acc;
@@ -243,17 +283,16 @@ export function CreateUserPageForm({
 
     if (context === "SYSTEM") {
       payload.companyId = undefined;
+      payload.primaryContactId = undefined;
     } else {
       payload.companyId = companyIds[0] ?? "";
       payload.additionalCompanyIds = companyIds.slice(1);
+      payload.primaryContactId = (data.primaryContactId || "").trim();
     }
 
     if (mode === "edit" && !payload.password) payload.password = undefined;
 
-    const url = mode === "edit" && userId 
-      ? `/api/users/${userId}` 
-      : "/api/users";
-      
+    const url = mode === "edit" && userId ? `/api/users/${userId}` : "/api/users";
     const method = mode === "edit" && userId ? "PUT" : "POST";
 
     try {
@@ -266,15 +305,15 @@ export function CreateUserPageForm({
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        toast.error(errData?.message || (mode === "edit" ? "Erro ao atualizar usuário." : "Erro ao cadastrar usuário."));
+        toast.error(errData?.message || (mode === "edit" ? "Erro ao atualizar usuario." : "Erro ao cadastrar usuario."));
         return;
       }
 
-      toast.success(mode === "edit" ? "Usuário atualizado com sucesso." : "Usuário cadastrado com sucesso.");
+      toast.success(mode === "edit" ? "Usuario atualizado com sucesso." : "Usuario cadastrado com sucesso.");
       router.push(backHref);
       router.refresh();
-    } catch (err) {
-      toast.error("Erro na comunicação com o servidor.");
+    } catch {
+      toast.error("Erro na comunicacao com o servidor.");
     }
   };
 
@@ -283,14 +322,17 @@ export function CreateUserPageForm({
   const progressPct = Math.round(((currentIndex + 1) / sections.length) * 100);
   const hasErrors = Object.keys(errors).length > 0;
 
-  const title = mode === "edit"
-    ? context === "SYSTEM" ? "Editar Analista de Sistemas" : "Editar Usuário"
-    : context === "SYSTEM" ? "Novo Analista de Sistemas" : "Novo Usuário";
+  const title =
+    mode === "edit"
+      ? context === "SYSTEM"
+        ? "Editar Analista de Sistemas"
+        : "Editar Usuario"
+      : context === "SYSTEM"
+        ? "Novo Analista de Sistemas"
+        : "Novo Usuario";
 
   return (
     <div className="relative w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card/95 overflow-hidden shadow-xl">
-
-      {/* Header */}
       <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4 bg-gradient-to-r from-muted/30 via-background to-muted/20">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
@@ -298,7 +340,7 @@ export function CreateUserPageForm({
             {title}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {currentSectionConfig.title} — {currentSectionConfig.description}
+            {currentSectionConfig.title} - {currentSectionConfig.description}
           </p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
@@ -307,44 +349,31 @@ export function CreateUserPageForm({
         </Button>
       </div>
 
-      {/* Progress */}
       <div className="border-b border-border/50 px-6 py-3 bg-muted/20">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
           <span>Progresso do cadastro</span>
-          <span className="font-medium text-foreground">{currentIndex + 1}/{sections.length}</span>
+          <span className="font-medium text-foreground">
+            {currentIndex + 1}/{sections.length}
+          </span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted">
-          <div
-            className="h-1.5 rounded-full bg-primary transition-all duration-300"
-            style={{ width: `${progressPct}%` }}
-          />
+          <div className="h-1.5 rounded-full bg-primary transition-all duration-300" style={{ width: `${progressPct}%` }} />
         </div>
       </div>
 
-      {/* Body */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col md:flex-row min-h-[calc(100vh-260px)]">
-
-          <SectionNav
-            sections={sections}
-            current={currentSection}
-            stateMap={sectionStateMap}
-            onSelect={setCurrentSection}
-          />
+          <SectionNav sections={sections} current={currentSection} stateMap={sectionStateMap} onSelect={setCurrentSection} />
 
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-y-auto p-6">
               <div key={currentSection} className="animate-in fade-in slide-in-from-right-2 duration-200">
-
-                {/* ── SEÇíO: ACESSO ─────────────────────────────────────────── */}
                 {currentSection === "acesso" && (
                   <Card className="border-border/60 bg-card/95">
                     <CardHeader>
-                      <CardTitle className="text-base">Escopo e Permissões</CardTitle>
+                      <CardTitle className="text-base">Escopo e Permissoes</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-5">
-
-                      {/* Empresas — CLIENT ONLY */}
                       {context === "CLIENT" && (
                         <FormField
                           control={form.control}
@@ -359,20 +388,19 @@ export function CreateUserPageForm({
                                 error={fieldState.error?.message}
                               />
                               <p className="text-[11px] text-muted-foreground">
-                                A primeira empresa selecionada será a principal. As demais são vínculos adicionais.
+                                A primeira empresa selecionada sera a principal. As demais sao vinculos adicionais.
                               </p>
                             </FormItem>
                           )}
                         />
                       )}
 
-                      {/* Nível de acesso */}
                       <FormField
                         control={form.control}
                         name="role"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nível de acesso</FormLabel>
+                            <FormLabel>Nivel de acesso</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger>
@@ -382,7 +410,7 @@ export function CreateUserPageForm({
                               <SelectContent>
                                 {context === "CLIENT" && (
                                   <>
-                                    <SelectItem value={ROLE.CLIENTE_USER}>Usuário</SelectItem>
+                                    <SelectItem value={ROLE.CLIENTE_USER}>Usuario</SelectItem>
                                     <SelectItem value={ROLE.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
                                   </>
                                 )}
@@ -403,11 +431,10 @@ export function CreateUserPageForm({
                   </Card>
                 )}
 
-                {/* ── SEÇíO: IDENTIDADE ─────────────────────────────────────── */}
                 {currentSection === "identidade" && (
                   <Card className="border-border/60 bg-card/95">
                     <CardHeader>
-                      <CardTitle className="text-base">Dados do Usuário</CardTitle>
+                      <CardTitle className="text-base">Dados do Usuario</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -447,79 +474,85 @@ export function CreateUserPageForm({
                             <FormItem>
                               <FormLabel>Senha de acesso</FormLabel>
                               <FormControl>
-                                <Input type="password" placeholder="Mínimo 6 caracteres" {...field} value={toInputValue(field.value)} />
+                                <Input type="password" placeholder="Minimo 6 caracteres" {...field} value={toInputValue(field.value)} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
                       )}
+
+                      {context === "CLIENT" && (
+                        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+                          <div>
+                            <p className="text-sm font-medium">Contato principal</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Vincula este usuario a um contato da empresa principal selecionada.
+                            </p>
+                          </div>
+
+                          <Input
+                            placeholder="Buscar contato por nome, email ou whatsapp..."
+                            value={contactSearch}
+                            onChange={(event) => setContactSearch(event.target.value)}
+                            disabled={!companyIds[0]}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="primaryContactId"
+                            render={({ field }) => {
+                              const selectValue = toInputValue(field.value) || "__none__";
+                              return (
+                                <FormItem>
+                                  <FormLabel>Contato vinculado</FormLabel>
+                                  <Select
+                                    onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
+                                    value={selectValue}
+                                    disabled={!companyIds[0] || loadingContacts}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue
+                                          placeholder={
+                                            !companyIds[0]
+                                              ? "Selecione a empresa principal primeiro"
+                                              : loadingContacts
+                                                ? "Carregando contatos..."
+                                                : "Selecione um contato"
+                                          }
+                                        />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Sem contato vinculado</SelectItem>
+                                      {contactOptions.map((contact) => (
+                                        <SelectItem key={contact.id} value={contact.id}>
+                                          {contact.name}
+                                          {contact.whatsapp ? ` - ${contact.whatsapp}` : contact.email ? ` - ${contact.email}` : ""}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              );
+                            }}
+                          />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}
-
-                {/* ── SEÇíO: PERFIL ─────────────────────────────────────────── */}
-                {currentSection === "perfil" && (
-                  <Card className="border-border/60 bg-card/95">
-                    <CardHeader>
-                      <CardTitle className="text-base">Informações complementares</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="jobTitle"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Cargo</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Cargo" {...field} value={toInputValue(field.value)} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Telefone</FormLabel>
-                              <FormControl>
-                                <Input placeholder="(00) 00000-0000" {...field} value={toInputValue(field.value)} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="cpf"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>CPF</FormLabel>
-                              <FormControl>
-                                <Input placeholder="000.000.000-00" {...field} value={toInputValue(field.value)} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
               </div>
             </div>
 
-            {/* Footer */}
             <div className="border-t border-border/50 px-6 py-4 flex items-center justify-between">
               <div>
                 {hasErrors && (
                   <Badge variant="destructive" className="text-[11px] gap-1 font-medium">
                     <AlertCircle className="h-3 w-3" />
-                    Campos inválidos
+                    Campos invalidos
                   </Badge>
                 )}
               </div>
@@ -528,14 +561,11 @@ export function CreateUserPageForm({
                   Cancelar
                 </Button>
                 <Button type="submit" className="gap-2" disabled={isSubmitting || !isDirty}>
-                  {isSubmitting
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <Save className="h-4 w-4" />}
-                  {mode === "edit" ? "Salvar Alterações" : "Salvar Cadastro"}
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {mode === "edit" ? "Salvar Alteracoes" : "Salvar Cadastro"}
                 </Button>
               </div>
             </div>
-
           </div>
         </form>
       </Form>

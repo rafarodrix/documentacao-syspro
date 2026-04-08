@@ -28,6 +28,7 @@ export const createUserSchema = z.object({
   password: z.string().min(6, "A senha deve ter no minimo 6 caracteres").optional().or(z.literal("")),
   role: z.enum(USER_ROLE_VALUES),
   companyId: z.string().optional(),
+  primaryContactId: z.string().optional().or(z.literal("")),
   jobTitle: z.string().max(50, "Cargo muito longo").optional().or(z.literal("")),
   phone: z.string().regex(phoneRegex, "Formato invalido. Use (DD) 99999-9999").optional().or(z.literal("")),
   cpf: optionalCpfSchema,

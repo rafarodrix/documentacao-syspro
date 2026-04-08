@@ -13,6 +13,7 @@ export interface UserAccessEditInitialData {
   role: Role;
   companyId?: string;
   additionalCompanyIds?: string[];
+  primaryContactId?: string;
   jobTitle: string;
   phone: string;
   cpf: string;

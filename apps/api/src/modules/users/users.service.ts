@@ -14,6 +14,7 @@ type CreateUserInput = {
   role?: Role;
   companyId?: string;
   additionalCompanyIds?: string[];
+  primaryContactId?: string;
   cpf?: string;
   jobTitle?: string;
   phone?: string;
@@ -25,6 +26,7 @@ type UpdateUserInput = {
   role?: Role;
   companyId?: string;
   additionalCompanyIds?: string[];
+  primaryContactId?: string | null;
   isActive?: boolean;
   cpf?: string;
   jobTitle?: string;
@@ -171,6 +173,11 @@ export class UsersService {
         });
       }
 
+      const normalizedPrimaryContactId = this.normalizeContactId(data.primaryContactId);
+      if (data.companyId) {
+        await this.syncPrimaryContactLink(tx, createdUserId, data.companyId, normalizedPrimaryContactId);
+      }
+
       return tx.user.findUnique({
         where: { id: createdUserId },
         include: { memberships: { include: { company: true } } },
@@ -206,6 +213,8 @@ export class UsersService {
     if (isClientManager && desiredCompanyIds?.some((companyId) => !managedCompanyIds.includes(companyId))) {
       throw new ForbiddenException('Uma ou mais empresas informadas sao invalidas para este gestor.');
     }
+
+    const normalizedPrimaryContactId = this.normalizeContactId(data.primaryContactId);
 
     return this.prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
@@ -245,6 +254,22 @@ export class UsersService {
         );
       }
 
+      if (desiredCompanyIds) {
+        if (isClientManager) {
+          await tx.userContactLink.deleteMany({
+            where: { userId: id, companyId: { in: managedCompanyIds, notIn: desiredCompanyIds } },
+          });
+        } else {
+          await tx.userContactLink.deleteMany({
+            where: { userId: id, companyId: { notIn: desiredCompanyIds } },
+          });
+        }
+      }
+
+      if (data.companyId) {
+        await this.syncPrimaryContactLink(tx, id, data.companyId, normalizedPrimaryContactId);
+      }
+
       return updatedUser;
     });
   }
@@ -264,8 +289,14 @@ export class UsersService {
     const requester = await this.getRequester(rawHeaders);
     await this.assertCanManageMembershipChange(requester, userId, companyId);
 
-    return this.prisma.membership.delete({
-      where: { userId_companyId: { userId, companyId } },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.userContactLink.deleteMany({
+        where: { userId, companyId },
+      });
+
+      return tx.membership.delete({
+        where: { userId_companyId: { userId, companyId } },
+      });
     });
   }
 
@@ -398,6 +429,13 @@ export class UsersService {
         memberships: {
           select: { companyId: true },
         },
+        contactLinks: {
+          select: {
+            companyId: true,
+            contactId: true,
+            isPrimary: true,
+          },
+        },
       },
     });
 
@@ -426,6 +464,8 @@ export class UsersService {
         role: user.role,
         companyId: user.memberships[0]?.companyId ?? '',
         additionalCompanyIds: user.memberships.slice(1).map((m) => m.companyId),
+        primaryContactId:
+          user.contactLinks.find((link) => link.companyId === (user.memberships[0]?.companyId ?? ''))?.contactId ?? '',
         jobTitle: user.jobTitle ?? '',
         phone: user.phone ?? '',
         cpf: user.cpf ?? '',
@@ -465,6 +505,7 @@ export class UsersService {
         name: user.name ?? '',
         email: user.email,
         role: user.role,
+        primaryContactId: '',
         jobTitle: user.jobTitle ?? '',
         phone: user.phone ?? '',
         cpf: user.cpf ?? '',
@@ -475,6 +516,52 @@ export class UsersService {
 
   private isSystemRole(role: Role) {
     return SYSTEM_ROLES.includes(role);
+  }
+
+  private normalizeContactId(value?: string | null): string | null {
+    if (value === null || value === undefined) return null;
+    const trimmed = String(value).trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private async syncPrimaryContactLink(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    companyId: string,
+    primaryContactId: string | null,
+  ) {
+    if (!primaryContactId) {
+      await tx.userContactLink.deleteMany({
+        where: { userId, companyId },
+      });
+      return;
+    }
+
+    const contact = await tx.companyContact.findFirst({
+      where: {
+        id: primaryContactId,
+        companyId,
+      },
+      select: { id: true },
+    });
+
+    if (!contact) {
+      throw new ForbiddenException('Contato informado nao pertence a empresa principal selecionada.');
+    }
+
+    await tx.userContactLink.upsert({
+      where: { userId_companyId: { userId, companyId } },
+      create: {
+        userId,
+        companyId,
+        contactId: primaryContactId,
+        isPrimary: true,
+      },
+      update: {
+        contactId: primaryContactId,
+        isPrimary: true,
+      },
+    });
   }
 
   private async getManagedCompanyIds(userId: string) {

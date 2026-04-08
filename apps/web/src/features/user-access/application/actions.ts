@@ -130,6 +130,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
         role: validation.data.role as Role,
         companyId: data.companyId,
         additionalCompanyIds,
+        primaryContactId: validation.data.primaryContactId || null,
         cpf: validation.data.cpf ?? null,
         jobTitle: validation.data.jobTitle || null,
         phone: validation.data.phone || null,

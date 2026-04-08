@@ -285,6 +285,7 @@ model Company {
   contracts         Contract[]
   memberships       Membership[]
   contacts          CompanyContact[]
+  userContactLinks  UserContactLink[]
   conversations     Conversation[]
   remoteHosts       RemoteHost[]
   remoteHostSysproUpdates RemoteHostSysproUpdate[]
@@ -323,6 +324,7 @@ model CompanyContact {
 
   conversations Conversation[]
   authoredConversationMessages ConversationMessage[] @relation("ConversationMessageAuthorContact")
+  userLinks UserContactLink[]
 
   @@index([companyId, status])
   @@index([whatsapp])
@@ -411,6 +413,7 @@ model User {
 
   // RELAÃƒâ€¡Ãƒâ€¢ES
   memberships Membership[]
+  contactLinks UserContactLink[]
   sessions    Session[]
   accounts    Account[]
   assignedConversations Conversation[] @relation("ConversationAssignedUser")
@@ -431,6 +434,29 @@ model User {
   @@index([isActive])
   @@index([cpf])
   @@map("user")
+}
+
+model UserContactLink {
+  id String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  contactId String
+  contact CompanyContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+  @@index([contactId])
+  @@map("user_contact_link")
 }
 
 // RelaÃƒÂ§ÃƒÂ£o entre UsuÃƒÂ¡rio e Empresa (Tabela PivÃƒÂ´)
