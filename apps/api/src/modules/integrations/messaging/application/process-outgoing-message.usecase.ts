@@ -333,7 +333,7 @@ export class ProcessOutgoingMessageUseCase {
   }
 
   private async resolvePhoneFromConversationDetails(
-    connection: ResolvedIntegrationContext | undefined,
+    connection: ResolvedIntegrationContext | null | undefined,
     chatwootConversationId: string,
   ): Promise<string | null> {
     if (!connection) return null;

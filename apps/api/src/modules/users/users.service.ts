@@ -131,17 +131,6 @@ export class UsersService {
     const desiredCompanyIds = Array.from(new Set([data.companyId, ...(data.additionalCompanyIds || [])].filter(Boolean) as string[]));
     const normalizedPrimaryContactId = this.normalizeContactId(data.primaryContactId);
 
-    const derivedContact =
-      data.companyId && normalizedPrimaryContactId
-        ? await this.prisma.companyContact.findFirst({
-            where: {
-              id: normalizedPrimaryContactId,
-              companyId: data.companyId,
-            },
-            select: { id: true, name: true },
-          })
-        : null;
-
     if (isClientManager) {
       const managedCompanyIds = await this.getManagedCompanyIds(requester.userId);
       if (!data.companyId || !managedCompanyIds.includes(data.companyId)) {
@@ -161,7 +150,7 @@ export class UsersService {
         headers: new Headers(),
         body: {
           email: data.email,
-          name: derivedContact?.name || data.name || 'Sem nome',
+          name: data.name || 'Sem nome',
           password: data.password || Math.random().toString(36).slice(-10),
           role: 'user',
         },
@@ -177,7 +166,7 @@ export class UsersService {
       await tx.user.update({
         where: { id: createdUserId },
         data: {
-          name: derivedContact?.name || data.name || null,
+          name: data.name || null,
           role: data.role || Role.CLIENTE_USER,
           cpf: data.cpf || null,
           jobTitle: data.jobTitle || null,
@@ -240,22 +229,12 @@ export class UsersService {
     }
 
     const normalizedPrimaryContactId = this.normalizeContactId(data.primaryContactId);
-    const derivedContact =
-      data.companyId && normalizedPrimaryContactId
-        ? await this.prisma.companyContact.findFirst({
-            where: {
-              id: normalizedPrimaryContactId,
-              companyId: data.companyId,
-            },
-            select: { id: true, name: true },
-          })
-        : null;
 
     return this.prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
         where: { id },
         data: {
-          name: this.resolveUserName(data.name, derivedContact?.name),
+          name: this.resolveUserName(data.name),
           email: data.email,
           role: data.role,
           isActive: data.isActive,
@@ -602,10 +581,7 @@ export class UsersService {
     return trimmed.length > 0 ? trimmed : null;
   }
 
-  private resolveUserName(inputName?: string | null, contactName?: string | null): string | undefined {
-    const derived = String(contactName ?? '').trim();
-    if (derived) return derived;
-
+  private resolveUserName(inputName?: string | null): string | undefined {
     if (inputName === undefined) return undefined;
     const normalized = String(inputName ?? '').trim();
     return normalized || undefined;

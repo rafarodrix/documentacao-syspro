@@ -153,12 +153,6 @@ export function CreateUserPageForm({
     return contactOptions.find((contact) => contact.id === selectedPrimaryContactId) ?? null;
   }, [contactOptions, selectedPrimaryContactId]);
 
-  useEffect(() => {
-    if (context !== "CLIENT") return;
-    if (!selectedPrimaryContact?.name) return;
-    form.setValue("name", selectedPrimaryContact.name, { shouldDirty: true, shouldValidate: true });
-  }, [context, form, selectedPrimaryContact]);
-
   const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
     const payload: CreateUserInput & { additionalCompanyIds?: string[] } = { ...data };
 
@@ -326,7 +320,7 @@ export function CreateUserPageForm({
                       <div>
                         <p className="text-sm font-medium">Contato vinculado</p>
                         <p className="text-[11px] text-muted-foreground">
-                          O nome do usuario cliente passa a ser carregado do contato selecionado.
+                          O contato define apenas o vinculo operacional do usuario na empresa principal.
                         </p>
                       </div>
                     </div>
@@ -394,12 +388,11 @@ export function CreateUserPageForm({
                             placeholder="Nome completo"
                             {...field}
                             value={toInputValue(field.value)}
-                            disabled={context === "CLIENT" && Boolean(selectedPrimaryContact)}
                           />
                         </FormControl>
                         {context === "CLIENT" && selectedPrimaryContact ? (
                           <p className="text-[11px] text-muted-foreground">
-                            Nome carregado automaticamente do contato vinculado.
+                            Contato selecionado: {selectedPrimaryContact.name}
                           </p>
                         ) : null}
                         <FormMessage />
