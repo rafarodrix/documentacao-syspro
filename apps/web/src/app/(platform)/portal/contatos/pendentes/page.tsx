@@ -11,13 +11,14 @@ export default function ContatosPendentesPage() {
   const [loading, setLoading] = useState(true)
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [activeSearchId, setActiveSearchId] = useState<string | null>(null)
   const [companies, setCompanies] = useState<any[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<Record<string, string>>({})
 
   const loadUnlinkedContacts = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/contacts/unlinked`)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contacts/unlinked`)
       if (res.ok) {
         const data = await res.json()
         setUnlinkedContacts(data)
@@ -49,11 +50,12 @@ export default function ContatosPendentesPage() {
 
   const handleLink = async (contactId: string, companyId: string) => {
     try {
-      await fetch(`/api/contacts/${contactId}/link`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contacts/${contactId}/link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyId })
       })
+      if (!res.ok) throw new Error("Falha ao vincular na API")
       setUnlinkedContacts(prev => prev.filter(c => c.id !== contactId))
     } catch {
       alert("Erro ao vincular contato.")
@@ -63,7 +65,8 @@ export default function ContatosPendentesPage() {
   const handleDelete = async (contactId: string) => {
     if (!confirm("Deseja realmente excluir este contato? Esta acao nao pode ser desfeita.")) return
     try {
-      await fetch(`/api/contacts/${contactId}`, { method: 'DELETE' })
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contacts/${contactId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error("Falha ao excluir na API")
       setUnlinkedContacts(prev => prev.filter(c => c.id !== contactId))
     } catch {
       alert("Erro ao excluir contato.")
@@ -73,7 +76,7 @@ export default function ContatosPendentesPage() {
   const handleSync = async () => {
     setLoading(true)
     try {
-      await fetch("/api/contacts/sync", {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contacts/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
@@ -131,15 +134,20 @@ export default function ContatosPendentesPage() {
                     <Input
                       className="pl-9 h-9 text-xs"
                       placeholder="Buscar empresa..."
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setActiveSearchId(contact.id)
+                      setSearchQuery(e.target.value)
+                      setSelectedCompanyId(prev => ({ ...prev, [contact.id]: "" }))
+                    }}
                     />
-                    {companies.length > 0 && searchQuery && (
+                  {companies.length > 0 && searchQuery && activeSearchId === contact.id && (
                       <select
+                      value={selectedCompanyId[contact.id] || ""}
                         className="absolute top-10 left-0 w-full p-2 text-xs border rounded bg-white shadow-lg z-10"
-                        onChange={(e) => setSelectedCompanyId({ ...selectedCompanyId, [contact.id]: e.target.value })}
+                      onChange={(e) => setSelectedCompanyId(prev => ({ ...prev, [contact.id]: e.target.value }))}
                       >
                         <option value="">Selecione uma empresa...</option>
-                        {companies.map(c => <option key={c.id} value={c.id}>{c.name || c.razaoSocial}</option>)}
+                      {companies.map(c => <option key={c.id} value={c.id}>{c.name || c.razaoSocial || c.id}</option>)}
                       </select>
                     )}
                   </div>
