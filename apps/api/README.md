@@ -7,6 +7,7 @@ Shell HTTP dedicado do monorepo.
 - expor transporte HTTP para o `@dosc-syspro/api`
 - desacoplar backend do runtime do `apps/web`
 - preparar a ligacao gradual dos casos de uso reais fora do Next.js
+- operar a integracao Evolution Go <-> Chatwoot como bridge de webhook e envio outbound
 
 ## Scripts
 
@@ -69,6 +70,14 @@ Observacao sobre Evolution Go:
 - teste de conexao usa `GET /instance/status`
 - quando `evolutionInstanceId` + `metadata.evolution.webhookUrl` estiverem definidos, o teste reaplica configuracao via `POST /instance/connect`
 - recursos legados da API antiga foram removidos do fluxo principal: sync incremental de contatos, fetch extra de midia e delete remoto de mensagem
+- o backend nao guarda historico completo da conversa como fonte primaria; o historico principal permanece na Evolution Go e no Chatwoot
+- persistencia local usada no fluxo atual:
+  - `conversation_link`
+  - `message_link`
+  - `integration_webhook_dedup`
+  - `company_contact`
+
+Rotas de conversa:
 
 - `GET /conversations` (listagem de conversas por filtro)
 - `GET /conversations/:conversationId` (detalhe de conversa)
@@ -77,6 +86,124 @@ Observacao sobre Evolution Go:
 - `POST /conversations/resolve` (encerrar atendimento)
 - `POST /conversations/link` (vincular conversa a empresa/contato)
 - `POST /conversations/start-outbound` (iniciar atendimento outbound)
+
+## Roteiro de teste ponta a ponta
+
+1. Preparar ambiente
+
+- garantir que o backend esteja no ar
+- garantir que o Chatwoot esteja acessivel
+- garantir que a instancia Evolution Go esteja conectada
+
+2. Configurar variaveis no backend
+
+- `EVOLUTION_API_URL`
+- `EVOLUTION_API_KEY`
+- `EVOLUTION_INSTANCE`
+- `EVOLUTION_INSTANCE_TOKEN` se o webhook da Evolution Go enviar esse valor
+- `CHATWOOT_URL`
+- `CHATWOOT_ACCOUNT_ID`
+- `CHATWOOT_API_TOKEN`
+- `CHATWOOT_INBOX_ID` ou `CHATWOOT_INBOX_IDENTIFIER`
+- `CHATWOOT_WEBHOOK_SECRET` se a assinatura HMAC estiver habilitada
+
+3. Configurar webhook da Evolution Go
+
+- URL:
+  - backend dedicado: `https://SEU_BACKEND/webhooks/evolution`
+  - quando publicado atras do `apps/web`: `https://SEU_BACKEND/api/webhooks/evolution`
+- eventos minimos:
+  - `Message`
+  - `Receipt`
+- se usar filtro por subscribe no painel:
+  - `MESSAGE`
+  - `READ_RECEIPT`
+  - ou `ALL`
+
+4. Configurar webhook do Chatwoot
+
+- URL: `https://SEU_BACKEND/webhooks/chatwoot`
+- evento essencial para resposta outbound:
+  - `message_created`
+- se `CHATWOOT_WEBHOOK_SECRET` estiver configurado:
+  - confirmar que o Chatwoot envia `x-chatwoot-signature`
+  - confirmar que o Chatwoot envia `x-chatwoot-timestamp`
+
+5. Validar inbound WhatsApp -> Chatwoot
+
+- enviar uma mensagem do numero cliente para o WhatsApp conectado na Evolution Go
+- confirmar que o backend recebe `Message`
+- confirmar que:
+  - um `CompanyContact` e criado ou reutilizado
+  - um `ConversationLink` e criado ou reutilizado
+  - a mensagem aparece na conversa do Chatwoot
+
+6. Validar outbound Chatwoot -> WhatsApp
+
+- responder a conversa dentro do Chatwoot
+- confirmar que o Chatwoot dispara `message_created`
+- confirmar que o backend envia via `/send/text` ou `/send/media`
+- confirmar que o cliente recebe no WhatsApp
+- confirmar que um `MessageLink` foi criado quando houver `messageId`
+
+7. Validar status de entrega/leitura
+
+- apos a resposta outbound, confirmar que a Evolution Go envia `Receipt`
+- confirmar que o backend recebe `Receipt`
+- confirmar que o status da mensagem no Chatwoot muda para:
+  - `delivered`
+  - `read`
+
+8. Validar seguranca
+
+- se `EVOLUTION_INSTANCE_TOKEN` estiver definido:
+  - confirmar que o payload da Evolution Go envia o mesmo `instanceToken`
+- se `CHATWOOT_WEBHOOK_SECRET` estiver definido:
+  - confirmar que a assinatura HMAC e aceita pelo backend
+
+9. Validar banco local minimo
+
+- `conversation_link`
+- `message_link`
+- `integration_webhook_dedup`
+- `company_contact`
+
+10. Sintomas comuns de falha
+
+- mensagem chega no backend mas nao abre no Chatwoot:
+  - revisar `CHATWOOT_*`
+  - revisar inbox configurado
+- mensagem sai do Chatwoot mas nao chega no WhatsApp:
+  - revisar `EVOLUTION_API_URL`
+  - revisar `EVOLUTION_API_KEY`
+  - revisar `EVOLUTION_INSTANCE`
+- webhook Evolution retorna `401`:
+  - revisar `EVOLUTION_INSTANCE_TOKEN`
+- webhook Chatwoot retorna `401`:
+  - revisar `CHATWOOT_WEBHOOK_SECRET`
+
+## Checklist operacional curto
+
+- backend no ar
+- Evolution Go conectada
+- Chatwoot acessivel
+- `EVOLUTION_API_URL` configurada
+- `EVOLUTION_API_KEY` configurada
+- `EVOLUTION_INSTANCE` configurada
+- `EVOLUTION_INSTANCE_TOKEN` revisado se estiver em uso
+- `CHATWOOT_URL` configurada
+- `CHATWOOT_ACCOUNT_ID` configurada
+- `CHATWOOT_API_TOKEN` configurada
+- `CHATWOOT_INBOX_ID` ou `CHATWOOT_INBOX_IDENTIFIER` configurado
+- webhook Evolution Go apontando para `/api/webhooks/evolution`
+- webhook Evolution Go enviando `Message` e `Receipt`
+- webhook Chatwoot apontando para `/webhooks/chatwoot`
+- Chatwoot enviando `message_created`
+- teste inbound realizado com sucesso
+- teste outbound realizado com sucesso
+- `Receipt` atualizando status no Chatwoot
+- `conversation_link` criado
+- `message_link` criado quando houver `messageId`
 
 ## Headers de sessao aceitos
 
@@ -98,6 +225,7 @@ Observacao sobre Evolution Go:
 - webhook inbound WhatsApp movido para `apps/api`
 - envio outbound de mensagens de conversa movido para `apps/api`
 - listagem/mensagens/resolucao/vinculo/start outbound de conversas movidos para `apps/api`
+- fluxo principal operando como bridge entre Evolution Go e Chatwoot
 
 ## Limite atual
 

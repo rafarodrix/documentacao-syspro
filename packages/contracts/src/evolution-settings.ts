@@ -24,12 +24,6 @@ export const evolutionSettingsSchema = z.object({
   subscribe: z.array(evolutionWebhookSubscribeSchema).min(1).default(["ALL"]),
   immediate: z.boolean().default(true),
   phone: z.string().trim().optional().default(""),
-  rabbitmqEnable: z.boolean().default(false),
-  websocketEnable: z.boolean().default(false),
-  natsEnable: z.boolean().default(false),
-  webhookFiles: z.boolean().default(true),
-  eventIgnoreGroup: z.boolean().default(false),
-  eventIgnoreStatus: z.boolean().default(false),
 });
 
 export type EvolutionSettingsInput = z.input<typeof evolutionSettingsSchema>;
@@ -40,10 +34,4 @@ export const DEFAULT_EVOLUTION_SETTINGS: EvolutionSettings = {
   subscribe: ["ALL"],
   immediate: true,
   phone: "",
-  rabbitmqEnable: false,
-  websocketEnable: false,
-  natsEnable: false,
-  webhookFiles: true,
-  eventIgnoreGroup: false,
-  eventIgnoreStatus: false,
 };

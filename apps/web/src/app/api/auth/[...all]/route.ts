@@ -28,7 +28,11 @@ async function proxyAuth(request: NextRequest, context: RouteContext): Promise<R
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown proxy error";
     console.error("[auth-proxy] failed", error);
-    return Response.json({ error: message }, { status: 500 });
+    const status =
+      message.includes("APP_BACKEND_API_URL nao configurada em producao")
+        ? 503
+        : 502;
+    return Response.json({ error: message }, { status });
   }
 }
 

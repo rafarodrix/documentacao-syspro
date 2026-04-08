@@ -39,6 +39,7 @@ function Invoke-DiscoveryPost {
     )
 
     $payload = @{
+        schemaVersion = 'discover.payload.v1'
         discoveryToken = $DiscoveryToken
         rustdeskId     = $RustDeskId
         machineName    = $MachineName
@@ -141,6 +142,7 @@ try {
     if (-not `$rustdeskId) { exit }
 
     `$payload = @{
+        schemaVersion = 'discover.payload.v1'
         discoveryToken = `$DiscoveryToken
         rustdeskId     = `$rustdeskId
         machineName    = `$machineName
@@ -257,4 +259,3 @@ finally {
     try { Stop-Transcript | Out-Null } catch {}
     Read-Host "Pressione ENTER para fechar"
 }
-

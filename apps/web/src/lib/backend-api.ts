@@ -1,12 +1,20 @@
 import { readCommonRuntimeConfig } from "@dosc-syspro/config";
 
 export function getBackendApiBaseUrl(): string {
-  const value =
+  const configuredValue =
     process.env.APP_BACKEND_API_URL?.trim() ||
     process.env.APP_BACKEND_API?.trim() ||
-    process.env.APP_API_URL?.trim() ||
-    "http://localhost:3001/api";
-  return value.replace(/\/+$/, "");
+    process.env.APP_API_URL?.trim();
+
+  if (configuredValue) {
+    return configuredValue.replace(/\/+$/, "");
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("APP_BACKEND_API_URL nao configurada em producao.");
+  }
+
+  return "http://localhost:3001/api";
 }
 
 export function getBackendApiKey(): string {

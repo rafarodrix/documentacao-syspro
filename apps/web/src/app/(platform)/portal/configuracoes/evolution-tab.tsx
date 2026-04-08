@@ -108,7 +108,7 @@ export default function EvolutionSettingsTab() {
       <div className="flex flex-col gap-2 mb-6">
         <h1 className="text-3xl font-bold tracking-tight">WhatsApp / Evolution Go</h1>
         <p className="text-muted-foreground">
-          Configuracao global da integracao Evolution Go para webhook e eventos assinados.
+          Configuracao administrativa da integracao Evolution Go para webhook e eventos assinados.
         </p>
       </div>
 
@@ -116,7 +116,7 @@ export default function EvolutionSettingsTab() {
         <CardHeader>
           <CardTitle>Configuracoes do Webhook</CardTitle>
           <CardDescription>
-            Esses dados definem como o Evolution Go envia eventos para o backend.
+            Esses dados definem a configuracao esperada da instancia Evolution Go e servem como referencia para o fluxo de webhook.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -135,7 +135,7 @@ export default function EvolutionSettingsTab() {
                     help={
                       "URL publica do backend que recebe eventos do Evolution.\n" +
                       "Preencher com: https://SEU_BACKEND/api/webhooks/evolution\n" +
-                      "Essa URL vem do deploy do backend/API."
+                      "Eventos atualmente tratados pelo backend: Message e Receipt."
                     }
                   />
                   <Input
@@ -152,7 +152,8 @@ export default function EvolutionSettingsTab() {
                     help={
                       "Numero para pareamento da instancia no Evolution.\n" +
                       "Formato recomendado: 55DDDNUMERO (apenas digitos).\n" +
-                      "Use o numero WhatsApp oficial da conexao."
+                      "Use o numero WhatsApp oficial da conexao.\n" +
+                      "Esse campo e administrativo e pode ser usado em provisionamento manual da instancia."
                     }
                   />
                   <Input
@@ -169,8 +170,8 @@ export default function EvolutionSettingsTab() {
                   label="Eventos Assinados (subscribe)"
                   help={
                     "Define quais eventos o Evolution enviara para o webhook.\n" +
-                    "Para iniciar, mantenha ALL ou inclua messages.upsert e messages.update.\n" +
-                    "Esses nomes seguem o padrao da documentacao do Evolution."
+                    "Para o backend atual, use ALL ou selecione ao menos MESSAGE e READ_RECEIPT.\n" +
+                    "Esses nomes seguem o padrao da documentacao da Evolution Go."
                   }
                 />
                 <div className="grid gap-3 md:grid-cols-2">
@@ -188,11 +189,10 @@ export default function EvolutionSettingsTab() {
 
               <div className="space-y-3">
                 <LabelWithHelp
-                  label="Flags de Comportamento"
+                  label="Comportamento de Entrega"
                   help={
-                    "Ajustes de envio do webhook.\n" +
-                    "Recomendado: eventIgnoreGroup=true e eventIgnoreStatus=true para reduzir ruido.\n" +
-                    "Ative RabbitMQ/WebSocket/NATS apenas se sua infraestrutura usar esses canais."
+                    "O backend atual usa esta configuracao apenas para o fluxo principal da Evolution Go.\n" +
+                    "Mantenha Immediate ativado salvo se houver necessidade operacional especifica."
                   }
                 />
                 <div className="grid gap-3 md:grid-cols-2">
@@ -202,48 +202,6 @@ export default function EvolutionSettingsTab() {
                       onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, immediate: checked === true }))}
                     />
                     <span>Immediate</span>
-                  </label>
-                  <label className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                    <Checkbox
-                      checked={settings.webhookFiles}
-                      onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, webhookFiles: checked === true }))}
-                    />
-                    <span>Webhook Files</span>
-                  </label>
-                  <label className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                    <Checkbox
-                      checked={settings.eventIgnoreGroup}
-                      onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, eventIgnoreGroup: checked === true }))}
-                    />
-                    <span>Ignorar eventos de grupo</span>
-                  </label>
-                  <label className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                    <Checkbox
-                      checked={settings.eventIgnoreStatus}
-                      onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, eventIgnoreStatus: checked === true }))}
-                    />
-                    <span>Ignorar status/broadcast</span>
-                  </label>
-                  <label className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                    <Checkbox
-                      checked={settings.rabbitmqEnable}
-                      onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, rabbitmqEnable: checked === true }))}
-                    />
-                    <span>RabbitMQ Enable</span>
-                  </label>
-                  <label className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                    <Checkbox
-                      checked={settings.websocketEnable}
-                      onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, websocketEnable: checked === true }))}
-                    />
-                    <span>WebSocket Enable</span>
-                  </label>
-                  <label className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                    <Checkbox
-                      checked={settings.natsEnable}
-                      onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, natsEnable: checked === true }))}
-                    />
-                    <span>NATS Enable</span>
                   </label>
                 </div>
               </div>
@@ -260,6 +218,36 @@ export default function EvolutionSettingsTab() {
             Salvar configuracoes
           </Button>
         </CardFooter>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Comportamento Atual</CardTitle>
+          <CardDescription>
+            Resumo do que o backend utiliza hoje no fluxo principal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>- Webhook inbound processa os eventos `Message` e `Receipt`.</p>
+          <p>- Outbound usa as rotas `/send/text` e `/send/media` da Evolution Go.</p>
+          <p>- Salvar esta tela persiste a configuracao administrativa no backend; isso nao garante provisionamento automatico da instancia.</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Checklist Minimo</CardTitle>
+          <CardDescription>
+            Itens necessarios para o primeiro teste ponta a ponta funcionar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>- Evolution Go deve apontar para `POST /api/webhooks/evolution` com `Message` e `Receipt` habilitados.</p>
+          <p>- O backend precisa ter `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` e `EVOLUTION_INSTANCE` configurados.</p>
+          <p>- Se `EVOLUTION_INSTANCE_TOKEN` estiver definido no backend, o `instanceToken` enviado pela Evolution Go deve bater exatamente.</p>
+          <p>- O Chatwoot precisa apontar webhook para `POST /webhooks/chatwoot` com assinatura HMAC habilitada quando `CHATWOOT_WEBHOOK_SECRET` estiver configurado.</p>
+          <p>- O fluxo principal atual depende de `message_created` no Chatwoot para enviar respostas ao WhatsApp.</p>
+        </CardContent>
       </Card>
     </div>
   );
