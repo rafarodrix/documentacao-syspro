@@ -5,7 +5,16 @@ import { json, urlencoded } from 'express';
 import { validateChatwootRuntimeConfigOrThrow } from './modules/integrations/chatwoot/chatwoot-config';
 
 async function bootstrap() {
-  validateChatwootRuntimeConfigOrThrow();
+  try {
+    validateChatwootRuntimeConfigOrThrow();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Falha desconhecida ao validar Chatwoot';
+    Logger.error(
+      `${message}. A API continuara iniciando, mas as rotas que dependem de Chatwoot podem falhar ate a configuracao ser corrigida.`,
+      undefined,
+      'Bootstrap',
+    );
+  }
   const app = await NestFactory.create(AppModule, { rawBody: true });
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
