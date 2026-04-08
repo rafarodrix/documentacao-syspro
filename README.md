@@ -120,7 +120,6 @@ O projeto depende de variaveis em `.env`, principalmente para:
 
 - banco (`DATABASE_URL`, `DIRECT_URL`)
 - auth (`BETTER_AUTH_*`)
-- integracoes externas como Zammad
 
 Sem essas variaveis, partes do portal podem abrir em modo reduzido ou falhar em fluxos autenticados e de integracao.
 
@@ -135,4 +134,3 @@ Documentos principais:
 - arquitetura do monorepo
 - backlog de infraestrutura
 - estrategia da plataforma remota
-- integracao com Zammad

@@ -46,7 +46,6 @@ Ordem recomendada:
 
 #### Ideias de implementacao
 
-- Adicionar observabilidade transversal com metricas de duracao de sessao remota e tempo de resposta do Zammad no snapshot de observabilidade existente em `/api/platform/observability/zammad`.
 - Revisar acessibilidade transversal de filtros e paineis operacionais, incluindo `aria-label`, `role="main"` e estados de loading por rota.
 - Remover hardcode de locale em `formatRecency` e permitir `locale` configuravel para futura internacionalizacao.
 
@@ -151,7 +150,6 @@ Ordem recomendada:
 
 #### Ideias de implementacao
 
-- Adicionar observabilidade transversal com metricas de duracao de sessao remota e tempo de resposta do Zammad no snapshot de observabilidade existente em `/api/platform/observability/zammad`.
 - Revisar acessibilidade transversal de filtros e paineis operacionais, incluindo `aria-label`, `role="main"` e estados de loading por rota.
 - Remover hardcode de locale em `formatRecency` e permitir `locale` configuravel para futura internacionalizacao.
 
@@ -239,29 +237,20 @@ Ordem recomendada:
 - `FEAT-TELEMETRY-REPORTS` [Baixa] Gerar relatorios periodicos para revisao interna e otimizacao do servico.
 - RustDesk customizado: `Service Persistence`, `Hardware Codec Force`, `Custom Icon Set`, `Pre-defined Password`, `Privacy Mode`, `Auto-Cleanup Logs`, `One-Click SOS`, `Headless Terminal Mode`, `Auto-Session Recording`, `White-label Tray Menu`, `Silent Install`, `Clipboard Policy Control`, `Intelligent Relay Selection` e `Custom Canned Chat`.
 
-### Chamados, Zammad e atendimento
 
 #### Backlog de implementacao
 
-- [x] `FEAT-003E` [Media] Permitir abertura manual de ticket na rota `/portal/chamados`, obrigando o operador a selecionar o email de contato do Zammad vinculado a empresa. (Concluido na Fase 2)
-- [ ] `FEAT-007` [Media] Estruturar canal de WhatsApp mediado pelo backend dedicado. Estado atual: operacao parcial ja existe no `apps/web` (webhook Evolution, conciliacao com `CompanyContact`, abertura/atualizacao de ticket no Zammad e trilha de mensagens); pendente concluir migracao para `apps/api` + `apps/whatsapp-bridge`, fila operacional dedicada, auditoria completa por fila e promocao controlada de contato para `User`. A referencia de trabalho deste recorte esta em `/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp`.
-- [ ] `FEAT-007A` [Media] Concluir integracao de WhatsApp via backend dedicado, com filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`. A direcao arquitetural ja esta definida para `apps/web`, `apps/api`, `apps/whatsapp-bridge`, `Zammad` e `RustDesk`; faltam aplicar migration no ambiente, backend dedicado ligado aos casos de uso reais, bridge isolado, filas operacionais reais, trilha auditavel e promocao controlada de contato para `User`.
 - [ ] `FEAT-007B` [Media] Evoluir a experiencia de atendimento via WhatsApp com mensagens interativas, templates e feedback operacional completo. A base de modelagem e contratos ja existe; falta fechar backend dedicado, bridge isolado, filas reais, trilha auditavel e promocao controlada de contato para `User`.
 
 #### Ideias de implementacao
 
 - Criacao de chamado inline com `ticketFormSchema` ja existente nos contratos compartilhados.
-- Resposta a artigos direto no portal com editor rico, anexo e envio para o Zammad.
 - Filtro de chamados por empresa com autocomplete.
 - Exportacao CSV de chamados filtrados por status, periodo e fila.
 - Agrupamento de status customizavel via settings.
 - Badge de SLA diretamente na lista de tickets.
-- Marcacao de tickets duplicados com referencia ao ticket original e nota interna no Zammad.
 - Assinatura de ticket pelo cliente para receber atualizacoes por email.
 - Widget de historico de atendimentos por empresa dentro do cadastro da empresa.
-- Cache de camada de dados para reduzir chamadas live ao Zammad em picos.
-- Usar `prisma.zammadTicketCache` para calculo de notificacoes e SLA sem varrer tickets em memoria.
-- Mover filtros de fechados para server-side no gateway do Zammad.
 - Adicionar rate limit nas quick actions de ticket.
 - Migrar `getTicketsForCustomerEmailsPaged` para busca POST ou paginacao de query.
 - Corrigir pagina da listagem quando filtros mudarem para sempre voltar a pagina 1.
@@ -269,7 +258,6 @@ Ordem recomendada:
 - Adicionar breadcrumb com filtros preservados no detalhe do ticket.
 - Tornar itens do dashboard de chamados clicaveis.
 - Criar loading dedicado para a rota de detalhe do chamado.
-- Zammad customizado: `Grafana Dashboard`, `AI Ticket Summarizer`, `WhatsApp Multi-Instance`, `Zabbix ou CheckMK Bridge`, `CMDB`, `Time Accounting to ERP`, `Custom CSS Branding`, `Auto-Priority Logic`, `Telegram ou Signal Bot`, `Elasticsearch Tuning`, `SLA Multi-Nivel`, `Knowledge Base Locking`, `PWA Mobile Booster` e `Auto-Closure Survey`.
 
 ### App web, tema, API, backend e mobile
 
@@ -294,8 +282,6 @@ Ordem recomendada:
 2. `FEAT-002E`
    - Executar e consolidar a suite de token lifecycle em CI.
    - Expandir cobertura para rotas criticas de token no backend.
-3. `FEAT-003` + `FEAT-003A` + `FEAT-003B`
-   - Fechar expiracao automatica de sessao, auditoria final e validacao real com Zammad (deep-link + webhook).
 4. `INFRA-027`
    - Integrar Playwright no pipeline e cobrir fluxos criticos autenticados.
 
@@ -336,9 +322,6 @@ Ordem recomendada:
 - estrategia remota (fonte unica): [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote)
 - agente remoto OSS: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote)
 - desenho do `agentToken` e multi-bases remoto: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote)
-- integracao `Zammad + RustDesk`: [`/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/zammad/integracao-zammad`](/docs/manuais-tecnicos/documentacao-tecnica-arquitetura/zammad/integracao-zammad)
-- integracao `Zammad + WhatsApp`: [`/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp`](/docs/manuais-tecnicos/backlog-e-pendencias/arquitetura-canal-whatsapp)
-
 
 
 

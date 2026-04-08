@@ -9,7 +9,7 @@ import Link from "next/link";
 import { MagicCard } from "@/components/magicui/MagicCard";
 import { NumberTicker } from "@/components/magicui/NumberTicker";
 import { ShineBorder } from "@/components/magicui/ShineBorder";
-import { ArrowUpRight, BookOpen, Headset, Sparkles, Users } from "lucide-react";
+import { ArrowUpRight, BookOpen, Headset, PlusCircle, Sparkles, Users } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
 
@@ -24,13 +24,6 @@ export default async function DashboardPage() {
           <h1 className="text-lg font-semibold tracking-tight sm:text-xl">Painel operacional</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Visao operacional do sistema em tempo real.</p>
         </div>
-
-        {data.zammadWarning && (
-          <Alert className="border-amber-500/40 bg-amber-500/10">
-            <AlertTitle>Dados em modo contingencia</AlertTitle>
-            <AlertDescription>{data.zammadWarning}</AlertDescription>
-          </Alert>
-        )}
 
         <DashboardStats
           companiesCount={data.companiesCount}
@@ -78,28 +71,27 @@ export default async function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button asChild className="gap-2">
+              <Link href="/portal/tickets/new">
+                <PlusCircle className="h-4 w-4" />
+                Abrir chamado
+              </Link>
+            </Button>
             <Button asChild variant="outline" className="gap-2">
               <Link href="/portal/tickets">
                 <Headset className="h-4 w-4" />
-                Ver chamados
+                Meus chamados
               </Link>
             </Button>
             <Button asChild variant="outline" className="gap-2">
               <Link href="/docs">
                 <BookOpen className="h-4 w-4" />
-                Abrir documentacao
+                Documentacao
               </Link>
             </Button>
           </div>
         </div>
       </div>
-
-      {data.zammadWarning && (
-        <Alert className="border-amber-500/40 bg-amber-500/10">
-          <AlertTitle>Dados em modo contingencia</AlertTitle>
-          <AlertDescription>{data.zammadWarning}</AlertDescription>
-        </Alert>
-      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <MagicCard className="rounded-xl">
@@ -183,5 +175,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
-

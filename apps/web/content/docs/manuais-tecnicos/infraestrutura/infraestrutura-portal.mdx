@@ -28,7 +28,6 @@ Consolidar, em um unico documento, o desenho atual de infraestrutura do Portal p
 - **RustDesk Server**: instalado no host da VPS (mesma infraestrutura operacional da Evolution)
 - **Evolution Go**: em container Docker na mesma VPS do RustDesk
 - **Nginx Proxy Manager**: em Docker na mesma VPS de RustDesk + Evolution
-- **Zammad**: hospedado na Contabo em **outra VPS** (isolada da stack RustDesk/Evolution)
 - **Banco do portal**: stack atual do portal (Prisma)
 - **Bancos da Evolution Go (Neon)**:
   - `evogo_auth`
@@ -39,7 +38,6 @@ Consolidar, em um unico documento, o desenho atual de infraestrutura do Portal p
 - `api.<dominio>` -> Evolution Go (VPS Contabo do remoto)
 - `acesso.<dominio>` -> RustDesk (VPS Contabo do remoto)
 - `backend.<dominio>` -> Nest `apps/api` (Railway)
-- `suporte.<dominio>` -> Zammad (VPS Contabo dedicada do Zammad)
 
 <Callout type="warn" title="Separacao obrigatoria">
   Nao reutilizar `api.<dominio>` (Evolution) para o backend Nest.
@@ -100,8 +98,6 @@ Consolidar, em um unico documento, o desenho atual de infraestrutura do Portal p
 - `EVOLUTION_API_KEY`
 - `EVOLUTION_INSTANCE`
 - `EVOLUTION_WEBHOOK_SECRET`
-- `ZAMMAD_URL`
-- `ZAMMAD_TOKEN`
 
 ### Evolution Go (VPS)
 
@@ -113,7 +109,6 @@ Consolidar, em um unico documento, o desenho atual de infraestrutura do Portal p
 ## Regras de integracao
 
 1. Web chama somente backend Nest (`backend.<dominio>/api`).
-2. Backend Nest orquestra Zammad + Evolution.
 3. Evolution envia webhook para o backend Nest.
 4. RustDesk permanece isolado no host `acesso.<dominio>`.
 

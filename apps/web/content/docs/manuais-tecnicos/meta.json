@@ -13,9 +13,6 @@
     "documentacao-tecnica-arquitetura/portal-web/arquitetura-documentacao-fumadocs",
     "documentacao-tecnica-arquitetura/portal-web/padrao-componentes-mdx",
     "documentacao-tecnica-arquitetura/portal-web/diff-highlighting-shiki",
-    "---Zammad---",
-    "documentacao-tecnica-arquitetura/zammad/integracao-zammad",
-    "documentacao-tecnica-arquitetura/zammad/webhook-oficial-zammad",
     "---Acesso Remoto---",
     "documentacao-tecnica-arquitetura/acesso-remoto/arquitetura-remote",
     "documentacao-tecnica-arquitetura/acesso-remoto/resiliencia-remote",
@@ -37,5 +34,3 @@
     "backlog-e-pendencias/arquitetura-canal-whatsapp"
   ]
 }
-
-

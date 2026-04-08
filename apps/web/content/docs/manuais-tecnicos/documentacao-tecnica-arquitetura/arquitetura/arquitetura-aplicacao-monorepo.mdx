@@ -332,7 +332,6 @@ Padrao sugerido:
 Status atual do recorte:
 
 - contratos criados em `src/features/tickets/domain/repositories`
-- `IZammadGateway` segue como adapter tecnico em `core/infrastructure`
 - `ticket-query-service` continua como orquestrador, agora com contrato-alvo explicito para a proxima extracao
 
 #### Company
@@ -340,7 +339,6 @@ Status atual do recorte:
 `company` pode continuar com Prisma em `queries` simples, mas deve extrair repository para:
 
 - carregamento da empresa com memberships e escopo
-- e-mails Zammad da empresa
 - operacoes que misturam empresa, endereco e vinculos
 
 Status atual do recorte:

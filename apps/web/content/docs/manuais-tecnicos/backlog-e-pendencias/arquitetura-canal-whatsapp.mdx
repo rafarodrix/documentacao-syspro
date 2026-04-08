@@ -23,7 +23,6 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
 
 - `apps/web` como portal administrativo e operacional
 - `apps/api` como backend central de orquestracao
-- `Zammad` como help desk
 - `RustDesk` como dominio remoto controlado
 
 ## Base atual que favorece essa evolucao
@@ -46,7 +45,6 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
 - Em producao com backend central no `apps/api`:
   - webhook inbound da Evolution
   - conciliacao com `CompanyContact`
-  - abertura/atualizacao de ticket no Zammad
   - persistencia de conversa/mensagem para trilha auditavel
   - endpoints de conversas (`list/get/messages/send/resolve/link/start-outbound`)
 - Em producao no `apps/web`:
@@ -90,8 +88,6 @@ Redis/BullMQ
   -> fila entre bridge, backend e automacoes
 PostgreSQL / Prisma
   -> fonte de verdade
-Zammad
-  -> ticketing
 RustDesk
   -> handoff remoto governado pelo backend
 ```
@@ -116,7 +112,6 @@ RustDesk
 
 - resolver contato, empresa e ticket
 - aplicar politicas de atendimento
-- abrir ou atualizar ticket no `Zammad`
 - autorizar eventual handoff remoto
 
 ### `apps/whatsapp-bridge`
@@ -146,8 +141,7 @@ Separacao obrigatoria:
 2. bridge publica evento tecnico
 3. `apps/api` resolve contato e empresa
 4. backend decide se continua conversa ou cria nova
-5. backend cria ou atualiza ticket no `Zammad`
-6. se houver necessidade de remoto, backend valida ticket, empresa e host antes de abrir `RemoteSession`
+5. se houver necessidade de remoto, backend valida ticket, empresa e host antes de abrir `RemoteSession`
 
 ## Fases recomendadas
 

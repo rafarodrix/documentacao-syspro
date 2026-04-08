@@ -61,7 +61,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     return (
       <div className="p-10 text-center text-muted-foreground flex flex-col items-center gap-2">
         <h3 className="font-semibold">Erro ao carregar chamados</h3>
-        <p>Verifique sua conexao ou as configuracoes do Zammad.</p>
+        <p>Verifique sua conexao ou tente novamente mais tarde.</p>
       </div>
     );
   }

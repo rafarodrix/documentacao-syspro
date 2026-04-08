@@ -322,7 +322,6 @@ export type SyncCommandType = string // customizável por domínio
 
 ### Prioridade 3 (Melhorias futuras)
 1. Criar how-to: "Como adicionar nova transição ao discover"
-2. Criar troubleshooting por erro (similar a Zammad)
 3. Documentar limites e quotas (rate limit, max sessions, etc.)
 4. Exemplos de integração mobile/API
 
@@ -564,61 +563,4 @@ acesso-remoto/
 - [ ] Mobile app: adaptar fluxos discover/bootstrap/sync para mobile
 - [ ] API gatewayhealth: expor métricas remotas via OpenAPI
 - [ ] Videoaulas: recording das 5 rotinas de suporte
-
----
-
-## ?? Comparação com Revisão Anterior (Zammad)
-
-| Aspecto | Zammad | Remote |
-|---------|--------|--------|
-| Docs Principal Expandidas | 1 (integracao-zammad.mdx) | 1 (arquitetura-remote.mdx) |
-| Deep-dive Técnico | 1 (resiliencia-zammad.mdx) | 1 (resiliencia-remote.mdx) |
-| How-to Prático | 1 (como-adicionar-integracao.mdx) | 1 (como-gerenciar-sessoes-e-tokens.mdx) |
-| Gap Analysis | 1 (REVISAO.md) | 1 (REVISAO.md) |
-| Gaps Fechados | 7 | 9 |
-| Tamanho Total (linhas) | ~4500 | ~4300 |
-| Formato | Markdown + Mermaid | Markdown + JSON |
-
----
-
-## ?? Git Commit Message Sugerido
-
-```
-docs: Expand remote module documentation by 40% with token lifecycle, address book, sessions, and observability
-
-BREAKING: None (pure documentation improvements)
-DEPRECATION: None
-
-Changes:
-- Expanded arquitetura-remote.mdx with 250+ new lines covering:
-  * Token lifecycle (rotate, revoke, expiry, validation 3-passo)
-  * Sessions management (create, list, start, stop)
-  * Address Book CRUD and credentials
-  * Host Admin operations
-  * State transitions deep-dive
-  * Observability events and logging
-
-- Created como-gerenciar-sessoes-e-tokens.mdx:
-  * 5 step-by-step routines for daily ops
-  * Compliance checklist
-  * Troubleshooting matrix
-  * Security best practices
-
-- Created resiliencia-remote.mdx:
-  * 3-step token validation
-  * State machines and deferral
-  * Hash-based incremental sync
-  * Smart scan for multi-disk Syspro
-  * Observability architecture
-  * Recovery strategies
-
-- Created REVISAO.md:
-  * Gap analysis comparing docs vs production code
-  * 9 gaps identified and addressed
-  * Priority recommendations (P1, P2, P3)
-
-Closes #DOCUMENTATION
-Related: #REMOTE-MODULE
-```
-
 

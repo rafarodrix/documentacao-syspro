@@ -246,7 +246,6 @@ Nossa abordagem usa **JSON estruturado** com namespace hierárquicos:
 **Namespaces padrão:**
 - `feature.event.phase` → `ticket.created.success`
 - `system.component.action` → `auth.session.validated`
-- `integration.service.method` → `zammad.ticket.fetch`
 
 **Campos obrigatórios por tipo:**
 
@@ -412,25 +411,6 @@ defineQuery({
         });
     }
 })
-```
-
-**Integrations:**
-```typescript
-export class ZammadGateway implements ExternalGateway {
-    async fetchTicket(id: string, logger: Logger) {
-        return logger.time("zammad.ticket.fetch", async () => {
-            const response = await fetch(`${this.baseUrl}/tickets/${id}`, {
-                headers: { Authorization: `Bearer ${this.token}` }
-            });
-            
-            if (!response.ok) {
-                throw new IntegrationError("Zammad", `Status ${response.status}`);
-            }
-            
-            return response.json();
-        }, { ticketId: id });
-    }
-}
 ```
 
 ---
@@ -662,56 +642,6 @@ export class CircuitBreakerOpenError extends Error {
 }
 ```
 
-### 4.2 Usar em Integrações
-
-```typescript
-// src/features/tickets/infrastructure/gateways/zammad.gateway.ts
-import { CircuitBreaker } from "@/lib/circuit-breaker";
-
-export class ZammadGateway {
-    private circuitBreaker: CircuitBreaker<any>;
-    
-    constructor() {
-        this.circuitBreaker = new CircuitBreaker(
-            "zammad-fetch-ticket",
-            {
-                failureThreshold: 5,      // 5 falhas
-                failureWindow: 60 * 1000, // em 60 segundos
-                cooldownMs: 30 * 1000,    // aguarde 30s antes de retry
-                timeout: 10 * 1000        // timeout de 10s por call
-            },
-            () => this.fetchTicketUnsafe()
-        );
-    }
-    
-    async fetchTicket(id: string): Promise<ZammadTicket> {
-        try {
-            return await this.circuitBreaker.execute();
-        } catch (error) {
-            if (error instanceof CircuitBreakerOpenError) {
-                // Circuito aberto: retornar fallback ou erro controlado
-                logger.error("zammad.circuit.open", {
-                    ticketId: id,
-                    retryAfterMs: error.retryAfterMs
-                });
-                
-                throw new IntegrationError(
-                    "Zammad",
-                    "Service temporarily unavailable. Please try again in a moment."
-                );
-            }
-            throw error;
-        }
-    }
-    
-    private async fetchTicketUnsafe(): Promise<ZammadTicket> {
-        const response = await fetch(`${this.baseUrl}/tickets/${this.id}`);
-        if (!response.ok) throw new Error(`Status ${response.status}`);
-        return response.json();
-    }
-}
-```
-
 ---
 
 ## 5. Retry com Backoff Exponencial
@@ -797,30 +727,6 @@ export async function withRetry<T>(
     }
     
     throw lastError ?? new Error("All retry attempts failed");
-}
-```
-
-### 5.2 Uso em Integrações
-
-```typescript
-export class ZammadGateway {
-    async fetchTicket(id: string): Promise<ZammadTicket> {
-        return withRetry(
-            () => 
-                fetch(`${this.baseUrl}/tickets/${id}`).then(r => {
-                    if (!r.ok) throw new Error(`Status ${r.status}`);
-                    return r.json();
-                }),
-            retryStrategies.fast,
-            (attempt, error) => {
-                logger.warn("zammad.fetch.retry", {
-                    ticketId: id,
-                    attempt,
-                    error: error.message
-                });
-            }
-        );
-    }
 }
 ```
 
