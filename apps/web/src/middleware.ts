@@ -135,6 +135,7 @@ export async function middleware(request: NextRequest) {
     resolvedRole &&
     (
       pathname.startsWith("/portal/cadastros") ||
+      pathname.startsWith(CADASTROS_ROUTE_RULES.contatos.pathPrefix) ||
       pathname.startsWith("/portal/plataforma-remota") ||
       pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix)
     )
@@ -153,6 +154,10 @@ export async function middleware(request: NextRequest) {
 
     if (pathname.startsWith(CADASTROS_ROUTE_RULES.usuarios.pathPrefix) && !hasAllowedRole(resolvedRole, CADASTROS_ROUTE_RULES.usuarios.allowed)) {
       return redirectTo(request, CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked);
+    }
+
+    if (pathname.startsWith(CADASTROS_ROUTE_RULES.contatos.pathPrefix) && !hasAllowedRole(resolvedRole, CADASTROS_ROUTE_RULES.contatos.allowed)) {
+      return redirectTo(request, CADASTROS_ROUTE_RULES.contatos.redirectIfBlocked);
     }
 
     if (pathname.startsWith("/portal/plataforma-remota") && !hasAllowedRole(resolvedRole, REMOTE_PLATFORM_ROLES)) {

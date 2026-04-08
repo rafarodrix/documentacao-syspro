@@ -20,6 +20,11 @@ export const CADASTROS_ROUTE_RULES = {
     allowed: CADASTRO_MANAGER_ROLES,
     redirectIfBlocked: "/portal",
   },
+  contatos: {
+    pathPrefix: "/portal/contatos",
+    allowed: CADASTRO_MANAGER_ROLES,
+    redirectIfBlocked: "/portal",
+  },
   sistema: {
     pathPrefix: "/portal/cadastros/sistema",
     allowed: SYSTEM_ROLES,
@@ -40,6 +45,7 @@ export const SIDEBAR_ROLE_RULES = {
   chamadosSistema: SYSTEM_ROLES,
   cadastroEmpresa: CADASTRO_MANAGER_ROLES,
   cadastroUsuarios: CADASTRO_MANAGER_ROLES,
+  cadastroContatos: CADASTRO_MANAGER_ROLES,
   cadastroSistema: SYSTEM_ROLES,
   docsTechnical: SYSTEM_ROLES,
   contratos: ["ADMIN"],

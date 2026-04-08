@@ -65,6 +65,7 @@ const NAV_MAIN: NavItemType[] = [
 const NAV_CADASTROS: NavItemType[] = [
   { title: "Cadastro Empresa", href: "/portal/cadastros/empresa", icon: FileText, roles: [...SIDEBAR_ROLE_RULES.cadastroEmpresa] },
   { title: "Cadastro Usuario", href: "/portal/cadastros/usuarios", icon: Users, roles: [...SIDEBAR_ROLE_RULES.cadastroUsuarios] },
+  { title: "Contatos", href: "/portal/contatos", icon: Smartphone, roles: [...SIDEBAR_ROLE_RULES.cadastroContatos] },
   { title: "Analista de Sistemas", href: "/portal/cadastros/sistema", icon: ShieldCheck, roles: [...SIDEBAR_ROLE_RULES.cadastroSistema] },
 ]
 

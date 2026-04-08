@@ -56,31 +56,43 @@ export class ProcessIncomingMessageUseCase {
       const phone = remoteJid.replace('@s.whatsapp.net', '');
       const pushName = msg?.pushName ?? msg?.Info?.PushName ?? msg?.info?.PushName ?? 'Cliente WhatsApp';
       const messagePayload = msg?.message ?? msg?.Message;
-      
+
       let textContent = '';
       if (messagePayload?.conversation) textContent = messagePayload.conversation;
       else if (messagePayload?.extendedTextMessage?.text) textContent = messagePayload.extendedTextMessage.text;
       else if (messagePayload?.imageMessage?.caption) textContent = messagePayload.imageMessage.caption;
       else if (messagePayload?.videoMessage?.caption) textContent = messagePayload.videoMessage.caption;
       else if (messagePayload?.documentMessage?.caption) textContent = messagePayload.documentMessage.caption;
-      else textContent = '[Mensagem de mídia recebida]';
+      else textContent = '[Mensagem de midia recebida]';
 
       let attachment: any = undefined;
       let isMedia = false;
       let mimeType = '';
       let fileName = 'arquivo';
 
-      if (messagePayload?.imageMessage) { isMedia = true; mimeType = messagePayload.imageMessage.mimetype || 'image/jpeg'; fileName = 'imagem.jpg'; }
-      else if (messagePayload?.videoMessage) { isMedia = true; mimeType = messagePayload.videoMessage.mimetype || 'video/mp4'; fileName = 'video.mp4'; }
-      else if (messagePayload?.documentMessage) { isMedia = true; mimeType = messagePayload.documentMessage.mimetype || 'application/pdf'; fileName = messagePayload.documentMessage.fileName || 'documento.pdf'; }
-      else if (messagePayload?.audioMessage) { isMedia = true; mimeType = messagePayload.audioMessage.mimetype || 'audio/ogg'; fileName = 'audio.ogg'; }
+      if (messagePayload?.imageMessage) {
+        isMedia = true;
+        mimeType = messagePayload.imageMessage.mimetype || 'image/jpeg';
+        fileName = 'imagem.jpg';
+      } else if (messagePayload?.videoMessage) {
+        isMedia = true;
+        mimeType = messagePayload.videoMessage.mimetype || 'video/mp4';
+        fileName = 'video.mp4';
+      } else if (messagePayload?.documentMessage) {
+        isMedia = true;
+        mimeType = messagePayload.documentMessage.mimetype || 'application/pdf';
+        fileName = messagePayload.documentMessage.fileName || 'documento.pdf';
+      } else if (messagePayload?.audioMessage) {
+        isMedia = true;
+        mimeType = messagePayload.audioMessage.mimetype || 'audio/ogg';
+        fileName = 'audio.ogg';
+      }
 
       if (isMedia) {
-         // Puxa o arquivo na Evolution em base64
-         const baseResult = msg.base64 ? { base64: msg.base64 } : await this.evolutionClient.getBase64FromMediaMessage(msg);
-         if (baseResult?.base64) {
-             attachment = { base64: baseResult.base64, mimetype: mimeType, filename: fileName };
-         }
+        const baseResult = msg.base64 ? { base64: msg.base64 } : await this.evolutionClient.getBase64FromMediaMessage(msg);
+        if (baseResult?.base64) {
+          attachment = { base64: baseResult.base64, mimetype: mimeType, filename: fileName };
+        }
       }
 
       this.logger.log(JSON.stringify({
@@ -91,81 +103,15 @@ export class ProcessIncomingMessageUseCase {
         whatsappNumber: phone,
       }));
 
+      let contactIdentifier: string | undefined;
+      let conversationId: string | undefined;
+
       try {
-        // 1. Busca se já temos uma conversa ativa para este número
-        let link = await this.prisma.conversationLink.findUnique({
-          where: { whatsappNumber: phone }
-        });
+        const link = await this.resolveOrCreateConversationLink(phone, pushName);
+        contactIdentifier = link.contactIdentifier;
+        conversationId = link.conversationId;
 
-        let contactIdentifier = link?.chatwootContactId;
-        let conversationId = link?.chatwootConversationId;
-
-        // 2. Se não existir o vínculo, cria tudo no Chatwoot e salva no banco
-        if (!link) {
-          // Busca no Syspro se esse número já é um contato cadastrado em alguma empresa
-          let sysproContact = await this.prisma.companyContact.findFirst({
-            where: { whatsapp: phone },
-            include: { company: true },
-          });
-
-          // Se não existir no banco, cadastra como contato "órfão" para entrar na rotina de vinculação
-          if (!sysproContact) {
-            sysproContact = await this.prisma.companyContact.create({
-              data: {
-                name: String(pushName),
-                whatsapp: String(phone),
-              },
-              include: { company: true },
-            });
-          }
-
-          // Garante ao TypeScript que sysproContact não é nulo a partir deste ponto
-          if (!sysproContact) throw new Error('Falha ao processar o contato no banco de dados');
-
-          const contactName = sysproContact.company ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}` : sysproContact.name;
-
-          // Captura Avatar do WhatsApp
-          const picResult = await this.evolutionClient.fetchProfilePicture(phone);
-
-          const contactResponse = (await this.chatwootClient.createOrFindContact(phone, contactName, picResult?.profilePictureUrl)) as any;
-          const contact = contactResponse?.payload?.contact;
-          
-          contactIdentifier = contact?.source_id?.toString() ?? contact?.contact_inboxes?.[0]?.source_id?.toString() ?? contact?.id?.toString();
-
-          if (!contactIdentifier) throw new Error('Não foi possível resolver o identificador do contato no Chatwoot');
-
-          const convResponse = (await this.chatwootClient.createConversation(contactIdentifier)) as any;
-          conversationId = convResponse?.id?.toString();
-
-          try {
-            link = await this.prisma.conversationLink.create({
-              data: {
-                whatsappNumber: phone,
-                chatwootContactId: contactIdentifier!,
-                chatwootConversationId: conversationId!,
-              },
-            });
-          } catch (error: any) {
-            // Outra requisição pode ter criado o vinculo em paralelo.
-            if (error?.code === 'P2002') {
-              link = await this.prisma.conversationLink.findUnique({
-                where: { whatsappNumber: phone },
-              });
-            } else {
-              throw error;
-            }
-          }
-
-          if (!link) {
-            throw new Error('Falha ao recuperar vinculo de conversa apos concorrencia');
-          }
-
-          contactIdentifier = link.chatwootContactId;
-          conversationId = link.chatwootConversationId;
-        }
-
-        // 3. Cria Mensagem na Inbox do Chatwoot usando os IDs persistidos
-        await this.chatwootClient.createIncomingMessage(contactIdentifier!, conversationId!, textContent, attachment);
+        await this.chatwootClient.createIncomingMessage(contactIdentifier, conversationId, textContent, attachment);
         this.logger.log(JSON.stringify({
           flow: 'evolution_to_chatwoot',
           stage: 'forwarded',
@@ -174,18 +120,35 @@ export class ProcessIncomingMessageUseCase {
           chatwootConversationId: conversationId,
           whatsappNumber: phone,
         }));
-        
       } catch (error: any) {
-        // Sistema de auto-cura: Se o Chatwoot retornar 404, possivelmente o contato/conversa foi apagado no painel.
         if (error?.message?.includes('404')) {
-          this.logger.warn(`[AUTO-CURA] Detectado erro 404 no Chatwoot para o número ${phone}. Removendo vínculo quebrado no banco...`);
+          this.logger.warn(
+            `[AUTO-CURA] Detectado erro 404 no Chatwoot para o numero ${phone} (contactIdentifier=${contactIdentifier ?? 'n/a'}, conversationId=${conversationId ?? 'n/a'}). Removendo vinculo quebrado no banco...`
+          );
+
           try {
             await this.prisma.conversationLink.deleteMany({
               where: { whatsappNumber: phone }
             });
-            this.logger.log(`[AUTO-CURA] Vínculo do número ${phone} apagado. A próxima mensagem recriará o chat.`);
-          } catch (dbErr: any) {
-            this.logger.error(`[AUTO-CURA] Falha ao tentar apagar vínculo: ${dbErr.message}`);
+            this.logger.log(`[AUTO-CURA] Vinculo do numero ${phone} apagado. Recriando conversa e reenviando a mensagem atual.`);
+
+            const recreatedLink = await this.resolveOrCreateConversationLink(phone, pushName);
+            contactIdentifier = recreatedLink.contactIdentifier;
+            conversationId = recreatedLink.conversationId;
+
+            await this.chatwootClient.createIncomingMessage(contactIdentifier, conversationId, textContent, attachment);
+            this.logger.log(JSON.stringify({
+              flow: 'evolution_to_chatwoot',
+              stage: 'forwarded_after_auto_heal',
+              instanceId,
+              messageId,
+              chatwootConversationId: conversationId,
+              whatsappNumber: phone,
+            }));
+            continue;
+          } catch (retryErr: any) {
+            this.logger.error(`[AUTO-CURA] Falha ao recriar/reenviar apos auto-cura: ${retryErr.message}`);
+            error = retryErr;
           }
         }
 
@@ -203,15 +166,14 @@ export class ProcessIncomingMessageUseCase {
 
   async handleStatusUpdate(payload: any) {
     const updates = Array.isArray(payload) ? payload : [payload];
-    
+
     for (const item of updates) {
       const evolutionMsgId = item?.key?.id;
       const statusVal = item?.update?.status;
-      
+
       if (!evolutionMsgId || statusVal === undefined) continue;
 
       let chatwootStatus: 'delivered' | 'read' | null = null;
-      // Status da biblioteca Bailey (Evolution): 3 = entregue, 4 = lido
       if (statusVal === 3 || String(statusVal).toUpperCase().includes('DELIVER')) chatwootStatus = 'delivered';
       else if (statusVal === 4 || String(statusVal).toUpperCase().includes('READ')) chatwootStatus = 'read';
 
@@ -231,6 +193,95 @@ export class ProcessIncomingMessageUseCase {
     }
   }
 
+  private async resolveOrCreateConversationLink(phone: string, pushName: string): Promise<{ contactIdentifier: string; conversationId: string }> {
+    let link = await this.prisma.conversationLink.findUnique({
+      where: { whatsappNumber: phone }
+    });
+
+    let contactIdentifier = link?.chatwootContactId;
+    let conversationId = link?.chatwootConversationId;
+
+    if (!link) {
+      let sysproContact = await this.prisma.companyContact.findFirst({
+        where: { whatsapp: phone },
+        include: { company: true },
+      });
+
+      if (!sysproContact) {
+        sysproContact = await this.prisma.companyContact.create({
+          data: {
+            name: String(pushName),
+            whatsapp: String(phone),
+          },
+          include: { company: true },
+        });
+      }
+
+      if (!sysproContact) throw new Error('Falha ao processar o contato no banco de dados');
+
+      const contactName = sysproContact.company
+        ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}`
+        : sysproContact.name;
+
+      const picResult = await this.evolutionClient.fetchProfilePicture(phone);
+      const contactResponse = (await this.chatwootClient.createOrFindContact(phone, contactName, picResult?.profilePictureUrl)) as any;
+      const contact = contactResponse?.payload?.contact;
+
+      const inboxIdentifier = process.env.CHATWOOT_INBOX_IDENTIFIER;
+      const sourceIdFromInbox =
+        contact?.contact_inboxes
+          ?.find((item: any) => {
+            const inboxId = item?.inbox?.id?.toString?.() ?? item?.inbox_id?.toString?.();
+            return inboxIdentifier && inboxId ? inboxId === inboxIdentifier.toString() : false;
+          })
+          ?.source_id
+          ?.toString?.();
+
+      contactIdentifier =
+        contact?.source_id?.toString?.() ??
+        sourceIdFromInbox ??
+        contact?.contact_inboxes?.[0]?.source_id?.toString?.();
+
+      if (!contactIdentifier) {
+        throw new Error(`Nao foi possivel resolver source_id publico do contato no Chatwoot (contact_id=${contact?.id ?? 'n/a'})`);
+      }
+
+      const convResponse = (await this.chatwootClient.createConversation(contactIdentifier)) as any;
+      conversationId = convResponse?.id?.toString();
+
+      try {
+        link = await this.prisma.conversationLink.create({
+          data: {
+            whatsappNumber: phone,
+            chatwootContactId: contactIdentifier,
+            chatwootConversationId: conversationId!,
+          },
+        });
+      } catch (error: any) {
+        if (error?.code === 'P2002') {
+          link = await this.prisma.conversationLink.findUnique({
+            where: { whatsappNumber: phone },
+          });
+        } else {
+          throw error;
+        }
+      }
+
+      if (!link) {
+        throw new Error('Falha ao recuperar vinculo de conversa apos concorrencia');
+      }
+
+      contactIdentifier = link.chatwootContactId;
+      conversationId = link.chatwootConversationId;
+    }
+
+    if (!contactIdentifier || !conversationId) {
+      throw new Error(`Vinculo de conversa invalido para ${phone}`);
+    }
+
+    return { contactIdentifier, conversationId };
+  }
+
   private async claimDedupEvent(provider: string, eventKey: string, instanceId: string | null): Promise<boolean> {
     try {
       const rows = await this.prisma.$executeRawUnsafe(
@@ -246,18 +297,17 @@ export class ProcessIncomingMessageUseCase {
       return Number(rows) > 0;
     } catch (error: any) {
       const relationMissing =
-        error?.code === "P2010" &&
-        (error?.meta?.code === "42P01" ||
-          String(error?.meta?.message || "").toLowerCase().includes("does not exist"));
+        error?.code === 'P2010' &&
+        (error?.meta?.code === '42P01' ||
+          String(error?.meta?.message || '').toLowerCase().includes('does not exist'));
 
       if (relationMissing) {
         if (!this.dedupTableUnavailableLogged) {
           this.logger.warn(
-            "Tabela integration_webhook_dedup ausente. Deduplicacao em banco desabilitada ate aplicar migracoes."
+            'Tabela integration_webhook_dedup ausente. Deduplicacao em banco desabilitada ate aplicar migracoes.'
           );
           this.dedupTableUnavailableLogged = true;
         }
-        // Nao bloqueia o fluxo de webhook enquanto a migracao nao foi aplicada.
         return true;
       }
 
