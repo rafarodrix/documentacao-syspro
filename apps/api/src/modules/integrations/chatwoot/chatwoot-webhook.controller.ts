@@ -33,25 +33,28 @@ export class ChatwootWebhookController {
     @Body() payload: any,
   ) {
     const resolvedContext = await this.integrationContext.resolveForChatwootWebhook(payload);
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
     if (payload?.event === 'message_created') {
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'webhook_received',
         event: payload?.event,
-        messageId: payload?.id?.toString?.(),
-        messageType: payload?.message_type,
+        messageId: payload?.id?.toString?.() ?? message?.id?.toString?.(),
+        messageType: payload?.message_type ?? message?.message_type,
         conversationId:
           payload?.conversation?.id?.toString?.() ??
           payload?.conversation_id?.toString?.() ??
-          payload?.message?.conversation_id?.toString?.(),
+          message?.conversation_id?.toString?.(),
         inboxId:
           payload?.inbox?.id?.toString?.() ??
           payload?.inbox_id?.toString?.() ??
-          payload?.conversation?.inbox_id?.toString?.(),
+          payload?.conversation?.inbox_id?.toString?.() ??
+          message?.inbox_id?.toString?.(),
         accountId:
           payload?.account?.id?.toString?.() ??
           payload?.account_id?.toString?.() ??
-          payload?.conversation?.account_id?.toString?.(),
+          payload?.conversation?.account_id?.toString?.() ??
+          message?.account_id?.toString?.(),
         resolvedConnectionKey: resolvedContext?.connectionKey ?? null,
       }));
     }
@@ -79,7 +82,18 @@ export class ChatwootWebhookController {
 
     switch (payload?.event) {
       case 'message_created':
-        await this.processOutgoingMessage.execute(payload, { connection: resolvedContext ?? undefined });
+        try {
+          await this.processOutgoingMessage.execute(payload, { connection: resolvedContext ?? undefined });
+        } catch (error: any) {
+          this.logger.error(JSON.stringify({
+            flow: 'chatwoot_to_evolution',
+            stage: 'processing_failed',
+            event: payload?.event,
+            messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
+            error: error?.message ?? 'unknown_error',
+          }));
+          throw error;
+        }
         break;
       case 'contact_updated':
         this.logger.log(`Sincronizacao pendente: Contato atualizado no Chatwoot (ID: ${payload?.id})`);

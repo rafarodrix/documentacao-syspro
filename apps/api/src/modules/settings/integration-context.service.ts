@@ -80,23 +80,26 @@ export class IntegrationContextService {
   }
 
   async resolveForChatwootWebhook(payload: any): Promise<ResolvedIntegrationContext | null> {
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
     const accountId = String(
       payload?.account?.id ??
       payload?.account_id ??
       payload?.conversation?.account_id ??
+      message?.account_id ??
       ''
     ).trim();
     const inboxId = String(
       payload?.inbox?.id ??
       payload?.inbox_id ??
       payload?.conversation?.inbox_id ??
-      payload?.message?.inbox_id ??
+      message?.inbox_id ??
       ''
     ).trim();
     const inboxIdentifier = String(
       payload?.inbox?.identifier ??
       payload?.conversation?.inbox_identifier ??
-      payload?.message?.inbox_identifier ??
+      payload?.conversation?.meta?.inbox?.identifier ??
+      message?.inbox_identifier ??
       ''
     ).trim();
 

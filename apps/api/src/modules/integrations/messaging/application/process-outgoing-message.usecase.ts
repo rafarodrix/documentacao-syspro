@@ -16,12 +16,13 @@ export class ProcessOutgoingMessageUseCase {
   ) {}
 
   async execute(payload: any, context?: { connection?: ResolvedIntegrationContext }) {
-    const normalizedMessageType = this.normalizeMessageType(payload?.message_type);
-    if (payload?.private === true) {
+    const messagePayload = this.extractMessagePayload(payload);
+    const normalizedMessageType = this.normalizeMessageType(messagePayload.messageType);
+    if (messagePayload.isPrivateNote) {
       this.logger.debug(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'ignored_private_note',
-        messageId: payload?.id?.toString?.(),
+        messageId: messagePayload.messageId ?? null,
       }));
       return;
     }
@@ -31,20 +32,16 @@ export class ProcessOutgoingMessageUseCase {
       this.logger.debug(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'ignored_message_type',
-        messageId: payload?.id?.toString?.(),
-        messageType: payload?.message_type ?? null,
+        messageId: messagePayload.messageId ?? null,
+        messageType: messagePayload.messageType ?? null,
       }));
       return;
     }
 
-    const content = payload.content;
-    const messageId = payload?.id?.toString?.();
-    const chatwootConversationId =
-      payload?.conversation?.id?.toString?.() ??
-      payload?.conversation_id?.toString?.() ??
-      payload?.message?.conversation_id?.toString?.();
-
-    const attachments = payload.attachments;
+    const content = messagePayload.content;
+    const messageId = messagePayload.messageId;
+    const chatwootConversationId = messagePayload.chatwootConversationId;
+    const attachments = messagePayload.attachments;
     const hasAttachment = attachments && attachments.length > 0;
     if ((!content && !hasAttachment) || !chatwootConversationId) {
       this.logger.warn(JSON.stringify({
@@ -110,13 +107,43 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     if (!link) {
+      const fallbackPhone = this.extractPhoneFromPayload(payload);
+      if (!fallbackPhone) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'link_not_found',
+          messageId,
+          chatwootConversationId,
+        }));
+        return;
+      }
+
+      const fallbackConnection = resolvedConnection;
+      if (!fallbackConnection) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'connection_not_resolved_for_phone_fallback',
+          messageId,
+          chatwootConversationId,
+          whatsappNumber: fallbackPhone,
+        }));
+        return;
+      }
+
+      link = await this.persistFallbackConversationLink(
+        fallbackConnection,
+        fallbackPhone,
+        chatwootConversationId,
+        this.extractContactIdentifierFromPayload(payload),
+      );
+
       this.logger.warn(JSON.stringify({
         flow: 'chatwoot_to_evolution',
-        stage: 'link_not_found',
+        stage: 'link_resolved_from_payload',
         messageId,
         chatwootConversationId,
+        whatsappNumber: fallbackPhone,
       }));
-      return;
     }
 
     const phone = link.whatsappNumber;
@@ -231,5 +258,127 @@ export class ProcessOutgoingMessageUseCase {
     if (normalized === '1') return 'outgoing';
     if (normalized === '2') return 'template';
     return 'unknown';
+  }
+
+  private extractMessagePayload(payload: any): {
+    messageId?: string;
+    messageType?: unknown;
+    isPrivateNote: boolean;
+    content?: string;
+    chatwootConversationId?: string;
+    attachments: any[];
+  } {
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const attachments = this.toArray(payload?.attachments ?? message?.attachments);
+
+    return {
+      messageId: this.toOptionalString(payload?.id ?? message?.id),
+      messageType: payload?.message_type ?? message?.message_type,
+      isPrivateNote: Boolean(payload?.private ?? message?.private),
+      content: this.toOptionalString(payload?.content ?? message?.content),
+      chatwootConversationId: this.toOptionalString(
+        payload?.conversation?.id ??
+        payload?.conversation_id ??
+        message?.conversation_id ??
+        message?.conversation?.id
+      ),
+      attachments,
+    };
+  }
+
+  private extractPhoneFromPayload(payload: any): string | null {
+    const candidates = [
+      payload?.conversation?.meta?.sender?.phone_number,
+      payload?.conversation?.meta?.sender?.identifier,
+      payload?.conversation?.meta?.channel,
+      payload?.conversation?.contact?.phone_number,
+      payload?.conversation?.contact_inbox?.source_id,
+      payload?.contact?.phone_number,
+      payload?.sender?.phone_number,
+      payload?.sender?.identifier,
+      payload?.message?.sender?.phone_number,
+      payload?.message?.sender?.identifier,
+    ];
+
+    for (const candidate of candidates) {
+      const digits = String(candidate ?? '').replace(/\D/g, '');
+      if (digits.length >= 10) {
+        return digits;
+      }
+    }
+
+    return null;
+  }
+
+  private extractContactIdentifierFromPayload(payload: any): string {
+    const candidates = [
+      payload?.conversation?.contact_inbox?.source_id,
+      payload?.conversation?.meta?.sender?.source_id,
+      payload?.sender?.source_id,
+      payload?.contact_inbox?.source_id,
+      payload?.message?.source_id,
+    ];
+
+    for (const candidate of candidates) {
+      const value = this.toOptionalString(candidate);
+      if (value) return value;
+    }
+
+    return 'unknown';
+  }
+
+  private async persistFallbackConversationLink(
+    connection: ResolvedIntegrationContext,
+    whatsappNumber: string,
+    chatwootConversationId: string,
+    chatwootContactId: string,
+  ) {
+    const existingLink =
+      await this.prisma.conversationLink.findUnique({
+        where: {
+          connectionKey_whatsappNumber: {
+            connectionKey: connection.connectionKey,
+            whatsappNumber,
+          },
+        },
+      }) ??
+      await this.prisma.conversationLink.findFirst({
+        where: {
+          connectionKey: connection.connectionKey,
+          chatwootConversationId,
+        },
+      });
+
+    if (existingLink) {
+      return this.prisma.conversationLink.update({
+        where: { id: existingLink.id },
+        data: {
+          chatwootConversationId,
+          chatwootContactId: existingLink.chatwootContactId || chatwootContactId,
+        },
+      });
+    }
+
+    return this.prisma.conversationLink.create({
+      data: {
+        companyId: connection.companyId ?? null,
+        connectionId: connection.connectionId,
+        connectionKey: connection.connectionKey,
+        whatsappNumber,
+        chatwootConversationId,
+        chatwootContactId,
+      },
+    });
+  }
+
+  private toArray<T>(value: T | T[] | null | undefined): T[] {
+    if (Array.isArray(value)) return value;
+    if (value == null) return [];
+    return [value];
+  }
+
+  private toOptionalString(value: unknown): string | undefined {
+    const normalized = String(value ?? '').trim();
+    return normalized.length > 0 ? normalized : undefined;
   }
 }

@@ -62,7 +62,7 @@ export class EvolutionClient {
     });
 
     if (fallbackResponse.ok) {
-      const payload = await fallbackResponse.json().catch(() => ({}));
+      const payload: any = await fallbackResponse.json().catch(() => ({}));
       return this.normalizeContactList(payload?.data ?? payload?.contacts ?? []);
     }
 
@@ -213,7 +213,7 @@ export class EvolutionClient {
   private normalizeContactList(payload: any): EvolutionContact[] {
     if (!Array.isArray(payload)) return [];
 
-    return payload
+    const contacts = payload
       .map((item: any) => {
         const rawNumber =
           item?.number ??
@@ -248,6 +248,8 @@ export class EvolutionClient {
         } satisfies EvolutionContact;
       })
       .filter((item: EvolutionContact | null): item is EvolutionContact => Boolean(item));
+
+    return contacts;
   }
 
   private extractWhatsAppNumber(value: unknown): string {

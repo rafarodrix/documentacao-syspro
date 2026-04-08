@@ -131,18 +131,34 @@ export class ChatwootClient {
     contactIdentifier: string,
     data: { name?: string; phone_number?: string; email?: string }
   ) {
+    const inboxIdentifier = await this.resolveInboxIdentifier(config);
+    if (inboxIdentifier) {
+      try {
+        return await this.request(
+          config,
+          `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}`,
+          'PATCH',
+          data
+        );
+      } catch (error: any) {
+        if (!this.isNotFoundError(error)) throw error;
+      }
+    }
+
+    const numericContactId = this.toNumericIdentifier(contactIdentifier);
+    if (!numericContactId) {
+      throw new Error(`Chatwoot contact identifier nao numerico sem rota publica disponivel: ${contactIdentifier}`);
+    }
+
     try {
       return await this.request(
         config,
-        `/api/v1/accounts/${config.accountId}/contacts/${contactIdentifier}`,
+        `/api/v1/accounts/${config.accountId}/contacts/${numericContactId}`,
         'PUT',
         data
       );
     } catch (error: any) {
-      if (!error?.message?.includes('404')) throw error;
-      const inboxIdentifier = await this.resolveInboxIdentifier(config);
-      if (!inboxIdentifier) throw error;
-      return this.request(config, `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}`, 'PATCH', data);
+      throw error;
     }
   }
 
@@ -199,11 +215,12 @@ export class ChatwootClient {
     attachment?: { base64: string; mimetype: string; filename: string }
   ) {
     const inboxIdentifier = await this.resolveInboxIdentifier(config);
+    const echoId = this.buildEchoId();
 
     if (attachment && attachment.base64) {
       const formData = new FormData();
       formData.append('content', content || '');
-      formData.append('message_type', 'incoming');
+      formData.append('echo_id', echoId);
       try {
         const buffer = Buffer.from(attachment.base64, 'base64');
         const blob = new Blob([buffer], { type: attachment.mimetype });
@@ -226,7 +243,7 @@ export class ChatwootClient {
           config,
           `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
           'POST',
-          formData
+          this.appendAccountIncomingFields(formData)
         );
       } catch (e: any) {
         this.logger.error(`Erro ao processar anexo para o Chatwoot: ${e.message}`);
@@ -235,7 +252,7 @@ export class ChatwootClient {
 
     const payload = {
       content,
-      message_type: 'incoming',
+      echo_id: echoId,
     };
 
     if (inboxIdentifier) {
@@ -255,7 +272,13 @@ export class ChatwootClient {
       config,
       `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
       'POST',
-      payload
+      {
+        ...payload,
+        message_type: 'incoming',
+        private: false,
+        content_type: 'text',
+        content_attributes: {},
+      }
     );
   }
 
@@ -363,5 +386,21 @@ export class ChatwootClient {
   private isNotFoundError(error: any): boolean {
     const message = String(error?.message ?? '');
     return message.includes('Chatwoot API error') && message.includes(': 404 -');
+  }
+
+  private buildEchoId(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  private appendAccountIncomingFields(formData: FormData): FormData {
+    formData.append('message_type', 'incoming');
+    formData.append('private', 'false');
+    formData.append('content_type', 'text');
+    return formData;
+  }
+
+  private toNumericIdentifier(value: string): string | null {
+    const normalized = String(value ?? '').trim();
+    return /^\d+$/.test(normalized) ? normalized : null;
   }
 }
