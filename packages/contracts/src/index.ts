@@ -46,6 +46,23 @@ export { USER_ROLE_VALUES, createUserSchema, linkUserToCompanySchema } from "./u
 export type { CreateUserInput, CreateUserOutput, LinkUserToCompanyInput } from "./user";
 
 export {
+  ticketApiSchema,
+  operationalTicketSchema,
+  ticketDetailsSchema,
+  ticketArticleSchema,
+  ticketUserSearchSchema,
+  ticketUserSchema,
+} from "./ticket-api";
+export type {
+  TicketApi,
+  OperationalTicket,
+  TicketDetails,
+  TicketArticle,
+  TicketUserSearch,
+  TicketUser,
+} from "./ticket-api";
+
+export {
   zammadTicketAPISchema,
   zammadOperationalTicketSchema,
   zammadTicketDetailsSchema,
@@ -61,6 +78,27 @@ export type {
   ZammadUserSearch,
   ZammadUser,
 } from "./zammad-api";
+
+export {
+  ticketOwnerModeSchema,
+  ticketArticleTypeSchema,
+  ticketGlobalSettingsSchema,
+  ticketCatalogGroupSchema,
+  ticketCatalogStateSchema,
+  ticketCatalogPrioritySchema,
+  ticketCatalogOwnerSchema,
+  ticketGlobalCatalogSchema,
+} from "./ticket-global-settings";
+export type {
+  TicketOwnerMode,
+  TicketArticleType,
+  TicketGlobalSettings,
+  TicketCatalogGroup,
+  TicketCatalogState,
+  TicketCatalogPriority,
+  TicketCatalogOwner,
+  TicketGlobalCatalog,
+} from "./ticket-global-settings";
 
 
 export {

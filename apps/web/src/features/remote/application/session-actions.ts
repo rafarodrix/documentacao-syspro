@@ -6,7 +6,7 @@ import { sessionEvents } from "@/features/remote/infrastructure/events/session-e
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { evolutionWhatsApp } from "@/features/conversations/infrastructure/gateways/evolution-whatsapp.gateway";
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://suporte.trilink.com.br";
 
@@ -124,25 +124,25 @@ export async function startRemoteSessionService(input: {
 
   // 2. Integracao Zammad: Adicionar nota interna de inicio e Sincronizar Owner (Fase 7)
   if (input.ticketId || input.ticketNumber) {
-    const zammadTicketId = input.ticketId || input.ticketNumber;
+    const ticketExternalId = input.ticketId || input.ticketNumber;
     const zammadNote = `<b>Portal Trilink:</b> Sessão remota iniciada no host <b>${remoteSession.host.name}</b> pelo técnico <b>${input.userName}</b>. Acesso auditado iniciado.`;
     
     // Dispara em background para nao travar o retorno
     (async () => {
       try {
         // Encontra o ID do usuario no Zammad pelo email
-        const zammadUserId = await ZammadGateway.getUserIdByEmail(input.userEmail);
+        const zammadUserId = await TicketGateway.getUserIdByEmail(input.userEmail);
         
         // Adiciona a nota interna
-        await ZammadGateway.addInternalTicketNote(zammadTicketId!, zammadNote);
+        await TicketGateway.addInternalTicketNote(ticketExternalId!, zammadNote);
         
         // Se encontramos o usuario, definimos ele como dono do chamado
         if (zammadUserId) {
-          await ZammadGateway.updateTicket(zammadTicketId!, { owner_id: zammadUserId });
-          console.log(`Ticket ${zammadTicketId} atribuido ao tecnico ${input.userEmail} (ID: ${zammadUserId})`);
+          await TicketGateway.updateTicket(ticketExternalId!, { owner_id: zammadUserId });
+          console.log(`Ticket ${ticketExternalId} atribuido ao tecnico ${input.userEmail} (ID: ${zammadUserId})`);
         }
       } catch (err) {
-        console.error(`Erro na integracao Zammad para ticket ${zammadTicketId}:`, err);
+        console.error(`Erro na integracao Zammad para ticket ${ticketExternalId}:`, err);
       }
     })();
   }
@@ -223,7 +223,7 @@ export async function stopRemoteSessionService(sessionId: string, context: { use
 
   // Integracao Zammad: Adicionar nota interna de encerramento
   if (current.ticketId || current.ticketNumber) {
-    const zammadTicketId = current.ticketId || current.ticketNumber;
+    const ticketExternalId = current.ticketId || current.ticketNumber;
     
     // Calcula duracao se a sessao foi iniciada
     let durationText = "";
@@ -269,8 +269,8 @@ export async function stopRemoteSessionService(sessionId: string, context: { use
 
     const zammadNote = `<b>Portal Trilink:</b> Sessão remota encerrada no host <b>${current.host.name}</b> pelo técnico <b>${context.userName}</b>.${durationText}${technicalSnapshotText}`;
     
-    ZammadGateway.addInternalTicketNote(zammadTicketId!, zammadNote).catch(err => 
-      console.error(`Falha ao registrar nota de fim no Zammad para ticket ${zammadTicketId}:`, err)
+    TicketGateway.addInternalTicketNote(ticketExternalId!, zammadNote).catch(err => 
+      console.error(`Falha ao registrar nota de fim no Zammad para ticket ${ticketExternalId}:`, err)
     );
   }
 
@@ -286,3 +286,5 @@ export async function stopRemoteSessionService(sessionId: string, context: { use
 
   return updated;
 }
+
+

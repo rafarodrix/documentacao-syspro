@@ -6,7 +6,7 @@ const getProtectedSessionMock = vi.fn();
 const getUserIdByEmailMock = vi.fn();
 const searchOperationalTicketsPageMock = vi.fn();
 const getTicketCountMock = vi.fn();
-const getZammadRouteHealthMock = vi.fn();
+const getTicketRouteHealthMock = vi.fn();
 const upsertOperationalTicketsToCacheMock = vi.fn();
 const listCachedTicketsMock = vi.fn();
 const getLatestOperationalTicketCacheFreshnessMock = vi.fn();
@@ -17,7 +17,7 @@ const getStatusCountsFromCacheMock = vi.fn();
 const prismaMock = {
   membership: { findMany: vi.fn() },
   user: { findMany: vi.fn() },
-  zammadTicketCache: { count: vi.fn() },
+  ticketCache: { count: vi.fn() },
 };
 
 vi.mock("@/lib/auth-helpers", () => ({
@@ -28,19 +28,19 @@ vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
-vi.mock("@/features/tickets/infrastructure/gateways/zammad-gateway", () => ({
-  ZammadGateway: {
+vi.mock("@/features/tickets/infrastructure/gateways/ticket-gateway", () => ({
+  TicketGateway: {
     getUserIdByEmail: getUserIdByEmailMock,
     searchOperationalTicketsPage: searchOperationalTicketsPageMock,
     getTicketCount: getTicketCountMock,
   },
 }));
 
-vi.mock("@/features/tickets/infrastructure/observability/zammad-observability", () => ({
-  getZammadRouteHealth: getZammadRouteHealthMock,
+vi.mock("@/features/tickets/infrastructure/observability/ticket-observability", () => ({
+  getTicketRouteHealth: getTicketRouteHealthMock,
 }));
 
-vi.mock("@/features/tickets/infrastructure/cache/zammad-ticket-cache", () => ({
+vi.mock("@/features/tickets/infrastructure/cache/ticket-cache", () => ({
   upsertOperationalTicketsToCache: upsertOperationalTicketsToCacheMock,
   listCachedTickets: listCachedTicketsMock,
   getLatestOperationalTicketCacheFreshness: getLatestOperationalTicketCacheFreshnessMock,
@@ -126,7 +126,7 @@ describe("tickets integration: queue pagination/count consistency", () => {
       return TOTALS[queue];
     });
 
-    getZammadRouteHealthMock.mockReturnValue({ stale: false, staleMinutes: 0 });
+    getTicketRouteHealthMock.mockReturnValue({ stale: false, staleMinutes: 0 });
     upsertOperationalTicketsToCacheMock.mockResolvedValue(undefined);
     listCachedTicketsMock.mockResolvedValue({ rows: [], total: 0 });
     getLatestOperationalTicketCacheFreshnessMock.mockResolvedValue({ hasCache: true, staleMinutes: 0 });
@@ -189,3 +189,5 @@ describe("tickets integration: queue pagination/count consistency", () => {
     expect(searchCall?.[0]).not.toContain("state_id:9");
   });
 });
+
+

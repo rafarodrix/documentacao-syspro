@@ -1,7 +1,7 @@
 import { TicketPriority, TicketStatus } from "@dosc-syspro/core";
-import { getZammadStateMatrix } from "@dosc-syspro/core";
+import { getTicketStateMatrix } from "@dosc-syspro/core";
 
-const matrix = getZammadStateMatrix();
+const matrix = getTicketStateMatrix();
 const ACTIVE_WORKFLOW_STATE_IDS = new Set(matrix.activeWorkflowStateIds);
 
 function normalizeStateName(value?: string | null): string {
@@ -63,4 +63,3 @@ export function isAnalysisOrDevelopmentStateName(stateName?: string | null): boo
     .filter((rule) => rule.status === "Em Análise")
     .some((rule) => rule.keywords.some((word) => normalized.includes(normalizeStateName(word))));
 }
-

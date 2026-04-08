@@ -291,7 +291,7 @@ model Company {
   remoteHostSysproUpdates RemoteHostSysproUpdate[]
   remoteSessions    RemoteSession[]
   remoteAddressBookCredentials RemoteAddressBookCredential[]
-  zammadEmails      CompanyZammadEmail[]
+  ticketEmails      CompanyTicketEmail[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -331,7 +331,7 @@ model CompanyContact {
   @@map("company_contact")
 }
 
-model CompanyZammadEmail {
+model CompanyTicketEmail {
   id String @id @default(cuid())
 
   companyId String
@@ -347,7 +347,7 @@ model CompanyZammadEmail {
   @@unique([companyId, email])
   @@index([companyId, isActive])
   @@index([email])
-  @@map("company_zammad_email")
+  @@map("company_ticket_email")
 }
 
 model Address {
@@ -1260,42 +1260,6 @@ model SefazStatus {
   createdAt DateTime         @default(now())
 
   @@index([uf, service, createdAt])
-}
-
-model ZammadTicketCache {
-  id             String   @id @default(cuid())
-  zammadTicketId Int      @unique
-  number         String
-  title          String
-  state          String?
-  stateId        Int?
-  priorityId     Int?
-  groupName      String?
-  customer       String?
-  ownerId        Int?
-  firstResponseAt DateTime?
-  resolvedAt     DateTime?
-  escalationAt   DateTime?
-  breached       Boolean  @default(false)
-  createdAtZammad DateTime
-  updatedAtZammad DateTime
-  lastEventType  String?
-  lastSyncedAt   DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([updatedAtZammad])
-  @@index([stateId, priorityId])
-  @@index([ownerId])
-  @@index([breached])
-}
-
-model ZammadSyncState {
-  key               String   @id
-  lastWebhookAt     DateTime?
-  lastWorkerSyncAt  DateTime?
-  lastProcessedAt   DateTime?
-  updatedAt         DateTime @updatedAt
 }
 
 model ConversationLink {

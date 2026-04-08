@@ -20,7 +20,7 @@ import type {
   CompanyContactInput,
   CompanyRegistryLookupResponse,
   CompanyValidationErrors,
-  CompanyZammadEmailInput,
+  CompanyTicketEmailInput,
 } from "@/features/company/domain/model";
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
@@ -50,9 +50,9 @@ async function getSessionCompanyIds(userId: string): Promise<string[]> {
   return memberships.map((m) => m.companyId);
 }
 
-function normalizeZammadEmails(items: CompanyZammadEmailInput[] | undefined): CompanyZammadEmailInput[] {
+function normalizeZammadEmails(items: CompanyTicketEmailInput[] | undefined): CompanyTicketEmailInput[] {
   if (!Array.isArray(items)) return [];
-  const map = new Map<string, CompanyZammadEmailInput>();
+  const map = new Map<string, CompanyTicketEmailInput>();
   for (const item of items) {
     const rawEmail = typeof item?.email === "string" ? item.email.trim().toLowerCase() : "";
     if (!rawEmail) continue;
@@ -90,16 +90,16 @@ function normalizeCompanyContacts(items: CompanyContactInput[] | undefined): Com
     .filter((item) => item.name.length > 0);
 }
 
-async function replaceCompanyZammadEmails(companyId: string, items: CompanyZammadEmailInput[] | undefined) {
+async function replaceCompanyTicketEmails(companyId: string, items: CompanyTicketEmailInput[] | undefined) {
   const normalized = normalizeZammadEmails(items);
 
-  await prisma.companyZammadEmail.deleteMany({
+  await prisma.companyTicketEmail.deleteMany({
     where: { companyId },
   });
 
   if (normalized.length === 0) return;
 
-  await prisma.companyZammadEmail.createMany({
+  await prisma.companyTicketEmail.createMany({
     data: normalized.map((item) => ({
       companyId,
       email: item.email,
@@ -178,7 +178,7 @@ export async function lookupCompanyProfileByCnpjAction(
 
 export async function createCompanyAction(
   data: CreateCompanyInput | CreateCompanyOutput,
-  zammadEmails?: CompanyZammadEmailInput[],
+  zammadEmails?: CompanyTicketEmailInput[],
   contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
   const session = await getProtectedSession();
@@ -229,7 +229,7 @@ export async function createCompanyAction(
     });
 
     if (zammadEmails !== undefined) {
-      await replaceCompanyZammadEmails(result.id, zammadEmails);
+      await replaceCompanyTicketEmails(result.id, zammadEmails);
     }
     const contactsToPersist = contacts ?? validatedContacts;
     if (contactsToPersist !== undefined) {
@@ -249,7 +249,7 @@ export async function createCompanyAction(
 export async function updateCompanyAction(
   id: string,
   data: CreateCompanyInput | CreateCompanyOutput,
-  zammadEmails?: CompanyZammadEmailInput[],
+  zammadEmails?: CompanyTicketEmailInput[],
   contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
   const session = await getProtectedSession();
@@ -328,7 +328,7 @@ export async function updateCompanyAction(
     });
 
     if (zammadEmails !== undefined) {
-      await replaceCompanyZammadEmails(id, zammadEmails);
+      await replaceCompanyTicketEmails(id, zammadEmails);
     }
     const contactsToPersist = contacts ?? validatedContacts;
     if (contactsToPersist !== undefined) {

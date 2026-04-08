@@ -1,5 +1,5 @@
 import { createRemoteSessionPort as createSharedRemoteSessionPort } from "@dosc-syspro/api/remote-session-port";
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
 import type { RemoteSessionPort } from "@dosc-syspro/remote-domain";
 import { evolutionWhatsApp } from "@/features/conversations/infrastructure/gateways/evolution-whatsapp.gateway";
 
@@ -19,10 +19,12 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }): Remot
       error: (event, fields) => logger.error(event, undefined, fields),
     },
     addInternalTicketNote: async (input) => {
-      await ZammadGateway.addInternalTicketNote(input.ticketId, input.body);
+      await TicketGateway.addInternalTicketNote(input.ticketId, input.body);
     },
     sendWhatsAppAlert: async (input) => {
       await evolutionWhatsApp.sendTextMessage(input.number, input.body);
     },
   });
 }
+
+

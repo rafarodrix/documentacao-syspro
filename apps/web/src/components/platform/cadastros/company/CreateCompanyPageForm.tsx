@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import type { ElementType } from "react";
@@ -29,7 +29,7 @@ import type {
   CompanyContactInput,
   CompanyOption,
   CompanyRemoteConnectionInput,
-  CompanyZammadEmailInput,
+  CompanyTicketEmailInput,
 } from "@/features/company/domain/model";
 import {
   createCompanyAction,
@@ -100,7 +100,7 @@ interface CreateCompanyPageFormProps {
   mode?: "create" | "edit";
   companyId?: string;
   initialData?: Partial<CreateCompanyInput>;
-  initialZammadEmails?: CompanyZammadEmailInput[];
+  initialZammadEmails?: CompanyTicketEmailInput[];
   initialContacts?: CompanyContactInput[];
   canEditCnpj?: boolean;
 }
@@ -194,7 +194,7 @@ export function CreateCompanyPageForm({
 }: CreateCompanyPageFormProps) {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<SectionId>("geral");
-  const normalizeZammadEmails = (items: CompanyZammadEmailInput[]) =>
+  const normalizeZammadEmails = (items: CompanyTicketEmailInput[]) =>
     items
       .map((item) => ({
         email: item.email.trim().toLowerCase(),
@@ -207,7 +207,7 @@ export function CreateCompanyPageForm({
     () => normalizeZammadEmails(Array.isArray(initialZammadEmails) ? initialZammadEmails : []),
     [initialZammadEmails],
   );
-  const [zammadEmails, setZammadEmails] = useState<CompanyZammadEmailInput[]>(initialNormalizedZammadEmails);
+  const [zammadEmails, setZammadEmails] = useState<CompanyTicketEmailInput[]>(initialNormalizedZammadEmails);
   const [zammadEmailInput, setZammadEmailInput] = useState("");
   const [zammadEmailLabel, setZammadEmailLabel] = useState("");
   const initialNormalizedContacts = useMemo(

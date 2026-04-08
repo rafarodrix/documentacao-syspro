@@ -19,6 +19,7 @@ export {
 } from "./config/route-access";
 export type { AppRole } from "./config/route-access";
 export { ROLE_LABELS, getRoleLabel } from "./config/role-labels";
+export { getTicketStateMatrix } from "./config/ticket-state-matrix";
 export { getZammadStateMatrix } from "./config/zammad-state-matrix";
 export {
   TICKET_QUEUE_KEYS,
@@ -33,5 +34,5 @@ export {
   getStateIdsForStatusGroup,
 } from "./config/tickets-workflow";
 export type { QueueKey, TicketStatusGroup } from "./config/tickets-workflow";
-export { computeTicketSla } from "./services/zammad-sla";
-export type { TicketSlaMeta } from "./services/zammad-sla";
+export { computeTicketSla } from "./services/ticket-sla";
+export type { TicketSlaMeta } from "./services/ticket-sla";

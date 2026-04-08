@@ -1,25 +1,34 @@
 import { prisma } from "@dosc-syspro/database";
+import { ConversationStatus, Prisma } from "@prisma/client";
 import { ApiError, createRouter, defineMutation, defineQuery } from "../router";
 
-function parseTicketId(value: string) {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new ApiError("ticketId invalido. Use o ID numerico do Zammad.", "BAD_REQUEST");
+function parseTicketIdentifier(value: string) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    throw new ApiError("ticketId invalido.", "BAD_REQUEST");
   }
-  return parsed;
+  return normalized;
 }
 
 function isAllowedQuickAction(action: string) {
-  return ["touch", "mark_breached", "clear_breached"].includes(action);
+  return ["touch", "resolve", "archive", "reopen"].includes(action);
 }
 
 export const ticketsRouter = createRouter({
   list: defineQuery({
     auth: "authenticated",
     handler: async () => {
-      const tickets = await prisma.zammadTicketCache.findMany({
-        orderBy: [{ updatedAtZammad: "desc" }],
+      const tickets = await prisma.conversation.findMany({
+        where: {
+          OR: [{ ticketNumber: { not: null } }, { subject: { not: null } }],
+        },
+        orderBy: [{ updatedAt: "desc" }],
         take: 100,
+        include: {
+          company: { select: { id: true, razaoSocial: true, nomeFantasia: true } },
+          companyContact: { select: { id: true, name: true, email: true, whatsapp: true } },
+          assignedUser: { select: { id: true, name: true, email: true } },
+        },
       });
       return {
         total: tickets.length,
@@ -30,13 +39,24 @@ export const ticketsRouter = createRouter({
   details: defineQuery<{ ticketId: string }, unknown>({
     auth: "authenticated",
     handler: async ({ input }) => {
-      const ticketId = parseTicketId(input.ticketId);
-      const ticket = await prisma.zammadTicketCache.findUnique({
-        where: { zammadTicketId: ticketId },
+      const ticketId = parseTicketIdentifier(input.ticketId);
+      const ticket = await prisma.conversation.findFirst({
+        where: {
+          OR: [{ id: ticketId }, { ticketNumber: ticketId }, { ticketId }],
+        },
+        include: {
+          company: { select: { id: true, razaoSocial: true, nomeFantasia: true } },
+          companyContact: { select: { id: true, name: true, email: true, whatsapp: true } },
+          assignedUser: { select: { id: true, name: true, email: true } },
+          resolvedByUser: { select: { id: true, name: true, email: true } },
+          messages: {
+            orderBy: { createdAt: "asc" },
+          },
+        },
       });
 
       if (!ticket) {
-        throw new ApiError("Ticket nao encontrado no cache operacional.", "BAD_REQUEST");
+        throw new ApiError("Ticket nao encontrado.", "BAD_REQUEST");
       }
 
       return ticket;
@@ -46,34 +66,58 @@ export const ticketsRouter = createRouter({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN"],
     handler: async ({ input }) => {
-      const ticketId = parseTicketId(input.ticketId);
-      const action = input.action?.trim().toLowerCase();
+      const ticketId = parseTicketIdentifier(input.ticketId);
+      const action = typeof input.action === "string" ? input.action.trim().toLowerCase() : "";
 
       if (!isAllowedQuickAction(action)) {
-        throw new ApiError("Acao rapida invalida. Use: touch, mark_breached ou clear_breached.", "BAD_REQUEST");
+        throw new ApiError("Acao rapida invalida. Use: touch, resolve, archive ou reopen.", "BAD_REQUEST");
       }
 
-      const current = await prisma.zammadTicketCache.findUnique({
-        where: { zammadTicketId: ticketId },
-        select: { id: true },
+      const current = await prisma.conversation.findFirst({
+        where: {
+          OR: [{ id: ticketId }, { ticketNumber: ticketId }, { ticketId }],
+        },
+        select: { id: true, status: true },
       });
 
       if (!current) {
-        throw new ApiError("Ticket nao encontrado no cache operacional.", "BAD_REQUEST");
+        throw new ApiError("Ticket nao encontrado.", "BAD_REQUEST");
       }
 
-      const updated = await prisma.zammadTicketCache.update({
-        where: { zammadTicketId: ticketId },
-        data:
-          action === "mark_breached"
-            ? { breached: true, lastSyncedAt: new Date() }
-            : action === "clear_breached"
-              ? { breached: false, lastSyncedAt: new Date() }
-              : { lastSyncedAt: new Date() },
+      let nextStatus: ConversationStatus | undefined;
+      if (action === "resolve") nextStatus = ConversationStatus.RESOLVED;
+      if (action === "archive") nextStatus = ConversationStatus.ARCHIVED;
+      if (action === "reopen") {
+        nextStatus =
+          current.status === ConversationStatus.NEW || current.status === ConversationStatus.UNASSIGNED
+            ? current.status
+            : ConversationStatus.IN_PROGRESS;
+      }
+
+      const metadataPatch: Prisma.JsonObject = {
+        lastQuickAction: action,
+        lastQuickActionAt: new Date().toISOString(),
+      };
+
+      const updated = await prisma.conversation.update({
+        where: { id: current.id },
+        data: {
+          status: nextStatus,
+          closedAt:
+            nextStatus === ConversationStatus.RESOLVED || nextStatus === ConversationStatus.ARCHIVED
+              ? new Date()
+              : nextStatus === ConversationStatus.IN_PROGRESS || action === "touch"
+                ? null
+                : undefined,
+          metadata: metadataPatch,
+        },
         select: {
-          zammadTicketId: true,
-          breached: true,
-          lastSyncedAt: true,
+          id: true,
+          ticketId: true,
+          ticketNumber: true,
+          status: true,
+          closedAt: true,
+          metadata: true,
           updatedAt: true,
         },
       });

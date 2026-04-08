@@ -22,7 +22,7 @@ export type CompanyActionFailure<T = void> = {
 
 export type CompanyActionResponse<T = void> = CompanyActionSuccess<T> | CompanyActionFailure<T>;
 
-export type CompanyZammadEmailInput = {
+export type CompanyTicketEmailInput = {
   email: string;
   label?: string;
   isActive?: boolean;
@@ -168,7 +168,7 @@ export interface CompanyEditViewData {
   companies: CompanyOption[];
   canEditCnpj: boolean;
   initialData: CompanyEditInitialData;
-  initialZammadEmails: CompanyZammadEmailInput[];
+  initialZammadEmails: CompanyTicketEmailInput[];
   initialContacts: CompanyContactInput[];
 }
 

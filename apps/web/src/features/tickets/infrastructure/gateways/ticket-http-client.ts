@@ -1,9 +1,9 @@
 import {
-  markZammadRouteFresh,
-  markZammadRouteStale,
-  recordZammadMetric,
-} from "@/features/tickets/infrastructure/observability/zammad-observability";
-import type { ZammadCacheOptions } from "@/features/tickets/domain/repositories/zammad-gateway.repository";
+  markTicketRouteFresh,
+  markTicketRouteStale,
+  recordTicketMetric,
+} from "@/features/tickets/infrastructure/observability/ticket-observability";
+import type { TicketRequestOptions } from "@/features/tickets/domain/repositories/ticket-gateway.repository";
 
 const ZAMMAD_URL = process.env.ZAMMAD_URL;
 const ZAMMAD_TOKEN = process.env.ZAMMAD_TOKEN;
@@ -41,21 +41,24 @@ type FetchZammadResponseMeta = {
   headers: Headers;
 };
 
-type FetchZammadCacheOptions = ZammadCacheOptions & {
+type FetchZammadCacheOptions = TicketRequestOptions & {
   includeResponseMeta?: boolean;
 };
 
 export function getDefaultZammadRouteKey() {
   return DEFAULT_ROUTE_KEY;
 }
+export const getDefaultTicketRouteKey = getDefaultZammadRouteKey;
 
 export function getZammadBaseUrl() {
   return ZAMMAD_URL;
 }
+export const getTicketBaseUrl = getZammadBaseUrl;
 
 export function getZammadToken() {
   return ZAMMAD_TOKEN;
 }
+export const getTicketToken = getZammadToken;
 
 export function buildAuthorizationHeader(token: string): string {
   const normalized = token.trim();
@@ -103,7 +106,7 @@ export async function fetchWithRetry(input: string, options: NextFetchOptions, m
     : 0;
   if (Date.now() < circuitOpenUntil) {
     const latencyMs = Date.now() - start;
-    recordZammadMetric({
+    recordTicketMetric({
       ts: Date.now(),
       routeKey,
       endpoint: meta.endpoint,
@@ -130,7 +133,7 @@ export async function fetchWithRetry(input: string, options: NextFetchOptions, m
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        recordZammadMetric({
+        recordTicketMetric({
           ts: Date.now(),
           routeKey,
           endpoint: meta.endpoint,
@@ -144,7 +147,7 @@ export async function fetchWithRetry(input: string, options: NextFetchOptions, m
       }
 
       if (!isRetryableStatus(response.status) || attempt === ZAMMAD_RETRY_MAX_ATTEMPTS) {
-        recordZammadMetric({
+        recordTicketMetric({
           ts: Date.now(),
           routeKey,
           endpoint: meta.endpoint,
@@ -175,7 +178,7 @@ export async function fetchWithRetry(input: string, options: NextFetchOptions, m
           error instanceof Error &&
           (error.name === "AbortError" || /aborted|timeout/i.test(error.message));
 
-        recordZammadMetric({
+        recordTicketMetric({
           ts: Date.now(),
           routeKey,
           endpoint: meta.endpoint,
@@ -204,35 +207,35 @@ export async function fetchWithRetry(input: string, options: NextFetchOptions, m
 export function fetchZammad(
   endpoint: string,
   options?: NextFetchOptions,
-  cacheOptions?: ZammadCacheOptions
+  requestConfig?: TicketRequestOptions
 ): Promise<unknown>;
 export function fetchZammad(
   endpoint: string,
   options: NextFetchOptions | undefined,
-  cacheOptions: ZammadCacheOptions & { includeResponseMeta: true }
+  requestConfig: TicketRequestOptions & { includeResponseMeta: true }
 ): Promise<FetchZammadResponseMeta>;
 export async function fetchZammad(
   endpoint: string,
   options: NextFetchOptions = {},
-  cacheOptions?: FetchZammadCacheOptions
+  requestConfig?: FetchZammadCacheOptions
 ): Promise<unknown | FetchZammadResponseMeta> {
   if (!ZAMMAD_URL || !ZAMMAD_TOKEN) {
     throw new Error("Zammad URL ou Token nao configurados.");
   }
 
-  const cachePolicy = cacheOptions?.cacheTtlSeconds && cacheOptions.cacheTtlSeconds > 0
+  const cachePolicy = requestConfig?.cacheTtlSeconds && requestConfig.cacheTtlSeconds > 0
     ? {
         cache: "force-cache" as RequestCache,
         next: {
-          revalidate: cacheOptions.cacheTtlSeconds,
-          tags: cacheOptions.tags,
+          revalidate: requestConfig.cacheTtlSeconds,
+          tags: requestConfig.tags,
         },
       }
     : { cache: "no-store" as RequestCache };
 
-  const routeKey = cacheOptions?.routeKey ?? DEFAULT_ROUTE_KEY;
+  const routeKey = requestConfig?.routeKey ?? DEFAULT_ROUTE_KEY;
   const url = `${ZAMMAD_URL}/api/v1/${endpoint}`;
-  const requestOptions: NextFetchOptions = {
+  const fetchOptions: NextFetchOptions = {
     ...options,
     ...cachePolicy,
     headers: {
@@ -241,11 +244,11 @@ export async function fetchZammad(
     },
   };
 
-  const method = String(requestOptions.method ?? "GET").toUpperCase();
+  const method = String(fetchOptions.method ?? "GET").toUpperCase();
   const cacheKey = `${method}:${url}`;
 
   try {
-    const res = await fetchWithRetry(url, requestOptions, { routeKey, endpoint });
+    const res = await fetchWithRetry(url, fetchOptions, { routeKey, endpoint });
     if (!res.ok) {
       throw new Error(`Zammad API Error [${res.status}]: ${res.statusText}`);
     }
@@ -254,8 +257,8 @@ export async function fetchZammad(
     if (method === "GET") {
       responseCache.set(cacheKey, { ts: Date.now(), data: json });
     }
-    markZammadRouteFresh(routeKey);
-    if (cacheOptions?.includeResponseMeta) {
+    markTicketRouteFresh(routeKey);
+    if (requestConfig?.includeResponseMeta) {
       return { data: json, headers: res.headers };
     }
     return json;
@@ -265,8 +268,8 @@ export async function fetchZammad(
       if (fallback) {
         const staleMinutes = Math.floor((Date.now() - fallback.ts) / 60000);
         if (staleMinutes <= ZAMMAD_FALLBACK_MAX_STALE_MINUTES) {
-          markZammadRouteStale(routeKey, staleMinutes);
-          if (cacheOptions?.includeResponseMeta) {
+          markTicketRouteStale(routeKey, staleMinutes);
+          if (requestConfig?.includeResponseMeta) {
             return { data: fallback.data, headers: new Headers() };
           }
           return fallback.data;
@@ -277,3 +280,8 @@ export async function fetchZammad(
     throw error;
   }
 }
+
+export const fetchTicketApi = fetchZammad;
+
+
+

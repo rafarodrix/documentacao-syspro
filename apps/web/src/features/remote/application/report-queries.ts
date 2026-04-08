@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
 import { RemoteTenantScope } from "@/features/remote/domain/model";
 import { buildScopedWhere } from "./queries";
 
@@ -58,7 +58,7 @@ export async function getRemoteEfficiencyMetrics(tenantScope: RemoteTenantScope)
       try {
         if (session.ticketNumber) {
             // Nota: Em producao, isso deveria ser otimizado com cache ou busca em lote
-            const ticket = await ZammadGateway.getTicketById(session.ticketNumber).catch(() => null);
+            const ticket = await TicketGateway.getTicketById(session.ticketNumber).catch(() => null);
             if (ticket && ticket.created_at) {
                 const ticketCreatedAt = new Date(ticket.created_at);
                 timeToRemoteSeconds = Math.floor((session.createdAt.getTime() - ticketCreatedAt.getTime()) / 1000);
@@ -104,3 +104,5 @@ export async function getRemoteEfficiencyMetrics(tenantScope: RemoteTenantScope)
     sessions: processedSessions,
   };
 }
+
+

@@ -4,7 +4,7 @@ import type {
   RouteSnapshot,
 } from "@/features/tickets/domain/repositories/ticket-observability.gateway";
 
-type ZammadMetricEntry = {
+type TicketMetricEntry = {
   ts: number;
   routeKey: string;
   endpoint: string;
@@ -16,14 +16,14 @@ type ZammadMetricEntry = {
 };
 
 const MAX_METRICS = 2000;
-const metrics: ZammadMetricEntry[] = [];
+const metrics: TicketMetricEntry[] = [];
 const staleByRoute = new Map<string, { sinceTs: number; staleMinutes: number; updatedAt: number }>();
 
 function nowMs(): number {
   return Date.now();
 }
 
-export function recordZammadMetric(entry: ZammadMetricEntry) {
+export function recordTicketMetric(entry: TicketMetricEntry) {
   metrics.push(entry);
   if (metrics.length > MAX_METRICS) {
     metrics.splice(0, metrics.length - MAX_METRICS);
@@ -45,11 +45,11 @@ export function recordZammadMetric(entry: ZammadMetricEntry) {
   );
 }
 
-export function markZammadRouteFresh(routeKey: string) {
+export function markTicketRouteFresh(routeKey: string) {
   staleByRoute.delete(routeKey);
 }
 
-export function markZammadRouteStale(routeKey: string, staleMinutes: number) {
+export function markTicketRouteStale(routeKey: string, staleMinutes: number) {
   const now = nowMs();
   const current = staleByRoute.get(routeKey);
   staleByRoute.set(routeKey, {
@@ -59,7 +59,7 @@ export function markZammadRouteStale(routeKey: string, staleMinutes: number) {
   });
 }
 
-export function getZammadRouteHealth(routeKey: string): RouteHealth {
+export function getTicketRouteHealth(routeKey: string): RouteHealth {
   const entry = staleByRoute.get(routeKey);
   if (!entry) {
     return {
@@ -80,7 +80,7 @@ export function getZammadRouteHealth(routeKey: string): RouteHealth {
   };
 }
 
-export function getZammadMetricsSnapshot(routeKeys: string[], windowMinutes = 60): RouteSnapshot[] {
+export function getTicketMetricsSnapshot(routeKeys: string[], windowMinutes = 60): RouteSnapshot[] {
   const fromTs = nowMs() - windowMinutes * 60 * 1000;
   const filtered = metrics.filter((m) => m.ts >= fromTs);
 
@@ -103,8 +103,8 @@ export function getZammadMetricsSnapshot(routeKeys: string[], windowMinutes = 60
   });
 }
 
-export const zammadObservabilityGateway: TicketObservabilityGateway = {
-  getRouteHealth: getZammadRouteHealth,
-  getMetricsSnapshot: getZammadMetricsSnapshot,
+export const ticketObservabilityGateway: TicketObservabilityGateway = {
+  getRouteHealth: getTicketRouteHealth,
+  getMetricsSnapshot: getTicketMetricsSnapshot,
 };
 

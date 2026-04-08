@@ -1,19 +1,20 @@
 import type {
-  ZammadOperationalTicket,
-  ZammadTicketAPI,
-  ZammadTicketArticle,
-  ZammadTicketDetails,
-  ZammadGlobalCatalog,
+  OperationalTicket,
+  TicketApi,
+  TicketArticle,
+  TicketDetails,
+  TicketGlobalCatalog,
+  TicketUser,
 } from "@dosc-syspro/contracts";
 
-export type ZammadCacheOptions = {
+export type TicketRequestOptions = {
   cacheTtlSeconds?: number;
   tags?: string[];
   routeKey?: string;
 };
 
-export interface ZammadGatewayRepository {
-  getGlobalCatalog(routeKey?: string): Promise<ZammadGlobalCatalog>;
+export interface TicketGatewayRepository {
+  getGlobalCatalog(routeKey?: string): Promise<TicketGlobalCatalog>;
   searchOperationalTicketsPage(
     query: string,
     options?: {
@@ -23,15 +24,15 @@ export interface ZammadGatewayRepository {
       tags?: string[];
       routeKey?: string;
     }
-  ): Promise<{ tickets: ZammadOperationalTicket[]; total: number | null }>;
+  ): Promise<{ tickets: OperationalTicket[]; total: number | null }>;
   getTicketCount(query: string, routeKey?: string): Promise<number>;
   getUserIdByEmail(email: string, routeKey?: string): Promise<number | null>;
-  getUserByEmail(email: string, routeKey?: string): Promise<import("@dosc-syspro/contracts").ZammadUser | null>;
-  searchTickets(query: string, limit?: number, routeKey?: string): Promise<ZammadTicketAPI[]>;
+  getUserByEmail(email: string, routeKey?: string): Promise<TicketUser | null>;
+  searchTickets(query: string, limit?: number, routeKey?: string): Promise<TicketApi[]>;
   getAllTickets(
     limit?: number,
-    cacheOptions?: ZammadCacheOptions & { page?: number; stateIds?: number[] }
-  ): Promise<ZammadOperationalTicket[]>;
+    requestOptions?: TicketRequestOptions & { page?: number; stateIds?: number[] }
+  ): Promise<OperationalTicket[]>;
   getTicketsForCustomerEmailsPaged(
     emails: string[],
     options?: {
@@ -42,9 +43,9 @@ export interface ZammadGatewayRepository {
       tags?: string[];
       routeKey?: string;
     }
-  ): Promise<ZammadOperationalTicket[]>;
-  getTicketById(ticketId: string | number): Promise<ZammadTicketDetails>;
-  getTicketArticles(ticketId: string | number): Promise<ZammadTicketArticle[]>;
+  ): Promise<OperationalTicket[]>;
+  getTicketById(ticketId: string | number): Promise<TicketDetails>;
+  getTicketArticles(ticketId: string | number): Promise<TicketArticle[]>;
   canAccessTicketForCustomerEmails(ticketId: string | number, emails: string[]): Promise<boolean>;
   createTicket(payload: {
     title: string;

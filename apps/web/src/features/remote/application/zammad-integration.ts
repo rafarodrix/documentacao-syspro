@@ -4,7 +4,7 @@ import {
   isSessionExpired,
 } from "@/features/remote/application/session-policy";
 import { normalizeRustdeskId } from "@/features/remote/application/rustdesk-sync";
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
+import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
 
 type ZammadRemoteContext = {
   eventType: string;
@@ -137,7 +137,7 @@ function isClosedLike(context: ZammadRemoteContext): boolean {
 async function resolveCompanyIdByCustomerEmail(customerEmail: string | null): Promise<string | null> {
   if (!customerEmail) return null;
 
-  const companyEmail = await prisma.companyZammadEmail.findFirst({
+  const companyEmail = await prisma.companyTicketEmail.findFirst({
     where: { email: customerEmail.toLowerCase(), isActive: true },
     select: { companyId: true },
   });
@@ -191,7 +191,7 @@ export async function resolveRustdeskDeepLink(input: {
   customerEmail?: string | null;
   rustdeskId?: string | null;
 }) {
-  const ticket = await ZammadGateway.getTicketById(input.ticketId);
+  const ticket = await TicketGateway.getTicketById(input.ticketId);
   const ticketNumber =
     typeof ticket.number === "string" && ticket.number.trim()
       ? ticket.number.trim()
@@ -283,7 +283,7 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
         }
         
         const note = `<b>Portal Trilink:</b> Sessão remota encerrada (via status do ticket Zammad).${durationText}`;
-        await ZammadGateway.addInternalTicketNote(context.ticketId, note);
+        await TicketGateway.addInternalTicketNote(context.ticketId, note);
       } catch (err) {
         console.error("Erro ao adicionar nota de auditoria via webhook:", err);
       }
@@ -327,3 +327,5 @@ export async function handleZammadRemoteWebhook(payload: Record<string, unknown>
 
   return { handled: true, action: "created", sessionId: created.id };
 }
+
+

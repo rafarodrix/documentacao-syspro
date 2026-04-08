@@ -9,6 +9,8 @@
     "./sefaz-routes": "./src/sefaz-routes.ts",
     "./sefaz-endpoints": "./src/sefaz-endpoints.ts",
     "./ticket-form": "./src/ticket-form.ts",
+    "./ticket-api": "./src/ticket-api.ts",
+    "./ticket-global-settings": "./src/ticket-global-settings.ts",
     "./address": "./src/address.ts",
     "./company": "./src/company.ts",
     "./documento": "./src/documento.ts",

@@ -1,2 +1,1 @@
-﻿export * from './zammad-observability';
-
+export * from './ticket-observability';

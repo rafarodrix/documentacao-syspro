@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Role } from "@prisma/client";
 
 const getProtectedSessionMock = vi.fn();
-const getScopedCompanyZammadEmailsMock = vi.fn();
+const getScopedCompanyTicketEmailsMock = vi.fn();
 const canAccessTicketForCustomerEmailsMock = vi.fn();
 const getTicketByIdMock = vi.fn();
 const getTicketArticlesMock = vi.fn();
@@ -11,8 +11,8 @@ vi.mock("@/lib/auth-helpers", () => ({
   getProtectedSession: getProtectedSessionMock,
 }));
 
-vi.mock("@/features/tickets/infrastructure/gateways/zammad-gateway", () => ({
-  ZammadGateway: {
+vi.mock("@/features/tickets/infrastructure/gateways/ticket-gateway", () => ({
+  TicketGateway: {
     canAccessTicketForCustomerEmails: canAccessTicketForCustomerEmailsMock,
     getTicketById: getTicketByIdMock,
     getTicketArticles: getTicketArticlesMock,
@@ -23,7 +23,7 @@ vi.mock("@/features/tickets/application/services/ticket-scope.service", async ()
   const actual = await vi.importActual<object>("@/features/tickets/application/services/ticket-scope.service");
   return {
     ...actual,
-    getScopedCompanyZammadEmails: getScopedCompanyZammadEmailsMock,
+    getScopedCompanyTicketEmails: getScopedCompanyTicketEmailsMock,
   };
 });
 
@@ -37,7 +37,7 @@ describe("tickets integration: ticket details article shape", () => {
       email: "gestor@empresa.com",
     });
 
-    getScopedCompanyZammadEmailsMock.mockResolvedValue(["gestor@empresa.com"]);
+    getScopedCompanyTicketEmailsMock.mockResolvedValue(["gestor@empresa.com"]);
     canAccessTicketForCustomerEmailsMock.mockResolvedValue(true);
     getTicketByIdMock.mockResolvedValue({
       id: 77,
@@ -81,3 +81,5 @@ describe("tickets integration: ticket details article shape", () => {
     );
   });
 });
+
+

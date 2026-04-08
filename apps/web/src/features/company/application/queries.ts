@@ -9,7 +9,7 @@ import type {
   CompanyListItem,
   CompanyEditViewData,
   CompanyOption,
-  CompanyZammadEmailInput,
+  CompanyTicketEmailInput,
 } from "@/features/company/domain/model";
 
 async function getSessionCompanyIds(userId: string): Promise<string[]> {
@@ -79,7 +79,7 @@ export async function getCompaniesQuery(filters?: {
   });
 }
 
-export async function getCompanyZammadEmailsQuery(companyId: string): Promise<CompanyZammadEmailInput[]> {
+export async function getCompanyTicketEmailsQuery(companyId: string): Promise<CompanyTicketEmailInput[]> {
   const session = await getProtectedSession();
   if (!session) return [];
 
@@ -89,7 +89,7 @@ export async function getCompanyZammadEmailsQuery(companyId: string): Promise<Co
     return [];
   }
 
-  const rows = await prisma.companyZammadEmail.findMany({
+  const rows = await prisma.companyTicketEmail.findMany({
     where: { companyId },
     orderBy: [{ isActive: "desc" }, { email: "asc" }],
     select: { email: true, label: true, isActive: true },
@@ -225,7 +225,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
 
   const [companies, zammadEmailsResult] = await Promise.all([
     getCompanyOptionsAction(),
-    getCompanyZammadEmailsQuery(company.id),
+    getCompanyTicketEmailsQuery(company.id),
   ]);
 
   const address = company.addresses[0];
@@ -244,7 +244,7 @@ export async function getCompanyEditViewData(companyId: string): Promise<Company
           },
         ]
       : [];
-  const initialZammadEmails: CompanyZammadEmailInput[] = zammadEmailsResult;
+  const initialZammadEmails: CompanyTicketEmailInput[] = zammadEmailsResult;
   const initialContacts: CompanyContactInput[] = company.contacts.map((contact: any) => ({
     name: contact.name,
     email: contact.email ?? undefined,

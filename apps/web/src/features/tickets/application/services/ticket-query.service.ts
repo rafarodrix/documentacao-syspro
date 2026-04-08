@@ -1,18 +1,11 @@
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
-import { getZammadRouteHealth } from "@/features/tickets/infrastructure/observability/zammad-observability";
-import {
-  getLatestOperationalTicketCacheFreshness,
-  listCachedTickets,
-  upsertOperationalTicketsToCache,
-} from "@/features/tickets/infrastructure/cache/zammad-ticket-cache";
+import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
+import { getTicketRouteHealth } from "@/features/tickets/infrastructure/observability/ticket-observability";
 import { buildClosedWindowQuery, buildEmailScopeQuery, buildQueueQuery, buildSearchQuery, buildStatusQuery, buildTrackedStatusQuery, combineQueryParts } from "@/features/tickets/application/services/ticket-query-builders";
-import { getQueueCountsFromCache, getStatusCountsFromCache } from "@/features/tickets/application/services/ticket-query-counts.service";
-import { getTicketMetricsSnapshot } from "@/features/tickets/application/services/ticket-metrics-snapshot.service";
-import { buildPagination, formatCachedTickets, formatTickets } from "@/features/tickets/application/services/ticket-query-formatters";
-import { getScopedCompanyZammadEmails, isSystemRole, type TicketViewer } from "@/features/tickets/application/services/ticket-scope.service";
+import { buildPagination, formatTickets } from "@/features/tickets/application/services/ticket-query-formatters";
+import { getScopedCompanyTicketEmails, isSystemRole, type TicketViewer } from "@/features/tickets/application/services/ticket-scope.service";
 import type { TicketQueryParams, TicketsDataResponse } from "@/components/platform/tickets/types";
+import type { QueueKey } from "@dosc-syspro/core";
 
-const TRANSPARENT_CACHE_THRESHOLD_MINUTES = 15;
 const EMPTY_QUEUE_COUNTS = { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 } as const;
 const EMPTY_STATUS_COUNTS = { open: 0, pending: 0, closed: 0 } as const;
 
@@ -21,58 +14,22 @@ type TicketQueryExecutionOptions = {
   includeStatusCounts?: boolean;
 };
 
-type MetricsSnapshotInput = {
-  role: TicketViewer["role"];
-  email: string;
-  scopedEmails: string[];
-  zammadUserId: number | null;
-};
-
-function buildCacheFallbackWarning(input: { hasCache: boolean; staleMinutes: number | null }): string | undefined {
-  if (!input.hasCache) {
-    return "Zammad indisponivel e cache local ainda nao possui dados sincronizados.";
-  }
-
-  if (input.staleMinutes !== null && input.staleMinutes <= TRANSPARENT_CACHE_THRESHOLD_MINUTES) {
-    return undefined;
-  }
-
-  if (input.staleMinutes !== null) {
-    return `Dados carregados do cache local (${input.staleMinutes} min sem sincronizacao).`;
-  }
-
-  return "Dados carregados do cache local por indisponibilidade do Zammad.";
-}
-
-function shouldUseMetricsSnapshot(search: string): boolean {
-  return search.length === 0;
-}
-
-async function safeGetMetricsSnapshot(input: MetricsSnapshotInput) {
+async function safeGetTicketCount(query: string, routeKey: string): Promise<number> {
   try {
-    return await getTicketMetricsSnapshot(input);
+    return await TicketGateway.getTicketCount(query, routeKey);
   } catch (error) {
-    console.error("Falha ao obter snapshot de metricas de tickets:", error);
-    return null;
+    console.error("Falha ao obter contagem de tickets:", error);
+    return 0;
   }
 }
 
-async function safeGetQueueCountsFromCache(input: Parameters<typeof getQueueCountsFromCache>[0]) {
-  try {
-    return await getQueueCountsFromCache(input);
-  } catch (error) {
-    console.error("Falha ao calcular queueCounts do cache:", error);
-    return { ...EMPTY_QUEUE_COUNTS };
-  }
-}
-
-async function safeGetStatusCountsFromCache(input: Parameters<typeof getStatusCountsFromCache>[0]) {
-  try {
-    return await getStatusCountsFromCache(input);
-  } catch (error) {
-    console.error("Falha ao calcular statusCounts do cache:", error);
-    return { ...EMPTY_STATUS_COUNTS };
-  }
+function buildCountQuery(input: {
+  viewerScopeQuery: string;
+  searchQuery: string;
+  queueQuery: string;
+  statusQuery: string;
+}): string {
+  return combineQueryParts(input.viewerScopeQuery, input.searchQuery, input.queueQuery, input.statusQuery);
 }
 
 export async function queryTicketsForViewer(
@@ -88,15 +45,13 @@ export async function queryTicketsForViewer(
   const search = (params.search || "").trim();
   const includeQueueCounts = options.includeQueueCounts ?? true;
   const includeStatusCounts = options.includeStatusCounts ?? true;
-  const shouldResolveMetrics = includeQueueCounts || includeStatusCounts;
-  const canUseMetricsSnapshot = shouldResolveMetrics && shouldUseMetricsSnapshot(search);
 
   const routeKey = "app-chamados";
   const trackedStatusQuery = buildTrackedStatusQuery();
   const zammadUserId = isSystemRole(viewer.role)
-    ? await ZammadGateway.getUserIdByEmail(viewer.email, routeKey)
+    ? await TicketGateway.getUserIdByEmail(viewer.email, routeKey)
     : null;
-  const scopedEmails = isSystemRole(viewer.role) ? [] : await getScopedCompanyZammadEmails(viewer.userId);
+  const scopedEmails = isSystemRole(viewer.role) ? [] : await getScopedCompanyTicketEmails(viewer.userId);
 
   if (!isSystemRole(viewer.role) && !scopedEmails.length) {
     return {
@@ -119,50 +74,91 @@ export async function queryTicketsForViewer(
   );
 
   try {
-    const ticketsPage = await ZammadGateway.searchOperationalTicketsPage(finalQuery, {
+    const ticketsPage = await TicketGateway.searchOperationalTicketsPage(finalQuery, {
       limit: pageSize,
       page,
-      cacheTtlSeconds: 45,
-      tags: ["tickets-list", "tickets-dashboard"],
       routeKey,
     });
     const ticketsRaw = ticketsPage.tickets;
 
-    await upsertOperationalTicketsToCache(ticketsRaw);
-    const cacheInput = {
-      role: viewer.role,
-      email: viewer.email,
-      scopedEmails,
-      zammadUserId,
-      search,
+    const queueCountQueries: Record<QueueKey, string> = {
+      all: buildCountQuery({
+        viewerScopeQuery,
+        searchQuery,
+        queueQuery: buildQueueQuery("all", zammadUserId),
+        statusQuery: trackedStatusQuery,
+      }),
+      my_queue: buildCountQuery({
+        viewerScopeQuery,
+        searchQuery,
+        queueQuery: buildQueueQuery("my_queue", zammadUserId),
+        statusQuery: trackedStatusQuery,
+      }),
+      unassigned: buildCountQuery({
+        viewerScopeQuery,
+        searchQuery,
+        queueQuery: buildQueueQuery("unassigned", zammadUserId),
+        statusQuery: trackedStatusQuery,
+      }),
+      critical: buildCountQuery({
+        viewerScopeQuery,
+        searchQuery,
+        queueQuery: buildQueueQuery("critical", zammadUserId),
+        statusQuery: trackedStatusQuery,
+      }),
+      no_response: buildCountQuery({
+        viewerScopeQuery,
+        searchQuery,
+        queueQuery: buildQueueQuery("no_response", zammadUserId),
+        statusQuery: trackedStatusQuery,
+      }),
     };
-    const snapshot = canUseMetricsSnapshot
-      ? await safeGetMetricsSnapshot({
-          role: viewer.role,
-          email: viewer.email,
-          scopedEmails,
-          zammadUserId,
-        })
-      : null;
-    const [queueCounts, statusCounts] = snapshot
-      ? await Promise.all([
-          includeQueueCounts ? Promise.resolve(snapshot.queueCounts) : Promise.resolve({ ...EMPTY_QUEUE_COUNTS }),
-          includeStatusCounts
-            ? Promise.resolve(snapshot.statusCountsByQueue[queue] ?? { ...EMPTY_STATUS_COUNTS })
-            : Promise.resolve({ ...EMPTY_STATUS_COUNTS }),
-        ])
-      : await Promise.all([
-          includeQueueCounts
-            ? safeGetQueueCountsFromCache(cacheInput)
-            : Promise.resolve({ ...EMPTY_QUEUE_COUNTS }),
-          includeStatusCounts
-            ? safeGetStatusCountsFromCache({ ...cacheInput, queue })
-            : Promise.resolve({ ...EMPTY_STATUS_COUNTS }),
-        ]);
 
-    const routeHealth = getZammadRouteHealth(routeKey);
+    const queueCounts = includeQueueCounts
+      ? {
+          all: await safeGetTicketCount(queueCountQueries.all, routeKey),
+          my_queue: await safeGetTicketCount(queueCountQueries.my_queue, routeKey),
+          unassigned: await safeGetTicketCount(queueCountQueries.unassigned, routeKey),
+          critical: await safeGetTicketCount(queueCountQueries.critical, routeKey),
+          no_response: await safeGetTicketCount(queueCountQueries.no_response, routeKey),
+        }
+      : { ...EMPTY_QUEUE_COUNTS };
+
+    const statusCounts = includeStatusCounts
+      ? {
+          open: await safeGetTicketCount(
+            buildCountQuery({
+              viewerScopeQuery,
+              searchQuery,
+              queueQuery,
+              statusQuery: buildStatusQuery("open"),
+            }),
+            routeKey
+          ),
+          pending: await safeGetTicketCount(
+            buildCountQuery({
+              viewerScopeQuery,
+              searchQuery,
+              queueQuery,
+              statusQuery: buildStatusQuery("pending"),
+            }),
+            routeKey
+          ),
+          closed: await safeGetTicketCount(
+            buildCountQuery({
+              viewerScopeQuery,
+              searchQuery,
+              queueQuery,
+              statusQuery: buildStatusQuery("closed"),
+            }),
+            routeKey
+          ),
+        }
+      : { ...EMPTY_STATUS_COUNTS };
+
+    const routeHealth = getTicketRouteHealth(routeKey);
     const staleWarning = routeHealth.stale
-      ? `Dados do Zammad desatualizados ha ${routeHealth.staleMinutes} min.`
+      ? `Dados de tickets desatualizados ha ${routeHealth.staleMinutes} min.`
       : undefined;
 
     return {
@@ -176,47 +172,16 @@ export async function queryTicketsForViewer(
   } catch (error) {
     console.error("Erro ao consultar tickets no service:", error);
 
-    const cacheInput = {
-      role: viewer.role,
-      email: viewer.email,
-      scopedEmails,
-      zammadUserId,
-      search,
-    };
-
-    const [cached, cacheFreshness] = await Promise.all([
-      listCachedTickets({
-        role: viewer.role,
-        email: viewer.email,
-        scopedEmails,
-        page,
-        pageSize,
-        queue,
-        zammadUserId,
-        search,
-        statusGroup,
-        closedWindow,
-      }),
-      getLatestOperationalTicketCacheFreshness(),
-    ]);
-    const snapshot = canUseMetricsSnapshot
-      ? await safeGetMetricsSnapshot({
-          role: viewer.role,
-          email: viewer.email,
-          scopedEmails,
-          zammadUserId,
-        })
-      : null;
-    const queueCounts = snapshot?.queueCounts ?? await safeGetQueueCountsFromCache(cacheInput);
-    const statusCounts = snapshot?.statusCountsByQueue[queue] ?? await safeGetStatusCountsFromCache({ ...cacheInput, queue });
-
     return {
-      success: true,
-      data: formatCachedTickets(cached.rows),
-      pagination: buildPagination(page, pageSize, cached.total, cached.rows.length),
-      staleWarning: buildCacheFallbackWarning(cacheFreshness),
-      queueCounts,
-      statusCounts,
+      success: false,
+      error: "Falha ao consultar tickets no backend.",
+      data: [],
+      pagination: buildPagination(page, pageSize, 0, 0),
+      queueCounts: { ...EMPTY_QUEUE_COUNTS },
+      statusCounts: { ...EMPTY_STATUS_COUNTS },
     };
   }
 }
+
+
+

@@ -13,7 +13,7 @@ export function isSystemRole(role: Role): boolean {
   return SYSTEM_ROLES.has(role);
 }
 
-export async function getScopedCompanyZammadEmails(userId: string): Promise<string[]> {
+export async function getScopedCompanyTicketEmails(userId: string): Promise<string[]> {
   const memberships = await prisma.membership.findMany({
     where: { userId },
     select: { companyId: true },

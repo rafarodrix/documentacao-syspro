@@ -31,5 +31,5 @@ export type TicketReadResult = {
 
 export interface TicketReadRepository {
   listTickets(input: TicketReadQuery): Promise<TicketReadResult>;
-  listScopedCompanyZammadEmails(userId: string): Promise<string[]>;
+  listScopedCompanyTicketEmails(userId: string): Promise<string[]>;
 }

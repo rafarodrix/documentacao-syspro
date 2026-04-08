@@ -6,8 +6,10 @@ export class ChatwootClient {
   private readonly baseUrl = process.env.CHATWOOT_URL;
   private readonly token = process.env.CHATWOOT_API_TOKEN;
   private readonly accountId = process.env.CHATWOOT_ACCOUNT_ID;
-  private readonly inboxIdentifier = process.env.CHATWOOT_INBOX_IDENTIFIER;
-  private readonly inboxId = process.env.CHATWOOT_INBOX_ID ?? process.env.CHATWOOT_INBOX_IDENTIFIER;
+  private readonly configuredInboxIdentifier = process.env.CHATWOOT_INBOX_IDENTIFIER;
+  private readonly configuredInboxId = process.env.CHATWOOT_INBOX_ID;
+  private resolvedInboxIdentifier?: string;
+  private resolvedInboxId?: string;
 
   private async request(endpoint: string, method: string = 'GET', body?: any, retries: number = 3): Promise<any> {
     if (!this.baseUrl || !this.token) {
@@ -62,9 +64,6 @@ export class ChatwootClient {
 
   async createOrFindContact(phoneNumber: string, name: string, avatarUrl?: string) {
     const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
-    if (!this.inboxId) {
-      throw new Error('CHATWOOT_INBOX_ID ou CHATWOOT_INBOX_IDENTIFIER nao configurado para criar contato');
-    }
 
     const searchResponse: any = await this.request(
       `/api/v1/accounts/${this.accountId}/contacts/search?q=${encodeURIComponent(formattedPhone)}`,
@@ -79,14 +78,28 @@ export class ChatwootClient {
     }
 
     try {
+      const inboxId = await this.resolveInboxId();
+      if (!inboxId) {
+        throw new Error('CHATWOOT_INBOX_ID nao configurado/resolvido para criar contato via API de conta');
+      }
+
       const payload: any = {
-        inbox_id: this.inboxId,
+        inbox_id: inboxId,
         name,
         phone_number: formattedPhone,
       };
       if (avatarUrl) payload.avatar_url = avatarUrl;
       return await this.request(`/api/v1/accounts/${this.accountId}/contacts`, 'POST', payload);
     } catch (error: any) {
+      if (error?.message?.includes('404')) {
+        const inboxIdentifier = await this.resolveInboxIdentifier();
+        if (!inboxIdentifier) throw error;
+
+        const publicPayload: any = { name, phone_number: formattedPhone };
+        if (avatarUrl) publicPayload.avatar_url = avatarUrl;
+        return await this.request(`/public/api/v1/inboxes/${inboxIdentifier}/contacts`, 'POST', publicPayload);
+      }
+
       if (error.message.includes('422')) {
         this.logger.warn(`Contato com numero ${formattedPhone} ja existe. Retornando contato existente da busca...`);
         const retrySearch: any = await this.request(
@@ -103,7 +116,14 @@ export class ChatwootClient {
   }
 
   async updateContact(contactIdentifier: string, data: { name?: string; phone_number?: string; email?: string }) {
-    return this.request(`/api/v1/accounts/${this.accountId}/contacts/${contactIdentifier}`, 'PUT', data);
+    try {
+      return await this.request(`/api/v1/accounts/${this.accountId}/contacts/${contactIdentifier}`, 'PUT', data);
+    } catch (error: any) {
+      if (!error?.message?.includes('404')) throw error;
+      const inboxIdentifier = await this.resolveInboxIdentifier();
+      if (!inboxIdentifier) throw error;
+      return this.request(`/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}`, 'PATCH', data);
+    }
   }
 
   async updateMessageStatus(conversationId: string, messageId: string, status: 'delivered' | 'read') {
@@ -115,12 +135,13 @@ export class ChatwootClient {
   }
 
   async createConversation(contactIdentifier: string) {
-    if (!this.inboxIdentifier) {
+    const inboxIdentifier = await this.resolveInboxIdentifier();
+    if (!inboxIdentifier) {
       throw new Error('CHATWOOT_INBOX_IDENTIFIER nao configurado para endpoints publicos do Chatwoot');
     }
 
     return this.request(
-      `/public/api/v1/inboxes/${this.inboxIdentifier}/contacts/${contactIdentifier}/conversations`,
+      `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations`,
       'POST'
     );
   }
@@ -131,7 +152,8 @@ export class ChatwootClient {
     content: string,
     attachment?: { base64: string; mimetype: string; filename: string }
   ) {
-    if (!this.inboxIdentifier) {
+    const inboxIdentifier = await this.resolveInboxIdentifier();
+    if (!inboxIdentifier) {
       throw new Error('CHATWOOT_INBOX_IDENTIFIER nao configurado para endpoints publicos do Chatwoot');
     }
 
@@ -145,7 +167,7 @@ export class ChatwootClient {
         formData.append('attachments[]', blob, attachment.filename);
 
         return this.request(
-          `/public/api/v1/inboxes/${this.inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
+          `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
           'POST',
           formData
         );
@@ -155,12 +177,83 @@ export class ChatwootClient {
     }
 
     return this.request(
-      `/public/api/v1/inboxes/${this.inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
+      `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
       'POST',
       {
         content,
         message_type: 'incoming',
       }
     );
+  }
+
+  private async resolveInboxIdentifier(): Promise<string | undefined> {
+    if (this.resolvedInboxIdentifier) return this.resolvedInboxIdentifier;
+
+    if (this.configuredInboxIdentifier && !/^\d+$/.test(this.configuredInboxIdentifier)) {
+      this.resolvedInboxIdentifier = this.configuredInboxIdentifier;
+      return this.resolvedInboxIdentifier;
+    }
+
+    const inboxes: any[] | null = await this.fetchInboxes();
+    if (!inboxes?.length) {
+      this.resolvedInboxIdentifier = this.configuredInboxIdentifier;
+      return this.resolvedInboxIdentifier;
+    }
+
+    const matchedByIdentifier = this.configuredInboxIdentifier
+      ? inboxes.find((inbox: any) => inbox?.identifier?.toString?.() === this.configuredInboxIdentifier)
+      : null;
+    if (matchedByIdentifier?.identifier) {
+      this.resolvedInboxIdentifier = matchedByIdentifier.identifier.toString();
+      this.resolvedInboxId = matchedByIdentifier.id?.toString?.() ?? this.resolvedInboxId;
+      return this.resolvedInboxIdentifier;
+    }
+
+    const matchedById = this.configuredInboxId
+      ? inboxes.find((inbox: any) => inbox?.id?.toString?.() === this.configuredInboxId)
+      : this.configuredInboxIdentifier
+        ? inboxes.find((inbox: any) => inbox?.id?.toString?.() === this.configuredInboxIdentifier)
+        : null;
+    if (matchedById?.identifier) {
+      this.resolvedInboxIdentifier = matchedById.identifier.toString();
+      this.resolvedInboxId = matchedById.id?.toString?.() ?? this.resolvedInboxId;
+      return this.resolvedInboxIdentifier;
+    }
+
+    this.resolvedInboxIdentifier = this.configuredInboxIdentifier;
+    return this.resolvedInboxIdentifier;
+  }
+
+  private async resolveInboxId(): Promise<string | undefined> {
+    if (this.resolvedInboxId) return this.resolvedInboxId;
+    if (this.configuredInboxId) {
+      this.resolvedInboxId = this.configuredInboxId;
+      return this.resolvedInboxId;
+    }
+
+    const inboxes: any[] | null = await this.fetchInboxes();
+    if (!inboxes?.length || !this.configuredInboxIdentifier) return undefined;
+
+    const matched = inboxes.find((inbox: any) => {
+      const identifier = inbox?.identifier?.toString?.();
+      const id = inbox?.id?.toString?.();
+      return identifier === this.configuredInboxIdentifier || id === this.configuredInboxIdentifier;
+    });
+    this.resolvedInboxId = matched?.id?.toString?.();
+    if (matched?.identifier) this.resolvedInboxIdentifier = matched.identifier.toString();
+    return this.resolvedInboxId;
+  }
+
+  private async fetchInboxes(): Promise<any[] | null> {
+    if (!this.accountId) return null;
+    try {
+      const response = await this.request(`/api/v1/accounts/${this.accountId}/inboxes`, 'GET');
+      if (Array.isArray(response)) return response;
+      if (Array.isArray(response?.payload)) return response.payload;
+      return null;
+    } catch (error: any) {
+      this.logger.warn(`Nao foi possivel listar inboxes do Chatwoot para resolver configuracao: ${error?.message}`);
+      return null;
+    }
   }
 }

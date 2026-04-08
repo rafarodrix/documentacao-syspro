@@ -1,19 +1,19 @@
 import { Release } from "@dosc-syspro/core";
-import { ZammadGateway } from "@/features/tickets/infrastructure/gateways/zammad-gateway";
-import { getZammadBaseUrl, getZammadToken } from "@/features/tickets/infrastructure/gateways/zammad-http-client";
+import { TicketGateway } from "@/features/tickets/infrastructure/gateways/ticket-gateway";
+import { getTicketBaseUrl, getTicketToken } from "@/features/tickets/infrastructure/gateways/ticket-http-client";
 import { unstable_cache } from "next/cache";
 
 const ZAMMAD_RELEASE_STATE_ID = 4;
 const ZAMMAD_RELEASE_GROUP_ID = 3;
 
 async function fetchReleases(): Promise<Release[]> {
-    if (!getZammadBaseUrl() || !getZammadToken()) {
+    if (!getTicketBaseUrl() || !getTicketToken()) {
         return [];
     }
 
     const query = `(type:"Melhoria" OR type:"Bug") AND state_id:${ZAMMAD_RELEASE_STATE_ID} AND group_id:${ZAMMAD_RELEASE_GROUP_ID}`;
 
-    const tickets = await ZammadGateway.searchTickets(query, 100, "releases");
+    const tickets = await TicketGateway.searchTickets(query, 100, "releases");
 
     return tickets.map((t) => {
         const mainModule = t.modulo?.split("::")[0] || "Geral";
@@ -39,3 +39,6 @@ const getReleasesCached = unstable_cache(fetchReleases, ["releases-zammad-v1"], 
 export async function getReleases(): Promise<Release[]> {
     return getReleasesCached();
 }
+
+
+

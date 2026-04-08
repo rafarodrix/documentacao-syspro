@@ -1,4 +1,4 @@
-import { getZammadStateMatrix } from "./zammad-state-matrix";
+import { getTicketStateMatrix } from "./ticket-state-matrix";
 
 export type QueueKey = "all" | "my_queue" | "unassigned" | "critical" | "no_response";
 export type TicketStatusGroup = "open" | "pending" | "closed";
@@ -6,7 +6,7 @@ export type TicketStatusGroup = "open" | "pending" | "closed";
 export const TICKET_QUEUE_KEYS: QueueKey[] = ["all", "my_queue", "unassigned", "critical", "no_response"];
 export const TICKET_STATUS_GROUPS: TicketStatusGroup[] = ["open", "pending", "closed"];
 
-const matrix = getZammadStateMatrix();
+const matrix = getTicketStateMatrix();
 
 function uniqueSorted(values: number[]): number[] {
   return Array.from(new Set(values)).sort((a, b) => a - b);

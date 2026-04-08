@@ -1,3 +1,2 @@
-﻿export * from './zammad-gateway';
-export * from './zammad-http-client';
-
+export * from './ticket-gateway';
+export * from './ticket-http-client';

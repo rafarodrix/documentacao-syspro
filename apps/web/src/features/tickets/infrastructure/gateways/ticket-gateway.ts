@@ -1,33 +1,33 @@
 import {
-  zammadOperationalTicketSchema,
-  zammadTicketAPISchema,
-  zammadTicketArticleSchema,
-  zammadTicketDetailsSchema,
-  type ZammadOperationalTicket,
-  type ZammadTicketAPI,
-  type ZammadTicketArticle,
-  type ZammadTicketDetails,
-  type ZammadCatalogGroup,
-  type ZammadCatalogState,
-  type ZammadCatalogPriority,
-  type ZammadCatalogOwner,
-  type ZammadGlobalCatalog,
-  zammadUserSchema,
-  type ZammadUser,
+  operationalTicketSchema,
+  ticketApiSchema,
+  ticketArticleSchema,
+  ticketDetailsSchema,
+  type OperationalTicket,
+  type TicketApi,
+  type TicketArticle,
+  type TicketDetails,
+  type TicketCatalogGroup,
+  type TicketCatalogState,
+  type TicketCatalogPriority,
+  type TicketCatalogOwner,
+  type TicketGlobalCatalog,
+  ticketUserSchema,
+  type TicketUser,
 } from "@dosc-syspro/contracts";
 import { OPERATIONAL_STATE_IDS } from "@dosc-syspro/core";
 import type {
-  ZammadGatewayRepository,
-  ZammadCacheOptions,
-} from "@/features/tickets/domain/repositories/zammad-gateway.repository";
+  TicketGatewayRepository,
+  TicketRequestOptions,
+} from "@/features/tickets/domain/repositories/ticket-gateway.repository";
 import {
   buildAuthorizationHeader,
   fetchWithRetry,
-  fetchZammad,
-  getDefaultZammadRouteKey,
-  getZammadBaseUrl,
-  getZammadToken,
-} from "./zammad-http-client";
+  fetchTicketApi,
+  getDefaultTicketRouteKey,
+  getTicketBaseUrl,
+  getTicketToken,
+} from "./ticket-http-client";
 
 const ZAMMAD_USER_ID_CACHE_TTL_MS = Number(process.env.ZAMMAD_USER_ID_CACHE_TTL_MS ?? 300000);
 const userIdCache = new Map<string, { value: number | null; expiresAt: number }>();
@@ -68,8 +68,8 @@ function normalizeSearchResponse(data: unknown): unknown[] {
   return [];
 }
 
-function dedupeOperationalTickets(tickets: ZammadOperationalTicket[]): ZammadOperationalTicket[] {
-  const byId = new Map<number, ZammadOperationalTicket>();
+function dedupeOperationalTickets(tickets: OperationalTicket[]): OperationalTicket[] {
+  const byId = new Map<number, OperationalTicket>();
   for (const ticket of tickets) {
     byId.set(ticket.id, ticket);
   }
@@ -86,7 +86,7 @@ function parseSearchTotal(headers: Headers): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalizeCatalogGroups(data: unknown): ZammadCatalogGroup[] {
+function normalizeCatalogGroups(data: unknown): TicketCatalogGroup[] {
   if (!Array.isArray(data)) return [];
   const groups = data
     .map((item) => {
@@ -96,11 +96,11 @@ function normalizeCatalogGroups(data: unknown): ZammadCatalogGroup[] {
       if (!Number.isFinite(id) || id < 1 || !name) return null;
       return { id, name };
     })
-    .filter((row): row is ZammadCatalogGroup => Boolean(row));
+    .filter((row): row is TicketCatalogGroup => Boolean(row));
   return groups.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 }
 
-function normalizeCatalogStates(data: unknown): ZammadCatalogState[] {
+function normalizeCatalogStates(data: unknown): TicketCatalogState[] {
   if (!Array.isArray(data)) return [];
   const states = data
     .map((item) => {
@@ -110,11 +110,11 @@ function normalizeCatalogStates(data: unknown): ZammadCatalogState[] {
       if (!Number.isFinite(id) || id < 1 || !name) return null;
       return { id, name };
     })
-    .filter((row): row is ZammadCatalogState => Boolean(row));
+    .filter((row): row is TicketCatalogState => Boolean(row));
   return states.sort((a, b) => a.id - b.id);
 }
 
-function normalizeCatalogPriorities(data: unknown): ZammadCatalogPriority[] {
+function normalizeCatalogPriorities(data: unknown): TicketCatalogPriority[] {
   if (!Array.isArray(data)) return [];
   const priorities = data
     .map((item) => {
@@ -124,11 +124,11 @@ function normalizeCatalogPriorities(data: unknown): ZammadCatalogPriority[] {
       if (!Number.isFinite(id) || id < 1 || !name) return null;
       return { id, name };
     })
-    .filter((row): row is ZammadCatalogPriority => Boolean(row));
+    .filter((row): row is TicketCatalogPriority => Boolean(row));
   return priorities.sort((a, b) => a.id - b.id);
 }
 
-function normalizeCatalogOwners(data: unknown): ZammadCatalogOwner[] {
+function normalizeCatalogOwners(data: unknown): TicketCatalogOwner[] {
   if (!Array.isArray(data)) return [];
 
   const owners = data
@@ -149,7 +149,7 @@ function normalizeCatalogOwners(data: unknown): ZammadCatalogOwner[] {
         row !== null
     );
 
-  const deduped = new Map<number, ZammadCatalogOwner>();
+  const deduped = new Map<number, TicketCatalogOwner>();
   for (const owner of owners) {
     deduped.set(owner.id, owner);
   }
@@ -171,13 +171,13 @@ function buildCustomerEmailsFallbackQuery(emails: string[]): string {
     .join(" OR ")})`;
 }
 
-export const ZammadGateway: ZammadGatewayRepository = {
-  async getGlobalCatalog(routeKey = "app-configuracoes-zammad"): Promise<ZammadGlobalCatalog> {
+export const TicketGateway: TicketGatewayRepository = {
+  async getGlobalCatalog(routeKey = "app-configuracoes-zammad"): Promise<TicketGlobalCatalog> {
     const [groupsRaw, statesRaw, prioritiesRaw, ownersRaw] = await Promise.all([
-      fetchZammad("groups?per_page=200", { cache: "no-store" }, { routeKey }),
-      fetchZammad("ticket_states?per_page=200", { cache: "no-store" }, { routeKey }),
-      fetchZammad("ticket_priorities?per_page=50", { cache: "no-store" }, { routeKey }),
-      fetchZammad("users?per_page=200", { cache: "no-store" }, { routeKey }),
+      fetchTicketApi("groups?per_page=200", { cache: "no-store" }, { routeKey }),
+      fetchTicketApi("ticket_states?per_page=200", { cache: "no-store" }, { routeKey }),
+      fetchTicketApi("ticket_priorities?per_page=50", { cache: "no-store" }, { routeKey }),
+      fetchTicketApi("users?per_page=200", { cache: "no-store" }, { routeKey }),
     ]);
 
     return {
@@ -199,11 +199,11 @@ export const ZammadGateway: ZammadGatewayRepository = {
       tags?: string[];
       routeKey?: string;
     }
-  ): Promise<{ tickets: ZammadOperationalTicket[]; total: number | null }> {
+  ): Promise<{ tickets: OperationalTicket[]; total: number | null }> {
     const limit = options?.limit ?? 50;
     const page = Math.max(1, options?.page ?? 1);
     const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
-    const response = await fetchZammad(endpoint, {}, {
+    const response = await fetchTicketApi(endpoint, {}, {
       cacheTtlSeconds: options?.cacheTtlSeconds,
       tags: options?.tags,
       routeKey: options?.routeKey,
@@ -212,16 +212,16 @@ export const ZammadGateway: ZammadGatewayRepository = {
 
     return {
       tickets: normalizeSearchResponse(response.data)
-        .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
+        .map((raw) => operationalTicketSchema.safeParse(raw))
         .filter((parsed) => parsed.success)
         .map((parsed) => parsed.data),
       total: parseSearchTotal(response.headers),
     };
   },
 
-  async getTicketCount(query: string, routeKey = getDefaultZammadRouteKey()): Promise<number> {
-    const baseUrl = getZammadBaseUrl();
-    const token = getZammadToken();
+  async getTicketCount(query: string, routeKey = getDefaultTicketRouteKey()): Promise<number> {
+    const baseUrl = getTicketBaseUrl();
+    const token = getTicketToken();
     if (!baseUrl || !token) return 0;
 
     const res = await fetchWithRetry(
@@ -233,14 +233,14 @@ export const ZammadGateway: ZammadGatewayRepository = {
     return total ? parseInt(total, 10) : 0;
   },
 
-  async getUserIdByEmail(email: string, routeKey = getDefaultZammadRouteKey()): Promise<number | null> {
+  async getUserIdByEmail(email: string, routeKey = getDefaultTicketRouteKey()): Promise<number | null> {
     const cached = getCachedUserId(email);
     if (cached !== undefined) {
       return cached;
     }
 
     try {
-      const data = await fetchZammad(
+      const data = await fetchTicketApi(
         `users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`,
         { cache: "no-store" },
         { routeKey }
@@ -255,14 +255,14 @@ export const ZammadGateway: ZammadGatewayRepository = {
       cacheUserId(email, userId);
       return userId;
     } catch (err) {
-      console.error("ZammadGateway.getUserIdByEmail:", err);
+      console.error("TicketGateway.getUserIdByEmail:", err);
       return null;
     }
   },
 
-  async getUserByEmail(email: string, routeKey = getDefaultZammadRouteKey()): Promise<ZammadUser | null> {
+  async getUserByEmail(email: string, routeKey = getDefaultTicketRouteKey()): Promise<TicketUser | null> {
     try {
-      const data = await fetchZammad(
+      const data = await fetchTicketApi(
         `users/search?query=${encodeURIComponent(`email:${email}`)}&limit=1`,
         { cache: "no-store" },
         { routeKey }
@@ -272,18 +272,18 @@ export const ZammadGateway: ZammadGatewayRepository = {
         return null;
       }
       
-      const parsed = zammadUserSchema.safeParse(data[0]);
+      const parsed = ticketUserSchema.safeParse(data[0]);
       return parsed.success ? parsed.data : null;
     } catch (err) {
-      console.error("ZammadGateway.getUserByEmail:", err);
+      console.error("TicketGateway.getUserByEmail:", err);
       return null;
     }
   },
 
-  async searchTickets(query: string, limit = 100, routeKey = "releases"): Promise<ZammadTicketAPI[]> {
+  async searchTickets(query: string, limit = 100, routeKey = "releases"): Promise<TicketApi[]> {
     try {
       const endpoint = `tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&sort_by=updated_at&order_by=desc&expand=true`;
-      const data = await fetchZammad(endpoint, { next: { revalidate: 3600, tags: ["releases"] } }, { routeKey });
+      const data = await fetchTicketApi(endpoint, { next: { revalidate: 3600, tags: ["releases"] } }, { routeKey });
 
       let rawTickets: unknown[] = [];
       if ((data as { assets?: { Ticket?: Record<string, unknown> } }).assets?.Ticket) {
@@ -293,31 +293,31 @@ export const ZammadGateway: ZammadGatewayRepository = {
       }
 
       return rawTickets
-        .map((ticket) => zammadTicketAPISchema.safeParse(ticket))
+        .map((ticket) => ticketApiSchema.safeParse(ticket))
         .filter((result) => result.success)
-        .map((result) => result.data as ZammadTicketAPI);
+        .map((result) => result.data as TicketApi);
     } catch (err) {
-      console.error("ZammadGateway.searchTickets:", err);
+      console.error("TicketGateway.searchTickets:", err);
       return [];
     }
   },
 
   async getAllTickets(
     limit = 50,
-    cacheOptions?: ZammadCacheOptions & { page?: number; stateIds?: number[] }
-  ): Promise<ZammadOperationalTicket[]> {
+    requestOptions?: TicketRequestOptions & { page?: number; stateIds?: number[] }
+  ): Promise<OperationalTicket[]> {
     try {
-      const query = buildStateQuery(cacheOptions?.stateIds ?? [...OPERATIONAL_STATE_IDS]) || "state_id:1";
+      const query = buildStateQuery(requestOptions?.stateIds ?? [...OPERATIONAL_STATE_IDS]) || "state_id:1";
       const result = await this.searchOperationalTicketsPage(query, {
         limit,
-        page: Math.max(1, cacheOptions?.page ?? 1),
-        cacheTtlSeconds: cacheOptions?.cacheTtlSeconds,
-        tags: cacheOptions?.tags,
-        routeKey: cacheOptions?.routeKey,
+        page: Math.max(1, requestOptions?.page ?? 1),
+        cacheTtlSeconds: requestOptions?.cacheTtlSeconds,
+        tags: requestOptions?.tags,
+        routeKey: requestOptions?.routeKey,
       });
       return result.tickets;
     } catch (err) {
-      console.error("ZammadGateway.getAllTickets:", err);
+      console.error("TicketGateway.getAllTickets:", err);
       return [];
     }
   },
@@ -332,7 +332,7 @@ export const ZammadGateway: ZammadGatewayRepository = {
       tags?: string[];
       routeKey?: string;
     }
-  ): Promise<ZammadOperationalTicket[]> {
+  ): Promise<OperationalTicket[]> {
     const normalizedEmails = Array.from(new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean)));
     if (!normalizedEmails.length) return [];
 
@@ -347,20 +347,20 @@ export const ZammadGateway: ZammadGatewayRepository = {
         emailChunks.push(normalizedEmails.slice(i, i + chunkSize));
       }
 
-      let allPrimary: ZammadOperationalTicket[] = [];
+      let allPrimary: OperationalTicket[] = [];
 
       for (const chunk of emailChunks) {
         const emailQuery = buildCustomerEmailsQuery(chunk);
         const query = stateQuery ? `${emailQuery} AND ${stateQuery}` : emailQuery;
         const endpoint = `tickets/search?query=${encodeURIComponent(query)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
-        const data = await fetchZammad(endpoint, {}, {
+        const data = await fetchTicketApi(endpoint, {}, {
           cacheTtlSeconds: options?.cacheTtlSeconds,
           tags: options?.tags,
           routeKey: options?.routeKey,
         });
 
         const primary = normalizeSearchResponse(data)
-          .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
+          .map((raw) => operationalTicketSchema.safeParse(raw))
           .filter((parsed) => parsed.success)
           .map((parsed) => parsed.data);
           
@@ -372,20 +372,20 @@ export const ZammadGateway: ZammadGatewayRepository = {
         return sorted.slice(0, limit);
       }
 
-      let allFallback: ZammadOperationalTicket[] = [];
+      let allFallback: OperationalTicket[] = [];
       
       for (const chunk of emailChunks) {
         const fallbackEmailQuery = buildCustomerEmailsFallbackQuery(chunk);
         const fallbackQuery = stateQuery ? `${fallbackEmailQuery} AND ${stateQuery}` : fallbackEmailQuery;
         const fallbackEndpoint = `tickets/search?query=${encodeURIComponent(fallbackQuery)}&expand=true&sort_by=updated_at&order_by=desc&limit=${limit}&page=${page}`;
-        const fallbackData = await fetchZammad(fallbackEndpoint, {}, {
+        const fallbackData = await fetchTicketApi(fallbackEndpoint, {}, {
           cacheTtlSeconds: options?.cacheTtlSeconds,
           tags: options?.tags,
           routeKey: options?.routeKey,
         });
 
         const fallbacks = normalizeSearchResponse(fallbackData)
-            .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
+            .map((raw) => operationalTicketSchema.safeParse(raw))
             .filter((parsed) => parsed.success)
             .map((parsed) => parsed.data);
             
@@ -395,7 +395,7 @@ export const ZammadGateway: ZammadGatewayRepository = {
       const sortedFallback = dedupeOperationalTickets(allFallback);
       return sortedFallback.slice(0, limit);
     } catch (err) {
-      console.error("ZammadGateway.getTicketsForCustomerEmailsPaged:", err);
+      console.error("TicketGateway.getTicketsForCustomerEmailsPaged:", err);
       return [];
     }
   },
@@ -408,9 +408,9 @@ export const ZammadGateway: ZammadGatewayRepository = {
       for (const email of normalizedEmails) {
         const query = `(id:${ticketId}) AND (customer.email:${email} OR customer:${email} OR "${email}")`;
         const endpoint = `tickets/search?query=${encodeURIComponent(query)}&limit=1&expand=true`;
-        const data = await fetchZammad(endpoint, { cache: "no-store" });
+        const data = await fetchTicketApi(endpoint, { cache: "no-store" });
         const found = normalizeSearchResponse(data)
-          .map((raw) => zammadOperationalTicketSchema.safeParse(raw))
+          .map((raw) => operationalTicketSchema.safeParse(raw))
           .some((parsed) => parsed.success && String(parsed.data.id) === String(ticketId));
 
         if (found) return true;
@@ -418,13 +418,13 @@ export const ZammadGateway: ZammadGatewayRepository = {
 
       return false;
     } catch (err) {
-      console.error("ZammadGateway.canAccessTicketForCustomerEmails:", err);
+      console.error("TicketGateway.canAccessTicketForCustomerEmails:", err);
       return false;
     }
   },
 
   async createTicket(payload) {
-    return fetchZammad("tickets", {
+    return fetchTicketApi("tickets", {
       method: "POST",
       body: JSON.stringify(payload),
       cache: "no-store",
@@ -432,19 +432,19 @@ export const ZammadGateway: ZammadGatewayRepository = {
     });
   },
 
-  async getTicketById(ticketId: string | number): Promise<ZammadTicketDetails> {
-    const data = await fetchZammad(`tickets/${ticketId}`, { cache: "no-store" });
-    const parsed = zammadTicketDetailsSchema.safeParse(data);
+  async getTicketById(ticketId: string | number): Promise<TicketDetails> {
+    const data = await fetchTicketApi(`tickets/${ticketId}`, { cache: "no-store" });
+    const parsed = ticketDetailsSchema.safeParse(data);
     if (!parsed.success) throw new Error("Formato de ticket invalido retornado pelo Zammad.");
     return parsed.data;
   },
 
-  async getTicketArticles(ticketId: string | number): Promise<ZammadTicketArticle[]> {
-    const data = await fetchZammad(`ticket_articles/by_ticket/${ticketId}`, { cache: "no-store" });
+  async getTicketArticles(ticketId: string | number): Promise<TicketArticle[]> {
+    const data = await fetchTicketApi(`ticket_articles/by_ticket/${ticketId}`, { cache: "no-store" });
     if (!Array.isArray(data)) return [];
 
     return data
-      .map((article) => zammadTicketArticleSchema.safeParse(article))
+      .map((article) => ticketArticleSchema.safeParse(article))
       .filter((parsed) => parsed.success)
       .map((parsed) => parsed.data);
   },
@@ -464,7 +464,7 @@ export const ZammadGateway: ZammadGatewayRepository = {
     if (attachments && attachments.length > 0) {
       payload.attachments = attachments;
     }
-    return fetchZammad("ticket_articles", {
+    return fetchTicketApi("ticket_articles", {
       method: "POST",
       body: JSON.stringify(payload),
       cache: "no-store",
@@ -473,7 +473,7 @@ export const ZammadGateway: ZammadGatewayRepository = {
   },
 
   async addInternalTicketNote(ticketId: string | number, body: string): Promise<unknown> {
-    return fetchZammad("ticket_articles", {
+    return fetchTicketApi("ticket_articles", {
       method: "POST",
       body: JSON.stringify({
         ticket_id: ticketId,
@@ -488,7 +488,7 @@ export const ZammadGateway: ZammadGatewayRepository = {
   },
 
   async updateTicket(ticketId: string | number, payload: { owner_id?: number | null; priority_id?: number; state_id?: number; }): Promise<unknown> {
-    return fetchZammad(`tickets/${ticketId}`, {
+    return fetchTicketApi(`tickets/${ticketId}`, {
       method: "PUT",
       body: JSON.stringify(payload),
       cache: "no-store",
@@ -496,5 +496,9 @@ export const ZammadGateway: ZammadGatewayRepository = {
     });
   },
 };
+
+
+
+
 
 
