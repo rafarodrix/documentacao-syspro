@@ -82,7 +82,7 @@ export function CreateContactPageForm({ companies, backHref }: Props) {
             <Sparkles className="h-5 w-5 text-primary/70" />
             Novo Contato
           </h2>
-          <p className="text-sm text-muted-foreground">Cadastre um contato e defina a empresa responsavel, quando houver.</p>
+          <p className="text-sm text-muted-foreground">Cadastre o contato base da pessoa e, quando houver, vincule sua empresa principal.</p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
           <ArrowLeft className="h-4 w-4" />

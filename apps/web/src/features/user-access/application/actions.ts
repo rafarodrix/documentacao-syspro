@@ -77,9 +77,7 @@ export async function getUsersAction(filters?: GetUsersParams) {
   }
 }
 
-type UserUpsertInput = CreateUserInput & {
-  additionalCompanyIds?: string[];
-};
+type UserUpsertInput = CreateUserInput;
 
 export async function createUserAction(data: UserUpsertInput): Promise<UserAccessActionResponse> {
   const session = await getProtectedSession();
@@ -113,10 +111,6 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
     };
   }
 
-  const additionalCompanyIds = Array.isArray(data.additionalCompanyIds)
-    ? data.additionalCompanyIds.filter(Boolean)
-    : [];
-
   try {
     const response = await callApi("/users", {
       method: "POST",
@@ -128,9 +122,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
         password: validation.data.password || data.password,
         name: validation.data.name,
         role: validation.data.role as Role,
-        companyId: data.companyId,
-        additionalCompanyIds,
-        primaryContactId: validation.data.primaryContactId || null,
+        contactId: validation.data.contactId || null,
         cpf: validation.data.cpf ?? null,
         jobTitle: validation.data.jobTitle || null,
         phone: validation.data.phone || null,
@@ -172,10 +164,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        ...updateValidation.data,
-        additionalCompanyIds: Array.isArray(data.additionalCompanyIds) ? data.additionalCompanyIds.filter(Boolean) : undefined,
-      }),
+      body: JSON.stringify(updateValidation.data),
     });
 
     if (!response.ok) {

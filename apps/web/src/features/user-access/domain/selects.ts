@@ -25,24 +25,23 @@ export const userListSelect = {
       },
     },
   },
-  contactLinks: {
+  contact: {
     select: {
+      id: true,
+      name: true,
+      whatsapp: true,
+      email: true,
       companyId: true,
-      contactId: true,
-      isPrimary: true,
-      contact: {
+      company: {
         select: {
           id: true,
-          name: true,
-          whatsapp: true,
-          email: true,
+          razaoSocial: true,
+          nomeFantasia: true,
         },
       },
     },
   },
 } as const;
-
-// O tipo resultante do select acima, que é a base para os mappers usados nas queries.
 
 export const companyOptionSelect = {
   id: true,
@@ -57,8 +56,6 @@ export const companyOptionSelect = {
     },
   },
 } as const;
-
-// O tipo resultante do select acima, que é a base para os mappers usados nas queries.
 
 export type UserListSelectResult = {
   id: string;
@@ -81,29 +78,30 @@ export type UserListSelectResult = {
       nomeFantasia: string | null;
     };
   }[];
-  contactLinks: {
-    companyId: string;
-    contactId: string;
-    isPrimary: boolean;
-    contact: {
+  contact: {
+    id: string;
+    name: string;
+    whatsapp: string | null;
+    email: string | null;
+    companyId: string | null;
+    company: {
       id: string;
-      name: string;
-      whatsapp: string | null;
-      email: string | null;
-    };
-  }[];
+      razaoSocial: string;
+      nomeFantasia: string | null;
+    } | null;
+  } | null;
 };
-
-// Mappers para transformar o resultado bruto do banco em formatos específicos para a UI.
 
 export function mapClientUserListItem(user: UserListSelectResult): UserAccessListItem {
   return {
     ...user,
     companyName:
+      user.contact?.company?.nomeFantasia ||
+      user.contact?.company?.razaoSocial ||
       user.memberships[0]?.company?.nomeFantasia ||
       user.memberships[0]?.company?.razaoSocial ||
-      "Sem Vínculo",
-    companyId: user.memberships[0]?.companyId ?? null,
+      "Sem Vinculo",
+    companyId: user.contact?.companyId ?? user.memberships[0]?.companyId ?? null,
   };
 }
 

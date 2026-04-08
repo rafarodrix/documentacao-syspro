@@ -200,11 +200,12 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
     return users.filter(
       (user) =>
         (companyFilter === "all" ||
-          (companyFilter === "with_company" && (user.memberships?.length ?? 0) > 0) ||
-          (companyFilter === "without_company" && (user.memberships?.length ?? 0) === 0)) &&
+          (companyFilter === "with_company" && Boolean(user.companyId)) ||
+          (companyFilter === "without_company" && !user.companyId)) &&
         (
           !term ||
           user.name?.toLowerCase().includes(term) ||
+          user.contact?.name?.toLowerCase().includes(term) ||
           user.email.toLowerCase().includes(term) ||
           (user.cpf && user.cpf.includes(cpfRaw))
         ),
@@ -346,9 +347,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                     <RoleBadge role={user.role} />
                     <StatusBadge isActive={user.isActive} />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {user.contactLinks?.[0]?.contact?.name || "Sem contato vinculado"}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{user.contact?.name || "Sem contato vinculado"}</p>
                 </div>
               ))
             )}
@@ -397,14 +396,14 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
 
                     <TableCell>
                       <div className="flex flex-col gap-1.5">
-                        {user.contactLinks?.[0]?.contact ? (
+                        {user.contact ? (
                           <>
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                               <Link2 className="w-3 h-3 shrink-0 opacity-60" />
-                              <span className="truncate max-w-40">{user.contactLinks[0].contact.name}</span>
+                              <span className="truncate max-w-40">{user.contact.name}</span>
                             </div>
                             <div className="text-[11px] text-muted-foreground/70">
-                              {user.contactLinks[0].contact.whatsapp || user.contactLinks[0].contact.email || "Sem telefone/email"}
+                              {user.contact.whatsapp || user.contact.email || "Sem telefone/email"}
                             </div>
                           </>
                         ) : (

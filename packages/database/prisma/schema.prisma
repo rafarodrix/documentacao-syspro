@@ -324,6 +324,7 @@ model CompanyContact {
   conversations Conversation[]
   authoredConversationMessages ConversationMessage[] @relation("ConversationMessageAuthorContact")
   userLinks UserContactLink[]
+  users User[]
 
   @@index([companyId, status])
   @@index([whatsapp])
@@ -381,6 +382,8 @@ model User {
   email String  @unique
   name  String?
   image String?
+  contactId String?
+  contact CompanyContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   // --- SEGURANÃƒâ€¡A E AUTH ---
   // Se usar login por senha (alÃƒÂ©m de OAuth), considere adicionar:
@@ -432,6 +435,7 @@ model User {
   @@index([role])
   @@index([isActive])
   @@index([cpf])
+  @@index([contactId])
   @@map("user")
 }
 

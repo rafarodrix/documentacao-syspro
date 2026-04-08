@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
+import { useEffect, useMemo, useState, type SubmitHandler } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
@@ -15,12 +15,12 @@ import { toast } from "sonner";
 import {
   AlertCircle,
   ArrowLeft,
+  Building2,
   Link2,
   Loader2,
   Save,
   Sparkles,
 } from "lucide-react";
-import { CompanyMultiPicker, type CompanyOption } from "./CompanyMultiPicker";
 
 const ROLE = {
   ADMIN: "ADMIN",
@@ -35,6 +35,18 @@ type ContactOption = {
   name: string;
   whatsapp?: string | null;
   email?: string | null;
+  companyId?: string | null;
+  company?: {
+    id: string;
+    razaoSocial: string;
+    nomeFantasia?: string | null;
+  } | null;
+};
+
+type CompanyOption = {
+  id: string;
+  razaoSocial: string;
+  nomeFantasia: string | null;
 };
 
 export interface CreateUserPageFormProps {
@@ -44,7 +56,7 @@ export interface CreateUserPageFormProps {
   backHref: string;
   mode?: "create" | "edit";
   userId?: string;
-  initialData?: Partial<CreateUserInput> & { additionalCompanyIds?: string[] };
+  initialData?: Partial<CreateUserInput>;
 }
 
 const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -60,19 +72,11 @@ export function CreateUserPageForm({
 }: CreateUserPageFormProps) {
   const router = useRouter();
   const defaultRole = context === "SYSTEM" ? ROLE.SUPORTE : ROLE.CLIENTE_USER;
-
-  const [companyIds, setCompanyIds] = useState<string[]>(() => {
-    const primary = initialData?.companyId;
-    const additional = Array.isArray(initialData?.additionalCompanyIds)
-      ? initialData.additionalCompanyIds.filter(Boolean)
-      : [];
-    return primary ? [primary, ...additional] : additional;
-  });
+  const allowedCompanyIds = useMemo(() => companies.map((company) => company.id), [companies]);
 
   const [contactSearch, setContactSearch] = useState("");
   const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
-  const primaryCompanyIdRef = useRef<string | undefined>(companyIds[0]);
 
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
@@ -81,50 +85,30 @@ export function CreateUserPageForm({
       email: initialData?.email ?? "",
       password: "",
       role: initialData?.role ?? defaultRole,
-      companyId: context === "CLIENT" ? initialData?.companyId ?? "" : undefined,
-      primaryContactId: initialData?.primaryContactId ?? "",
+      contactId: initialData?.contactId ?? "",
+      jobTitle: initialData?.jobTitle ?? "",
+      phone: initialData?.phone ?? "",
+      cpf: initialData?.cpf ?? "",
     },
     mode: "onTouched",
   });
 
   const { errors, isSubmitting, isDirty } = form.formState;
-  const selectedPrimaryContactId = useWatch({
+  const selectedContactId = useWatch({
     control: form.control,
-    name: "primaryContactId",
+    name: "contactId",
   });
 
   useEffect(() => {
-    if (context !== "CLIENT") return;
-    form.setValue("companyId", companyIds[0] ?? "", { shouldDirty: true, shouldValidate: true });
-  }, [companyIds, context, form]);
-
-  useEffect(() => {
-    if (context !== "CLIENT") return;
-    const currentPrimary = companyIds[0];
-    const previousPrimary = primaryCompanyIdRef.current;
-
-    if (previousPrimary !== undefined && previousPrimary !== currentPrimary) {
-      form.setValue("primaryContactId", "", { shouldDirty: true, shouldValidate: true });
-    }
-
-    primaryCompanyIdRef.current = currentPrimary;
-  }, [companyIds, context, form]);
-
-  useEffect(() => {
-    if (context !== "CLIENT") return;
-    const companyId = companyIds[0];
-    if (!companyId) {
-      setContactOptions([]);
-      return;
-    }
+    const query = contactSearch.trim();
+    const currentContactId = form.getValues("contactId");
 
     const timer = setTimeout(async () => {
       try {
         setLoadingContacts(true);
-        const params = new URLSearchParams({ companyId, limit: "100" });
-        if (contactSearch.trim()) {
-          params.set("q", contactSearch.trim());
-        }
+
+        const params = new URLSearchParams({ limit: "100" });
+        if (query) params.set("q", query);
 
         const response = await fetch(`/api/contacts?${params.toString()}`, {
           credentials: "include",
@@ -137,7 +121,18 @@ export function CreateUserPageForm({
         }
 
         const payload = (await response.json()) as ContactOption[];
-        setContactOptions(Array.isArray(payload) ? payload : []);
+        const normalized = Array.isArray(payload) ? payload : [];
+        const filtered = context === "CLIENT"
+          ? normalized.filter((contact) => contact.companyId && allowedCompanyIds.includes(contact.companyId))
+          : normalized;
+
+        if (currentContactId && normalized.some((contact) => contact.id === currentContactId) && !filtered.some((contact) => contact.id === currentContactId)) {
+          const selected = normalized.find((contact) => contact.id === currentContactId);
+          setContactOptions(selected ? [selected, ...filtered] : filtered);
+          return;
+        }
+
+        setContactOptions(filtered);
       } catch {
         setContactOptions([]);
       } finally {
@@ -146,24 +141,66 @@ export function CreateUserPageForm({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [companyIds, contactSearch, context]);
+  }, [allowedCompanyIds, contactSearch, context, form]);
 
-  const selectedPrimaryContact = useMemo(() => {
-    if (!selectedPrimaryContactId) return null;
-    return contactOptions.find((contact) => contact.id === selectedPrimaryContactId) ?? null;
-  }, [contactOptions, selectedPrimaryContactId]);
+  useEffect(() => {
+    const currentContactId = form.getValues("contactId");
+    if (!currentContactId || contactOptions.some((contact) => contact.id === currentContactId)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSelectedContact = async () => {
+      try {
+        const response = await fetch(`/api/contacts/${currentContactId}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) return;
+        const payload = (await response.json()) as ContactOption;
+        if (cancelled || !payload?.id) return;
+
+        setContactOptions((prev) => {
+          if (prev.some((contact) => contact.id === payload.id)) return prev;
+          return [payload, ...prev];
+        });
+      } catch {
+        return;
+      }
+    };
+
+    void loadSelectedContact();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [contactOptions, form]);
+
+  const selectedContact = useMemo(() => {
+    if (!selectedContactId) return null;
+    return contactOptions.find((contact) => contact.id === selectedContactId) ?? null;
+  }, [contactOptions, selectedContactId]);
+
+  const selectedCompanyName = selectedContact?.company?.nomeFantasia || selectedContact?.company?.razaoSocial || null;
+  const clientContactInvalid = context === "CLIENT" && Boolean(selectedContactId) && !selectedContact?.companyId;
 
   const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
-    const payload: CreateUserInput & { additionalCompanyIds?: string[] } = { ...data };
-
-    if (context === "SYSTEM") {
-      payload.companyId = undefined;
-      payload.primaryContactId = undefined;
-    } else {
-      payload.companyId = companyIds[0] ?? "";
-      payload.additionalCompanyIds = companyIds.slice(1);
-      payload.primaryContactId = (data.primaryContactId || "").trim();
+    if (!data.contactId?.trim()) {
+      toast.error("Selecione um contato para este usuario.");
+      return;
     }
+
+    if (context === "CLIENT" && !selectedContact?.companyId) {
+      toast.error("O contato do usuario precisa estar vinculado a uma empresa.");
+      return;
+    }
+
+    const payload: CreateUserInput = {
+      ...data,
+      contactId: data.contactId.trim(),
+    };
 
     if (mode === "edit" && !payload.password) payload.password = undefined;
 
@@ -211,7 +248,7 @@ export function CreateUserPageForm({
             <Sparkles className="h-5 w-5 text-primary/70" />
             {title}
           </h2>
-          <p className="text-sm text-muted-foreground">Acesso ao portal e vinculo com contato.</p>
+          <p className="text-sm text-muted-foreground">O usuario herda sua identidade do contato vinculado.</p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
           <ArrowLeft className="h-4 w-4" />
@@ -224,29 +261,79 @@ export function CreateUserPageForm({
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <Card className="border-border/60 bg-card/95">
               <CardHeader>
-                <CardTitle className="text-base">Dados de acesso</CardTitle>
+                <CardTitle className="text-base">Contato e credenciais</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                {context === "CLIENT" && (
+                <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+                  <div className="flex items-center gap-2">
+                    <Link2 className="h-4 w-4 text-primary/70" />
+                    <div>
+                      <p className="text-sm font-medium">Contato principal</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        O usuario sempre representa um contato. As empresas acessiveis sao derivadas desse contato.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Input
+                    placeholder="Buscar contato por nome, email ou whatsapp..."
+                    value={contactSearch}
+                    onChange={(event) => setContactSearch(event.target.value)}
+                  />
+
                   <FormField
                     control={form.control}
-                    name="companyId"
-                    render={({ fieldState }) => (
-                      <FormItem>
-                        <FormLabel>Empresas vinculadas</FormLabel>
-                        <CompanyMultiPicker
-                          companies={companies}
-                          value={companyIds}
-                          onChange={setCompanyIds}
-                          error={fieldState.error?.message}
-                        />
-                        <p className="text-[11px] text-muted-foreground">
-                          A primeira empresa selecionada define o escopo principal do usuario. O contato vinculado deve pertencer a ela.
-                        </p>
-                      </FormItem>
-                    )}
+                    name="contactId"
+                    render={({ field }) => {
+                      const selectValue = toInputValue(field.value) || "__none__";
+                      return (
+                        <FormItem>
+                          <FormLabel>Contato</FormLabel>
+                          <Select
+                            onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
+                            value={selectValue}
+                            disabled={loadingContacts}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue
+                                  placeholder={loadingContacts ? "Carregando contatos..." : "Selecione um contato"}
+                                />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="__none__">Selecione um contato</SelectItem>
+                              {contactOptions.map((contact) => (
+                                <SelectItem key={contact.id} value={contact.id}>
+                                  {contact.name}
+                                  {contact.whatsapp ? ` - ${contact.whatsapp}` : contact.email ? ` - ${contact.email}` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
-                )}
+
+                  {selectedContact ? (
+                    <div className="grid gap-2 rounded-md border border-border/50 bg-background/80 p-3 text-xs text-muted-foreground md:grid-cols-2">
+                      <div>
+                        <span className="font-medium text-foreground">Contato:</span> {selectedContact.name}
+                      </div>
+                      <div>
+                        <span className="font-medium text-foreground">WhatsApp / Email:</span>{" "}
+                        {selectedContact.whatsapp || selectedContact.email || "Nao informado"}
+                      </div>
+                      <div className="md:col-span-2 inline-flex items-center gap-1.5">
+                        <Building2 className="h-3.5 w-3.5" />
+                        <span className="font-medium text-foreground">Empresa do contato:</span>{" "}
+                        {selectedCompanyName || "Sem empresa vinculada"}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
@@ -313,69 +400,6 @@ export function CreateUserPageForm({
                   />
                 )}
 
-                {context === "CLIENT" && (
-                  <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
-                    <div className="flex items-center gap-2">
-                      <Link2 className="h-4 w-4 text-primary/70" />
-                      <div>
-                        <p className="text-sm font-medium">Contato vinculado</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          O contato define apenas o vinculo operacional do usuario na empresa principal.
-                        </p>
-                      </div>
-                    </div>
-
-                    <Input
-                      placeholder="Buscar contato por nome, email ou whatsapp..."
-                      value={contactSearch}
-                      onChange={(event) => setContactSearch(event.target.value)}
-                      disabled={!companyIds[0]}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="primaryContactId"
-                      render={({ field }) => {
-                        const selectValue = toInputValue(field.value) || "__none__";
-                        return (
-                          <FormItem>
-                            <FormLabel>Contato</FormLabel>
-                            <Select
-                              onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
-                              value={selectValue}
-                              disabled={!companyIds[0] || loadingContacts}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={
-                                      !companyIds[0]
-                                        ? "Selecione a empresa principal primeiro"
-                                        : loadingContacts
-                                          ? "Carregando contatos..."
-                                          : "Selecione um contato"
-                                    }
-                                  />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="__none__">Sem contato vinculado</SelectItem>
-                                {contactOptions.map((contact) => (
-                                  <SelectItem key={contact.id} value={contact.id}>
-                                    {contact.name}
-                                    {contact.whatsapp ? ` - ${contact.whatsapp}` : contact.email ? ` - ${contact.email}` : ""}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-                  </div>
-                )}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -384,17 +408,53 @@ export function CreateUserPageForm({
                       <FormItem>
                         <FormLabel>Nome exibido</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Nome completo"
-                            {...field}
-                            value={toInputValue(field.value)}
-                          />
+                          <Input placeholder="Nome completo" {...field} value={toInputValue(field.value)} />
                         </FormControl>
-                        {context === "CLIENT" && selectedPrimaryContact ? (
-                          <p className="text-[11px] text-muted-foreground">
-                            Contato selecionado: {selectedPrimaryContact.name}
-                          </p>
-                        ) : null}
+                        <p className="text-[11px] text-muted-foreground">
+                          Esse nome identifica o acesso no portal e nao sobrescreve o cadastro do contato.
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="jobTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cargo</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Cargo ou funcao" {...field} value={toInputValue(field.value)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(DD) 99999-9999" {...field} value={toInputValue(field.value)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cpf"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CPF</FormLabel>
+                        <FormControl>
+                          <Input placeholder="00000000000" {...field} value={toInputValue(field.value)} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -405,11 +465,17 @@ export function CreateUserPageForm({
           </div>
 
           <div className="border-t border-border/50 px-6 py-4 flex items-center justify-between">
-            <div>
+            <div className="flex items-center gap-2">
               {hasErrors && (
                 <Badge variant="destructive" className="text-[11px] gap-1 font-medium">
                   <AlertCircle className="h-3 w-3" />
                   Campos invalidos
+                </Badge>
+              )}
+              {clientContactInvalid && (
+                <Badge variant="outline" className="text-[11px] gap-1 font-medium border-amber-500/40 text-amber-700">
+                  <AlertCircle className="h-3 w-3" />
+                  Contato sem empresa vinculada
                 </Badge>
               )}
             </div>

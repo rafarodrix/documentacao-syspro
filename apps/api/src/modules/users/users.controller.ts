@@ -35,7 +35,7 @@ export class UsersController {
   @Post()
   create(
     @Req() req: Request,
-    @Body() body: { email: string; name: string; password?: string; role?: Role; companyId?: string; additionalCompanyIds?: string[]; primaryContactId?: string; cpf?: string; jobTitle?: string; phone?: string },
+    @Body() body: { email: string; name: string; password?: string; role?: Role; contactId?: string; cpf?: string; jobTitle?: string; phone?: string },
   ) {
     return this.usersService.create(body, req.headers);
   }
@@ -49,7 +49,7 @@ export class UsersController {
   update(
     @Req() req: Request,
     @Param('id') id: string,
-    @Body() body: { name?: string; email?: string; role?: Role; companyId?: string; additionalCompanyIds?: string[]; primaryContactId?: string | null; isActive?: boolean; cpf?: string; jobTitle?: string; phone?: string },
+    @Body() body: { name?: string; email?: string; role?: Role; contactId?: string | null; isActive?: boolean; cpf?: string; jobTitle?: string; phone?: string },
   ) {
     return this.usersService.update(id, body, req.headers);
   }

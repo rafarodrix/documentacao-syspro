@@ -11,9 +11,7 @@ export interface UserAccessEditInitialData {
   name: string;
   email: string;
   role: Role;
-  companyId?: string;
-  additionalCompanyIds?: string[];
-  primaryContactId?: string;
+  contactId?: string;
   jobTitle: string;
   phone: string;
   cpf: string;
@@ -42,15 +40,16 @@ export type UserAccessMembershipSummary = {
 };
 
 export type UserAccessContactSummary = {
-  companyId: string;
-  contactId: string;
-  isPrimary: boolean;
-  contact: {
+  id: string;
+  name: string;
+  whatsapp: string | null;
+  email: string | null;
+  companyId: string | null;
+  company: {
     id: string;
-    name: string;
-    whatsapp: string | null;
-    email: string | null;
-  };
+    nomeFantasia: string | null;
+    razaoSocial: string;
+  } | null;
 };
 
 export type UserAccessListItem = {
@@ -66,7 +65,7 @@ export type UserAccessListItem = {
   deletedAt?: Date | null;
   createdAt?: Date;
   memberships: UserAccessMembershipSummary[];
-  contactLinks: UserAccessContactSummary[];
+  contact: UserAccessContactSummary | null;
   companyName: string;
   companyId: string | null;
 };
@@ -82,10 +81,10 @@ export type SystemUserListItem = {
   cpf: string | null;
   phone: string | null;
   memberships: UserAccessMembershipSummary[];
-  contactLinks: UserAccessContactSummary[];
+  contact: UserAccessContactSummary | null;
 };
 
-export type UserAccessValidationErrors = Partial<Record<keyof CreateUserInput | "additionalCompanyIds", string[]>>;
+export type UserAccessValidationErrors = Partial<Record<keyof CreateUserInput, string[]>>;
 
 export type UserAccessActionSuccess<T = void> = T extends void
   ? { success: true; message?: string }

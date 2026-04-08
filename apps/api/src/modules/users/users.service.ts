@@ -1,4 +1,11 @@
-import { Injectable, ConflictException, NotFoundException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  ForbiddenException,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role, Prisma } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
@@ -12,9 +19,7 @@ type CreateUserInput = {
   name: string;
   password?: string;
   role?: Role;
-  companyId?: string;
-  additionalCompanyIds?: string[];
-  primaryContactId?: string;
+  contactId?: string;
   cpf?: string;
   jobTitle?: string;
   phone?: string;
@@ -24,9 +29,7 @@ type UpdateUserInput = {
   name?: string;
   email?: string;
   role?: Role;
-  companyId?: string;
-  additionalCompanyIds?: string[];
-  primaryContactId?: string | null;
+  contactId?: string | null;
   isActive?: boolean;
   cpf?: string;
   jobTitle?: string;
@@ -63,6 +66,7 @@ export class UsersService {
       where.OR = [
         { name: { contains: filters.search, mode: 'insensitive' } },
         { email: { contains: filters.search, mode: 'insensitive' } },
+        { contact: { is: { name: { contains: filters.search, mode: 'insensitive' } } } },
         ...(searchRaw ? [{ cpf: { contains: searchRaw } }] : []),
       ];
     }
@@ -73,24 +77,7 @@ export class UsersService {
 
     return this.prisma.user.findMany({
       where,
-      include: {
-        memberships: {
-          include: { company: true },
-        },
-        contactLinks: {
-          where: { isPrimary: true },
-          include: {
-            contact: {
-              select: {
-                id: true,
-                name: true,
-                whatsapp: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.userInclude(),
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -108,7 +95,7 @@ export class UsersService {
 
     const user = await this.prisma.user.findUnique({
       where: { id },
-      include: { memberships: { include: { company: true } } },
+      include: this.userInclude(),
     });
     if (!user) throw new NotFoundException('Usuario nao encontrado');
     return user;
@@ -128,20 +115,17 @@ export class UsersService {
       throw new ConflictException('Este email ja esta em uso.');
     }
 
-    const desiredCompanyIds = Array.from(new Set([data.companyId, ...(data.additionalCompanyIds || [])].filter(Boolean) as string[]));
-    const normalizedPrimaryContactId = this.normalizeContactId(data.primaryContactId);
+    const normalizedContactId = this.normalizeContactId(data.contactId);
+    if (!normalizedContactId) {
+      throw new BadRequestException('Contato obrigatorio para criar usuario.');
+    }
 
     if (isClientManager) {
       const managedCompanyIds = await this.getManagedCompanyIds(requester.userId);
-      if (!data.companyId || !managedCompanyIds.includes(data.companyId)) {
-        throw new ForbiddenException('Empresa invalida para este gestor.');
-      }
-      if (desiredCompanyIds.some((companyId) => !managedCompanyIds.includes(companyId))) {
-        throw new ForbiddenException('Uma ou mais empresas informadas sao invalidas para este gestor.');
-      }
       if (data.role && !CLIENT_ROLES.includes(data.role)) {
         throw new ForbiddenException('Gestor pode cadastrar apenas usuarios da unidade.');
       }
+      await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, true);
     }
 
     let authResult;
@@ -163,11 +147,14 @@ export class UsersService {
     const createdUserId = authResult.user.id;
 
     return this.prisma.$transaction(async (tx) => {
+      const userRole = data.role || Role.CLIENTE_USER;
+
       await tx.user.update({
         where: { id: createdUserId },
         data: {
           name: data.name || null,
-          role: data.role || Role.CLIENTE_USER,
+          role: userRole,
+          contactId: normalizedContactId,
           cpf: data.cpf || null,
           jobTitle: data.jobTitle || null,
           phone: data.phone || null,
@@ -176,25 +163,11 @@ export class UsersService {
         },
       });
 
-      if (desiredCompanyIds.length > 0) {
-        const membershipRole = data.role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER;
-        await tx.membership.createMany({
-          data: desiredCompanyIds.map((companyId) => ({
-            userId: createdUserId,
-            companyId,
-            role: membershipRole,
-          })),
-          skipDuplicates: true,
-        });
-      }
-
-      if (data.companyId) {
-        await this.syncPrimaryContactLink(tx, createdUserId, data.companyId, normalizedPrimaryContactId);
-      }
+      await this.syncAccessFromContact(tx, createdUserId, userRole, normalizedContactId);
 
       return tx.user.findUnique({
         where: { id: createdUserId },
-        include: { memberships: { include: { company: true } } },
+        include: this.userInclude(),
       });
     });
   }
@@ -220,15 +193,17 @@ export class UsersService {
       managedCompanyIds = await this.getManagedCompanyIds(requester.userId);
     }
 
-    const desiredCompanyIds = data.companyId
-      ? Array.from(new Set([data.companyId, ...(data.additionalCompanyIds || [])].filter(Boolean)))
-      : null;
+    const normalizedContactId = data.contactId === undefined
+      ? undefined
+      : this.normalizeContactId(data.contactId);
 
-    if (isClientManager && desiredCompanyIds?.some((companyId) => !managedCompanyIds.includes(companyId))) {
-      throw new ForbiddenException('Uma ou mais empresas informadas sao invalidas para este gestor.');
+    if (data.contactId !== undefined && !normalizedContactId) {
+      throw new BadRequestException('Contato obrigatorio para atualizar usuario.');
     }
 
-    const normalizedPrimaryContactId = this.normalizeContactId(data.primaryContactId);
+    if (isClientManager && normalizedContactId) {
+      await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, true);
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
@@ -237,6 +212,7 @@ export class UsersService {
           name: this.resolveUserName(data.name),
           email: data.email,
           role: data.role,
+          ...(normalizedContactId !== undefined ? { contactId: normalizedContactId } : {}),
           isActive: data.isActive,
           cpf: data.cpf,
           jobTitle: data.jobTitle,
@@ -244,45 +220,14 @@ export class UsersService {
         },
       });
 
-      if (desiredCompanyIds) {
-        const membershipRole = data.role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER;
+      const effectiveRole = data.role ?? updatedUser.role;
+      const effectiveContactId = normalizedContactId ?? updatedUser.contactId;
 
-        if (isClientManager) {
-          await tx.membership.deleteMany({
-            where: { userId: id, companyId: { in: managedCompanyIds, notIn: desiredCompanyIds } },
-          });
-        } else {
-          await tx.membership.deleteMany({
-            where: { userId: id, companyId: { notIn: desiredCompanyIds } },
-          });
-        }
-
-        await Promise.all(
-          desiredCompanyIds.map((companyId) =>
-            tx.membership.upsert({
-              where: { userId_companyId: { userId: id, companyId } },
-              create: { userId: id, companyId, role: membershipRole },
-              update: { role: membershipRole },
-            }),
-          ),
-        );
+      if (!effectiveContactId) {
+        throw new BadRequestException('Usuario precisa permanecer vinculado a um contato.');
       }
 
-      if (desiredCompanyIds) {
-        if (isClientManager) {
-          await tx.userContactLink.deleteMany({
-            where: { userId: id, companyId: { in: managedCompanyIds, notIn: desiredCompanyIds } },
-          });
-        } else {
-          await tx.userContactLink.deleteMany({
-            where: { userId: id, companyId: { notIn: desiredCompanyIds } },
-          });
-        }
-      }
-
-      if (data.companyId) {
-        await this.syncPrimaryContactLink(tx, id, data.companyId, normalizedPrimaryContactId);
-      }
+      await this.syncAccessFromContact(tx, id, effectiveRole, effectiveContactId);
 
       return updatedUser;
     });
@@ -357,22 +302,7 @@ export class UsersService {
         this.prisma.user.findMany({
           where: { deletedAt: null, role: { in: CLIENT_ROLES } },
           orderBy: { name: 'asc' },
-          include: {
-            memberships: { include: { company: true } },
-            contactLinks: {
-              where: { isPrimary: true },
-              include: {
-                contact: {
-                  select: {
-                    id: true,
-                    name: true,
-                    whatsapp: true,
-                    email: true,
-                  },
-                },
-              },
-            },
-          },
+          include: this.userInclude(),
         }),
       ]);
 
@@ -396,25 +326,7 @@ export class UsersService {
           role: { in: CLIENT_ROLES },
           memberships: { some: { companyId: { in: companyIds } } },
         },
-        include: {
-          memberships: {
-            where: { companyId: { in: companyIds } },
-            include: { company: true },
-          },
-          contactLinks: {
-            where: { isPrimary: true, companyId: { in: companyIds } },
-            include: {
-              contact: {
-                select: {
-                  id: true,
-                  name: true,
-                  whatsapp: true,
-                  email: true,
-                },
-              },
-            },
-          },
-        },
+        include: this.userInclude(companyIds),
         orderBy: { name: 'asc' },
       }),
     ]);
@@ -431,22 +343,7 @@ export class UsersService {
     const users = await this.prisma.user.findMany({
       where: { deletedAt: null, role: { in: SYSTEM_ROLES } },
       orderBy: { name: 'asc' },
-      include: {
-        memberships: { include: { company: true } },
-        contactLinks: {
-          where: { isPrimary: true },
-          include: {
-            contact: {
-              select: {
-                id: true,
-                name: true,
-                whatsapp: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.userInclude(),
     });
 
     return { users, isGlobalView: true };
@@ -483,16 +380,7 @@ export class UsersService {
         jobTitle: true,
         phone: true,
         cpf: true,
-        memberships: {
-          select: { companyId: true },
-        },
-        contactLinks: {
-          select: {
-            companyId: true,
-            contactId: true,
-            isPrimary: true,
-          },
-        },
+        contactId: true,
       },
     });
 
@@ -515,14 +403,11 @@ export class UsersService {
       userId: user.id,
       companies,
       isAdmin: requester.role !== Role.CLIENTE_ADMIN,
-        initialData: {
+      initialData: {
         name: user.name ?? '',
         email: user.email,
         role: user.role,
-        companyId: user.memberships[0]?.companyId ?? '',
-        additionalCompanyIds: user.memberships.slice(1).map((m) => m.companyId),
-        primaryContactId:
-          user.contactLinks.find((link) => link.companyId === (user.memberships[0]?.companyId ?? ''))?.contactId ?? '',
+        contactId: user.contactId ?? '',
         jobTitle: user.jobTitle ?? '',
         phone: user.phone ?? '',
         cpf: user.cpf ?? '',
@@ -551,6 +436,7 @@ export class UsersService {
         jobTitle: true,
         phone: true,
         cpf: true,
+        contactId: true,
       },
     });
 
@@ -562,13 +448,38 @@ export class UsersService {
         name: user.name ?? '',
         email: user.email,
         role: user.role,
-        primaryContactId: '',
+        contactId: user.contactId ?? '',
         jobTitle: user.jobTitle ?? '',
         phone: user.phone ?? '',
         cpf: user.cpf ?? '',
         password: '',
       },
     };
+  }
+
+  private userInclude(companyScope?: string[]) {
+    return {
+      memberships: {
+        ...(companyScope ? { where: { companyId: { in: companyScope } } } : {}),
+        include: { company: true },
+      },
+      contact: {
+        select: {
+          id: true,
+          name: true,
+          whatsapp: true,
+          email: true,
+          companyId: true,
+          company: {
+            select: {
+              id: true,
+              razaoSocial: true,
+              nomeFantasia: true,
+            },
+          },
+        },
+      },
+    } satisfies Prisma.UserInclude;
   }
 
   private isSystemRole(role: Role) {
@@ -587,44 +498,93 @@ export class UsersService {
     return normalized || undefined;
   }
 
-  private async syncPrimaryContactLink(
+  private async syncAccessFromContact(
     tx: Prisma.TransactionClient,
     userId: string,
-    companyId: string,
-    primaryContactId: string | null,
+    role: Role,
+    contactId: string,
   ) {
-    if (!primaryContactId) {
+    if (this.isSystemRole(role)) {
+      await tx.membership.deleteMany({
+        where: { userId },
+      });
       await tx.userContactLink.deleteMany({
-        where: { userId, companyId },
+        where: { userId },
       });
       return;
     }
 
     const contact = await tx.companyContact.findFirst({
-      where: {
-        id: primaryContactId,
-        companyId,
-      },
-      select: { id: true },
+      where: { id: contactId },
+      select: { id: true, companyId: true },
     });
 
     if (!contact) {
-      throw new ForbiddenException('Contato informado nao pertence a empresa principal selecionada.');
+      throw new NotFoundException('Contato informado nao encontrado.');
     }
 
-    await tx.userContactLink.upsert({
-      where: { userId_companyId: { userId, companyId } },
+    if (!contact.companyId) {
+      throw new BadRequestException('Contato do usuario precisa estar vinculado a uma empresa.');
+    }
+
+    const membershipRole = role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER;
+
+    await tx.membership.deleteMany({
+      where: { userId, companyId: { not: contact.companyId } },
+    });
+
+    await tx.membership.upsert({
+      where: { userId_companyId: { userId, companyId: contact.companyId } },
       create: {
         userId,
-        companyId,
-        contactId: primaryContactId,
+        companyId: contact.companyId,
+        role: membershipRole,
+      },
+      update: {
+        role: membershipRole,
+      },
+    });
+
+    await tx.userContactLink.deleteMany({
+      where: { userId, companyId: { not: contact.companyId } },
+    });
+
+    await tx.userContactLink.upsert({
+      where: { userId_companyId: { userId, companyId: contact.companyId } },
+      create: {
+        userId,
+        companyId: contact.companyId,
+        contactId,
         isPrimary: true,
       },
       update: {
-        contactId: primaryContactId,
+        contactId,
         isPrimary: true,
       },
     });
+  }
+
+  private async assertContactWithinCompanies(
+    contactId: string,
+    allowedCompanyIds: string[],
+    requireCompany: boolean,
+  ) {
+    const contact = await this.prisma.companyContact.findUnique({
+      where: { id: contactId },
+      select: { id: true, companyId: true },
+    });
+
+    if (!contact) {
+      throw new NotFoundException('Contato informado nao encontrado.');
+    }
+
+    if (requireCompany && !contact.companyId) {
+      throw new BadRequestException('Contato precisa estar vinculado a uma empresa.');
+    }
+
+    if (contact.companyId && !allowedCompanyIds.includes(contact.companyId)) {
+      throw new ForbiddenException('Contato informado nao pertence a uma empresa permitida para este gestor.');
+    }
   }
 
   private async getManagedCompanyIds(userId: string) {
