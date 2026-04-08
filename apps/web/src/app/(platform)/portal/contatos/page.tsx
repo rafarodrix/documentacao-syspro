@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getProtectedSession } from "@/lib/auth-helpers"
 import { CADASTROS_ROUTE_RULES, hasAllowedRole } from "@dosc-syspro/core"
+import { ContactsHubPage } from "@/components/platform/app/contatos/ContactsHubPage"
 
 export default async function ContatosRootPage() {
   const session = await getProtectedSession()
@@ -13,5 +14,5 @@ export default async function ContatosRootPage() {
     redirect(CADASTROS_ROUTE_RULES.contatos.redirectIfBlocked)
   }
 
-  redirect("/portal/contatos/pendentes")
+  return <ContactsHubPage />
 }
