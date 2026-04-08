@@ -227,12 +227,18 @@ export class ProcessIncomingMessageUseCase {
       const contactResponse = (await this.chatwootClient.createOrFindContact(phone, contactName, picResult?.profilePictureUrl)) as any;
       const contact = contactResponse?.payload?.contact;
 
-      const inboxIdentifier = process.env.CHATWOOT_INBOX_IDENTIFIER;
+      const configuredInboxIdentifier = process.env.CHATWOOT_INBOX_IDENTIFIER?.toString();
+      const configuredInboxId = process.env.CHATWOOT_INBOX_ID?.toString();
       const sourceIdFromInbox =
         contact?.contact_inboxes
           ?.find((item: any) => {
             const inboxId = item?.inbox?.id?.toString?.() ?? item?.inbox_id?.toString?.();
-            return inboxIdentifier && inboxId ? inboxId === inboxIdentifier.toString() : false;
+            const inboxIdentifier = item?.inbox?.identifier?.toString?.() ?? item?.inbox_identifier?.toString?.();
+
+            if (configuredInboxIdentifier && inboxIdentifier === configuredInboxIdentifier) return true;
+            if (configuredInboxId && inboxId === configuredInboxId) return true;
+            if (!configuredInboxId && configuredInboxIdentifier && inboxId === configuredInboxIdentifier) return true;
+            return false;
           })
           ?.source_id
           ?.toString?.();
@@ -247,7 +253,13 @@ export class ProcessIncomingMessageUseCase {
       }
 
       const convResponse = (await this.chatwootClient.createConversation(contactIdentifier)) as any;
-      conversationId = convResponse?.id?.toString();
+      conversationId =
+        convResponse?.id?.toString?.() ??
+        convResponse?.payload?.id?.toString?.() ??
+        convResponse?.conversation?.id?.toString?.();
+      if (!conversationId) {
+        throw new Error(`Nao foi possivel resolver id da conversa criada no Chatwoot (contactIdentifier=${contactIdentifier})`);
+      }
 
       try {
         link = await this.prisma.conversationLink.create({

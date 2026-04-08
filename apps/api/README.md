@@ -40,6 +40,7 @@ Variaveis minimas:
 - `CHATWOOT_URL`
 - `CHATWOOT_ACCOUNT_ID`
 - `CHATWOOT_API_TOKEN`
+- `CHATWOOT_INBOX_ID` (id numerico do inbox, usado na API `/api/v1/accounts/...`)
 - `CHATWOOT_INBOX_IDENTIFIER`
 - `CHATWOOT_WEBHOOK_SECRET` (usado para HMAC assinatura do webhook Chatwoot)
 - `CHATWOOT_WEBHOOK_MAX_SKEW_SECONDS` (opcional, default `300`)
