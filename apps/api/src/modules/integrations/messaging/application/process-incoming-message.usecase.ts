@@ -8,6 +8,7 @@ import { IntegrationContextService, type ResolvedIntegrationContext } from '../.
 @Injectable()
 export class ProcessIncomingMessageUseCase {
   private readonly logger = new Logger(ProcessIncomingMessageUseCase.name);
+  private readonly conversationLinkLocks = new Map<string, Promise<void>>();
 
   constructor(
     private readonly chatwootClient: ChatwootClient,
@@ -293,133 +294,159 @@ export class ProcessIncomingMessageUseCase {
     return null;
   }
 
+  private async withConversationLinkLock<T>(lockKey: string, work: () => Promise<T>): Promise<T> {
+    const previous = this.conversationLinkLocks.get(lockKey);
+    if (previous) {
+      await previous;
+    }
+
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    this.conversationLinkLocks.set(lockKey, current);
+
+    try {
+      return await work();
+    } finally {
+      release();
+      if (this.conversationLinkLocks.get(lockKey) === current) {
+        this.conversationLinkLocks.delete(lockKey);
+      }
+    }
+  }
+
   private async resolveOrCreateConversationLink(
     phone: string,
     pushName: string,
     connection: ResolvedIntegrationContext
   ): Promise<{ contactIdentifier: string; conversationId: string }> {
-    let link = await this.prisma.conversationLink.findUnique({
-      where: {
-        connectionKey_whatsappNumber: {
-          connectionKey: connection.connectionKey,
-          whatsappNumber: phone,
-        },
-      }
-    });
+    const lockKey = `${connection.connectionKey}:${phone}`;
 
-    let contactIdentifier = link?.chatwootContactId;
-    let conversationId = link?.chatwootConversationId;
-
-    if (!link) {
-      let sysproContact = await this.prisma.companyContact.findFirst({
-        where: { whatsapp: phone },
-        include: { company: true },
-      });
-
-      if (!sysproContact) {
-        sysproContact = await this.prisma.companyContact.create({
-          data: {
-            name: String(pushName),
-            whatsapp: String(phone),
-          },
-          include: { company: true },
-        });
-      }
-
-      if (!sysproContact) throw new Error('Falha ao processar o contato no banco de dados');
-
-      const contactName = sysproContact.company
-        ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}`
-        : sysproContact.name;
-
-      const picResult = await this.evolutionClient.fetchProfilePicture(connection.evolution, phone);
-      const contactResponse = (await this.chatwootClient.createOrFindContact(
-        connection.chatwoot,
-        phone,
-        contactName,
-        picResult?.profilePictureUrl
-      )) as any;
-      const contact = contactResponse?.payload?.contact;
-
-      const configuredInboxIdentifier = connection.chatwoot.inboxIdentifier?.toString();
-      const configuredInboxId = connection.chatwoot.inboxId?.toString();
-      const sourceIdFromInbox =
-        contact?.contact_inboxes
-          ?.find((item: any) => {
-            const inboxId = item?.inbox?.id?.toString?.() ?? item?.inbox_id?.toString?.();
-            const inboxIdentifier = item?.inbox?.identifier?.toString?.() ?? item?.inbox_identifier?.toString?.();
-
-            if (configuredInboxIdentifier && inboxIdentifier === configuredInboxIdentifier) return true;
-            if (configuredInboxId && inboxId === configuredInboxId) return true;
-            if (!configuredInboxId && configuredInboxIdentifier && inboxId === configuredInboxIdentifier) return true;
-            return false;
-          })
-          ?.source_id
-          ?.toString?.();
-
-      contactIdentifier =
-        contact?.source_id?.toString?.() ??
-        sourceIdFromInbox ??
-        contact?.contact_inboxes?.[0]?.source_id?.toString?.();
-
-      if (!contactIdentifier) {
-        throw new Error(`Nao foi possivel resolver source_id publico do contato no Chatwoot (contact_id=${contact?.id ?? 'n/a'})`);
-      }
-
-      const convResponse = (await this.chatwootClient.createConversation(
-        connection.chatwoot,
-        contactIdentifier,
-        contact?.id?.toString?.()
-      )) as any;
-      conversationId =
-        convResponse?.id?.toString?.() ??
-        convResponse?.payload?.id?.toString?.() ??
-        convResponse?.conversation?.id?.toString?.();
-      if (!conversationId) {
-        throw new Error(`Nao foi possivel resolver id da conversa criada no Chatwoot (contactIdentifier=${contactIdentifier})`);
-      }
-
-      try {
-        link = await this.prisma.conversationLink.create({
-          data: {
-            companyId: sysproContact.companyId ?? connection.companyId ?? null,
-            connectionId: connection.connectionId,
+    return this.withConversationLinkLock(lockKey, async () => {
+      let link = await this.prisma.conversationLink.findUnique({
+        where: {
+          connectionKey_whatsappNumber: {
             connectionKey: connection.connectionKey,
             whatsappNumber: phone,
-            chatwootContactId: contactIdentifier,
-            chatwootConversationId: conversationId!,
           },
-        });
-      } catch (error: any) {
-        if (error?.code === 'P2002') {
-          link =
-            await this.prisma.conversationLink.findFirst({
-              where: {
-                connectionKey: connection.connectionKey,
-                whatsappNumber: phone,
-              },
-            }) ??
-            await this.prisma.conversationLink.findFirst({
-              where: { whatsappNumber: phone },
-              orderBy: { createdAt: 'desc' },
-            });
-        } else {
-          throw error;
         }
-      }
+      });
+
+      let contactIdentifier = link?.chatwootContactId;
+      let conversationId = link?.chatwootConversationId;
 
       if (!link) {
-        throw new Error('Falha ao recuperar vinculo de conversa apos concorrencia');
+        let sysproContact = await this.prisma.companyContact.findFirst({
+          where: { whatsapp: phone },
+          include: { company: true },
+        });
+
+        if (!sysproContact) {
+          sysproContact = await this.prisma.companyContact.create({
+            data: {
+              name: String(pushName),
+              whatsapp: String(phone),
+            },
+            include: { company: true },
+          });
+        }
+
+        if (!sysproContact) throw new Error('Falha ao processar o contato no banco de dados');
+
+        const contactName = sysproContact.company
+          ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}`
+          : sysproContact.name;
+
+        const picResult = await this.evolutionClient.fetchProfilePicture(connection.evolution, phone);
+        const contactResponse = (await this.chatwootClient.createOrFindContact(
+          connection.chatwoot,
+          phone,
+          contactName,
+          picResult?.profilePictureUrl
+        )) as any;
+        const contact = contactResponse?.payload?.contact;
+
+        const configuredInboxIdentifier = connection.chatwoot.inboxIdentifier?.toString();
+        const configuredInboxId = connection.chatwoot.inboxId?.toString();
+        const sourceIdFromInbox =
+          contact?.contact_inboxes
+            ?.find((item: any) => {
+              const inboxId = item?.inbox?.id?.toString?.() ?? item?.inbox_id?.toString?.();
+              const inboxIdentifier = item?.inbox?.identifier?.toString?.() ?? item?.inbox_identifier?.toString?.();
+
+              if (configuredInboxIdentifier && inboxIdentifier === configuredInboxIdentifier) return true;
+              if (configuredInboxId && inboxId === configuredInboxId) return true;
+              if (!configuredInboxId && configuredInboxIdentifier && inboxId === configuredInboxIdentifier) return true;
+              return false;
+            })
+            ?.source_id
+            ?.toString?.();
+
+        contactIdentifier =
+          contact?.source_id?.toString?.() ??
+          sourceIdFromInbox ??
+          contact?.contact_inboxes?.[0]?.source_id?.toString?.();
+
+        if (!contactIdentifier) {
+          throw new Error(`Nao foi possivel resolver source_id publico do contato no Chatwoot (contact_id=${contact?.id ?? 'n/a'})`);
+        }
+
+        const convResponse = (await this.chatwootClient.createConversation(
+          connection.chatwoot,
+          contactIdentifier,
+          contact?.id?.toString?.()
+        )) as any;
+        conversationId =
+          convResponse?.id?.toString?.() ??
+          convResponse?.payload?.id?.toString?.() ??
+          convResponse?.conversation?.id?.toString?.();
+        if (!conversationId) {
+          throw new Error(`Nao foi possivel resolver id da conversa criada no Chatwoot (contactIdentifier=${contactIdentifier})`);
+        }
+
+        try {
+          link = await this.prisma.conversationLink.create({
+            data: {
+              companyId: sysproContact.companyId ?? connection.companyId ?? null,
+              connectionId: connection.connectionId,
+              connectionKey: connection.connectionKey,
+              whatsappNumber: phone,
+              chatwootContactId: contactIdentifier,
+              chatwootConversationId: conversationId!,
+            },
+          });
+        } catch (error: any) {
+          if (error?.code === 'P2002') {
+            link =
+              await this.prisma.conversationLink.findFirst({
+                where: {
+                  connectionKey: connection.connectionKey,
+                  whatsappNumber: phone,
+                },
+              }) ??
+              await this.prisma.conversationLink.findFirst({
+                where: { whatsappNumber: phone },
+                orderBy: { createdAt: 'desc' },
+              });
+          } else {
+            throw error;
+          }
+        }
+
+        if (!link) {
+          throw new Error('Falha ao recuperar vinculo de conversa apos concorrencia');
+        }
+
+        contactIdentifier = link.chatwootContactId;
+        conversationId = link.chatwootConversationId;
       }
 
-      contactIdentifier = link.chatwootContactId;
-      conversationId = link.chatwootConversationId;
-    }
+      if (!contactIdentifier || !conversationId) {
+        throw new Error(`Vinculo de conversa invalido para ${phone}`);
+      }
 
-    if (!contactIdentifier || !conversationId) {
-      throw new Error(`Vinculo de conversa invalido para ${phone}`);
-    }
-
-    return { contactIdentifier, conversationId };
+      return { contactIdentifier, conversationId };
+    });
   }
 }

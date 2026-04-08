@@ -77,6 +77,28 @@ Observacao sobre Evolution Go:
   - `integration_webhook_dedup`
   - `company_contact`
 
+## Roadmap do modulo de contatos
+
+Visao prevista para evolucao do modulo:
+
+- os contatos continuarao sendo a entidade primaria de relacionamento com pessoas
+- uma empresa podera prestar suporte para varios contatos e varias empresas clientes
+- filiais/unidades da empresa prestadora poderao operar subconjuntos da carteira de atendimento
+- no futuro, o mesmo ambiente podera liberar o modulo de gestao para clientes finais, mantendo isolamento de dados por carteira/tenant
+
+Direcao arquitetural desejada:
+
+- separar explicitamente empresa prestadora, empresa cliente e unidade operadora
+- formalizar no banco a relacao de atendimento entre empresas
+- permitir que contatos, conversas, tickets e conexoes de integracao carreguem escopo de operacao e visibilidade
+- garantir que usuarios internos vejam apenas a carteira permitida e que clientes finais vejam apenas seus proprios dados
+
+Objetivo futuro:
+
+- operar atendimento multiempresa na mesma infraestrutura
+- suportar prestadora principal + filiais
+- permitir white-label ou portal de atendimento para clientes, sem mistura de dados entre carteiras
+
 ## Roteiro de teste ponta a ponta
 
 1. Preparar ambiente

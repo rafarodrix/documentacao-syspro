@@ -46,14 +46,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
     const [publishToReleases, setPublishToReleases] = useState(Boolean(ticket?.publishToReleases));
     const backUrl = "/portal/tickets";
     const shouldRequireReleaseFields = publishToReleases;
-    const releasePreview = {
-        id: ticket.number,
-        type: releaseType === "BUG" ? "Bug" : releaseType === "MELHORIA" ? "Melhoria" : "Nao definido",
-        title: ticket.title,
-        summary: resolutionSummary.trim(),
-        videoLink: resolutionVideoUrl.trim() || null,
-        tags: releaseModule.trim() ? [releaseModule.trim()] : [],
-    };
 
     const runQuickAction = (action: "assume" | "priority_high" | "macro_followup") => {
         if (!ticket) return;
@@ -144,6 +136,15 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
             </div>
         );
     }
+
+    const releasePreview = {
+        id: ticket.number,
+        type: releaseType === "BUG" ? "Bug" : releaseType === "MELHORIA" ? "Melhoria" : "Nao definido",
+        title: ticket.title,
+        summary: resolutionSummary.trim(),
+        videoLink: resolutionVideoUrl.trim() || null,
+        tags: releaseModule.trim() ? [releaseModule.trim()] : [],
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto p-4 md:p-0">
