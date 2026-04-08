@@ -41,6 +41,18 @@ export type UserAccessMembershipSummary = {
   };
 };
 
+export type UserAccessContactSummary = {
+  companyId: string;
+  contactId: string;
+  isPrimary: boolean;
+  contact: {
+    id: string;
+    name: string;
+    whatsapp: string | null;
+    email: string | null;
+  };
+};
+
 export type UserAccessListItem = {
   id: string;
   name: string | null;
@@ -54,6 +66,7 @@ export type UserAccessListItem = {
   deletedAt?: Date | null;
   createdAt?: Date;
   memberships: UserAccessMembershipSummary[];
+  contactLinks: UserAccessContactSummary[];
   companyName: string;
   companyId: string | null;
 };
@@ -69,6 +82,7 @@ export type SystemUserListItem = {
   cpf: string | null;
   phone: string | null;
   memberships: UserAccessMembershipSummary[];
+  contactLinks: UserAccessContactSummary[];
 };
 
 export type UserAccessValidationErrors = Partial<Record<keyof CreateUserInput | "additionalCompanyIds", string[]>>;

@@ -77,6 +77,19 @@ export class UsersService {
         memberships: {
           include: { company: true },
         },
+        contactLinks: {
+          where: { isPrimary: true },
+          include: {
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                whatsapp: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -116,6 +129,18 @@ export class UsersService {
     }
 
     const desiredCompanyIds = Array.from(new Set([data.companyId, ...(data.additionalCompanyIds || [])].filter(Boolean) as string[]));
+    const normalizedPrimaryContactId = this.normalizeContactId(data.primaryContactId);
+
+    const derivedContact =
+      data.companyId && normalizedPrimaryContactId
+        ? await this.prisma.companyContact.findFirst({
+            where: {
+              id: normalizedPrimaryContactId,
+              companyId: data.companyId,
+            },
+            select: { id: true, name: true },
+          })
+        : null;
 
     if (isClientManager) {
       const managedCompanyIds = await this.getManagedCompanyIds(requester.userId);
@@ -136,7 +161,7 @@ export class UsersService {
         headers: new Headers(),
         body: {
           email: data.email,
-          name: data.name || 'Sem nome',
+          name: derivedContact?.name || data.name || 'Sem nome',
           password: data.password || Math.random().toString(36).slice(-10),
           role: 'user',
         },
@@ -152,6 +177,7 @@ export class UsersService {
       await tx.user.update({
         where: { id: createdUserId },
         data: {
+          name: derivedContact?.name || data.name || null,
           role: data.role || Role.CLIENTE_USER,
           cpf: data.cpf || null,
           jobTitle: data.jobTitle || null,
@@ -173,7 +199,6 @@ export class UsersService {
         });
       }
 
-      const normalizedPrimaryContactId = this.normalizeContactId(data.primaryContactId);
       if (data.companyId) {
         await this.syncPrimaryContactLink(tx, createdUserId, data.companyId, normalizedPrimaryContactId);
       }
@@ -215,12 +240,22 @@ export class UsersService {
     }
 
     const normalizedPrimaryContactId = this.normalizeContactId(data.primaryContactId);
+    const derivedContact =
+      data.companyId && normalizedPrimaryContactId
+        ? await this.prisma.companyContact.findFirst({
+            where: {
+              id: normalizedPrimaryContactId,
+              companyId: data.companyId,
+            },
+            select: { id: true, name: true },
+          })
+        : null;
 
     return this.prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
         where: { id },
         data: {
-          name: data.name,
+          name: this.resolveUserName(data.name, derivedContact?.name),
           email: data.email,
           role: data.role,
           isActive: data.isActive,
@@ -343,7 +378,22 @@ export class UsersService {
         this.prisma.user.findMany({
           where: { deletedAt: null, role: { in: CLIENT_ROLES } },
           orderBy: { name: 'asc' },
-          include: { memberships: { include: { company: true } } },
+          include: {
+            memberships: { include: { company: true } },
+            contactLinks: {
+              where: { isPrimary: true },
+              include: {
+                contact: {
+                  select: {
+                    id: true,
+                    name: true,
+                    whatsapp: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
         }),
       ]);
 
@@ -372,6 +422,19 @@ export class UsersService {
             where: { companyId: { in: companyIds } },
             include: { company: true },
           },
+          contactLinks: {
+            where: { isPrimary: true, companyId: { in: companyIds } },
+            include: {
+              contact: {
+                select: {
+                  id: true,
+                  name: true,
+                  whatsapp: true,
+                  email: true,
+                },
+              },
+            },
+          },
         },
         orderBy: { name: 'asc' },
       }),
@@ -389,7 +452,22 @@ export class UsersService {
     const users = await this.prisma.user.findMany({
       where: { deletedAt: null, role: { in: SYSTEM_ROLES } },
       orderBy: { name: 'asc' },
-      include: { memberships: { include: { company: true } } },
+      include: {
+        memberships: { include: { company: true } },
+        contactLinks: {
+          where: { isPrimary: true },
+          include: {
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                whatsapp: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     return { users, isGlobalView: true };
@@ -458,7 +536,7 @@ export class UsersService {
       userId: user.id,
       companies,
       isAdmin: requester.role !== Role.CLIENTE_ADMIN,
-      initialData: {
+        initialData: {
         name: user.name ?? '',
         email: user.email,
         role: user.role,
@@ -522,6 +600,15 @@ export class UsersService {
     if (value === null || value === undefined) return null;
     const trimmed = String(value).trim();
     return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private resolveUserName(inputName?: string | null, contactName?: string | null): string | undefined {
+    const derived = String(contactName ?? '').trim();
+    if (derived) return derived;
+
+    if (inputName === undefined) return undefined;
+    const normalized = String(inputName ?? '').trim();
+    return normalized || undefined;
   }
 
   private async syncPrimaryContactLink(

@@ -17,15 +17,13 @@ import {
   Shield,
   Building,
   UserX,
-  Mail,
   UserCheck,
   Loader2,
-  Briefcase,
-  Fingerprint,
   X,
   Users,
   UserPlus,
   Pencil,
+  Link2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog";
@@ -36,11 +34,6 @@ interface UserTabProps {
   data: UserWithRelations[];
   isAdmin: boolean;
   canManage: boolean;
-}
-
-function formatCPF(cpf: string | null): string {
-  if (!cpf) return "-";
-  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 }
 
 function getInitials(name: string | null): string {
@@ -161,15 +154,6 @@ function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: Us
             <span className="text-sm">Editar perfil</span>
           </Link>
         </DropdownMenuItem>
-
-        {isAdmin && (
-          <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md">
-            <Mail className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-sm">Reenviar convite</span>
-          </DropdownMenuItem>
-        )}
-
-        <DropdownMenuSeparator />
 
         <DropdownMenuItem
           className={cn(
@@ -345,7 +329,9 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                     <RoleBadge role={user.role} />
                     <StatusBadge isActive={user.isActive} />
                   </div>
-                  <p className="text-xs text-muted-foreground">CPF: {formatCPF(user.cpf)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {user.contactLinks?.[0]?.contact?.name || "Sem contato vinculado"}
+                  </p>
                 </div>
               ))
             )}
@@ -356,8 +342,8 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
             <TableHeader className="bg-muted/20">
               <TableRow className="hover:bg-transparent border-b border-border/60">
                 <TableHead className="py-3.5 px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificacao</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cargo / CPF</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acesso / Empresas</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contato vinculado</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acesso / Empresa</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
                 <TableHead className="text-right px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acoes</TableHead>
               </TableRow>
@@ -393,17 +379,20 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                     </TableCell>
 
                     <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Briefcase className="w-3 h-3 shrink-0 opacity-60" />
-                          <span className="truncate max-w-35">
-                            {user.jobTitle ?? <span className="italic opacity-50">Nao informado</span>}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 font-mono">
-                          <Fingerprint className="w-3 h-3 shrink-0 opacity-50" />
-                          <span className="rounded-md border border-border/40 bg-muted/30 px-1.5 py-0.5">{formatCPF(user.cpf)}</span>
-                        </div>
+                      <div className="flex flex-col gap-1.5">
+                        {user.contactLinks?.[0]?.contact ? (
+                          <>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Link2 className="w-3 h-3 shrink-0 opacity-60" />
+                              <span className="truncate max-w-40">{user.contactLinks[0].contact.name}</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground/70">
+                              {user.contactLinks[0].contact.whatsapp || user.contactLinks[0].contact.email || "Sem telefone/email"}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/50 italic">Sem contato vinculado</span>
+                        )}
                       </div>
                     </TableCell>
 

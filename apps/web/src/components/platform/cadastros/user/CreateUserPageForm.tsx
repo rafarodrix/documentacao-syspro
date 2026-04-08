@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -16,13 +15,10 @@ import { toast } from "sonner";
 import {
   AlertCircle,
   ArrowLeft,
-  CheckCircle2,
-  ChevronRight,
+  Link2,
   Loader2,
   Save,
-  Shield,
   Sparkles,
-  UserRound,
 } from "lucide-react";
 import { CompanyMultiPicker, type CompanyOption } from "./CompanyMultiPicker";
 
@@ -33,16 +29,6 @@ const ROLE = {
   CLIENTE_ADMIN: "CLIENTE_ADMIN",
   CLIENTE_USER: "CLIENTE_USER",
 } as const;
-
-type SectionId = "acesso" | "identidade";
-
-type SectionConfig = {
-  id: SectionId;
-  title: string;
-  description: string;
-  icon: ElementType;
-  fields: string[];
-};
 
 type ContactOption = {
   id: string;
@@ -61,85 +47,7 @@ export interface CreateUserPageFormProps {
   initialData?: Partial<CreateUserInput> & { additionalCompanyIds?: string[] };
 }
 
-function hasPath(obj: unknown, path: string): boolean {
-  if (!obj || typeof obj !== "object") return false;
-  const parts = path.split(".");
-  let current: unknown = obj;
-  for (const part of parts) {
-    if (!current || typeof current !== "object" || !(part in (current as Record<string, unknown>))) return false;
-    current = (current as Record<string, unknown>)[part];
-  }
-  return !!current;
-}
-
 const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
-
-function SectionNav({
-  sections,
-  current,
-  stateMap,
-  onSelect,
-}: {
-  sections: SectionConfig[];
-  current: SectionId;
-  stateMap: Record<SectionId, "error" | "ready" | "idle">;
-  onSelect: (id: SectionId) => void;
-}) {
-  return (
-    <aside className="w-full md:w-56 border-b md:border-b-0 md:border-r border-border/50 bg-muted/20 p-3 flex md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-x-visible backdrop-blur-sm hide-scrollbar">
-      {sections.map((section) => {
-        const Icon = section.icon;
-        const isCurrent = section.id === current;
-        const state = stateMap[section.id];
-        const hasError = state === "error";
-        const isReady = state === "ready";
-
-        return (
-          <button
-            key={section.id}
-            type="button"
-            onClick={() => onSelect(section.id)}
-            className={cn(
-              "group shrink-0 w-48 md:w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-all border",
-              isCurrent
-                ? "bg-primary/10 border-primary/20 shadow-sm"
-                : "hover:bg-muted/70 border-transparent hover:border-border/50",
-            )}
-          >
-            <div
-              className={cn(
-                "mt-0.5 p-1.5 rounded-md",
-                isCurrent ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
-                hasError && "bg-destructive/10 text-destructive",
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p
-                  className={cn(
-                    "text-sm font-medium truncate",
-                    isCurrent ? "text-primary" : "text-foreground",
-                    hasError && "text-destructive",
-                  )}
-                >
-                  {section.title}
-                </p>
-                {isReady && !hasError && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
-                {hasError && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
-              </div>
-              <p className="text-[11px] text-muted-foreground/70 truncate">{section.description}</p>
-            </div>
-
-            {isCurrent && <ChevronRight className="h-3.5 w-3.5 text-primary/70 mt-1 shrink-0" />}
-          </button>
-        );
-      })}
-    </aside>
-  );
-}
 
 export function CreateUserPageForm({
   companies,
@@ -152,8 +60,6 @@ export function CreateUserPageForm({
 }: CreateUserPageFormProps) {
   const router = useRouter();
   const defaultRole = context === "SYSTEM" ? ROLE.SUPORTE : ROLE.CLIENTE_USER;
-
-  const [currentSection, setCurrentSection] = useState<SectionId>("acesso");
 
   const [companyIds, setCompanyIds] = useState<string[]>(() => {
     const primary = initialData?.companyId;
@@ -168,33 +74,6 @@ export function CreateUserPageForm({
   const [loadingContacts, setLoadingContacts] = useState(false);
   const primaryCompanyIdRef = useRef<string | undefined>(companyIds[0]);
 
-  const sections: SectionConfig[] = useMemo(
-    () => [
-      {
-        id: "acesso",
-        title: "Acesso",
-        description: context === "SYSTEM" ? "Perfil interno" : "Empresa e permissoes",
-        icon: Shield,
-        fields: context === "CLIENT" ? ["companyId", "role"] : ["role"],
-      },
-      {
-        id: "identidade",
-        title: "Identidade",
-        description: "Dados principais de login",
-        icon: UserRound,
-        fields:
-          context === "CLIENT"
-            ? mode === "create"
-              ? ["name", "email", "password", "primaryContactId"]
-              : ["name", "email", "primaryContactId"]
-            : mode === "create"
-              ? ["name", "email", "password"]
-              : ["name", "email"],
-      },
-    ],
-    [context, mode],
-  );
-
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
@@ -208,7 +87,11 @@ export function CreateUserPageForm({
     mode: "onTouched",
   });
 
-  const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
+  const { errors, isSubmitting, isDirty } = form.formState;
+  const selectedPrimaryContactId = useWatch({
+    control: form.control,
+    name: "primaryContactId",
+  });
 
   useEffect(() => {
     if (context !== "CLIENT") return;
@@ -265,18 +148,16 @@ export function CreateUserPageForm({
     return () => clearTimeout(timer);
   }, [companyIds, contactSearch, context]);
 
-  const sectionStateMap = useMemo(() => {
-    return sections.reduce<Record<SectionId, "error" | "ready" | "idle">>((acc, section) => {
-      const hasError = section.fields.some((field) => hasPath(errors, field));
-      if (hasError) {
-        acc[section.id] = "error";
-        return acc;
-      }
-      const touched = section.fields.some((field) => hasPath(dirtyFields, field));
-      acc[section.id] = touched ? "ready" : "idle";
-      return acc;
-    }, {} as Record<SectionId, "error" | "ready" | "idle">);
-  }, [dirtyFields, errors, sections]);
+  const selectedPrimaryContact = useMemo(() => {
+    if (!selectedPrimaryContactId) return null;
+    return contactOptions.find((contact) => contact.id === selectedPrimaryContactId) ?? null;
+  }, [contactOptions, selectedPrimaryContactId]);
+
+  useEffect(() => {
+    if (context !== "CLIENT") return;
+    if (!selectedPrimaryContact?.name) return;
+    form.setValue("name", selectedPrimaryContact.name, { shouldDirty: true, shouldValidate: true });
+  }, [context, form, selectedPrimaryContact]);
 
   const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
     const payload: CreateUserInput & { additionalCompanyIds?: string[] } = { ...data };
@@ -317,9 +198,6 @@ export function CreateUserPageForm({
     }
   };
 
-  const currentSectionConfig = sections.find((s) => s.id === currentSection) ?? sections[0];
-  const currentIndex = Math.max(sections.findIndex((s) => s.id === currentSection), 0);
-  const progressPct = Math.round(((currentIndex + 1) / sections.length) * 100);
   const hasErrors = Object.keys(errors).length > 0;
 
   const title =
@@ -339,9 +217,7 @@ export function CreateUserPageForm({
             <Sparkles className="h-5 w-5 text-primary/70" />
             {title}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {currentSectionConfig.title} - {currentSectionConfig.description}
-          </p>
+          <p className="text-sm text-muted-foreground">Acesso ao portal e vinculo com contato.</p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
           <ArrowLeft className="h-4 w-4" />
@@ -349,222 +225,209 @@ export function CreateUserPageForm({
         </Button>
       </div>
 
-      <div className="border-b border-border/50 px-6 py-3 bg-muted/20">
-        <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-          <span>Progresso do cadastro</span>
-          <span className="font-medium text-foreground">
-            {currentIndex + 1}/{sections.length}
-          </span>
-        </div>
-        <div className="h-1.5 w-full rounded-full bg-muted">
-          <div className="h-1.5 rounded-full bg-primary transition-all duration-300" style={{ width: `${progressPct}%` }} />
-        </div>
-      </div>
-
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col md:flex-row min-h-[calc(100vh-260px)]">
-          <SectionNav sections={sections} current={currentSection} stateMap={sectionStateMap} onSelect={setCurrentSection} />
-
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 overflow-y-auto p-6">
-              <div key={currentSection} className="animate-in fade-in slide-in-from-right-2 duration-200">
-                {currentSection === "acesso" && (
-                  <Card className="border-border/60 bg-card/95">
-                    <CardHeader>
-                      <CardTitle className="text-base">Escopo e Permissoes</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-5">
-                      {context === "CLIENT" && (
-                        <FormField
-                          control={form.control}
-                          name="companyId"
-                          render={({ fieldState }) => (
-                            <FormItem>
-                              <FormLabel>Empresas vinculadas</FormLabel>
-                              <CompanyMultiPicker
-                                companies={companies}
-                                value={companyIds}
-                                onChange={setCompanyIds}
-                                error={fieldState.error?.message}
-                              />
-                              <p className="text-[11px] text-muted-foreground">
-                                A primeira empresa selecionada sera a principal. As demais sao vinculos adicionais.
-                              </p>
-                            </FormItem>
-                          )}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-[calc(100vh-220px)]">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <Card className="border-border/60 bg-card/95">
+              <CardHeader>
+                <CardTitle className="text-base">Dados de acesso</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {context === "CLIENT" && (
+                  <FormField
+                    control={form.control}
+                    name="companyId"
+                    render={({ fieldState }) => (
+                      <FormItem>
+                        <FormLabel>Empresas vinculadas</FormLabel>
+                        <CompanyMultiPicker
+                          companies={companies}
+                          value={companyIds}
+                          onChange={setCompanyIds}
+                          error={fieldState.error?.message}
                         />
-                      )}
+                        <p className="text-[11px] text-muted-foreground">
+                          A primeira empresa selecionada define o escopo principal do usuario. O contato vinculado deve pertencer a ela.
+                        </p>
+                      </FormItem>
+                    )}
+                  />
+                )}
 
-                      <FormField
-                        control={form.control}
-                        name="role"
-                        render={({ field }) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nivel de acesso</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {context === "CLIENT" && (
+                              <>
+                                <SelectItem value={ROLE.CLIENTE_USER}>Usuario</SelectItem>
+                                <SelectItem value={ROLE.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
+                              </>
+                            )}
+                            {context === "SYSTEM" && (
+                              <>
+                                <SelectItem value={ROLE.SUPORTE}>Suporte</SelectItem>
+                                <SelectItem value={ROLE.DEVELOPER}>Desenvolvedor</SelectItem>
+                                {isAdmin && <SelectItem value={ROLE.ADMIN}>Admin</SelectItem>}
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>E-mail de acesso</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="usuario@empresa.com" {...field} value={toInputValue(field.value)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {mode === "create" && (
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha de acesso</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Minimo 6 caracteres" {...field} value={toInputValue(field.value)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {context === "CLIENT" && (
+                  <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+                    <div className="flex items-center gap-2">
+                      <Link2 className="h-4 w-4 text-primary/70" />
+                      <div>
+                        <p className="text-sm font-medium">Contato vinculado</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          O nome do usuario cliente passa a ser carregado do contato selecionado.
+                        </p>
+                      </div>
+                    </div>
+
+                    <Input
+                      placeholder="Buscar contato por nome, email ou whatsapp..."
+                      value={contactSearch}
+                      onChange={(event) => setContactSearch(event.target.value)}
+                      disabled={!companyIds[0]}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="primaryContactId"
+                      render={({ field }) => {
+                        const selectValue = toInputValue(field.value) || "__none__";
+                        return (
                           <FormItem>
-                            <FormLabel>Nivel de acesso</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormLabel>Contato</FormLabel>
+                            <Select
+                              onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
+                              value={selectValue}
+                              disabled={!companyIds[0] || loadingContacts}
+                            >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue />
+                                  <SelectValue
+                                    placeholder={
+                                      !companyIds[0]
+                                        ? "Selecione a empresa principal primeiro"
+                                        : loadingContacts
+                                          ? "Carregando contatos..."
+                                          : "Selecione um contato"
+                                    }
+                                  />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {context === "CLIENT" && (
-                                  <>
-                                    <SelectItem value={ROLE.CLIENTE_USER}>Usuario</SelectItem>
-                                    <SelectItem value={ROLE.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
-                                  </>
-                                )}
-                                {context === "SYSTEM" && (
-                                  <>
-                                    <SelectItem value={ROLE.SUPORTE}>Suporte</SelectItem>
-                                    <SelectItem value={ROLE.DEVELOPER}>Desenvolvedor</SelectItem>
-                                    {isAdmin && <SelectItem value={ROLE.ADMIN}>Admin</SelectItem>}
-                                  </>
-                                )}
+                                <SelectItem value="__none__">Sem contato vinculado</SelectItem>
+                                {contactOptions.map((contact) => (
+                                  <SelectItem key={contact.id} value={contact.id}>
+                                    {contact.name}
+                                    {contact.whatsapp ? ` - ${contact.whatsapp}` : contact.email ? ` - ${contact.email}` : ""}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                             <FormMessage />
                           </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
+                        );
+                      }}
+                    />
+                  </div>
                 )}
 
-                {currentSection === "identidade" && (
-                  <Card className="border-border/60 bg-card/95">
-                    <CardHeader>
-                      <CardTitle className="text-base">Dados do Usuario</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Nome</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Nome completo" {...field} value={toInputValue(field.value)} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>E-mail</FormLabel>
-                              <FormControl>
-                                <Input type="email" placeholder="usuario@empresa.com" {...field} value={toInputValue(field.value)} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      {mode === "create" && (
-                        <FormField
-                          control={form.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Senha de acesso</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="Minimo 6 caracteres" {...field} value={toInputValue(field.value)} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
-
-                      {context === "CLIENT" && (
-                        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
-                          <div>
-                            <p className="text-sm font-medium">Contato principal</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              Vincula este usuario a um contato da empresa principal selecionada.
-                            </p>
-                          </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome exibido</FormLabel>
+                        <FormControl>
                           <Input
-                            placeholder="Buscar contato por nome, email ou whatsapp..."
-                            value={contactSearch}
-                            onChange={(event) => setContactSearch(event.target.value)}
-                            disabled={!companyIds[0]}
+                            placeholder="Nome completo"
+                            {...field}
+                            value={toInputValue(field.value)}
+                            disabled={context === "CLIENT" && Boolean(selectedPrimaryContact)}
                           />
+                        </FormControl>
+                        {context === "CLIENT" && selectedPrimaryContact ? (
+                          <p className="text-[11px] text-muted-foreground">
+                            Nome carregado automaticamente do contato vinculado.
+                          </p>
+                        ) : null}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-                          <FormField
-                            control={form.control}
-                            name="primaryContactId"
-                            render={({ field }) => {
-                              const selectValue = toInputValue(field.value) || "__none__";
-                              return (
-                                <FormItem>
-                                  <FormLabel>Contato vinculado</FormLabel>
-                                  <Select
-                                    onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
-                                    value={selectValue}
-                                    disabled={!companyIds[0] || loadingContacts}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue
-                                          placeholder={
-                                            !companyIds[0]
-                                              ? "Selecione a empresa principal primeiro"
-                                              : loadingContacts
-                                                ? "Carregando contatos..."
-                                                : "Selecione um contato"
-                                          }
-                                        />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="__none__">Sem contato vinculado</SelectItem>
-                                      {contactOptions.map((contact) => (
-                                        <SelectItem key={contact.id} value={contact.id}>
-                                          {contact.name}
-                                          {contact.whatsapp ? ` - ${contact.whatsapp}` : contact.email ? ` - ${contact.email}` : ""}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              );
-                            }}
-                          />
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+          <div className="border-t border-border/50 px-6 py-4 flex items-center justify-between">
+            <div>
+              {hasErrors && (
+                <Badge variant="destructive" className="text-[11px] gap-1 font-medium">
+                  <AlertCircle className="h-3 w-3" />
+                  Campos invalidos
+                </Badge>
+              )}
             </div>
-
-            <div className="border-t border-border/50 px-6 py-4 flex items-center justify-between">
-              <div>
-                {hasErrors && (
-                  <Badge variant="destructive" className="text-[11px] gap-1 font-medium">
-                    <AlertCircle className="h-3 w-3" />
-                    Campos invalidos
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" onClick={() => router.push(backHref)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" className="gap-2" disabled={isSubmitting || !isDirty}>
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {mode === "edit" ? "Salvar Alteracoes" : "Salvar Cadastro"}
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="ghost" onClick={() => router.push(backHref)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="gap-2" disabled={isSubmitting || !isDirty}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {mode === "edit" ? "Salvar Alteracoes" : "Salvar Cadastro"}
+              </Button>
             </div>
           </div>
         </form>

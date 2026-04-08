@@ -25,6 +25,21 @@ export const userListSelect = {
       },
     },
   },
+  contactLinks: {
+    select: {
+      companyId: true,
+      contactId: true,
+      isPrimary: true,
+      contact: {
+        select: {
+          id: true,
+          name: true,
+          whatsapp: true,
+          email: true,
+        },
+      },
+    },
+  },
 } as const;
 
 // O tipo resultante do select acima, que é a base para os mappers usados nas queries.
@@ -64,6 +79,17 @@ export type UserListSelectResult = {
       id: string;
       razaoSocial: string;
       nomeFantasia: string | null;
+    };
+  }[];
+  contactLinks: {
+    companyId: string;
+    contactId: string;
+    isPrimary: boolean;
+    contact: {
+      id: string;
+      name: string;
+      whatsapp: string | null;
+      email: string | null;
     };
   }[];
 };

@@ -90,6 +90,16 @@ export function ContactsHubPage() {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [createForm, setCreateForm] = useState<ContactForm>({
+    name: "",
+    email: "",
+    phone: "",
+    whatsapp: "",
+    notes: "",
+    companyId: null,
+  })
 
   const selectedCompany = useMemo(() => {
     if (!selectedContact?.companyId) return null
@@ -256,6 +266,70 @@ export function ContactsHubPage() {
     }
   }
 
+  const handleCreate = async () => {
+    if (!createForm.name.trim()) {
+      setErrorMessage("Informe o nome do contato.")
+      return
+    }
+
+    setCreating(true)
+    setErrorMessage(null)
+    setSuccessMessage(null)
+    try {
+      const response = await fetch(`${API_BASE}/api/contacts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createForm),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "")
+        throw new Error(errorText || `Falha ao criar contato (${response.status})`)
+      }
+
+      const created = (await response.json()) as ContactItem
+      setCreateForm({
+        name: "",
+        email: "",
+        phone: "",
+        whatsapp: "",
+        notes: "",
+        companyId: null,
+      })
+      setSuccessMessage("Contato criado com sucesso.")
+      await loadContacts()
+      setSelectedId(created.id)
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Falha ao criar contato")
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleEvolutionSync = async () => {
+    setSyncing(true)
+    setErrorMessage(null)
+    setSuccessMessage(null)
+    try {
+      const response = await fetch(`${API_BASE}/api/contacts/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || payload?.success === false) {
+        throw new Error(payload?.message || `Falha ao sincronizar contatos (${response.status})`)
+      }
+
+      setSuccessMessage(payload?.message || "Sincronizacao concluida.")
+      await loadContacts()
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Falha ao sincronizar contatos")
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -268,11 +342,56 @@ export function ContactsHubPage() {
             {loadingList ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Atualizar
           </Button>
+          <Button variant="outline" size="sm" onClick={handleEvolutionSync} disabled={syncing}>
+            {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Sincronizar Evolution
+          </Button>
           <Button asChild variant="secondary" size="sm">
             <Link href="/portal/contatos/pendentes">Pendentes</Link>
           </Button>
         </div>
       </div>
+
+      <section className="rounded-lg border bg-card p-4 md:p-5 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Novo contato</h2>
+          <p className="text-sm text-muted-foreground">Cadastre um contato manualmente no portal.</p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Input
+            value={createForm.name}
+            onChange={(event) => setCreateForm((prev) => ({ ...prev, name: event.target.value }))}
+            placeholder="Nome"
+          />
+          <Input
+            value={createForm.email}
+            onChange={(event) => setCreateForm((prev) => ({ ...prev, email: event.target.value }))}
+            placeholder="Email"
+          />
+          <Input
+            value={createForm.phone}
+            onChange={(event) => setCreateForm((prev) => ({ ...prev, phone: event.target.value }))}
+            placeholder="Telefone"
+          />
+          <Input
+            value={createForm.whatsapp}
+            onChange={(event) => setCreateForm((prev) => ({ ...prev, whatsapp: event.target.value }))}
+            placeholder="WhatsApp"
+          />
+        </div>
+        <Textarea
+          rows={3}
+          value={createForm.notes}
+          onChange={(event) => setCreateForm((prev) => ({ ...prev, notes: event.target.value }))}
+          placeholder="Observacoes"
+        />
+        <div className="flex justify-end">
+          <Button onClick={handleCreate} disabled={creating || !createForm.name.trim()}>
+            {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Criar contato
+          </Button>
+        </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         <section className="rounded-lg border bg-card p-3">

@@ -347,6 +347,8 @@ export class ProcessIncomingMessageUseCase {
             data: {
               name: String(pushName),
               whatsapp: String(phone),
+              source: 'WHATSAPP',
+              status: 'PENDING_LINK',
             },
             include: { company: true },
           });

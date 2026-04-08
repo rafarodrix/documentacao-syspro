@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { CompanyContactSource, CompanyContactStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
@@ -92,6 +93,67 @@ export class ContactsService {
     return contact;
   }
 
+  async createContact(input: {
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    notes?: string | null;
+    companyId?: string | null;
+  }) {
+    const name = String(input.name ?? '').trim();
+    if (!name) {
+      throw new BadRequestException('Nome do contato obrigatorio');
+    }
+
+    const whatsapp = this.normalizePhone(input.whatsapp);
+    const phone = this.normalizePhone(input.phone);
+    const companyId = input.companyId?.trim() || null;
+    const existing = whatsapp
+      ? await this.prisma.companyContact.findFirst({
+          where: { whatsapp },
+          include: { company: true },
+        })
+      : null;
+
+    if (existing) {
+      const updated = await this.prisma.companyContact.update({
+        where: { id: existing.id },
+        data: {
+          name,
+          email: input.email?.trim() || null,
+          phone,
+          whatsapp,
+          notes: input.notes?.trim() || null,
+          companyId,
+          source: existing.source,
+          status: companyId ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
+        },
+        include: { company: true },
+      });
+
+      await this.syncChatwootContactName(updated);
+      return updated;
+    }
+
+    const created = await this.prisma.companyContact.create({
+      data: {
+        name,
+        email: input.email?.trim() || null,
+        phone,
+        whatsapp,
+        notes: input.notes?.trim() || null,
+        companyId,
+        source: CompanyContactSource.MANUAL,
+        status: companyId ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
+      },
+      include: { company: true },
+    });
+
+    await this.syncChatwootContactName(created);
+    return created;
+  }
+
   async updateContact(
     contactId: string,
     input: {
@@ -112,10 +174,13 @@ export class ContactsService {
 
     if (input.name !== undefined) data.name = String(input.name).trim() || existing.name;
     if (input.email !== undefined) data.email = input.email?.trim() || null;
-    if (input.phone !== undefined) data.phone = input.phone?.trim() || null;
-    if (input.whatsapp !== undefined) data.whatsapp = input.whatsapp?.trim() || null;
     if (input.notes !== undefined) data.notes = input.notes?.trim() || null;
     if (input.companyId !== undefined) data.companyId = input.companyId?.trim() || null;
+    if (input.phone !== undefined) data.phone = this.normalizePhone(input.phone);
+    if (input.whatsapp !== undefined) data.whatsapp = this.normalizePhone(input.whatsapp);
+    if (input.companyId !== undefined) {
+      data.status = input.companyId?.trim() ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK;
+    }
 
     const updatedContact = await this.prisma.companyContact.update({
       where: { id: contactId },
@@ -134,7 +199,7 @@ export class ContactsService {
 
     const updatedContact = await this.prisma.companyContact.update({
       where: { id: contactId },
-      data: { companyId },
+      data: { companyId, status: CompanyContactStatus.LINKED },
       include: { company: true },
     });
 
@@ -150,15 +215,75 @@ export class ContactsService {
   }
 
   async syncFromIntegration(instanceName?: string) {
-    this.logger.warn(
-      `syncFromIntegration chamado${instanceName ? ` para ${instanceName}` : ''}, mas a sincronizacao por endpoint legado da Evolution foi removida.`
+    const context = await this.resolveEvolutionContext(instanceName);
+    if (!context) {
+      return {
+        success: false,
+        syncedCount: 0,
+        mode: 'unavailable',
+        message: 'Nenhuma conexao ativa da Evolution foi encontrada para sincronizar contatos.',
+      };
+    }
+
+    const contacts = await this.evolutionClient.fetchContacts(context.evolution);
+    let syncedCount = 0;
+    let createdCount = 0;
+    let updatedCount = 0;
+
+    for (const contact of contacts) {
+      if (!contact.whatsapp) continue;
+
+      const existing = await this.prisma.companyContact.findFirst({
+        where: { whatsapp: contact.whatsapp },
+      });
+
+      if (existing) {
+        const nextName = contact.name || existing.name;
+        const shouldUpdateName = this.shouldSyncEvolutionName(existing);
+        const shouldUpdate =
+          (shouldUpdateName && existing.name !== nextName) ||
+          (existing.status === CompanyContactStatus.ARCHIVED);
+
+        if (shouldUpdate) {
+          await this.prisma.companyContact.update({
+            where: { id: existing.id },
+            data: {
+              name: shouldUpdateName ? nextName : existing.name,
+              source: existing.source === CompanyContactSource.MANUAL ? existing.source : CompanyContactSource.IMPORT,
+              status: existing.companyId ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
+              whatsapp: contact.whatsapp,
+            },
+          });
+          updatedCount += 1;
+        }
+
+        syncedCount += 1;
+        continue;
+      }
+
+      await this.prisma.companyContact.create({
+        data: {
+          name: contact.name,
+          whatsapp: contact.whatsapp,
+          source: CompanyContactSource.IMPORT,
+          status: CompanyContactStatus.PENDING_LINK,
+        },
+      });
+      createdCount += 1;
+      syncedCount += 1;
+    }
+
+    this.logger.log(
+      `Sincronizacao Evolution concluida para ${context.evolution.instance}: ${syncedCount} contatos processados (${createdCount} novos, ${updatedCount} atualizados).`
     );
 
     return {
       success: true,
-      syncedCount: 0,
-      mode: 'webhook_only',
-      message: 'Sincronizacao incremental via endpoint legado removida. Os contatos agora entram somente pelo fluxo de webhook.',
+      syncedCount,
+      createdCount,
+      updatedCount,
+      mode: 'evolution_pull',
+      message: `Sincronizacao concluida. ${createdCount} contatos novos e ${updatedCount} atualizados.`,
     };
   }
 
@@ -194,5 +319,53 @@ export class ContactsService {
     } catch (error: any) {
       this.logger.error(`Erro ao atualizar nome do contato no Chatwoot: ${error.message}`);
     }
+  }
+
+  private async resolveEvolutionContext(instanceName?: string) {
+    if (!instanceName?.trim()) {
+      return this.integrationContext.getDefaultContext();
+    }
+
+    const connection = await (this.prisma as any).integrationConnection.findFirst({
+      where: {
+        status: 'ACTIVE',
+        evolutionInstance: instanceName.trim(),
+      },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+
+    if (!connection) return null;
+    return this.integrationContext.resolveByConnectionKey(connection.id);
+  }
+
+  private normalizePhone(value?: string | null): string | null {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    return digits || null;
+  }
+
+  private shouldSyncEvolutionName(existing: {
+    source: CompanyContactSource;
+    companyId?: string | null;
+    notes?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  }): boolean {
+    if (existing.source === CompanyContactSource.MANUAL) {
+      return false;
+    }
+
+    if (existing.source === CompanyContactSource.IMPORT) {
+      return true;
+    }
+
+    // Contatos vindos por WhatsApp so continuam sincronizaveis enquanto nao receberam enriquecimento manual local.
+    const hasLocalEnrichment = Boolean(
+      existing.companyId ||
+      existing.notes?.trim() ||
+      existing.email?.trim() ||
+      existing.phone?.trim()
+    );
+
+    return !hasLocalEnrichment;
   }
 }

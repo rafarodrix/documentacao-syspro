@@ -7,6 +7,13 @@ export type EvolutionConnectionConfig = {
   instance: string;
 };
 
+export type EvolutionContact = {
+  remoteId?: string;
+  name: string;
+  whatsapp: string;
+  profilePictureUrl?: string | null;
+};
+
 export function readEvolutionConfigFromRuntime(): EvolutionConnectionConfig {
   const config = readEvolutionRuntimeConfig();
   return {
@@ -18,6 +25,54 @@ export function readEvolutionConfigFromRuntime(): EvolutionConnectionConfig {
 
 @Injectable()
 export class EvolutionClient {
+  async fetchContacts(config: EvolutionConnectionConfig): Promise<EvolutionContact[]> {
+    if (!config.apiUrl || !config.apiKey) {
+      console.warn('[EvolutionClient] Credenciais ausentes. Busca de contatos ignorada.');
+      return [];
+    }
+
+    const instance = this.resolveInstance(config.instance);
+    const baseUrl = config.apiUrl.replace(/\/+$/, '');
+
+    const primaryResponse = await fetch(`${baseUrl}/chat/findContacts/${encodeURIComponent(instance)}`, {
+      method: 'POST',
+      headers: {
+        apikey: config.apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        where: {},
+        take: 1000,
+        skip: 0,
+        orderBy: {},
+      }),
+    });
+
+    if (primaryResponse.ok) {
+      const payload = await primaryResponse.json().catch(() => []);
+      return this.normalizeContactList(payload);
+    }
+
+    const fallbackResponse = await fetch(`${baseUrl}/user/contacts`, {
+      method: 'GET',
+      headers: {
+        apikey: config.apiKey,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (fallbackResponse.ok) {
+      const payload = await fallbackResponse.json().catch(() => ({}));
+      return this.normalizeContactList(payload?.data ?? payload?.contacts ?? []);
+    }
+
+    const primaryError = await primaryResponse.text().catch(() => 'unknown_error');
+    const fallbackError = await fallbackResponse.text().catch(() => 'unknown_error');
+    throw new Error(
+      `Evolution fetchContacts failed: primary=${primaryResponse.status} ${primaryError}; fallback=${fallbackResponse.status} ${fallbackError}`
+    );
+  }
+
   async sendTextMessage(
     config: EvolutionConnectionConfig,
     number: string,
@@ -153,5 +208,52 @@ export class EvolutionClient {
 
     const found = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
     return typeof found === 'string' ? found : undefined;
+  }
+
+  private normalizeContactList(payload: any): EvolutionContact[] {
+    if (!Array.isArray(payload)) return [];
+
+    return payload
+      .map((item: any) => {
+        const rawNumber =
+          item?.number ??
+          item?.Jid ??
+          item?.jid ??
+          item?.Phone ??
+          item?.phone;
+        const whatsapp = this.extractWhatsAppNumber(rawNumber);
+        if (!whatsapp) return null;
+
+        const name =
+          String(
+            item?.pushName ??
+            item?.PushName ??
+            item?.FullName ??
+            item?.fullName ??
+            item?.FirstName ??
+            item?.firstName ??
+            item?.BusinessName ??
+            item?.businessName ??
+            whatsapp
+          ).trim() || whatsapp;
+
+        return {
+          remoteId: String(item?.id ?? item?.ID ?? item?.Jid ?? item?.jid ?? '').trim() || undefined,
+          name,
+          whatsapp,
+          profilePictureUrl:
+            item?.profilePictureUrl ??
+            item?.ProfilePictureUrl ??
+            null,
+        } satisfies EvolutionContact;
+      })
+      .filter((item: EvolutionContact | null): item is EvolutionContact => Boolean(item));
+  }
+
+  private extractWhatsAppNumber(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    const jidCandidate = raw.includes('@') ? raw.split('@')[0] : raw;
+    return jidCandidate.replace(/\D/g, '');
   }
 }

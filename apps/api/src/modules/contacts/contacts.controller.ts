@@ -5,6 +5,20 @@ import { ContactsService } from './contacts.service';
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
+  @Post()
+  create(
+    @Body() body: {
+      name: string;
+      email?: string | null;
+      phone?: string | null;
+      whatsapp?: string | null;
+      notes?: string | null;
+      companyId?: string | null;
+    },
+  ) {
+    return this.contactsService.createContact(body);
+  }
+
   @Get()
   list(
     @Query('q') query?: string,
