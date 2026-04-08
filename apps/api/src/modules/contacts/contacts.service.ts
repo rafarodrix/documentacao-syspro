@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
+import { IntegrationContextService } from '../settings/integration-context.service';
 
 type ContactQueryInput = {
   q?: string;
@@ -18,6 +19,7 @@ export class ContactsService {
     private readonly prisma: PrismaService,
     private readonly evolutionClient: EvolutionClient,
     private readonly chatwootClient: ChatwootClient,
+    private readonly integrationContext: IntegrationContextService,
   ) {}
 
   async getContacts(input: ContactQueryInput) {
@@ -163,21 +165,31 @@ export class ContactsService {
   private async syncChatwootContactName(updatedContact: {
     name: string;
     whatsapp: string | null;
+    companyId?: string | null;
     company?: { nomeFantasia?: string | null; razaoSocial?: string | null } | null;
   }) {
     try {
       if (!updatedContact.whatsapp) return;
 
-      const link = await this.prisma.conversationLink.findUnique({
-        where: { whatsappNumber: updatedContact.whatsapp },
+      const links = await this.prisma.conversationLink.findMany({
+        where: {
+          whatsappNumber: updatedContact.whatsapp,
+          ...(updatedContact.companyId ? { companyId: updatedContact.companyId } : {}),
+        },
       });
 
-      if (!link?.chatwootContactId) return;
+      if (!links.length) return;
 
       const companyName = updatedContact.company?.nomeFantasia || updatedContact.company?.razaoSocial || '';
       const fullName = companyName ? `${updatedContact.name} - ${companyName}` : updatedContact.name;
 
-      await this.chatwootClient.updateContact(link.chatwootContactId, { name: fullName });
+      for (const link of links) {
+        if (!link.chatwootContactId) continue;
+        const context = await this.integrationContext.resolveByConnectionKey(link.connectionKey);
+        if (!context) continue;
+        await this.chatwootClient.updateContact(context.chatwoot, link.chatwootContactId, { name: fullName });
+      }
+
       this.logger.log(`Nome atualizado no Chatwoot para o contato ${updatedContact.whatsapp}: ${fullName}`);
     } catch (error: any) {
       this.logger.error(`Erro ao atualizar nome do contato no Chatwoot: ${error.message}`);

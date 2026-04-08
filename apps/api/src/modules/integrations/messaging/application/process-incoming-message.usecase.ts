@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConversationMessageStatus } from '@prisma/client';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { EvolutionClient } from '../../evolution/evolution.client';
 import { IntegrationWebhookDedupService } from './integration-webhook-dedup.service';
+import { IntegrationContextService, type ResolvedIntegrationContext } from '../../../settings/integration-context.service';
 
 @Injectable()
 export class ProcessIncomingMessageUseCase {
@@ -14,11 +14,20 @@ export class ProcessIncomingMessageUseCase {
     private readonly prisma: PrismaService,
     private readonly evolutionClient: EvolutionClient,
     private readonly dedupService: IntegrationWebhookDedupService,
+    private readonly integrationContext: IntegrationContextService,
   ) {}
 
-  async execute(payload: any, context?: { instanceId?: string }) {
+  async execute(payload: any, context?: { instanceId?: string; connection?: ResolvedIntegrationContext }) {
     const messages = Array.isArray(payload) ? payload : (payload?.messages || [payload?.message || payload]);
     const instanceId = context?.instanceId ?? null;
+    const resolvedConnection =
+      context?.connection ??
+      await this.integrationContext.getDefaultContext();
+
+    if (!resolvedConnection) {
+      this.logger.error('Nenhuma conexao ativa encontrada para processar mensagem inbound da Evolution.');
+      return;
+    }
 
     for (const msg of messages) {
       if (!msg) continue;
@@ -107,11 +116,17 @@ export class ProcessIncomingMessageUseCase {
       let conversationId: string | undefined;
 
       try {
-        const link = await this.resolveOrCreateConversationLink(phone, pushName);
+        const link = await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection);
         contactIdentifier = link.contactIdentifier;
         conversationId = link.conversationId;
 
-        await this.chatwootClient.createIncomingMessage(contactIdentifier, conversationId, textContent, attachment);
+        await this.chatwootClient.createIncomingMessage(
+          resolvedConnection.chatwoot,
+          contactIdentifier,
+          conversationId,
+          textContent,
+          attachment
+        );
         this.logger.log(JSON.stringify({
           flow: 'evolution_to_chatwoot',
           stage: 'forwarded',
@@ -128,15 +143,24 @@ export class ProcessIncomingMessageUseCase {
 
           try {
             await this.prisma.conversationLink.deleteMany({
-              where: { whatsappNumber: phone }
+              where: {
+                whatsappNumber: phone,
+                connectionKey: resolvedConnection.connectionKey,
+              }
             });
             this.logger.log(`[AUTO-CURA] Vinculo do numero ${phone} apagado. Recriando conversa e reenviando a mensagem atual.`);
 
-            const recreatedLink = await this.resolveOrCreateConversationLink(phone, pushName);
+            const recreatedLink = await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection);
             contactIdentifier = recreatedLink.contactIdentifier;
             conversationId = recreatedLink.conversationId;
 
-            await this.chatwootClient.createIncomingMessage(contactIdentifier, conversationId, textContent, attachment);
+            await this.chatwootClient.createIncomingMessage(
+              resolvedConnection.chatwoot,
+              contactIdentifier,
+              conversationId,
+              textContent,
+              attachment
+            );
             this.logger.log(JSON.stringify({
               flow: 'evolution_to_chatwoot',
               stage: 'forwarded_after_auto_heal',
@@ -164,7 +188,7 @@ export class ProcessIncomingMessageUseCase {
     }
   }
 
-  async handleStatusUpdate(payload: any, context?: { instanceId?: string }) {
+  async handleStatusUpdate(payload: any, context?: { instanceId?: string; connection?: ResolvedIntegrationContext }) {
     const receiptPayload = this.normalizeReceiptPayload(payload);
     if (receiptPayload) {
       await this.handleReceiptStatusUpdate(receiptPayload, context);
@@ -178,23 +202,24 @@ export class ProcessIncomingMessageUseCase {
       const chatwootStatus = this.mapLegacyStatusToChatwoot(statusVal);
 
       if (!evolutionMsgId || !chatwootStatus) continue;
-      await this.syncStatusToChatwoot(evolutionMsgId.toString(), chatwootStatus, context?.instanceId);
+      await this.syncStatusToChatwoot(evolutionMsgId.toString(), chatwootStatus, context?.instanceId, context?.connection);
     }
   }
 
   private async handleReceiptStatusUpdate(
     payload: { messageIds: string[]; chatwootStatus: 'delivered' | 'read' },
-    context?: { instanceId?: string }
+    context?: { instanceId?: string; connection?: ResolvedIntegrationContext }
   ) {
     for (const evolutionMsgId of payload.messageIds) {
-      await this.syncStatusToChatwoot(evolutionMsgId, payload.chatwootStatus, context?.instanceId);
+      await this.syncStatusToChatwoot(evolutionMsgId, payload.chatwootStatus, context?.instanceId, context?.connection);
     }
   }
 
   private async syncStatusToChatwoot(
     evolutionMsgId: string,
     chatwootStatus: 'delivered' | 'read',
-    instanceId?: string | null
+    instanceId?: string | null,
+    connection?: ResolvedIntegrationContext
   ) {
     const dedupeClaimed = await this.dedupService.claim(
       'evolution_status',
@@ -204,12 +229,27 @@ export class ProcessIncomingMessageUseCase {
     if (!dedupeClaimed) return;
 
     try {
+      const resolvedConnection =
+        connection ??
+        await this.integrationContext.getDefaultContext();
+      if (!resolvedConnection) return;
+
       const link = await this.prisma.messageLink.findUnique({
-        where: { evolutionMessageId: evolutionMsgId }
+        where: {
+          connectionKey_evolutionMessageId: {
+            connectionKey: resolvedConnection.connectionKey,
+            evolutionMessageId: evolutionMsgId,
+          },
+        }
       });
 
       if (link) {
-        await this.chatwootClient.updateMessageStatus(link.chatwootConversationId, link.chatwootMessageId, chatwootStatus);
+        await this.chatwootClient.updateMessageStatus(
+          resolvedConnection.chatwoot,
+          link.chatwootConversationId,
+          link.chatwootMessageId,
+          chatwootStatus
+        );
       }
     } catch (error: any) {
       this.logger.debug(`Nao foi possivel atualizar status de leitura: ${error.message}`);
@@ -253,9 +293,18 @@ export class ProcessIncomingMessageUseCase {
     return null;
   }
 
-  private async resolveOrCreateConversationLink(phone: string, pushName: string): Promise<{ contactIdentifier: string; conversationId: string }> {
+  private async resolveOrCreateConversationLink(
+    phone: string,
+    pushName: string,
+    connection: ResolvedIntegrationContext
+  ): Promise<{ contactIdentifier: string; conversationId: string }> {
     let link = await this.prisma.conversationLink.findUnique({
-      where: { whatsappNumber: phone }
+      where: {
+        connectionKey_whatsappNumber: {
+          connectionKey: connection.connectionKey,
+          whatsappNumber: phone,
+        },
+      }
     });
 
     let contactIdentifier = link?.chatwootContactId;
@@ -283,12 +332,17 @@ export class ProcessIncomingMessageUseCase {
         ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}`
         : sysproContact.name;
 
-      const picResult = await this.evolutionClient.fetchProfilePicture(phone);
-      const contactResponse = (await this.chatwootClient.createOrFindContact(phone, contactName, picResult?.profilePictureUrl)) as any;
+      const picResult = await this.evolutionClient.fetchProfilePicture(connection.evolution, phone);
+      const contactResponse = (await this.chatwootClient.createOrFindContact(
+        connection.chatwoot,
+        phone,
+        contactName,
+        picResult?.profilePictureUrl
+      )) as any;
       const contact = contactResponse?.payload?.contact;
 
-      const configuredInboxIdentifier = process.env.CHATWOOT_INBOX_IDENTIFIER?.toString();
-      const configuredInboxId = process.env.CHATWOOT_INBOX_ID?.toString();
+      const configuredInboxIdentifier = connection.chatwoot.inboxIdentifier?.toString();
+      const configuredInboxId = connection.chatwoot.inboxId?.toString();
       const sourceIdFromInbox =
         contact?.contact_inboxes
           ?.find((item: any) => {
@@ -313,6 +367,7 @@ export class ProcessIncomingMessageUseCase {
       }
 
       const convResponse = (await this.chatwootClient.createConversation(
+        connection.chatwoot,
         contactIdentifier,
         contact?.id?.toString?.()
       )) as any;
@@ -327,6 +382,9 @@ export class ProcessIncomingMessageUseCase {
       try {
         link = await this.prisma.conversationLink.create({
           data: {
+            companyId: sysproContact.companyId ?? connection.companyId ?? null,
+            connectionId: connection.connectionId,
+            connectionKey: connection.connectionKey,
             whatsappNumber: phone,
             chatwootContactId: contactIdentifier,
             chatwootConversationId: conversationId!,
@@ -334,9 +392,17 @@ export class ProcessIncomingMessageUseCase {
         });
       } catch (error: any) {
         if (error?.code === 'P2002') {
-          link = await this.prisma.conversationLink.findUnique({
-            where: { whatsappNumber: phone },
-          });
+          link =
+            await this.prisma.conversationLink.findFirst({
+              where: {
+                connectionKey: connection.connectionKey,
+                whatsappNumber: phone,
+              },
+            }) ??
+            await this.prisma.conversationLink.findFirst({
+              where: { whatsappNumber: phone },
+              orderBy: { createdAt: 'desc' },
+            });
         } else {
           throw error;
         }

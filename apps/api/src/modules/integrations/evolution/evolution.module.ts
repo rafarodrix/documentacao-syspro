@@ -3,17 +3,12 @@ import { EvolutionWebhookController } from './evolution-webhook.controller';
 import { EvolutionMessagesController } from './evolution-messages.controller';
 import { EvolutionClient } from './evolution.client';
 import { MessagingModule } from '../messaging/messaging.module';
+import { SettingsModule } from '../../settings/settings.module';
 
 @Module({
-  imports: [forwardRef(() => MessagingModule)],
+  imports: [forwardRef(() => MessagingModule), SettingsModule],
   controllers: [EvolutionWebhookController, EvolutionMessagesController],
-  providers: [
-    {
-      // Registra a factory statica como provider para o Nest gerenciar a injeção
-      provide: EvolutionClient,
-      useFactory: () => EvolutionClient.fromRuntime(),
-    },
-  ],
+  providers: [EvolutionClient],
   exports: [EvolutionClient],
 })
 export class EvolutionModule {}

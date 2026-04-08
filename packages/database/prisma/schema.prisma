@@ -289,6 +289,8 @@ model Company {
   remoteAddressBookCredentials RemoteAddressBookCredential[]
   ticketEmails      CompanyTicketEmail[]
   integrationConnections IntegrationConnection[]
+  conversationLinks ConversationLink[]
+  messageLinks MessageLink[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -1243,31 +1245,51 @@ model SefazStatus {
 
 model ConversationLink {
   id                     String   @id @default(cuid())
+  companyId              String?
+  company                Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  connectionId           String?
+  connection             IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  connectionKey          String   @default("env:default")
   
   // O número do cliente no WhatsApp (ex: 553499999999)
-  whatsappNumber         String   @unique
+  whatsappNumber         String
   
   // Os IDs gerados dentro do Chatwoot para esse cliente
   chatwootContactId      String
-  chatwootConversationId String   @unique
+  chatwootConversationId String
 
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
+  @@unique([connectionKey, whatsappNumber])
+  @@unique([connectionKey, chatwootConversationId])
+  @@index([companyId])
+  @@index([connectionId])
+  @@index([connectionKey])
   @@index([whatsappNumber])
   @@index([chatwootConversationId])
 }
 
 model MessageLink {
   id String @id @default(cuid())
+  companyId String?
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  connectionId String?
+  connection IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  connectionKey String @default("env:default")
 
-  chatwootMessageId String @unique
+  chatwootMessageId String
   chatwootConversationId String
-  evolutionMessageId String @unique
+  evolutionMessageId String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([connectionKey, chatwootMessageId])
+  @@unique([connectionKey, evolutionMessageId])
+  @@index([companyId])
+  @@index([connectionId])
+  @@index([connectionKey])
   @@index([chatwootConversationId])
   @@index([evolutionMessageId])
 }
@@ -1312,6 +1334,9 @@ model IntegrationConnection {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  conversationLinks ConversationLink[]
+  messageLinks MessageLink[]
 
   @@unique([companyId, name])
   @@index([status, companyId])

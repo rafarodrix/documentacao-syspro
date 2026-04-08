@@ -1,0 +1,237 @@
+import { Injectable } from '@nestjs/common';
+import { createDecipheriv, createHash } from 'crypto';
+import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig } from '@dosc-syspro/config';
+import { PrismaService } from '../../prisma/prisma.service';
+
+const ENV_DEFAULT_CONNECTION_KEY = 'env:default';
+
+export type ResolvedIntegrationContext = {
+  source: 'database' | 'env';
+  connectionId: string | null;
+  connectionKey: string;
+  companyId: string | null;
+  name: string;
+  evolution: {
+    apiUrl: string;
+    apiKey: string;
+    instance: string;
+    instanceId: string;
+    instanceToken?: string;
+    webhookSecret?: string;
+  };
+  chatwoot: {
+    url: string;
+    apiToken: string;
+    accountId: string;
+    inboxId: string;
+    inboxIdentifier: string;
+    webhookSecret?: string;
+    webhookMaxSkewSeconds: number;
+  };
+};
+
+@Injectable()
+export class IntegrationContextService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async getDefaultContext(): Promise<ResolvedIntegrationContext | null> {
+    const connection = await (this.prisma as any).integrationConnection.findFirst({
+      where: { status: 'ACTIVE' },
+      orderBy: [{ companyId: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    return this.toResolvedContext(connection) ?? this.readEnvFallback();
+  }
+
+  async resolveByConnectionKey(connectionKey?: string | null): Promise<ResolvedIntegrationContext | null> {
+    const normalized = String(connectionKey ?? '').trim();
+    if (!normalized || normalized === ENV_DEFAULT_CONNECTION_KEY) {
+      return this.readEnvFallback();
+    }
+
+    const connection = await (this.prisma as any).integrationConnection.findUnique({
+      where: { id: normalized },
+    });
+
+    return this.toResolvedContext(connection) ?? this.readEnvFallback();
+  }
+
+  async resolveForEvolutionWebhook(payload: any): Promise<ResolvedIntegrationContext | null> {
+    const instanceId = String(payload?.instanceId ?? payload?.data?.instanceId ?? '').trim();
+    const instance = String(payload?.instance ?? payload?.instanceName ?? payload?.data?.instance ?? '').trim();
+    const orFilters = [
+      ...(instanceId ? [{ evolutionInstanceId: instanceId }] : []),
+      ...(instance ? [{ evolutionInstance: instance }] : []),
+    ];
+
+    const candidates = await (this.prisma as any).integrationConnection.findMany({
+      where: {
+        status: 'ACTIVE',
+        ...(orFilters.length ? { OR: orFilters } : {}),
+      },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+
+    return (
+      this.toResolvedContext(candidates?.[0]) ??
+      (instance || instanceId ? null : this.readEnvFallback()) ??
+      this.readEnvFallback()
+    );
+  }
+
+  async resolveForChatwootWebhook(payload: any): Promise<ResolvedIntegrationContext | null> {
+    const accountId = String(
+      payload?.account?.id ??
+      payload?.account_id ??
+      payload?.conversation?.account_id ??
+      ''
+    ).trim();
+    const inboxId = String(
+      payload?.inbox?.id ??
+      payload?.inbox_id ??
+      payload?.conversation?.inbox_id ??
+      payload?.message?.inbox_id ??
+      ''
+    ).trim();
+    const inboxIdentifier = String(
+      payload?.inbox?.identifier ??
+      payload?.conversation?.inbox_identifier ??
+      payload?.message?.inbox_identifier ??
+      ''
+    ).trim();
+
+    const candidates = await (this.prisma as any).integrationConnection.findMany({
+      where: {
+        status: 'ACTIVE',
+        ...(accountId ? { chatwootAccountId: accountId } : {}),
+      },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+
+    const matched = (candidates as any[]).find((row) => {
+      if (inboxId && String(row?.chatwootInboxId ?? '').trim() === inboxId) return true;
+      if (inboxIdentifier && String(row?.chatwootInboxIdentifier ?? '').trim() === inboxIdentifier) return true;
+      return !inboxId && !inboxIdentifier;
+    });
+
+    return this.toResolvedContext(matched ?? candidates?.[0]) ?? this.readEnvFallback();
+  }
+
+  private toResolvedContext(row: any): ResolvedIntegrationContext | null {
+    if (!row) return null;
+
+    const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata as Record<string, unknown> : {};
+    const evolutionMetadata =
+      metadata.evolution && typeof metadata.evolution === 'object'
+        ? metadata.evolution as Record<string, unknown>
+        : metadata;
+
+    return {
+      source: 'database',
+      connectionId: row.id,
+      connectionKey: row.id,
+      companyId: row.companyId ?? null,
+      name: row.name,
+      evolution: {
+        apiUrl: String(row.evolutionApiUrl ?? '').trim(),
+        apiKey: this.decrypt(row.evolutionApiKeyEncrypted),
+        instance: String(row.evolutionInstance ?? '').trim(),
+        instanceId: String(row.evolutionInstanceId ?? '').trim(),
+        instanceToken: this.readOptionalString(evolutionMetadata.instanceToken),
+        webhookSecret: this.decryptOptional(row.evolutionWebhookSecretEncrypted) ?? undefined,
+      },
+      chatwoot: {
+        url: String(row.chatwootUrl ?? '').trim(),
+        apiToken: this.decrypt(row.chatwootApiTokenEncrypted),
+        accountId: String(row.chatwootAccountId ?? '').trim(),
+        inboxId: String(row.chatwootInboxId ?? '').trim(),
+        inboxIdentifier: String(row.chatwootInboxIdentifier ?? '').trim(),
+        webhookSecret: this.decryptOptional(row.chatwootWebhookSecretEncrypted) ?? undefined,
+        webhookMaxSkewSeconds: this.readWebhookSkew(metadata),
+      },
+    };
+  }
+
+  private readEnvFallback(): ResolvedIntegrationContext | null {
+    const evolution = readEvolutionRuntimeConfig();
+    const chatwoot = readChatwootRuntimeConfig();
+    const hasAnyValue = Boolean(
+      evolution.apiUrl ||
+      evolution.apiKey ||
+      evolution.instance ||
+      chatwoot.url ||
+      chatwoot.apiToken ||
+      chatwoot.accountId ||
+      chatwoot.inboxId ||
+      chatwoot.inboxIdentifier
+    );
+
+    if (!hasAnyValue) return null;
+
+    return {
+      source: 'env',
+      connectionId: null,
+      connectionKey: ENV_DEFAULT_CONNECTION_KEY,
+      companyId: null,
+      name: 'Runtime Environment',
+      evolution: {
+        apiUrl: evolution.apiUrl,
+        apiKey: evolution.apiKey,
+        instance: evolution.instance,
+        instanceId: '',
+        instanceToken: evolution.instanceToken || undefined,
+        webhookSecret: undefined,
+      },
+      chatwoot: {
+        url: chatwoot.url,
+        apiToken: chatwoot.apiToken,
+        accountId: chatwoot.accountId,
+        inboxId: chatwoot.inboxId,
+        inboxIdentifier: chatwoot.inboxIdentifier,
+        webhookSecret: chatwoot.webhookSecret || undefined,
+        webhookMaxSkewSeconds: chatwoot.webhookMaxSkewSeconds ?? 300,
+      },
+    };
+  }
+
+  private readWebhookSkew(metadata: Record<string, unknown>): number {
+    const chatwoot =
+      metadata.chatwoot && typeof metadata.chatwoot === 'object'
+        ? metadata.chatwoot as Record<string, unknown>
+        : metadata;
+    const raw = chatwoot.webhookMaxSkewSeconds;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 300;
+  }
+
+  private readOptionalString(value: unknown): string | undefined {
+    const normalized = String(value ?? '').trim();
+    return normalized || undefined;
+  }
+
+  private resolveEncryptionKey(): Buffer {
+    const raw = process.env.INTEGRATION_CONFIG_ENCRYPTION_KEY || process.env.BETTER_AUTH_SECRET;
+    if (!raw || !raw.trim()) {
+      throw new Error('INTEGRATION_CONFIG_ENCRYPTION_KEY (ou BETTER_AUTH_SECRET) obrigatoria para criptografia');
+    }
+    return createHash('sha256').update(raw).digest();
+  }
+
+  private decrypt(payload: string): string {
+    const [ivB64, tagB64, dataB64] = String(payload || '').split(':');
+    if (!ivB64 || !tagB64 || !dataB64) throw new Error('Payload criptografado invalido');
+    const key = this.resolveEncryptionKey();
+    const iv = Buffer.from(ivB64, 'base64');
+    const tag = Buffer.from(tagB64, 'base64');
+    const encrypted = Buffer.from(dataB64, 'base64');
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    const plain = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return plain.toString('utf8');
+  }
+
+  private decryptOptional(payload?: string | null): string | null {
+    if (!payload) return null;
+    return this.decrypt(payload);
+  }
+}

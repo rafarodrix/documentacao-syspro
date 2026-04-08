@@ -5,12 +5,14 @@ import { IntegrationWebhookDedupService } from './application/integration-webhoo
 import { EvolutionModule } from '../evolution/evolution.module';
 import { ChatwootModule } from '../chatwoot/chatwoot.module';
 import { PrismaModule } from '../../../prisma/prisma.module';
+import { SettingsModule } from '../../settings/settings.module';
 
 @Module({
   imports: [
     forwardRef(() => EvolutionModule),
     forwardRef(() => ChatwootModule),
     PrismaModule,
+    SettingsModule,
   ],
   providers: [ProcessIncomingMessageUseCase, ProcessOutgoingMessageUseCase, IntegrationWebhookDedupService],
   exports: [ProcessIncomingMessageUseCase, ProcessOutgoingMessageUseCase, IntegrationWebhookDedupService],

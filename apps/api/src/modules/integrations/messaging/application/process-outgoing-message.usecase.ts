@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EvolutionClient } from '../../evolution/evolution.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IntegrationWebhookDedupService } from './integration-webhook-dedup.service';
+import { IntegrationContextService, type ResolvedIntegrationContext } from '../../../settings/integration-context.service';
 
 @Injectable()
 export class ProcessOutgoingMessageUseCase {
@@ -11,9 +12,10 @@ export class ProcessOutgoingMessageUseCase {
     private readonly evolutionClient: EvolutionClient,
     private readonly prisma: PrismaService,
     private readonly dedupService: IntegrationWebhookDedupService,
+    private readonly integrationContext: IntegrationContextService,
   ) {}
 
-  async execute(payload: any) {
+  async execute(payload: any, context?: { connection?: ResolvedIntegrationContext }) {
     // Ignora mensagens que nao foram enviadas pelo agente (outgoing)
     if (payload.message_type !== 'outgoing') return;
 
@@ -43,9 +45,22 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     // Busca o telefone do cliente usando o ID da conversa do Chatwoot
-    const link = await this.prisma.conversationLink.findUnique({
-      where: { chatwootConversationId }
-    });
+    const resolvedConnection =
+      context?.connection ??
+      await this.integrationContext.resolveForChatwootWebhook(payload);
+
+    const link = resolvedConnection
+      ? await this.prisma.conversationLink.findUnique({
+          where: {
+            connectionKey_chatwootConversationId: {
+              connectionKey: resolvedConnection.connectionKey,
+              chatwootConversationId,
+            },
+          },
+        })
+      : await this.prisma.conversationLink.findFirst({
+          where: { chatwootConversationId },
+        });
 
     if (!link) {
       this.logger.warn(JSON.stringify({
@@ -74,7 +89,22 @@ export class ProcessOutgoingMessageUseCase {
       const fileType = attachment.file_type || 'document';
       const fileName = attachment.data?.filename || 'arquivo';
       
-      const sendResult = await this.evolutionClient.sendMedia(phone, mediaUrl, fileType, fileName, content || '');
+      const linkContext =
+        resolvedConnection ??
+        await this.integrationContext.resolveByConnectionKey(link.connectionKey);
+      if (!linkContext) {
+        this.logger.warn(`Conexao nao resolvida para envio de midia da conversa ${chatwootConversationId}`);
+        return;
+      }
+
+      const sendResult = await this.evolutionClient.sendMedia(
+        linkContext.evolution,
+        phone,
+        mediaUrl,
+        fileType,
+        fileName,
+        content || ''
+      );
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution', stage: 'sent_media', messageId, providerMessageId: sendResult.messageId, chatwootConversationId, whatsappNumber: phone,
       }));
@@ -86,6 +116,9 @@ export class ProcessOutgoingMessageUseCase {
               chatwootMessageId: messageId,
               chatwootConversationId: chatwootConversationId,
               evolutionMessageId: sendResult.messageId,
+              companyId: link.companyId ?? null,
+              connectionId: link.connectionId ?? null,
+              connectionKey: link.connectionKey,
             }
           });
         } catch (e: any) { /* ignora erro caso a mensagem ja esteja vinculada */ }
@@ -95,7 +128,15 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     // Dispara para o WhatsApp
-    const sendResult = await this.evolutionClient.sendTextMessage(phone, content);
+    const linkContext =
+      resolvedConnection ??
+      await this.integrationContext.resolveByConnectionKey(link.connectionKey);
+    if (!linkContext) {
+      this.logger.warn(`Conexao nao resolvida para envio da conversa ${chatwootConversationId}`);
+      return;
+    }
+
+    const sendResult = await this.evolutionClient.sendTextMessage(linkContext.evolution, phone, content);
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'sent',
@@ -112,6 +153,9 @@ export class ProcessOutgoingMessageUseCase {
             chatwootMessageId: messageId,
             chatwootConversationId: chatwootConversationId,
             evolutionMessageId: sendResult.messageId,
+            companyId: link.companyId ?? null,
+            connectionId: link.connectionId ?? null,
+            connectionKey: link.connectionKey,
           }
         });
       } catch (e: any) { /* ignora erro caso a mensagem ja esteja vinculada */ }

@@ -1,16 +1,21 @@
-import { Controller, Post, Body, Headers, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common';
 import { ProcessIncomingMessageUseCase } from '../messaging/application/process-incoming-message.usecase';
+import { IntegrationContextService } from '../../settings/integration-context.service';
 
 @Controller('webhooks/evolution')
 export class EvolutionWebhookController {
-  constructor(private readonly processIncomingMessage: ProcessIncomingMessageUseCase) {}
+  constructor(
+    private readonly processIncomingMessage: ProcessIncomingMessageUseCase,
+    private readonly integrationContext: IntegrationContextService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
   async handle(
     @Body() payload: any
   ) {
-    const expectedInstanceToken = process.env.EVOLUTION_INSTANCE_TOKEN;
+    const resolvedContext = await this.integrationContext.resolveForEvolutionWebhook(payload);
+    const expectedInstanceToken = resolvedContext?.evolution.instanceToken;
     const payloadInstanceToken = payload?.instanceToken?.toString?.();
 
     if (expectedInstanceToken && payloadInstanceToken !== expectedInstanceToken) {
@@ -24,11 +29,15 @@ export class EvolutionWebhookController {
     if (isInboundMessageEvent) {
       await this.processIncomingMessage.execute(payload.data, {
         instanceId: payload?.instanceId?.toString(),
+        connection: resolvedContext ?? undefined,
       });
     } else if (isReceiptEvent) {
       await this.processIncomingMessage.handleStatusUpdate(
         payload,
-        { instanceId: payload?.instanceId?.toString() }
+        {
+          instanceId: payload?.instanceId?.toString(),
+          connection: resolvedContext ?? undefined,
+        }
       );
     }
     return { ok: true };

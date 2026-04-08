@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, Headers, Post } from '@nestjs/common';
 import { assertInternalApiKey } from '../../../common/auth/internal-api-auth';
 import { EvolutionClient } from './evolution.client';
+import { IntegrationContextService } from '../../settings/integration-context.service';
 
 type SendEvolutionMessageInput = {
   to?: string;
@@ -9,7 +10,10 @@ type SendEvolutionMessageInput = {
 
 @Controller('integrations/evolution/messages')
 export class EvolutionMessagesController {
-  constructor(private readonly evolutionClient: EvolutionClient) {}
+  constructor(
+    private readonly evolutionClient: EvolutionClient,
+    private readonly integrationContext: IntegrationContextService,
+  ) {}
 
   @Post('send')
   async send(
@@ -27,7 +31,12 @@ export class EvolutionMessagesController {
       throw new BadRequestException('Campo "text" é obrigatório.');
     }
 
-    const result = await this.evolutionClient.sendTextMessage(to, text);
+    const context = await this.integrationContext.getDefaultContext();
+    if (!context) {
+      throw new BadRequestException('Nenhuma conexao Evolution ativa encontrada.');
+    }
+
+    const result = await this.evolutionClient.sendTextMessage(context.evolution, to, text);
     return { success: true, messageId: result.messageId };
   }
 }

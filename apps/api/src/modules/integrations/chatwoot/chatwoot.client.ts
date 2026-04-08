@@ -1,27 +1,36 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+export type ChatwootConnectionConfig = {
+  url: string;
+  apiToken: string;
+  accountId: string;
+  inboxId: string;
+  inboxIdentifier: string;
+  webhookSecret?: string;
+  webhookMaxSkewSeconds?: number;
+};
+
 @Injectable()
 export class ChatwootClient {
   private readonly logger = new Logger(ChatwootClient.name);
-  private readonly baseUrl = process.env.CHATWOOT_URL;
-  private readonly token = process.env.CHATWOOT_API_TOKEN;
-  private readonly accountId = process.env.CHATWOOT_ACCOUNT_ID;
-  private readonly configuredInboxIdentifier = process.env.CHATWOOT_INBOX_IDENTIFIER;
-  private readonly configuredInboxId = process.env.CHATWOOT_INBOX_ID;
-  private resolvedInboxIdentifier?: string;
-  private resolvedInboxId?: string;
 
-  private async request(endpoint: string, method: string = 'GET', body?: any, retries: number = 3): Promise<any> {
-    if (!this.baseUrl || !this.token) {
+  private async request(
+    config: ChatwootConnectionConfig,
+    endpoint: string,
+    method: string = 'GET',
+    body?: any,
+    retries: number = 3
+  ): Promise<any> {
+    if (!config.url || !config.apiToken) {
       this.logger.warn('CHATWOOT_URL ou CHATWOOT_API_TOKEN nao configurados.');
       return null;
     }
 
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = `${config.url}${endpoint}`;
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const headers: any = { api_access_token: this.token };
+        const headers: any = { api_access_token: config.apiToken };
         let requestBody: any;
 
         if (body instanceof FormData) {
@@ -62,11 +71,12 @@ export class ChatwootClient {
     }
   }
 
-  async createOrFindContact(phoneNumber: string, name: string, avatarUrl?: string) {
+  async createOrFindContact(config: ChatwootConnectionConfig, phoneNumber: string, name: string, avatarUrl?: string) {
     const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
 
     const searchResponse: any = await this.request(
-      `/api/v1/accounts/${this.accountId}/contacts/search?q=${encodeURIComponent(formattedPhone)}`,
+      config,
+      `/api/v1/accounts/${config.accountId}/contacts/search?q=${encodeURIComponent(formattedPhone)}`,
       'GET'
     );
 
@@ -78,7 +88,7 @@ export class ChatwootClient {
     }
 
     try {
-      const inboxId = await this.resolveInboxId();
+      const inboxId = await this.resolveInboxId(config);
       if (!inboxId) {
         throw new Error('CHATWOOT_INBOX_ID nao configurado/resolvido para criar contato via API de conta');
       }
@@ -89,21 +99,22 @@ export class ChatwootClient {
         phone_number: formattedPhone,
       };
       if (avatarUrl) payload.avatar_url = avatarUrl;
-      return await this.request(`/api/v1/accounts/${this.accountId}/contacts`, 'POST', payload);
+      return await this.request(config, `/api/v1/accounts/${config.accountId}/contacts`, 'POST', payload);
     } catch (error: any) {
       if (error?.message?.includes('404')) {
-        const inboxIdentifier = await this.resolveInboxIdentifier();
+        const inboxIdentifier = await this.resolveInboxIdentifier(config);
         if (!inboxIdentifier) throw error;
 
         const publicPayload: any = { name, phone_number: formattedPhone };
         if (avatarUrl) publicPayload.avatar_url = avatarUrl;
-        return await this.request(`/public/api/v1/inboxes/${inboxIdentifier}/contacts`, 'POST', publicPayload);
+        return await this.request(config, `/public/api/v1/inboxes/${inboxIdentifier}/contacts`, 'POST', publicPayload);
       }
 
       if (error.message.includes('422')) {
         this.logger.warn(`Contato com numero ${formattedPhone} ja existe. Retornando contato existente da busca...`);
         const retrySearch: any = await this.request(
-          `/api/v1/accounts/${this.accountId}/contacts/search?q=${encodeURIComponent(formattedPhone)}`,
+          config,
+          `/api/v1/accounts/${config.accountId}/contacts/search?q=${encodeURIComponent(formattedPhone)}`,
           'GET'
         );
         const retryExisting = retrySearch?.payload?.find((c: any) => c.phone_number === formattedPhone);
@@ -115,30 +126,46 @@ export class ChatwootClient {
     }
   }
 
-  async updateContact(contactIdentifier: string, data: { name?: string; phone_number?: string; email?: string }) {
+  async updateContact(
+    config: ChatwootConnectionConfig,
+    contactIdentifier: string,
+    data: { name?: string; phone_number?: string; email?: string }
+  ) {
     try {
-      return await this.request(`/api/v1/accounts/${this.accountId}/contacts/${contactIdentifier}`, 'PUT', data);
+      return await this.request(
+        config,
+        `/api/v1/accounts/${config.accountId}/contacts/${contactIdentifier}`,
+        'PUT',
+        data
+      );
     } catch (error: any) {
       if (!error?.message?.includes('404')) throw error;
-      const inboxIdentifier = await this.resolveInboxIdentifier();
+      const inboxIdentifier = await this.resolveInboxIdentifier(config);
       if (!inboxIdentifier) throw error;
-      return this.request(`/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}`, 'PATCH', data);
+      return this.request(config, `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}`, 'PATCH', data);
     }
   }
 
-  async updateMessageStatus(conversationId: string, messageId: string, status: 'delivered' | 'read') {
+  async updateMessageStatus(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+    messageId: string,
+    status: 'delivered' | 'read'
+  ) {
     return this.request(
-      `/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages/${messageId}`,
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages/${messageId}`,
       'PUT',
       { status }
     );
   }
 
-  async createConversation(contactIdentifier: string, contactId?: string) {
-    const inboxIdentifier = await this.resolveInboxIdentifier();
+  async createConversation(config: ChatwootConnectionConfig, contactIdentifier: string, contactId?: string) {
+    const inboxIdentifier = await this.resolveInboxIdentifier(config);
     if (inboxIdentifier) {
       try {
         return await this.request(
+          config,
           `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations`,
           'POST'
         );
@@ -147,13 +174,14 @@ export class ChatwootClient {
       }
     }
 
-    const inboxId = await this.resolveInboxId();
+    const inboxId = await this.resolveInboxId(config);
     if (!inboxId) {
       throw new Error('CHATWOOT_INBOX_ID nao configurado/resolvido para criar conversa via API de conta');
     }
 
     return this.request(
-      `/api/v1/accounts/${this.accountId}/conversations`,
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations`,
       'POST',
       {
         source_id: contactIdentifier,
@@ -164,12 +192,13 @@ export class ChatwootClient {
   }
 
   async createIncomingMessage(
+    config: ChatwootConnectionConfig,
     contactIdentifier: string,
     conversationId: string,
     content: string,
     attachment?: { base64: string; mimetype: string; filename: string }
   ) {
-    const inboxIdentifier = await this.resolveInboxIdentifier();
+    const inboxIdentifier = await this.resolveInboxIdentifier(config);
 
     if (attachment && attachment.base64) {
       const formData = new FormData();
@@ -183,6 +212,7 @@ export class ChatwootClient {
         if (inboxIdentifier) {
           try {
             return await this.request(
+              config,
               `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
               'POST',
               formData
@@ -193,7 +223,8 @@ export class ChatwootClient {
         }
 
         return await this.request(
-          `/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`,
+          config,
+          `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
           'POST',
           formData
         );
@@ -210,6 +241,7 @@ export class ChatwootClient {
     if (inboxIdentifier) {
       try {
         return await this.request(
+          config,
           `/public/api/v1/inboxes/${inboxIdentifier}/contacts/${contactIdentifier}/conversations/${conversationId}/messages`,
           'POST',
           payload
@@ -220,13 +252,14 @@ export class ChatwootClient {
     }
 
     return this.request(
-      `/api/v1/accounts/${this.accountId}/conversations/${conversationId}/messages`,
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
       'POST',
       payload
     );
   }
 
-  async getIntegrationHealth(): Promise<{
+  async getIntegrationHealth(config: ChatwootConnectionConfig): Promise<{
     status: 'ok' | 'error';
     checkedAt: string;
     accountRoute: { endpoint: string; ok: boolean; error?: string };
@@ -237,19 +270,19 @@ export class ChatwootClient {
       resolvedInboxIdentifier?: string;
     };
   }> {
-    const endpoint = `/api/v1/accounts/${this.accountId}/inboxes`;
+    const endpoint = `/api/v1/accounts/${config.accountId}/inboxes`;
     try {
-      await this.request(endpoint, 'GET', undefined, 1);
-      const resolvedInboxId = await this.resolveInboxId();
-      const resolvedInboxIdentifier = await this.resolveInboxIdentifier();
+      await this.request(config, endpoint, 'GET', undefined, 1);
+      const resolvedInboxId = await this.resolveInboxId(config);
+      const resolvedInboxIdentifier = await this.resolveInboxIdentifier(config);
 
       return {
         status: 'ok',
         checkedAt: new Date().toISOString(),
         accountRoute: { endpoint, ok: true },
         inbox: {
-          configuredInboxId: this.configuredInboxId,
-          configuredInboxIdentifier: this.configuredInboxIdentifier,
+          configuredInboxId: config.inboxId,
+          configuredInboxIdentifier: config.inboxIdentifier,
           resolvedInboxId,
           resolvedInboxIdentifier,
         },
@@ -264,81 +297,60 @@ export class ChatwootClient {
           error: error?.message ?? 'unknown_error',
         },
         inbox: {
-          configuredInboxId: this.configuredInboxId,
-          configuredInboxIdentifier: this.configuredInboxIdentifier,
+          configuredInboxId: config.inboxId,
+          configuredInboxIdentifier: config.inboxIdentifier,
         },
       };
     }
   }
 
-  private async resolveInboxIdentifier(): Promise<string | undefined> {
-    if (this.resolvedInboxIdentifier) return this.resolvedInboxIdentifier;
-
-    if (this.configuredInboxIdentifier && !/^\d+$/.test(this.configuredInboxIdentifier)) {
-      this.resolvedInboxIdentifier = this.configuredInboxIdentifier;
-      return this.resolvedInboxIdentifier;
+  private async resolveInboxIdentifier(config: ChatwootConnectionConfig): Promise<string | undefined> {
+    if (config.inboxIdentifier && !/^\d+$/.test(config.inboxIdentifier)) {
+      return config.inboxIdentifier;
     }
 
-    const inboxes: any[] | null = await this.fetchInboxes();
+    const inboxes: any[] | null = await this.fetchInboxes(config);
     if (!inboxes?.length) {
-      this.resolvedInboxIdentifier =
-        this.configuredInboxIdentifier && !/^\d+$/.test(this.configuredInboxIdentifier)
-          ? this.configuredInboxIdentifier
-          : undefined;
-      return this.resolvedInboxIdentifier;
+      return config.inboxIdentifier && !/^\d+$/.test(config.inboxIdentifier)
+        ? config.inboxIdentifier
+        : undefined;
     }
 
-    const matchedByIdentifier = this.configuredInboxIdentifier
-      ? inboxes.find((inbox: any) => inbox?.identifier?.toString?.() === this.configuredInboxIdentifier)
+    const matchedByIdentifier = config.inboxIdentifier
+      ? inboxes.find((inbox: any) => inbox?.identifier?.toString?.() === config.inboxIdentifier)
       : null;
     if (matchedByIdentifier?.identifier) {
-      this.resolvedInboxIdentifier = matchedByIdentifier.identifier.toString();
-      this.resolvedInboxId = matchedByIdentifier.id?.toString?.() ?? this.resolvedInboxId;
-      return this.resolvedInboxIdentifier;
+      return matchedByIdentifier.identifier.toString();
     }
 
-    const matchedById = this.configuredInboxId
-      ? inboxes.find((inbox: any) => inbox?.id?.toString?.() === this.configuredInboxId)
-      : this.configuredInboxIdentifier
-        ? inboxes.find((inbox: any) => inbox?.id?.toString?.() === this.configuredInboxIdentifier)
+    const matchedById = config.inboxId
+      ? inboxes.find((inbox: any) => inbox?.id?.toString?.() === config.inboxId)
+      : config.inboxIdentifier
+        ? inboxes.find((inbox: any) => inbox?.id?.toString?.() === config.inboxIdentifier)
         : null;
-    if (matchedById?.identifier) {
-      this.resolvedInboxIdentifier = matchedById.identifier.toString();
-      this.resolvedInboxId = matchedById.id?.toString?.() ?? this.resolvedInboxId;
-      return this.resolvedInboxIdentifier;
-    }
-
-    this.resolvedInboxIdentifier =
-      this.configuredInboxIdentifier && !/^\d+$/.test(this.configuredInboxIdentifier)
-        ? this.configuredInboxIdentifier
-        : undefined;
-    return this.resolvedInboxIdentifier;
+    return matchedById?.identifier?.toString?.();
   }
 
-  private async resolveInboxId(): Promise<string | undefined> {
-    if (this.resolvedInboxId) return this.resolvedInboxId;
-    if (this.configuredInboxId) {
-      this.resolvedInboxId = this.configuredInboxId;
-      return this.resolvedInboxId;
+  private async resolveInboxId(config: ChatwootConnectionConfig): Promise<string | undefined> {
+    if (config.inboxId) {
+      return config.inboxId;
     }
 
-    const inboxes: any[] | null = await this.fetchInboxes();
-    if (!inboxes?.length || !this.configuredInboxIdentifier) return undefined;
+    const inboxes: any[] | null = await this.fetchInboxes(config);
+    if (!inboxes?.length || !config.inboxIdentifier) return undefined;
 
     const matched = inboxes.find((inbox: any) => {
       const identifier = inbox?.identifier?.toString?.();
       const id = inbox?.id?.toString?.();
-      return identifier === this.configuredInboxIdentifier || id === this.configuredInboxIdentifier;
+      return identifier === config.inboxIdentifier || id === config.inboxIdentifier;
     });
-    this.resolvedInboxId = matched?.id?.toString?.();
-    if (matched?.identifier) this.resolvedInboxIdentifier = matched.identifier.toString();
-    return this.resolvedInboxId;
+    return matched?.id?.toString?.();
   }
 
-  private async fetchInboxes(): Promise<any[] | null> {
-    if (!this.accountId) return null;
+  private async fetchInboxes(config: ChatwootConnectionConfig): Promise<any[] | null> {
+    if (!config.accountId) return null;
     try {
-      const response = await this.request(`/api/v1/accounts/${this.accountId}/inboxes`, 'GET');
+      const response = await this.request(config, `/api/v1/accounts/${config.accountId}/inboxes`, 'GET');
       if (Array.isArray(response)) return response;
       if (Array.isArray(response?.payload)) return response.payload;
       return null;
