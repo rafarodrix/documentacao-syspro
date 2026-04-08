@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { getTicketsAction } from "@/features/tickets/application/actions";
+import { getTicketsAction } from "@/features/tickets/application/ticket-actions";
 import { Role } from "@prisma/client";
-import type { TicketListItem } from "@/features/tickets/domain/model";
+import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
 
 export const dynamic = "force-dynamic";
 

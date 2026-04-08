@@ -1,4 +1,4 @@
-﻿export * from "./actions";
-export * from "./dashboard";
-export * from "./queries";
+export * from "./ticket-actions";
+export * from "./ticket-dashboard";
+export * from "./ticket-queries";
 export * from "./utils";

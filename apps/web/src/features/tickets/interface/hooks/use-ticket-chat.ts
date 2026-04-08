@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import { toast } from "sonner";
-import { replyTicketAction } from "@/features/tickets/application/actions";
-import type { TicketArticleItem } from "@/features/tickets/domain/model";
+import { replyTicketAction } from "@/features/tickets/application/ticket-actions";
+import type { TicketArticleItem } from "@/features/tickets/domain/ticket-model";
 import { useSession } from "@/lib/auth-client";
 import { fileToBase64 } from "@/features/tickets/application/utils";
 

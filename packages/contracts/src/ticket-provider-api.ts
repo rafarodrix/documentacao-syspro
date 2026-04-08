@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const zammadTicketAPISchema = z.object({
+export const ticketProviderTicketApiSchema = z.object({
   id: z.number(),
   number: z.string(),
   title: z.string(),
@@ -15,9 +15,9 @@ export const zammadTicketAPISchema = z.object({
   release_summary: z.string().nullable().optional(),
 });
 
-export type ZammadTicketAPI = z.infer<typeof zammadTicketAPISchema>;
+export type TicketProviderTicketApi = z.infer<typeof ticketProviderTicketApiSchema>;
 
-export const zammadOperationalTicketSchema = z.object({
+export const ticketProviderOperationalTicketSchema = z.object({
   id: z.number(),
   number: z.union([z.string(), z.number()]).transform((v) => String(v)),
   title: z.string(),
@@ -34,9 +34,9 @@ export const zammadOperationalTicketSchema = z.object({
   updated_at: z.string(),
 });
 
-export type ZammadOperationalTicket = z.infer<typeof zammadOperationalTicketSchema>;
+export type TicketProviderOperationalTicket = z.infer<typeof ticketProviderOperationalTicketSchema>;
 
-export const zammadTicketDetailsSchema = z.object({
+export const ticketProviderTicketDetailsSchema = z.object({
   id: z.number(),
   number: z.union([z.string(), z.number()]).transform((v) => String(v)),
   title: z.string(),
@@ -52,9 +52,9 @@ export const zammadTicketDetailsSchema = z.object({
   updated_at: z.string().nullable().optional(),
 });
 
-export type ZammadTicketDetails = z.infer<typeof zammadTicketDetailsSchema>;
+export type TicketProviderTicketDetails = z.infer<typeof ticketProviderTicketDetailsSchema>;
 
-export const zammadTicketArticleSchema = z.object({
+export const ticketProviderTicketArticleSchema = z.object({
   id: z.number(),
   from: z.string().nullable().optional(),
   body: z.string(),
@@ -63,15 +63,15 @@ export const zammadTicketArticleSchema = z.object({
   sender: z.string().nullable().optional(),
 });
 
-export type ZammadTicketArticle = z.infer<typeof zammadTicketArticleSchema>;
+export type TicketProviderTicketArticle = z.infer<typeof ticketProviderTicketArticleSchema>;
 
-export const zammadUserSearchSchema = z.object({
+export const ticketProviderUserSearchSchema = z.object({
   organization_id: z.number().nullable().optional(),
 });
 
-export type ZammadUserSearch = z.infer<typeof zammadUserSearchSchema>;
+export type TicketProviderUserSearch = z.infer<typeof ticketProviderUserSearchSchema>;
 
-export const zammadUserSchema = z.object({
+export const ticketProviderUserSchema = z.object({
   id: z.number(),
   firstname: z.string().nullable().optional(),
   lastname: z.string().nullable().optional(),
@@ -81,4 +81,4 @@ export const zammadUserSchema = z.object({
   active: z.boolean().nullable().optional(),
 });
 
-export type ZammadUser = z.infer<typeof zammadUserSchema>;
+export type TicketProviderUser = z.infer<typeof ticketProviderUserSchema>;

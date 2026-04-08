@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { buildTicketKpis, toTicketSummaryItems } from "@/features/tickets/application/dashboard";
-import { getTicketsAction } from "@/features/tickets/application/actions";
-import type { AdminDashboardViewData, ClientDashboardViewData, TicketsDataResponse } from "@/features/tickets/domain/model";
+import { buildTicketKpis, toTicketSummaryItems } from "@/features/tickets/application/ticket-dashboard";
+import { getTicketsAction } from "@/features/tickets/application/ticket-actions";
+import type { AdminDashboardViewData, ClientDashboardViewData, TicketsDataResponse } from "@/features/tickets/domain/ticket-model";
 import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 

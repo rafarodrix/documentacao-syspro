@@ -1,5 +1,5 @@
 import { Role } from "@prisma/client";
-import { getTicketDetailsAction } from "@/features/tickets/application/actions";
+import { getTicketDetailsAction } from "@/features/tickets/application/ticket-actions";
 import { TicketDetails } from "@/components/platform/tickets/TicketDetails";
 import { requireSession } from "@/lib/auth-helpers";
 

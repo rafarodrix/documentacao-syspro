@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ticketQuickAction } from "@/features/tickets/application/actions";
+import { ticketQuickAction } from "@/features/tickets/application/ticket-actions";
 
 type Params = {
   params: Promise<{ id: string }>;

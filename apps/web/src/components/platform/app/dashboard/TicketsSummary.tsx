@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Headset, ArrowUpRight, Clock, AlertTriangle, CheckCircle2, Inbox } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import type { TicketSummaryItem } from "@/features/tickets/domain/model"
+import type { TicketSummaryItem } from "@/features/tickets/domain/ticket-model"
 
 interface TicketsSummaryProps {
   tickets: TicketSummaryItem[]
@@ -114,4 +114,3 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
     </Card>
   )
 }
-

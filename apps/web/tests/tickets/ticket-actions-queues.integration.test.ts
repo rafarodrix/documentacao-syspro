@@ -154,7 +154,7 @@ describe("tickets integration: queue pagination/count consistency", () => {
   ];
 
   it.each(scenarios)("queue=$queue retorna total consistente entre contador e pagina", async ({ queue, expectedTotal }) => {
-    const { getTicketsAction } = await import("@/features/tickets/application/actions");
+    const { getTicketsAction } = await import("@/features/tickets/application/ticket-actions");
     const result = await getTicketsAction({ queue, page: 1, pageSize: 10 });
 
     expect(result.success).toBe(true);

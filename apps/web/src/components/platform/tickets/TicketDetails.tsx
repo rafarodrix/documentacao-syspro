@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { TicketArticleItem, TicketDetailsItem } from "./types";
-import type { TicketMutationResponse } from "@/features/tickets/domain/model";
+import type { TicketMutationResponse } from "@/features/tickets/domain/ticket-model";
 
 interface TicketDetailsProps {
     ticket?: TicketDetailsItem;

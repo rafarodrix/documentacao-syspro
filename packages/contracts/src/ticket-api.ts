@@ -1,17 +1,17 @@
 export {
-  zammadTicketAPISchema as ticketApiSchema,
-  zammadOperationalTicketSchema as operationalTicketSchema,
-  zammadTicketDetailsSchema as ticketDetailsSchema,
-  zammadTicketArticleSchema as ticketArticleSchema,
-  zammadUserSearchSchema as ticketUserSearchSchema,
-  zammadUserSchema as ticketUserSchema,
-} from "./zammad-api";
+  ticketProviderTicketApiSchema as ticketApiSchema,
+  ticketProviderOperationalTicketSchema as operationalTicketSchema,
+  ticketProviderTicketDetailsSchema as ticketDetailsSchema,
+  ticketProviderTicketArticleSchema as ticketArticleSchema,
+  ticketProviderUserSearchSchema as ticketUserSearchSchema,
+  ticketProviderUserSchema as ticketUserSchema,
+} from "./ticket-provider-api";
 
 export type {
-  ZammadTicketAPI as TicketApi,
-  ZammadOperationalTicket as OperationalTicket,
-  ZammadTicketDetails as TicketDetails,
-  ZammadTicketArticle as TicketArticle,
-  ZammadUserSearch as TicketUserSearch,
-  ZammadUser as TicketUser,
-} from "./zammad-api";
+  TicketProviderTicketApi as TicketApi,
+  TicketProviderOperationalTicket as OperationalTicket,
+  TicketProviderTicketDetails as TicketDetails,
+  TicketProviderTicketArticle as TicketArticle,
+  TicketProviderUserSearch as TicketUserSearch,
+  TicketProviderUser as TicketUser,
+} from "./ticket-provider-api";

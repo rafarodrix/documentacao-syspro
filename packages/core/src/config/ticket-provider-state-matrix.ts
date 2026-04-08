@@ -73,6 +73,6 @@ function parseStateMatrixFromEnv(): ParsedStateMatrix | null {
 
 const MATRIX = parseStateMatrixFromEnv() ?? DEFAULT_MATRIX;
 
-export function getZammadStateMatrix(): ParsedStateMatrix {
+export function getTicketProviderStateMatrix(): ParsedStateMatrix {
   return MATRIX;
 }

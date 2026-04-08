@@ -5,7 +5,7 @@ import type {
   TicketKpis,
   TicketListItem,
   TicketSummaryItem,
-} from "@/features/tickets/domain/model";
+} from "@/features/tickets/domain/ticket-model";
 
 function normalizeDashboardPriority(priority: string): TicketDashboardPriority {
   const normalized = String(priority || "").toUpperCase();

@@ -64,7 +64,7 @@ describe("tickets integration: ticket details article shape", () => {
       },
     ]);
 
-    const { getTicketDetailsAction } = await import("@/features/tickets/application/actions");
+    const { getTicketDetailsAction } = await import("@/features/tickets/application/ticket-actions");
     const result = await getTicketDetailsAction("77");
 
     expect(result.success).toBe(true);

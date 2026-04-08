@@ -1,1 +1,1 @@
-export { getZammadStateMatrix as getTicketStateMatrix } from "./zammad-state-matrix";
+export { getTicketProviderStateMatrix as getTicketStateMatrix } from "./ticket-provider-state-matrix";

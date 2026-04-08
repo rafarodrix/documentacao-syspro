@@ -8,4 +8,4 @@ export type {
   TicketsDataResponse,
   TicketDetailsItem,
   TicketArticleItem,
-} from "@/features/tickets/domain/model";
+} from "@/features/tickets/domain/ticket-model";

@@ -4,7 +4,7 @@ import type {
   TicketListItem,
   TicketStatusCounts,
   TicketsPagination,
-} from "@/features/tickets/domain/model";
+} from "@/features/tickets/domain/ticket-model";
 
 export type TicketViewerScope = {
   userId: string;

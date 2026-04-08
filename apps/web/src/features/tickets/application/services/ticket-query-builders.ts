@@ -1,5 +1,5 @@
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
-import type { ClosedTicketsWindow } from "@/features/tickets/domain/model";
+import type { ClosedTicketsWindow } from "@/features/tickets/domain/ticket-model";
 import { TICKET_STATUS_QUERY_TERMS, getStateIdsForStatusGroup } from "@dosc-syspro/core";
 
 const CLOSED_WINDOW_DAYS: Record<Exclude<ClosedTicketsWindow, "all">, number> = {

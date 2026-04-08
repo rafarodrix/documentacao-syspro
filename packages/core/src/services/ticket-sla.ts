@@ -1,2 +1,2 @@
-export { computeTicketSla } from "./zammad-sla";
-export type { TicketSlaMeta } from "./zammad-sla";
+export { computeTicketSla } from "./ticket-provider-sla";
+export type { TicketSlaMeta } from "./ticket-provider-sla";

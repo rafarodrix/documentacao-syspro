@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TicketListItem, TicketPriorityLevel } from "./types";
 import { getTicketStatusGroup } from "@dosc-syspro/core";
-import type { TicketMutationResponse } from "@/features/tickets/domain/model";
+import type { TicketMutationResponse } from "@/features/tickets/domain/ticket-model";
 
 interface TicketsTableProps {
     tickets: TicketListItem[];

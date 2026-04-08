@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ticketFormSchema, type TicketFormInput, type TicketFormOutput } from "@dosc-syspro/contracts";
-import { createTicketAction } from "@/features/tickets/application/actions";
+import { createTicketAction } from "@/features/tickets/application/ticket-actions";
 import { toast } from "sonner";
 
 type UseTicketSheetOptions = {

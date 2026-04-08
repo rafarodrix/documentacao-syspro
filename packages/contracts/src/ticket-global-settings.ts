@@ -1,21 +1,21 @@
 export {
-  zammadOwnerModeSchema as ticketOwnerModeSchema,
-  zammadArticleTypeSchema as ticketArticleTypeSchema,
-  zammadGlobalSettingsSchema as ticketGlobalSettingsSchema,
-  zammadCatalogGroupSchema as ticketCatalogGroupSchema,
-  zammadCatalogStateSchema as ticketCatalogStateSchema,
-  zammadCatalogPrioritySchema as ticketCatalogPrioritySchema,
-  zammadCatalogOwnerSchema as ticketCatalogOwnerSchema,
-  zammadGlobalCatalogSchema as ticketGlobalCatalogSchema,
-} from "./zammad-global-settings";
+  ticketProviderOwnerModeSchema as ticketOwnerModeSchema,
+  ticketProviderArticleTypeSchema as ticketArticleTypeSchema,
+  ticketProviderGlobalSettingsSchema as ticketGlobalSettingsSchema,
+  ticketProviderCatalogGroupSchema as ticketCatalogGroupSchema,
+  ticketProviderCatalogStateSchema as ticketCatalogStateSchema,
+  ticketProviderCatalogPrioritySchema as ticketCatalogPrioritySchema,
+  ticketProviderCatalogOwnerSchema as ticketCatalogOwnerSchema,
+  ticketProviderGlobalCatalogSchema as ticketGlobalCatalogSchema,
+} from "./ticket-provider-global-settings";
 
 export type {
-  ZammadOwnerMode as TicketOwnerMode,
-  ZammadArticleType as TicketArticleType,
-  ZammadGlobalSettings as TicketGlobalSettings,
-  ZammadCatalogGroup as TicketCatalogGroup,
-  ZammadCatalogState as TicketCatalogState,
-  ZammadCatalogPriority as TicketCatalogPriority,
-  ZammadCatalogOwner as TicketCatalogOwner,
-  ZammadGlobalCatalog as TicketGlobalCatalog,
-} from "./zammad-global-settings";
+  TicketProviderOwnerMode as TicketOwnerMode,
+  TicketProviderArticleType as TicketArticleType,
+  TicketProviderGlobalSettings as TicketGlobalSettings,
+  TicketProviderCatalogGroup as TicketCatalogGroup,
+  TicketProviderCatalogState as TicketCatalogState,
+  TicketProviderCatalogPriority as TicketCatalogPriority,
+  TicketProviderCatalogOwner as TicketCatalogOwner,
+  TicketProviderGlobalCatalog as TicketGlobalCatalog,
+} from "./ticket-provider-global-settings";
