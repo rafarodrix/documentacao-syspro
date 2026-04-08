@@ -36,11 +36,17 @@ type ContactOption = {
   whatsapp?: string | null;
   email?: string | null;
   companyId?: string | null;
+  companyIds?: string[];
   company?: {
     id: string;
     razaoSocial: string;
     nomeFantasia?: string | null;
   } | null;
+  companies?: Array<{
+    id: string;
+    razaoSocial: string;
+    nomeFantasia?: string | null;
+  }>;
 };
 
 type CompanyOption = {
@@ -123,7 +129,7 @@ export function CreateUserPageForm({
         const payload = (await response.json()) as ContactOption[];
         const normalized = Array.isArray(payload) ? payload : [];
         const filtered = context === "CLIENT"
-          ? normalized.filter((contact) => contact.companyId && allowedCompanyIds.includes(contact.companyId))
+          ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => allowedCompanyIds.includes(companyId)))
           : normalized;
 
         if (currentContactId && normalized.some((contact) => contact.id === currentContactId) && !filtered.some((contact) => contact.id === currentContactId)) {
@@ -183,8 +189,12 @@ export function CreateUserPageForm({
     return contactOptions.find((contact) => contact.id === selectedContactId) ?? null;
   }, [contactOptions, selectedContactId]);
 
-  const selectedCompanyName = selectedContact?.company?.nomeFantasia || selectedContact?.company?.razaoSocial || null;
-  const clientContactInvalid = context === "CLIENT" && Boolean(selectedContactId) && !selectedContact?.companyId;
+  const selectedCompanyNames = (selectedContact?.companies ?? (selectedContact?.company ? [selectedContact.company] : []))
+    .map((company) => company.nomeFantasia || company.razaoSocial)
+    .filter(Boolean)
+    .join(", ");
+  const selectedContactCompanyIds = selectedContact?.companyIds ?? (selectedContact?.companyId ? [selectedContact.companyId] : []);
+  const clientContactInvalid = context === "CLIENT" && Boolean(selectedContactId) && selectedContactCompanyIds.length === 0;
 
   const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
     if (!data.contactId?.trim()) {
@@ -192,7 +202,7 @@ export function CreateUserPageForm({
       return;
     }
 
-    if (context === "CLIENT" && !selectedContact?.companyId) {
+    if (context === "CLIENT" && selectedContactCompanyIds.length === 0) {
       toast.error("O contato do usuario precisa estar vinculado a uma empresa.");
       return;
     }
@@ -329,7 +339,7 @@ export function CreateUserPageForm({
                       <div className="md:col-span-2 inline-flex items-center gap-1.5">
                         <Building2 className="h-3.5 w-3.5" />
                         <span className="font-medium text-foreground">Empresa do contato:</span>{" "}
-                        {selectedCompanyName || "Sem empresa vinculada"}
+                        {selectedCompanyNames || "Sem empresa vinculada"}
                       </div>
                     </div>
                   ) : null}

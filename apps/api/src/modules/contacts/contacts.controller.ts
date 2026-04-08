@@ -14,6 +14,7 @@ export class ContactsController {
       whatsapp?: string | null;
       notes?: string | null;
       companyId?: string | null;
+      companyIds?: string[] | null;
     },
   ) {
     return this.contactsService.createContact(body);
@@ -54,6 +55,7 @@ export class ContactsController {
       whatsapp?: string | null;
       notes?: string | null;
       companyId?: string | null;
+      companyIds?: string[] | null;
     },
   ) {
     return this.contactsService.updateContact(contactId, body);

@@ -12,6 +12,16 @@ type ContactQueryInput = {
   limit?: string;
 };
 
+type UpsertContactInput = {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  notes?: string | null;
+  companyId?: string | null;
+  companyIds?: string[] | null;
+};
+
 @Injectable()
 export class ContactsService {
   private readonly logger = new Logger(ContactsService.name);
@@ -28,11 +38,11 @@ export class ContactsService {
     const where: any = {};
 
     if (input.unlinked === 'true') {
-      where.companyId = null;
+      where.companyLinks = { none: {} };
     } else if (input.unlinked === 'false') {
-      where.companyId = { not: null };
+      where.companyLinks = { some: {} };
     } else if (input.companyId?.trim()) {
-      where.companyId = input.companyId.trim();
+      where.companyLinks = { some: { companyId: input.companyId.trim() } };
     }
 
     if (q) {
@@ -41,66 +51,48 @@ export class ContactsService {
         { email: { contains: q, mode: 'insensitive' } },
         { phone: { contains: q, mode: 'insensitive' } },
         { whatsapp: { contains: q, mode: 'insensitive' } },
-        { company: { razaoSocial: { contains: q, mode: 'insensitive' } } },
-        { company: { nomeFantasia: { contains: q, mode: 'insensitive' } } },
+        { companyLinks: { some: { company: { razaoSocial: { contains: q, mode: 'insensitive' } } } } },
+        { companyLinks: { some: { company: { nomeFantasia: { contains: q, mode: 'insensitive' } } } } },
       ];
     }
 
     const limitParsed = Number.parseInt(input.limit || '50', 10);
     const take = Math.min(200, Math.max(1, Number.isNaN(limitParsed) ? 50 : limitParsed));
 
-    return this.prisma.companyContact.findMany({
+    const contacts = await (this.prisma.companyContact as any).findMany({
       where,
-      include: {
-        company: {
-          select: {
-            id: true,
-            razaoSocial: true,
-            nomeFantasia: true,
-          },
-        },
-      },
+      include: this.contactInclude(),
       orderBy: [{ updatedAt: 'desc' }],
       take,
     });
+
+    return contacts.map((contact: any) => this.serializeContact(contact));
   }
 
   async getUnlinkedContacts() {
-    return this.prisma.companyContact.findMany({
+    const contacts = await (this.prisma.companyContact as any).findMany({
       where: {
-        companyId: null,
+        companyLinks: { none: {} },
       },
+      include: this.contactInclude(),
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    return contacts.map((contact: any) => this.serializeContact(contact));
   }
 
   async getContactById(contactId: string) {
-    const contact = await this.prisma.companyContact.findUnique({
+    const contact = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
-      include: {
-        company: {
-          select: {
-            id: true,
-            razaoSocial: true,
-            nomeFantasia: true,
-          },
-        },
-      },
+      include: this.contactInclude(),
     });
     if (!contact) throw new NotFoundException('Contato nao encontrado');
-    return contact;
+    return this.serializeContact(contact);
   }
 
-  async createContact(input: {
-    name: string;
-    email?: string | null;
-    phone?: string | null;
-    whatsapp?: string | null;
-    notes?: string | null;
-    companyId?: string | null;
-  }) {
+  async createContact(input: UpsertContactInput) {
     const name = String(input.name ?? '').trim();
     if (!name) {
       throw new BadRequestException('Nome do contato obrigatorio');
@@ -108,104 +100,122 @@ export class ContactsService {
 
     const whatsapp = this.normalizePhone(input.whatsapp);
     const phone = this.normalizePhone(input.phone);
-    const companyId = input.companyId?.trim() || null;
+    const companyIds = this.normalizeCompanyIds(input.companyIds, input.companyId);
     const existing = whatsapp
-      ? await this.prisma.companyContact.findFirst({
+      ? await (this.prisma.companyContact as any).findFirst({
           where: { whatsapp },
-          include: { company: true },
+          include: this.contactInclude(),
         })
       : null;
 
     if (existing) {
-      const updated = await this.prisma.companyContact.update({
-        where: { id: existing.id },
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const updatedContact = await (tx.companyContact as any).update({
+          where: { id: existing.id },
+          data: {
+            name,
+            email: input.email?.trim() || null,
+            phone,
+            whatsapp,
+            notes: input.notes?.trim() || null,
+            companyId: companyIds[0] ?? null,
+            source: existing.source,
+            status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
+          },
+          include: this.contactInclude(),
+        });
+
+        await this.syncContactCompanies(tx, existing.id, companyIds);
+        return (tx.companyContact as any).findUnique({
+          where: { id: existing.id },
+          include: this.contactInclude(),
+        });
+      });
+
+      const serialized = this.serializeContact(updated);
+      await this.syncChatwootContactName(serialized);
+      return serialized;
+    }
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const createdContact = await (tx.companyContact as any).create({
         data: {
           name,
           email: input.email?.trim() || null,
           phone,
           whatsapp,
           notes: input.notes?.trim() || null,
-          companyId,
-          source: existing.source,
-          status: companyId ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
+          companyId: companyIds[0] ?? null,
+          source: CompanyContactSource.MANUAL,
+          status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
         },
-        include: { company: true },
+        include: this.contactInclude(),
       });
 
-      await this.syncChatwootContactName(updated);
-      return updated;
-    }
-
-    const created = await this.prisma.companyContact.create({
-      data: {
-        name,
-        email: input.email?.trim() || null,
-        phone,
-        whatsapp,
-        notes: input.notes?.trim() || null,
-        companyId,
-        source: CompanyContactSource.MANUAL,
-        status: companyId ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
-      },
-      include: { company: true },
+      await this.syncContactCompanies(tx, createdContact.id, companyIds);
+      return (tx.companyContact as any).findUnique({
+        where: { id: createdContact.id },
+        include: this.contactInclude(),
+      });
     });
 
-    await this.syncChatwootContactName(created);
-    return created;
+    const serialized = this.serializeContact(created);
+    await this.syncChatwootContactName(serialized);
+    return serialized;
   }
 
-  async updateContact(
-    contactId: string,
-    input: {
-      name?: string;
-      email?: string | null;
-      phone?: string | null;
-      whatsapp?: string | null;
-      notes?: string | null;
-      companyId?: string | null;
-    },
-  ) {
-    const existing = await this.prisma.companyContact.findUnique({
+  async updateContact(contactId: string, input: UpsertContactInput) {
+    const existing = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
+      include: this.contactInclude(),
     });
     if (!existing) throw new NotFoundException('Contato nao encontrado');
 
-    const data: any = {};
+    const nextCompanyIds = input.companyId !== undefined || input.companyIds !== undefined
+      ? this.normalizeCompanyIds(input.companyIds, input.companyId)
+      : this.extractCompanyIds(existing);
 
+    const data: any = {};
     if (input.name !== undefined) data.name = String(input.name).trim() || existing.name;
     if (input.email !== undefined) data.email = input.email?.trim() || null;
     if (input.notes !== undefined) data.notes = input.notes?.trim() || null;
-    if (input.companyId !== undefined) data.companyId = input.companyId?.trim() || null;
     if (input.phone !== undefined) data.phone = this.normalizePhone(input.phone);
     if (input.whatsapp !== undefined) data.whatsapp = this.normalizePhone(input.whatsapp);
-    if (input.companyId !== undefined) {
-      data.status = input.companyId?.trim() ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK;
+    if (input.companyId !== undefined || input.companyIds !== undefined) {
+      data.companyId = nextCompanyIds[0] ?? null;
+      data.status = nextCompanyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK;
     }
 
-    const updatedContact = await this.prisma.companyContact.update({
-      where: { id: contactId },
-      data,
-      include: { company: true },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await (tx.companyContact as any).update({
+        where: { id: contactId },
+        data,
+      });
+
+      if (input.companyId !== undefined || input.companyIds !== undefined) {
+        await this.syncContactCompanies(tx, contactId, nextCompanyIds);
+      }
+
+      return (tx.companyContact as any).findUnique({
+        where: { id: contactId },
+        include: this.contactInclude(),
+      });
     });
 
-    await this.syncChatwootContactName(updatedContact);
-
-    return updatedContact;
+    const serialized = this.serializeContact(updated);
+    await this.syncChatwootContactName(serialized);
+    return serialized;
   }
 
   async linkContactToCompany(contactId: string, companyId: string) {
-    const contact = await this.prisma.companyContact.findUnique({ where: { id: contactId } });
+    const contact = await (this.prisma.companyContact as any).findUnique({
+      where: { id: contactId },
+      include: this.contactInclude(),
+    });
     if (!contact) throw new NotFoundException('Contato nao encontrado');
 
-    const updatedContact = await this.prisma.companyContact.update({
-      where: { id: contactId },
-      data: { companyId, status: CompanyContactStatus.LINKED },
-      include: { company: true },
-    });
-
-    await this.syncChatwootContactName(updatedContact);
-
-    return updatedContact;
+    const nextCompanyIds = Array.from(new Set([companyId, ...this.extractCompanyIds(contact)]));
+    return this.updateContact(contactId, { companyIds: nextCompanyIds });
   }
 
   async deleteContact(contactId: string) {
@@ -233,8 +243,9 @@ export class ContactsService {
     for (const contact of contacts) {
       if (!contact.whatsapp) continue;
 
-      const existing = await this.prisma.companyContact.findFirst({
+      const existing = await (this.prisma.companyContact as any).findFirst({
         where: { whatsapp: contact.whatsapp },
+        include: this.contactInclude(),
       });
 
       if (existing) {
@@ -245,12 +256,12 @@ export class ContactsService {
           (existing.status === CompanyContactStatus.ARCHIVED);
 
         if (shouldUpdate) {
-          await this.prisma.companyContact.update({
+          await (this.prisma.companyContact as any).update({
             where: { id: existing.id },
             data: {
               name: shouldUpdateName ? nextName : existing.name,
               source: existing.source === CompanyContactSource.MANUAL ? existing.source : CompanyContactSource.IMPORT,
-              status: existing.companyId ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
+              status: this.extractCompanyIds(existing).length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
               whatsapp: contact.whatsapp,
             },
           });
@@ -285,6 +296,114 @@ export class ContactsService {
       mode: 'evolution_pull',
       message: `Sincronizacao concluida. ${createdCount} contatos novos e ${updatedCount} atualizados.`,
     };
+  }
+
+  private contactInclude() {
+    return {
+      company: {
+        select: {
+          id: true,
+          razaoSocial: true,
+          nomeFantasia: true,
+        },
+      },
+      companyLinks: {
+        include: {
+          company: {
+            select: {
+              id: true,
+              razaoSocial: true,
+              nomeFantasia: true,
+            },
+          },
+        },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+      },
+    };
+  }
+
+  private serializeContact(contact: any) {
+    const companies = (contact?.companyLinks ?? [])
+      .map((link: any) => link.company)
+      .filter(Boolean);
+
+    const primaryCompany = companies[0] ?? contact?.company ?? null;
+
+    return {
+      ...contact,
+      companyId: primaryCompany?.id ?? null,
+      company: primaryCompany,
+      companyIds: companies.map((company: any) => company.id),
+      companies,
+    };
+  }
+
+  private extractCompanyIds(contact: any): string[] {
+    const fromLinks = Array.isArray(contact?.companyLinks)
+      ? contact.companyLinks.map((link: any) => link.companyId).filter(Boolean)
+      : [];
+
+    if (fromLinks.length) return Array.from(new Set(fromLinks));
+    if (contact?.companyId) return [contact.companyId];
+    return [];
+  }
+
+  private normalizeCompanyIds(companyIds?: string[] | null, companyId?: string | null): string[] {
+    const values = [
+      ...(Array.isArray(companyIds) ? companyIds : []),
+      ...(companyId ? [companyId] : []),
+    ]
+      .map((value) => String(value ?? '').trim())
+      .filter(Boolean);
+
+    return Array.from(new Set(values));
+  }
+
+  private async syncContactCompanies(tx: any, contactId: string, companyIds: string[]) {
+    await tx.companyContactCompanyLink.deleteMany({
+      where: {
+        contactId,
+        companyId: { notIn: companyIds.length ? companyIds : ['__none__'] },
+      },
+    });
+
+    if (!companyIds.length) {
+      await tx.companyContact.update({
+        where: { id: contactId },
+        data: {
+          companyId: null,
+          status: CompanyContactStatus.PENDING_LINK,
+        },
+      });
+      return;
+    }
+
+    for (const [index, currentCompanyId] of companyIds.entries()) {
+      await tx.companyContactCompanyLink.upsert({
+        where: {
+          contactId_companyId: {
+            contactId,
+            companyId: currentCompanyId,
+          },
+        },
+        create: {
+          contactId,
+          companyId: currentCompanyId,
+          isPrimary: index === 0,
+        },
+        update: {
+          isPrimary: index === 0,
+        },
+      });
+    }
+
+    await tx.companyContact.update({
+      where: { id: contactId },
+      data: {
+        companyId: companyIds[0],
+        status: CompanyContactStatus.LINKED,
+      },
+    });
   }
 
   private async syncChatwootContactName(updatedContact: {
@@ -346,6 +465,7 @@ export class ContactsService {
   private shouldSyncEvolutionName(existing: {
     source: CompanyContactSource;
     companyId?: string | null;
+    companyLinks?: Array<{ companyId: string }>;
     notes?: string | null;
     email?: string | null;
     phone?: string | null;
@@ -358,9 +478,9 @@ export class ContactsService {
       return true;
     }
 
-    // Contatos vindos por WhatsApp so continuam sincronizaveis enquanto nao receberam enriquecimento manual local.
     const hasLocalEnrichment = Boolean(
       existing.companyId ||
+      existing.companyLinks?.length ||
       existing.notes?.trim() ||
       existing.email?.trim() ||
       existing.phone?.trim()

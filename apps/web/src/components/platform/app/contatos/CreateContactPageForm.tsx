@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, Building2, Loader2, Save, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
@@ -25,14 +24,32 @@ type Props = {
 export function CreateContactPageForm({ companies, backHref }: Props) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [companyQuery, setCompanyQuery] = useState("");
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     whatsapp: "",
     notes: "",
-    companyId: "",
+    companyIds: [] as string[],
   });
+
+  const filteredCompanies = useMemo(() => {
+    const term = companyQuery.trim().toLowerCase();
+    if (!term) return companies.slice(0, 20);
+    return companies.filter((company) =>
+      [company.nomeFantasia, company.razaoSocial].some((value) => value?.toLowerCase().includes(term))
+    ).slice(0, 20);
+  }, [companies, companyQuery]);
+
+  function toggleCompany(companyId: string) {
+    setForm((prev) => ({
+      ...prev,
+      companyIds: prev.companyIds.includes(companyId)
+        ? prev.companyIds.filter((id) => id !== companyId)
+        : [...prev.companyIds, companyId],
+    }));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,7 +71,7 @@ export function CreateContactPageForm({ companies, backHref }: Props) {
           phone: form.phone || null,
           whatsapp: form.whatsapp || null,
           notes: form.notes || null,
-          companyId: form.companyId || null,
+          companyIds: form.companyIds,
         }),
       });
 
@@ -82,7 +99,7 @@ export function CreateContactPageForm({ companies, backHref }: Props) {
             <Sparkles className="h-5 w-5 text-primary/70" />
             Novo Contato
           </h2>
-          <p className="text-sm text-muted-foreground">Cadastre o contato base da pessoa e, quando houver, vincule sua empresa principal.</p>
+          <p className="text-sm text-muted-foreground">Cadastre o contato base da pessoa e vincule uma ou mais empresas quando fizer sentido.</p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
           <ArrowLeft className="h-4 w-4" />
@@ -137,23 +154,55 @@ export function CreateContactPageForm({ companies, backHref }: Props) {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Empresa</Label>
-                <Select value={form.companyId || "__none__"} onValueChange={(value) => setForm((prev) => ({ ...prev, companyId: value === "__none__" ? "" : value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma empresa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sem empresa vinculada</SelectItem>
-                    {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.nomeFantasia || company.razaoSocial}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Building2 className="h-4 w-4 text-primary/70" />
+                  Empresas vinculadas
+                </div>
+                <Input
+                  value={companyQuery}
+                  onChange={(event) => setCompanyQuery(event.target.value)}
+                  placeholder="Buscar empresa por nome fantasia ou razao social..."
+                />
+                <div className="flex flex-wrap gap-2">
+                  {form.companyIds.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">Nenhuma empresa vinculada.</span>
+                  ) : (
+                    form.companyIds.map((companyId) => {
+                      const company = companies.find((item) => item.id === companyId);
+                      if (!company) return null;
+                      return (
+                        <button
+                          key={company.id}
+                          type="button"
+                          onClick={() => toggleCompany(company.id)}
+                          className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs"
+                        >
+                          {company.nomeFantasia || company.razaoSocial}
+                          <X className="h-3 w-3" />
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-border/50 bg-background p-2">
+                  {filteredCompanies.map((company) => {
+                    const selected = form.companyIds.includes(company.id);
+                    return (
+                      <button
+                        key={company.id}
+                        type="button"
+                        onClick={() => toggleCompany(company.id)}
+                        className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${selected ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
+                      >
+                        <span>{company.nomeFantasia || company.razaoSocial}</span>
+                        <span className="text-[11px]">{selected ? "Selecionada" : "Selecionar"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Contatos sem empresa continuam disponiveis para vinculacao posterior e para a integracao WhatsApp.
+                  O contato pode existir sem empresa e receber vinculos depois. O usuario, quando existir, herdara estas empresas.
                 </p>
               </div>
 

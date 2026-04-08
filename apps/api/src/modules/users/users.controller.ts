@@ -59,18 +59,4 @@ export class UsersController {
     return this.usersService.remove(id, req.headers);
   }
 
-  @Post(':id/companies')
-  linkCompany(@Req() req: Request, @Param('id') id: string, @Body() body: { companyId: string; role: Role }) {
-    return this.usersService.linkToCompany(id, body.companyId, body.role, req.headers);
-  }
-
-  @Delete(':id/companies/:companyId')
-  removeCompany(@Req() req: Request, @Param('id') id: string, @Param('companyId') companyId: string) {
-    return this.usersService.removeFromCompany(id, companyId, req.headers);
-  }
-
-  @Put(':id/companies/:companyId')
-  updateCompanyRole(@Req() req: Request, @Param('id') id: string, @Param('companyId') companyId: string, @Body('role') role: Role) {
-    return this.usersService.updateMembershipRole(id, companyId, role, req.headers);
-  }
 }

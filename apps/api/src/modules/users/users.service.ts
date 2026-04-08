@@ -46,7 +46,7 @@ export class UsersService {
   async findAll(filters?: { search?: string; role?: string }, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.getRequester(rawHeaders);
 
-    const where: Prisma.UserWhereInput = { deletedAt: null };
+    const where: any = { deletedAt: null };
     const isSystemRole = this.isSystemRole(requester.role);
 
     if (!isSystemRole) {
@@ -149,7 +149,7 @@ export class UsersService {
     return this.prisma.$transaction(async (tx) => {
       const userRole = data.role || Role.CLIENTE_USER;
 
-      await tx.user.update({
+      await (tx.user as any).update({
         where: { id: createdUserId },
         data: {
           name: data.name || null,
@@ -165,7 +165,7 @@ export class UsersService {
 
       await this.syncAccessFromContact(tx, createdUserId, userRole, normalizedContactId);
 
-      return tx.user.findUnique({
+      return (tx.user as any).findUnique({
         where: { id: createdUserId },
         include: this.userInclude(),
       });
@@ -179,7 +179,7 @@ export class UsersService {
 
     if (!isSystemRole && !isClientManager) throw new ForbiddenException('Acesso negado.');
 
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await (this.prisma.user as any).findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario nao encontrado');
 
     let managedCompanyIds: string[] = [];
@@ -206,7 +206,7 @@ export class UsersService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const updatedUser = await tx.user.update({
+      const updatedUser = await (tx.user as any).update({
         where: { id },
         data: {
           name: this.resolveUserName(data.name),
@@ -230,42 +230,6 @@ export class UsersService {
       await this.syncAccessFromContact(tx, id, effectiveRole, effectiveContactId);
 
       return updatedUser;
-    });
-  }
-
-  async linkToCompany(userId: string, companyId: string, role: Role, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    await this.assertCanManageMembershipChange(requester, userId, companyId, role);
-
-    return this.prisma.membership.upsert({
-      where: { userId_companyId: { userId, companyId } },
-      create: { userId, companyId, role },
-      update: { role },
-    });
-  }
-
-  async removeFromCompany(userId: string, companyId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    await this.assertCanManageMembershipChange(requester, userId, companyId);
-
-    return this.prisma.$transaction(async (tx) => {
-      await tx.userContactLink.deleteMany({
-        where: { userId, companyId },
-      });
-
-      return tx.membership.delete({
-        where: { userId_companyId: { userId, companyId } },
-      });
-    });
-  }
-
-  async updateMembershipRole(userId: string, companyId: string, role: Role, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    await this.assertCanManageMembershipChange(requester, userId, companyId, role);
-
-    return this.prisma.membership.update({
-      where: { userId_companyId: { userId, companyId } },
-      data: { role },
     });
   }
 
@@ -326,7 +290,7 @@ export class UsersService {
           role: { in: CLIENT_ROLES },
           memberships: { some: { companyId: { in: companyIds } } },
         },
-        include: this.userInclude(companyIds),
+      include: this.userInclude(companyIds),
         orderBy: { name: 'asc' },
       }),
     ]);
@@ -363,7 +327,7 @@ export class UsersService {
 
     const safeCompanyFilter = managedCompanyIds?.length ? managedCompanyIds : ['__none__'];
 
-    const user = await this.prisma.user.findFirst({
+    const user = await (this.prisma.user as any).findFirst({
       where: {
         id: userId,
         deletedAt: null,
@@ -422,7 +386,7 @@ export class UsersService {
       throw new ForbiddenException('Acesso negado.');
     }
 
-    const user = await this.prisma.user.findFirst({
+    const user = await (this.prisma.user as any).findFirst({
       where: {
         id: userId,
         deletedAt: null,
@@ -470,6 +434,19 @@ export class UsersService {
           whatsapp: true,
           email: true,
           companyId: true,
+          companyLinks: {
+            select: {
+              companyId: true,
+              isPrimary: true,
+              company: {
+                select: {
+                  id: true,
+                  razaoSocial: true,
+                  nomeFantasia: true,
+                },
+              },
+            },
+          },
           company: {
             select: {
               id: true,
@@ -479,7 +456,7 @@ export class UsersService {
           },
         },
       },
-    } satisfies Prisma.UserInclude;
+    } as any;
   }
 
   private isSystemRole(role: Role) {
@@ -514,54 +491,69 @@ export class UsersService {
       return;
     }
 
-    const contact = await tx.companyContact.findFirst({
+    const contact = await (tx.companyContact as any).findFirst({
       where: { id: contactId },
-      select: { id: true, companyId: true },
+      select: {
+        id: true,
+        companyId: true,
+        companyLinks: {
+          select: {
+            companyId: true,
+          },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        },
+      },
     });
 
     if (!contact) {
       throw new NotFoundException('Contato informado nao encontrado.');
     }
 
-    if (!contact.companyId) {
+    const companyIds = this.extractContactCompanyIds(contact);
+
+    if (!companyIds.length) {
       throw new BadRequestException('Contato do usuario precisa estar vinculado a uma empresa.');
     }
 
     const membershipRole = role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER;
 
     await tx.membership.deleteMany({
-      where: { userId, companyId: { not: contact.companyId } },
+      where: { userId, companyId: { notIn: companyIds } },
     });
 
-    await tx.membership.upsert({
-      where: { userId_companyId: { userId, companyId: contact.companyId } },
-      create: {
-        userId,
-        companyId: contact.companyId,
-        role: membershipRole,
-      },
-      update: {
-        role: membershipRole,
-      },
-    });
+    for (const companyId of companyIds) {
+      await tx.membership.upsert({
+        where: { userId_companyId: { userId, companyId } },
+        create: {
+          userId,
+          companyId,
+          role: membershipRole,
+        },
+        update: {
+          role: membershipRole,
+        },
+      });
+    }
 
     await tx.userContactLink.deleteMany({
-      where: { userId, companyId: { not: contact.companyId } },
+      where: { userId, companyId: { notIn: companyIds } },
     });
 
-    await tx.userContactLink.upsert({
-      where: { userId_companyId: { userId, companyId: contact.companyId } },
-      create: {
-        userId,
-        companyId: contact.companyId,
-        contactId,
-        isPrimary: true,
-      },
-      update: {
-        contactId,
-        isPrimary: true,
-      },
-    });
+    for (const [index, companyId] of companyIds.entries()) {
+      await tx.userContactLink.upsert({
+        where: { userId_companyId: { userId, companyId } },
+        create: {
+          userId,
+          companyId,
+          contactId,
+          isPrimary: index === 0,
+        },
+        update: {
+          contactId,
+          isPrimary: index === 0,
+        },
+      });
+    }
   }
 
   private async assertContactWithinCompanies(
@@ -569,22 +561,42 @@ export class UsersService {
     allowedCompanyIds: string[],
     requireCompany: boolean,
   ) {
-    const contact = await this.prisma.companyContact.findUnique({
+    const contact = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
-      select: { id: true, companyId: true },
+      select: {
+        id: true,
+        companyId: true,
+        companyLinks: {
+          select: {
+            companyId: true,
+          },
+        },
+      },
     });
 
     if (!contact) {
       throw new NotFoundException('Contato informado nao encontrado.');
     }
 
-    if (requireCompany && !contact.companyId) {
+    const companyIds = this.extractContactCompanyIds(contact);
+
+    if (requireCompany && !companyIds.length) {
       throw new BadRequestException('Contato precisa estar vinculado a uma empresa.');
     }
 
-    if (contact.companyId && !allowedCompanyIds.includes(contact.companyId)) {
+    if (companyIds.some((companyId) => !allowedCompanyIds.includes(companyId))) {
       throw new ForbiddenException('Contato informado nao pertence a uma empresa permitida para este gestor.');
     }
+  }
+
+  private extractContactCompanyIds(contact: any): string[] {
+    const fromLinks = Array.isArray(contact?.companyLinks)
+      ? contact.companyLinks.map((link: any) => link.companyId).filter(Boolean)
+      : [];
+
+    if (fromLinks.length) return Array.from(new Set(fromLinks));
+    if (contact?.companyId) return [contact.companyId];
+    return [];
   }
 
   private async getManagedCompanyIds(userId: string) {
@@ -621,30 +633,6 @@ export class UsersService {
 
     if (!targetMembership) {
       throw new ForbiddenException('Voce nao pode editar este usuario.');
-    }
-  }
-
-  private async assertCanManageMembershipChange(
-    requester: { userId: string; role: Role },
-    targetUserId: string,
-    companyId: string,
-    roleToApply?: Role,
-  ) {
-    if (this.isSystemRole(requester.role)) return;
-
-    if (requester.role !== Role.CLIENTE_ADMIN) {
-      throw new ForbiddenException('Acesso negado.');
-    }
-
-    await this.assertClientManagerCanManageTarget(requester.userId, targetUserId);
-
-    const managedCompanyIds = await this.getManagedCompanyIds(requester.userId);
-    if (!managedCompanyIds.includes(companyId)) {
-      throw new ForbiddenException('Empresa invalida para este gestor.');
-    }
-
-    if (roleToApply && !CLIENT_ROLES.includes(roleToApply)) {
-      throw new ForbiddenException('Perfil invalido para contexto de cliente.');
     }
   }
 

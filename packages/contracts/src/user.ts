@@ -33,12 +33,5 @@ export const createUserSchema = z.object({
   cpf: optionalCpfSchema,
 });
 
-export const linkUserToCompanySchema = z.object({
-  email: z.string().email("E-mail invalido"),
-  role: z.enum(USER_ROLE_VALUES),
-  companyId: z.string().min(1, "Selecione uma empresa"),
-});
-
 export type CreateUserInput = z.input<typeof createUserSchema>;
 export type CreateUserOutput = z.output<typeof createUserSchema>;
-export type LinkUserToCompanyInput = z.infer<typeof linkUserToCompanySchema>;

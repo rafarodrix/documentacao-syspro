@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-import { Building2, Loader2, Plus, RefreshCw, Save, Search, Trash2, Unlink } from "lucide-react"
+import { Building2, Loader2, Plus, RefreshCw, Save, Search, Trash2, Unlink, X } from "lucide-react"
 
 type CompanyOption = {
   id: string
@@ -23,6 +23,7 @@ type ContactItem = {
   whatsapp?: string | null
   notes?: string | null
   companyId?: string | null
+  companyIds?: string[]
   createdAt: string
   updatedAt: string
   company?: {
@@ -30,6 +31,11 @@ type ContactItem = {
     razaoSocial: string
     nomeFantasia?: string | null
   } | null
+  companies?: Array<{
+    id: string
+    razaoSocial: string
+    nomeFantasia?: string | null
+  }>
 }
 
 type ContactForm = {
@@ -38,7 +44,7 @@ type ContactForm = {
   phone: string
   whatsapp: string
   notes: string
-  companyId: string | null
+  companyIds: string[]
 }
 
 function toForm(contact: ContactItem | null): ContactForm {
@@ -49,7 +55,7 @@ function toForm(contact: ContactItem | null): ContactForm {
       phone: "",
       whatsapp: "",
       notes: "",
-      companyId: null,
+      companyIds: [],
     }
   }
 
@@ -59,7 +65,7 @@ function toForm(contact: ContactItem | null): ContactForm {
     phone: contact.phone ?? "",
     whatsapp: contact.whatsapp ?? "",
     notes: contact.notes ?? "",
-    companyId: contact.companyId ?? null,
+    companyIds: contact.companyIds ?? (contact.companyId ? [contact.companyId] : []),
   }
 }
 
@@ -90,11 +96,15 @@ export function ContactsHubPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
 
-  const selectedCompany = useMemo(() => {
-    if (!selectedContact?.companyId) return null
-    if (selectedContact.company?.id === selectedContact.companyId) return selectedContact.company
-    return companyOptions.find((item) => item.id === selectedContact.companyId) ?? null
-  }, [companyOptions, selectedContact])
+  const selectedCompanies = useMemo(() => {
+    const ids = form.companyIds
+    return ids
+      .map((id) =>
+        selectedContact?.companies?.find((company) => company.id === id) ??
+        companyOptions.find((company) => company.id === id)
+      )
+      .filter(Boolean) as CompanyOption[]
+  }, [companyOptions, form.companyIds, selectedContact])
 
   const loadContacts = async () => {
     setLoadingList(true)
@@ -220,12 +230,12 @@ export function ContactsHubPage() {
       phone: form.phone,
       whatsapp: form.whatsapp,
       notes: form.notes,
-      companyId: form.companyId,
+      companyIds: form.companyIds,
     })
   }
 
   const handleUnlink = async () => {
-    await patchContact({ companyId: null })
+    await patchContact({ companyIds: [] })
   }
 
   const handleDelete = async () => {
@@ -357,7 +367,7 @@ export function ContactsHubPage() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="truncate text-sm font-medium">{contact.name || "Sem nome"}</p>
-                      {contact.companyId ? (
+                      {(contact.companyIds?.length ?? 0) > 0 ? (
                         <Badge variant="secondary" className="text-[10px]">Vinculado</Badge>
                       ) : (
                         <Badge variant="outline" className="text-[10px]">Sem empresa</Badge>
@@ -365,7 +375,7 @@ export function ContactsHubPage() {
                     </div>
                     <p className="truncate text-xs text-muted-foreground">{contact.whatsapp || contact.phone || "Sem telefone"}</p>
                     <p className="truncate text-[11px] text-muted-foreground">
-                      {contact.company?.nomeFantasia || contact.company?.razaoSocial || "Sem empresa"}
+                      {contact.companies?.map((company) => company.nomeFantasia || company.razaoSocial).join(", ") || contact.company?.nomeFantasia || contact.company?.razaoSocial || "Sem empresa"}
                     </p>
                   </button>
                 )
@@ -392,8 +402,8 @@ export function ContactsHubPage() {
                     Criado em {formatDate(selectedContact.createdAt)} • Atualizado em {formatDate(selectedContact.updatedAt)}
                   </p>
                 </div>
-                <Badge variant={selectedContact.companyId ? "secondary" : "outline"}>
-                  {selectedContact.companyId ? "Vinculado" : "Sem empresa"}
+                <Badge variant={(selectedContact.companyIds?.length ?? 0) > 0 ? "secondary" : "outline"}>
+                  {(selectedContact.companyIds?.length ?? 0) > 0 ? "Vinculado" : "Sem empresa"}
                 </Badge>
               </div>
 
@@ -431,33 +441,64 @@ export function ContactsHubPage() {
               <div className="space-y-2 rounded-md border p-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Building2 className="h-4 w-4" />
-                  Empresa vinculada
+                  Empresas vinculadas
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  Atual: {selectedCompany?.nomeFantasia || selectedCompany?.razaoSocial || "Nenhuma empresa vinculada"}
+                  Atual: {selectedCompanies.length ? selectedCompanies.map((company) => company.nomeFantasia || company.razaoSocial).join(", ") : "Nenhuma empresa vinculada"}
                 </p>
 
-                <div className="grid gap-2 md:grid-cols-[1fr_220px]">
+                <div className="space-y-2">
                   <Input
                     value={companyQuery}
                     onChange={(event) => setCompanyQuery(event.target.value)}
                     placeholder="Buscar empresa por nome/cnpj..."
                   />
-                  <select
-                    value={form.companyId ?? ""}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, companyId: event.target.value ? event.target.value : null }))
-                    }
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value="">Sem empresa</option>
-                    {companyOptions.map((company) => (
-                      <option key={company.id} value={company.id}>
-                        {company.nomeFantasia || company.razaoSocial}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCompanies.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">Nenhuma empresa vinculada.</span>
+                    ) : (
+                      selectedCompanies.map((company) => (
+                        <button
+                          key={company.id}
+                          type="button"
+                          onClick={() =>
+                            setForm((prev) => ({ ...prev, companyIds: prev.companyIds.filter((id) => id !== company.id) }))
+                          }
+                          className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs"
+                        >
+                          {company.nomeFantasia || company.razaoSocial}
+                          <X className="h-3 w-3" />
+                        </button>
+                      ))
+                    )}
+                  </div>
+                  <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-input bg-background p-2">
+                    {companyOptions.map((company) => {
+                      const selected = form.companyIds.includes(company.id)
+                      return (
+                        <button
+                          key={company.id}
+                          type="button"
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              companyIds: selected
+                                ? prev.companyIds.filter((id) => id !== company.id)
+                                : [...prev.companyIds, company.id],
+                            }))
+                          }
+                          className={cn(
+                            "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors",
+                            selected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+                          )}
+                        >
+                          <span>{company.nomeFantasia || company.razaoSocial}</span>
+                          <span className="text-[11px]">{selected ? "Selecionada" : "Selecionar"}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
                 {searchingCompanies && <p className="text-xs text-muted-foreground">Buscando empresas...</p>}
               </div>
@@ -480,9 +521,9 @@ export function ContactsHubPage() {
                   {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Salvar alteracoes
                 </Button>
-                <Button variant="outline" onClick={handleUnlink} disabled={saving || !selectedContact.companyId}>
+                <Button variant="outline" onClick={handleUnlink} disabled={saving || (selectedContact.companyIds?.length ?? 0) === 0}>
                   <Unlink className="mr-2 h-4 w-4" />
-                  Desvincular empresa
+                  Remover empresas
                 </Button>
                 <Button variant="destructive" onClick={handleDelete} disabled={saving}>
                   <Trash2 className="mr-2 h-4 w-4" />

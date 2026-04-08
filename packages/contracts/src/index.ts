@@ -42,8 +42,8 @@ export {
 } from "./documento-config";
 export type { FieldMetadata } from "./documento-config";
 
-export { USER_ROLE_VALUES, createUserSchema, linkUserToCompanySchema } from "./user";
-export type { CreateUserInput, CreateUserOutput, LinkUserToCompanyInput } from "./user";
+export { USER_ROLE_VALUES, createUserSchema } from "./user";
+export type { CreateUserInput, CreateUserOutput } from "./user";
 
 export {
   ticketApiSchema,

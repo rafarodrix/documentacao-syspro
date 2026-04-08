@@ -281,6 +281,7 @@ model Company {
   contracts         Contract[]
   memberships       Membership[]
   contacts          CompanyContact[]
+  contactLinks      CompanyContactCompanyLink[]
   userContactLinks  UserContactLink[]
   conversations     Conversation[]
   remoteHosts       RemoteHost[]
@@ -325,10 +326,31 @@ model CompanyContact {
   authoredConversationMessages ConversationMessage[] @relation("ConversationMessageAuthorContact")
   userLinks UserContactLink[]
   users User[]
+  companyLinks CompanyContactCompanyLink[]
 
   @@index([companyId, status])
   @@index([whatsapp])
   @@map("company_contact")
+}
+
+model CompanyContactCompanyLink {
+  id String @id @default(cuid())
+
+  contactId String
+  contact CompanyContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([contactId, companyId])
+  @@index([companyId])
+  @@index([contactId, isPrimary])
+  @@map("company_contact_company_link")
 }
 
 model CompanyTicketEmail {

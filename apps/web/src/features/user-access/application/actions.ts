@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createUserSchema, type CreateUserInput, linkUserToCompanySchema, type LinkUserToCompanyInput } from "@dosc-syspro/contracts";
+import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { Role } from "@prisma/client";
 import { z } from "zod";
@@ -204,52 +204,6 @@ export async function deleteUserAction(id: string): Promise<UserAccessActionResp
   }
 }
 
-export async function linkUserToCompanyAction(data: LinkUserToCompanyInput): Promise<UserAccessActionResponse> {
-  const session = await getProtectedSession();
-  if (!session) return { success: false, message: "Acesso negado." };
-
-  const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === Role.CLIENTE_ADMIN;
-  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
-
-  const validation = linkUserToCompanySchema.safeParse(data);
-  if (!validation.success) {
-    return {
-      success: false,
-      message: validation.error.issues[0]?.message ?? "Dados invalidos.",
-    };
-  }
-
-  try {
-    const userLookup = await callApi(`/users?search=${encodeURIComponent(validation.data.email)}`);
-    if (!userLookup.ok) {
-      return { success: false, message: "Usuario nao encontrado." };
-    }
-
-    const users = (await userLookup.json().catch(() => [])) as Array<{ id: string; email: string }>;
-    const user = users.find((u) => u.email.toLowerCase() === validation.data.email.toLowerCase());
-    if (!user) return { success: false, message: "Usuario nao encontrado." };
-
-    const response = await callApi(`/users/${encodeURIComponent(user.id)}/companies`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ companyId: validation.data.companyId, role: validation.data.role }),
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      return { success: false, message: toApiErrorMessage(payload, "Falha ao atualizar vinculo.") };
-    }
-
-    revalidateCadastrosViews();
-    return { success: true, message: "Vinculo atualizado." };
-  } catch (error) {
-    return handleActionError(error);
-  }
-}
-
 export async function toggleUserStatusAction(id: string, active: boolean): Promise<UserAccessActionResponse> {
   const session = await getProtectedSession();
   if (!session) return { success: false, message: "Acesso negado." };
@@ -274,60 +228,6 @@ export async function toggleUserStatusAction(id: string, active: boolean): Promi
 
     revalidateCadastrosViews();
     return { success: true, message: `Usuario ${active ? "ativado" : "desativado"} com sucesso.` };
-  } catch (error) {
-    return handleActionError(error);
-  }
-}
-
-export async function removeUserFromCompanyAction(userId: string, companyId: string): Promise<UserAccessActionResponse> {
-  const session = await getProtectedSession();
-  if (!session) return { success: false, message: "Acesso negado." };
-
-  const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === Role.CLIENTE_ADMIN;
-  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
-
-  try {
-    const response = await callApi(`/users/${encodeURIComponent(userId)}/companies/${encodeURIComponent(companyId)}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      return { success: false, message: toApiErrorMessage(payload, "Falha ao remover vinculo.") };
-    }
-
-    revalidateCadastrosViews();
-    return { success: true, message: "Vinculo removido com sucesso." };
-  } catch (error) {
-    return handleActionError(error);
-  }
-}
-
-export async function updateMembershipRoleAction(userId: string, companyId: string, role: Role): Promise<UserAccessActionResponse> {
-  const session = await getProtectedSession();
-  if (!session) return { success: false, message: "Acesso negado." };
-
-  const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === Role.CLIENTE_ADMIN;
-  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
-
-  try {
-    const response = await callApi(`/users/${encodeURIComponent(userId)}/companies/${encodeURIComponent(companyId)}`, {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ role }),
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      return { success: false, message: toApiErrorMessage(payload, "Falha ao atualizar cargo do vinculo.") };
-    }
-
-    revalidateCadastrosViews();
-    return { success: true, message: "Cargo atualizado com sucesso." };
   } catch (error) {
     return handleActionError(error);
   }
