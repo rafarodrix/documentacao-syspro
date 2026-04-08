@@ -134,7 +134,8 @@ Objetivo futuro:
 
 4. Configurar webhook do Chatwoot
 
-- URL: `https://SEU_BACKEND/webhooks/chatwoot`
+- URL preferencial: `https://SEU_BACKEND/api/webhooks/chatwoot`
+- Alias legado aceito pelo backend: `https://SEU_BACKEND/webhooks/chatwoot`
 - evento essencial para resposta outbound:
   - `message_created`
 - se `CHATWOOT_WEBHOOK_SECRET` estiver configurado:
@@ -209,7 +210,7 @@ Objetivo futuro:
 - `CHATWOOT_INBOX_ID` ou `CHATWOOT_INBOX_IDENTIFIER` configurado
 - webhook Evolution Go apontando para `/api/webhooks/evolution`
 - webhook Evolution Go enviando `Message` e `Receipt`
-- webhook Chatwoot apontando para `/webhooks/chatwoot`
+- webhook Chatwoot apontando para `/api/webhooks/chatwoot` (ou `/webhooks/chatwoot`, mantido como alias)
 - Chatwoot enviando `message_created`
 - teste inbound realizado com sucesso
 - teste outbound realizado com sucesso

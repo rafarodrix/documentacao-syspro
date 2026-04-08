@@ -245,7 +245,7 @@ export default function EvolutionSettingsTab() {
           <p>- Evolution Go deve apontar para `POST /api/webhooks/evolution` com `Message` e `Receipt` habilitados.</p>
           <p>- O backend precisa ter `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` e `EVOLUTION_INSTANCE` configurados.</p>
           <p>- Se `EVOLUTION_INSTANCE_TOKEN` estiver definido no backend, o `instanceToken` enviado pela Evolution Go deve bater exatamente.</p>
-          <p>- O Chatwoot precisa apontar webhook para `POST /webhooks/chatwoot` com assinatura HMAC habilitada quando `CHATWOOT_WEBHOOK_SECRET` estiver configurado.</p>
+          <p>- O Chatwoot precisa apontar webhook para `POST /api/webhooks/chatwoot`; `/webhooks/chatwoot` tambem e aceito como alias.</p>
           <p>- O fluxo principal atual depende de `message_created` no Chatwoot para enviar respostas ao WhatsApp.</p>
         </CardContent>
       </Card>

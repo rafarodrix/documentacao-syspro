@@ -33,6 +33,29 @@ export class ChatwootWebhookController {
     @Body() payload: any,
   ) {
     const resolvedContext = await this.integrationContext.resolveForChatwootWebhook(payload);
+    if (payload?.event === 'message_created') {
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'webhook_received',
+        event: payload?.event,
+        messageId: payload?.id?.toString?.(),
+        messageType: payload?.message_type,
+        conversationId:
+          payload?.conversation?.id?.toString?.() ??
+          payload?.conversation_id?.toString?.() ??
+          payload?.message?.conversation_id?.toString?.(),
+        inboxId:
+          payload?.inbox?.id?.toString?.() ??
+          payload?.inbox_id?.toString?.() ??
+          payload?.conversation?.inbox_id?.toString?.(),
+        accountId:
+          payload?.account?.id?.toString?.() ??
+          payload?.account_id?.toString?.() ??
+          payload?.conversation?.account_id?.toString?.(),
+        resolvedConnectionKey: resolvedContext?.connectionKey ?? null,
+      }));
+    }
+
     const expectedSecret = resolvedContext?.chatwoot.webhookSecret;
     if (expectedSecret) {
       if (!signatureHeader || !timestampHeader) {
