@@ -4,22 +4,11 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3000}
-      DATABASE_URL: ${DATABASE_URL}
-      DIRECT_URL: ${DIRECT_URL}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      EXTRA_TRUSTED_ORIGINS: ${EXTRA_TRUSTED_ORIGINS}
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
-      CHATWOOT_URL: ${CHATWOOT_URL}
-      CHATWOOT_API_TOKEN: ${CHATWOOT_API_TOKEN}
-      CHATWOOT_ACCOUNT_ID: ${CHATWOOT_ACCOUNT_ID}
-      CHATWOOT_INBOX_IDENTIFIER: ${CHATWOOT_INBOX_IDENTIFIER}
-      EVOLUTION_API_URL: ${EVOLUTION_API_URL}
-      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
-      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE}
     expose:
       - "3000"
     # Habilite apenas se sua instância Dokploy exigir rede externa explícita.
