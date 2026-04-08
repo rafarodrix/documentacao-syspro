@@ -184,6 +184,7 @@ function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: Us
 export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
   const [users, setUsers] = useState<UserWithRelations[]>(data);
   const [searchTerm, setSearchTerm] = useState("");
+  const [companyFilter, setCompanyFilter] = useState<"all" | "with_company" | "without_company">("all");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState<UserWithRelations | null>(null);
@@ -198,12 +199,17 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
 
     return users.filter(
       (user) =>
-        !term ||
-        user.name?.toLowerCase().includes(term) ||
-        user.email.toLowerCase().includes(term) ||
-        (user.cpf && user.cpf.includes(cpfRaw)),
+        (companyFilter === "all" ||
+          (companyFilter === "with_company" && (user.memberships?.length ?? 0) > 0) ||
+          (companyFilter === "without_company" && (user.memberships?.length ?? 0) === 0)) &&
+        (
+          !term ||
+          user.name?.toLowerCase().includes(term) ||
+          user.email.toLowerCase().includes(term) ||
+          (user.cpf && user.cpf.includes(cpfRaw))
+        ),
     );
-  }, [users, searchTerm]);
+  }, [companyFilter, users, searchTerm]);
 
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
@@ -264,22 +270,33 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
         )}
 
         <div className="flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
-          <div className="relative w-full sm:w-80 group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-            <Input
-              placeholder="Nome, e-mail ou CPF..."
-              className="pl-9 h-9 bg-background border-border/60 focus-visible:ring-primary/20"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <div className="relative w-full sm:w-80 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Nome, e-mail ou CPF..."
+                className="pl-9 h-9 bg-background border-border/60 focus-visible:ring-primary/20"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <select
+              value={companyFilter}
+              onChange={(event) => setCompanyFilter(event.target.value as "all" | "with_company" | "without_company")}
+              className="h-9 w-full rounded-md border border-border/60 bg-background px-3 text-sm sm:w-56"
+            >
+              <option value="all">Todas as empresas</option>
+              <option value="with_company">Com empresa vinculada</option>
+              <option value="without_company">Sem empresa vinculada</option>
+            </select>
           </div>
 
           {canManage && (

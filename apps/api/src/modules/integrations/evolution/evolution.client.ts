@@ -49,8 +49,8 @@ export class EvolutionClient {
     });
 
     if (primaryResponse.ok) {
-      const payload = await primaryResponse.json().catch(() => []);
-      return this.normalizeContactList(payload);
+      const payload: any = await primaryResponse.json().catch(() => []);
+      return this.normalizeContactList(this.resolveContactsPayload(payload));
     }
 
     const fallbackResponse = await fetch(`${baseUrl}/user/contacts`, {
@@ -63,7 +63,7 @@ export class EvolutionClient {
 
     if (fallbackResponse.ok) {
       const payload: any = await fallbackResponse.json().catch(() => ({}));
-      return this.normalizeContactList(payload?.data ?? payload?.contacts ?? []);
+      return this.normalizeContactList(this.resolveContactsPayload(payload));
     }
 
     const primaryError = await primaryResponse.text().catch(() => 'unknown_error');
@@ -250,6 +250,27 @@ export class EvolutionClient {
     }
 
     return contacts;
+  }
+
+  private resolveContactsPayload(payload: any): any[] {
+    if (Array.isArray(payload)) return payload;
+
+    const candidates = [
+      payload?.data,
+      payload?.contacts,
+      payload?.result,
+      payload?.results,
+      payload?.data?.contacts,
+      payload?.data?.result,
+      payload?.data?.results,
+      payload?.response,
+    ];
+
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) return candidate;
+    }
+
+    return [];
   }
 
   private extractWhatsAppNumber(value: unknown): string {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-import { Building2, Loader2, RefreshCw, Save, Search, Trash2, Unlink } from "lucide-react"
+import { Building2, Loader2, Plus, RefreshCw, Save, Search, Trash2, Unlink } from "lucide-react"
 
 type CompanyOption = {
   id: string
@@ -40,8 +40,6 @@ type ContactForm = {
   notes: string
   companyId: string | null
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || ""
 
 function toForm(contact: ContactItem | null): ContactForm {
   if (!contact) {
@@ -90,16 +88,7 @@ export function ContactsHubPage() {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
   const [syncing, setSyncing] = useState(false)
-  const [createForm, setCreateForm] = useState<ContactForm>({
-    name: "",
-    email: "",
-    phone: "",
-    whatsapp: "",
-    notes: "",
-    companyId: null,
-  })
 
   const selectedCompany = useMemo(() => {
     if (!selectedContact?.companyId) return null
@@ -117,7 +106,7 @@ export function ContactsHubPage() {
       if (scope === "linked") params.set("unlinked", "false")
       params.set("limit", "100")
 
-      const response = await fetch(`${API_BASE}/api/contacts?${params.toString()}`, { cache: "no-store" })
+      const response = await fetch(`/api/contacts?${params.toString()}`, { cache: "no-store" })
       if (!response.ok) throw new Error(`Falha ao carregar contatos (${response.status})`)
       const data = (await response.json()) as ContactItem[]
       setContacts(data)
@@ -139,7 +128,7 @@ export function ContactsHubPage() {
     setLoadingDetails(true)
     setErrorMessage(null)
     try {
-      const response = await fetch(`${API_BASE}/api/contacts/${contactId}`, { cache: "no-store" })
+      const response = await fetch(`/api/contacts/${contactId}`, { cache: "no-store" })
       if (!response.ok) throw new Error(`Falha ao carregar contato (${response.status})`)
       const data = (await response.json()) as ContactItem
       setSelectedContact(data)
@@ -179,7 +168,7 @@ export function ContactsHubPage() {
     const timer = setTimeout(async () => {
       setSearchingCompanies(true)
       try {
-        const response = await fetch(`${API_BASE}/api/companies/search?q=${encodeURIComponent(query)}`, { cache: "no-store" })
+        const response = await fetch(`/api/companies/search?q=${encodeURIComponent(query)}`, { cache: "no-store" })
         if (!response.ok) throw new Error("Falha na busca de empresas")
         const companies = (await response.json()) as CompanyOption[]
         setCompanyOptions(companies)
@@ -200,7 +189,7 @@ export function ContactsHubPage() {
     setErrorMessage(null)
     setSuccessMessage(null)
     try {
-      const response = await fetch(`${API_BASE}/api/contacts/${selectedContact.id}`, {
+      const response = await fetch(`/api/contacts/${selectedContact.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -247,7 +236,7 @@ export function ContactsHubPage() {
     setErrorMessage(null)
     setSuccessMessage(null)
     try {
-      const response = await fetch(`${API_BASE}/api/contacts/${selectedContact.id}`, { method: "DELETE" })
+      const response = await fetch(`/api/contacts/${selectedContact.id}`, { method: "DELETE" })
       if (!response.ok) throw new Error(`Falha ao excluir contato (${response.status})`)
 
       const removedId = selectedContact.id
@@ -266,52 +255,12 @@ export function ContactsHubPage() {
     }
   }
 
-  const handleCreate = async () => {
-    if (!createForm.name.trim()) {
-      setErrorMessage("Informe o nome do contato.")
-      return
-    }
-
-    setCreating(true)
-    setErrorMessage(null)
-    setSuccessMessage(null)
-    try {
-      const response = await fetch(`${API_BASE}/api/contacts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createForm),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "")
-        throw new Error(errorText || `Falha ao criar contato (${response.status})`)
-      }
-
-      const created = (await response.json()) as ContactItem
-      setCreateForm({
-        name: "",
-        email: "",
-        phone: "",
-        whatsapp: "",
-        notes: "",
-        companyId: null,
-      })
-      setSuccessMessage("Contato criado com sucesso.")
-      await loadContacts()
-      setSelectedId(created.id)
-    } catch (error: any) {
-      setErrorMessage(error?.message || "Falha ao criar contato")
-    } finally {
-      setCreating(false)
-    }
-  }
-
   const handleEvolutionSync = async () => {
     setSyncing(true)
     setErrorMessage(null)
     setSuccessMessage(null)
     try {
-      const response = await fetch(`${API_BASE}/api/contacts/sync`, {
+      const response = await fetch(`/api/contacts/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
@@ -344,54 +293,16 @@ export function ContactsHubPage() {
           </Button>
           <Button variant="outline" size="sm" onClick={handleEvolutionSync} disabled={syncing}>
             {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Sincronizar Evolution
+            Sincronizar contatos
           </Button>
-          <Button asChild variant="secondary" size="sm">
-            <Link href="/portal/contatos/pendentes">Pendentes</Link>
+          <Button asChild size="sm">
+            <Link href="/portal/contatos/novo">
+              <Plus className="mr-2 h-4 w-4" />
+              Cadastrar contato
+            </Link>
           </Button>
         </div>
       </div>
-
-      <section className="rounded-lg border bg-card p-4 md:p-5 space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold">Novo contato</h2>
-          <p className="text-sm text-muted-foreground">Cadastre um contato manualmente no portal.</p>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <Input
-            value={createForm.name}
-            onChange={(event) => setCreateForm((prev) => ({ ...prev, name: event.target.value }))}
-            placeholder="Nome"
-          />
-          <Input
-            value={createForm.email}
-            onChange={(event) => setCreateForm((prev) => ({ ...prev, email: event.target.value }))}
-            placeholder="Email"
-          />
-          <Input
-            value={createForm.phone}
-            onChange={(event) => setCreateForm((prev) => ({ ...prev, phone: event.target.value }))}
-            placeholder="Telefone"
-          />
-          <Input
-            value={createForm.whatsapp}
-            onChange={(event) => setCreateForm((prev) => ({ ...prev, whatsapp: event.target.value }))}
-            placeholder="WhatsApp"
-          />
-        </div>
-        <Textarea
-          rows={3}
-          value={createForm.notes}
-          onChange={(event) => setCreateForm((prev) => ({ ...prev, notes: event.target.value }))}
-          placeholder="Observacoes"
-        />
-        <div className="flex justify-end">
-          <Button onClick={handleCreate} disabled={creating || !createForm.name.trim()}>
-            {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Criar contato
-          </Button>
-        </div>
-      </section>
 
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         <section className="rounded-lg border bg-card p-3">
@@ -449,7 +360,7 @@ export function ContactsHubPage() {
                       {contact.companyId ? (
                         <Badge variant="secondary" className="text-[10px]">Vinculado</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px]">Pendente</Badge>
+                        <Badge variant="outline" className="text-[10px]">Sem empresa</Badge>
                       )}
                     </div>
                     <p className="truncate text-xs text-muted-foreground">{contact.whatsapp || contact.phone || "Sem telefone"}</p>

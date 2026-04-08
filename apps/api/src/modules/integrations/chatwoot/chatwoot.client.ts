@@ -176,6 +176,17 @@ export class ChatwootClient {
     );
   }
 
+  async getConversationDetails(
+    config: ChatwootConnectionConfig,
+    conversationId: string
+  ) {
+    return this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}`,
+      'GET'
+    );
+  }
+
   async createConversation(config: ChatwootConnectionConfig, contactIdentifier: string, contactId?: string) {
     const inboxIdentifier = await this.resolveInboxIdentifier(config);
     if (inboxIdentifier) {

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EvolutionClient } from '../../evolution/evolution.client';
+import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IntegrationWebhookDedupService } from './integration-webhook-dedup.service';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../../../settings/integration-context.service';
@@ -10,6 +11,7 @@ export class ProcessOutgoingMessageUseCase {
 
   constructor(
     private readonly evolutionClient: EvolutionClient,
+    private readonly chatwootClient: ChatwootClient,
     private readonly prisma: PrismaService,
     private readonly dedupService: IntegrationWebhookDedupService,
     private readonly integrationContext: IntegrationContextService,
@@ -107,7 +109,9 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     if (!link) {
-      const fallbackPhone = this.extractPhoneFromPayload(payload);
+      const fallbackPhone =
+        this.extractPhoneFromPayload(payload) ??
+        await this.resolvePhoneFromConversationDetails(resolvedConnection, chatwootConversationId);
       if (!fallbackPhone) {
         this.logger.warn(JSON.stringify({
           flow: 'chatwoot_to_evolution',
@@ -326,6 +330,48 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     return 'unknown';
+  }
+
+  private async resolvePhoneFromConversationDetails(
+    connection: ResolvedIntegrationContext | undefined,
+    chatwootConversationId: string,
+  ): Promise<string | null> {
+    if (!connection) return null;
+
+    try {
+      const conversation = await this.chatwootClient.getConversationDetails(
+        connection.chatwoot,
+        chatwootConversationId,
+      );
+
+      const candidates = [
+        conversation?.meta?.sender?.phone_number,
+        conversation?.meta?.sender?.identifier,
+        conversation?.meta?.channel,
+      ];
+
+      for (const candidate of candidates) {
+        const digits = String(candidate ?? '').replace(/\D/g, '');
+        if (digits.length >= 10) {
+          this.logger.warn(JSON.stringify({
+            flow: 'chatwoot_to_evolution',
+            stage: 'phone_resolved_from_conversation',
+            chatwootConversationId,
+            whatsappNumber: digits,
+          }));
+          return digits;
+        }
+      }
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_lookup_failed',
+        chatwootConversationId,
+        error: error?.message ?? 'unknown_error',
+      }));
+    }
+
+    return null;
   }
 
   private async persistFallbackConversationLink(
