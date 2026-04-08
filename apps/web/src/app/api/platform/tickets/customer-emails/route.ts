@@ -60,7 +60,7 @@ export async function GET(request: Request) {
       if (!email || dedup.has(email)) continue;
       dedup.set(email, {
         email,
-        companyName: row.company.nomeFantasia?.trim() || row.company.razaoSocial,
+        companyName: row.company?.nomeFantasia?.trim() || row.company?.razaoSocial || "",
       });
       if (dedup.size >= limit) break;
     }
