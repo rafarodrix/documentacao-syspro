@@ -12,7 +12,6 @@ import {
 import { createHmac, timingSafeEqual } from 'crypto';
 import { ProcessOutgoingMessageUseCase } from '../messaging/application/process-outgoing-message.usecase';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { EvolutionClient } from '../evolution/evolution.client';
 
 @Controller('webhooks/chatwoot')
 export class ChatwootWebhookController {
@@ -21,7 +20,6 @@ export class ChatwootWebhookController {
   constructor(
     private readonly processOutgoingMessage: ProcessOutgoingMessageUseCase,
     private readonly prisma: PrismaService,
-    private readonly evolutionClient: EvolutionClient
   ) {}
 
   @Post()
@@ -60,19 +58,17 @@ export class ChatwootWebhookController {
       case 'contact_updated':
         this.logger.log(`Sincronizacao pendente: Contato atualizado no Chatwoot (ID: ${payload?.id})`);
         if (payload?.id && payload?.name) {
-          // Busca qual número de WhatsApp está vinculado a este ID do Chatwoot
           const link = await this.prisma.conversationLink.findFirst({
             where: { chatwootContactId: payload.id.toString() }
           });
           if (link) {
-            // Atualiza o cadastro base (CompanyContact)
             const existingContact = await this.prisma.companyContact.findFirst({
               where: { whatsapp: link.whatsappNumber }
             });
             if (existingContact) {
               await this.prisma.companyContact.update({
                 where: { id: existingContact.id },
-                data: { name: payload.name } // Também poderia atualizar email, se adicionado ao schema
+                data: { name: payload.name }
               });
               this.logger.log(`Contato ${link.whatsappNumber} atualizado no banco via Chatwoot: ${payload.name}`);
             }
@@ -92,60 +88,16 @@ export class ChatwootWebhookController {
         }
         break;
       case 'conversation_status_changed':
-        // Se a conversa foi resolvida, mandamos mensagem de encerramento pro cliente
-        if (payload?.status === 'resolved' && payload?.meta?.sender?.phone_number) {
-          const phone = payload.meta.sender.phone_number.replace(/\D/g, '');
-          const ticketId = payload.display_id || payload.id;
-          const closeMessage = `Atendimento #${ticketId} encerrado. Agradecemos o seu contato!`;
-          
-          try {
-            await this.evolutionClient.sendTextMessage(phone, closeMessage);
-            this.logger.log(`Aviso de encerramento automático enviado para ${phone}`);
-          } catch (err: any) {
-            this.logger.error(`Falha ao enviar aviso de encerramento para ${phone}: ${err.message}`);
-          }
-        }
+        this.logger.debug('Evento conversation_status_changed recebido; nenhuma acao remota no WhatsApp configurada.');
         break;
       case 'conversation_updated':
-        // 3. Aviso de transferência de atendente
-        // O Chatwoot emite changed_attributes apontando o que mudou no banco (comum em Ruby on Rails)
-        const newAssigneeName = payload?.meta?.assignee?.name;
-        const convPhone = payload?.meta?.sender?.phone_number;
-        const isAssignmentChange = payload?.changed_attributes && Object.keys(payload.changed_attributes).includes('assignee_id');
-
-        if (isAssignmentChange && newAssigneeName && convPhone && payload?.status === 'open') {
-          const phoneStr = convPhone.replace(/\D/g, '');
-          const transferMsg = `Você agora está falando com ${newAssigneeName}. Como posso ajudar?`;
-          try {
-            await this.evolutionClient.sendTextMessage(phoneStr, transferMsg);
-            this.logger.log(`Aviso de transferência enviado para ${phoneStr} (${newAssigneeName})`);
-          } catch (err: any) {
-            this.logger.error(`Falha ao enviar aviso de transferência: ${err.message}`);
-          }
-        }
+        this.logger.debug('Evento conversation_updated recebido; nenhuma acao remota no WhatsApp configurada.');
         break;
       case 'message_updated':
-        // 4. Exclusão de mensagens (Apagar para todos)
-        // O Chatwoot marca a mensagem como deletada inserindo content_attributes.deleted = true
-        const isDeleted = payload?.content_attributes?.deleted === true;
-        const chatwootMsgId = payload?.id?.toString();
-        const contactPhone = payload?.conversation?.meta?.sender?.phone_number || payload?.sender?.phone_number;
-        
-        if (isDeleted && chatwootMsgId && contactPhone) {
-          const phone = contactPhone.replace(/\D/g, '');
-          try {
-            const link = await (this.prisma as any).messageLink.findUnique({ where: { chatwootMessageId: chatwootMsgId } });
-            if (link?.evolutionMessageId) {
-              const success = await this.evolutionClient.deleteMessage(phone, link.evolutionMessageId);
-              if (success) this.logger.log(`Mensagem ${chatwootMsgId} apagada no WhatsApp para o número ${phone}`);
-            }
-          } catch (err: any) {
-            this.logger.error(`Falha ao apagar mensagem no WhatsApp (ou tabela MessageLink ausente): ${err.message}`);
-          }
-        }
+        this.logger.debug('Evento message_updated ignorado: exclusao remota no WhatsApp via endpoint legado removida.');
         break;
       default:
-        this.logger.debug(`Evento Chatwoot não processado/ignorado: ${payload?.event}`);
+        this.logger.debug(`Evento Chatwoot nao processado/ignorado: ${payload?.event}`);
     }
 
     return { ok: true };

@@ -7,7 +7,7 @@ const commonRuntimeConfigSchema = z.object({
   EVOLUTION_API_URL: z.string().trim().optional(),
   EVOLUTION_API_KEY: z.string().trim().optional(),
   EVOLUTION_INSTANCE: z.string().trim().optional(),
-  EVOLUTION_WEBHOOK_SECRET: z.string().trim().optional(),
+  EVOLUTION_INSTANCE_TOKEN: z.string().trim().optional(),
   CHATWOOT_URL: z.string().trim().optional(),
   CHATWOOT_ACCOUNT_ID: z.string().trim().optional(),
   CHATWOOT_API_TOKEN: z.string().trim().optional(),
@@ -41,7 +41,7 @@ export function readEvolutionRuntimeConfig(env: RuntimeEnv = readRuntimeEnvFromG
     apiUrl: config.EVOLUTION_API_URL?.trim() ?? "",
     apiKey: config.EVOLUTION_API_KEY?.trim() ?? "",
     instance: config.EVOLUTION_INSTANCE?.trim() || "Syspro",
-    webhookSecret: config.EVOLUTION_WEBHOOK_SECRET?.trim() ?? "",
+    instanceToken: config.EVOLUTION_INSTANCE_TOKEN?.trim() ?? "",
   };
 }
 

@@ -147,37 +147,16 @@ export class ContactsService {
     });
   }
 
-  // Sincronizacao incremental via integracao oficial (Evolution -> nossa API)
   async syncFromIntegration(instanceName?: string) {
-    this.logger.log(`Iniciando sincronizacao de contatos${instanceName ? ` da instancia: ${instanceName}` : ''}`);
-
-    let syncedCount = 0;
-    try {
-      const evolutionContacts = await this.evolutionClient.findContacts(instanceName);
-
-      for (const ec of evolutionContacts) {
-        const phoneId = ec.id?.split('@')[0] || ec.remoteJid?.split('@')[0];
-        if (!phoneId) continue;
-
-        const exists = await this.prisma.companyContact.findFirst({ where: { whatsapp: phoneId } });
-
-        if (!exists) {
-          await this.prisma.companyContact.create({
-            data: { name: ec.pushName || ec.name || 'Sem Nome', whatsapp: phoneId },
-          });
-          syncedCount++;
-        }
-      }
-    } catch (error: any) {
-      this.logger.error(`Erro ao sincronizar contatos: ${error.message}`);
-      throw new Error('Falha na sincronizacao de contatos da integracao');
-    }
+    this.logger.warn(
+      `syncFromIntegration chamado${instanceName ? ` para ${instanceName}` : ''}, mas a sincronizacao por endpoint legado da Evolution foi removida.`
+    );
 
     return {
       success: true,
-      syncedCount,
-      mode: 'incremental',
-      message: `${syncedCount} novos contatos importados.`,
+      syncedCount: 0,
+      mode: 'webhook_only',
+      message: 'Sincronizacao incremental via endpoint legado removida. Os contatos agora entram somente pelo fluxo de webhook.',
     };
   }
 

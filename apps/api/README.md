@@ -36,7 +36,7 @@ Variaveis minimas:
 - `EVOLUTION_API_URL`
 - `EVOLUTION_API_KEY`
 - `EVOLUTION_INSTANCE`
-- `EVOLUTION_WEBHOOK_SECRET` (segredo de entrada do webhook Evolution)
+- `EVOLUTION_INSTANCE_TOKEN` (opcional, valida `instanceToken` do payload do webhook Evolution Go)
 - `CHATWOOT_URL`
 - `CHATWOOT_ACCOUNT_ID`
 - `CHATWOOT_API_TOKEN`
@@ -52,7 +52,7 @@ Variaveis minimas:
 - `GET /health`
 - `GET /health/integrations/chatwoot` (valida rota critica da API Chatwoot e resolucao de inbox)
 - `POST /rpc/:namespace/:procedure`
-- `POST /webhooks/evolution` (inbound Evolution Go + orquestracao de conversa/ticket)
+- `POST /webhooks/evolution` (inbound Evolution Go; processa `Message` e `Receipt`)
 - `POST /integrations/evolution/messages/send` (envio direto outbound via Evolution, protegido por `x-internal-api-key`)
 - `GET /settings/evolution` (configuracao global do canal Evolution)
 - `PUT /settings/evolution` (persistencia das configuracoes globais do canal)
@@ -62,6 +62,14 @@ Variaveis minimas:
 - `PUT /settings/integrations/connections/:id` (atualizar conexao)
 - `DELETE /settings/integrations/connections/:id` (remover conexao)
 - `POST /settings/integrations/connections/:id/test` (testar conectividade Evolution + Chatwoot)
+
+Observacao sobre Evolution Go:
+
+- envio outbound alinhado com `/send/text` e `/send/media`
+- teste de conexao usa `GET /instance/status`
+- quando `evolutionInstanceId` + `metadata.evolution.webhookUrl` estiverem definidos, o teste reaplica configuracao via `POST /instance/connect`
+- recursos legados da API antiga foram removidos do fluxo principal: sync incremental de contatos, fetch extra de midia e delete remoto de mensagem
+
 - `GET /conversations` (listagem de conversas por filtro)
 - `GET /conversations/:conversationId` (detalhe de conversa)
 - `GET /conversations/:conversationId/messages` (mensagens da conversa)

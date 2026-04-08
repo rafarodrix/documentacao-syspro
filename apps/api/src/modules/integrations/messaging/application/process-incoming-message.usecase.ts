@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConversationMessageStatus } from '@prisma/client';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { EvolutionClient } from '../../evolution/evolution.client';
@@ -83,7 +84,12 @@ export class ProcessIncomingMessageUseCase {
       }
 
       if (isMedia) {
-        const baseResult = msg.base64 ? { base64: msg.base64 } : await this.evolutionClient.getBase64FromMediaMessage(msg);
+        const inlineBase64 =
+          messagePayload?.base64 ??
+          msg?.base64;
+        const baseResult = inlineBase64
+          ? { base64: inlineBase64 }
+          : null;
         if (baseResult?.base64) {
           attachment = { base64: baseResult.base64, mimetype: mimeType, filename: fileName };
         }
@@ -158,40 +164,78 @@ export class ProcessIncomingMessageUseCase {
     }
   }
 
-  async handleStatusUpdate(payload: any) {
-    const updates = Array.isArray(payload) ? payload : [payload];
+  async handleStatusUpdate(payload: any, context?: { instanceId?: string }) {
+    const receiptPayload = this.normalizeReceiptPayload(payload);
+    if (receiptPayload) {
+      await this.handleReceiptStatusUpdate(receiptPayload, context);
+      return;
+    }
 
+    const updates = Array.isArray(payload) ? payload : [payload];
     for (const item of updates) {
       const evolutionMsgId = item?.key?.id;
       const statusVal = item?.update?.status;
+      const chatwootStatus = this.mapLegacyStatusToChatwoot(statusVal);
 
-      if (!evolutionMsgId || statusVal === undefined) continue;
-
-      let chatwootStatus: 'delivered' | 'read' | null = null;
-      if (statusVal === 3 || String(statusVal).toUpperCase().includes('DELIVER')) chatwootStatus = 'delivered';
-      else if (statusVal === 4 || String(statusVal).toUpperCase().includes('READ')) chatwootStatus = 'read';
-
-      if (!chatwootStatus) continue;
-
-      const dedupeClaimed = await this.dedupService.claim(
-        'evolution_status',
-        `status:${evolutionMsgId}:${chatwootStatus}`,
-        null
-      );
-      if (!dedupeClaimed) continue;
-
-      try {
-        const link = await (this.prisma as any).messageLink.findUnique({
-          where: { evolutionMessageId: evolutionMsgId }
-        });
-
-        if (link) {
-          await this.chatwootClient.updateMessageStatus(link.chatwootConversationId, link.chatwootMessageId, chatwootStatus);
-        }
-      } catch (error: any) {
-        this.logger.debug(`Nao foi possivel atualizar status de leitura: ${error.message}`);
-      }
+      if (!evolutionMsgId || !chatwootStatus) continue;
+      await this.syncStatusToChatwoot(evolutionMsgId.toString(), chatwootStatus, context?.instanceId);
     }
+  }
+
+  private async handleReceiptStatusUpdate(
+    payload: { messageIds: string[]; chatwootStatus: 'delivered' | 'read' },
+    context?: { instanceId?: string }
+  ) {
+    for (const evolutionMsgId of payload.messageIds) {
+      await this.syncStatusToChatwoot(evolutionMsgId, payload.chatwootStatus, context?.instanceId);
+    }
+  }
+
+  private async syncStatusToChatwoot(
+    evolutionMsgId: string,
+    chatwootStatus: 'delivered' | 'read',
+    instanceId?: string | null
+  ) {
+    const dedupeClaimed = await this.dedupService.claim(
+      'evolution_status',
+      `status:${evolutionMsgId}:${chatwootStatus}`,
+      instanceId ?? null
+    );
+    if (!dedupeClaimed) return;
+
+    try {
+      const link = await this.prisma.messageLink.findUnique({
+        where: { evolutionMessageId: evolutionMsgId }
+      });
+
+      if (link) {
+        await this.chatwootClient.updateMessageStatus(link.chatwootConversationId, link.chatwootMessageId, chatwootStatus);
+      }
+    } catch (error: any) {
+      this.logger.debug(`Nao foi possivel atualizar status de leitura: ${error.message}`);
+    }
+  }
+
+  private normalizeReceiptPayload(payload: any): { messageIds: string[]; chatwootStatus: 'delivered' | 'read' } | null {
+    const state = String(payload?.state ?? '').trim();
+    const chatwootStatus = this.mapReceiptStateToChatwoot(state);
+    if (!chatwootStatus) return null;
+
+    const messageIds = Array.isArray(payload?.data?.MessageIDs)
+      ? payload.data.MessageIDs
+          .map((value: unknown) => String(value ?? '').trim())
+          .filter((value: string) => value.length > 0)
+      : [];
+
+    if (!messageIds.length) return null;
+    return { messageIds, chatwootStatus };
+  }
+
+  private mapReceiptStateToChatwoot(state: string): 'delivered' | 'read' | null {
+    const normalized = state.toUpperCase();
+    if (normalized === 'DELIVERED') return 'delivered';
+    if (normalized === 'READ' || normalized === 'READSELF') return 'read';
+    return null;
   }
 
   private async resolveOrCreateConversationLink(phone: string, pushName: string): Promise<{ contactIdentifier: string; conversationId: string }> {

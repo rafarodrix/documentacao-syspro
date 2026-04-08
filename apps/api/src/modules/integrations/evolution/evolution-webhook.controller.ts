@@ -8,31 +8,28 @@ export class EvolutionWebhookController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async handle(
-    @Headers('x-webhook-secret') secretHeader: string,
     @Body() payload: any
   ) {
-    const expectedSecret = process.env.EVOLUTION_WEBHOOK_SECRET;
-    if (expectedSecret && secretHeader !== expectedSecret) {
-      throw new UnauthorizedException('Invalid Evolution webhook secret');
+    const expectedInstanceToken = process.env.EVOLUTION_INSTANCE_TOKEN;
+    const payloadInstanceToken = payload?.instanceToken?.toString?.();
+
+    if (expectedInstanceToken && payloadInstanceToken !== expectedInstanceToken) {
+      throw new UnauthorizedException('Invalid Evolution instance token');
     }
 
     const normalizedEvent = String(payload?.event ?? '').trim().toLowerCase();
-    const isInboundMessageEvent =
-      normalizedEvent === 'message' ||
-      normalizedEvent === 'messages.upsert' ||
-      normalizedEvent === 'messages_upsert';
-
-    const isUpdateEvent =
-      normalizedEvent === 'messages.update' ||
-      normalizedEvent === 'messages_update';
+    const isInboundMessageEvent = normalizedEvent === 'message';
+    const isReceiptEvent = normalizedEvent === 'receipt';
 
     if (isInboundMessageEvent) {
       await this.processIncomingMessage.execute(payload.data, {
         instanceId: payload?.instanceId?.toString(),
       });
-    } else if (isUpdateEvent) {
-      // Recebe o recibo e atualiza as mensagens no Chatwoot
-      await this.processIncomingMessage.handleStatusUpdate(payload.data);
+    } else if (isReceiptEvent) {
+      await this.processIncomingMessage.handleStatusUpdate(
+        payload,
+        { instanceId: payload?.instanceId?.toString() }
+      );
     }
     return { ok: true };
   }

@@ -1285,6 +1285,20 @@ model ConversationLink {
   @@index([chatwootConversationId])
 }
 
+model MessageLink {
+  id String @id @default(cuid())
+
+  chatwootMessageId String @unique
+  chatwootConversationId String
+  evolutionMessageId String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chatwootConversationId])
+  @@index([evolutionMessageId])
+}
+
 model IntegrationWebhookDedup {
   id              String   @id
   provider        String
