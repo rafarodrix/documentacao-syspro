@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
 import { getRoleLabel } from "@dosc-syspro/core"
-import { LogOut, User, Settings, HelpCircle } from "lucide-react"
+import { LogOut, User, Settings, HelpCircle, MessagesSquare } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +28,10 @@ interface UserProfileProps {
 
 export function UserProfile({ user }: UserProfileProps) {
   const router = useRouter()
+  const canAccessChatwoot =
+    user.role === "ADMIN" ||
+    user.role === "DEVELOPER" ||
+    user.role === "SUPORTE"
 
   const handleLogout = async () => {
     await authClient.signOut()
@@ -85,6 +89,18 @@ export function UserProfile({ user }: UserProfileProps) {
           <HelpCircle className="h-4 w-4 text-muted-foreground" />
           Ajuda
         </DropdownMenuItem>
+
+        {canAccessChatwoot ? (
+          <DropdownMenuItem
+            className="cursor-pointer gap-2"
+            onClick={() => {
+              router.push("/portal/atendimento")
+            }}
+          >
+            <MessagesSquare className="h-4 w-4 text-muted-foreground" />
+            Atendimento
+          </DropdownMenuItem>
+        ) : null}
 
         <DropdownMenuSeparator />
 

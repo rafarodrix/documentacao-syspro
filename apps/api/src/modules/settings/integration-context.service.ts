@@ -22,6 +22,7 @@ export type ResolvedIntegrationContext = {
   chatwoot: {
     url: string;
     apiToken: string;
+    platformApiToken?: string;
     accountId: string;
     inboxId: string;
     inboxIdentifier: string;
@@ -122,6 +123,7 @@ export class IntegrationContextService {
 
   private toResolvedContext(row: any): ResolvedIntegrationContext | null {
     if (!row) return null;
+    const runtimeChatwoot = readChatwootRuntimeConfig();
 
     const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata as Record<string, unknown> : {};
     const evolutionMetadata =
@@ -146,6 +148,7 @@ export class IntegrationContextService {
       chatwoot: {
         url: String(row.chatwootUrl ?? '').trim(),
         apiToken: this.decrypt(row.chatwootApiTokenEncrypted),
+        platformApiToken: runtimeChatwoot.platformApiToken || undefined,
         accountId: String(row.chatwootAccountId ?? '').trim(),
         inboxId: String(row.chatwootInboxId ?? '').trim(),
         inboxIdentifier: String(row.chatwootInboxIdentifier ?? '').trim(),
@@ -188,6 +191,7 @@ export class IntegrationContextService {
       chatwoot: {
         url: chatwoot.url,
         apiToken: chatwoot.apiToken,
+        platformApiToken: chatwoot.platformApiToken || undefined,
         accountId: chatwoot.accountId,
         inboxId: chatwoot.inboxId,
         inboxIdentifier: chatwoot.inboxIdentifier,

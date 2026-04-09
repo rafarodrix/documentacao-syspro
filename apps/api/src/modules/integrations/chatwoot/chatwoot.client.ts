@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 export type ChatwootConnectionConfig = {
   url: string;
   apiToken: string;
+  platformApiToken?: string;
   accountId: string;
   inboxId: string;
   inboxIdentifier: string;
@@ -187,6 +188,16 @@ export class ChatwootClient {
     );
   }
 
+  async listAgents(config: ChatwootConnectionConfig): Promise<any[]> {
+    const response = await this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/agents`,
+      'GET'
+    );
+
+    return Array.isArray(response) ? response : [];
+  }
+
   async getContactableInboxes(
     config: ChatwootConnectionConfig,
     contactId: string
@@ -207,6 +218,73 @@ export class ChatwootClient {
     }
 
     return [];
+  }
+
+  async createPlatformUser(
+    config: ChatwootConnectionConfig,
+    input: { name: string; email: string; displayName?: string; customAttributes?: Record<string, unknown> }
+  ): Promise<any> {
+    const password = this.buildPlatformPassword();
+    return this.platformRequest(
+      config,
+      '/platform/api/v1/users',
+      'POST',
+      {
+        name: input.name,
+        display_name: input.displayName ?? input.name,
+        email: input.email,
+        password,
+        custom_attributes: input.customAttributes ?? {},
+      }
+    );
+  }
+
+  async updatePlatformUser(
+    config: ChatwootConnectionConfig,
+    userId: string,
+    input: { name: string; email: string; displayName?: string; customAttributes?: Record<string, unknown> }
+  ): Promise<any> {
+    return this.platformRequest(
+      config,
+      `/platform/api/v1/users/${userId}`,
+      'PATCH',
+      {
+        name: input.name,
+        display_name: input.displayName ?? input.name,
+        email: input.email,
+        custom_attributes: input.customAttributes ?? {},
+      }
+    );
+  }
+
+  async createAccountUser(
+    config: ChatwootConnectionConfig,
+    userId: string,
+    role: 'agent' | 'administrator'
+  ): Promise<any> {
+    return this.platformRequest(
+      config,
+      `/platform/api/v1/accounts/${config.accountId}/account_users`,
+      'POST',
+      {
+        user_id: Number(userId),
+        role,
+      }
+    );
+  }
+
+  async getUserSsoLink(config: ChatwootConnectionConfig, userId: string): Promise<string> {
+    const response = await this.platformRequest(
+      config,
+      `/platform/api/v1/users/${userId}/login`,
+      'GET'
+    );
+
+    const url = String(response?.url ?? '').trim();
+    if (!url) {
+      throw new Error(`Nao foi possivel obter link SSO do usuario Chatwoot ${userId}`);
+    }
+    return url;
   }
 
   async createConversation(config: ChatwootConnectionConfig, contactIdentifier: string, contactId?: string) {
@@ -473,6 +551,10 @@ export class ChatwootClient {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
+  private buildPlatformPassword(): string {
+    return `Syspro!${Math.random().toString(36).slice(2, 8)}9A`;
+  }
+
   private appendAccountIncomingFields(formData: FormData): FormData {
     formData.append('message_type', 'incoming');
     formData.append('private', 'false');
@@ -483,5 +565,41 @@ export class ChatwootClient {
   private toNumericIdentifier(value: string): string | null {
     const normalized = String(value ?? '').trim();
     return /^\d+$/.test(normalized) ? normalized : null;
+  }
+
+  private async platformRequest(
+    config: ChatwootConnectionConfig,
+    endpoint: string,
+    method: string = 'GET',
+    body?: any,
+  ): Promise<any> {
+    if (!config.url || !config.platformApiToken) {
+      throw new Error('CHATWOOT_URL ou CHATWOOT_PLATFORM_API_TOKEN nao configurados.');
+    }
+
+    const url = `${config.url}${endpoint}`;
+    const headers: Record<string, string> = {
+      api_access_token: config.platformApiToken,
+    };
+
+    let requestBody: BodyInit | undefined;
+    if (body) {
+      headers['Content-Type'] = 'application/json';
+      requestBody = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: requestBody,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'unknown_error');
+      throw new Error(`Chatwoot Platform API error (${method} ${endpoint}): ${response.status} - ${errorText}`);
+    }
+
+    if (response.status === 204) return null;
+    return response.json();
   }
 }

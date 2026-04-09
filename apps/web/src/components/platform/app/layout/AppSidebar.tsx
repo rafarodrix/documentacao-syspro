@@ -36,6 +36,7 @@ import {
   BookLock,
   Monitor,
   Smartphone,
+  MessagesSquare,
 } from "lucide-react"
 
 export type UserRole = Role
@@ -68,6 +69,7 @@ const NAV_CADASTROS: NavItemType[] = [
 ]
 
 const NAV_SYSTEM: NavItemType[] = [
+  { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, roles: [...SYSTEM_ROLES] },
   { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
   { title: "Plataforma Remota", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
 ]

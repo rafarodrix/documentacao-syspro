@@ -5,11 +5,14 @@ import {
   ForbiddenException,
   UnauthorizedException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role, Prisma } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
 import type { IncomingHttpHeaders } from 'node:http';
+import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
+import { IntegrationContextService } from '../settings/integration-context.service';
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
@@ -38,9 +41,13 @@ type UpdateUserInput = {
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
+    private readonly chatwootClient: ChatwootClient,
+    private readonly integrationContext: IntegrationContextService,
   ) {}
 
   async findAll(filters?: { search?: string; role?: string }, rawHeaders?: IncomingHttpHeaders) {
@@ -246,6 +253,72 @@ export class UsersService {
       where: { id },
       data: { isActive: false, deletedAt: new Date() },
     });
+  }
+
+  async getChatwootSsoLinkForCurrentUser(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.getRequester(rawHeaders);
+    if (!this.isSystemRole(requester.role)) {
+      throw new ForbiddenException('Acesso ao Chatwoot permitido apenas para atendentes internos.');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: requester.userId },
+      select: { id: true, email: true, name: true, role: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario nao encontrado.');
+    }
+
+    const context = await this.integrationContext.getDefaultContext();
+    if (!context?.chatwoot.url || !context.chatwoot.accountId || !context.chatwoot.platformApiToken) {
+      throw new BadRequestException('SSO do Chatwoot nao configurado. Defina CHATWOOT_URL, CHATWOOT_ACCOUNT_ID e CHATWOOT_PLATFORM_API_TOKEN.');
+    }
+
+    const chatwootRole = this.mapRoleToChatwoot(user.role);
+    const agents = await this.chatwootClient.listAgents(context.chatwoot);
+    let agent = agents.find((item: any) => String(item?.email ?? '').trim().toLowerCase() === user.email.toLowerCase());
+
+    if (!agent) {
+      const created = await this.chatwootClient.createPlatformUser(context.chatwoot, {
+        name: user.name?.trim() || user.email,
+        displayName: user.name?.trim() || user.email,
+        email: user.email,
+        customAttributes: {
+          portal_user_id: user.id,
+          portal_role: user.role,
+        },
+      });
+
+      const createdId = String(created?.id ?? '').trim();
+      if (!createdId) {
+        throw new Error('Falha ao provisionar usuario no Chatwoot.');
+      }
+
+      const isAlreadyInAccount = Array.isArray(created?.accounts)
+        ? created.accounts.some((account: any) => String(account?.id ?? '') === context.chatwoot.accountId)
+        : false;
+
+      if (!isAlreadyInAccount) {
+        await this.chatwootClient.createAccountUser(context.chatwoot, createdId, chatwootRole);
+      }
+
+      agent = { ...created, id: createdId, email: user.email };
+      this.logger.log(`Usuario ${user.email} provisionado no Chatwoot com role ${chatwootRole}.`);
+    } else {
+      await this.chatwootClient.updatePlatformUser(context.chatwoot, String(agent.id), {
+        name: user.name?.trim() || user.email,
+        displayName: user.name?.trim() || user.email,
+        email: user.email,
+        customAttributes: {
+          portal_user_id: user.id,
+          portal_role: user.role,
+        },
+      });
+    }
+
+    const url = await this.chatwootClient.getUserSsoLink(context.chatwoot, String(agent.id));
+    return { url };
   }
 
   async getClientAdminView(rawHeaders?: IncomingHttpHeaders) {
@@ -461,6 +534,13 @@ export class UsersService {
 
   private isSystemRole(role: Role) {
     return SYSTEM_ROLES.includes(role);
+  }
+
+  private mapRoleToChatwoot(role: Role): 'agent' | 'administrator' {
+    if (role === Role.ADMIN || role === Role.DEVELOPER) {
+      return 'administrator';
+    }
+    return 'agent';
   }
 
   private normalizeContactId(value?: string | null): string | null {
