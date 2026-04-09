@@ -18,4 +18,14 @@ export class CreateTicketDto {
   companyId?: string;
 
   companyContactId?: string;
+
+  externalThreadId?: string;
+
+  contactPhoneSnapshot?: string;
+
+  contactWhatsappSnapshot?: string;
+
+  contactNameSnapshot?: string;
+
+  metadata?: Record<string, unknown>;
 }

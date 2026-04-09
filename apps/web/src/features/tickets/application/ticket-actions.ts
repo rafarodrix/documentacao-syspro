@@ -49,6 +49,8 @@ type ApiTicket = {
   releaseType?: string | null;
   releaseModule?: string | null;
   publishToReleases?: boolean;
+  externalThreadId?: string | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
@@ -317,6 +319,14 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     const description = String(formData.get("description") || "").trim();
     const priorityRaw = String(formData.get("priority") || "2 normal");
     const customerEmailInput = String(formData.get("customerEmail") || "").trim().toLowerCase();
+    const source = String(formData.get("source") || "").trim().toLowerCase();
+    const chatwootConversationId = String(formData.get("chatwootConversationId") || "").trim();
+    const chatwootContactId = String(formData.get("chatwootContactId") || "").trim();
+    const chatwootAccountId = String(formData.get("chatwootAccountId") || "").trim();
+    const chatwootConversationUrl = String(formData.get("chatwootConversationUrl") || "").trim();
+    const customerNameInput = String(formData.get("customerName") || "").trim();
+    const customerPhoneInput = String(formData.get("customerPhone") || "").trim();
+    const customerWhatsappInput = String(formData.get("customerWhatsapp") || "").trim();
 
     if (!subject || !description) {
       return { success: false, message: "Preencha assunto e descricao." };
@@ -355,10 +365,28 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
       title: subject,
       description,
       priority: parsePriorityFromForm(priorityRaw),
-      channel: "PORTAL",
+      channel: source === "chatwoot" ? "WHATSAPP" : "PORTAL",
       entryPoint: "INBOUND",
       ...(companyId ? { companyId } : {}),
       ...(companyContactId ? { companyContactId } : {}),
+      ...(source === "chatwoot" && chatwootConversationId ? { externalThreadId: chatwootConversationId } : {}),
+      ...(customerPhoneInput ? { contactPhoneSnapshot: customerPhoneInput } : {}),
+      ...(customerWhatsappInput || customerPhoneInput
+        ? { contactWhatsappSnapshot: customerWhatsappInput || customerPhoneInput }
+        : {}),
+      ...(customerNameInput ? { contactNameSnapshot: customerNameInput } : {}),
+      ...(source === "chatwoot"
+        ? {
+            metadata: {
+              source: "chatwoot",
+              chatwootConversationId: chatwootConversationId || null,
+              chatwootContactId: chatwootContactId || null,
+              chatwootAccountId: chatwootAccountId || null,
+              chatwootConversationUrl: chatwootConversationUrl || null,
+              createdFromPortalAt: new Date().toISOString(),
+            },
+          }
+        : {}),
     };
 
     const result = await callTicketsApi<ApiMutationResponse>("", {

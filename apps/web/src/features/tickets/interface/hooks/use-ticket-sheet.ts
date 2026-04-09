@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ticketFormSchema, type TicketFormInput, type TicketFormOutput } from "@dosc-syspro/contracts";
@@ -17,6 +18,7 @@ type CustomerEmailOption = {
 };
 
 export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOptions = {}) {
+    const searchParams = useSearchParams();
     const [files, setFiles] = useState<File[]>([]);
     const [customerEmail, setCustomerEmail] = useState("");
     const [customerCompany, setCustomerCompany] = useState<string | null>(null);
@@ -138,6 +140,23 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
                 if (options.isSystemUser) {
                     formData.append("customerEmail", customerEmail.trim().toLowerCase());
                 }
+                const source = searchParams?.get("source") || "";
+                const chatwootConversationId = searchParams?.get("chatwootConversationId") || "";
+                const chatwootContactId = searchParams?.get("chatwootContactId") || "";
+                const chatwootAccountId = searchParams?.get("chatwootAccountId") || "";
+                const chatwootConversationUrl = searchParams?.get("chatwootConversationUrl") || "";
+                const customerName = searchParams?.get("customerName") || "";
+                const customerPhone = searchParams?.get("customerPhone") || "";
+                const customerWhatsapp = searchParams?.get("customerWhatsapp") || "";
+
+                if (source) formData.append("source", source);
+                if (chatwootConversationId) formData.append("chatwootConversationId", chatwootConversationId);
+                if (chatwootContactId) formData.append("chatwootContactId", chatwootContactId);
+                if (chatwootAccountId) formData.append("chatwootAccountId", chatwootAccountId);
+                if (chatwootConversationUrl) formData.append("chatwootConversationUrl", chatwootConversationUrl);
+                if (customerName) formData.append("customerName", customerName);
+                if (customerPhone) formData.append("customerPhone", customerPhone);
+                if (customerWhatsapp) formData.append("customerWhatsapp", customerWhatsapp);
 
                 files.forEach((file) => {
                     formData.append("attachments", file);

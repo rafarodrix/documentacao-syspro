@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft as IconLeft, ChevronRight as IconRight } from "lucide-react";
 import { TicketSheet } from "@/components/platform/tickets/TicketSheet";
@@ -25,6 +25,17 @@ interface TicketsContainerProps {
     search: string;
     statusGroup: TicketStatusGroup;
     closedWindow: ClosedTicketsWindow;
+}
+
+function TicketSheetFallback() {
+    return (
+        <Button
+            className="h-10 w-full shadow-lg shadow-primary/20 transition-all bg-linear-to-r from-primary to-primary/90 gap-2 sm:w-auto"
+            disabled
+        >
+            Novo
+        </Button>
+    );
 }
 
 export function TicketsContainer({
@@ -145,7 +156,9 @@ export function TicketsContainer({
                     </p>
                 </div>
                 <div className="w-full sm:w-auto">
-                    <TicketSheet isSystemUser={isAdmin} />
+                    <Suspense fallback={<TicketSheetFallback />}>
+                        <TicketSheet isSystemUser={isAdmin} />
+                    </Suspense>
                 </div>
             </div>
 

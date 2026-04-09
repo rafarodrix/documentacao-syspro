@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTicketSheet } from '@/features/tickets/interface/hooks';
 
 import {
@@ -33,6 +34,9 @@ interface TicketSheetProps {
 export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
     const [open, setOpen] = useState(false);
     const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
     const diagPrefix = "[TicketsDiag][TicketSheet]";
 
     const logInfo = (event: string, payload?: Record<string, unknown>) => {
@@ -85,6 +89,72 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
         customerEmail, setCustomerEmail, customerCompany, setCustomerCompany, searchQuery, setSearchQuery, customerOptions, isCustomerOptionsLoading
     } = useTicketSheet(() => setOpen(false), { isSystemUser });
 
+    useEffect(() => {
+        const shouldOpen = searchParams?.get("novo") === "1";
+        if (!shouldOpen) return;
+
+        const source = searchParams?.get("source") || "";
+        const subject = searchParams?.get("subject") || "";
+        const description = searchParams?.get("description") || "";
+        const priority = searchParams?.get("priority") || "";
+        const customerEmailParam = searchParams?.get("customerEmail") || "";
+        const customerCompanyParam = searchParams?.get("customerCompany") || "";
+
+        form.reset({
+            subject: subject || form.getValues("subject"),
+            description: description || form.getValues("description"),
+            type: form.getValues("type"),
+            priority: priority || form.getValues("priority"),
+        });
+
+        if (customerEmailParam) {
+            setCustomerEmail(customerEmailParam.trim().toLowerCase());
+        }
+        if (customerCompanyParam) {
+            setCustomerCompany(customerCompanyParam.trim());
+        }
+
+        logInfo("sheet.prefill_from_query", {
+            source,
+            hasSubject: Boolean(subject),
+            hasDescription: Boolean(description),
+            hasCustomerEmail: Boolean(customerEmailParam),
+        });
+        setOpen(true);
+    }, [form, searchParams, setCustomerCompany, setCustomerEmail]);
+
+    const source = searchParams?.get("source") || "";
+    const chatwootConversationId = searchParams?.get("chatwootConversationId") || "";
+    const chatwootContactId = searchParams?.get("chatwootContactId") || "";
+    const chatwootAccountId = searchParams?.get("chatwootAccountId") || "";
+    const chatwootConversationUrl = searchParams?.get("chatwootConversationUrl") || "";
+    const customerName = searchParams?.get("customerName") || "";
+    const customerPhone = searchParams?.get("customerPhone") || "";
+    const customerWhatsapp = searchParams?.get("customerWhatsapp") || "";
+
+    const clearNewTicketParams = () => {
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        [
+            "novo",
+            "source",
+            "subject",
+            "description",
+            "priority",
+            "customerEmail",
+            "customerCompany",
+            "chatwootConversationId",
+            "chatwootContactId",
+            "chatwootAccountId",
+            "chatwootConversationUrl",
+            "customerName",
+            "customerPhone",
+            "customerWhatsapp",
+        ].forEach((key) => params.delete(key));
+
+        const next = params.toString();
+        router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+    };
+
     return (
         <Sheet
             open={open}
@@ -92,6 +162,9 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                 try {
                     logInfo("sheet.open_change", { nextOpen });
                     setOpen(nextOpen);
+                    if (!nextOpen && searchParams?.get("novo") === "1") {
+                        clearNewTicketParams();
+                    }
                 } catch (error) {
                     logError("sheet.open_change_failed", error, { nextOpen });
                     throw error;
@@ -143,6 +216,24 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                 }}
                                 className="space-y-6"
                             >
+                                <input type="hidden" name="source" value={source} />
+                                <input type="hidden" name="chatwootConversationId" value={chatwootConversationId} />
+                                <input type="hidden" name="chatwootContactId" value={chatwootContactId} />
+                                <input type="hidden" name="chatwootAccountId" value={chatwootAccountId} />
+                                <input type="hidden" name="chatwootConversationUrl" value={chatwootConversationUrl} />
+                                <input type="hidden" name="customerName" value={customerName} />
+                                <input type="hidden" name="customerPhone" value={customerPhone} />
+                                <input type="hidden" name="customerWhatsapp" value={customerWhatsapp} />
+
+                                {source === "chatwoot" && (
+                                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+                                        <p className="font-medium text-foreground">Ticket criado a partir de um atendimento do Chatwoot.</p>
+                                        <p className="mt-1 text-muted-foreground">
+                                            O chamado sera salvo com o vinculo da conversa para rastreabilidade.
+                                        </p>
+                                    </div>
+                                )}
+
 
                                 {/* DADOS BÃSICOS */}
                                 <div className="space-y-4">

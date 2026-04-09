@@ -50,6 +50,11 @@ export class TicketsService {
         companyId: data.companyId,
         companyContactId: data.companyContactId,
         assignedUserId: requester.userId,
+        externalThreadId: data.externalThreadId?.trim() || null,
+        contactPhoneSnapshot: data.contactPhoneSnapshot?.trim() || null,
+        contactWhatsappSnapshot: data.contactWhatsappSnapshot?.trim() || null,
+        contactNameSnapshot: data.contactNameSnapshot?.trim() || null,
+        metadata: data.metadata as Prisma.InputJsonValue | undefined,
         messages: {
           create: {
             direction: TicketMessageDirection.INTERNAL,
