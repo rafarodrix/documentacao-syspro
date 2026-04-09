@@ -14,6 +14,10 @@ import {
     UserRound,
     Loader2,
     Sparkles,
+    MessageSquareShare,
+    Phone,
+    User,
+    ExternalLink,
 } from "lucide-react";
 import { TicketChat } from "@/components/platform/tickets/TicketChat";
 import { finalizeTicketAction } from "@/features/tickets/application/ticket-actions";
@@ -231,6 +235,47 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                 </CardHeader>
             </Card>
 
+            {ticket.origin && (ticket.origin.chatwootConversationId || ticket.origin.externalThreadId || ticket.origin.contactName || ticket.origin.contactPhone || ticket.origin.contactWhatsapp) ? (
+                <Card className="border-border/60 bg-card/80">
+                    <CardHeader>
+                        <CardTitle className="text-base">Origem do atendimento</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-3 md:grid-cols-2">
+                            <OriginPill
+                                label="Canal de origem"
+                                value={ticket.origin.source === "chatwoot" ? "Chatwoot" : ticket.origin.source || "Nao informado"}
+                                icon={MessageSquareShare}
+                            />
+                            <OriginPill
+                                label="Conversa"
+                                value={ticket.origin.chatwootConversationId || ticket.origin.externalThreadId || "Nao vinculada"}
+                                icon={Hash}
+                            />
+                            <OriginPill
+                                label="Contato"
+                                value={ticket.origin.contactName || "Nao informado"}
+                                icon={User}
+                            />
+                            <OriginPill
+                                label="WhatsApp"
+                                value={ticket.origin.contactWhatsapp || ticket.origin.contactPhone || "Nao informado"}
+                                icon={Phone}
+                            />
+                        </div>
+
+                        {ticket.origin.chatwootConversationUrl ? (
+                            <Button variant="outline" asChild className="gap-2">
+                                <a href={ticket.origin.chatwootConversationUrl} target="_blank" rel="noreferrer">
+                                    <ExternalLink className="h-4 w-4" />
+                                    Abrir conversa no Chatwoot
+                                </a>
+                            </Button>
+                        ) : null}
+                    </CardContent>
+                </Card>
+            ) : null}
+
             {isAdmin && (
                 <Card className="border-border/60 bg-card/80">
                     <CardHeader>
@@ -354,6 +399,26 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
             )}
 
             <TicketChat ticketId={String(ticket.id)} articles={articles || []} ticketStatus={ticket.status || ""} />
+        </div>
+    );
+}
+
+function OriginPill({
+    label,
+    value,
+    icon: Icon,
+}: {
+    label: string;
+    value: string;
+    icon: ComponentType<{ className?: string }>;
+}) {
+    return (
+        <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+            </div>
+            <p className="mt-1 text-sm font-medium text-foreground break-all">{value}</p>
         </div>
     );
 }

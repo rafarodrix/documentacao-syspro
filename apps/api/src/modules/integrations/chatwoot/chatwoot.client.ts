@@ -582,7 +582,7 @@ export class ChatwootClient {
       api_access_token: config.platformApiToken,
     };
 
-    let requestBody: BodyInit | undefined;
+    let requestBody: string | undefined;
     if (body) {
       headers['Content-Type'] = 'application/json';
       requestBody = JSON.stringify(body);

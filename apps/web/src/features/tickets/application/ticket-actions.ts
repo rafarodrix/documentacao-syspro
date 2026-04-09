@@ -51,6 +51,9 @@ type ApiTicket = {
   publishToReleases?: boolean;
   externalThreadId?: string | null;
   metadata?: Record<string, unknown> | null;
+  contactPhoneSnapshot?: string | null;
+  contactWhatsappSnapshot?: string | null;
+  contactNameSnapshot?: string | null;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
@@ -178,6 +181,11 @@ function mapStatusLabel(status: TicketStatusApi | string): string {
     default:
       return status;
   }
+}
+
+function readStringMetadata(metadata: Record<string, unknown> | null | undefined, key: string): string | null {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function toTicketListItem(ticket: ApiTicket): TicketListItem {
@@ -439,6 +447,17 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
         slaBreached: false,
         slaWarning: false,
         minutesToBreach: undefined,
+        origin: {
+          source: readStringMetadata(ticket.metadata, "source"),
+          externalThreadId: ticket.externalThreadId || null,
+          contactName: ticket.contactNameSnapshot || null,
+          contactPhone: ticket.contactPhoneSnapshot || null,
+          contactWhatsapp: ticket.contactWhatsappSnapshot || null,
+          chatwootConversationId: readStringMetadata(ticket.metadata, "chatwootConversationId"),
+          chatwootContactId: readStringMetadata(ticket.metadata, "chatwootContactId"),
+          chatwootAccountId: readStringMetadata(ticket.metadata, "chatwootAccountId"),
+          chatwootConversationUrl: readStringMetadata(ticket.metadata, "chatwootConversationUrl"),
+        },
         createdAt: new Date(ticket.createdAt).toLocaleDateString("pt-BR"),
       },
       articles: (ticket.messages || []).map((message) => ({

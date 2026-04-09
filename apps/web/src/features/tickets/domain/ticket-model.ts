@@ -89,6 +89,17 @@ export interface TicketDetailsItem {
     slaBreached?: boolean;
     slaWarning?: boolean;
     minutesToBreach?: number;
+    origin?: {
+        source?: string | null;
+        externalThreadId?: string | null;
+        contactName?: string | null;
+        contactPhone?: string | null;
+        contactWhatsapp?: string | null;
+        chatwootConversationId?: string | null;
+        chatwootContactId?: string | null;
+        chatwootAccountId?: string | null;
+        chatwootConversationUrl?: string | null;
+    } | null;
     createdAt: string;
 }
 
