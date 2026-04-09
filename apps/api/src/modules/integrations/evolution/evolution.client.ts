@@ -88,6 +88,7 @@ export class EvolutionClient {
     const normalizedNumber = this.normalizeNumber(number);
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
+    const requestStartedAt = Date.now();
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'provider_request_text',
@@ -122,6 +123,7 @@ export class EvolutionClient {
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
         providerMessageId: messageId ?? null,
+        durationMs: Date.now() - requestStartedAt,
       }));
       return { messageId };
     }
@@ -152,6 +154,7 @@ export class EvolutionClient {
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
         providerMessageId: messageId ?? null,
+        durationMs: Date.now() - requestStartedAt,
       }));
       return { messageId };
     }
@@ -168,6 +171,7 @@ export class EvolutionClient {
       primaryError,
       fallbackStatus: fallbackResponse.status,
       fallbackError,
+      durationMs: Date.now() - requestStartedAt,
     }));
     throw new Error(
       `Evolution send failed: primary=${primaryResponse.status} ${primaryError}; fallback=${fallbackResponse.status} ${fallbackError}`
@@ -190,6 +194,7 @@ export class EvolutionClient {
     const normalizedNumber = this.normalizeNumber(number);
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
+    const requestStartedAt = Date.now();
 
     const evMediaType = this.resolveEvolutionMediaType(mediaType);
     const resolvedFileName = fileName || 'arquivo';
@@ -233,6 +238,7 @@ export class EvolutionClient {
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
         providerMessageId: messageId ?? null,
+        durationMs: Date.now() - requestStartedAt,
       }));
       return { messageId };
     }
@@ -265,6 +271,7 @@ export class EvolutionClient {
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
         providerMessageId: messageId ?? null,
+        durationMs: Date.now() - requestStartedAt,
       }));
       return { messageId };
     }
@@ -281,6 +288,7 @@ export class EvolutionClient {
       primaryError,
       fallbackStatus: fallbackResponse.status,
       fallbackError,
+      durationMs: Date.now() - requestStartedAt,
     }));
     throw new Error(
       `Evolution sendMedia failed: primary=${primaryResponse.status} ${primaryError}; fallback=${fallbackResponse.status} ${fallbackError}`
