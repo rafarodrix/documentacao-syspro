@@ -11,6 +11,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -255,72 +256,70 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
 
                                     {isSystemUser && (
                                         <FormItem>
-                                            <FormLabel>E-mail do cliente</FormLabel>
-                                            <FormControl>
-                                                <Popover open={customerPickerOpen} onOpenChange={setCustomerPickerOpen}>
-                                                    <PopoverTrigger asChild>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            className={cn(
-                                                                "w-full justify-between bg-muted/30 hover:bg-muted/40",
-                                                                !customerEmail && "text-muted-foreground"
-                                                            )}
-                                                        >
-                                                            <span className="truncate text-left">
-                                                                {customerEmail ? `${customerEmail} (${customerCompany})` : "Buscar e-mail do cliente..."}
-                                                            </span>
-                                                            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent align="start" className="w-[min(26rem,calc(100vw-2rem))] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
-                                                        <div className="border-b p-2.5">
-                                                            <Input
-                                                                type="text"
-                                                                value={searchQuery}
-                                                                onChange={(event) => setSearchQuery(event.target.value)}
-                                                                placeholder="Digite nome ou e-mail para buscar..."
-                                                                className="bg-background"
-                                                            />
-                                                        </div>
-                                                        <div className="max-h-64 overflow-y-auto py-1">
-                                                            {customerOptions.map((option) => {
-                                                                const selected = option.email === customerEmail.trim().toLowerCase();
-                                                                return (
-                                                                    <button
-                                                                        key={`${option.email}:${option.companyName}`}
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setCustomerEmail(option.email);
-                                                                            setCustomerCompany(option.companyName);
-                                                                            setCustomerPickerOpen(false);
-                                                                        }}
-                                                                        className={cn(
-                                                                            "flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60",
-                                                                            selected && "bg-primary/5"
-                                                                        )}
-                                                                    >
-                                                                        <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                                                        <span className="min-w-0 flex-1">
-                                                                            <span className="block truncate font-medium">{option.companyName}</span>
-                                                                            <span className="block truncate text-xs text-muted-foreground">{option.email}</span>
-                                                                        </span>
-                                                                        {selected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                            {!customerOptions.length && !isCustomerOptionsLoading && (
-                                                                <p className="px-3 py-4 text-xs text-muted-foreground">
-                                                                    Nenhum cliente encontrado para o filtro informado.
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </FormControl>
-                                            <FormDescription>
+                                            <Label>E-mail do cliente</Label>
+                                            <Popover open={customerPickerOpen} onOpenChange={setCustomerPickerOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        className={cn(
+                                                            "w-full justify-between bg-muted/30 hover:bg-muted/40",
+                                                            !customerEmail && "text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        <span className="truncate text-left">
+                                                            {customerEmail ? `${customerEmail} (${customerCompany})` : "Buscar e-mail do cliente..."}
+                                                        </span>
+                                                        <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent align="start" className="w-[min(26rem,calc(100vw-2rem))] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                                                    <div className="border-b p-2.5">
+                                                        <Input
+                                                            type="text"
+                                                            value={searchQuery}
+                                                            onChange={(event) => setSearchQuery(event.target.value)}
+                                                            placeholder="Digite nome ou e-mail para buscar..."
+                                                            className="bg-background"
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-64 overflow-y-auto py-1">
+                                                        {customerOptions.map((option) => {
+                                                            const selected = option.email === customerEmail.trim().toLowerCase();
+                                                            return (
+                                                                <button
+                                                                    key={`${option.email}:${option.companyName}`}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setCustomerEmail(option.email);
+                                                                        setCustomerCompany(option.companyName);
+                                                                        setCustomerPickerOpen(false);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60",
+                                                                        selected && "bg-primary/5"
+                                                                    )}
+                                                                >
+                                                                    <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                                                    <span className="min-w-0 flex-1">
+                                                                        <span className="block truncate font-medium">{option.companyName}</span>
+                                                                        <span className="block truncate text-xs text-muted-foreground">{option.email}</span>
+                                                                    </span>
+                                                                    {selected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                        {!customerOptions.length && !isCustomerOptionsLoading && (
+                                                            <p className="px-3 py-4 text-xs text-muted-foreground">
+                                                                Nenhum cliente encontrado para o filtro informado.
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <p className="text-[0.8rem] text-muted-foreground">
                                                 Informe um e-mail de cliente ativo e vinculado no portal.
-                                            </FormDescription>
+                                            </p>
                                             {isCustomerOptionsLoading && (
                                                 <p className="text-xs text-muted-foreground">Buscando clientes...</p>
                                             )}
@@ -384,7 +383,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
 
                                     {/* UPLOAD VISUAL */}
                                     <div className="space-y-3">
-                                        <FormLabel>Anexos (Opcional)</FormLabel>
+                                        <Label>Anexos (Opcional)</Label>
                                         <div
                                             className="border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/30 hover:border-primary/40 transition-all group"
                                             onClick={triggerFileInput}

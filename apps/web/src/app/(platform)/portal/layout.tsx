@@ -10,8 +10,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   if (!session) redirect("/login")
   
-  const tenantScope = await getRemoteTenantScope();
-  const initialActiveSessionsCount = await getActiveSessionsCount(tenantScope);
+  let initialActiveSessionsCount = 0
+  try {
+    const tenantScope = await getRemoteTenantScope()
+    initialActiveSessionsCount = await getActiveSessionsCount(tenantScope)
+  } catch (error) {
+    console.error("[PortalLayout] Falha ao carregar contador de sessoes remotas:", error)
+  }
 
   const user = {
     name: session.name ?? session.email.split("@")[0] ?? "Usuário",
