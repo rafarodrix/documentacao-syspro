@@ -229,7 +229,7 @@ export default function EvolutionSettingsTab() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>- Webhook inbound processa os eventos `Message` e `Receipt`.</p>
-          <p>- Outbound usa as rotas `/send/text` e `/send/media` da Evolution Go.</p>
+          <p>- Outbound prioriza as rotas `/send/text` e `/send/media` da Evolution Go, com fallback para o contrato v2 quando necessario.</p>
           <p>- Salvar esta tela persiste a configuracao administrativa no backend; isso nao garante provisionamento automatico da instancia.</p>
         </CardContent>
       </Card>

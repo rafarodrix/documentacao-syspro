@@ -41,7 +41,7 @@ export class WhatsAppService {
   }
 
   private normalizeNumber(number: string): string {
-    // Remove non-digits and ensure it has the correct format for Evolution API
+    // Remove non-digits and ensure it has the correct format for Evolution Go
     let cleaned = number.replace(/\D/g, "");
     if (!cleaned.startsWith("55")) {
       cleaned = "55" + cleaned;

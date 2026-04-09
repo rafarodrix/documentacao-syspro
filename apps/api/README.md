@@ -66,7 +66,8 @@ Variaveis minimas:
 
 Observacao sobre Evolution Go:
 
-- envio outbound alinhado com `/send/text` e `/send/media`
+- envio outbound prioriza `/send/text` e `/send/media`
+- o cliente possui fallback para `/message/sendText/{instance}` e `/message/sendMedia/{instance}` quando a instalacao exposta usar o contrato v2
 - teste de conexao usa `GET /instance/status`
 - quando `evolutionInstanceId` + `metadata.evolution.webhookUrl` estiverem definidos, o teste reaplica configuracao via `POST /instance/connect`
 - recursos legados da API antiga foram removidos do fluxo principal: sync incremental de contatos, fetch extra de midia e delete remoto de mensagem
@@ -155,7 +156,7 @@ Objetivo futuro:
 
 - responder a conversa dentro do Chatwoot
 - confirmar que o Chatwoot dispara `message_created`
-- confirmar que o backend envia via `/send/text` ou `/send/media`
+- confirmar que o backend envia via `/send/text` ou `/send/media` (ou fallback v2 quando a instalacao exposta exigir)
 - confirmar que o cliente recebe no WhatsApp
 - confirmar que um `MessageLink` foi criado quando houver `messageId`
 

@@ -470,7 +470,14 @@ export class ProcessIncomingMessageUseCase {
           ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}`
           : sysproContact.name;
 
-        const picResult = await this.evolutionClient.fetchProfilePicture(connection.evolution, phone);
+        let picResult: { profilePictureUrl?: string } = {};
+        try {
+          picResult = await this.evolutionClient.fetchProfilePicture(connection.evolution, phone);
+        } catch (error: any) {
+          this.logger.warn(
+            `[evolution_to_chatwoot] fetchProfilePicture falhou para ${phone}; seguindo sem avatar: ${error?.message ?? 'unknown_error'}`
+          );
+        }
         const contactResponse = (await this.chatwootClient.createOrFindContact(
           connection.chatwoot,
           phone,

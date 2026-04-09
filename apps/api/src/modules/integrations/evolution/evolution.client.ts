@@ -97,7 +97,7 @@ export class EvolutionClient {
       contentLength: text.length,
     }));
 
-    const response = await fetch(`${baseUrl}/send/text`, {
+    const primaryResponse = await fetch(`${baseUrl}/send/text`, {
       method: 'POST',
       headers: {
         apikey: config.apiKey,
@@ -111,12 +111,13 @@ export class EvolutionClient {
       }),
     });
 
-    if (response.ok) {
-      const payload = await response.json().catch(() => ({}));
+    if (primaryResponse.ok) {
+      const payload = await primaryResponse.json().catch(() => ({}));
       const messageId = this.extractMessageId(payload);
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'provider_response_text',
+        route: '/send/text',
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
@@ -125,17 +126,52 @@ export class EvolutionClient {
       return { messageId };
     }
 
-    const errorText = await response.text().catch(() => 'unknown_error');
+    const fallbackResponse = await fetch(`${baseUrl}/message/sendText/${encodeURIComponent(instance)}`, {
+      method: 'POST',
+      headers: {
+        apikey: config.apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        number: normalizedNumber,
+        textMessage: {
+          text,
+        },
+        delay: 1200,
+      }),
+    });
+
+    if (fallbackResponse.ok) {
+      const payload = await fallbackResponse.json().catch(() => ({}));
+      const messageId = this.extractMessageId(payload);
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_response_text',
+        route: '/message/sendText/{instance}',
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: normalizedNumber,
+        providerMessageId: messageId ?? null,
+      }));
+      return { messageId };
+    }
+
+    const primaryError = await primaryResponse.text().catch(() => 'unknown_error');
+    const fallbackError = await fallbackResponse.text().catch(() => 'unknown_error');
     this.logger.error(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'provider_error_text',
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
-      status: response.status,
-      error: errorText,
+      primaryStatus: primaryResponse.status,
+      primaryError,
+      fallbackStatus: fallbackResponse.status,
+      fallbackError,
     }));
-    throw new Error(`Evolution send failed: ${response.status} - ${errorText}`);
+    throw new Error(
+      `Evolution send failed: primary=${primaryResponse.status} ${primaryError}; fallback=${fallbackResponse.status} ${fallbackError}`
+    );
   }
 
   async sendMedia(
@@ -155,10 +191,8 @@ export class EvolutionClient {
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
 
-    let evMediaType = 'document';
-    if (mediaType.includes('image')) evMediaType = 'image';
-    else if (mediaType.includes('video')) evMediaType = 'video';
-    else if (mediaType.includes('audio')) evMediaType = 'audio';
+    const evMediaType = this.resolveEvolutionMediaType(mediaType);
+    const resolvedFileName = fileName || 'arquivo';
 
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
@@ -167,30 +201,34 @@ export class EvolutionClient {
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
       mediaType: evMediaType,
-      fileName: fileName || 'arquivo',
+      fileName: resolvedFileName,
       hasCaption: Boolean(caption),
     }));
 
-    const response = await fetch(`${baseUrl}/send/media`, {
+    const primaryResponse = await fetch(`${baseUrl}/send/media`, {
       method: 'POST',
-      headers: { apikey: config.apiKey, 'Content-Type': 'application/json' },
+      headers: {
+        apikey: config.apiKey,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         id: instance,
         number: normalizedNumber,
         type: evMediaType,
         url: mediaUrlOrBase64,
-        filename: fileName || 'arquivo',
+        filename: resolvedFileName,
         caption: caption || '',
         delay: 1200,
       }),
     });
 
-    if (response.ok) {
-      const payload = await response.json().catch(() => ({}));
+    if (primaryResponse.ok) {
+      const payload = await primaryResponse.json().catch(() => ({}));
       const messageId = this.extractMessageId(payload);
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'provider_response_media',
+        route: '/send/media',
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
@@ -199,17 +237,54 @@ export class EvolutionClient {
       return { messageId };
     }
 
-    const errorText = await response.text().catch(() => 'unknown_error');
+    const fallbackResponse = await fetch(`${baseUrl}/message/sendMedia/${encodeURIComponent(instance)}`, {
+      method: 'POST',
+      headers: {
+        apikey: config.apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        number: normalizedNumber,
+        mediatype: evMediaType,
+        mimetype: mediaType || 'application/octet-stream',
+        caption: caption || '',
+        media: mediaUrlOrBase64,
+        fileName: resolvedFileName,
+        delay: 1200,
+      }),
+    });
+
+    if (fallbackResponse.ok) {
+      const payload = await fallbackResponse.json().catch(() => ({}));
+      const messageId = this.extractMessageId(payload);
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_response_media',
+        route: '/message/sendMedia/{instance}',
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: normalizedNumber,
+        providerMessageId: messageId ?? null,
+      }));
+      return { messageId };
+    }
+
+    const primaryError = await primaryResponse.text().catch(() => 'unknown_error');
+    const fallbackError = await fallbackResponse.text().catch(() => 'unknown_error');
     this.logger.error(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'provider_error_media',
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
-      status: response.status,
-      error: errorText,
+      primaryStatus: primaryResponse.status,
+      primaryError,
+      fallbackStatus: fallbackResponse.status,
+      fallbackError,
     }));
-    throw new Error(`Evolution sendMedia failed: ${response.status} - ${errorText}`);
+    throw new Error(
+      `Evolution sendMedia failed: primary=${primaryResponse.status} ${primaryError}; fallback=${fallbackResponse.status} ${fallbackError}`
+    );
   }
 
   async fetchProfilePicture(
@@ -220,19 +295,43 @@ export class EvolutionClient {
 
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
-    const response = await fetch(`${baseUrl}/user/avatar`, {
+    const normalizedNumber = this.normalizeNumber(number);
+    const primaryResponse = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instance)}`, {
       method: 'POST',
       headers: { apikey: config.apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: instance, number: this.normalizeNumber(number) }),
+      body: JSON.stringify({ number: normalizedNumber }),
     });
 
-    if (!response.ok) return {};
+    if (primaryResponse.ok) {
+      const payload = (await primaryResponse.json().catch(() => ({}))) as any;
+      return {
+        profilePictureUrl:
+          payload?.profilePictureUrl ??
+          payload?.pictureUrl ??
+          payload?.profilePicture?.url ??
+          payload?.data?.profilePictureUrl ??
+          payload?.data?.pictureUrl ??
+          payload?.data?.url ??
+          payload?.url,
+      };
+    }
 
-    const payload = (await response.json().catch(() => ({}))) as any;
+    const fallbackResponse = await fetch(`${baseUrl}/user/avatar`, {
+      method: 'POST',
+      headers: { apikey: config.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: instance, number: normalizedNumber }),
+    });
+
+    if (!fallbackResponse.ok) return {};
+
+    const payload = (await fallbackResponse.json().catch(() => ({}))) as any;
     return {
       profilePictureUrl:
         payload?.profilePictureUrl ??
+        payload?.pictureUrl ??
+        payload?.profilePicture?.url ??
         payload?.data?.profilePictureUrl ??
+        payload?.data?.pictureUrl ??
         payload?.data?.url ??
         payload?.url,
     };
@@ -250,6 +349,14 @@ export class EvolutionClient {
     const digits = number.replace(/\D/g, '');
     if (!digits) return digits;
     return digits.startsWith('55') ? digits : `55${digits}`;
+  }
+
+  private resolveEvolutionMediaType(mediaType: string): 'image' | 'video' | 'audio' | 'document' {
+    const normalized = String(mediaType || '').toLowerCase();
+    if (normalized.includes('image')) return 'image';
+    if (normalized.includes('video')) return 'video';
+    if (normalized.includes('audio')) return 'audio';
+    return 'document';
   }
 
   private extractMessageId(payload: any): string | undefined {
