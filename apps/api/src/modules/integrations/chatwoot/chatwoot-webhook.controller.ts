@@ -200,7 +200,7 @@ export class ChatwootWebhookController {
         }
         break;
       case 'conversation_status_changed':
-        this.logger.debug('Evento conversation_status_changed recebido; nenhuma acao remota no WhatsApp configurada.');
+        await this.handleConversationStatusChanged(payload, resolvedContext?.connectionKey);
         break;
       case 'conversation_updated':
         this.logger.debug('Evento conversation_updated recebido; nenhuma acao remota no WhatsApp configurada.');
@@ -239,5 +239,60 @@ export class ChatwootWebhookController {
     }
 
     return Math.abs(nowSeconds - value) <= maxSkewSeconds;
+  }
+
+  private async handleConversationStatusChanged(payload: any, connectionKey?: string | null) {
+    const conversationId = this.toOptionalString(
+      payload?.conversation?.id ??
+      payload?.conversation_id ??
+      payload?.id
+    );
+    const status = this.normalizeConversationStatus(
+      payload?.status ??
+      payload?.conversation?.status ??
+      payload?.meta?.status
+    );
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'conversation_status_received',
+      conversationId: conversationId ?? null,
+      status: status ?? null,
+      connectionKey: connectionKey ?? null,
+    }));
+
+    if (!conversationId || (status !== 'resolved' && status !== 'archived')) {
+      return;
+    }
+
+    const deleted = await this.prisma.conversationLink.deleteMany({
+      where: {
+        chatwootConversationId: conversationId,
+        ...(connectionKey ? { connectionKey } : {}),
+      },
+    });
+
+    this.logger.warn(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'conversation_link_released',
+      conversationId,
+      status,
+      connectionKey: connectionKey ?? null,
+      deletedLinks: deleted.count,
+    }));
+  }
+
+  private normalizeConversationStatus(value: unknown): string | null {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (!normalized) return null;
+
+    if (normalized === 'resolved' || normalized === 'archived') return normalized;
+    if (normalized === 'open' || normalized === 'pending' || normalized === 'snoozed') return normalized;
+    return normalized;
+  }
+
+  private toOptionalString(value: unknown): string | undefined {
+    const normalized = String(value ?? '').trim();
+    return normalized || undefined;
   }
 }
