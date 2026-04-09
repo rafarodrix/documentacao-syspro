@@ -62,22 +62,59 @@ export class ChatwootWebhookController {
     const expectedSecret = resolvedContext?.chatwoot.webhookSecret;
     if (expectedSecret) {
       if (!signatureHeader || !timestampHeader) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'signature_missing',
+          event: payload?.event ?? null,
+          messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
+          hasSignature: Boolean(signatureHeader),
+          hasTimestamp: Boolean(timestampHeader),
+        }));
         throw new UnauthorizedException('Missing Chatwoot webhook signature headers');
       }
 
       const rawBodyBuffer = req?.rawBody as Buffer | undefined;
       if (!rawBodyBuffer) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'signature_raw_body_missing',
+          event: payload?.event ?? null,
+          messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
+        }));
         throw new UnauthorizedException('Missing raw body for Chatwoot signature validation');
       }
 
       if (!this.isTimestampFresh(timestampHeader, resolvedContext?.chatwoot.webhookMaxSkewSeconds ?? 300)) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'timestamp_invalid',
+          event: payload?.event ?? null,
+          messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
+          timestamp: timestampHeader,
+          maxSkewSeconds: resolvedContext?.chatwoot.webhookMaxSkewSeconds ?? 300,
+        }));
         throw new UnauthorizedException('Stale Chatwoot webhook timestamp');
       }
 
       const expectedSignature = this.computeSignature(expectedSecret, timestampHeader, rawBodyBuffer.toString('utf8'));
       if (!this.safeCompare(expectedSignature, signatureHeader)) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'signature_mismatch',
+          event: payload?.event ?? null,
+          messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
+          signaturePrefix: String(signatureHeader).slice(0, 12),
+          expectedPrefix: String(expectedSignature).slice(0, 12),
+        }));
         throw new UnauthorizedException('Invalid Chatwoot webhook signature');
       }
+
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'signature_validated',
+        event: payload?.event ?? null,
+        messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
+      }));
     }
 
     switch (payload?.event) {
