@@ -155,6 +155,15 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     const phone = link.whatsappNumber;
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'link_resolved',
+      messageId,
+      chatwootConversationId,
+      whatsappNumber: phone,
+      connectionKey: link.connectionKey,
+      chatwootContactId: link.chatwootContactId,
+    }));
 
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
@@ -186,7 +195,14 @@ export class ProcessOutgoingMessageUseCase {
         resolvedConnection ??
         await this.integrationContext.resolveByConnectionKey(link.connectionKey);
       if (!linkContext) {
-        this.logger.warn(`Conexao nao resolvida para envio de midia da conversa ${chatwootConversationId}`);
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'connection_not_resolved_for_media',
+          messageId,
+          chatwootConversationId,
+          whatsappNumber: phone,
+          connectionKey: link.connectionKey,
+        }));
         return;
       }
 
@@ -225,12 +241,33 @@ export class ProcessOutgoingMessageUseCase {
       resolvedConnection ??
       await this.integrationContext.resolveByConnectionKey(link.connectionKey);
     if (!linkContext) {
-      this.logger.warn(`Conexao nao resolvida para envio da conversa ${chatwootConversationId}`);
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'connection_not_resolved',
+        messageId,
+        chatwootConversationId,
+        whatsappNumber: phone,
+        connectionKey: link.connectionKey,
+      }));
       return;
     }
 
     const outboundContent = content ?? '';
-    const sendResult = await this.evolutionClient.sendTextMessage(linkContext.evolution, phone, outboundContent);
+    let sendResult: { messageId?: string };
+    try {
+      sendResult = await this.evolutionClient.sendTextMessage(linkContext.evolution, phone, outboundContent);
+    } catch (error: any) {
+      this.logger.error(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'send_failed',
+        messageId,
+        chatwootConversationId,
+        whatsappNumber: phone,
+        connectionKey: link.connectionKey,
+        error: error?.message ?? 'unknown_error',
+      }));
+      throw error;
+    }
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'sent',
@@ -423,7 +460,7 @@ export class ProcessOutgoingMessageUseCase {
         previousConversationId: existingLink.chatwootConversationId,
         nextConversationId: chatwootConversationId,
         chatwootContactId: existingLink.chatwootContactId,
-      });
+      }));
     }
 
     if (existingLink) {

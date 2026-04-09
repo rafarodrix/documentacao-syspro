@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { readEvolutionRuntimeConfig } from '@dosc-syspro/config';
 
 export type EvolutionConnectionConfig = {
@@ -25,6 +25,8 @@ export function readEvolutionConfigFromRuntime(): EvolutionConnectionConfig {
 
 @Injectable()
 export class EvolutionClient {
+  private readonly logger = new Logger(EvolutionClient.name);
+
   async fetchContacts(config: EvolutionConnectionConfig): Promise<EvolutionContact[]> {
     if (!config.apiUrl || !config.apiKey) {
       console.warn('[EvolutionClient] Credenciais ausentes. Busca de contatos ignorada.');
@@ -86,6 +88,14 @@ export class EvolutionClient {
     const normalizedNumber = this.normalizeNumber(number);
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'provider_request_text',
+      evolutionBaseUrl: baseUrl,
+      evolutionInstance: instance,
+      whatsappNumber: normalizedNumber,
+      contentLength: text.length,
+    }));
 
     const response = await fetch(`${baseUrl}/send/text`, {
       method: 'POST',
@@ -103,10 +113,28 @@ export class EvolutionClient {
 
     if (response.ok) {
       const payload = await response.json().catch(() => ({}));
-      return { messageId: this.extractMessageId(payload) };
+      const messageId = this.extractMessageId(payload);
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_response_text',
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: normalizedNumber,
+        providerMessageId: messageId ?? null,
+      }));
+      return { messageId };
     }
 
     const errorText = await response.text().catch(() => 'unknown_error');
+    this.logger.error(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'provider_error_text',
+      evolutionBaseUrl: baseUrl,
+      evolutionInstance: instance,
+      whatsappNumber: normalizedNumber,
+      status: response.status,
+      error: errorText,
+    }));
     throw new Error(`Evolution send failed: ${response.status} - ${errorText}`);
   }
 
@@ -132,6 +160,17 @@ export class EvolutionClient {
     else if (mediaType.includes('video')) evMediaType = 'video';
     else if (mediaType.includes('audio')) evMediaType = 'audio';
 
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'provider_request_media',
+      evolutionBaseUrl: baseUrl,
+      evolutionInstance: instance,
+      whatsappNumber: normalizedNumber,
+      mediaType: evMediaType,
+      fileName: fileName || 'arquivo',
+      hasCaption: Boolean(caption),
+    }));
+
     const response = await fetch(`${baseUrl}/send/media`, {
       method: 'POST',
       headers: { apikey: config.apiKey, 'Content-Type': 'application/json' },
@@ -148,10 +187,28 @@ export class EvolutionClient {
 
     if (response.ok) {
       const payload = await response.json().catch(() => ({}));
-      return { messageId: this.extractMessageId(payload) };
+      const messageId = this.extractMessageId(payload);
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_response_media',
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: normalizedNumber,
+        providerMessageId: messageId ?? null,
+      }));
+      return { messageId };
     }
 
     const errorText = await response.text().catch(() => 'unknown_error');
+    this.logger.error(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'provider_error_media',
+      evolutionBaseUrl: baseUrl,
+      evolutionInstance: instance,
+      whatsappNumber: normalizedNumber,
+      status: response.status,
+      error: errorText,
+    }));
     throw new Error(`Evolution sendMedia failed: ${response.status} - ${errorText}`);
   }
 
