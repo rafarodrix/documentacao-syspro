@@ -4,6 +4,12 @@ import { Logger } from '@nestjs/common';
 import { json, urlencoded } from 'express';
 import { validateChatwootRuntimeConfigOrThrow } from './modules/integrations/chatwoot/chatwoot-config';
 
+function captureRawBody(req: any, _res: any, buffer: Buffer) {
+  if (buffer?.length) {
+    req.rawBody = Buffer.from(buffer);
+  }
+}
+
 async function bootstrap() {
   try {
     validateChatwootRuntimeConfigOrThrow();
@@ -16,8 +22,8 @@ async function bootstrap() {
     );
   }
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  app.use(json({ limit: '50mb' }));
-  app.use(urlencoded({ extended: true, limit: '50mb' }));
+  app.use(json({ limit: '50mb', verify: captureRawBody }));
+  app.use(urlencoded({ extended: true, limit: '50mb', verify: captureRawBody }));
 
   const httpAdapter = app.getHttpAdapter();
   const expressApp = httpAdapter.getInstance();
