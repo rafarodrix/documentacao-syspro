@@ -344,9 +344,10 @@ export class ChatwootClient {
       formData.append('content', content || '');
       formData.append('echo_id', echoId);
       try {
-        const buffer = Buffer.from(attachment.base64, 'base64');
-        const blob = new Blob([buffer], { type: attachment.mimetype });
-        formData.append('attachments[]', blob, attachment.filename);
+        const normalizedAttachment = this.normalizeAttachmentInput(attachment);
+        const buffer = Buffer.from(normalizedAttachment.base64, 'base64');
+        const blob = new Blob([buffer], { type: normalizedAttachment.mimetype });
+        formData.append('attachments[]', blob, normalizedAttachment.filename);
 
         if (inboxIdentifier) {
           try {
@@ -380,6 +381,7 @@ export class ChatwootClient {
         return result;
       } catch (e: any) {
         this.logger.error(`Erro ao processar anexo para o Chatwoot: ${e.message}`);
+        throw e;
       }
     }
 
@@ -553,6 +555,63 @@ export class ChatwootClient {
 
   private buildPlatformPassword(): string {
     return `Syspro!${Math.random().toString(36).slice(2, 8)}9A`;
+  }
+
+  private normalizeAttachmentInput(attachment: {
+    base64: string;
+    mimetype: string;
+    filename: string;
+  }): { base64: string; mimetype: string; filename: string } {
+    const mimetype = String(attachment.mimetype || 'application/octet-stream').trim().toLowerCase();
+    const base64 = String(attachment.base64 || '')
+      .replace(/^data:[^;]+;base64,/, '')
+      .replace(/\s+/g, '');
+
+    if (!base64) {
+      throw new Error('Anexo recebido sem base64 valido.');
+    }
+
+    const fallbackExtension = this.extensionFromMimeType(mimetype);
+    const filename = this.ensureFilenameExtension(attachment.filename, fallbackExtension);
+
+    return {
+      base64,
+      mimetype,
+      filename,
+    };
+  }
+
+  private extensionFromMimeType(mimetype: string): string {
+    switch (mimetype) {
+      case 'image/jpeg':
+      case 'image/jpg':
+        return '.jpg';
+      case 'image/png':
+        return '.png';
+      case 'image/webp':
+        return '.webp';
+      case 'image/gif':
+        return '.gif';
+      case 'video/mp4':
+        return '.mp4';
+      case 'audio/ogg':
+        return '.ogg';
+      case 'audio/mpeg':
+        return '.mp3';
+      case 'application/pdf':
+        return '.pdf';
+      default:
+        return '';
+    }
+  }
+
+  private ensureFilenameExtension(filename: string, fallbackExtension: string): string {
+    const normalized = String(filename || 'arquivo').trim() || 'arquivo';
+    if (!fallbackExtension || /\.[a-z0-9]+$/i.test(normalized)) {
+      return normalized;
+    }
+
+    return `${normalized}${fallbackExtension}`;
   }
 
   private appendAccountIncomingFields(formData: FormData): FormData {
