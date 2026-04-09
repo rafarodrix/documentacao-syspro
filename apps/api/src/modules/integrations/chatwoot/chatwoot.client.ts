@@ -428,6 +428,67 @@ export class ChatwootClient {
     return result;
   }
 
+  async resolveAttachmentPayload(
+    config: ChatwootConnectionConfig,
+    attachment: any,
+  ): Promise<{ dataUrl: string; mimetype: string; filename: string } | null> {
+    const directCandidate = [
+      attachment?.data_url,
+      attachment?.download_url,
+      attachment?.thumb_url,
+    ]
+      .map((value: unknown) => String(value ?? '').trim())
+      .find(Boolean);
+
+    const fallbackMime = this.normalizeAttachmentMimeType(
+      attachment?.file_type ??
+      attachment?.data?.content_type ??
+      attachment?.extension,
+    );
+    const fallbackFilename = this.ensureFilenameExtension(
+      attachment?.data?.filename ?? attachment?.file_name ?? 'arquivo',
+      this.extensionFromMimeType(fallbackMime),
+    );
+
+    if (!directCandidate) {
+      return null;
+    }
+
+    if (directCandidate.startsWith('data:')) {
+      return {
+        dataUrl: directCandidate,
+        mimetype: fallbackMime,
+        filename: fallbackFilename,
+      };
+    }
+
+    const attachmentUrl = this.resolveAttachmentUrl(config, directCandidate);
+    const response = await fetch(attachmentUrl, {
+      method: 'GET',
+      headers: {
+        api_access_token: config.apiToken,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'unknown_error');
+      throw new Error(`Falha ao baixar anexo do Chatwoot: ${response.status} - ${errorText}`);
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const responseMime = this.normalizeAttachmentMimeType(response.headers.get('content-type') ?? fallbackMime);
+    const filename = this.ensureFilenameExtension(
+      fallbackFilename,
+      this.extensionFromMimeType(responseMime),
+    );
+
+    return {
+      dataUrl: `data:${responseMime};base64,${buffer.toString('base64')}`,
+      mimetype: responseMime,
+      filename,
+    };
+  }
+
   async getIntegrationHealth(config: ChatwootConnectionConfig): Promise<{
     status: 'ok' | 'error';
     checkedAt: string;
@@ -605,6 +666,17 @@ export class ChatwootClient {
     }
   }
 
+  private normalizeAttachmentMimeType(value: unknown): string {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (!normalized) return 'application/octet-stream';
+
+    if (normalized === 'image') return 'image/jpeg';
+    if (normalized === 'video') return 'video/mp4';
+    if (normalized === 'audio') return 'audio/ogg';
+    if (normalized === 'document') return 'application/pdf';
+    return normalized;
+  }
+
   private ensureFilenameExtension(filename: string, fallbackExtension: string): string {
     const normalized = String(filename || 'arquivo').trim() || 'arquivo';
     if (!fallbackExtension || /\.[a-z0-9]+$/i.test(normalized)) {
@@ -612,6 +684,16 @@ export class ChatwootClient {
     }
 
     return `${normalized}${fallbackExtension}`;
+  }
+
+  private resolveAttachmentUrl(config: ChatwootConnectionConfig, value: string): string {
+    if (/^https?:\/\//i.test(value)) {
+      return value;
+    }
+
+    const baseUrl = String(config.url || '').replace(/\/+$/, '');
+    const suffix = value.startsWith('/') ? value : `/${value}`;
+    return `${baseUrl}${suffix}`;
   }
 
   private appendAccountIncomingFields(formData: FormData): FormData {

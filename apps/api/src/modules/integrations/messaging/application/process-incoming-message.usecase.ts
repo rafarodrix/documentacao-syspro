@@ -123,14 +123,24 @@ export class ProcessIncomingMessageUseCase {
       }
 
       if (isMedia) {
-        const inlineBase64 =
-          messagePayload?.base64 ??
-          msg?.base64;
-        const baseResult = inlineBase64
-          ? { base64: inlineBase64 }
-          : null;
-        if (baseResult?.base64) {
-          attachment = { base64: baseResult.base64, mimetype: mimeType, filename: fileName };
+        const mediaPayload = await this.resolveIncomingAttachmentPayload(
+          messagePayload,
+          msg,
+          mimeType,
+          fileName,
+        );
+        if (mediaPayload?.base64) {
+          attachment = mediaPayload;
+        } else {
+          this.logger.warn(JSON.stringify({
+            flow: 'evolution_to_chatwoot',
+            stage: 'media_payload_missing_binary',
+            instanceId,
+            messageId: messageId ?? null,
+            whatsappNumber: phone,
+            mimetype: mimeType || null,
+            filename: fileName,
+          }));
         }
       }
 
@@ -217,6 +227,75 @@ export class ProcessIncomingMessageUseCase {
         }));
       }
     }
+  }
+
+  private async resolveIncomingAttachmentPayload(
+    messagePayload: any,
+    rawMessage: any,
+    mimeType: string,
+    fileName: string,
+  ): Promise<{ base64: string; mimetype: string; filename: string } | undefined> {
+    const directBase64Candidates = [
+      messagePayload?.base64,
+      rawMessage?.base64,
+      messagePayload?.imageMessage?.base64,
+      messagePayload?.videoMessage?.base64,
+      messagePayload?.documentMessage?.base64,
+      messagePayload?.audioMessage?.base64,
+    ];
+
+    for (const candidate of directBase64Candidates) {
+      const normalized = String(candidate ?? '').trim();
+      if (!normalized) continue;
+
+      if (normalized.startsWith('data:')) {
+        const [, encoded = ''] = normalized.split(',', 2);
+        if (encoded) {
+          return { base64: encoded, mimetype: mimeType, filename: fileName };
+        }
+      }
+
+      return { base64: normalized, mimetype: mimeType, filename: fileName };
+    }
+
+    const urlCandidates = [
+      messagePayload?.imageMessage?.url,
+      messagePayload?.videoMessage?.url,
+      messagePayload?.documentMessage?.url,
+      messagePayload?.audioMessage?.url,
+      messagePayload?.url,
+      rawMessage?.url,
+    ]
+      .map((value: unknown) => String(value ?? '').trim())
+      .filter((value: string) => /^https?:\/\//i.test(value) || /^data:/i.test(value));
+
+    for (const candidate of urlCandidates) {
+      try {
+        if (candidate.startsWith('data:')) {
+          const [, encoded = ''] = candidate.split(',', 2);
+          if (encoded) {
+            return { base64: encoded, mimetype: mimeType, filename: fileName };
+          }
+          continue;
+        }
+
+        const response = await fetch(candidate);
+        if (!response.ok) continue;
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        if (!buffer.length) continue;
+
+        return {
+          base64: buffer.toString('base64'),
+          mimetype: mimeType || response.headers.get('content-type') || 'application/octet-stream',
+          filename: fileName,
+        };
+      } catch {
+        continue;
+      }
+    }
+
+    return undefined;
   }
 
   async handleStatusUpdate(payload: any, context?: { instanceId?: string; connection?: ResolvedIntegrationContext }) {

@@ -19,6 +19,17 @@ export class ProcessOutgoingMessageUseCase {
 
   async execute(payload: any, context?: { connection?: ResolvedIntegrationContext }) {
     const messagePayload = this.extractMessagePayload(payload);
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'payload_normalized',
+      messageId: messagePayload.messageId ?? null,
+      messageType: messagePayload.messageType ?? null,
+      chatwootConversationId: messagePayload.chatwootConversationId ?? null,
+      hasContent: Boolean(messagePayload.content),
+      contentLength: messagePayload.content?.length ?? 0,
+      hasAttachment: messagePayload.attachments.length > 0,
+      isPrivateNote: messagePayload.isPrivateNote,
+    }));
     const normalizedMessageType = this.normalizeMessageType(messagePayload.messageType);
     if (messagePayload.isPrivateNote) {
       this.logger.debug(JSON.stringify({
@@ -176,21 +187,9 @@ export class ProcessOutgoingMessageUseCase {
     // Se houver arquivo anexado pelo atendente do Chatwoot
     if (hasAttachment) {
       const attachment = attachments[0];
-      const mediaUrl = attachment?.data_url ?? attachment?.thumb_url ?? attachment?.download_url;
-      const fileType = attachment.file_type || 'document';
-      const fileName = attachment.data?.filename || 'arquivo';
+      const fileType = attachment?.file_type || attachment?.data?.content_type || 'document';
+      const fileName = attachment?.data?.filename || attachment?.file_name || 'arquivo';
 
-      if (!mediaUrl) {
-        this.logger.warn(JSON.stringify({
-          flow: 'chatwoot_to_evolution',
-          stage: 'missing_attachment_url',
-          messageId,
-          chatwootConversationId,
-          attachmentId: attachment?.id?.toString?.() ?? null,
-        }));
-        return;
-      }
-      
       const linkContext =
         resolvedConnection ??
         await this.integrationContext.resolveByConnectionKey(link.connectionKey);
@@ -206,12 +205,41 @@ export class ProcessOutgoingMessageUseCase {
         return;
       }
 
+      let mediaPayload: { dataUrl: string; mimetype: string; filename: string } | null = null;
+      try {
+        mediaPayload = await this.chatwootClient.resolveAttachmentPayload(
+          linkContext.chatwoot,
+          attachment,
+        );
+      } catch (error: any) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'attachment_download_failed',
+          messageId,
+          chatwootConversationId,
+          attachmentId: attachment?.id?.toString?.() ?? null,
+          error: error?.message ?? 'unknown_error',
+        }));
+        return;
+      }
+
+      if (!mediaPayload?.dataUrl) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'missing_attachment_url',
+          messageId,
+          chatwootConversationId,
+          attachmentId: attachment?.id?.toString?.() ?? null,
+        }));
+        return;
+      }
+
       const sendResult = await this.evolutionClient.sendMedia(
         linkContext.evolution,
         phone,
-        mediaUrl,
-        fileType,
-        fileName,
+        mediaPayload.dataUrl,
+        mediaPayload.mimetype || fileType,
+        mediaPayload.filename || fileName,
         content || ''
       );
       this.logger.log(JSON.stringify({
@@ -316,12 +344,13 @@ export class ProcessOutgoingMessageUseCase {
   } {
     const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
     const attachments = this.toArray(payload?.attachments ?? message?.attachments);
+    const content = this.resolveOutgoingContent(payload, message);
 
     return {
       messageId: this.toOptionalString(payload?.id ?? message?.id),
       messageType: payload?.message_type ?? message?.message_type,
       isPrivateNote: Boolean(payload?.private ?? message?.private),
-      content: this.toOptionalString(payload?.content ?? message?.content),
+      content,
       chatwootConversationId: this.toOptionalString(
         payload?.conversation?.id ??
         payload?.conversation_id ??
@@ -497,5 +526,74 @@ export class ProcessOutgoingMessageUseCase {
   private toOptionalString(value: unknown): string | undefined {
     const normalized = String(value ?? '').trim();
     return normalized.length > 0 ? normalized : undefined;
+  }
+
+  private resolveOutgoingContent(payload: any, message: any): string | undefined {
+    const directCandidates = [
+      payload?.content,
+      message?.content,
+      payload?.message?.content,
+      payload?.content_attributes?.message,
+      message?.content_attributes?.message,
+      payload?.content_attributes?.text,
+      message?.content_attributes?.text,
+      payload?.conversation?.last_non_activity_message?.content,
+      payload?.conversation?.messages?.[0]?.content,
+    ];
+
+    for (const candidate of directCandidates) {
+      const normalized = this.normalizeMessageText(candidate);
+      if (normalized) return normalized;
+    }
+
+    const templateCandidates = [
+      payload?.content_attributes?.submitted_values,
+      message?.content_attributes?.submitted_values,
+      payload?.content_attributes?.items,
+      message?.content_attributes?.items,
+    ];
+
+    for (const candidate of templateCandidates) {
+      const normalized = this.normalizeStructuredContent(candidate);
+      if (normalized) return normalized;
+    }
+
+    return undefined;
+  }
+
+  private normalizeMessageText(value: unknown): string | undefined {
+    const raw = String(value ?? '').trim();
+    if (!raw) return undefined;
+
+    const withoutTags = raw
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+
+    return withoutTags || undefined;
+  }
+
+  private normalizeStructuredContent(value: unknown): string | undefined {
+    if (Array.isArray(value)) {
+      const parts = value
+        .map((item) => this.normalizeStructuredContent(item))
+        .filter(Boolean);
+      return parts.length ? parts.join('\n') : undefined;
+    }
+
+    if (value && typeof value === 'object') {
+      const entries = Object.entries(value as Record<string, unknown>)
+        .map(([key, entryValue]) => {
+          const normalizedValue = this.normalizeStructuredContent(entryValue);
+          return normalizedValue ? `${key}: ${normalizedValue}` : null;
+        })
+        .filter(Boolean);
+      return entries.length ? entries.join('\n') : undefined;
+    }
+
+    return this.normalizeMessageText(value);
   }
 }
