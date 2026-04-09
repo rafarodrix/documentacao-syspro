@@ -327,13 +327,36 @@ export class UsersService {
       }
     }
 
-    const url = await this.chatwootClient.getUserSsoLink(context.chatwoot, String(agent.id));
+    let url: string;
+    try {
+      url = await this.chatwootClient.getUserSsoLink(context.chatwoot, String(agent.id));
+    } catch (error: any) {
+      if (!this.isChatwootNonPermissibleResourceError(error)) {
+        throw error;
+      }
+
+      url = this.buildChatwootFallbackUrl(context.chatwoot.url, context.chatwoot.accountId);
+      this.logger.warn(
+        `Platform App sem permissao para gerar SSO do usuario ${user.email} no Chatwoot. Redirecionando para a URL base da conta.`
+      );
+    }
+
     return { url };
   }
 
   private isChatwootNonPermissibleResourceError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error ?? '');
     return message.includes('Non permissible resource') || message.includes(': 401 -') || message.includes(': 403 -');
+  }
+
+  private buildChatwootFallbackUrl(baseUrl: string, accountId?: string | null): string {
+    const normalizedBaseUrl = String(baseUrl ?? '').replace(/\/+$/, '');
+    const normalizedAccountId = String(accountId ?? '').trim();
+    if (!normalizedAccountId) {
+      return normalizedBaseUrl;
+    }
+
+    return `${normalizedBaseUrl}/app/accounts/${normalizedAccountId}`;
   }
 
   async getClientAdminView(rawHeaders?: IncomingHttpHeaders) {
