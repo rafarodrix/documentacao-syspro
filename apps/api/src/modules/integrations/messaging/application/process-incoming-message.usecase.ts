@@ -34,9 +34,38 @@ export class ProcessIncomingMessageUseCase {
       if (!msg) continue;
 
       const fromMe = Boolean(msg?.key?.fromMe ?? msg?.Info?.IsFromMe ?? msg?.info?.IsFromMe);
-      if (fromMe) continue;
-
       const messageId = (msg?.key?.id ?? msg?.Info?.ID ?? msg?.info?.ID)?.toString();
+      if (fromMe) {
+        this.logger.debug(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'skipped_from_me',
+          instanceId,
+          messageId: messageId ?? null,
+        }));
+        continue;
+      }
+
+      if (messageId) {
+        const existingLink = await this.prisma.messageLink.findUnique({
+          where: {
+            connectionKey_evolutionMessageId: {
+              connectionKey: resolvedConnection.connectionKey,
+              evolutionMessageId: messageId,
+            },
+          },
+        });
+        if (existingLink) {
+          this.logger.debug(JSON.stringify({
+            flow: 'evolution_to_chatwoot',
+            stage: 'skipped_echo',
+            instanceId,
+            messageId,
+            chatwootConversationId: existingLink.chatwootConversationId,
+          }));
+          continue;
+        }
+      }
+
       if (messageId) {
         const providerEventId = `message:${messageId}`;
         const dedupeClaimed = await this.dedupService.claim('evolution_inbound', providerEventId, instanceId);
@@ -147,6 +176,7 @@ export class ProcessIncomingMessageUseCase {
               where: {
                 whatsappNumber: phone,
                 connectionKey: resolvedConnection.connectionKey,
+                ...(conversationId ? { chatwootConversationId: conversationId } : {}),
               }
             });
             this.logger.log(`[AUTO-CURA] Vinculo do numero ${phone} apagado. Recriando conversa e reenviando a mensagem atual.`);
@@ -372,24 +402,43 @@ export class ProcessIncomingMessageUseCase {
 
         const configuredInboxIdentifier = connection.chatwoot.inboxIdentifier?.toString();
         const configuredInboxId = connection.chatwoot.inboxId?.toString();
-        const sourceIdFromInbox =
-          contact?.contact_inboxes
-            ?.find((item: any) => {
-              const inboxId = item?.inbox?.id?.toString?.() ?? item?.inbox_id?.toString?.();
-              const inboxIdentifier = item?.inbox?.identifier?.toString?.() ?? item?.inbox_identifier?.toString?.();
+        const matchesConfiguredInbox = (item: any) => {
+          const inboxId = item?.inbox?.id?.toString?.() ?? item?.inbox_id?.toString?.();
+          const inboxIdentifier = item?.inbox?.identifier?.toString?.() ?? item?.inbox_identifier?.toString?.();
 
-              if (configuredInboxIdentifier && inboxIdentifier === configuredInboxIdentifier) return true;
-              if (configuredInboxId && inboxId === configuredInboxId) return true;
-              if (!configuredInboxId && configuredInboxIdentifier && inboxId === configuredInboxIdentifier) return true;
-              return false;
-            })
+          if (configuredInboxIdentifier && inboxIdentifier === configuredInboxIdentifier) return true;
+          if (configuredInboxId && inboxId === configuredInboxId) return true;
+          if (!configuredInboxId && configuredInboxIdentifier && inboxId === configuredInboxIdentifier) return true;
+          return false;
+        };
+
+        const sourceIdFromEmbeddedInbox =
+          contact?.contact_inboxes
+            ?.find((item: any) => matchesConfiguredInbox(item))
+            ?.source_id
+            ?.toString?.();
+
+        const contactableInboxes =
+          contact?.id
+            ? await this.chatwootClient.getContactableInboxes(connection.chatwoot, contact.id.toString())
+            : [];
+
+        const sourceIdFromContactableInbox =
+          contactableInboxes
+            ?.find((item: any) => matchesConfiguredInbox(item))
             ?.source_id
             ?.toString?.();
 
         contactIdentifier =
-          contact?.source_id?.toString?.() ??
-          sourceIdFromInbox ??
-          contact?.contact_inboxes?.[0]?.source_id?.toString?.();
+          sourceIdFromEmbeddedInbox ??
+          sourceIdFromContactableInbox;
+
+        if (!contactIdentifier && !configuredInboxIdentifier && !configuredInboxId) {
+          contactIdentifier =
+            contact?.source_id?.toString?.() ??
+            contact?.contact_inboxes?.[0]?.source_id?.toString?.() ??
+            contactableInboxes?.[0]?.source_id?.toString?.();
+        }
 
         this.logger.log(JSON.stringify({
           flow: 'evolution_to_chatwoot',
@@ -408,10 +457,19 @@ export class ProcessIncomingMessageUseCase {
                 sourceId: item?.source_id?.toString?.() ?? null,
               }))
             : [],
+          contactableInboxes: Array.isArray(contactableInboxes)
+            ? contactableInboxes.map((item: any) => ({
+                inboxId: item?.inbox?.id?.toString?.() ?? null,
+                inboxIdentifier: item?.inbox?.identifier?.toString?.() ?? null,
+                sourceId: item?.source_id?.toString?.() ?? null,
+              }))
+            : [],
         }));
 
         if (!contactIdentifier) {
-          throw new Error(`Nao foi possivel resolver source_id publico do contato no Chatwoot (contact_id=${contact?.id ?? 'n/a'})`);
+          throw new Error(
+            `Nao foi possivel resolver source_id publico do contato no Chatwoot para a inbox configurada (contact_id=${contact?.id ?? 'n/a'}, inboxId=${configuredInboxId ?? 'n/a'}, inboxIdentifier=${configuredInboxIdentifier ?? 'n/a'})`
+          );
         }
 
         const convResponse = (await this.chatwootClient.createConversation(

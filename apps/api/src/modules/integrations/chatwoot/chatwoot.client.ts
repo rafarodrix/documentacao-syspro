@@ -187,6 +187,28 @@ export class ChatwootClient {
     );
   }
 
+  async getContactableInboxes(
+    config: ChatwootConnectionConfig,
+    contactId: string
+  ): Promise<Array<{ source_id?: string; inbox?: { id?: number; identifier?: string } }>> {
+    const numericContactId = this.toNumericIdentifier(contactId);
+    if (!numericContactId) {
+      return [];
+    }
+
+    const response = await this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/contacts/${numericContactId}/contactable_inboxes`,
+      'GET'
+    );
+
+    if (Array.isArray(response?.payload)) {
+      return response.payload;
+    }
+
+    return [];
+  }
+
   async createConversation(config: ChatwootConnectionConfig, contactIdentifier: string, contactId?: string) {
     const inboxIdentifier = await this.resolveInboxIdentifier(config);
     if (inboxIdentifier) {

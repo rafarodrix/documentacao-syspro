@@ -110,6 +110,7 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     if (!link) {
+      const fallbackContactIdentifier = this.extractContactIdentifierFromPayload(payload);
       const fallbackPhone =
         this.extractPhoneFromPayload(payload) ??
         await this.resolvePhoneFromConversationDetails(resolvedConnection, chatwootConversationId);
@@ -119,6 +120,7 @@ export class ProcessOutgoingMessageUseCase {
           stage: 'link_not_found',
           messageId,
           chatwootConversationId,
+          chatwootContactId: fallbackContactIdentifier,
         }));
         return;
       }
@@ -139,7 +141,7 @@ export class ProcessOutgoingMessageUseCase {
         fallbackConnection,
         fallbackPhone,
         chatwootConversationId,
-        this.extractContactIdentifierFromPayload(payload),
+        fallbackContactIdentifier,
       );
 
       this.logger.warn(JSON.stringify({
@@ -148,6 +150,7 @@ export class ProcessOutgoingMessageUseCase {
         messageId,
         chatwootConversationId,
         whatsappNumber: fallbackPhone,
+        chatwootContactId: fallbackContactIdentifier,
       }));
     }
 
@@ -296,10 +299,15 @@ export class ProcessOutgoingMessageUseCase {
     const candidates = [
       payload?.conversation?.meta?.sender?.phone_number,
       payload?.conversation?.meta?.sender?.identifier,
+      payload?.conversation?.meta?.sender?.pubsub_token,
       payload?.conversation?.meta?.channel,
+      payload?.conversation?.contact?.identifier,
       payload?.conversation?.contact?.phone_number,
+      payload?.conversation?.contact?.id,
       payload?.conversation?.contact_inbox?.source_id,
+      payload?.conversation?.contact_inbox?.contact_id,
       payload?.contact?.phone_number,
+      payload?.contact?.identifier,
       payload?.sender?.phone_number,
       payload?.sender?.identifier,
       payload?.message?.sender?.phone_number,
@@ -395,14 +403,38 @@ export class ProcessOutgoingMessageUseCase {
           connectionKey: connection.connectionKey,
           chatwootConversationId,
         },
+      }) ??
+      (chatwootContactId && chatwootContactId !== 'unknown'
+        ? await this.prisma.conversationLink.findFirst({
+            where: {
+              connectionKey: connection.connectionKey,
+              chatwootContactId,
+            },
+            orderBy: { createdAt: 'desc' },
+          })
+        : null);
+
+    if (existingLink && existingLink.chatwootConversationId !== chatwootConversationId) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_link_rebound',
+        connectionKey: connection.connectionKey,
+        whatsappNumber,
+        previousConversationId: existingLink.chatwootConversationId,
+        nextConversationId: chatwootConversationId,
+        chatwootContactId: existingLink.chatwootContactId,
       });
+    }
 
     if (existingLink) {
       return this.prisma.conversationLink.update({
         where: { id: existingLink.id },
         data: {
           chatwootConversationId,
-          chatwootContactId: existingLink.chatwootContactId || chatwootContactId,
+          chatwootContactId:
+            existingLink.chatwootContactId && existingLink.chatwootContactId !== 'unknown'
+              ? existingLink.chatwootContactId
+              : chatwootContactId,
         },
       });
     }
