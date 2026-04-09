@@ -83,7 +83,39 @@ export class ChatwootWebhookController {
     switch (payload?.event) {
       case 'message_created':
         try {
+          this.logger.log(JSON.stringify({
+            flow: 'chatwoot_to_evolution',
+            stage: 'handoff_start',
+            event: payload?.event,
+            messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
+            messageType: payload?.message_type ?? message?.message_type ?? null,
+            conversationId:
+              payload?.conversation?.id?.toString?.() ??
+              payload?.conversation_id?.toString?.() ??
+              message?.conversation_id?.toString?.() ??
+              null,
+            hasContent: Boolean(
+              String(
+                payload?.content ??
+                message?.content ??
+                payload?.content_attributes?.message ??
+                message?.content_attributes?.message ??
+                ''
+              ).trim()
+            ),
+            hasAttachments: Boolean(
+              (Array.isArray(payload?.attachments) && payload.attachments.length > 0) ||
+              (Array.isArray(message?.attachments) && message.attachments.length > 0)
+            ),
+          }));
           await this.processOutgoingMessage.execute(payload, { connection: resolvedContext ?? undefined });
+          this.logger.log(JSON.stringify({
+            flow: 'chatwoot_to_evolution',
+            stage: 'handoff_complete',
+            event: payload?.event,
+            messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
+            messageType: payload?.message_type ?? message?.message_type ?? null,
+          }));
         } catch (error: any) {
           this.logger.error(JSON.stringify({
             flow: 'chatwoot_to_evolution',
