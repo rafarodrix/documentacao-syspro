@@ -32,6 +32,8 @@ type UpdateContactInput = {
   companyIds?: string[] | null;
 };
 
+const CONTACTS_TRANSACTION_TIMEOUT_MS = 15000;
+
 @Injectable()
 export class ContactsService {
   private readonly logger = new Logger(ContactsService.name);
@@ -119,9 +121,40 @@ export class ContactsService {
       : null;
 
     if (existing) {
-      const updated = await this.prisma.$transaction(async (tx) => {
-        const updatedContact = await (tx.companyContact as any).update({
-          where: { id: existing.id },
+      const updated = await this.prisma.$transaction(
+        async (tx) => {
+          const updatedContact = await (tx.companyContact as any).update({
+            where: { id: existing.id },
+            data: {
+              name,
+              email: input.email?.trim() || null,
+              phone,
+              whatsapp,
+              notes: input.notes?.trim() || null,
+              companyId: companyIds[0] ?? null,
+              source: existing.source,
+              status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
+            },
+            include: this.contactInclude(),
+          });
+
+          await this.syncContactCompanies(tx, existing.id, companyIds);
+          return (tx.companyContact as any).findUnique({
+            where: { id: existing.id },
+            include: this.contactInclude(),
+          });
+        },
+        { timeout: CONTACTS_TRANSACTION_TIMEOUT_MS }
+      );
+
+      const serialized = this.serializeContact(updated);
+      await this.syncChatwootContactName(serialized);
+      return serialized;
+    }
+
+    const created = await this.prisma.$transaction(
+      async (tx) => {
+        const createdContact = await (tx.companyContact as any).create({
           data: {
             name,
             email: input.email?.trim() || null,
@@ -129,45 +162,20 @@ export class ContactsService {
             whatsapp,
             notes: input.notes?.trim() || null,
             companyId: companyIds[0] ?? null,
-            source: existing.source,
+            source: CompanyContactSource.MANUAL,
             status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
           },
           include: this.contactInclude(),
         });
 
-        await this.syncContactCompanies(tx, existing.id, companyIds);
+        await this.syncContactCompanies(tx, createdContact.id, companyIds);
         return (tx.companyContact as any).findUnique({
-          where: { id: existing.id },
+          where: { id: createdContact.id },
           include: this.contactInclude(),
         });
-      });
-
-      const serialized = this.serializeContact(updated);
-      await this.syncChatwootContactName(serialized);
-      return serialized;
-    }
-
-    const created = await this.prisma.$transaction(async (tx) => {
-      const createdContact = await (tx.companyContact as any).create({
-        data: {
-          name,
-          email: input.email?.trim() || null,
-          phone,
-          whatsapp,
-          notes: input.notes?.trim() || null,
-          companyId: companyIds[0] ?? null,
-          source: CompanyContactSource.MANUAL,
-          status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
-        },
-        include: this.contactInclude(),
-      });
-
-      await this.syncContactCompanies(tx, createdContact.id, companyIds);
-      return (tx.companyContact as any).findUnique({
-        where: { id: createdContact.id },
-        include: this.contactInclude(),
-      });
-    });
+      },
+      { timeout: CONTACTS_TRANSACTION_TIMEOUT_MS }
+    );
 
     const serialized = this.serializeContact(created);
     await this.syncChatwootContactName(serialized);
@@ -196,21 +204,24 @@ export class ContactsService {
       data.status = nextCompanyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK;
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      await (tx.companyContact as any).update({
-        where: { id: contactId },
-        data,
-      });
+    const updated = await this.prisma.$transaction(
+      async (tx) => {
+        await (tx.companyContact as any).update({
+          where: { id: contactId },
+          data,
+        });
 
-      if (input.companyId !== undefined || input.companyIds !== undefined) {
-        await this.syncContactCompanies(tx, contactId, nextCompanyIds);
-      }
+        if (input.companyId !== undefined || input.companyIds !== undefined) {
+          await this.syncContactCompanies(tx, contactId, nextCompanyIds);
+        }
 
-      return (tx.companyContact as any).findUnique({
-        where: { id: contactId },
-        include: this.contactInclude(),
-      });
-    });
+        return (tx.companyContact as any).findUnique({
+          where: { id: contactId },
+          include: this.contactInclude(),
+        });
+      },
+      { timeout: CONTACTS_TRANSACTION_TIMEOUT_MS }
+    );
 
     const serialized = this.serializeContact(updated);
     await this.syncChatwootContactName(serialized);

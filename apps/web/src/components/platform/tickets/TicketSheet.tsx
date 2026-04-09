@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface TicketSheetProps {
     isSystemUser?: boolean;
@@ -167,7 +168,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                     }
                 } catch (error) {
                     logError("sheet.open_change_failed", error, { nextOpen });
-                    throw error;
+                    toast.error("Falha ao abrir o formulario de chamado.");
                 }
             }}
         >
@@ -211,7 +212,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                         onSubmit(event);
                                     } catch (error) {
                                         logError("sheet.submit_sync_throw", error, { filesCount: files.length });
-                                        throw error;
+                                        toast.error("Falha ao iniciar o envio do chamado.");
                                     }
                                 }}
                                 className="space-y-6"

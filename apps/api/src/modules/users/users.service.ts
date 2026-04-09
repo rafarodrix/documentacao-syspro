@@ -306,19 +306,34 @@ export class UsersService {
       agent = { ...created, id: createdId, email: user.email };
       this.logger.log(`Usuario ${user.email} provisionado no Chatwoot com role ${chatwootRole}.`);
     } else {
-      await this.chatwootClient.updatePlatformUser(context.chatwoot, String(agent.id), {
-        name: user.name?.trim() || user.email,
-        displayName: user.name?.trim() || user.email,
-        email: user.email,
-        customAttributes: {
-          portal_user_id: user.id,
-          portal_role: user.role,
-        },
-      });
+      try {
+        await this.chatwootClient.updatePlatformUser(context.chatwoot, String(agent.id), {
+          name: user.name?.trim() || user.email,
+          displayName: user.name?.trim() || user.email,
+          email: user.email,
+          customAttributes: {
+            portal_user_id: user.id,
+            portal_role: user.role,
+          },
+        });
+      } catch (error: any) {
+        if (this.isChatwootNonPermissibleResourceError(error)) {
+          this.logger.warn(
+            `Platform App sem permissao para atualizar o usuario ${user.email} no Chatwoot. Seguindo com o SSO sem sincronizar perfil.`
+          );
+        } else {
+          throw error;
+        }
+      }
     }
 
     const url = await this.chatwootClient.getUserSsoLink(context.chatwoot, String(agent.id));
     return { url };
+  }
+
+  private isChatwootNonPermissibleResourceError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    return message.includes('Non permissible resource') || message.includes(': 401 -') || message.includes(': 403 -');
   }
 
   async getClientAdminView(rawHeaders?: IncomingHttpHeaders) {
