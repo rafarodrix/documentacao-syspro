@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { createDecipheriv, createHash } from 'crypto';
 import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig } from '@dosc-syspro/config';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -33,13 +33,22 @@ export type ResolvedIntegrationContext = {
 
 @Injectable()
 export class IntegrationContextService {
+  private readonly logger = new Logger(IntegrationContextService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async getDefaultContext(): Promise<ResolvedIntegrationContext | null> {
-    const connection = await (this.prisma as any).integrationConnection.findFirst({
-      where: { status: 'ACTIVE' },
-      orderBy: [{ companyId: 'asc' }, { createdAt: 'asc' }],
-    });
+    let connection: any = null;
+    try {
+      connection = await (this.prisma as any).integrationConnection.findFirst({
+        where: { status: 'ACTIVE' },
+        orderBy: [{ companyId: 'asc' }, { createdAt: 'asc' }],
+      });
+    } catch (error: any) {
+      this.logger.warn(
+        `[integration_context] getDefaultContext database lookup failed; falling back to env runtime: ${error?.code ?? 'unknown'} ${error?.message ?? 'unknown_error'}`
+      );
+    }
 
     return this.toResolvedContext(connection) ?? this.readEnvFallback();
   }
@@ -50,9 +59,16 @@ export class IntegrationContextService {
       return this.readEnvFallback();
     }
 
-    const connection = await (this.prisma as any).integrationConnection.findUnique({
-      where: { id: normalized },
-    });
+    let connection: any = null;
+    try {
+      connection = await (this.prisma as any).integrationConnection.findUnique({
+        where: { id: normalized },
+      });
+    } catch (error: any) {
+      this.logger.warn(
+        `[integration_context] resolveByConnectionKey database lookup failed; falling back to env runtime: ${error?.code ?? 'unknown'} ${error?.message ?? 'unknown_error'}`
+      );
+    }
 
     return this.toResolvedContext(connection) ?? this.readEnvFallback();
   }
@@ -65,13 +81,20 @@ export class IntegrationContextService {
       ...(instance ? [{ evolutionInstance: instance }] : []),
     ];
 
-    const candidates = await (this.prisma as any).integrationConnection.findMany({
-      where: {
-        status: 'ACTIVE',
-        ...(orFilters.length ? { OR: orFilters } : {}),
-      },
-      orderBy: [{ createdAt: 'asc' }],
-    });
+    let candidates: any[] = [];
+    try {
+      candidates = await (this.prisma as any).integrationConnection.findMany({
+        where: {
+          status: 'ACTIVE',
+          ...(orFilters.length ? { OR: orFilters } : {}),
+        },
+        orderBy: [{ createdAt: 'asc' }],
+      });
+    } catch (error: any) {
+      this.logger.warn(
+        `[integration_context] resolveForEvolutionWebhook database lookup failed; falling back to env runtime: ${error?.code ?? 'unknown'} ${error?.message ?? 'unknown_error'}`
+      );
+    }
 
     return (
       this.toResolvedContext(candidates?.[0]) ??
@@ -104,13 +127,20 @@ export class IntegrationContextService {
       ''
     ).trim();
 
-    const candidates = await (this.prisma as any).integrationConnection.findMany({
-      where: {
-        status: 'ACTIVE',
-        ...(accountId ? { chatwootAccountId: accountId } : {}),
-      },
-      orderBy: [{ createdAt: 'asc' }],
-    });
+    let candidates: any[] = [];
+    try {
+      candidates = await (this.prisma as any).integrationConnection.findMany({
+        where: {
+          status: 'ACTIVE',
+          ...(accountId ? { chatwootAccountId: accountId } : {}),
+        },
+        orderBy: [{ createdAt: 'asc' }],
+      });
+    } catch (error: any) {
+      this.logger.warn(
+        `[integration_context] resolveForChatwootWebhook database lookup failed; falling back to env runtime: ${error?.code ?? 'unknown'} ${error?.message ?? 'unknown_error'}`
+      );
+    }
 
     const matched = (candidates as any[]).find((row) => {
       if (inboxId && String(row?.chatwootInboxId ?? '').trim() === inboxId) return true;
