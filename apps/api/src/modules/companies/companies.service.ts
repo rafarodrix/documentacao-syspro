@@ -1,7 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CompanyContactSource, CompanyContactStatus, CompanySegment, CompanyStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
-import { parseContractBlockReason } from '@dosc-syspro/core';
 import {
   createCompanySchema,
   type CreateCompanyInput,
@@ -39,6 +38,15 @@ const COMPANY_REGISTRY_CLIENT_SECRET = process.env.COMPANY_REGISTRY_CLIENT_SECRE
 const COMPANY_REGISTRY_SCOPE = process.env.COMPANY_REGISTRY_SCOPE;
 const COMPANY_REGISTRY_AUDIENCE = process.env.COMPANY_REGISTRY_AUDIENCE;
 const COMPANY_REGISTRY_TIMEOUT_MS = Number(process.env.COMPANY_REGISTRY_TIMEOUT_MS ?? 12000);
+const CONTRACT_BLOCK_MARKER = '[CONTRACT_BLOCK]';
+const CONTRACT_BLOCK_REASON_LABEL = {
+  EMPRESA_FECHOU: 'Empresa fechou',
+  TROCOU_SISTEMA: 'Trocou de sistema',
+  INADIMPLENCIA: 'Inadimplencia',
+  OUTROS: 'Outros',
+} as const;
+
+type ContractBlockReason = keyof typeof CONTRACT_BLOCK_REASON_LABEL;
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, '');
@@ -127,6 +135,20 @@ function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
     },
     raw: payloadRecord,
   };
+}
+
+function parseContractBlockReason(notes: string | null | undefined) {
+  if (!notes || !notes.startsWith(CONTRACT_BLOCK_MARKER)) return null;
+
+  const payload = notes.slice(CONTRACT_BLOCK_MARKER.length);
+  const [rawReason, rawDetails = ''] = payload.split('|');
+  if (!(rawReason in CONTRACT_BLOCK_REASON_LABEL)) return null;
+
+  const reason = rawReason as ContractBlockReason;
+  const details = rawDetails.trim() || null;
+  const label = details ? `${CONTRACT_BLOCK_REASON_LABEL[reason]}: ${details}` : CONTRACT_BLOCK_REASON_LABEL[reason];
+
+  return { reason, details, label };
 }
 
 @Injectable()
@@ -981,7 +1003,7 @@ export class CompaniesService {
     const timeout = setTimeout(() => controller.abort(), COMPANY_REGISTRY_TIMEOUT_MS);
 
     try {
-      return await fetch(url, { ...init, signal: controller.signal, cache: 'no-store' });
+      return await fetch(url, { ...init, signal: controller.signal });
     } finally {
       clearTimeout(timeout);
     }
