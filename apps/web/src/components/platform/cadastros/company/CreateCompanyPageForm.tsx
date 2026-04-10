@@ -369,7 +369,7 @@ export function CreateCompanyPageForm({
         primaryCnae?: string;
         primaryCnaeDescription?: string;
         secondaryCnaes?: Array<{ code: string; description: string }>;
-        partners?: Array<{ name: string; qualification?: string; entryDate?: string }>;
+        partners?: Array<{ name: string; qualification: string | undefined; entryDate: string | undefined }>;
         email?: string;
         phone?: string;
         address?: {
@@ -394,7 +394,15 @@ export function CreateCompanyPageForm({
       form.setValue("porte", profile.size ?? "", { shouldDirty: true });
       form.setValue("matrizFilial", profile.branchType ?? "", { shouldDirty: true });
       form.setValue("situacaoCadastral", profile.taxRegistrationStatus ?? "", { shouldDirty: true });
-      form.setValue("qsa", profile.partners ?? [], { shouldDirty: true });
+      form.setValue(
+        "qsa",
+        (profile.partners ?? []).map((partner) => ({
+          name: partner.name,
+          qualification: partner.qualification,
+          entryDate: partner.entryDate,
+        })),
+        { shouldDirty: true },
+      );
       form.setValue("emailContato", profile.email ?? "", { shouldDirty: true });
       form.setValue("telefone", profile.phone ? formatPhone(profile.phone) : "", { shouldDirty: true });
 
