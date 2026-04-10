@@ -166,8 +166,8 @@ export interface CompanyEditInitialData {
   situacaoCadastral: string;
   qsa: Array<{
     name: string;
-    qualification?: string;
-    entryDate?: string;
+    qualification: string | undefined;
+    entryDate: string | undefined;
   }>;
   emailContato: string;
   emailFinanceiro: string;
