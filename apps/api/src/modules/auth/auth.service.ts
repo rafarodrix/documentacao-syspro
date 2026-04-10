@@ -41,6 +41,23 @@ export class AuthService {
     this.auth = betterAuth({
       database: prismaAdapter(this.prisma, { provider: 'postgresql' }),
       plugins: [admin()],
+      databaseHooks: {
+        user: {
+          create: {
+            before: async (user) => {
+              const totalUsers = await this.prisma.user.count();
+
+              return {
+                data: {
+                  ...user,
+                  role: totalUsers === 0 ? Role.ADMIN : Role.CLIENTE_USER,
+                  isActive: true,
+                },
+              };
+            },
+          },
+        },
+      },
       user: {
         additionalFields: {
           role: {
@@ -96,7 +113,6 @@ export class AuthService {
       await this.prisma.user.update({
         where: { id: authResponse.user.id },
         data: {
-          role: Role.CLIENTE_USER,
           isActive: true,
         },
       });
