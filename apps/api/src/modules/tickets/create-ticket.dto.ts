@@ -28,4 +28,8 @@ export class CreateTicketDto {
   contactNameSnapshot?: string;
 
   metadata?: Record<string, unknown>;
+
+  userSelectedCompanyId?: string;
+
+  customerEmail?: string;
 }

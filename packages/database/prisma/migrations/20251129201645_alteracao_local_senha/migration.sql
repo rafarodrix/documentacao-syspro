@@ -1,11 +1,23 @@
-/*
-  Warnings:
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'account'
+      AND column_name = 'password'
+  ) THEN
+    ALTER TABLE "account" ADD COLUMN "password" TEXT;
+  END IF;
+END $$;
 
-  - You are about to drop the column `password` on the `user` table. All the data in the column will be lost.
-
-*/
--- AlterTable
-ALTER TABLE "account" ADD COLUMN     "password" TEXT;
-
--- AlterTable
-ALTER TABLE "user" DROP COLUMN "password";
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'user'
+      AND column_name = 'password'
+  ) THEN
+    ALTER TABLE "user" DROP COLUMN "password";
+  END IF;
+END $$;

@@ -1,8 +1,11 @@
-/*
-  Warnings:
-
-  - You are about to drop the column `password` on the `account` table. All the data in the column will be lost.
-
-*/
--- AlterTable
-ALTER TABLE "account" DROP COLUMN "password";
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'account'
+      AND column_name = 'password'
+  ) THEN
+    ALTER TABLE "account" DROP COLUMN "password";
+  END IF;
+END $$;

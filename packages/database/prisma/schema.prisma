@@ -314,6 +314,8 @@ model CompanyContact {
   email String?
   phone String?
   whatsapp String?
+  cpf String? @unique
+  jobTitle String?
   notes String? @db.Text
   isPrimary Boolean @default(false)
   source CompanyContactSource @default(MANUAL)
@@ -407,23 +409,16 @@ model User {
   contactId String?
   contact CompanyContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
-  // --- SEGURANÃƒâ€¡A E AUTH ---
-  // Se usar login por senha (alÃƒÂ©m de OAuth), considere adicionar:
-  // passwordHash String? 
+  // --- SEGURANCA E AUTH ---
   emailVerified  Boolean   @default(false)
   isActive       Boolean   @default(true)
   failedAttempts Int       @default(0)
   lockoutUntil   DateTime?
 
-  // --- DADOS PROFISSIONAIS ---
-  jobTitle String?
-  phone    String?
-  cpf      String? @unique
-
-  // --- LOCALIZAÃƒâ€¡ÃƒÆ’O ---
+  // --- LOCALIZACAO ---
   language String @default("pt-BR")
 
-  // --- PREFERÃƒÅ NCIAS ---
+  // --- PREFERENCIAS ---
   preferences Json? @default("{}")
 
   // --- AUDITORIA ---
@@ -452,11 +447,10 @@ model User {
   rotatedRemoteAddressBookCredentials RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialRotatedBy")
   revokedRemoteAddressBookCredentials RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialRevokedBy")
 
-  // ÃƒÂNDICES PARA PERFORMANCE
+  // INDICES PARA PERFORMANCE
   @@index([name])
   @@index([role])
   @@index([isActive])
-  @@index([cpf])
   @@index([contactId])
   @@map("user")
 }

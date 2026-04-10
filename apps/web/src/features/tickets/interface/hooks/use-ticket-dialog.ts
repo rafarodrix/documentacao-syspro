@@ -5,10 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ticketFormSchema, type TicketFormInput, type TicketFormOutput } from "@dosc-syspro/contracts";
-import { createTicketAction } from "@/features/tickets/application/ticket-actions";
+import { createTicketAction, getUserLinkedCompaniesAction } from "@/features/tickets/application/ticket-actions";
 import { toast } from "sonner";
 
-type UseTicketSheetOptions = {
+type UseTicketDialogOptions = {
     isSystemUser?: boolean;
 };
 
@@ -17,17 +17,24 @@ type CustomerEmailOption = {
     companyName: string;
 };
 
-export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOptions = {}) {
+type CompanyOption = {
+    id: string;
+    name: string;
+};
+
+export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogOptions = {}) {
     const searchParams = useSearchParams();
     const [files, setFiles] = useState<File[]>([]);
     const [customerEmail, setCustomerEmail] = useState("");
     const [customerCompany, setCustomerCompany] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [customerOptions, setCustomerOptions] = useState<CustomerEmailOption[]>([]);
+    const [clientCompanies, setClientCompanies] = useState<CompanyOption[]>([]);
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
     const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const diagPrefix = "[TicketsDiag][useTicketSheet]";
+    const diagPrefix = "[TicketsDiag][useTicketDialog]";
 
     const logInfo = (event: string, payload?: Record<string, unknown>) => {
         console.info(diagPrefix, {
@@ -80,6 +87,21 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
     };
 
     const triggerFileInput = () => fileInputRef.current?.click();
+
+    useEffect(() => {
+        if (!options.isSystemUser) {
+            getUserLinkedCompaniesAction().then((res) => {
+                if (res.success && res.data) {
+                    setClientCompanies(res.data);
+                    if (res.data.length === 1) {
+                        setSelectedCompanyId(res.data[0].id);
+                    }
+                }
+            }).catch(e => {
+                logError("client_companies.fetch_failed", e);
+            });
+        }
+    }, [options.isSystemUser]);
 
     useEffect(() => {
         if (!options.isSystemUser) return;
@@ -139,6 +161,8 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
                 formData.append("type", data.type);
                 if (options.isSystemUser) {
                     formData.append("customerEmail", customerEmail.trim().toLowerCase());
+                } else if (selectedCompanyId) {
+                    formData.append("userSelectedCompanyId", selectedCompanyId);
                 }
                 const source = searchParams?.get("source") || "";
                 const chatwootConversationId = searchParams?.get("chatwootConversationId") || "";
@@ -172,6 +196,9 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
                     setCustomerEmail("");
                     setCustomerCompany(null);
                     setSearchQuery("");
+                    if (clientCompanies.length > 0) {
+                        setSelectedCompanyId(clientCompanies.length === 1 ? clientCompanies[0].id : "");
+                    }
                     onSuccess();
                 } else {
                     toast.error(result.message || "Erro ao criar chamado.");
@@ -201,5 +228,8 @@ export function useTicketSheet(onSuccess: () => void, options: UseTicketSheetOpt
         setSearchQuery,
         customerOptions,
         isCustomerOptionsLoading,
+        clientCompanies,
+        selectedCompanyId,
+        setSelectedCompanyId,
     };
 }

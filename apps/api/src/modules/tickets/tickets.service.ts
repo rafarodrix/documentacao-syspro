@@ -38,6 +38,42 @@ export class TicketsService {
   async create(data: CreateTicketDto, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.getRequester(rawHeaders);
     const ticketNumber = this.generateTicketNumber();
+    
+    let resolvedCompanyId = data.companyId;
+    let resolvedContactId = data.companyContactId;
+    
+    const isSystemAdmin = ([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE] as Role[]).includes(requester.role);
+
+    if (isSystemAdmin && data.customerEmail) {
+      const contact = await this.prisma.companyContact.findFirst({
+        where: { email: data.customerEmail },
+        select: { id: true, companyId: true },
+      });
+      if (contact) {
+        resolvedContactId = contact.id;
+        resolvedCompanyId = contact.companyId ?? undefined;
+      }
+    } else if (!isSystemAdmin) {
+      const selfContact = await this.prisma.companyContact.findFirst({
+        where: { email: requester.email },
+        select: { id: true, companyId: true },
+      });
+      if (selfContact) {
+        resolvedContactId = selfContact.id;
+      }
+      
+      if (data.userSelectedCompanyId) {
+        resolvedCompanyId = data.userSelectedCompanyId;
+      } else if (selfContact?.companyId) {
+        resolvedCompanyId = selfContact.companyId;
+      } else {
+        const membership = await this.prisma.membership.findFirst({
+          where: { userId: requester.userId },
+          select: { companyId: true },
+        });
+        resolvedCompanyId = membership?.companyId;
+      }
+    }
 
     const conversation = await this.prisma.conversation.create({
       data: {
@@ -47,8 +83,8 @@ export class TicketsService {
         priority: data.priority ?? TicketPriority.NORMAL,
         subject: data.title,
         ticketNumber,
-        companyId: data.companyId,
-        companyContactId: data.companyContactId,
+        companyId: resolvedCompanyId,
+        companyContactId: resolvedContactId,
         assignedUserId: requester.userId,
         externalThreadId: data.externalThreadId?.trim() || null,
         contactPhoneSnapshot: data.contactPhoneSnapshot?.trim() || null,
@@ -77,6 +113,57 @@ export class TicketsService {
     return {
       success: true,
       data: conversation,
+    };
+  }
+
+  async getLinkedCompanies(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.getRequester(rawHeaders);
+    
+    const companiesMap = new Map<string, { id: string; name: string }>();
+
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId: requester.userId },
+      include: { company: true },
+    });
+    for (const m of memberships) {
+      if (m.company) {
+        companiesMap.set(m.companyId, {
+          id: m.company.id,
+          name: m.company.nomeFantasia || m.company.razaoSocial,
+        });
+      }
+    }
+
+    const contacts = await this.prisma.companyContact.findMany({
+      where: { email: requester.email },
+      include: {
+        company: true,
+        companyLinks: {
+          include: { company: true }
+        }
+      },
+    });
+
+    for (const contact of contacts) {
+      if (contact.company) {
+        companiesMap.set(contact.company.id, {
+          id: contact.company.id,
+          name: contact.company.nomeFantasia || contact.company.razaoSocial,
+        });
+      }
+      for (const link of contact.companyLinks) {
+        if (link.company) {
+          companiesMap.set(link.company.id, {
+            id: link.company.id,
+            name: link.company.nomeFantasia || link.company.razaoSocial,
+          });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      data: Array.from(companiesMap.values()),
     };
   }
 
@@ -289,7 +376,7 @@ export class TicketsService {
     };
   }
 
-  private async getRequester(rawHeaders?: IncomingHttpHeaders): Promise<{ userId: string; role: Role }> {
+  private async getRequester(rawHeaders?: IncomingHttpHeaders): Promise<{ userId: string; role: Role; email: string }> {
     const session = await this.authService.auth.api.getSession({
       headers: this.toHeaders(rawHeaders),
     });
@@ -299,14 +386,14 @@ export class TicketsService {
 
     const requester = await this.prisma.user.findUnique({
       where: { email },
-      select: { id: true, role: true, isActive: true, deletedAt: true },
+      select: { id: true, role: true, isActive: true, deletedAt: true, email: true },
     });
 
     if (!requester || requester.deletedAt || !requester.isActive) {
       throw new UnauthorizedException('Sessao invalida.');
     }
 
-    return { userId: requester.id, role: requester.role };
+    return { userId: requester.id, role: requester.role, email: requester.email };
   }
 
   private toHeaders(rawHeaders?: IncomingHttpHeaders): Headers {

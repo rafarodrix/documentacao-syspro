@@ -13,6 +13,11 @@ export class TicketsController {
     return this.ticketsService.create(createTicketDto, req.headers);
   }
 
+  @Get('linked-companies')
+  getLinkedCompanies(@Req() req: Request) {
+    return this.ticketsService.getLinkedCompanies(req.headers);
+  }
+
   @Get()
   findAll(
     @Req() req: Request,

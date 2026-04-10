@@ -7,7 +7,6 @@ import { resolveServerOrigin } from "@/lib/server-origin";
 import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
-import { prisma } from "@/lib/prisma";
 import type { TicketQueryParams, TicketsDataResponse, TicketListItem, TicketStatusCounts } from "@/components/platform/tickets/types";
 import type { TicketDetailsResponse, TicketMutationResponse, ClosedTicketsWindow } from "@/features/tickets/domain/ticket-model";
 
@@ -341,33 +340,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     }
 
     let companyId: string | undefined;
-    let companyContactId: string | undefined;
-
-    if (isSystemRole(session.role) && customerEmailInput) {
-      const contact = await prisma.companyContact.findFirst({
-        where: { email: customerEmailInput },
-        select: { id: true, companyId: true },
-      });
-      if (contact) {
-        companyContactId = contact.id;
-        companyId = contact.companyId ?? undefined;
-      }
-    } else {
-      const selfContact = await prisma.companyContact.findFirst({
-        where: { email: session.email },
-        select: { id: true, companyId: true },
-      });
-      if (selfContact) {
-        companyContactId = selfContact.id;
-        companyId = selfContact.companyId ?? undefined;
-      } else {
-        const membership = await prisma.membership.findFirst({
-          where: { userId: session.userId },
-          select: { companyId: true },
-        });
-        companyId = membership?.companyId;
-      }
-    }
+    const userSelectedCompanyId = String(formData.get("userSelectedCompanyId") || "").trim() || undefined;
 
     const payload = {
       title: subject,
@@ -375,8 +348,8 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
       priority: parsePriorityFromForm(priorityRaw),
       channel: source === "chatwoot" ? "WHATSAPP" : "PORTAL",
       entryPoint: "INBOUND",
-      ...(companyId ? { companyId } : {}),
-      ...(companyContactId ? { companyContactId } : {}),
+      userSelectedCompanyId,
+      customerEmail: customerEmailInput,
       ...(source === "chatwoot" && chatwootConversationId ? { externalThreadId: chatwootConversationId } : {}),
       ...(customerPhoneInput ? { contactPhoneSnapshot: customerPhoneInput } : {}),
       ...(customerWhatsappInput || customerPhoneInput
@@ -573,3 +546,19 @@ export async function ticketQuickAction(input: {
 
 export const getMyTicketsAction = getTicketsAction;
 export const getAdminTicketsAction = getTicketsAction;
+
+export async function getUserLinkedCompaniesAction() {
+  const session = await getProtectedSession();
+  if (!session) return { success: false, data: [] };
+
+  try {
+    const response = await callTicketsApi<{ success: boolean; data: { id: string; name: string }[] }>("/linked-companies");
+    if (!response.success) {
+      return { success: false, data: [] };
+    }
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Erro ao buscar empresas vinculadas:", error);
+    return { success: false, data: [] };
+  }
+}

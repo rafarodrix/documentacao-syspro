@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { isSystemRole } from "@/features/tickets/application/services/ticket-scope.service";
+import { Role } from "@prisma/client";
+
+const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
+function isSystemRole(role: Role): boolean {
+  return SYSTEM_ROLES.has(role);
+}
 
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 30;

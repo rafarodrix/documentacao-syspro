@@ -1,4 +1,4 @@
-export { TicketSheet } from "@/components/platform/tickets/TicketSheet";
+export { TicketDialog } from "@/components/platform/tickets/TicketDialog";
 export { TicketsContainer } from "@/components/platform/tickets/TicketsContainer";
 export { TicketsFilters } from "@/components/platform/tickets/TicketsFilters";
 export { TicketsStats } from "@/components/platform/tickets/TicketsStats";

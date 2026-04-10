@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTicketSheet } from '@/features/tickets/interface/hooks';
+import { useTicketDialog } from '@/features/tickets/interface/hooks/use-ticket-dialog';
 
 import {
     PlusCircle, Loader2, Send, FileText, AlertCircle,
@@ -15,9 +15,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-    Sheet, SheetContent, SheetDescription, SheetFooter,
-    SheetHeader, SheetTitle, SheetTrigger,
-} from '@/components/ui/sheet';
+    Dialog, DialogContent, DialogDescription, DialogFooter,
+    DialogHeader, DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog';
 import {
     Form, FormControl, FormField, FormItem, FormLabel,
     FormMessage, FormDescription,
@@ -29,17 +29,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-interface TicketSheetProps {
+interface TicketDialogProps {
     isSystemUser?: boolean;
 }
 
-export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
+export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     const [open, setOpen] = useState(false);
     const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
-    const diagPrefix = "[TicketsDiag][TicketSheet]";
+    const diagPrefix = "[TicketsDiag][TicketDialog]";
 
     const logInfo = (event: string, payload?: Record<string, unknown>) => {
         console.info(diagPrefix, {
@@ -84,12 +84,12 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
         };
     }, [open]);
 
-    // Toda a lÃ³gica vem do Hook
     const {
         form, files, isPending, fileInputRef,
         handleFileChange, removeFile, triggerFileInput, onSubmit,
-        customerEmail, setCustomerEmail, customerCompany, setCustomerCompany, searchQuery, setSearchQuery, customerOptions, isCustomerOptionsLoading
-    } = useTicketSheet(() => setOpen(false), { isSystemUser });
+        customerEmail, setCustomerEmail, customerCompany, setCustomerCompany, searchQuery, setSearchQuery, customerOptions, isCustomerOptionsLoading,
+        clientCompanies, selectedCompanyId, setSelectedCompanyId
+    } = useTicketDialog(() => setOpen(false), { isSystemUser });
 
     useEffect(() => {
         const shouldOpen = searchParams?.get("novo") === "1";
@@ -116,7 +116,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
             setCustomerCompany(customerCompanyParam.trim());
         }
 
-        logInfo("sheet.prefill_from_query", {
+        logInfo("dialog.prefill_from_query", {
             source,
             hasSubject: Boolean(subject),
             hasDescription: Boolean(description),
@@ -158,61 +158,63 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
     };
 
     return (
-        <Sheet
+        <Dialog
             open={open}
             onOpenChange={(nextOpen) => {
                 try {
-                    logInfo("sheet.open_change", { nextOpen });
+                    logInfo("dialog.open_change", { nextOpen });
                     setOpen(nextOpen);
                     if (!nextOpen && searchParams?.get("novo") === "1") {
                         clearNewTicketParams();
                     }
                 } catch (error) {
-                    logError("sheet.open_change_failed", error, { nextOpen });
+                    logError("dialog.open_change_failed", error, { nextOpen });
                     toast.error("Falha ao abrir o formulario de chamado.");
                 }
             }}
         >
-            <SheetTrigger asChild>
+            <DialogTrigger asChild>
                 <Button
                     className="h-10 w-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-linear-to-r from-primary to-primary/90 gap-2 sm:w-auto"
-                    onClick={() => logInfo("sheet.trigger_click", { openBeforeClick: open })}
+                    onClick={() => logInfo("dialog.trigger_click", { openBeforeClick: open })}
                 >
                     <PlusCircle className="h-4 w-4" />
                     <span className="hidden sm:inline">Abrir Novo Chamado</span>
                     <span className="sm:hidden">Novo</span>
                 </Button>
-            </SheetTrigger>
+            </DialogTrigger>
 
-            <SheetContent className="w-full p-0 flex flex-col bg-background/95 backdrop-blur-xl border-l-border/50 sm:max-w-150">
-
-                {/* HEADER */}
-                <div className="p-6 border-b border-border/40 bg-muted/10">
-                    <SheetHeader>
-                        <SheetTitle className="flex items-center gap-3 text-xl">
+            <DialogContent className="w-[95vw] sm:max-w-3xl p-0 flex flex-col max-h-[90vh] overflow-hidden gap-0">
+                <div className="p-6 border-b border-border/40 bg-muted/10 shrink-0">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-3 text-xl">
                             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/10 shadow-sm">
                                 <MessageSquare className="h-5 w-5" />
                             </div>
                             Nova Solicitacao
-                        </SheetTitle>
-                        <SheetDescription>
-                            Descreva seu problema ou dÃºvida detalhadamente.
-                        </SheetDescription>
-                    </SheetHeader>
+                        </DialogTitle>
+                        <DialogDescription>
+                            Descreva seu problema ou duvida detalhadamente.
+                        </DialogDescription>
+                    </DialogHeader>
                 </div>
 
-                {/* FORMULÃRIO */}
-                <ScrollArea className="flex-1">
+                <ScrollArea className="flex-1 overflow-y-auto w-full">
                     <div className="p-6">
                         <Form {...form}>
                             <form
                                 id="ticket-form"
                                 onSubmit={(event) => {
-                                    logInfo("sheet.submit_start", { filesCount: files.length });
+                                    logInfo("dialog.submit_start", { filesCount: files.length });
                                     try {
+                                        if (!isSystemUser && clientCompanies.length > 1 && !selectedCompanyId) {
+                                            toast.error("Selecione para qual empresa o chamado esta sendo aberto.");
+                                            event.preventDefault();
+                                            return;
+                                        }
                                         onSubmit(event);
                                     } catch (error) {
-                                        logError("sheet.submit_sync_throw", error, { filesCount: files.length });
+                                        logError("dialog.submit_sync_throw", error, { filesCount: files.length });
                                         toast.error("Falha ao iniciar o envio do chamado.");
                                     }
                                 }}
@@ -236,12 +238,10 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                     </div>
                                 )}
 
-
-                                {/* DADOS BÃSICOS */}
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit border border-primary/10">
                                         <FileText className="h-3.5 w-3.5" />
-                                        <span>InformaÃ§Ãµes BÃ¡sicas</span>
+                                        <span>Informacoes Basicas</span>
                                     </div>
 
                                     <FormField control={form.control} name="subject" render={({ field }) => (
@@ -273,7 +273,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                         <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                                                     </Button>
                                                 </PopoverTrigger>
-                                                <PopoverContent align="start" className="w-[min(26rem,calc(100vw-2rem))] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                                                <PopoverContent align="center" className="w-[min(30rem,calc(100vw-2rem))] p-0 max-w-full" onOpenAutoFocus={(e) => e.preventDefault()}>
                                                     <div className="border-b p-2.5">
                                                         <Input
                                                             type="text"
@@ -326,6 +326,32 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                         </FormItem>
                                     )}
 
+                                    {!isSystemUser && clientCompanies.length > 1 && (
+                                        <FormItem>
+                                            <Label>Empresa (Vínculo)</Label>
+                                            <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                                                <FormControl>
+                                                    <SelectTrigger className="bg-muted/30">
+                                                        <SelectValue placeholder="Selecione a empresa" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {clientCompanies.map(c => (
+                                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-[0.8rem] text-muted-foreground">
+                                                Selecione para qual empresa deseja abrir o chamado.
+                                            </p>
+                                        </FormItem>
+                                    )}
+                                    {!isSystemUser && clientCompanies.length === 1 && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Empresa vinculada: {clientCompanies[0].name}
+                                        </p>
+                                    )}
+
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <FormField control={form.control} name="type" render={({ field }) => (
                                             <FormItem>
@@ -336,7 +362,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                     </FormControl>
                                                     <SelectContent>
                                                         <SelectItem value="incident">Incidente / Erro</SelectItem>
-                                                        <SelectItem value="question">DÃºvida</SelectItem>
+                                                        <SelectItem value="question">Duvida</SelectItem>
                                                         <SelectItem value="request">Solicitacao</SelectItem>
                                                     </SelectContent>
                                                 </Select>
@@ -361,7 +387,6 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                     </div>
                                 </div>
 
-                                {/* DETALHES */}
                                 <div className="space-y-4 pt-4 border-t border-border/50">
                                     <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit border border-primary/10">
                                         <AlertCircle className="h-3.5 w-3.5" />
@@ -372,7 +397,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                         <FormItem>
                                             <FormLabel>Descricao</FormLabel>
                                             <FormControl>
-                                                <Textarea placeholder="Descreva o passo a passo..." className="min-h-37.5 resize-y bg-muted/30 focus:bg-background" {...field} />
+                                                <Textarea placeholder="Descreva o passo a passo..." className="min-h-32 resize-y bg-muted/30 focus:bg-background" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                             <FormDescription className="flex items-center gap-1 text-xs">
@@ -381,7 +406,6 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                         </FormItem>
                                     )} />
 
-                                    {/* UPLOAD VISUAL */}
                                     <div className="space-y-3">
                                         <Label>Anexos (Opcional)</Label>
                                         <div
@@ -392,11 +416,10 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                 <Paperclip className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
                                             </div>
                                             <p className="text-sm font-medium text-foreground">Clique para adicionar arquivos</p>
-                                            <p className="text-xs text-muted-foreground mt-1">Imagens ou PDFs (MÃ¡x. 5MB)</p>
+                                            <p className="text-xs text-muted-foreground mt-1">Imagens ou PDFs (Max. 5MB)</p>
                                             <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*,application/pdf" onChange={handleFileChange} />
                                         </div>
 
-                                        {/* Lista de Arquivos */}
                                         {files.length > 0 && (
                                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                                                 {files.map((file, idx) => (
@@ -406,7 +429,7 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                                                                 <FileText className="h-4 w-4" />
                                                             </div>
                                                             <div className="flex flex-col truncate">
-                                                                <span className="truncate max-w-50 font-medium">{file.name}</span>
+                                                                <span className="truncate max-w-[200px] font-medium">{file.name}</span>
                                                                 <span className="text-[10px] text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</span>
                                                             </div>
                                                         </div>
@@ -424,24 +447,20 @@ export function TicketSheet({ isSystemUser = false }: TicketSheetProps) {
                     </div>
                 </ScrollArea>
 
-                {/* FOOTER */}
-                <SheetFooter className="p-6 border-t border-border/40 bg-muted/10">
+                <div className="p-6 border-t border-border/40 bg-muted/10 shrink-0">
                     <div className="flex flex-col sm:flex-row w-full items-center justify-between gap-4">
                         <Button variant="link" className="text-xs text-muted-foreground h-auto p-0 hidden sm:flex gap-1" asChild>
                             <a href="/docs/manual" target="_blank"><HelpCircle className="h-3 w-3" /> Precisa de ajuda?</a>
                         </Button>
-                        <div className="flex gap-3 w-full sm:w-auto">
+                        <div className="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto">
                             <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending} className="flex-1 sm:flex-none">Cancelar</Button>
-                            <Button type="submit" form="ticket-form" disabled={isPending} className="flex-1 sm:flex-none shadow-md min-w-35">
+                            <Button type="submit" form="ticket-form" disabled={isPending} className="flex-1 sm:flex-none shadow-md min-w-[140px]">
                                 {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...</> : <><Send className="mr-2 h-4 w-4" /> Abrir Chamado</>}
                             </Button>
                         </div>
                     </div>
-                </SheetFooter>
-
-            </SheetContent>
-        </Sheet>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }
-
-
