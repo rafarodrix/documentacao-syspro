@@ -234,21 +234,21 @@ model Company {
   id String @id @default(cuid())
 
   // DADOS PRINCIPAIS
-  cnpj         String        @unique
-  razaoSocial  String
-  nomeFantasia String?
-  segment      CompanySegment?
-  status       CompanyStatus @default(ACTIVE)
-  logoUrl      String?
-  serverType   CompanyServerType @default(SYSPRO_SERVER)
-  serverPort   Int @default(1234)
-  serverHost   String @default("localhost")
-  serverProtocol CompanyServerProtocol @default(HTTP)
-  iisIsapiPath String? @default("SYSPROSERVERISAPI.DLL")
-  installationDirectory String?
-  remoteConnectionType CompanyRemoteConnectionType?
+  cnpj                    String                       @unique
+  razaoSocial             String
+  nomeFantasia            String?
+  segment                 CompanySegment?
+  status                  CompanyStatus                @default(ACTIVE)
+  logoUrl                 String?
+  serverType              CompanyServerType            @default(SYSPRO_SERVER)
+  serverPort              Int                          @default(1234)
+  serverHost              String                       @default("localhost")
+  serverProtocol          CompanyServerProtocol        @default(HTTP)
+  iisIsapiPath            String?                      @default("SYSPROSERVERISAPI.DLL")
+  installationDirectory   String?
+  remoteConnectionType    CompanyRemoteConnectionType?
   remoteConnectionDetails String?
-  remoteConnections Json?
+  remoteConnections       Json?
 
   // HIERARQUIA
   parentCompanyId String?
@@ -275,23 +275,23 @@ model Company {
   addresses Address[]
 
   // RELAÃƒâ€¡Ãƒâ€¢ES
-  accountingFirmId  String?
-  accountingFirm    Company?     @relation("AccountantClient", fields: [accountingFirmId], references: [id])
-  accountingClients Company[]    @relation("AccountantClient")
-  contracts         Contract[]
-  memberships       Membership[]
-  contacts          CompanyContact[]
-  contactLinks      CompanyContactCompanyLink[]
-  userContactLinks  UserContactLink[]
-  conversations     Conversation[]
-  remoteHosts       RemoteHost[]
-  remoteHostSysproUpdates RemoteHostSysproUpdate[]
-  remoteSessions    RemoteSession[]
+  accountingFirmId             String?
+  accountingFirm               Company?                      @relation("AccountantClient", fields: [accountingFirmId], references: [id])
+  accountingClients            Company[]                     @relation("AccountantClient")
+  contracts                    Contract[]
+  memberships                  Membership[]
+  contacts                     CompanyContact[]
+  contactLinks                 CompanyContactCompanyLink[]
+  userContactLinks             UserContactLink[]
+  conversations                Conversation[]
+  remoteHosts                  RemoteHost[]
+  remoteHostSysproUpdates      RemoteHostSysproUpdate[]
+  remoteSessions               RemoteSession[]
   remoteAddressBookCredentials RemoteAddressBookCredential[]
-  ticketEmails      CompanyTicketEmail[]
-  integrationConnections IntegrationConnection[]
-  conversationLinks ConversationLink[]
-  messageLinks MessageLink[]
+  ticketEmails                 CompanyTicketEmail[]
+  integrationConnections       IntegrationConnection[]
+  conversationLinks            ConversationLink[]
+  messageLinks                 MessageLink[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -308,27 +308,27 @@ model CompanyContact {
   id String @id @default(cuid())
 
   companyId String?
-  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  name String
-  email String?
-  phone String?
-  whatsapp String?
-  cpf String? @unique
-  jobTitle String?
-  notes String? @db.Text
-  isPrimary Boolean @default(false)
-  source CompanyContactSource @default(MANUAL)
-  status CompanyContactStatus @default(LINKED)
+  name      String
+  email     String?
+  phone     String?
+  whatsapp  String?
+  cpf       String?              @unique
+  jobTitle  String?
+  notes     String?              @db.Text
+  isPrimary Boolean              @default(false)
+  source    CompanyContactSource @default(MANUAL)
+  status    CompanyContactStatus @default(LINKED)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  conversations Conversation[]
-  authoredConversationMessages ConversationMessage[] @relation("ConversationMessageAuthorContact")
-  userLinks UserContactLink[]
-  users User[]
-  companyLinks CompanyContactCompanyLink[]
+  conversations                Conversation[]
+  authoredConversationMessages ConversationMessage[]       @relation("ConversationMessageAuthorContact")
+  userLinks                    UserContactLink[]
+  users                        User[]
+  companyLinks                 CompanyContactCompanyLink[]
 
   @@index([companyId, status])
   @@index([whatsapp])
@@ -339,10 +339,10 @@ model CompanyContactCompanyLink {
   id String @id @default(cuid())
 
   contactId String
-  contact CompanyContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contact   CompanyContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   companyId String
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   isPrimary Boolean @default(false)
 
@@ -359,10 +359,10 @@ model CompanyTicketEmail {
   id String @id @default(cuid())
 
   companyId String
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  email String
-  label String?
+  email    String
+  label    String?
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -402,12 +402,12 @@ model Address {
 // }
 
 model User {
-  id    String  @id @default(cuid())
-  email String  @unique
-  name  String?
-  image String?
+  id        String          @id @default(cuid())
+  email     String          @unique
+  name      String?
+  image     String?
   contactId String?
-  contact CompanyContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contact   CompanyContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   // --- SEGURANCA E AUTH ---
   emailVerified  Boolean   @default(false)
@@ -431,18 +431,18 @@ model User {
   role Role @default(CLIENTE_USER)
 
   // RELAÃƒâ€¡Ãƒâ€¢ES
-  memberships Membership[]
-  contactLinks UserContactLink[]
-  sessions    Session[]
-  accounts    Account[]
-  assignedConversations Conversation[] @relation("ConversationAssignedUser")
-  resolvedConversations Conversation[] @relation("ConversationResolvedByUser")
-  authoredConversationMessages ConversationMessage[] @relation("ConversationMessageAuthorUser")
-  conversationAssignments ConversationAssignment[] @relation("ConversationAssignmentAssignedUser")
-  assignedConversationTransfers ConversationAssignment[] @relation("ConversationAssignmentAssignedByUser")
-  transferredConversationAssignments ConversationAssignment[] @relation("ConversationAssignmentTransferFromUser")
-  requestedRemoteSessions RemoteSession[] @relation("RemoteSessionRequestedBy")
-  startedRemoteSessions   RemoteSession[] @relation("RemoteSessionStartedBy")
+  memberships                         Membership[]
+  contactLinks                        UserContactLink[]
+  sessions                            Session[]
+  accounts                            Account[]
+  assignedConversations               Conversation[]                @relation("ConversationAssignedUser")
+  resolvedConversations               Conversation[]                @relation("ConversationResolvedByUser")
+  authoredConversationMessages        ConversationMessage[]         @relation("ConversationMessageAuthorUser")
+  conversationAssignments             ConversationAssignment[]      @relation("ConversationAssignmentAssignedUser")
+  assignedConversationTransfers       ConversationAssignment[]      @relation("ConversationAssignmentAssignedByUser")
+  transferredConversationAssignments  ConversationAssignment[]      @relation("ConversationAssignmentTransferFromUser")
+  requestedRemoteSessions             RemoteSession[]               @relation("RemoteSessionRequestedBy")
+  startedRemoteSessions               RemoteSession[]               @relation("RemoteSessionStartedBy")
   createdRemoteAddressBookCredentials RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialCreatedBy")
   rotatedRemoteAddressBookCredentials RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialRotatedBy")
   revokedRemoteAddressBookCredentials RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialRevokedBy")
@@ -459,13 +459,13 @@ model UserContactLink {
   id String @id @default(cuid())
 
   userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   companyId String
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   contactId String
-  contact CompanyContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contact   CompanyContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   isPrimary Boolean @default(true)
 
@@ -563,7 +563,7 @@ model Contract {
   programmerRate Decimal @default(0) @db.Decimal(10, 2)
 
   // Opcional: Valor total calculado do contrato (cache)
-  totalValue Decimal? @db.Decimal(12, 2)
+  totalValue     Decimal? @db.Decimal(12, 2)
   contractNumber String?
   notes          String?  @db.Text
 
@@ -590,59 +590,59 @@ model RemoteHost {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  name String
-  environment String?
-  provider String?
-  description String? @db.Text
-  notes String? @db.Text
-  agentExternalId String?
-  installToken String? @unique
-  agentTokenHash String? @unique
-  machineName String?
-  agentVersion String?
-  serviceStatus String?
-  status RemoteHostStatus @default(ACTIVE)
-  lastHeartbeatAt DateTime?
-  lastHeartbeatSuccessAt DateTime?
-  lastHeartbeatErrorAt DateTime?
-  lastHeartbeatErrorMessage String? @db.Text
-  lastKnownIp String?
-  lastRegisterAt DateTime?
-  lastRegisterSource String?
-  agentTokenIssuedAt DateTime?
-  agentTokenLastUsedAt DateTime?
-  lastKnownRustDeskAlias String?
-  lastKnownRustDeskVersion String?
-  lastKnownRustDeskServerHost String?
-  lastKnownRustDeskApiHost String?
+  name                           String
+  environment                    String?
+  provider                       String?
+  description                    String?          @db.Text
+  notes                          String?          @db.Text
+  agentExternalId                String?
+  installToken                   String?          @unique
+  agentTokenHash                 String?          @unique
+  machineName                    String?
+  agentVersion                   String?
+  serviceStatus                  String?
+  status                         RemoteHostStatus @default(ACTIVE)
+  lastHeartbeatAt                DateTime?
+  lastHeartbeatSuccessAt         DateTime?
+  lastHeartbeatErrorAt           DateTime?
+  lastHeartbeatErrorMessage      String?          @db.Text
+  lastKnownIp                    String?
+  lastRegisterAt                 DateTime?
+  lastRegisterSource             String?
+  agentTokenIssuedAt             DateTime?
+  agentTokenLastUsedAt           DateTime?
+  lastKnownRustDeskAlias         String?
+  lastKnownRustDeskVersion       String?
+  lastKnownRustDeskServerHost    String?
+  lastKnownRustDeskApiHost       String?
   lastKnownRustDeskPublicKeyHash String?
-  lastRustDeskConfigSyncAt DateTime?
-  lastSystemSnapshot Json?
-  lastSystemSnapshotAt DateTime?
-  lastNetworkSnapshot Json?
-  lastNetworkSnapshotAt DateTime?
-  lastSoftwareSnapshot Json?
-  lastSoftwareSnapshotAt DateTime?
-  lastAgentMetrics Json?
-  lastAgentMetricsAt DateTime?
-  lastHardwareIdentity Json?
-  lastHardwareIdentityAt DateTime?
-  lastDiskSnapshot Json?
-  lastDiskSnapshotAt DateTime?
-  lastSysproProcessSnapshot Json?
-  lastSysproProcessSnapshotAt DateTime?
-  lastWindowsUpdateStatus Json?
-  lastWindowsUpdateStatusAt DateTime?
-  lastRebootPending Boolean?
-  lastRebootPendingAt DateTime?
+  lastRustDeskConfigSyncAt       DateTime?
+  lastSystemSnapshot             Json?
+  lastSystemSnapshotAt           DateTime?
+  lastNetworkSnapshot            Json?
+  lastNetworkSnapshotAt          DateTime?
+  lastSoftwareSnapshot           Json?
+  lastSoftwareSnapshotAt         DateTime?
+  lastAgentMetrics               Json?
+  lastAgentMetricsAt             DateTime?
+  lastHardwareIdentity           Json?
+  lastHardwareIdentityAt         DateTime?
+  lastDiskSnapshot               Json?
+  lastDiskSnapshotAt             DateTime?
+  lastSysproProcessSnapshot      Json?
+  lastSysproProcessSnapshotAt    DateTime?
+  lastWindowsUpdateStatus        Json?
+  lastWindowsUpdateStatusAt      DateTime?
+  lastRebootPending              Boolean?
+  lastRebootPendingAt            DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sessions RemoteSession[]
-  sysproUpdates RemoteHostSysproUpdate[]
+  sessions        RemoteSession[]
+  sysproUpdates   RemoteHostSysproUpdate[]
   discoveryRecord RemoteDiscoveredHost?
-  agentCommands RemoteAgentCommand[]
+  agentCommands   RemoteAgentCommand[]
 
   @@index([companyId, status])
   @@index([agentExternalId])
@@ -657,20 +657,20 @@ model RemoteAgentCommand {
   id String @id @default(cuid())
 
   hostId String
-  host RemoteHost @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  host   RemoteHost @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  type RemoteAgentCommandType
-  status RemoteAgentCommandStatus @default(PENDING)
-  payload Json?
-  reason String? @db.Text
-  attemptCount Int @default(0)
-  resultMessage String? @db.Text
+  type          RemoteAgentCommandType
+  status        RemoteAgentCommandStatus @default(PENDING)
+  payload       Json?
+  reason        String?                  @db.Text
+  attemptCount  Int                      @default(0)
+  resultMessage String?                  @db.Text
   resultPayload Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deliveredAt DateTime?
-  executedAt DateTime?
-  failedAt DateTime?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  deliveredAt   DateTime?
+  executedAt    DateTime?
+  failedAt      DateTime?
 
   @@index([hostId, status, createdAt])
   @@index([hostId, type, status])
@@ -680,29 +680,29 @@ model RemoteAgentCommand {
 model RemoteAddressBookCredential {
   id String @id @default(cuid())
 
-  label String
+  label          String
   integrationKey String
-  scope RemoteAddressBookCredentialScope @default(GLOBAL)
-  status RemoteAddressBookCredentialStatus @default(ACTIVE)
-  companyId String?
-  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  scope          RemoteAddressBookCredentialScope  @default(GLOBAL)
+  status         RemoteAddressBookCredentialStatus @default(ACTIVE)
+  companyId      String?
+  company        Company?                          @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
-  tokenHash String @unique
+  tokenHash    String    @unique
   tokenPreview String
-  expiresAt DateTime?
-  lastUsedAt DateTime?
-  revokedAt DateTime?
+  expiresAt    DateTime?
+  lastUsedAt   DateTime?
+  revokedAt    DateTime?
 
   rotatedFromId String?
-  rotatedFrom RemoteAddressBookCredential? @relation("RemoteAddressBookCredentialRotation", fields: [rotatedFromId], references: [id], onDelete: SetNull)
-  rotations RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialRotation")
+  rotatedFrom   RemoteAddressBookCredential?  @relation("RemoteAddressBookCredentialRotation", fields: [rotatedFromId], references: [id], onDelete: SetNull)
+  rotations     RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialRotation")
 
   createdByUserId String?
-  createdByUser User? @relation("RemoteAddressBookCredentialCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdByUser   User?   @relation("RemoteAddressBookCredentialCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   rotatedByUserId String?
-  rotatedByUser User? @relation("RemoteAddressBookCredentialRotatedBy", fields: [rotatedByUserId], references: [id], onDelete: SetNull)
+  rotatedByUser   User?   @relation("RemoteAddressBookCredentialRotatedBy", fields: [rotatedByUserId], references: [id], onDelete: SetNull)
   revokedByUserId String?
-  revokedByUser User? @relation("RemoteAddressBookCredentialRevokedBy", fields: [revokedByUserId], references: [id], onDelete: SetNull)
+  revokedByUser   User?   @relation("RemoteAddressBookCredentialRevokedBy", fields: [revokedByUserId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -716,21 +716,21 @@ model RemoteAddressBookCredential {
 model RemoteDiscoveredHost {
   id String @id @default(cuid())
 
-  linkedHostId String? @unique
+  linkedHostId String?     @unique
   linkedHost   RemoteHost? @relation(fields: [linkedHostId], references: [id], onDelete: SetNull)
 
-  machineName String?
-  agentExternalId String?
-  agentVersion String?
-  provider String?
-  environment String?
-  description String? @db.Text
-  serviceStatus String?
-  status RemoteDiscoveredHostStatus @default(PENDING_LINK)
+  machineName           String?
+  agentExternalId       String?
+  agentVersion          String?
+  provider              String?
+  environment           String?
+  description           String?                    @db.Text
+  serviceStatus         String?
+  status                RemoteDiscoveredHostStatus @default(PENDING_LINK)
   installationsSnapshot Json?
-  firstSeenAt DateTime @default(now())
-  lastHeartbeatAt DateTime?
-  linkedAt DateTime?
+  firstSeenAt           DateTime                   @default(now())
+  lastHeartbeatAt       DateTime?
+  linkedAt              DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -750,14 +750,14 @@ model RemoteHostSysproUpdate {
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
-  companyLabel String
-  path String
+  companyLabel    String
+  path            String
   lastFileWriteAt DateTime?
-  isServerHost Boolean?
+  isServerHost    Boolean?
   hasClientFolder Boolean?
-  hasDllFolder Boolean?
+  hasDllFolder    Boolean?
   firebirdVersion String?
-  firebirdPath String?
+  firebirdPath    String?
   lastHeartbeatAt DateTime
 
   createdAt DateTime @default(now())
@@ -775,24 +775,24 @@ model RemoteSession {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  ticketId String?
+  ticketId     String?
   ticketNumber String?
 
   hostId String
   host   RemoteHost @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   requestedByUserId String
-  requestedByUser   User @relation("RemoteSessionRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  requestedByUser   User   @relation("RemoteSessionRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
 
   startedByUserId String?
-  startedByUser   User? @relation("RemoteSessionStartedBy", fields: [startedByUserId], references: [id], onDelete: SetNull)
+  startedByUser   User?   @relation("RemoteSessionStartedBy", fields: [startedByUserId], references: [id], onDelete: SetNull)
 
-  status RemoteSessionStatus @default(REQUESTED)
+  status    RemoteSessionStatus @default(REQUESTED)
   expiresAt DateTime?
   startedAt DateTime?
-  endedAt DateTime?
-  reason String?
-  metadata Json?
+  endedAt   DateTime?
+  reason    String?
+  metadata  Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -807,50 +807,50 @@ model RemoteSession {
 model Conversation {
   id String @id @default(cuid())
 
-  channel ConversationChannel
-  status ConversationStatus @default(NEW)
-  priority ConversationPriority @default(NORMAL)
+  channel    ConversationChannel
+  status     ConversationStatus     @default(NEW)
+  priority   ConversationPriority   @default(NORMAL)
   entryPoint ConversationEntryPoint @default(INBOUND)
 
   companyId String?
-  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   companyContactId String?
-  companyContact CompanyContact? @relation(fields: [companyContactId], references: [id], onDelete: SetNull)
+  companyContact   CompanyContact? @relation(fields: [companyContactId], references: [id], onDelete: SetNull)
 
   assignedUserId String?
-  assignedUser User? @relation("ConversationAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  assignedUser   User?   @relation("ConversationAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
 
   resolvedByUserId String?
-  resolvedByUser User? @relation("ConversationResolvedByUser", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  resolvedByUser   User?   @relation("ConversationResolvedByUser", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
 
-  ticketId String?
-  ticketNumber String?
-  subject String?
-  resolutionSummary String? @db.Text
+  ticketId           String?
+  ticketNumber       String?
+  subject            String?
+  resolutionSummary  String? @db.Text
   resolutionVideoUrl String?
-  releaseType String?
-  releaseModule String?
-  publishToReleases Boolean @default(false)
-  externalThreadId String?
-  connectionId String?
+  releaseType        String?
+  releaseModule      String?
+  publishToReleases  Boolean @default(false)
+  externalThreadId   String?
+  connectionId       String?
 
-  contactPhoneSnapshot String?
+  contactPhoneSnapshot    String?
   contactWhatsappSnapshot String?
-  contactNameSnapshot String?
+  contactNameSnapshot     String?
 
-  lastMessagePreview String? @db.Text
-  lastMessageAt DateTime?
-  lastInboundAt DateTime?
-  lastOutboundAt DateTime?
-  closedAt DateTime?
+  lastMessagePreview String?   @db.Text
+  lastMessageAt      DateTime?
+  lastInboundAt      DateTime?
+  lastOutboundAt     DateTime?
+  closedAt           DateTime?
 
   metadata Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  messages ConversationMessage[]
+  messages    ConversationMessage[]
   assignments ConversationAssignment[]
 
   @@index([channel, status])
@@ -867,42 +867,42 @@ model ConversationMessage {
   id String @id @default(cuid())
 
   conversationId String
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  direction ConversationMessageDirection
-  type ConversationMessageType
+  direction  ConversationMessageDirection
+  type       ConversationMessageType
   authorKind ConversationParticipantKind
 
   authorUserId String?
-  authorUser User? @relation("ConversationMessageAuthorUser", fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorUser   User?   @relation("ConversationMessageAuthorUser", fields: [authorUserId], references: [id], onDelete: SetNull)
 
   authorContactId String?
-  authorContact CompanyContact? @relation("ConversationMessageAuthorContact", fields: [authorContactId], references: [id], onDelete: SetNull)
+  authorContact   CompanyContact? @relation("ConversationMessageAuthorContact", fields: [authorContactId], references: [id], onDelete: SetNull)
 
   externalMessageId String?
 
   replyToMessageId String?
-  replyToMessage ConversationMessage? @relation("ConversationMessageReplyTo", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies ConversationMessage[] @relation("ConversationMessageReplyTo")
+  replyToMessage   ConversationMessage?  @relation("ConversationMessageReplyTo", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies          ConversationMessage[] @relation("ConversationMessageReplyTo")
 
   quotedExternalMessageId String?
-  body String? @db.Text
-  mediaUrl String?
-  storageKey String?
-  mediaMimeType String?
-  fileSize Int?
-  checksum String?
+  body                    String? @db.Text
+  mediaUrl                String?
+  storageKey              String?
+  mediaMimeType           String?
+  fileSize                Int?
+  checksum                String?
 
-  status ConversationMessageStatus @default(PENDING)
+  status         ConversationMessageStatus @default(PENDING)
   providerStatus String?
-  providerError String? @db.Text
-  retryCount Int @default(0)
-  metadata Json?
+  providerError  String?                   @db.Text
+  retryCount     Int                       @default(0)
+  metadata       Json?
 
-  sentAt DateTime?
+  sentAt      DateTime?
   deliveredAt DateTime?
-  readAt DateTime?
-  createdAt DateTime @default(now())
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([conversationId, createdAt])
   @@index([externalMessageId])
@@ -915,24 +915,24 @@ model ConversationAssignment {
   id String @id @default(cuid())
 
   conversationId String
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   assignedUserId String
-  assignedUser User @relation("ConversationAssignmentAssignedUser", fields: [assignedUserId], references: [id], onDelete: Restrict)
+  assignedUser   User   @relation("ConversationAssignmentAssignedUser", fields: [assignedUserId], references: [id], onDelete: Restrict)
 
   assignedByUserId String?
-  assignedByUser User? @relation("ConversationAssignmentAssignedByUser", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+  assignedByUser   User?   @relation("ConversationAssignmentAssignedByUser", fields: [assignedByUserId], references: [id], onDelete: SetNull)
 
   transferFromUserId String?
-  transferFromUser User? @relation("ConversationAssignmentTransferFromUser", fields: [transferFromUserId], references: [id], onDelete: SetNull)
+  transferFromUser   User?   @relation("ConversationAssignmentTransferFromUser", fields: [transferFromUserId], references: [id], onDelete: SetNull)
 
-  assignmentType ConversationAssignmentType @default(MANUAL)
-  status ConversationAssignmentStatus @default(ACTIVE)
-  reason String? @db.Text
-  startedAt DateTime @default(now())
-  acceptedAt DateTime?
-  declinedAt DateTime?
-  endedAt DateTime?
+  assignmentType ConversationAssignmentType   @default(MANUAL)
+  status         ConversationAssignmentStatus @default(ACTIVE)
+  reason         String?                      @db.Text
+  startedAt      DateTime                     @default(now())
+  acceptedAt     DateTime?
+  declinedAt     DateTime?
+  endedAt        DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1007,17 +1007,17 @@ model TaxClassification {
   indEstornoCred  Boolean @default(false)
 
   // Flags de Documentos
-  indNFe  Boolean @default(false)
-  indNFCe Boolean @default(false)
-  indCTe  Boolean @default(false)
-  indCTeOS Boolean @default(false)
-  indBPe   Boolean @default(false)
-  indNF3e  Boolean @default(false)
-  indNFCom Boolean @default(false)
-  indNFSe Boolean @default(false)
-  indBPeTM Boolean @default(false)
-  indBPeTA Boolean @default(false)
-  indNFAg  Boolean @default(false)
+  indNFe    Boolean @default(false)
+  indNFCe   Boolean @default(false)
+  indCTe    Boolean @default(false)
+  indCTeOS  Boolean @default(false)
+  indBPe    Boolean @default(false)
+  indNF3e   Boolean @default(false)
+  indNFCom  Boolean @default(false)
+  indNFSe   Boolean @default(false)
+  indBPeTM  Boolean @default(false)
+  indBPeTA  Boolean @default(false)
+  indNFAg   Boolean @default(false)
   indNFSVIA Boolean @default(false)
   indNFABI  Boolean @default(false)
   indNFGas  Boolean @default(false)
@@ -1060,7 +1060,7 @@ model TaxAnexo {
   // Payload completo retornado pela API
   raw Json
 
-  ncmRefs TaxAnexoNcm[]
+  ncmRefs     TaxAnexoNcm[]
   ncmMappings TaxNcmClassMap[]
 
   lastUpdated DateTime @default(now())
@@ -1090,26 +1090,26 @@ model TaxAnexoNcm {
 model TaxNcmClassMap {
   id String @id @default(cuid())
 
-  ncm String
+  ncm       String
   classCode String?
-  cstCode String?
+  cstCode   String?
   anexoCode String?
 
   sourceAnexoId String
-  sourceAnexo TaxAnexo @relation(fields: [sourceAnexoId], references: [id], onDelete: Cascade)
+  sourceAnexo   TaxAnexo @relation(fields: [sourceAnexoId], references: [id], onDelete: Cascade)
 
   startDate DateTime?
-  endDate DateTime?
+  endDate   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([ncm, classCode, cstCode, anexoCode, sourceAnexoId])
   @@index([ncm])
   @@index([classCode])
   @@index([cstCode])
   @@index([anexoCode])
   @@index([sourceAnexoId])
-  @@unique([ncm, classCode, cstCode, anexoCode, sourceAnexoId])
   @@map("tax_ncm_class_map")
 }
 
@@ -1175,30 +1175,30 @@ model TaxNcm {
 model TaxSyncJob {
   id String @id @default(cuid())
 
-  mode String
+  mode   String
   source String?
   status TaxSyncStatus @default(PENDING)
 
   snapshotVersion String
-  fetchedAt DateTime?
-  payloadHash String?
+  fetchedAt       DateTime?
+  payloadHash     String?
 
-  totalChunks Int @default(0)
-  currentChunk Int @default(0)
-  totalItems Int @default(0)
+  totalChunks    Int @default(0)
+  currentChunk   Int @default(0)
+  totalItems     Int @default(0)
   processedItems Int @default(0)
 
-  insertedCount Int @default(0)
-  updatedCount Int @default(0)
+  insertedCount  Int @default(0)
+  updatedCount   Int @default(0)
   unchangedCount Int @default(0)
-  failedCount Int @default(0)
+  failedCount    Int @default(0)
 
   errorMessage String?
 
-  startedAt DateTime?
+  startedAt  DateTime?
   finishedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([mode, createdAt])
   @@index([status, createdAt])
@@ -1264,22 +1264,22 @@ model SefazStatus {
 }
 
 model ConversationLink {
-  id                     String   @id @default(cuid())
-  companyId              String?
-  company                Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  connectionId           String?
-  connection             IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
-  connectionKey          String   @default("env:default")
-  
+  id            String                 @id @default(cuid())
+  companyId     String?
+  company       Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  connectionId  String?
+  connection    IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  connectionKey String                 @default("env:default")
+
   // O número do cliente no WhatsApp (ex: 553499999999)
-  whatsappNumber         String
-  
+  whatsappNumber String
+
   // Os IDs gerados dentro do Chatwoot para esse cliente
   chatwootContactId      String
   chatwootConversationId String
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([connectionKey, whatsappNumber])
   @@unique([connectionKey, chatwootConversationId])
@@ -1291,16 +1291,16 @@ model ConversationLink {
 }
 
 model MessageLink {
-  id String @id @default(cuid())
-  companyId String?
-  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  connectionId String?
-  connection IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
-  connectionKey String @default("env:default")
+  id            String                 @id @default(cuid())
+  companyId     String?
+  company       Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  connectionId  String?
+  connection    IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  connectionKey String                 @default("env:default")
 
-  chatwootMessageId String
+  chatwootMessageId      String
   chatwootConversationId String
-  evolutionMessageId String
+  evolutionMessageId     String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1332,22 +1332,22 @@ model IntegrationConnection {
   id String @id @default(cuid())
 
   companyId String?
-  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
-  name String
+  name   String
   status IntegrationConnectionStatus @default(ACTIVE)
 
-  evolutionApiUrl String
-  evolutionApiKeyEncrypted String
-  evolutionInstance String
-  evolutionInstanceId String?
+  evolutionApiUrl                 String
+  evolutionApiKeyEncrypted        String
+  evolutionInstance               String
+  evolutionInstanceId             String?
   evolutionWebhookSecretEncrypted String?
 
-  chatwootUrl String
-  chatwootApiTokenEncrypted String
-  chatwootAccountId String
-  chatwootInboxId String?
-  chatwootInboxIdentifier String?
+  chatwootUrl                    String
+  chatwootApiTokenEncrypted      String
+  chatwootAccountId              String
+  chatwootInboxId                String?
+  chatwootInboxIdentifier        String?
   chatwootWebhookSecretEncrypted String?
 
   metadata Json?
@@ -1356,7 +1356,7 @@ model IntegrationConnection {
   updatedAt DateTime @updatedAt
 
   conversationLinks ConversationLink[]
-  messageLinks MessageLink[]
+  messageLinks      MessageLink[]
 
   @@unique([companyId, name])
   @@index([status, companyId])

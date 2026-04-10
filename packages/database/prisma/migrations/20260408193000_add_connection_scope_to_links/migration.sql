@@ -65,9 +65,18 @@ ALTER TABLE "ConversationLink"
 ADD CONSTRAINT "ConversationLink_companyId_fkey"
 FOREIGN KEY ("companyId") REFERENCES "company"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
-ALTER TABLE "ConversationLink"
-ADD CONSTRAINT "ConversationLink_connectionId_fkey"
-FOREIGN KEY ("connectionId") REFERENCES "integration_connection"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF to_regclass('"integration_connection"') IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM pg_constraint
+       WHERE conname = 'ConversationLink_connectionId_fkey'
+     ) THEN
+    ALTER TABLE "ConversationLink"
+    ADD CONSTRAINT "ConversationLink_connectionId_fkey"
+    FOREIGN KEY ("connectionId") REFERENCES "integration_connection"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 DO $$
 BEGIN
@@ -76,8 +85,14 @@ BEGIN
     ADD CONSTRAINT "MessageLink_companyId_fkey"
     FOREIGN KEY ("companyId") REFERENCES "company"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
-    ALTER TABLE "MessageLink"
-    ADD CONSTRAINT "MessageLink_connectionId_fkey"
-    FOREIGN KEY ("connectionId") REFERENCES "integration_connection"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    IF to_regclass('"integration_connection"') IS NOT NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM pg_constraint
+         WHERE conname = 'MessageLink_connectionId_fkey'
+       ) THEN
+      ALTER TABLE "MessageLink"
+      ADD CONSTRAINT "MessageLink_connectionId_fkey"
+      FOREIGN KEY ("connectionId") REFERENCES "integration_connection"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
   END IF;
 END $$;
