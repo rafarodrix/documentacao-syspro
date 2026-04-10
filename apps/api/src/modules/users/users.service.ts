@@ -74,7 +74,7 @@ export class UsersService {
         { name: { contains: filters.search, mode: 'insensitive' } },
         { email: { contains: filters.search, mode: 'insensitive' } },
         { contact: { is: { name: { contains: filters.search, mode: 'insensitive' } } } },
-        ...(searchRaw ? [{ cpf: { contains: searchRaw } }] : []),
+        ...(searchRaw ? [{ contact: { is: { cpf: { contains: searchRaw } } } }] : []),
       ];
     }
 
@@ -162,12 +162,15 @@ export class UsersService {
           name: data.name || null,
           role: userRole,
           contactId: normalizedContactId,
-          cpf: data.cpf || null,
-          jobTitle: data.jobTitle || null,
-          phone: data.phone || null,
           isActive: true,
           emailVerified: true,
         },
+      });
+
+      await this.syncContactProfile(tx, normalizedContactId, {
+        cpf: data.cpf,
+        jobTitle: data.jobTitle,
+        phone: data.phone,
       });
 
       await this.syncAccessFromContact(tx, createdUserId, userRole, normalizedContactId);
@@ -221,9 +224,6 @@ export class UsersService {
           role: data.role,
           ...(normalizedContactId !== undefined ? { contactId: normalizedContactId } : {}),
           isActive: data.isActive,
-          cpf: data.cpf,
-          jobTitle: data.jobTitle,
-          phone: data.phone,
         },
       });
 
@@ -233,6 +233,12 @@ export class UsersService {
       if (!effectiveContactId) {
         throw new BadRequestException('Usuario precisa permanecer vinculado a um contato.');
       }
+
+      await this.syncContactProfile(tx, effectiveContactId, {
+        cpf: data.cpf,
+        jobTitle: data.jobTitle,
+        phone: data.phone,
+      });
 
       await this.syncAccessFromContact(tx, id, effectiveRole, effectiveContactId);
 
@@ -452,10 +458,14 @@ export class UsersService {
         name: true,
         email: true,
         role: true,
-        jobTitle: true,
-        phone: true,
-        cpf: true,
         contactId: true,
+        contact: {
+          select: {
+            cpf: true,
+            jobTitle: true,
+            phone: true,
+          },
+        },
       },
     });
 
@@ -483,9 +493,9 @@ export class UsersService {
         email: user.email,
         role: user.role,
         contactId: user.contactId ?? '',
-        jobTitle: user.jobTitle ?? '',
-        phone: user.phone ?? '',
-        cpf: user.cpf ?? '',
+        jobTitle: user.contact?.jobTitle ?? '',
+        phone: user.contact?.phone ?? '',
+        cpf: user.contact?.cpf ?? '',
         password: '',
       },
     };
@@ -508,10 +518,14 @@ export class UsersService {
         name: true,
         email: true,
         role: true,
-        jobTitle: true,
-        phone: true,
-        cpf: true,
         contactId: true,
+        contact: {
+          select: {
+            cpf: true,
+            jobTitle: true,
+            phone: true,
+          },
+        },
       },
     });
 
@@ -524,9 +538,9 @@ export class UsersService {
         email: user.email,
         role: user.role,
         contactId: user.contactId ?? '',
-        jobTitle: user.jobTitle ?? '',
-        phone: user.phone ?? '',
-        cpf: user.cpf ?? '',
+        jobTitle: user.contact?.jobTitle ?? '',
+        phone: user.contact?.phone ?? '',
+        cpf: user.contact?.cpf ?? '',
         password: '',
       },
     };
@@ -591,6 +605,38 @@ export class UsersService {
     if (inputName === undefined) return undefined;
     const normalized = String(inputName ?? '').trim();
     return normalized || undefined;
+  }
+
+  private async syncContactProfile(
+    tx: Prisma.TransactionClient,
+    contactId: string,
+    data: { cpf?: string; jobTitle?: string; phone?: string }
+  ) {
+    const contactData: Record<string, string | null> = {};
+
+    if (data.cpf !== undefined) {
+      const digits = String(data.cpf ?? '').replace(/\D/g, '');
+      contactData.cpf = digits || null;
+    }
+
+    if (data.jobTitle !== undefined) {
+      const jobTitle = String(data.jobTitle ?? '').trim();
+      contactData.jobTitle = jobTitle || null;
+    }
+
+    if (data.phone !== undefined) {
+      const phone = String(data.phone ?? '').replace(/\D/g, '');
+      contactData.phone = phone || null;
+    }
+
+    if (!Object.keys(contactData).length) {
+      return;
+    }
+
+    await (tx.companyContact as any).update({
+      where: { id: contactId },
+      data: contactData,
+    });
   }
 
   private async syncAccessFromContact(
