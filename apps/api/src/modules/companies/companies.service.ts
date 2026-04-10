@@ -48,6 +48,11 @@ const CONTRACT_BLOCK_REASON_LABEL = {
 } as const;
 
 type ContractBlockReason = keyof typeof CONTRACT_BLOCK_REASON_LABEL;
+type NormalizedCompanyPartner = {
+  name: string;
+  qualification?: string;
+  entryDate?: string;
+};
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, '');
@@ -103,7 +108,7 @@ function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
     })
     .filter((entry): entry is { code: string; description: string } => entry != null);
   const normalizedPartners = partnersSource
-    .map((entry) => {
+    .map<NormalizedCompanyPartner | null>((entry) => {
       const record = asRecord(entry);
       const name = firstString(record.name, record.nome_socio, record.nome, record.razao_social);
       if (!name) return null;
@@ -120,7 +125,7 @@ function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
         ),
       };
     })
-    .filter((entry): entry is { name: string; qualification?: string; entryDate?: string } => entry != null);
+    .filter((entry): entry is NormalizedCompanyPartner => entry != null);
 
   return {
     cnpj: onlyDigits(firstString(payloadRecord.cnpj, payloadRecord.documento, fallbackCnpj) ?? fallbackCnpj),

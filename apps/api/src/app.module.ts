@@ -11,6 +11,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { DocsModule } from './modules/docs/docs.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TicketsModule } from './modules/tickets/tickets.module';
     UsersModule,
     AuthModule,
     TicketsModule,
+    DocsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
