@@ -55,6 +55,19 @@ export type CompanyRegistryLookupResponse = {
     openingDate?: string;
     primaryCnae?: string;
     primaryCnaeDescription?: string;
+    legalNature?: string;
+    size?: string;
+    branchType?: string;
+    taxRegistrationStatus?: string;
+    secondaryCnaes?: Array<{
+      code: string;
+      description: string;
+    }>;
+    partners?: Array<{
+      name: string;
+      qualification?: string;
+      entryDate?: string;
+    }>;
     email?: string;
     phone?: string;
     address?: {
@@ -140,8 +153,22 @@ export interface CompanyEditInitialData {
   inscricaoEstadual: string;
   inscricaoMunicipal: string;
   cnae: string;
+  cnaeDescricao: string;
+  cnaesSecundarios: Array<{
+    code: string;
+    description: string;
+  }>;
   codSuframa: string;
   dataFundacao?: Date | undefined;
+  naturezaJuridica: string;
+  porte: string;
+  matrizFilial: string;
+  situacaoCadastral: string;
+  qsa: Array<{
+    name: string;
+    qualification?: string;
+    entryDate?: string;
+  }>;
   emailContato: string;
   emailFinanceiro: string;
   telefone: string;

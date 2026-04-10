@@ -40,6 +40,17 @@ const companyRemoteConnectionSchema = z.object({
   details: z.string().trim().min(1, "Informe o nome/IP/identificacao da conexao remota"),
 });
 
+const companySecondaryCnaeSchema = z.object({
+  code: z.string().trim().min(1),
+  description: z.string().trim().min(1),
+});
+
+const companyPartnerSchema = z.object({
+  name: z.string().trim().min(1),
+  qualification: emptyToUndefined,
+  entryDate: emptyToUndefined,
+});
+
 export const createCompanySchema = z
   .object({
     cnpj: z
@@ -65,11 +76,18 @@ export const createCompanySchema = z
     inscricaoEstadual: emptyToUndefined,
     inscricaoMunicipal: emptyToUndefined,
     cnae: emptyToUndefined,
+    cnaeDescricao: emptyToUndefined,
+    cnaesSecundarios: z.array(companySecondaryCnaeSchema).optional().default([]),
     codSuframa: emptyToUndefined,
     dataFundacao: z.preprocess(
       (val) => (val === "" || val === null ? undefined : val),
       z.coerce.date().optional(),
     ),
+    naturezaJuridica: emptyToUndefined,
+    porte: emptyToUndefined,
+    matrizFilial: emptyToUndefined,
+    situacaoCadastral: emptyToUndefined,
+    qsa: z.array(companyPartnerSchema).optional().default([]),
     emailContato: emptyToUndefined.pipe(z.string().email("E-mail invalido").optional()),
     emailFinanceiro: emptyToUndefined.pipe(z.string().email("E-mail invalido").optional()),
     telefone: emptyToUndefined,

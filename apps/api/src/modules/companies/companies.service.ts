@@ -30,9 +30,10 @@ const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CREATE_ROLES: Role[] = SYSTEM_ROLES;
 const UPDATE_ROLES: Role[] = [...SYSTEM_ROLES, Role.CLIENTE_ADMIN];
 const DELETE_ROLES: Role[] = [Role.ADMIN];
-const COMPANY_REGISTRY_PROVIDER = process.env.COMPANY_REGISTRY_PROVIDER?.toLowerCase() ?? 'none';
+const COMPANY_REGISTRY_PROVIDER = process.env.COMPANY_REGISTRY_PROVIDER?.toLowerCase() ?? 'brasilapi';
 const COMPANY_REGISTRY_AUTH_URL = process.env.COMPANY_REGISTRY_AUTH_URL;
-const COMPANY_REGISTRY_LOOKUP_URL = process.env.COMPANY_REGISTRY_LOOKUP_URL;
+const COMPANY_REGISTRY_LOOKUP_URL =
+  process.env.COMPANY_REGISTRY_LOOKUP_URL ?? 'https://brasilapi.com.br/api/cnpj/v1/{cnpj}';
 const COMPANY_REGISTRY_CLIENT_ID = process.env.COMPANY_REGISTRY_CLIENT_ID;
 const COMPANY_REGISTRY_CLIENT_SECRET = process.env.COMPANY_REGISTRY_CLIENT_SECRET;
 const COMPANY_REGISTRY_SCOPE = process.env.COMPANY_REGISTRY_SCOPE;
@@ -76,6 +77,10 @@ function asRecord(value: unknown): RegistryPayload {
   return value && typeof value === 'object' ? (value as RegistryPayload) : {};
 }
 
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
   const payloadRecord = asRecord(payload);
   const addressSource = asRecord(
@@ -84,6 +89,38 @@ function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
   const cnaeSource = asRecord(
     payloadRecord.primaryCnae ?? payloadRecord.cnaePrincipal ?? payloadRecord.atividade_principal ?? payloadRecord,
   );
+  const secondaryCnaesSource = asArray(
+    payloadRecord.cnaesSecundarios ?? payloadRecord.cnaes_secundarios ?? payloadRecord.secondaryCnaes,
+  );
+  const partnersSource = asArray(payloadRecord.qsa ?? payloadRecord.partners ?? payloadRecord.socios);
+  const normalizedSecondaryCnaes = secondaryCnaesSource
+    .map((entry) => {
+      const record = asRecord(entry);
+      const code = firstString(record.code, record.codigo);
+      const description = firstString(record.description, record.descricao);
+      if (!code || !description) return null;
+      return { code, description };
+    })
+    .filter((entry): entry is { code: string; description: string } => entry != null);
+  const normalizedPartners = partnersSource
+    .map((entry) => {
+      const record = asRecord(entry);
+      const name = firstString(record.name, record.nome_socio, record.nome, record.razao_social);
+      if (!name) return null;
+
+      return {
+        name,
+        qualification: firstString(
+          record.qualification,
+          record.qualificacao_socio,
+          record.qualificacao,
+        ),
+        entryDate: normalizeDate(
+          firstString(record.entryDate, record.data_entrada_sociedade, record.data_entrada),
+        ),
+      };
+    })
+    .filter((entry): entry is { name: string; qualification?: string; entryDate?: string } => entry != null);
 
   return {
     cnpj: onlyDigits(firstString(payloadRecord.cnpj, payloadRecord.documento, fallbackCnpj) ?? fallbackCnpj),
@@ -118,9 +155,30 @@ function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
       cnaeSource.descricao,
       payloadRecord.cnaeDescricao,
       payloadRecord.cnae_descricao,
+      payloadRecord.cnae_fiscal_descricao,
       payloadRecord.cnaePrincipalDescricao,
       payloadRecord.cnae_principal_descricao,
     ),
+    legalNature: firstString(
+      payloadRecord.legalNature,
+      payloadRecord.naturezaJuridica,
+      payloadRecord.natureza_juridica,
+    ),
+    size: firstString(payloadRecord.size, payloadRecord.porte, payloadRecord.descricao_porte),
+    branchType: firstString(
+      payloadRecord.branchType,
+      payloadRecord.descricao_identificador_matriz_filial,
+      payloadRecord.identificador_matriz_filial,
+    ),
+    taxRegistrationStatus: firstString(
+      payloadRecord.taxRegistrationStatus,
+      payloadRecord.descricao_situacao_cadastral,
+      payloadRecord.situacaoCadastral,
+      payloadRecord.situacao_cadastral,
+      payloadRecord.status,
+    ),
+    secondaryCnaes: normalizedSecondaryCnaes,
+    partners: normalizedPartners,
     email: firstString(payloadRecord.email, asRecord(payloadRecord.contato).email),
     phone: firstString(payloadRecord.phone, payloadRecord.telefone, asRecord(payloadRecord.contato).telefone),
     address: {
@@ -321,8 +379,15 @@ export class CompaniesService {
         inscricaoEstadual: true,
         inscricaoMunicipal: true,
         cnae: true,
+        cnaeDescricao: true,
+        cnaesSecundarios: true,
         codSuframa: true,
         dataFundacao: true,
+        naturezaJuridica: true,
+        porte: true,
+        matrizFilial: true,
+        situacaoCadastral: true,
+        qsa: true,
         emailContato: true,
         emailFinanceiro: true,
         telefone: true,
@@ -426,8 +491,27 @@ export class CompaniesService {
         inscricaoEstadual: company.inscricaoEstadual ?? '',
         inscricaoMunicipal: company.inscricaoMunicipal ?? '',
         cnae: company.cnae ?? '',
+        cnaeDescricao: company.cnaeDescricao ?? '',
+        cnaesSecundarios: Array.isArray(company.cnaesSecundarios)
+          ? (company.cnaesSecundarios as Array<{ code?: string; description?: string }>)
+              .filter((entry) => typeof entry?.code === 'string' && typeof entry?.description === 'string')
+              .map((entry) => ({ code: entry.code!, description: entry.description! }))
+          : [],
         codSuframa: company.codSuframa ?? '',
         dataFundacao: company.dataFundacao ?? undefined,
+        naturezaJuridica: company.naturezaJuridica ?? '',
+        porte: company.porte ?? '',
+        matrizFilial: company.matrizFilial ?? '',
+        situacaoCadastral: company.situacaoCadastral ?? '',
+        qsa: Array.isArray(company.qsa)
+          ? (company.qsa as Array<{ name?: string; qualification?: string; entryDate?: string }>)
+              .filter((entry) => typeof entry?.name === 'string')
+              .map((entry) => ({
+                name: entry.name!,
+                qualification: typeof entry.qualification === 'string' ? entry.qualification : undefined,
+                entryDate: typeof entry.entryDate === 'string' ? entry.entryDate : undefined,
+              }))
+          : [],
         emailContato: company.emailContato ?? '',
         emailFinanceiro: company.emailFinanceiro ?? '',
         telefone: company.telefone ?? '',
@@ -920,6 +1004,10 @@ export class CompaniesService {
   }
 
   private isCompanyRegistryConfigured() {
+    if (COMPANY_REGISTRY_PROVIDER === 'brasilapi') {
+      return true;
+    }
+
     return Boolean(
       COMPANY_REGISTRY_PROVIDER === 'custom_oauth2' &&
         COMPANY_REGISTRY_AUTH_URL &&
@@ -930,7 +1018,15 @@ export class CompaniesService {
   }
 
   private getCompanyRegistryProviderLabel() {
-    return this.isCompanyRegistryConfigured() ? 'Integracao oficial de CNPJ' : 'Nao configurado';
+    if (!this.isCompanyRegistryConfigured()) {
+      return 'Nao configurado';
+    }
+
+    if (COMPANY_REGISTRY_PROVIDER === 'brasilapi') {
+      return 'BrasilAPI';
+    }
+
+    return 'Integracao oficial de CNPJ';
   }
 
   private async fetchCompanyProfileByCnpj(cnpj: string) {
@@ -938,18 +1034,10 @@ export class CompaniesService {
       throw new Error('Integracao oficial de CNPJ nao configurada.');
     }
 
-    const token = await this.getCompanyRegistryAccessToken();
-    const resolvedUrl = COMPANY_REGISTRY_LOOKUP_URL.includes('{cnpj}')
-      ? COMPANY_REGISTRY_LOOKUP_URL.replace('{cnpj}', cnpj)
-      : `${COMPANY_REGISTRY_LOOKUP_URL}${COMPANY_REGISTRY_LOOKUP_URL.includes('?') ? '&' : '?'}cnpj=${cnpj}`;
-
-    const response = await this.fetchWithTimeout(resolvedUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    });
+    const response =
+      COMPANY_REGISTRY_PROVIDER === 'brasilapi'
+        ? await this.fetchBrasilApiCompanyProfile(cnpj)
+        : await this.fetchCustomOauthCompanyProfile(cnpj);
 
     if (!response.ok) {
       throw new Error(`Falha ao consultar CNPJ no provedor oficial [${response.status}].`);
@@ -962,6 +1050,34 @@ export class CompaniesService {
     }
 
     return normalized;
+  }
+
+  private async fetchBrasilApiCompanyProfile(cnpj: string) {
+    const resolvedUrl = COMPANY_REGISTRY_LOOKUP_URL.includes('{cnpj}')
+      ? COMPANY_REGISTRY_LOOKUP_URL.replace('{cnpj}', cnpj)
+      : `${COMPANY_REGISTRY_LOOKUP_URL}${COMPANY_REGISTRY_LOOKUP_URL.includes('?') ? '&' : '?'}cnpj=${cnpj}`;
+
+    return this.fetchWithTimeout(resolvedUrl, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+  }
+
+  private async fetchCustomOauthCompanyProfile(cnpj: string) {
+    const token = await this.getCompanyRegistryAccessToken();
+    const resolvedUrl = COMPANY_REGISTRY_LOOKUP_URL.includes('{cnpj}')
+      ? COMPANY_REGISTRY_LOOKUP_URL.replace('{cnpj}', cnpj)
+      : `${COMPANY_REGISTRY_LOOKUP_URL}${COMPANY_REGISTRY_LOOKUP_URL.includes('?') ? '&' : '?'}cnpj=${cnpj}`;
+
+    return this.fetchWithTimeout(resolvedUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
   }
 
   private async getCompanyRegistryAccessToken() {

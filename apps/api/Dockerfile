@@ -51,5 +51,5 @@ COPY --from=builder /app/node_modules/@prisma ./apps/api/node_modules/@prisma
 
 EXPOSE 3000
 
-#CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema ./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"]
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema ./packages/database/prisma/schema.prisma && npm run db:seed:companies && if [ \"$SEED_REMOTE_HOSTS_ON_DEPLOY\" = \"true\" ]; then npm run db:seed:remote; fi && node apps/api/dist/main.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema ./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"]
+#CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema ./packages/database/prisma/schema.prisma && npm run db:seed:companies && if [ \"$SEED_REMOTE_HOSTS_ON_DEPLOY\" = \"true\" ]; then npm run db:seed:remote; fi && node apps/api/dist/main.js"]

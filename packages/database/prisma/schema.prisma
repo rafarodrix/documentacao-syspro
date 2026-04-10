@@ -261,8 +261,15 @@ model Company {
   indicadorIE        IndicadorIE @default(NAO_CONTRIBUINTE)
   regimeTributario   TaxRegime?
   cnae               String?
+  cnaeDescricao      String?
+  cnaesSecundarios   Json?
   codSuframa         String?
   dataFundacao       DateTime?
+  naturezaJuridica   String?
+  porte              String?
+  matrizFilial       String?
+  situacaoCadastral  String?
+  qsa                Json?
 
   // CONTATO
   emailContato    String?

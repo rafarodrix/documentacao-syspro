@@ -58,7 +58,6 @@ import {
   BadgeHelp,
   Building2,
   ChevronRight,
-  ExternalLink,
   FileText,
   Loader2,
   MapPin,
@@ -122,7 +121,19 @@ const SECTIONS: Array<{ id: SectionId; title: string; description: string; icon:
     title: "Identificacao",
     description: "Dados cadastrais",
     icon: Building2,
-    fields: ["cnpj", "segment", "status", "razaoSocial", "nomeFantasia", "logoUrl", "dataFundacao"],
+    fields: [
+      "cnpj",
+      "segment",
+      "status",
+      "razaoSocial",
+      "nomeFantasia",
+      "logoUrl",
+      "dataFundacao",
+      "naturezaJuridica",
+      "porte",
+      "matrizFilial",
+      "situacaoCadastral",
+    ],
   },
   {
     id: "endereco",
@@ -152,7 +163,17 @@ const SECTIONS: Array<{ id: SectionId; title: string; description: string; icon:
     title: "Fiscal",
     description: "Regime, inscricoes e estrutura",
     icon: FileText,
-    fields: ["regimeTributario", "indicadorIE", "inscricaoEstadual", "inscricaoMunicipal", "cnae", "codSuframa", "parentCompanyId", "accountingFirmId"],
+    fields: [
+      "regimeTributario",
+      "indicadorIE",
+      "inscricaoEstadual",
+      "inscricaoMunicipal",
+      "cnae",
+      "cnaeDescricao",
+      "codSuframa",
+      "parentCompanyId",
+      "accountingFirmId",
+    ],
   },
   {
     id: "configuracoes",
@@ -237,6 +258,7 @@ export function CreateCompanyPageForm({
     status: CompanyContactStatus.LINKED,
   });
   const [isImportingCnpj, setIsImportingCnpj] = useState(false);
+  const [lastImportedCnpj, setLastImportedCnpj] = useState<string | null>(null);
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
 
@@ -261,9 +283,16 @@ export function CreateCompanyPageForm({
       inscricaoEstadual: "",
       inscricaoMunicipal: "",
       cnae: "",
+      cnaeDescricao: "",
+      cnaesSecundarios: [],
       codSuframa: "",
       parentCompanyId: "",
       accountingFirmId: "",
+      naturezaJuridica: "",
+      porte: "",
+      matrizFilial: "",
+      situacaoCadastral: "",
+      qsa: [],
       emailContato: "",
       emailFinanceiro: "",
       telefone: "",
@@ -304,17 +333,19 @@ export function CreateCompanyPageForm({
   const pendingContactsCount = contacts.filter((contact) => contact.status === CompanyContactStatus.PENDING_LINK).length;
   const whatsappContactsCount = contacts.filter((contact) => contact.source === CompanyContactSource.WHATSAPP).length;
   const remoteConnections = form.watch("remoteConnections") ?? [];
-
-  function openCnpjLookup() {
-    const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
-    const query = cnpj ? `?cnpj=${encodeURIComponent(cnpj)}` : "";
-    window.open(`/portal/tools/consulta-cnpj${query}`, "_blank", "noopener,noreferrer");
-  }
+  const secondaryCnaes = form.watch("cnaesSecundarios") ?? [];
+  const companyPartners = form.watch("qsa") ?? [];
 
   async function importCompanyByCnpj() {
     const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
-    if (cnpj.replace(/\D/g, "").length !== 14) {
+    const normalizedCnpj = cnpj.replace(/\D/g, "");
+
+    if (normalizedCnpj.length !== 14) {
       toast.error("Informe um CNPJ completo antes de importar.");
+      return;
+    }
+
+    if (normalizedCnpj === lastImportedCnpj) {
       return;
     }
 
@@ -330,8 +361,15 @@ export function CreateCompanyPageForm({
         cnpj: string;
         legalName: string;
         tradeName?: string;
+        legalNature?: string;
+        size?: string;
+        branchType?: string;
+        taxRegistrationStatus?: string;
         openingDate?: string;
         primaryCnae?: string;
+        primaryCnaeDescription?: string;
+        secondaryCnaes?: Array<{ code: string; description: string }>;
+        partners?: Array<{ name: string; qualification?: string; entryDate?: string }>;
         email?: string;
         phone?: string;
         address?: {
@@ -350,6 +388,13 @@ export function CreateCompanyPageForm({
       form.setValue("razaoSocial", profile.legalName ?? "", { shouldDirty: true });
       form.setValue("nomeFantasia", profile.tradeName ?? "", { shouldDirty: true });
       form.setValue("cnae", profile.primaryCnae ?? "", { shouldDirty: true });
+      form.setValue("cnaeDescricao", profile.primaryCnaeDescription ?? "", { shouldDirty: true });
+      form.setValue("cnaesSecundarios", profile.secondaryCnaes ?? [], { shouldDirty: true });
+      form.setValue("naturezaJuridica", profile.legalNature ?? "", { shouldDirty: true });
+      form.setValue("porte", profile.size ?? "", { shouldDirty: true });
+      form.setValue("matrizFilial", profile.branchType ?? "", { shouldDirty: true });
+      form.setValue("situacaoCadastral", profile.taxRegistrationStatus ?? "", { shouldDirty: true });
+      form.setValue("qsa", profile.partners ?? [], { shouldDirty: true });
       form.setValue("emailContato", profile.email ?? "", { shouldDirty: true });
       form.setValue("telefone", profile.phone ? formatPhone(profile.phone) : "", { shouldDirty: true });
 
@@ -368,7 +413,8 @@ export function CreateCompanyPageForm({
         form.setValue("address.pais", profile.address.country ?? "BR", { shouldDirty: true });
       }
 
-      toast.success("Dados do CNPJ importados para o cadastro.");
+      setLastImportedCnpj(normalizedCnpj);
+      toast.success("Cadastro preenchido automaticamente a partir do CNPJ.");
     } finally {
       setIsImportingCnpj(false);
     }
@@ -567,18 +613,26 @@ export function CreateCompanyPageForm({
                           <div className="flex items-center justify-between gap-2">
                             <FormLabel>CNPJ</FormLabel>
                             <div className="flex items-center gap-1">
-                              <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={openCnpjLookup}>
-                                <ExternalLink className="h-3.5 w-3.5" />
-                                Consulta manual
-                              </Button>
                               <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={importCompanyByCnpj} disabled={isImportingCnpj}>
                                 {isImportingCnpj ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                                 Preencher automatico
                               </Button>
                             </div>
                           </div>
-                          <FormControl><Input placeholder="00.000.000/0000-00" {...field} disabled={mode === "edit" && !canEditCnpj} value={toInputValue(field.value)} onChange={(event) => field.onChange(formatCNPJ(event.target.value))} /></FormControl>
-                          <p className="text-[11px] text-muted-foreground">Arquitetura pronta para provedor oficial de CNPJ com auto-preenchimento server-side.</p>
+                          <FormControl><Input placeholder="00.000.000/0000-00" {...field} disabled={mode === "edit" && !canEditCnpj} value={toInputValue(field.value)} onChange={(event) => {
+                            const formatted = formatCNPJ(event.target.value);
+                            const digits = formatted.replace(/\D/g, "");
+                            if (digits !== lastImportedCnpj) {
+                              setLastImportedCnpj(null);
+                            }
+                            field.onChange(formatted);
+                          }} onBlur={() => {
+                            const digits = String(field.value ?? "").replace(/\D/g, "");
+                            if (digits.length === 14 && digits !== lastImportedCnpj && !isImportingCnpj) {
+                              void importCompanyByCnpj();
+                            }
+                          }} /></FormControl>
+                          <p className="text-[11px] text-muted-foreground">Ao informar um CNPJ valido, o sistema tenta preencher automaticamente razao social, fantasia, contato e endereco.</p>
                           <FormMessage />
                         </FormItem>
                       )} />
@@ -603,6 +657,22 @@ export function CreateCompanyPageForm({
                     <FormField control={form.control} name="dataFundacao" render={({ field }) => (
                       <FormItem><FormLabel>Data de Fundacao</FormLabel><FormControl><Input type="date" value={field.value instanceof Date ? field.value.toISOString().slice(0, 10) : ""} onChange={(event) => field.onChange(event.target.value || undefined)} /></FormControl><FormMessage /></FormItem>
                     )} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="naturezaJuridica" render={({ field }) => (
+                        <FormItem><FormLabel>Natureza Juridica</FormLabel><FormControl><Input placeholder="Associacao Privada" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                      <FormField control={form.control} name="porte" render={({ field }) => (
+                        <FormItem><FormLabel>Porte</FormLabel><FormControl><Input placeholder="ME, EPP, DEMAIS..." {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="matrizFilial" render={({ field }) => (
+                        <FormItem><FormLabel>Matriz ou Filial</FormLabel><FormControl><Input placeholder="MATRIZ" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                      <FormField control={form.control} name="situacaoCadastral" render={({ field }) => (
+                        <FormItem><FormLabel>Situacao Cadastral</FormLabel><FormControl><Input placeholder="ATIVA" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                    </div>
                   </CardContent>
                 </Card>
                 </MagicCard>
@@ -633,9 +703,54 @@ export function CreateCompanyPageForm({
                       <FormField control={form.control} name="cnae" render={({ field }) => (
                         <FormItem><FormLabel>CNAE</FormLabel><FormControl><Input placeholder="0000-0/00" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
+                      <FormField control={form.control} name="cnaeDescricao" render={({ field }) => (
+                        <FormItem><FormLabel>Descricao CNAE Principal</FormLabel><FormControl><Input placeholder="Descricao da atividade principal" {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField control={form.control} name="codSuframa" render={({ field }) => (
                         <FormItem><FormLabel>Codigo SUFRAMA</FormLabel><FormControl><Input {...field} value={toInputValue(field.value)} /></FormControl><FormMessage /></FormItem>
                       )} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2 rounded-lg border border-border/60 bg-muted/10 p-4">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">CNAEs secundarios</p>
+                          <p className="text-xs text-muted-foreground">Importados da consulta do CNPJ para referencia fiscal.</p>
+                        </div>
+                        {secondaryCnaes.length ? (
+                          <div className="space-y-2">
+                            {secondaryCnaes.map((item, index) => (
+                              <div key={`${item.code}-${index}`} className="rounded-md border border-border/50 bg-background/80 p-2 text-xs">
+                                <div className="font-medium text-foreground">{item.code}</div>
+                                <div className="text-muted-foreground">{item.description}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Nenhum CNAE secundario importado.</p>
+                        )}
+                      </div>
+                      <div className="space-y-2 rounded-lg border border-border/60 bg-muted/10 p-4">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">QSA / responsaveis</p>
+                          <p className="text-xs text-muted-foreground">Resumo societario retornado pela base publica de CNPJ.</p>
+                        </div>
+                        {companyPartners.length ? (
+                          <div className="space-y-2">
+                            {companyPartners.map((partner, index) => (
+                              <div key={`${partner.name}-${index}`} className="rounded-md border border-border/50 bg-background/80 p-2 text-xs">
+                                <div className="font-medium text-foreground">{partner.name}</div>
+                                <div className="text-muted-foreground">
+                                  {[partner.qualification, partner.entryDate].filter(Boolean).join(" • ") || "Sem detalhes adicionais"}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Nenhum responsavel importado.</p>
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-4">
                       <div>
