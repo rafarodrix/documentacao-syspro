@@ -41,6 +41,16 @@ export class AuthService {
     this.auth = betterAuth({
       database: prismaAdapter(this.prisma, { provider: 'postgresql' }),
       plugins: [admin()],
+      user: {
+        additionalFields: {
+          role: {
+            type: 'string',
+            required: false,
+            input: false,
+            defaultValue: Role.CLIENTE_USER,
+          },
+        },
+      },
       ...(trustedOrigins.length > 0 ? { trustedOrigins } : {}),
       emailAndPassword: {
         enabled: true,
