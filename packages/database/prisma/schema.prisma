@@ -412,6 +412,9 @@ model User {
   // --- SEGURANCA E AUTH ---
   emailVerified  Boolean   @default(false)
   isActive       Boolean   @default(true)
+  banned         Boolean   @default(false)
+  banReason      String?
+  banExpires     DateTime?
   failedAttempts Int       @default(0)
   lockoutUntil   DateTime?
 

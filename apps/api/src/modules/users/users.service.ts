@@ -143,7 +143,7 @@ export class UsersService {
           email: data.email,
           name: data.name || 'Sem nome',
           password: data.password || Math.random().toString(36).slice(-10),
-          role: 'user',
+          role: data.role || Role.CLIENTE_USER,
         },
       });
     } catch (error: any) {

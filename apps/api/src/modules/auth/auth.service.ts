@@ -40,7 +40,12 @@ export class AuthService {
     // Instancia o nucleo do better-auth rodando 100% no backend NestJS
     this.auth = betterAuth({
       database: prismaAdapter(this.prisma, { provider: 'postgresql' }),
-      plugins: [admin()],
+      plugins: [
+        admin({
+          defaultRole: Role.CLIENTE_USER,
+          adminRoles: [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE],
+        }),
+      ],
       databaseHooks: {
         user: {
           create: {
