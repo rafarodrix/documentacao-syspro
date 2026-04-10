@@ -352,6 +352,7 @@ export function CreateCompanyPageForm({
     }
 
     setIsImportingCnpj(true);
+    const loadingToastId = toast.loading("Consultando CNPJ...");
     try {
       const response = await fetch(`/api/companies/lookup-cnpj?cnpj=${encodeURIComponent(normalizedCnpj)}`, {
         method: "GET",
@@ -364,11 +365,14 @@ export function CreateCompanyPageForm({
       } catch {
         result = {
           success: false,
-          message: "Erro ao interpretar a resposta da consulta de CNPJ.",
+          message: response.ok
+            ? "Erro ao interpretar a resposta da consulta de CNPJ."
+            : `Falha HTTP ${response.status} ao consultar CNPJ.`,
         };
       }
 
       if (!result.success || !result.data?.profile) {
+        toast.dismiss(loadingToastId);
         toast.error(result.message ?? "Nao foi possivel consultar o provedor oficial de CNPJ.");
         return;
       }
@@ -438,7 +442,12 @@ export function CreateCompanyPageForm({
       }
 
       setLastImportedCnpj(normalizedCnpj);
+      toast.dismiss(loadingToastId);
       toast.success("Cadastro preenchido automaticamente a partir do CNPJ.");
+    } catch (error) {
+      console.error("[company.lookup-cnpj.error]", error);
+      toast.dismiss(loadingToastId);
+      toast.error("Erro ao consultar CNPJ. Verifique a conexao com o backend.");
     } finally {
       setIsImportingCnpj(false);
     }
