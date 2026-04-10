@@ -25,6 +25,7 @@
                     "db:validate":  "npm run db:validate -w @dosc-syspro/database",
                     "db:migrate":  "npm run db:migrate -w @dosc-syspro/database",
                     "db:deploy":  "npm run db:deploy -w @dosc-syspro/database",
+                    "db:seed:companies":  "npm run db:seed:companies -w @dosc-syspro/database",
                     "db:seed:remote":  "npm run db:seed:remote -w @dosc-syspro/database",
                     "check:utf8":  "node scripts/check-utf8.mjs",
                     "check:generated-js":  "node scripts/check-generated-js.mjs",

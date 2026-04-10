@@ -10,6 +10,7 @@
                     "db:generate":  "dotenv -e ../../.env prisma generate --schema ./prisma/schema.prisma",
                     "db:migrate":  "dotenv -e ../../.env prisma migrate dev --schema ./prisma/schema.prisma",
                     "db:deploy":  "dotenv -e ../../.env prisma migrate deploy --schema ./prisma/schema.prisma",
+                    "db:seed:companies":  "dotenv -e ../../.env node ./prisma/seed-companies.mjs",
                     "db:seed:remote":  "dotenv -e ../../.env node ./prisma/seed-remote-hosts.mjs"
                 }
 }
