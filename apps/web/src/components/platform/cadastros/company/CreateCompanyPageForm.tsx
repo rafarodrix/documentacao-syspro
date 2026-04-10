@@ -27,13 +27,14 @@ import {
 } from "@dosc-syspro/contracts/company";
 import type {
   CompanyContactInput,
+  CompanyActionResponse,
+  CompanyRegistryLookupResponse,
   CompanyOption,
   CompanyRemoteConnectionInput,
   CompanyTicketEmailInput,
 } from "@/features/company/domain/model";
 import {
   createCompanyAction,
-  lookupCompanyProfileByCnpjAction,
   updateCompanyAction,
 } from "@/features/company/application/actions";
 import { COMPANY_SEGMENT_LABELS } from "@/features/company/domain/company-segments";
@@ -336,7 +337,8 @@ export function CreateCompanyPageForm({
   const secondaryCnaes = form.watch("cnaesSecundarios") ?? [];
   const companyPartners = form.watch("qsa") ?? [];
 
-  async function importCompanyByCnpj() {
+  async function importCompanyByCnpj(options?: { force?: boolean }) {
+    const force = options?.force === true;
     const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
     const normalizedCnpj = cnpj.replace(/\D/g, "");
 
@@ -345,13 +347,27 @@ export function CreateCompanyPageForm({
       return;
     }
 
-    if (normalizedCnpj === lastImportedCnpj) {
+    if (!force && normalizedCnpj === lastImportedCnpj) {
       return;
     }
 
     setIsImportingCnpj(true);
     try {
-      const result = await lookupCompanyProfileByCnpjAction(cnpj);
+      const response = await fetch(`/api/companies/lookup-cnpj?cnpj=${encodeURIComponent(normalizedCnpj)}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      let result: CompanyActionResponse<CompanyRegistryLookupResponse>;
+      try {
+        result = (await response.json()) as CompanyActionResponse<CompanyRegistryLookupResponse>;
+      } catch {
+        result = {
+          success: false,
+          message: "Erro ao interpretar a resposta da consulta de CNPJ.",
+        };
+      }
+
       if (!result.success || !result.data?.profile) {
         toast.error(result.message ?? "Nao foi possivel consultar o provedor oficial de CNPJ.");
         return;
@@ -621,7 +637,14 @@ export function CreateCompanyPageForm({
                           <div className="flex items-center justify-between gap-2">
                             <FormLabel>CNPJ</FormLabel>
                             <div className="flex items-center gap-1">
-                              <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={importCompanyByCnpj} disabled={isImportingCnpj}>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1 px-2 text-xs"
+                                onClick={() => void importCompanyByCnpj({ force: true })}
+                                disabled={isImportingCnpj}
+                              >
                                 {isImportingCnpj ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                                 Preencher automatico
                               </Button>
