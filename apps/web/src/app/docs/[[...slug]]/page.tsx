@@ -9,12 +9,8 @@ import {
 import { PageLastUpdate } from 'fumadocs-ui/layouts/docs/page';
 import { notFound, redirect } from 'next/navigation';
 import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
-import { Role } from '@prisma/client';
 import { requireSession } from '@/lib/auth-helpers';
-import { canAccessByCompanySegment } from '@/features/company/application/company-segment-access';
 import {
-  getRequiredSegmentsForDocSlug,
-  isTechnicalManualSlug,
   canUserAccessDocUrl,
 } from '@/app/docs/docs-access';
 import { DocsHomePage } from '@/components/docs/home/DocsHomePage';
@@ -43,15 +39,16 @@ export default async function Page(props: {
   const session = await requireSession();
   const slug = params.slug ?? [];
   const canViewTechnicalDocs = await currentUserHasPermission("tools:all");
+  const docUrl = `/docs${slug.length ? `/${slug.join('/')}` : ''}`;
 
-  if (isTechnicalManualSlug(slug) && !canViewTechnicalDocs) {
+  const canAccessCurrentDoc = await canUserAccessDocUrl({
+    url: docUrl,
+    role: session.role,
+    userId: session.userId,
+    canViewTechnical: canViewTechnicalDocs,
+  });
+  if (!canAccessCurrentDoc) {
     redirect("/docs");
-  }
-
-  if (session.role === Role.CLIENTE_ADMIN || session.role === Role.CLIENTE_USER) {
-    const requiredSegments = getRequiredSegmentsForDocSlug(slug);
-    const hasAccess = await canAccessByCompanySegment(session.userId, requiredSegments);
-    if (!hasAccess) redirect("/docs");
   }
 
   const page = source.getPage(params.slug);
@@ -105,7 +102,7 @@ export default async function Page(props: {
     ? page.data.featureStatus as FeatureStatus
     : undefined;
   const sinceVersion = typeof page.data.sinceVersion === 'string' ? page.data.sinceVersion : undefined;
-  const docSlug = `/docs${slug.length ? `/${slug.join('/')}` : ''}`;
+  const docSlug = docUrl;
 
   // Datas formatadas via lib/docs-utils (sem lógica inline)
   const formattedLastUpdated = formatDateLong(lastUpdated);

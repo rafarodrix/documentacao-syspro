@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { createHash } from "crypto";
@@ -11,6 +10,7 @@ import {
 } from "@/features/tax/application/actions";
 import type { TaxActionResponse, TaxSyncChunkRequest, TaxSyncMode } from "@/features/tax/domain/model";
 import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 function isSyncMode(value: unknown): value is TaxSyncMode {
   return value === "classTrib" || value === "anexos" || value === "credPresumido" || value === "ncm";
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Nao autenticado." }, { status: 401, headers: responseHeaders });
   }
 
-  if (session.role !== Role.ADMIN) {
+  if (!(await currentUserHasPermission("tax_reform:manage"))) {
     logger.warn("tax.sync_chunk.forbidden", {
       actorUserId: session.userId,
       actorRole: session.role,

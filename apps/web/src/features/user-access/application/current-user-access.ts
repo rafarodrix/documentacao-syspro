@@ -30,8 +30,21 @@ export const getCurrentUserAuthorizationContext = cache(async (): Promise<Curren
   if (!session) return null;
 
   const fallbackPermissions = new Set<SettingsPermissionKey>(getFallbackPermissions(session.role as Role));
-  const [assignments, memberships] = await Promise.all([
-    prisma.userAccessProfile.findMany({
+  let assignments: Array<{
+    scopeType: "GLOBAL" | "COMPANY";
+    companyId: string | null;
+    profile: {
+      permissions: Array<{
+        permission: {
+          key: string;
+        };
+      }>;
+    };
+  }> = [];
+  let memberships: Array<{ companyId: string }> = [];
+
+  try {
+    assignments = await prisma.userAccessProfile.findMany({
       where: {
         userId: session.userId,
         OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }],
@@ -52,12 +65,19 @@ export const getCurrentUserAuthorizationContext = cache(async (): Promise<Curren
           },
         },
       },
-    }),
-    prisma.membership.findMany({
+    });
+  } catch (error) {
+    console.error("[current-user-access] Falha ao carregar userAccessProfile; usando fallback por role.", error);
+  }
+
+  try {
+    memberships = await prisma.membership.findMany({
       where: { userId: session.userId },
       select: { companyId: true },
-    }),
-  ]);
+    });
+  } catch (error) {
+    console.error("[current-user-access] Falha ao carregar memberships; usando escopo vazio.", error);
+  }
 
   const globalPermissions = new Set<SettingsPermissionKey>();
   const companyPermissions = new Map<string, Set<SettingsPermissionKey>>();

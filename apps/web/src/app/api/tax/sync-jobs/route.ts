@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export async function GET(request: Request) {
   const session = await getProtectedSession();
   if (!session) {
     return NextResponse.json({ success: false, error: "Nao autenticado." }, { status: 401 });
   }
-  if (session.role !== Role.ADMIN) {
+  if (!(await currentUserHasPermission("tax_reform:manage"))) {
     return NextResponse.json({ success: false, error: "Sem permissao." }, { status: 403 });
   }
 
@@ -45,4 +45,3 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ success: true, jobs });
 }
-

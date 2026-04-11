@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProtectedSession } from "@/lib/auth-helpers";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export async function GET() {
   const session = await getProtectedSession();
@@ -20,6 +21,11 @@ export async function GET() {
     {
       role: session.role,
       userId: session.userId,
+      permissions: {
+        canManageTools: await currentUserHasPermission("tools:all"),
+        canEditSettings: await currentUserHasPermission("settings:edit"),
+        canManageTax: await currentUserHasPermission("tax_reform:manage"),
+      },
     },
     {
       status: 200,

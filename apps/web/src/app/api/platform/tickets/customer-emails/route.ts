@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { Role } from "@prisma/client";
-
-const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
-function isSystemRole(role: Role): boolean {
-  return SYSTEM_ROLES.has(role);
-}
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 30;
@@ -19,7 +14,8 @@ type CustomerEmailOption = {
 export async function GET(request: Request) {
   try {
     const session = await getProtectedSession();
-    if (!session || !isSystemRole(session.role)) {
+    const canAccess = session && await currentUserHasPermission("tools:all");
+    if (!canAccess) {
       return NextResponse.json({ options: [] as CustomerEmailOption[] }, { status: 403 });
     }
 

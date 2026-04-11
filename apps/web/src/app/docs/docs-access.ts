@@ -7,18 +7,10 @@ export const DOCS_ADMIN_ONLY_SLUGS = new Set<string>([
   "suporte/documentacao-docs-interna",
 ]);
 
-/**
- * Mapa de segmentação por slug relativo em /docs.
- * Se não houver entrada para o slug, o acesso fica liberado para todos.
- */
 const DOCS_SEGMENT_RULES: Record<string, CompanySegment[]> = {
   "treinamento/steps-auto-center": [CompanySegment.AUTO_PECAS],
   "treinamento/steps-comercial": [CompanySegment.COMERCIAL],
 };
-
-// ---------------------------------------------------------------------------
-// Helpers de slug
-// ---------------------------------------------------------------------------
 
 export function isTechnicalManualSlug(slug?: string[]): boolean {
   return slug?.[0] === "manuais-tecnicos";
@@ -40,20 +32,13 @@ export function isAdminOnlyDocUrl(url: string): boolean {
   return isAdminOnlyDocSlug(relativeSlug);
 }
 
-// ---------------------------------------------------------------------------
-// Verificação de acesso por URL
-//
-// Antes: canUserSeeDocUrl estava duplicada inline em page.tsx.
-// Agora: fonte única de verdade aqui em docs-access.ts.
-// ---------------------------------------------------------------------------
-
 /**
- * Verifica se um usuário pode acessar uma URL de documentação.
+ * Verifica se um usuario pode acessar uma URL de documentacao.
  *
  * Regras:
- * 1. Manuais técnicos → apenas SYSTEM_ROLES
- * 2. CLIENTE_ADMIN / CLIENTE_USER → verificar segmento da empresa
- * 3. Demais roles → acesso liberado
+ * 1. Manuais tecnicos -> apenas perfis com capability tecnica
+ * 2. Perfis cliente -> verificar segmento da empresa
+ * 3. Demais perfis -> acesso liberado
  */
 export async function canUserAccessDocUrl({
   url,
