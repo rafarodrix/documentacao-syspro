@@ -1,12 +1,11 @@
-﻿import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
+import { requireSession } from "@/lib/auth-helpers";
 import { getRemoteSessions } from "@/features/remote/application/session-queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { RemoteSessionsPanel } from "@/features/remote/interface/sessions-panel";
 import { Activity } from "lucide-react";
 import type { RemoteSessionStatus } from "@/features/remote/domain/model";
-
-const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 interface RemoteSessionsPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -19,7 +18,11 @@ function toSingleParam(value: string | string[] | undefined): string | undefined
 }
 
 export default async function RemoteSessionsPage({ searchParams }: RemoteSessionsPageProps) {
-  await requireRole(ALLOWED_ROLES, "/portal");
+  await requireSession();
+  if (!(await currentUserHasPermission("tools:all"))) {
+    redirect("/portal");
+  }
+
   const tenantScope = await getRemoteTenantScope();
   const params = searchParams ? await searchParams : undefined;
   const statusParam = toSingleParam(params?.status)?.toUpperCase();

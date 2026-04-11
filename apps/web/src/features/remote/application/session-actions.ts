@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { sessionEvents } from "@/features/remote/infrastructure/events/session-events";
 import { revalidatePath } from "next/cache";
-import { Role } from "@prisma/client";
 import { evolutionWhatsApp } from "@/lib/integrations/evolution-whatsapp.gateway";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://suporte.trilink.com.br";
 
@@ -25,9 +25,8 @@ export async function requestRemoteSessionAction(input: {
     return { success: false, error: "Nao autorizado" };
   }
 
-  // Permissao: Apenas perfis tecnicos
-  if (session.role === Role.CLIENTE_USER) {
-    return { success: false, error: "Apenas administradores ou suporte podem iniciar sessoes" };
+  if (!(await currentUserHasPermission("tools:all"))) {
+    return { success: false, error: "Apenas operadores tecnicos podem iniciar sessoes" };
   }
 
   try {

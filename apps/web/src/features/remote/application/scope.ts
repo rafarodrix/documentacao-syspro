@@ -1,10 +1,12 @@
-import { Role } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
-import { getProtectedSession } from "@/lib/auth-helpers";
+import {
+  getCurrentUserAuthorizationContext,
+  resolveCurrentUserCompanyAccessScope,
+} from "@/features/user-access/application/current-user-access";
 import type { RemoteTenantScope } from "@/features/remote/domain/model";
 
 export async function getRemoteTenantScope(): Promise<RemoteTenantScope> {
-  const session = await getProtectedSession();
+  const context = await getCurrentUserAuthorizationContext();
+  const session = context?.session ?? null;
 
   if (!session) {
     return {
@@ -16,14 +18,11 @@ export async function getRemoteTenantScope(): Promise<RemoteTenantScope> {
     };
   }
 
-  if (session.role === Role.ADMIN || session.role === Role.SUPORTE || session.role === Role.DEVELOPER) {
+  const companyScope = await resolveCurrentUserCompanyAccessScope("companies:view_own", "companies:view_all");
+
+  if (companyScope.isGlobalView) {
     return {
-      role:
-        session.role === Role.ADMIN
-          ? "ADMIN"
-          : session.role === Role.SUPORTE
-            ? "SUPORTE"
-            : "DEVELOPER",
+      role: session.role === "ADMIN" ? "ADMIN" : session.role === "SUPORTE" ? "SUPORTE" : "DEVELOPER",
       isGlobalView: true,
       companyIds: [],
       companyCount: 0,
@@ -31,12 +30,7 @@ export async function getRemoteTenantScope(): Promise<RemoteTenantScope> {
     };
   }
 
-  const memberships = await prisma.membership.findMany({
-    where: { userId: session.userId },
-    select: { companyId: true },
-  });
-
-  const companyIds = [...new Set(memberships.map((membership) => membership.companyId))];
+  const companyIds = companyScope.companyIds;
 
   return {
     role: "CLIENTE_ADMIN",

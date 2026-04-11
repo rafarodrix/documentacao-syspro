@@ -1,14 +1,15 @@
-import { Role } from "@prisma/client";
-import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireSession } from "@/lib/auth-helpers";
 import { getClientUsersAdminViewData } from "@/features/user-access/application/queries";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CreateContactPageForm } from "@/components/platform/app/contatos/CreateContactPageForm";
+import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
 export default async function NovoContatoPage() {
-  await requireRole(
-    [...CADASTROS_ROUTE_RULES.contatos.allowed] as Role[],
-    CADASTROS_ROUTE_RULES.contatos.redirectIfBlocked,
-  );
+  await requireSession();
+
+  if (!(await currentUserHasPermission("users:create", { acceptCompanyScope: true }))) {
+    return <CadastrosAccessDenied />;
+  }
 
   const result = await getClientUsersAdminViewData();
   if ("error" in result) return <div>Erro: {result.error}</div>;

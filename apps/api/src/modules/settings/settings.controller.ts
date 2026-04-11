@@ -4,13 +4,19 @@ import { IntegrationConnectionsService } from './integration-connections.service
 import {
   DEFAULT_EVOLUTION_SETTINGS,
   evolutionSettingsSchema,
+  settingsSchema,
+  sefazRoutesSchema,
   settingsAccessProfileUpsertSchema,
   settingsPermissionsMatrixVisibilityUpdateSchema,
   settingsUserAccessProfileCreateSchema,
   type EvolutionSettingsInput,
+  type SettingsInput,
+  type SefazRoutesInput,
 } from '@dosc-syspro/contracts';
 import type { Request } from 'express';
 import { SettingsPermissionsService } from './permissions/permissions.service';
+import { AuthorizationService } from '../authorization/authorization.service';
+import { SettingsSefazMonitorService } from './sefaz-monitor.service';
 
 @Controller('settings')
 export class SettingsController {
@@ -21,7 +27,105 @@ export class SettingsController {
     private readonly prisma: PrismaService,
     private readonly integrationConnections: IntegrationConnectionsService,
     private readonly settingsPermissionsService: SettingsPermissionsService,
+    private readonly authorizationService: AuthorizationService,
+    private readonly sefazMonitorService: SettingsSefazMonitorService,
   ) {}
+
+  @Get('general')
+  async getGeneralSettings(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+
+    const settings = await this.prisma.systemSetting.findMany({
+      where: {
+        key: {
+          in: ['minimumWage', 'maintenanceMode', 'supportEmail', 'supportPhone', 'rbacMatrixEnabled'],
+        },
+      },
+    });
+
+    const configMap = settings.reduce<Record<string, string>>((acc, item) => {
+      acc[item.key] = item.value;
+      return acc;
+    }, {});
+
+    const data = settingsSchema.parse({
+      minimumWage: Number(configMap.minimumWage || 0),
+      maintenanceMode: configMap.maintenanceMode === 'true',
+      supportEmail: configMap.supportEmail || '',
+      supportPhone: configMap.supportPhone || '',
+      rbacMatrixEnabled: configMap.rbacMatrixEnabled !== 'false',
+    });
+
+    return { success: true, data };
+  }
+
+  @Put('general')
+  async updateGeneralSettings(@Req() req: Request, @Body() body: SettingsInput) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = settingsSchema.parse(body);
+
+    await this.prisma.$transaction([
+      this.prisma.systemSetting.upsert({
+        where: { key: 'minimumWage' },
+        update: { value: String(parsed.minimumWage) },
+        create: { key: 'minimumWage', value: String(parsed.minimumWage), description: 'Salario minimo base' },
+      }),
+      this.prisma.systemSetting.upsert({
+        where: { key: 'maintenanceMode' },
+        update: { value: String(parsed.maintenanceMode) },
+        create: { key: 'maintenanceMode', value: String(parsed.maintenanceMode), description: 'Modo manutencao' },
+      }),
+      this.prisma.systemSetting.upsert({
+        where: { key: 'supportEmail' },
+        update: { value: parsed.supportEmail },
+        create: { key: 'supportEmail', value: parsed.supportEmail, description: 'Email de suporte' },
+      }),
+      this.prisma.systemSetting.upsert({
+        where: { key: 'supportPhone' },
+        update: { value: parsed.supportPhone },
+        create: { key: 'supportPhone', value: parsed.supportPhone, description: 'Telefone de suporte' },
+      }),
+      this.prisma.systemSetting.upsert({
+        where: { key: 'rbacMatrixEnabled' },
+        update: { value: String(parsed.rbacMatrixEnabled) },
+        create: { key: 'rbacMatrixEnabled', value: String(parsed.rbacMatrixEnabled), description: 'Visibilidade da matriz RBAC' },
+      }),
+    ]);
+
+    return { success: true, message: 'Configuracoes salvas.' };
+  }
+
+  @Get('sefaz-routes')
+  async getSefazRoutes(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const routes = await this.sefazMonitorService.getConfiguredRoutes();
+    return { success: true, data: routes };
+  }
+
+  @Put('sefaz-routes')
+  async updateSefazRoutes(@Req() req: Request, @Body() body: SefazRoutesInput) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = sefazRoutesSchema.parse(body);
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: 'sefazRoutes' },
+      update: { value: JSON.stringify(parsed) },
+      create: {
+        key: 'sefazRoutes',
+        value: JSON.stringify(parsed),
+        description: 'Rotas de monitoramento SEFAZ por UF/servico',
+      },
+    });
+
+    return { success: true, message: 'Rotas SEFAZ salvas com sucesso.' };
+  }
+
+  @Post('sefaz/check')
+  async runSefazCheck(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const result = await this.sefazMonitorService.runFullCheck();
+    return { success: true, count: result.count, message: `Verificacao concluida (${result.count} rotas).` };
+  }
 
   @Get('evolution')
   async getEvolutionSettings() {

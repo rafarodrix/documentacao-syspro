@@ -25,19 +25,16 @@ import {
     TaxSyncStatusBar,
 } from "@/features/tax/interface";
 import { BulkReadjustDialog, ContractSheet, ContractStats, ContractsTable } from "@/features/contracts/interface";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 interface SettingsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
 const TAB_VALUES = new Set(["general", "remote", "evolution", "access", "tax", "contracts", "sefaz", "tickets"]);
+type SettingsViewData = Awaited<ReturnType<typeof getSettingsAdminViewData>>;
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
     await requireSession();
-    if (!(await currentUserHasPermission("settings:edit"))) {
-        redirect("/portal");
-    }
 
     const params = searchParams ? await searchParams : undefined;
     const rawTab = typeof params?.tab === "string" ? params.tab : "general";
@@ -47,11 +44,23 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const isContractsCreateMode = mode === "create";
 
     const tenantScope = await getRemoteTenantScope();
-    const [contractsView, settingsView, remoteOverview] = await Promise.all([
+    let settingsView: SettingsViewData;
+    try {
+        settingsView = await getSettingsAdminViewData();
+    } catch {
+        redirect("/portal");
+    }
+
+    const [contractsViewResult, remoteOverviewResult] = await Promise.allSettled([
         getContractsAdminViewData(),
-        getSettingsAdminViewData(),
         getRemotePlatformOverview(tenantScope),
     ]);
+
+    const contractsView =
+        contractsViewResult.status === "fulfilled"
+            ? contractsViewResult.value
+            : { contracts: [], companies: [] };
+    const remoteOverview = remoteOverviewResult.status === "fulfilled" ? remoteOverviewResult.value : null;
 
     const contracts = contractsView.contracts;
     const companies = contractsView.companies;
@@ -149,7 +158,13 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
                 <TabsContent value="remote" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-6xl">
-                        <RemoteAccessSettingsTab overview={remoteOverview} />
+                        {remoteOverview ? (
+                            <RemoteAccessSettingsTab overview={remoteOverview} />
+                        ) : (
+                            <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-6 text-sm text-muted-foreground">
+                                Nao foi possivel carregar as configuracoes globais do modulo remoto nesta requisicao.
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 

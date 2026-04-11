@@ -1,18 +1,23 @@
-import { notFound } from "next/navigation";
-import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
+import { notFound, redirect } from "next/navigation";
+import { requireSession } from "@/lib/auth-helpers";
 import { getRemoteHostDetails } from "@/features/remote/application/queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { RemoteHostDetailsPanel } from "@/features/remote/interface/host-details-page";
-
-const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export default async function RemoteHostDetailsPage({
   params,
 }: {
   params: Promise<{ hostId: string }>;
 }) {
-  await requireRole(ALLOWED_ROLES, "/portal");
+  await requireSession();
+  const canAccess =
+    (await currentUserHasPermission("tools:all")) ||
+    ((await currentUserHasPermission("tools:basic")) &&
+      (await currentUserHasPermission("companies:view", { acceptCompanyScope: true })));
+  if (!canAccess) {
+    redirect("/portal");
+  }
   const { hostId } = await params;
   const tenantScope = await getRemoteTenantScope();
   const details = await getRemoteHostDetails(tenantScope, hostId);

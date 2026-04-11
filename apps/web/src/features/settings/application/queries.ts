@@ -1,42 +1,26 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { settingsSchema, type SettingsOutput, SETTING_KEYS } from "@dosc-syspro/contracts";
-import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
+import { type SettingsOutput } from "@dosc-syspro/contracts";
+import { type SefazRoutesInput } from "@dosc-syspro/contracts";
 import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
 import {
   getSettingsPermissionsAdminViewAction,
 } from "@/features/settings/permissions/application/permissions-actions";
 import { buildFallbackSettingsPermissionsCatalog } from "@/features/settings/permissions/domain/catalog";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import {
+  fetchGeneralSettingsGateway,
+  fetchSefazRoutesGateway,
+} from "@/features/settings/infrastructure/settings.gateway";
 
 export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsOutput>> {
-  if (!(await currentUserHasPermission("settings:view"))) {
-    return { success: false, error: "Nao autorizado." };
-  }
-
   try {
-    const settings = await prisma.systemSetting.findMany();
-    const configMap = settings.reduce((acc, item) => {
-      acc[item.key] = item.value;
-      return acc;
-    }, {} as Record<string, string>);
-
-    const data: SettingsOutput = {
-      minimumWage: Number(configMap[SETTING_KEYS.MIN_WAGE] || 0),
-      maintenanceMode: configMap[SETTING_KEYS.MAINTENANCE] === "true",
-      supportEmail: configMap[SETTING_KEYS.SUPPORT_EMAIL] || "",
-      supportPhone: configMap[SETTING_KEYS.SUPPORT_PHONE] || "",
-      rbacMatrixEnabled: configMap[SETTING_KEYS.RBAC_MATRIX_ENABLED] !== "false",
-    };
-
-    const validation = settingsSchema.safeParse(data);
-    if (!validation.success) {
-      return { success: false, error: "Erro ao carregar dados." };
+    const response = await fetchGeneralSettingsGateway();
+    if (!response.success || !response.data) {
+      return { success: false, error: response.error || "Erro ao carregar dados." };
     }
 
-    return { success: true, data: validation.data };
+    return { success: true, data: response.data };
   } catch (error) {
     console.error("Erro ao buscar configuracoes:", error);
     return { success: false, error: "Erro ao carregar dados." };
@@ -44,28 +28,13 @@ export async function getSettingsAction(): Promise<SettingsActionResponse<Settin
 }
 
 export async function getSefazRoutesAction(): Promise<SettingsActionResponse<SefazRoutesInput>> {
-  if (!(await currentUserHasPermission("settings:edit"))) {
-    return { success: false, error: "Permissao negada." };
-  }
-
   try {
-    const setting = await prisma.systemSetting.findUnique({
-      where: { key: SETTING_KEYS.SEFAZ_ROUTES },
-      select: { value: true },
-    });
-
-    if (!setting?.value) {
-      const defaults = buildDefaultSefazRoutes() satisfies SefazRoutesInput;
-      return { success: true, data: defaults };
+    const response = await fetchSefazRoutesGateway();
+    if (!response.success || !response.data) {
+      return { success: false, error: response.error || "Erro ao carregar rotas SEFAZ." };
     }
 
-    const parsedJson = JSON.parse(setting.value);
-    const validation = sefazRoutesSchema.safeParse(parsedJson);
-    if (!validation.success) {
-      return { success: false, error: "Formato invalido das rotas SEFAZ." };
-    }
-
-    return { success: true, data: validation.data };
+    return { success: true, data: response.data };
   } catch (error) {
     console.error("Erro ao carregar rotas SEFAZ:", error);
     return { success: false, error: "Erro ao carregar rotas SEFAZ." };
@@ -73,37 +42,44 @@ export async function getSefazRoutesAction(): Promise<SettingsActionResponse<Sef
 }
 
 export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData> {
-  const [rbacSetting, sefazRoutesRes, permissionsAdminViewRes] = await Promise.all([
-    prisma.systemSetting.findUnique({
-      where: { key: SETTING_KEYS.RBAC_MATRIX_ENABLED },
-      select: { value: true },
-    }),
+  const [settingsRes, sefazRoutesRes, permissionsAdminViewRes] = await Promise.all([
+    getSettingsAction(),
     getSefazRoutesAction(),
     getSettingsPermissionsAdminViewAction(),
   ]);
 
-  const matrixEnabled = rbacSetting?.value !== "false";
+  if (!settingsRes.success) {
+    throw new Error(settingsRes.error || "Falha ao carregar configuracoes.");
+  }
+
+  if (!sefazRoutesRes.success) {
+    throw new Error(sefazRoutesRes.error || "Falha ao carregar rotas SEFAZ.");
+  }
+
+  if (!permissionsAdminViewRes.success || !permissionsAdminViewRes.data) {
+    throw new Error(permissionsAdminViewRes.error || "Falha ao carregar a administracao de acessos.");
+  }
+
+  const matrixEnabled = settingsRes.data.rbacMatrixEnabled;
   const fallbackCatalog = buildFallbackSettingsPermissionsCatalog(matrixEnabled);
 
   return {
     rbacMatrixEnabled: matrixEnabled,
-    sefazRoutes: sefazRoutesRes.success ? (sefazRoutesRes.data ?? buildDefaultSefazRoutes()) : buildDefaultSefazRoutes(),
-    permissionsAdminView: permissionsAdminViewRes.success && permissionsAdminViewRes.data
-      ? permissionsAdminViewRes.data
-      : {
-          catalog: fallbackCatalog,
-          profiles: fallbackCatalog.profiles.map((profile) => ({
-            id: profile.key,
-            key: profile.key,
-            label: profile.label,
-            description: "Perfil padrao em modo fallback.",
-            isSystem: true,
-            isActive: true,
-            permissions: profile.permissions,
-          })),
-          users: [],
-          companies: [],
-          assignments: [],
-        },
+    sefazRoutes: sefazRoutesRes.data ?? buildDefaultSefazRoutes(),
+    permissionsAdminView: permissionsAdminViewRes.data ?? {
+      catalog: fallbackCatalog,
+      profiles: fallbackCatalog.profiles.map((profile) => ({
+        id: profile.key,
+        key: profile.key,
+        label: profile.label,
+        description: "Perfil padrao em modo fallback.",
+        isSystem: true,
+        isActive: true,
+        permissions: profile.permissions,
+      })),
+      users: [],
+      companies: [],
+      assignments: [],
+    },
   };
 }

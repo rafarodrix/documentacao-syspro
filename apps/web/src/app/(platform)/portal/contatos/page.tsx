@@ -1,19 +1,19 @@
-import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
-import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
+import { requireSession } from "@/lib/auth-helpers";
+import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
-import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 import { ContactsTab } from "@/components/platform/app/contatos/ContactsTab";
+import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
 export default async function ContatosRootPage() {
-  const session = await requireRole(
-    [...CADASTROS_ROUTE_RULES.contatos.allowed] as Role[],
-    CADASTROS_ROUTE_RULES.contatos.redirectIfBlocked,
-  );
+  await requireSession();
 
-  // Contacts use CADASTRO_MANAGER_ROLES for all operations
-  // ADMIN and DEVELOPER get full access, SUPORTE and CLIENTE_ADMIN get view+edit
-  const isAdmin = session.role === Role.ADMIN || session.role === Role.DEVELOPER;
+  const canView = await currentUserHasAnyPermission(["users:view", "users:view_all", "users:view_team"], {
+    acceptCompanyScope: true,
+  });
+  if (!canView) return <CadastrosAccessDenied />;
+
+  const canCreate = await currentUserHasPermission("users:create", { acceptCompanyScope: true });
+  const canEdit = await currentUserHasPermission("users:edit", { acceptCompanyScope: true });
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -22,9 +22,9 @@ export default async function ContatosRootPage() {
         description="Gerencie os contatos da plataforma e seus vinculos com empresas."
       />
       <ContactsTab
-        canCreate={true}
-        canEdit={true}
-        canDelete={isAdmin}
+        canCreate={canCreate}
+        canEdit={canEdit}
+        canDelete={false}
       />
     </div>
   );

@@ -1,14 +1,19 @@
-import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
+import { requireSession } from "@/lib/auth-helpers";
 import { getRemotePlatformDirectory } from "@/features/remote/application/queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { RemotePlatformDirectoryPanel } from "@/features/remote/interface/directory-page";
-import { Monitor } from "lucide-react";
-
-const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE, Role.CLIENTE_ADMIN];
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export default async function RemotePlatformPage() {
-  await requireRole(ALLOWED_ROLES, "/portal");
+  await requireSession();
+  const canAccess =
+    (await currentUserHasPermission("tools:all")) ||
+    ((await currentUserHasPermission("tools:basic")) &&
+      (await currentUserHasPermission("companies:view", { acceptCompanyScope: true })));
+  if (!canAccess) {
+    redirect("/portal");
+  }
   const tenantScope = await getRemoteTenantScope();
   const directory = await getRemotePlatformDirectory(tenantScope);
 

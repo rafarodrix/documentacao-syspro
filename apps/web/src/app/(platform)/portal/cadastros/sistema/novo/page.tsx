@@ -1,18 +1,12 @@
-import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
-import { hasPermission } from "@/features/user-access/domain/rbac";
-import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
+import { requireSession } from "@/lib/auth-helpers";
 import { CreateUserPageForm } from "@/features/user-access/interface";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
 export default async function CadastrosSistemaNovoPage() {
-  const session = await requireRole(
-    [...CADASTROS_ROUTE_RULES.sistema.allowed] as Role[],
-    CADASTROS_ROUTE_RULES.sistema.redirectIfBlocked,
-  );
+  await requireSession();
 
-  if (!hasPermission(session.role, "system_team:manage")) return <CadastrosAccessDenied />;
-  if (session.role !== Role.ADMIN) return <CadastrosAccessDenied />;
+  if (!(await currentUserHasPermission("system_team:manage"))) return <CadastrosAccessDenied />;
 
   return (
     <CreateUserPageForm

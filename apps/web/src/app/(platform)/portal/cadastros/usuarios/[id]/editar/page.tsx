@@ -1,21 +1,16 @@
-import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
-import { hasPermission } from "@/features/user-access/domain/rbac";
-import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
+import { requireSession } from "@/lib/auth-helpers";
 import { CreateUserPageForm } from "@/features/user-access/interface";
 import { getClientUserEditViewData } from "@/features/user-access/application/queries";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 export default async function CadastrosUsuariosEditarPage({ params }: PageProps) {
-  const session = await requireRole(
-    [...CADASTROS_ROUTE_RULES.usuarios.allowed] as Role[],
-    CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked,
-  );
+  await requireSession();
 
-  if (!hasPermission(session.role, "users:edit")) return <CadastrosAccessDenied />;
+  if (!(await currentUserHasPermission("users:edit", { acceptCompanyScope: true }))) return <CadastrosAccessDenied />;
 
   const { id } = await params;
   const view = await getClientUserEditViewData(id);

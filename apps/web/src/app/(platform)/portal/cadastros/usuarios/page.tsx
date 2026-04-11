@@ -1,21 +1,26 @@
-import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
-import { hasPermission } from "@/features/user-access/domain/rbac";
-import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
+import { requireSession } from "@/lib/auth-helpers";
 import { getClientUsersAdminViewData } from "@/features/user-access/application/queries";
+import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { UserTab } from "@/features/user-access/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
 export default async function CadastrosUsuariosPage() {
-  const session = await requireRole(
-    [...CADASTROS_ROUTE_RULES.usuarios.allowed] as Role[],
-    CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked,
-  );
+  await requireSession();
   const result = await getClientUsersAdminViewData();
 
   if ("error" in result) return <div>Erro: {result.error}</div>;
-  if (!hasPermission(session.role, "users:view")) return <CadastrosAccessDenied />;
+  if (
+    !(await currentUserHasAnyPermission(["users:view", "users:view_all", "users:view_team"], {
+      acceptCompanyScope: true,
+    }))
+  ) {
+    return <CadastrosAccessDenied />;
+  }
+
+  const canManage = await currentUserHasAnyPermission(["users:create", "users:edit", "users:status"], {
+    acceptCompanyScope: true,
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -27,11 +32,7 @@ export default async function CadastrosUsuariosPage() {
       <UserTab
         data={result.users}
         isAdmin={result.isGlobalView}
-        canManage={
-          hasPermission(session.role, "users:create") ||
-          hasPermission(session.role, "users:edit") ||
-          hasPermission(session.role, "users:status")
-        }
+        canManage={canManage}
       />
     </div>
   );

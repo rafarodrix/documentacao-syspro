@@ -12,6 +12,7 @@ type CurrentUserAuthorizationContext = {
   fallbackPermissions: Set<SettingsPermissionKey>;
   globalPermissions: Set<SettingsPermissionKey>;
   companyPermissions: Map<string, Set<SettingsPermissionKey>>;
+  membershipCompanyIds: string[];
 };
 
 const ALL_PERMISSIONS = Object.values(ACCESS_MATRIX).flat();
@@ -29,31 +30,38 @@ export const getCurrentUserAuthorizationContext = cache(async (): Promise<Curren
   if (!session) return null;
 
   const fallbackPermissions = new Set<SettingsPermissionKey>(getFallbackPermissions(session.role as Role));
-  const assignments = await prisma.userAccessProfile.findMany({
-    where: {
-      userId: session.userId,
-      OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }],
-      profile: { isActive: true },
-    },
-    select: {
-      scopeType: true,
-      companyId: true,
-      profile: {
-        select: {
-          permissions: {
-            select: {
-              permission: {
-                select: { key: true },
+  const [assignments, memberships] = await Promise.all([
+    prisma.userAccessProfile.findMany({
+      where: {
+        userId: session.userId,
+        OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }],
+        profile: { isActive: true },
+      },
+      select: {
+        scopeType: true,
+        companyId: true,
+        profile: {
+          select: {
+            permissions: {
+              select: {
+                permission: {
+                  select: { key: true },
+                },
               },
             },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.membership.findMany({
+      where: { userId: session.userId },
+      select: { companyId: true },
+    }),
+  ]);
 
   const globalPermissions = new Set<SettingsPermissionKey>();
   const companyPermissions = new Map<string, Set<SettingsPermissionKey>>();
+  const membershipCompanyIds = [...new Set(memberships.map((membership) => membership.companyId))];
 
   for (const assignment of assignments) {
     const permissionKeys = assignment.profile.permissions.map(
@@ -76,6 +84,7 @@ export const getCurrentUserAuthorizationContext = cache(async (): Promise<Curren
     fallbackPermissions,
     globalPermissions,
     companyPermissions,
+    membershipCompanyIds,
   };
 });
 
@@ -112,4 +121,43 @@ export async function currentUserHasAnyPermission(
   }
 
   return false;
+}
+
+export async function resolveCurrentUserCompanyAccessScope(
+  scopedPermission: SettingsPermissionKey,
+  globalPermission?: SettingsPermissionKey,
+) {
+  const context = await getCurrentUserAuthorizationContext();
+  if (!context) {
+    return { isGlobalView: false, companyIds: [] as string[], companyCount: 0 };
+  }
+
+  if (
+    globalPermission &&
+    (context.fallbackPermissions.has(globalPermission) || context.globalPermissions.has(globalPermission))
+  ) {
+    return { isGlobalView: true, companyIds: [] as string[], companyCount: 0 };
+  }
+
+  const scopedCompanyIds = new Set<string>();
+  for (const [companyId, permissions] of context.companyPermissions.entries()) {
+    if (permissions.has(scopedPermission)) {
+      scopedCompanyIds.add(companyId);
+    }
+  }
+
+  if (scopedCompanyIds.size > 0) {
+    const companyIds = Array.from(scopedCompanyIds);
+    return { isGlobalView: false, companyIds, companyCount: companyIds.length };
+  }
+
+  if (context.fallbackPermissions.has(scopedPermission)) {
+    return {
+      isGlobalView: false,
+      companyIds: context.membershipCompanyIds,
+      companyCount: context.membershipCompanyIds.length,
+    };
+  }
+
+  return { isGlobalView: false, companyIds: [] as string[], companyCount: 0 };
 }

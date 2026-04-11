@@ -1,23 +1,22 @@
-import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
+import { requireSession } from "@/lib/auth-helpers";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { getRemoteEfficiencyMetrics } from "@/features/remote/application/report-queries";
-import { 
-  BarChart3, 
-  Clock, 
-  ChevronRight, 
-  TrendingUp, 
-  Users, 
-  Monitor, 
+import {
+  BarChart3,
+  Clock,
+  ChevronRight,
+  TrendingUp,
+  Users,
+  Monitor,
   ArrowLeft,
-  Calendar
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const ALLOWED_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 function formatDuration(seconds: number | null) {
   if (seconds === null) return "N/A";
@@ -30,16 +29,19 @@ function formatDuration(seconds: number | null) {
 }
 
 export default async function RemoteEfficiencyReportsPage() {
-  await requireRole(ALLOWED_ROLES, "/portal");
+  await requireSession();
+  if (!(await currentUserHasPermission("tools:all"))) {
+    redirect("/portal");
+  }
+
   const tenantScope = await getRemoteTenantScope();
   const metrics = await getRemoteEfficiencyMetrics(tenantScope);
 
   return (
     <div className="space-y-8 p-6 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Header com Breadcrumb Fake e Titulo */}
       <div className="flex flex-col gap-4">
-        <Link 
-          href="/portal/plataforma-remota" 
+        <Link
+          href="/portal/plataforma-remota"
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors w-fit"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -51,7 +53,7 @@ export default async function RemoteEfficiencyReportsPage() {
               Eficiencia de Suporte
             </h1>
             <p className="mt-2 text-xl text-muted-foreground max-w-3xl">
-              Métricas de performance para o módulo de suporte remoto e tempo de resposta a incidentes.
+              Metricas de performance para o modulo de suporte remoto e tempo de resposta a incidentes.
             </p>
           </div>
           <Badge variant="outline" className="h-fit px-4 py-1 text-sm bg-muted/30 border-primary/20 text-primary">
@@ -61,7 +63,6 @@ export default async function RemoteEfficiencyReportsPage() {
         </div>
       </div>
 
-      {/* Grid de KPIs Premium */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="relative overflow-hidden border-border/50 bg-linear-to-br from-background to-muted/20 shadow-lg">
           <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -74,7 +75,7 @@ export default async function RemoteEfficiencyReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Media entre abertura do ticket e 1º acesso</p>
+            <p className="text-xs text-muted-foreground">Media entre abertura do ticket e 1o acesso</p>
           </CardContent>
         </Card>
 
@@ -124,12 +125,11 @@ export default async function RemoteEfficiencyReportsPage() {
         </Card>
       </div>
 
-      {/* Tabela de Detalhes dos Ultimos Atendimentos */}
       <Card className="border-border/40 shadow-xl overflow-hidden bg-background/50 backdrop-blur-md">
         <CardHeader className="border-b border-border/40 bg-muted/10">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            <CardTitle>Histórico de Eficiência</CardTitle>
+            <CardTitle>Historico de Eficiencia</CardTitle>
           </div>
           <CardDescription>Detalhamento por ticket focado no tempo de resposta.</CardDescription>
         </CardHeader>
@@ -140,10 +140,10 @@ export default async function RemoteEfficiencyReportsPage() {
                 <tr className="bg-muted/30 border-b border-border/40">
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Ticket</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Host / Empresa</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Técnico</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Tecnico</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">TTR (Tempo p/ Remoto)</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Duração</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider text-right">Ação</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Duracao</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider text-right">Acao</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
@@ -152,7 +152,7 @@ export default async function RemoteEfficiencyReportsPage() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="font-mono text-sm font-bold text-foreground">#{session.ticketNumber || "N/A"}</span>
-                        <span className="text-[10px] text-muted-foreground">{new Date(session.createdAt).toLocaleString('pt-BR')}</span>
+                        <span className="text-[10px] text-muted-foreground">{new Date(session.createdAt).toLocaleString("pt-BR")}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -167,10 +167,15 @@ export default async function RemoteEfficiencyReportsPage() {
                     <td className="px-6 py-4">
                       {session.timeToRemoteSeconds !== null ? (
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={cn(
-                            "font-mono",
-                            session.timeToRemoteSeconds > 3600 ? "border-rose-500/50 text-rose-600 bg-rose-500/5" : "border-emerald-500/50 text-emerald-600 bg-emerald-500/5"
-                          )}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "font-mono",
+                              session.timeToRemoteSeconds > 3600
+                                ? "border-rose-500/50 text-rose-600 bg-rose-500/5"
+                                : "border-emerald-500/50 text-emerald-600 bg-emerald-500/5",
+                            )}
+                          >
                             {formatDuration(session.timeToRemoteSeconds)}
                           </Badge>
                         </div>
@@ -182,8 +187,8 @@ export default async function RemoteEfficiencyReportsPage() {
                       <span className="text-sm font-medium text-foreground">{formatDuration(session.durationSeconds)}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Link 
-                        href={`/portal/plataforma-remota/${session.hostName}`} 
+                      <Link
+                        href={`/portal/plataforma-remota/${session.hostName}`}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-primary/80 hover:text-primary opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0"
                       >
                         Ver Host

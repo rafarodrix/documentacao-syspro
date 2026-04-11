@@ -1,11 +1,11 @@
-import { Role } from "@prisma/client";
-import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireSession } from "@/lib/auth-helpers";
 import { getClientUsersAdminViewData } from "@/features/user-access/application/queries";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CreateContactPageForm } from "@/components/platform/app/contatos/CreateContactPageForm";
 import { headers } from "next/headers";
 import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 import { notFound } from "next/navigation";
+import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -43,10 +43,11 @@ async function getContactById(id: string): Promise<ContactDetail | null> {
 }
 
 export default async function EditarContatoPage({ params }: PageProps) {
-  await requireRole(
-    [...CADASTROS_ROUTE_RULES.contatos.allowed] as Role[],
-    CADASTROS_ROUTE_RULES.contatos.redirectIfBlocked,
-  );
+  await requireSession();
+
+  if (!(await currentUserHasPermission("users:edit", { acceptCompanyScope: true }))) {
+    return <CadastrosAccessDenied />;
+  }
 
   const { id } = await params;
   const [contact, result] = await Promise.all([
