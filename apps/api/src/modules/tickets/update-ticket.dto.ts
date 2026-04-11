@@ -1,12 +1,13 @@
-import {
-  ConversationPriority as TicketPriority,
-  ConversationStatus as TicketStatus,
-} from '@prisma/client';
+import type {
+  TicketModulePriority,
+  TicketModuleStatus,
+  TicketModuleUpdateRequest,
+} from '@dosc-syspro/contracts';
 
-export class UpdateTicketDto {
-  status?: TicketStatus;
+export class UpdateTicketDto implements TicketModuleUpdateRequest {
+  status?: TicketModuleStatus;
 
-  priority?: TicketPriority;
+  priority?: TicketModulePriority;
 
   assignedUserId?: string;
 

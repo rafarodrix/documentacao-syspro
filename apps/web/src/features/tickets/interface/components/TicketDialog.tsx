@@ -65,6 +65,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
       window.removeEventListener("error", onWindowError);
       window.removeEventListener("unhandledrejection", onUnhandledRejection);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const {
@@ -121,6 +122,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
       hasCustomerEmail: Boolean(customerEmailParam),
     });
     setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, searchParams, setCustomerCompany, setCustomerEmail]);
 
   const source = searchParams?.get("source") || "";

@@ -1,4 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import type {
+  TicketModuleCreateRequest,
+  TicketModuleListQuery,
+  TicketModuleUpdateRequest,
+} from '@dosc-syspro/contracts';
 import {
   ConversationAssignmentStatus as TicketAssignmentStatus,
   ConversationAssignmentType as TicketAssignmentType,
@@ -16,17 +21,12 @@ import {
 import type { IncomingHttpHeaders } from 'node:http';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateTicketDto } from './create-ticket.dto';
-import { UpdateTicketDto } from './update-ticket.dto';
-
-type TicketQueryInput = {
-  page?: string;
-  pageSize?: string;
-  search?: string;
-  status?: string;
-  assignedUserId?: string;
-  companyId?: string;
-};
+import {
+  serializeLinkedCompaniesResponse,
+  serializeMutationResponse,
+  serializeTicketDetailsResponse,
+  serializeTicketListResponse,
+} from './ticket-contract.mapper';
 
 @Injectable()
 export class TicketsService {
@@ -35,7 +35,7 @@ export class TicketsService {
     private readonly authService: AuthService,
   ) {}
 
-  async create(data: CreateTicketDto, rawHeaders?: IncomingHttpHeaders) {
+  async create(data: TicketModuleCreateRequest, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.getRequester(rawHeaders);
     const ticketNumber = this.generateTicketNumber();
     
@@ -75,7 +75,7 @@ export class TicketsService {
       }
     }
 
-    const conversation = await this.prisma.conversation.create({
+    await this.prisma.conversation.create({
       data: {
         channel: data.channel ?? TicketChannel.PORTAL,
         entryPoint: data.entryPoint ?? TicketEntryPoint.INBOUND,
@@ -103,17 +103,9 @@ export class TicketsService {
           },
         },
       },
-      include: {
-        company: true,
-        companyContact: true,
-        assignedUser: true,
-      },
     });
 
-    return {
-      success: true,
-      data: conversation,
-    };
+    return serializeMutationResponse('Ticket criado com sucesso.');
   }
 
   async getLinkedCompanies(rawHeaders?: IncomingHttpHeaders) {
@@ -161,14 +153,11 @@ export class TicketsService {
       }
     }
 
-    return {
-      success: true,
-      data: Array.from(companiesMap.values()),
-    };
+    return serializeLinkedCompaniesResponse(Array.from(companiesMap.values()));
   }
 
-  async findAll(input: TicketQueryInput, rawHeaders?: IncomingHttpHeaders) {
-    await this.getRequester(rawHeaders);
+  async findAll(input: TicketModuleListQuery, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.getRequester(rawHeaders);
 
     const page = Math.max(1, Number.parseInt(input.page || '1', 10) || 1);
     const pageSize = Math.min(100, Math.max(1, Number.parseInt(input.pageSize || '20', 10) || 20));
@@ -211,17 +200,7 @@ export class TicketsService {
       this.prisma.conversation.count({ where }),
     ]);
 
-    return {
-      success: true,
-      data: items,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        hasNextPage: page * pageSize < total,
-        hasPreviousPage: page > 1,
-      },
-    };
+    return serializeTicketListResponse({ items, page, pageSize, total, requesterUserId: requester.userId });
   }
 
   async findOne(id: string, rawHeaders?: IncomingHttpHeaders) {
@@ -254,10 +233,7 @@ export class TicketsService {
 
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
 
-    return {
-      success: true,
-      data: ticket,
-    };
+    return serializeTicketDetailsResponse(ticket);
   }
 
   async reply(id: string, message: string | undefined, rawHeaders?: IncomingHttpHeaders) {
@@ -270,7 +246,7 @@ export class TicketsService {
     const ticket = await this.prisma.conversation.findUnique({ where: { id }, select: { id: true } });
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
 
-    const created = await this.prisma.conversationMessage.create({
+    await this.prisma.conversationMessage.create({
       data: {
         conversationId: id,
         direction: TicketMessageDirection.INTERNAL,
@@ -294,13 +270,10 @@ export class TicketsService {
       },
     });
 
-    return {
-      success: true,
-      data: created,
-    };
+    return serializeMutationResponse('Resposta enviada com sucesso.');
   }
 
-  async updateStatus(id: string, input: UpdateTicketDto, rawHeaders?: IncomingHttpHeaders) {
+  async updateStatus(id: string, input: TicketModuleUpdateRequest, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.getRequester(rawHeaders);
 
     const exists = await this.prisma.conversation.findUnique({ where: { id }, select: { id: true, status: true } });
@@ -332,7 +305,7 @@ export class TicketsService {
       }
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       const data: Record<string, unknown> = {};
 
       if (input.status !== undefined) {
@@ -350,7 +323,7 @@ export class TicketsService {
       if (input.releaseModule !== undefined) data.releaseModule = releaseModule || null;
       if (input.publishToReleases !== undefined) data.publishToReleases = Boolean(publishToReleases);
 
-      const conversation = await tx.conversation.update({
+      await tx.conversation.update({
         where: { id },
         data: data as Prisma.ConversationUncheckedUpdateInput,
       });
@@ -367,13 +340,9 @@ export class TicketsService {
         });
       }
 
-      return conversation;
     });
 
-    return {
-      success: true,
-      data: updated,
-    };
+    return serializeMutationResponse('Ticket atualizado com sucesso.');
   }
 
   private async getRequester(rawHeaders?: IncomingHttpHeaders): Promise<{ userId: string; role: Role; email: string }> {

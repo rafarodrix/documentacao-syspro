@@ -300,7 +300,7 @@ export function CompanyContactTab({
           <div className="rounded-lg border border-dashed border-border/60 py-8 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
             <Users className="h-7 w-7 opacity-40" />
             <p className="text-sm font-medium text-foreground">Nenhum contato cadastrado</p>
-            <p className="text-xs">Clique em "Novo contato" para adicionar o primeiro contato operacional.</p>
+            <p className="text-xs">Clique em &quot;Novo contato&quot; para adicionar o primeiro contato operacional.</p>
           </div>
         ) : (
           <div className="space-y-2">

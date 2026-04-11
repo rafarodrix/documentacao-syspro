@@ -1,21 +1,23 @@
 "use server";
 
-import { headers } from "next/headers";
 import { Role } from "@prisma/client";
 import type {
   TicketModuleCreateRequest,
-  TicketModuleDetailsResponse,
-  TicketModuleLinkedCompaniesResponse,
-  TicketModuleListResponse,
-  TicketModuleMutationResponse,
   TicketModulePriority,
   TicketModuleRecord,
 } from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { resolveServerOrigin } from "@/lib/server-origin";
 import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
+import {
+  createTicketGateway,
+  fetchLinkedCompaniesGateway,
+  fetchTicketDetailsGateway,
+  fetchTicketsGateway,
+  replyTicketGateway,
+  updateTicketGateway,
+} from "@/features/tickets/infrastructure";
 import type {
   TicketDetailsResponse,
   TicketMutationResponse,
@@ -55,17 +57,13 @@ export async function finalizeTicketAction(input: {
   }
 
   try {
-    const result = await callTicketsApi<TicketModuleMutationResponse>(`/${String(input.ticketId)}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: "RESOLVED",
-        resolutionSummary,
-        resolutionVideoUrl: video,
-        releaseType: input.releaseType,
-        releaseModule: input.releaseModule?.trim() || undefined,
-        publishToReleases: Boolean(input.publishToReleases),
-      }),
+    const result = await updateTicketGateway(String(input.ticketId), {
+      status: "RESOLVED",
+      resolutionSummary,
+      resolutionVideoUrl: video,
+      releaseType: input.releaseType,
+      releaseModule: input.releaseModule?.trim() || undefined,
+      publishToReleases: Boolean(input.publishToReleases),
     });
 
     if (!result.success) {
@@ -150,42 +148,6 @@ function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
   };
 }
 
-async function getAppOriginAndCookie() {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie") || "";
-  const appOrigin = resolveServerOrigin(requestHeaders);
-  return { appOrigin, cookie };
-}
-
-async function callTicketsApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const { appOrigin, cookie } = await getAppOriginAndCookie();
-  const url = `${appOrigin}/api/tickets${path}`;
-  const requestHeaders = new Headers(init?.headers);
-  if (cookie && !requestHeaders.has("cookie")) {
-    requestHeaders.set("cookie", cookie);
-  }
-
-  const response = await fetch(url, {
-    ...init,
-    headers: requestHeaders,
-    cache: "no-store",
-  });
-
-  let json: any = null;
-  try {
-    json = await response.json();
-  } catch {
-    json = null;
-  }
-
-  if (!response.ok) {
-    const message = json?.error || json?.message || `Falha na API de tickets (${response.status}).`;
-    throw new Error(message);
-  }
-
-  return json as T;
-}
-
 export async function getTicketsAction(params: TicketQueryParams = {}): Promise<TicketsDataResponse> {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(50, Math.max(10, params.pageSize ?? 20));
@@ -214,7 +176,7 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
   };
 
   try {
-    const response = await callTicketsApi<TicketModuleListResponse>(`?${query.toString()}`);
+    const response = await fetchTicketsGateway(query);
     
     if (!response.success || !response.data) {
       return { ...emptyResult, error: response.error || "Falha ao carregar chamados." };
@@ -304,11 +266,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
         : {}),
     };
 
-    const result = await callTicketsApi<TicketModuleMutationResponse>("", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const result = await createTicketGateway(payload);
 
     if (!result.success) {
       return { success: false, message: result.error || result.message || "Erro ao criar chamado." };
@@ -327,7 +285,7 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
   if (!session) return { success: false, error: "Nao autorizado" };
 
   try {
-    const response = await callTicketsApi<TicketModuleDetailsResponse>(`/${ticketId}`);
+    const response = await fetchTicketDetailsGateway(ticketId);
     if (!response.success || !response.data) {
       return { success: false, error: response.error || "Chamado nao encontrado." };
     }
@@ -407,11 +365,7 @@ export async function replyTicketAction(
       : "";
     const outbound = `${body || "Mensagem com anexos"}${attachmentNote}`.trim();
 
-    const result = await callTicketsApi<TicketModuleMutationResponse>(`/${ticketId}/reply`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: outbound }),
-    });
+    const result = await replyTicketGateway(ticketId, { message: outbound });
 
     if (!result.success) {
       return { success: false, error: result.error || result.message || "Erro ao enviar." };
@@ -438,32 +392,22 @@ export async function ticketQuickAction(input: {
 
   try {
     if (input.action === "assume") {
-      const result = await callTicketsApi<TicketModuleMutationResponse>(`/${ticketId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignedUserId: session.userId, status: "IN_PROGRESS" }),
-      });
+      const result = await updateTicketGateway(ticketId, { assignedUserId: session.userId, status: "IN_PROGRESS" });
       if (!result.success) {
         return { success: false, error: result.error || "Falha ao assumir ticket." };
       }
     }
 
     if (input.action === "priority_high") {
-      const result = await callTicketsApi<TicketModuleMutationResponse>(`/${ticketId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priority: "HIGH" }),
-      });
+      const result = await updateTicketGateway(ticketId, { priority: "HIGH" });
       if (!result.success) {
         return { success: false, error: result.error || "Falha ao elevar prioridade." };
       }
     }
 
     if (input.action === "macro_followup") {
-      const result = await callTicketsApi<TicketModuleMutationResponse>(`/${ticketId}/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "Atualizacao automatica: estamos analisando este chamado e retornaremos em breve." }),
+      const result = await replyTicketGateway(ticketId, {
+        message: "Atualizacao automatica: estamos analisando este chamado e retornaremos em breve.",
       });
       if (!result.success) {
         return { success: false, error: result.error || "Falha ao aplicar macro." };
@@ -486,7 +430,7 @@ export async function getUserLinkedCompaniesAction() {
   if (!session) return { success: false, data: [] };
 
   try {
-    const response = await callTicketsApi<TicketModuleLinkedCompaniesResponse>("/linked-companies");
+    const response = await fetchLinkedCompaniesGateway();
     if (!response.success) {
       return { success: false, data: [] };
     }

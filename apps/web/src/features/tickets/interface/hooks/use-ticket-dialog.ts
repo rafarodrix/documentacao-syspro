@@ -101,6 +101,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 logError("client_companies.fetch_failed", e);
             });
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [options.isSystemUser]);
 
     useEffect(() => {
@@ -142,6 +143,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
             clearTimeout(timer);
             controller.abort();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery, options.isSystemUser]);
 
     const onSubmit = (data: TicketFormOutput) => {

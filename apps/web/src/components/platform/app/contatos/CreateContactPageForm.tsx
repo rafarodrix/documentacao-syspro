@@ -19,22 +19,41 @@ type CompanyOption = {
   nomeFantasia?: string | null;
 };
 
+type ContactInitialData = {
+  name: string;
+  email: string;
+  phone: string;
+  whatsapp: string;
+  notes: string;
+  companyIds: string[];
+};
+
 type Props = {
   companies: CompanyOption[];
   backHref: string;
+  mode?: "create" | "edit";
+  contactId?: string;
+  initialData?: Partial<ContactInitialData>;
 };
 
-export function CreateContactPageForm({ companies, backHref }: Props) {
+export function CreateContactPageForm({
+  companies,
+  backHref,
+  mode = "create",
+  contactId,
+  initialData,
+}: Props) {
   const router = useRouter();
+  const isEdit = mode === "edit";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [companyQuery, setCompanyQuery] = useState("");
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    whatsapp: "",
-    notes: "",
-    companyIds: [] as string[],
+    name: initialData?.name ?? "",
+    email: initialData?.email ?? "",
+    phone: initialData?.phone ?? "",
+    whatsapp: initialData?.whatsapp ?? "",
+    notes: initialData?.notes ?? "",
+    companyIds: initialData?.companyIds ?? ([] as string[]),
   });
 
   const filteredCompanies = useMemo(() => {
@@ -69,27 +88,33 @@ export function CreateContactPageForm({ companies, backHref }: Props) {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/contacts", {
-        method: "POST",
+      const payload = {
+        name: form.name,
+        email: form.email || null,
+        phone: form.phone || null,
+        whatsapp: form.whatsapp || null,
+        notes: form.notes || null,
+        companyIds: form.companyIds,
+      };
+
+      const url = isEdit && contactId
+        ? `/api/contacts/${contactId}`
+        : "/api/contacts";
+
+      const response = await fetch(url, {
+        method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email || null,
-          phone: form.phone || null,
-          whatsapp: form.whatsapp || null,
-          notes: form.notes || null,
-          companyIds: form.companyIds,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        toast.error(payload?.message || "Erro ao cadastrar contato.");
+        const data = await response.json().catch(() => null);
+        toast.error(data?.message || (isEdit ? "Erro ao atualizar contato." : "Erro ao cadastrar contato."));
         return;
       }
 
-      toast.success("Contato cadastrado com sucesso.");
+      toast.success(isEdit ? "Contato atualizado com sucesso." : "Contato cadastrado com sucesso.");
       router.push(backHref);
       router.refresh();
     } catch {
@@ -106,9 +131,13 @@ export function CreateContactPageForm({ companies, backHref }: Props) {
         <div>
           <h2 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
             <Sparkles className="h-5 w-5 text-primary/70" />
-            Novo Contato
+            {isEdit ? "Editar Contato" : "Novo Contato"}
           </h2>
-          <p className="text-sm text-muted-foreground">Cadastre o contato base da pessoa e vincule uma ou mais empresas quando fizer sentido.</p>
+          <p className="text-sm text-muted-foreground">
+            {isEdit
+              ? "Atualize os dados do contato e seus vinculos com empresas."
+              : "Cadastre o contato base da pessoa e vincule uma ou mais empresas quando fizer sentido."}
+          </p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
           <ArrowLeft className="h-4 w-4" />
@@ -152,7 +181,9 @@ export function CreateContactPageForm({ companies, backHref }: Props) {
               <div className="flex items-start gap-2 rounded-md border border-primary/15 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
                 <BadgeHelp className="mt-0.5 h-3.5 w-3.5 text-primary" />
                 <p>
-                  O contato representa a identidade operacional da pessoa. Os vínculos com empresas podem ser adicionados agora ou depois, no mesmo padrão do cadastro de empresa.
+                  {isEdit
+                    ? "Atualize os dados do contato. Os vinculos com empresas podem ser alterados a qualquer momento."
+                    : "O contato representa a identidade operacional da pessoa. Os vinculos com empresas podem ser adicionados agora ou depois, no mesmo padrao do cadastro de empresa."}
                 </p>
               </div>
 
@@ -204,7 +235,7 @@ export function CreateContactPageForm({ companies, backHref }: Props) {
                 <div className="flex items-start gap-2 rounded-md border border-border/60 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
                   <Building2 className="mt-0.5 h-3.5 w-3.5 text-primary/80" />
                   <p>
-                    Ao vincular empresas aqui, o contato já nasce pronto para atendimento, relacionamento comercial e futura promoção para usuário quando necessário.
+                    Ao vincular empresas aqui, o contato ja nasce pronto para atendimento, relacionamento comercial e futura promocao para usuario quando necessario.
                   </p>
                 </div>
                 <div className="relative">
@@ -290,7 +321,7 @@ export function CreateContactPageForm({ companies, backHref }: Props) {
           </Button>
           <Button type="submit" className="gap-2" disabled={isSubmitting || !form.name.trim()}>
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar Cadastro
+            {isEdit ? "Salvar Alteracoes" : "Salvar Cadastro"}
           </Button>
         </div>
       </form>

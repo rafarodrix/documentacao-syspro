@@ -1,5 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  ticketModuleCreateRequestSchema,
+  ticketModuleListQuerySchema,
+  ticketModuleReplyRequestSchema,
+  ticketModuleUpdateRequestSchema,
+} from '@dosc-syspro/contracts';
 import type { Request } from 'express';
+import type { ZodType } from 'zod';
 import { CreateTicketDto } from './create-ticket.dto';
 import { TicketsService } from './tickets.service';
 import { UpdateTicketDto } from './update-ticket.dto';
@@ -8,9 +15,19 @@ import { UpdateTicketDto } from './update-ticket.dto';
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
+  private parseOrThrow<T>(schema: ZodType<T>, value: unknown): T {
+    const parsed = schema.safeParse(value);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return parsed.data;
+  }
+
   @Post()
   create(@Req() req: Request, @Body() createTicketDto: CreateTicketDto) {
-    return this.ticketsService.create(createTicketDto, req.headers);
+    const input = this.parseOrThrow(ticketModuleCreateRequestSchema, createTicketDto);
+    return this.ticketsService.create(input, req.headers);
   }
 
   @Get('linked-companies')
@@ -28,15 +45,17 @@ export class TicketsController {
     @Query('assignedUserId') assignedUserId?: string,
     @Query('companyId') companyId?: string,
   ) {
+    const input = this.parseOrThrow(ticketModuleListQuerySchema, {
+      page,
+      pageSize,
+      search,
+      status,
+      assignedUserId,
+      companyId,
+    });
+
     return this.ticketsService.findAll(
-      {
-        page,
-        pageSize,
-        search,
-        status,
-        assignedUserId,
-        companyId,
-      },
+      input,
       req.headers,
     );
   }
@@ -47,12 +66,14 @@ export class TicketsController {
   }
 
   @Post(':id/reply')
-  reply(@Req() req: Request, @Param('id') id: string, @Body('message') message?: string) {
-    return this.ticketsService.reply(id, message, req.headers);
+  reply(@Req() req: Request, @Param('id') id: string, @Body() body: { message?: string }) {
+    const input = this.parseOrThrow(ticketModuleReplyRequestSchema, body);
+    return this.ticketsService.reply(id, input.message, req.headers);
   }
 
   @Patch(':id/status')
   updateStatus(@Req() req: Request, @Param('id') id: string, @Body() updateTicketDto: UpdateTicketDto) {
-    return this.ticketsService.updateStatus(id, updateTicketDto, req.headers);
+    const input = this.parseOrThrow(ticketModuleUpdateRequestSchema, updateTicketDto);
+    return this.ticketsService.updateStatus(id, input, req.headers);
   }
 }

@@ -1,19 +1,20 @@
-import {
-  ConversationChannel as TicketChannel,
-  ConversationEntryPoint as TicketEntryPoint,
-  ConversationPriority as TicketPriority,
-} from '@prisma/client';
+import type {
+  TicketModuleChannel,
+  TicketModuleCreateRequest,
+  TicketModuleEntryPoint,
+  TicketModulePriority,
+} from '@dosc-syspro/contracts';
 
-export class CreateTicketDto {
+export class CreateTicketDto implements TicketModuleCreateRequest {
   title: string = '';
 
   description: string = '';
 
-  priority?: TicketPriority;
+  priority?: TicketModulePriority;
 
-  channel?: TicketChannel;
+  channel?: TicketModuleChannel;
 
-  entryPoint?: TicketEntryPoint;
+  entryPoint?: TicketModuleEntryPoint;
 
   companyId?: string;
 
