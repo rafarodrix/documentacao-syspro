@@ -14,7 +14,11 @@ export async function GET(request: Request) {
   try {
     const settingsResponse = await fetchRemoteModuleSettingsGateway();
     if (!settingsResponse.success || !settingsResponse.data) {
-      return remoteErrorResponse("Nao foi possivel carregar o perfil do cliente RustDesk.", 500);
+      return remoteErrorResponse({
+        code: "REMOTE_CLIENT_PROFILE_UNAVAILABLE",
+        message: "Nao foi possivel carregar o perfil do cliente RustDesk.",
+        httpStatus: 500,
+      });
     }
 
     const settings = settingsResponse.data;
@@ -51,6 +55,10 @@ export async function GET(request: Request) {
       },
     });
   } catch {
-    return remoteErrorResponse("Nao foi possivel carregar o perfil do cliente RustDesk.", 500);
+    return remoteErrorResponse({
+      code: "REMOTE_CLIENT_PROFILE_UNAVAILABLE",
+      message: "Nao foi possivel carregar o perfil do cliente RustDesk.",
+      httpStatus: 500,
+    });
   }
 }
