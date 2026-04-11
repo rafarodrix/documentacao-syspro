@@ -67,15 +67,16 @@ export class SettingsController {
     }, {});
 
     const rawData = {
-      minimumWage: Number(configMap.minimumWage || 0),
-      maintenanceMode: configMap.maintenanceMode === 'true',
-      supportEmail: configMap.supportEmail || '',
-      supportPhone: configMap.supportPhone || '',
-      rbacMatrixEnabled: configMap.rbacMatrixEnabled !== 'false',
+      minimumWage: configMap.minimumWage,
+      maintenanceMode: configMap.maintenanceMode,
+      supportEmail: configMap.supportEmail,
+      supportPhone: configMap.supportPhone,
+      rbacMatrixEnabled: configMap.rbacMatrixEnabled,
     };
 
-    const validation = settingsSchema.safeParse(rawData);
-    const data = validation.success ? validation.data : this.buildSafeGeneralSettings(rawData);
+    const normalizedData = this.normalizeGeneralSettings(rawData);
+    const validation = settingsSchema.safeParse(normalizedData);
+    const data = validation.success ? validation.data : this.buildSafeGeneralSettings(normalizedData);
 
     if (!validation.success) {
       this.logger.warn(
@@ -86,6 +87,29 @@ export class SettingsController {
     }
 
     return { success: true, data };
+  }
+
+  private normalizeGeneralSettings(input: {
+    minimumWage?: string;
+    maintenanceMode?: string;
+    supportEmail?: string;
+    supportPhone?: string;
+    rbacMatrixEnabled?: string;
+  }): SettingsOutput {
+    const parsedMinimumWage = Number(input.minimumWage);
+    const normalizedPhone = this.normalizeDigits(input.supportPhone);
+    const normalizedEmail = (input.supportEmail ?? '').trim();
+
+    return {
+      minimumWage:
+        Number.isFinite(parsedMinimumWage) && parsedMinimumWage >= 1
+          ? parsedMinimumWage
+          : SettingsController.DEFAULT_GENERAL_SETTINGS.minimumWage,
+      maintenanceMode: input.maintenanceMode === 'true',
+      supportEmail: normalizedEmail || SettingsController.DEFAULT_GENERAL_SETTINGS.supportEmail,
+      supportPhone: normalizedPhone || SettingsController.DEFAULT_GENERAL_SETTINGS.supportPhone,
+      rbacMatrixEnabled: input.rbacMatrixEnabled !== 'false',
+    };
   }
 
   private buildSafeGeneralSettings(input: {
@@ -113,8 +137,8 @@ export class SettingsController {
     };
   }
 
-  private normalizeDigits(value: string): string {
-    return value.replace(/\D+/g, '');
+  private normalizeDigits(value?: string): string {
+    return (value ?? '').replace(/\D+/g, '');
   }
 
   @Put('general')
