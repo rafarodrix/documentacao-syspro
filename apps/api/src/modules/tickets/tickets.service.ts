@@ -39,11 +39,12 @@ export class TicketsService {
   async create(data: TicketModuleCreateRequest, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.getRequester(rawHeaders);
     const ticketNumber = this.generateTicketNumber();
+    const accessScope = await this.getTicketAccessScope(requester);
     
     let resolvedCompanyId = data.companyId;
     let resolvedContactId = data.companyContactId;
     
-    const isSystemAdmin = ([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE] as Role[]).includes(requester.role);
+    const isSystemAdmin = this.isSystemRole(requester.role);
 
     if (isSystemAdmin && data.customerEmail) {
       const contact = await this.prisma.companyContact.findFirst({
@@ -87,6 +88,16 @@ export class TicketsService {
           select: { companyId: true },
         });
         resolvedCompanyId = membership?.companyId;
+      }
+    }
+
+    if (!accessScope.isGlobal) {
+      if (!resolvedCompanyId) {
+        throw new BadRequestException('Empresa obrigatoria para abrir ticket.');
+      }
+
+      if (!accessScope.companyIds.includes(resolvedCompanyId)) {
+        throw new NotFoundException('Empresa nao encontrada para este usuario.');
       }
     }
 
@@ -166,11 +177,16 @@ export class TicketsService {
 
   async findAll(input: TicketModuleListQuery, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.getRequester(rawHeaders);
+    const accessScope = await this.getTicketAccessScope(requester);
 
     const page = Math.max(1, Number.parseInt(input.page || '1', 10) || 1);
     const pageSize = Math.min(100, Math.max(1, Number.parseInt(input.pageSize || '20', 10) || 20));
 
     const where: Prisma.ConversationWhereInput = {};
+
+    if (!accessScope.isGlobal) {
+      where.companyId = { in: accessScope.companyIds };
+    }
 
     if (input.status && Object.values(TicketStatus).includes(input.status as TicketStatus)) {
       where.status = input.status as TicketStatus;
@@ -181,6 +197,10 @@ export class TicketsService {
     }
 
     if (input.companyId) {
+      if (!accessScope.isGlobal && !accessScope.companyIds.includes(input.companyId)) {
+        return serializeTicketListResponse({ items: [], page, pageSize, total: 0, requesterUserId: requester.userId });
+      }
+
       where.companyId = input.companyId;
     }
 
@@ -212,7 +232,8 @@ export class TicketsService {
   }
 
   async findOne(id: string, rawHeaders?: IncomingHttpHeaders) {
-    await this.getRequester(rawHeaders);
+    const requester = await this.getRequester(rawHeaders);
+    const accessScope = await this.getTicketAccessScope(requester);
 
     const ticket = await this.prisma.conversation.findUnique({
       where: { id },
@@ -240,19 +261,25 @@ export class TicketsService {
     });
 
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
+    this.assertTicketAccess(ticket.companyId, accessScope);
 
     return serializeTicketDetailsResponse(ticket);
   }
 
   async reply(id: string, message: string | undefined, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.getRequester(rawHeaders);
+    const accessScope = await this.getTicketAccessScope(requester);
 
     if (!message?.trim()) {
       throw new BadRequestException('Mensagem obrigatoria.');
     }
 
-    const ticket = await this.prisma.conversation.findUnique({ where: { id }, select: { id: true } });
+    const ticket = await this.prisma.conversation.findUnique({
+      where: { id },
+      select: { id: true, companyId: true },
+    });
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
+    this.assertTicketAccess(ticket.companyId, accessScope);
 
     await this.prisma.conversationMessage.create({
       data: {
@@ -283,9 +310,14 @@ export class TicketsService {
 
   async updateStatus(id: string, input: TicketModuleUpdateRequest, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.getRequester(rawHeaders);
+    const accessScope = await this.getTicketAccessScope(requester);
 
-    const exists = await this.prisma.conversation.findUnique({ where: { id }, select: { id: true, status: true } });
+    const exists = await this.prisma.conversation.findUnique({
+      where: { id },
+      select: { id: true, status: true, companyId: true },
+    });
     if (!exists) throw new NotFoundException('Ticket nao encontrado.');
+    this.assertTicketAccess(exists.companyId, accessScope);
 
     const resolutionSummary = input.resolutionSummary?.trim();
     const resolutionVideoUrl = input.resolutionVideoUrl?.trim();
@@ -397,6 +429,57 @@ export class TicketsService {
 
   private getPrimaryCompanyId(contact: { companyLinks?: Array<{ companyId: string }> }) {
     return contact.companyLinks?.[0]?.companyId;
+  }
+
+  private isSystemRole(role: Role) {
+    return ([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE] as Role[]).includes(role);
+  }
+
+  private async getTicketAccessScope(requester: { userId: string; role: Role; email: string }): Promise<{
+    isGlobal: boolean;
+    companyIds: string[];
+  }> {
+    if (this.isSystemRole(requester.role)) {
+      return { isGlobal: true, companyIds: [] };
+    }
+
+    const companiesMap = new Set<string>();
+
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId: requester.userId },
+      select: { companyId: true },
+    });
+
+    for (const membership of memberships) {
+      companiesMap.add(membership.companyId);
+    }
+
+    const contacts = await this.prisma.companyContact.findMany({
+      where: { email: requester.email },
+      select: {
+        companyLinks: {
+          select: { companyId: true },
+        },
+      },
+    });
+
+    for (const contact of contacts) {
+      for (const link of contact.companyLinks) {
+        companiesMap.add(link.companyId);
+      }
+    }
+
+    return { isGlobal: false, companyIds: Array.from(companiesMap) };
+  }
+
+  private assertTicketAccess(companyId: string | null, accessScope: { isGlobal: boolean; companyIds: string[] }) {
+    if (accessScope.isGlobal) {
+      return;
+    }
+
+    if (!companyId || !accessScope.companyIds.includes(companyId)) {
+      throw new NotFoundException('Ticket nao encontrado.');
+    }
   }
 
   private toConversationEntryPoint(entryPoint?: TicketModuleEntryPoint): TicketEntryPoint {

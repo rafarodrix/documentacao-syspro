@@ -35,7 +35,7 @@ const TAB_VALUES = new Set(["general", "remote", "evolution", "access", "tax", "
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
     const session = await requireSession();
-    if (session.role !== Role.ADMIN) {
+    if (session.role !== Role.ADMIN && session.role !== Role.DEVELOPER) {
         redirect("/portal");
     }
 
@@ -55,7 +55,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
     const contracts = contractsView.contracts;
     const companies = contractsView.companies;
-    const rbacMatrixEnabled = settingsView.rbacMatrixEnabled;
     const sefazRoutes = settingsView.sefazRoutes;
 
     return (
@@ -162,7 +161,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
                 <TabsContent value="access" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-5xl">
-                        <AccessControlTab initialEnabled={rbacMatrixEnabled} />
+                        <AccessControlTab initialCatalog={settingsView.permissionsCatalog} />
                     </div>
                 </TabsContent>
 

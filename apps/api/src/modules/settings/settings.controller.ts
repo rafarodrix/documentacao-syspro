@@ -1,11 +1,14 @@
-import { Controller, Get, Put, Body, Param, Post, Delete, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Put, Body, Param, Post, Delete, Query, NotFoundException, Req } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationConnectionsService } from './integration-connections.service';
 import {
   DEFAULT_EVOLUTION_SETTINGS,
   evolutionSettingsSchema,
+  settingsPermissionsMatrixVisibilityUpdateSchema,
   type EvolutionSettingsInput,
 } from '@dosc-syspro/contracts';
+import type { Request } from 'express';
+import { SettingsPermissionsService } from './permissions/permissions.service';
 
 @Controller('settings')
 export class SettingsController {
@@ -15,6 +18,7 @@ export class SettingsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly integrationConnections: IntegrationConnectionsService,
+    private readonly settingsPermissionsService: SettingsPermissionsService,
   ) {}
 
   @Get('evolution')
@@ -103,6 +107,17 @@ export class SettingsController {
     const result = await this.integrationConnections.test(id);
     if (!result) throw new NotFoundException('Integracao nao encontrada');
     return { success: true, data: result };
+  }
+
+  @Get('permissions')
+  async getPermissionsCatalog(@Req() req: Request) {
+    return this.settingsPermissionsService.getCatalog(req.headers);
+  }
+
+  @Put('permissions/matrix-visibility')
+  async updatePermissionsMatrixVisibility(@Req() req: Request, @Body() body: { enabled?: boolean }) {
+    const parsed = settingsPermissionsMatrixVisibilityUpdateSchema.parse(body);
+    return this.settingsPermissionsService.updateMatrixVisibility(parsed.enabled, req.headers);
   }
 
   @Get(':key')

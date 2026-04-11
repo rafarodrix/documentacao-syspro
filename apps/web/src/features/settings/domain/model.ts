@@ -1,5 +1,6 @@
 import type { SettingsInput } from "@dosc-syspro/contracts";
 import type { SefazRoutesInput } from "@dosc-syspro/contracts";
+import type { SettingsPermissionsCatalog } from "@dosc-syspro/contracts";
 
 export type SettingsSnapshot = SettingsInput;
 export type SefazRoutesSnapshot = SefazRoutesInput;
@@ -25,4 +26,5 @@ export type SettingsActionResponse<T = void> = SettingsActionSuccess<T> | Settin
 export interface SettingsAdminViewData {
   rbacMatrixEnabled: boolean;
   sefazRoutes: SefazRoutesSnapshot;
+  permissionsCatalog: SettingsPermissionsCatalog;
 }

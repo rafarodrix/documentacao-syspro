@@ -1,5 +1,28 @@
 export { settingsSchema, SETTING_KEYS } from "./settings";
 export type { SettingsInput, SettingsOutput } from "./settings";
+export {
+  SETTINGS_PROFILE_KEY_VALUES,
+  SETTINGS_PERMISSION_DEFINITIONS,
+  SETTINGS_PERMISSION_KEY_VALUES,
+  settingsProfileKeySchema,
+  settingsPermissionKeySchema,
+  settingsPermissionDefinitionSchema,
+  settingsPermissionProfileSchema,
+  settingsPermissionsCatalogSchema,
+  settingsPermissionsCatalogResponseSchema,
+  settingsPermissionsMatrixVisibilityUpdateSchema,
+  settingsPermissionsMutationResponseSchema,
+} from "./settings-permissions";
+export type {
+  SettingsProfileKey,
+  SettingsPermissionKey,
+  SettingsPermissionDefinition,
+  SettingsPermissionProfile,
+  SettingsPermissionsCatalog,
+  SettingsPermissionsCatalogResponse,
+  SettingsPermissionsMatrixVisibilityUpdateInput,
+  SettingsPermissionsMutationResponse,
+} from "./settings-permissions";
 
 export { sefazRouteSchema, sefazRoutesSchema } from "./sefaz-routes";
 export type { SefazRouteInput, SefazRoutesInput } from "./sefaz-routes";

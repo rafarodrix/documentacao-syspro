@@ -7,6 +7,10 @@ import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
 import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
+import {
+  getFallbackSettingsPermissionsCatalog,
+  getSettingsPermissionsCatalogAction,
+} from "@/features/settings/permissions/application/permissions-actions";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
@@ -72,16 +76,20 @@ export async function getSefazRoutesAction(): Promise<SettingsActionResponse<Sef
 }
 
 export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData> {
-  const [rbacSetting, sefazRoutesRes] = await Promise.all([
+  const [rbacSetting, sefazRoutesRes, permissionsCatalogRes] = await Promise.all([
     prisma.systemSetting.findUnique({
       where: { key: SETTING_KEYS.RBAC_MATRIX_ENABLED },
       select: { value: true },
     }),
     getSefazRoutesAction(),
+    getSettingsPermissionsCatalogAction(),
   ]);
 
   return {
     rbacMatrixEnabled: rbacSetting?.value !== "false",
     sefazRoutes: sefazRoutesRes.success ? (sefazRoutesRes.data ?? buildDefaultSefazRoutes()) : buildDefaultSefazRoutes(),
+    permissionsCatalog: permissionsCatalogRes.success
+      ? permissionsCatalogRes.data
+      : getFallbackSettingsPermissionsCatalog(rbacSetting?.value !== "false"),
   };
 }

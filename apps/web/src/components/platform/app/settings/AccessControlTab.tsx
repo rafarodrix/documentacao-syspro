@@ -11,24 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { updateRbacMatrixVisibilityAction } from "@/features/settings/application/actions";
-import {
-    SYSTEM_PERMISSIONS,
-    ROLE_LABELS,
-    ACCESS_MATRIX,
-    PermissionKey,
-} from "@/features/user-access/domain/permissions";
-import { Role } from "@prisma/client";
+import type { SettingsPermissionsCatalog } from "@dosc-syspro/contracts";
 
 interface AccessControlTabProps {
-    initialEnabled: boolean;
+    initialCatalog: SettingsPermissionsCatalog;
 }
 
-export function AccessControlTab({ initialEnabled }: AccessControlTabProps) {
-    const [enabled, setEnabled] = useState(initialEnabled);
+export function AccessControlTab({ initialCatalog }: AccessControlTabProps) {
+    const [enabled, setEnabled] = useState(initialCatalog.matrixEnabled);
     const [isPending, startTransition] = useTransition();
-
-    const roles = Object.keys(ROLE_LABELS) as Role[];
-    const permissions = Object.entries(SYSTEM_PERMISSIONS);
+    const profiles = initialCatalog.profiles;
+    const permissions = initialCatalog.permissions;
 
     const handleToggle = (nextValue: boolean) => {
         setEnabled(nextValue);
@@ -88,12 +81,12 @@ export function AccessControlTab({ initialEnabled }: AccessControlTabProps) {
                             <TableHeader className="bg-muted/40">
                                 <TableRow>
                                     <TableHead className="w-[300px]">Funcionalidade / Permissao</TableHead>
-                                    {roles.map((role) => (
-                                        <TableHead key={role} className="text-center min-w-[100px]">
+                                    {profiles.map((profile) => (
+                                        <TableHead key={profile.key} className="text-center min-w-[100px]">
                                             <div className="flex flex-col items-center gap-1">
-                                                <span className="text-xs font-semibold">{ROLE_LABELS[role]}</span>
+                                                <span className="text-xs font-semibold">{profile.label}</span>
                                                 <Badge variant="outline" className="text-[10px] font-mono opacity-70">
-                                                    {role}
+                                                    {profile.key}
                                                 </Badge>
                                             </div>
                                         </TableHead>
@@ -101,17 +94,17 @@ export function AccessControlTab({ initialEnabled }: AccessControlTabProps) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {permissions.map(([permKey, permLabel]) => (
-                                    <TableRow key={permKey} className="hover:bg-muted/20">
+                                {permissions.map((permission) => (
+                                    <TableRow key={permission.key} className="hover:bg-muted/20">
                                         <TableCell className="font-medium text-sm text-muted-foreground">
-                                            {permLabel}
-                                            <div className="text-[10px] font-mono text-muted-foreground/50">{permKey}</div>
+                                            {permission.label}
+                                            <div className="text-[10px] font-mono text-muted-foreground/50">{permission.key}</div>
                                         </TableCell>
 
-                                        {roles.map((role) => {
-                                            const allowed = ACCESS_MATRIX[role]?.includes(permKey as PermissionKey);
+                                        {profiles.map((profile) => {
+                                            const allowed = profile.permissions.includes(permission.key);
                                             return (
-                                                <TableCell key={`${role}-${permKey}`} className="text-center">
+                                                <TableCell key={`${profile.key}-${permission.key}`} className="text-center">
                                                     {allowed ? (
                                                         <div className="flex justify-center">
                                                             <div className="h-6 w-6 rounded-full bg-green-500/10 flex items-center justify-center">

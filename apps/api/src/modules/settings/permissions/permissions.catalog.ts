@@ -1,23 +1,14 @@
-import { Role } from "@prisma/client";
-import { ROLE_LABELS as APP_ROLE_LABELS } from "@dosc-syspro/core";
+import { ROLE_LABELS } from '@dosc-syspro/core';
 import {
   SETTINGS_PERMISSION_DEFINITIONS,
   type SettingsPermissionKey,
-} from "@dosc-syspro/contracts";
+  type SettingsPermissionProfile,
+  type SettingsProfileKey,
+} from '@dosc-syspro/contracts';
 
-export const ROLE_LABELS: Record<Role, string> = APP_ROLE_LABELS as Record<Role, string>;
-
-export const SYSTEM_PERMISSIONS = Object.fromEntries(
-  SETTINGS_PERMISSION_DEFINITIONS.map((permission) => [permission.key, permission.label]),
-) as Record<SettingsPermissionKey, string>;
-
-export type PermissionKey = SettingsPermissionKey;
-export type AccessControlMatrix = Record<Role, SettingsPermissionKey[]>;
-
-export const ACCESS_MATRIX: AccessControlMatrix = {
-  ADMIN: Object.keys(SYSTEM_PERMISSIONS) as PermissionKey[],
-  DEVELOPER: Object.keys(SYSTEM_PERMISSIONS) as PermissionKey[],
-
+const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPermissionKey[]> = {
+  ADMIN: SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key),
+  DEVELOPER: SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key),
   SUPORTE: [
     "dashboard:view",
     "dashboard:stats_full",
@@ -42,7 +33,6 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
     "tax_reform:view",
     "system_team:view",
   ],
-
   CLIENTE_ADMIN: [
     "dashboard:view",
     "companies:view",
@@ -59,7 +49,6 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
     "tools:view",
     "tools:basic",
   ],
-
   CLIENTE_USER: [
     "dashboard:view",
     "tickets:view_own",
@@ -68,3 +57,15 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
     "tools:basic",
   ],
 };
+
+export function buildDefaultPermissionProfiles(): SettingsPermissionProfile[] {
+  return (Object.entries(DEFAULT_PROFILE_PERMISSIONS) as Array<[SettingsProfileKey, SettingsPermissionKey[]]>).map(
+    ([key, permissions]) => ({
+      key,
+      label: ROLE_LABELS[key] ?? key,
+      permissions,
+    }),
+  );
+}
+
+export { SETTINGS_PERMISSION_DEFINITIONS };

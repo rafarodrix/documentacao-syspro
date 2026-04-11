@@ -8,6 +8,7 @@ import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts
 import { SefazService } from "@/app/api/sefaz/sefaz.service";
 import { revalidateSettingsViews } from "@/lib/cache-invalidation";
 import type { SettingsActionResponse } from "@/features/settings/domain/model";
+import { updateSettingsPermissionsMatrixVisibilityAction } from "@/features/settings/permissions/application/permissions-actions";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
@@ -60,28 +61,7 @@ export async function updateSettingsAction(data: SettingsOutput): Promise<Settin
 }
 
 export async function updateRbacMatrixVisibilityAction(enabled: boolean): Promise<SettingsActionResponse> {
-  const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
-    return { success: false, error: "Permissao negada." };
-  }
-
-  try {
-    await prisma.systemSetting.upsert({
-      where: { key: SETTING_KEYS.RBAC_MATRIX_ENABLED },
-      update: { value: String(enabled) },
-      create: {
-        key: SETTING_KEYS.RBAC_MATRIX_ENABLED,
-        value: String(enabled),
-        description: "Visibilidade da matriz RBAC",
-      },
-    });
-
-    revalidateSettingsViews();
-    return { success: true, message: enabled ? "Matriz RBAC ativada." : "Matriz RBAC desativada." };
-  } catch (error) {
-    console.error("Erro ao atualizar visibilidade da matriz RBAC:", error);
-    return { success: false, error: "Erro ao atualizar configuracao." };
-  }
+  return updateSettingsPermissionsMatrixVisibilityAction(enabled);
 }
 
 export async function updateSefazRoutesAction(routes: SefazRoutesInput): Promise<SettingsActionResponse> {
