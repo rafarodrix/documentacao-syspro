@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type {
   TicketModuleCreateRequest,
+  TicketModuleEntryPoint,
   TicketModuleListQuery,
   TicketModuleUpdateRequest,
 } from '@dosc-syspro/contracts';
@@ -78,7 +79,7 @@ export class TicketsService {
     await this.prisma.conversation.create({
       data: {
         channel: data.channel ?? TicketChannel.PORTAL,
-        entryPoint: data.entryPoint ?? TicketEntryPoint.INBOUND,
+        entryPoint: this.toConversationEntryPoint(data.entryPoint),
         status: TicketStatus.NEW,
         priority: data.priority ?? TicketPriority.NORMAL,
         subject: data.title,
@@ -385,5 +386,11 @@ export class TicketsService {
     const timestamp = Date.now().toString().slice(-8);
     const random = Math.floor(Math.random() * 900 + 100);
     return `TK-${timestamp}${random}`;
+  }
+
+  private toConversationEntryPoint(entryPoint?: TicketModuleEntryPoint): TicketEntryPoint {
+    if (!entryPoint || entryPoint === 'INBOUND') return TicketEntryPoint.INBOUND;
+    if (entryPoint === 'OUTBOUND') return TicketEntryPoint.OUTBOUND;
+    return TicketEntryPoint.SYSTEM;
   }
 }
