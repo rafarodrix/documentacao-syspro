@@ -25,13 +25,6 @@ async function bootstrap() {
   app.use(json({ limit: '50mb', verify: captureRawBody }));
   app.use(urlencoded({ extended: true, limit: '50mb', verify: captureRawBody }));
 
-  const httpAdapter = app.getHttpAdapter();
-  const expressApp = httpAdapter.getInstance();
-  expressApp.use(['/webhooks/chatwoot', '/webhooks/evolution'], (req: any, _res: any, next: () => void) => {
-    req.url = `/api${req.url}`;
-    next();
-  });
-
   // Prefixo universal para as rotas do NestJS
   app.setGlobalPrefix('api');
   

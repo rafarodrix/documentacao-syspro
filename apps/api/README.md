@@ -53,7 +53,7 @@ Variaveis minimas:
 - `GET /health`
 - `GET /health/integrations/chatwoot` (valida rota critica da API Chatwoot e resolucao de inbox)
 - `POST /rpc/:namespace/:procedure`
-- `POST /webhooks/evolution` (inbound Evolution Go; processa `Message` e `Receipt`)
+- `POST /api/webhooks/evolution` (inbound Evolution Go; processa `Message` e `Receipt`)
 - `POST /integrations/evolution/messages/send` (envio direto outbound via Evolution, protegido por `x-internal-api-key`)
 - `GET /settings/evolution` (configuracao global do canal Evolution)
 - `PUT /settings/evolution` (persistencia das configuracoes globais do canal)
@@ -123,8 +123,7 @@ Objetivo futuro:
 3. Configurar webhook da Evolution Go
 
 - URL:
-  - backend dedicado: `https://SEU_BACKEND/webhooks/evolution`
-  - quando publicado atras do `apps/web`: `https://SEU_BACKEND/api/webhooks/evolution`
+  - oficial: `https://SEU_BACKEND/api/webhooks/evolution`
 - eventos minimos:
   - `Message`
   - `Receipt`
@@ -241,4 +240,4 @@ Objetivo futuro:
 
 ## Limite atual
 
-Este app ainda esta em migracao progressiva. `apps/web` segue como UI/admin e proxy de entrada de webhook.
+Este app ainda esta em migracao progressiva. `apps/web` segue como UI/admin, enquanto o recebimento de webhooks e a integracao operacional ficam concentrados no `apps/api`.

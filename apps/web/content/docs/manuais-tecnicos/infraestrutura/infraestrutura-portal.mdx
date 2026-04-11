@@ -109,7 +109,7 @@ Consolidar, em um unico documento, o desenho atual de infraestrutura do Portal p
 ## Regras de integracao
 
 1. Web chama somente backend Nest (`backend.<dominio>/api`).
-3. Evolution envia webhook para o backend Nest.
+3. Evolution envia webhook diretamente para o backend Nest.
 4. RustDesk permanece isolado no host `acesso.<dominio>`.
 
 ## Fluxo de comunicacao
@@ -117,7 +117,7 @@ Consolidar, em um unico documento, o desenho atual de infraestrutura do Portal p
 1. Cliente (ou backend no Railway) chama `https://api.trilinksoftware.com.br`.
 2. Nginx Proxy Manager valida TLS e roteia para o container Evolution.
 3. Evolution processa requisicao e persiste eventos/estado no Neon.
-4. Em eventos inbound, Evolution publica webhook para o backend Nest no Railway.
+4. Em eventos inbound, Evolution publica webhook diretamente para o backend Nest no Railway.
 
 ## Controles de seguranca aplicados
 

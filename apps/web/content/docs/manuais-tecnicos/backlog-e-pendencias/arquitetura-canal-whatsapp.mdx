@@ -36,7 +36,7 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
   - `ConversationAssignment`
 
 <Callout type="info" title="Leitura correta do estado atual">
-  O canal ja opera com backend central em `apps/api` para inbound/outbound entre Evolution Go e Chatwoot. O `apps/web` permanece como UI/admin e proxy controlado, sem painel legado de mensagens. Bridge isolado (`apps/whatsapp-bridge`) e fila operacional dedicada continuam pendentes.
+  O canal ja opera com backend central em `apps/api` para inbound/outbound entre Evolution Go e Chatwoot. O `apps/web` permanece como UI/admin, sem responsabilidade de proxy para webhook. Bridge isolado (`apps/whatsapp-bridge`) e fila operacional dedicada continuam pendentes.
 </Callout>
 
 ## Estado atual real (2026-04-04)
@@ -45,9 +45,6 @@ Definir o encaixe correto do canal WhatsApp na infraestrutura atual do monorepo,
   - webhook inbound da Evolution
   - conciliacao com `CompanyContact`
   - persistencia de conversa/mensagem para trilha auditavel
-- Em producao no `apps/web`:
-  - proxy `POST /api/webhooks/evolution` para `apps/api`
-  - autenticacao de servico `x-internal-api-key` nas chamadas `web -> api`
 - Implementado como base de contrato:
   - envelope de webhook Evolution (`event` + `data`) formalizado em `@dosc-syspro/contracts`
   - padronizacao de env para Evolution: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE`
