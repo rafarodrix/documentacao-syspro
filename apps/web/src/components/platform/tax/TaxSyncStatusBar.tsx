@@ -130,8 +130,22 @@ export function TaxSyncStatusBar() {
     setTick((v) => v + 1);
   };
 
-  const clearAll = () => {
+  const clearAll = async () => {
+    try {
+      const response = await fetch("/api/tax/sync-jobs", {
+        method: "DELETE",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        return;
+      }
+    } catch {
+      return;
+    }
+
     MODES.forEach((item) => clearProgress(item.mode));
+    setJobs([]);
     setTick((v) => v + 1);
   };
 

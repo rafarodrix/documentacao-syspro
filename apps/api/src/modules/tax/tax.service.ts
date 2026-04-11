@@ -102,6 +102,16 @@ const parseDecimal = (val?: number | string) => {
   return new Prisma.Decimal(val);
 };
 
+const parseNullableString = (value: unknown): string | null => {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (typeof value === 'number' || typeof value === 'bigint') return String(value);
+  return null;
+};
+
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -594,6 +604,16 @@ export class TaxService {
     });
   }
 
+  async clearSyncJobs(mode?: string | null) {
+    const result = await this.prisma.taxSyncJob.deleteMany({
+      where: mode ? { mode } : undefined,
+    });
+
+    return {
+      deletedCount: result.count,
+    };
+  }
+
   async processSyncChunk(body: TaxSyncChunkRequest) {
     if (!isSyncMode(body.mode)) {
       return { statusCode: 400, body: { success: false, error: 'Modo de sincronizacao invalido.' } };
@@ -739,6 +759,7 @@ export class TaxService {
 
             if (item.classificacoesTributarias?.length) {
               for (const subItem of item.classificacoesTributarias) {
+                const anexo = parseNullableString(subItem.Anexo);
                 await tx.taxClassification.upsert({
                   where: { code: subItem.cClassTrib },
                   update: {
@@ -770,7 +791,7 @@ export class TaxService {
                     monofasiaRetidaAnt: subItem.MonofasiaRetidaAnt ?? false,
                     monofasiaDiferimento: subItem.MonofasiaDiferimento ?? false,
                     monofasiaPadrao: subItem.MonofasiaPadrao ?? false,
-                    anexo: subItem.Anexo,
+                    anexo,
                     endDate: parseNullableDate(subItem.FimVigencia),
                   },
                   create: {
@@ -803,7 +824,7 @@ export class TaxService {
                     monofasiaRetidaAnt: subItem.MonofasiaRetidaAnt ?? false,
                     monofasiaDiferimento: subItem.MonofasiaDiferimento ?? false,
                     monofasiaPadrao: subItem.MonofasiaPadrao ?? false,
-                    anexo: subItem.Anexo,
+                    anexo,
                     publishDate: parseDate(subItem.Publicacao),
                     startDate: parseDate(subItem.InicioVigencia),
                     endDate: parseNullableDate(subItem.FimVigencia),

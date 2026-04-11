@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { TaxService } from './tax.service';
@@ -55,6 +55,13 @@ export class TaxController {
     await this.authorizationService.assertPermission(req.headers, 'tax_reform:manage');
     const jobs = await this.taxService.listSyncJobs(mode);
     return { success: true, jobs };
+  }
+
+  @Delete('sync-jobs')
+  async clearSyncJobs(@Req() req: Request, @Query('mode') mode?: string | null) {
+    await this.authorizationService.assertPermission(req.headers, 'tax_reform:manage');
+    const result = await this.taxService.clearSyncJobs(mode);
+    return { success: true, ...result };
   }
 
   @Post('sync-chunk')
