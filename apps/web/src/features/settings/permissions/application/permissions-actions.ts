@@ -7,7 +7,6 @@ import {
   fetchSettingsPermissionsCatalogGateway,
   updateSettingsPermissionsMatrixVisibilityGateway,
 } from "@/features/settings/permissions/infrastructure/permissions.gateway";
-import { buildFallbackSettingsPermissionsCatalog } from "@/features/settings/permissions/domain/catalog";
 
 export async function getSettingsPermissionsCatalogAction(): Promise<SettingsActionResponse<SettingsPermissionsCatalog>> {
   try {
@@ -36,8 +35,4 @@ export async function updateSettingsPermissionsMatrixVisibilityAction(enabled: b
     console.error("Erro ao atualizar visibilidade da matriz RBAC:", error);
     return { success: false, error: "Erro ao atualizar configuracao." };
   }
-}
-
-export function getFallbackSettingsPermissionsCatalog(matrixEnabled = true) {
-  return buildFallbackSettingsPermissionsCatalog(matrixEnabled);
 }

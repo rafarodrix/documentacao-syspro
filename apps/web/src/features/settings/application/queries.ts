@@ -8,9 +8,9 @@ import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts
 import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
 import {
-  getFallbackSettingsPermissionsCatalog,
   getSettingsPermissionsCatalogAction,
 } from "@/features/settings/permissions/application/permissions-actions";
+import { buildFallbackSettingsPermissionsCatalog } from "@/features/settings/permissions/domain/catalog";
 
 const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
 
@@ -90,6 +90,6 @@ export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData>
     sefazRoutes: sefazRoutesRes.success ? (sefazRoutesRes.data ?? buildDefaultSefazRoutes()) : buildDefaultSefazRoutes(),
     permissionsCatalog: permissionsCatalogRes.success
       ? permissionsCatalogRes.data
-      : getFallbackSettingsPermissionsCatalog(rbacSetting?.value !== "false"),
+      : buildFallbackSettingsPermissionsCatalog(rbacSetting?.value !== "false"),
   };
 }
