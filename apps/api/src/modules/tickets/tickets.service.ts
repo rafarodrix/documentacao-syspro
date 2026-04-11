@@ -48,16 +48,30 @@ export class TicketsService {
     if (isSystemAdmin && data.customerEmail) {
       const contact = await this.prisma.companyContact.findFirst({
         where: { email: data.customerEmail },
-        select: { id: true, companyId: true },
+        select: {
+          id: true,
+          companyLinks: {
+            where: { isPrimary: true },
+            select: { companyId: true },
+            take: 1,
+          },
+        },
       });
       if (contact) {
         resolvedContactId = contact.id;
-        resolvedCompanyId = contact.companyId ?? undefined;
+        resolvedCompanyId = this.getPrimaryCompanyId(contact) ?? undefined;
       }
     } else if (!isSystemAdmin) {
       const selfContact = await this.prisma.companyContact.findFirst({
         where: { email: requester.email },
-        select: { id: true, companyId: true },
+        select: {
+          id: true,
+          companyLinks: {
+            where: { isPrimary: true },
+            select: { companyId: true },
+            take: 1,
+          },
+        },
       });
       if (selfContact) {
         resolvedContactId = selfContact.id;
@@ -65,8 +79,8 @@ export class TicketsService {
       
       if (data.userSelectedCompanyId) {
         resolvedCompanyId = data.userSelectedCompanyId;
-      } else if (selfContact?.companyId) {
-        resolvedCompanyId = selfContact.companyId;
+      } else if (selfContact) {
+        resolvedCompanyId = this.getPrimaryCompanyId(selfContact);
       } else {
         const membership = await this.prisma.membership.findFirst({
           where: { userId: requester.userId },
@@ -379,6 +393,10 @@ export class TicketsService {
     const timestamp = Date.now().toString().slice(-8);
     const random = Math.floor(Math.random() * 900 + 100);
     return `TK-${timestamp}${random}`;
+  }
+
+  private getPrimaryCompanyId(contact: { companyLinks?: Array<{ companyId: string }> }) {
+    return contact.companyLinks?.[0]?.companyId;
   }
 
   private toConversationEntryPoint(entryPoint?: TicketModuleEntryPoint): TicketEntryPoint {

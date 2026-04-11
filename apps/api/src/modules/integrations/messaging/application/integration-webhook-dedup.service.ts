@@ -65,4 +65,33 @@ export class IntegrationWebhookDedupService {
       throw error;
     }
   }
+
+  async release(provider: string, providerEventId: string): Promise<void> {
+    try {
+      await this.prisma.integrationWebhookDedup.deleteMany({
+        where: {
+          provider,
+          providerEventId,
+        },
+      });
+    } catch (error: any) {
+      const relationMissing =
+        error?.code === 'P2021' ||
+        (error?.code === 'P2010' &&
+          (error?.meta?.code === '42P01' ||
+            String(error?.meta?.message || '').toLowerCase().includes('does not exist')));
+
+      if (relationMissing) {
+        if (!this.dedupTableUnavailableLogged) {
+          this.logger.warn(
+            'Tabela/colunas de deduplicacao ausentes. Deduplicacao em banco desabilitada ate aplicar migracoes.'
+          );
+          this.dedupTableUnavailableLogged = true;
+        }
+        return;
+      }
+
+      throw error;
+    }
+  }
 }

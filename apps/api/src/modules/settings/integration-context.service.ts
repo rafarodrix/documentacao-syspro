@@ -76,6 +76,7 @@ export class IntegrationContextService {
   async resolveForEvolutionWebhook(payload: any): Promise<ResolvedIntegrationContext | null> {
     const instanceId = String(payload?.instanceId ?? payload?.data?.instanceId ?? '').trim();
     const instance = String(payload?.instance ?? payload?.instanceName ?? payload?.data?.instance ?? '').trim();
+    const hasExplicitMatchInput = Boolean(instanceId || instance);
     const orFilters = [
       ...(instanceId ? [{ evolutionInstanceId: instanceId }] : []),
       ...(instance ? [{ evolutionInstance: instance }] : []),
@@ -96,11 +97,10 @@ export class IntegrationContextService {
       );
     }
 
-    return (
-      this.toResolvedContext(candidates?.[0]) ??
-      (instance || instanceId ? null : this.readEnvFallback()) ??
-      this.readEnvFallback()
-    );
+    const matched = this.toResolvedContext(candidates?.[0]);
+    if (matched) return matched;
+    if (hasExplicitMatchInput) return null;
+    return this.readEnvFallback();
   }
 
   async resolveForChatwootWebhook(payload: any): Promise<ResolvedIntegrationContext | null> {

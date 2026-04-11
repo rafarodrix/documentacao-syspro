@@ -30,6 +30,8 @@ export class ProcessIncomingMessageUseCase {
       return;
     }
 
+    const failures: string[] = [];
+
     for (const msg of messages) {
       if (!msg) continue;
 
@@ -217,6 +219,10 @@ export class ProcessIncomingMessageUseCase {
           }
         }
 
+        if (messageId) {
+          await this.dedupService.release('evolution_inbound', `message:${messageId}`);
+        }
+
         this.logger.error(JSON.stringify({
           flow: 'evolution_to_chatwoot',
           stage: 'failed',
@@ -225,7 +231,12 @@ export class ProcessIncomingMessageUseCase {
           whatsappNumber: phone,
           error: error?.message ?? 'unknown_error',
         }));
+        failures.push(`messageId=${messageId ?? 'unknown'} phone=${phone} error=${error?.message ?? 'unknown_error'}`);
       }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`Falha ao encaminhar ${failures.length} mensagem(ns) da Evolution para o Chatwoot: ${failures.join(' | ')}`);
     }
   }
 
@@ -458,13 +469,45 @@ export class ProcessIncomingMessageUseCase {
           },
         });
 
+        if (sysproContact && !sysproContact.companyLinks.length && connection.companyId) {
+          sysproContact = await this.prisma.companyContact.update({
+            where: { id: sysproContact.id },
+            data: {
+              status: 'LINKED',
+              companyLinks: {
+                create: {
+                  companyId: connection.companyId,
+                  isPrimary: true,
+                },
+              },
+            },
+            include: {
+              companyLinks: {
+                where: { isPrimary: true },
+                take: 1,
+                include: { company: true },
+              },
+            },
+          });
+        }
+
         if (!sysproContact) {
           sysproContact = await this.prisma.companyContact.create({
             data: {
               name: String(pushName),
               whatsapp: String(phone),
               source: 'WHATSAPP',
-              status: 'PENDING_LINK',
+              status: connection.companyId ? 'LINKED' : 'PENDING_LINK',
+              ...(connection.companyId
+                ? {
+                    companyLinks: {
+                      create: {
+                        companyId: connection.companyId,
+                        isPrimary: true,
+                      },
+                    },
+                  }
+                : {}),
             },
             include: {
               companyLinks: {
@@ -479,6 +522,7 @@ export class ProcessIncomingMessageUseCase {
         if (!sysproContact) throw new Error('Falha ao processar o contato no banco de dados');
 
         const primaryCompany = sysproContact.companyLinks[0]?.company;
+        const primaryCompanyId = sysproContact.companyLinks[0]?.companyId;
         const contactName = primaryCompany
           ? `${sysproContact.name} - ${primaryCompany.nomeFantasia || primaryCompany.razaoSocial}`
           : sysproContact.name;
@@ -587,7 +631,7 @@ export class ProcessIncomingMessageUseCase {
         try {
           link = await this.prisma.conversationLink.create({
             data: {
-              companyId: sysproContact.companyId ?? connection.companyId ?? null,
+              companyId: primaryCompanyId ?? connection.companyId ?? null,
               connectionId: connection.connectionId,
               connectionKey: connection.connectionKey,
               whatsappNumber: phone,

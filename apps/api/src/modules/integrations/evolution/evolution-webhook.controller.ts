@@ -15,6 +15,9 @@ export class EvolutionWebhookController {
     @Body() payload: any
   ) {
     const resolvedContext = await this.integrationContext.resolveForEvolutionWebhook(payload);
+    if (!resolvedContext) {
+      throw new UnauthorizedException('No active Evolution integration matched this webhook');
+    }
     const expectedInstanceToken = resolvedContext?.evolution.instanceToken;
     const payloadInstanceToken = payload?.instanceToken?.toString?.();
     const resolvedInstanceId =
@@ -36,14 +39,14 @@ export class EvolutionWebhookController {
     if (isInboundMessageEvent) {
       await this.processIncomingMessage.execute(payload?.data ?? payload, {
         instanceId: resolvedInstanceId,
-        connection: resolvedContext ?? undefined,
+        connection: resolvedContext,
       });
     } else if (isReceiptEvent) {
       await this.processIncomingMessage.handleStatusUpdate(
         normalizedEvent === 'messages.update' ? (payload?.data ?? payload) : payload,
         {
           instanceId: resolvedInstanceId,
-          connection: resolvedContext ?? undefined,
+          connection: resolvedContext,
         }
       );
     }
