@@ -298,19 +298,46 @@ export class UsersService {
     }
 
     const chatwootRole = this.mapRoleToChatwoot(user.role);
-    const agents = await this.chatwootClient.listAgents(context.chatwoot);
+    const fallbackUrl = this.buildChatwootFallbackUrl(context.chatwoot.url, context.chatwoot.accountId);
+
+    let agents: any[];
+    try {
+      agents = await this.chatwootClient.listAgents(context.chatwoot);
+    } catch (error: any) {
+      if (!this.isChatwootAvailabilityError(error)) {
+        throw error;
+      }
+
+      this.logger.warn(
+        `Chatwoot indisponivel ao listar agentes para ${user.email}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
+      );
+      return { url: fallbackUrl };
+    }
+
     let agent = agents.find((item: any) => String(item?.email ?? '').trim().toLowerCase() === user.email.toLowerCase());
 
     if (!agent) {
-      const created = await this.chatwootClient.createPlatformUser(context.chatwoot, {
-        name: user.name?.trim() || user.email,
-        displayName: user.name?.trim() || user.email,
-        email: user.email,
-        customAttributes: {
-          portal_user_id: user.id,
-          portal_role: user.role,
-        },
-      });
+      let created: any;
+      try {
+        created = await this.chatwootClient.createPlatformUser(context.chatwoot, {
+          name: user.name?.trim() || user.email,
+          displayName: user.name?.trim() || user.email,
+          email: user.email,
+          customAttributes: {
+            portal_user_id: user.id,
+            portal_role: user.role,
+          },
+        });
+      } catch (error: any) {
+        if (!this.isChatwootAvailabilityError(error)) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Chatwoot indisponivel ao provisionar ${user.email}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
+        );
+        return { url: fallbackUrl };
+      }
 
       const createdId = String(created?.id ?? '').trim();
       if (!createdId) {
@@ -322,7 +349,18 @@ export class UsersService {
         : false;
 
       if (!isAlreadyInAccount) {
-        await this.chatwootClient.createAccountUser(context.chatwoot, createdId, chatwootRole);
+        try {
+          await this.chatwootClient.createAccountUser(context.chatwoot, createdId, chatwootRole);
+        } catch (error: any) {
+          if (!this.isChatwootAvailabilityError(error)) {
+            throw error;
+          }
+
+          this.logger.warn(
+            `Chatwoot indisponivel ao vincular ${user.email} na conta ${context.chatwoot.accountId}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
+          );
+          return { url: fallbackUrl };
+        }
       }
 
       agent = { ...created, id: createdId, email: user.email };
@@ -343,6 +381,11 @@ export class UsersService {
           this.logger.warn(
             `Platform App sem permissao para atualizar o usuario ${user.email} no Chatwoot. Seguindo com o SSO sem sincronizar perfil.`
           );
+        } else if (this.isChatwootAvailabilityError(error)) {
+          this.logger.warn(
+            `Chatwoot indisponivel ao atualizar o usuario ${user.email}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
+          );
+          return { url: fallbackUrl };
         } else {
           throw error;
         }
@@ -353,11 +396,18 @@ export class UsersService {
     try {
       url = await this.chatwootClient.getUserSsoLink(context.chatwoot, String(agent.id));
     } catch (error: any) {
+      if (this.isChatwootAvailabilityError(error)) {
+        this.logger.warn(
+          `Chatwoot indisponivel ao gerar SSO do usuario ${user.email}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
+        );
+        return { url: fallbackUrl };
+      }
+
       if (!this.isChatwootNonPermissibleResourceError(error)) {
         throw error;
       }
 
-      url = this.buildChatwootFallbackUrl(context.chatwoot.url, context.chatwoot.accountId);
+      url = fallbackUrl;
       this.logger.warn(
         `Platform App sem permissao para gerar SSO do usuario ${user.email} no Chatwoot. Redirecionando para a URL base da conta.`
       );
@@ -369,6 +419,18 @@ export class UsersService {
   private isChatwootNonPermissibleResourceError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error ?? '');
     return message.includes('Non permissible resource') || message.includes(': 401 -') || message.includes(': 403 -');
+  }
+
+  private isChatwootAvailabilityError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    return (
+      message.includes(': 500 -') ||
+      message.includes(': 502 -') ||
+      message.includes(': 503 -') ||
+      message.includes(': 504 -') ||
+      message.includes('Bad Gateway') ||
+      message.includes('Internal Server Error')
+    );
   }
 
   private buildChatwootFallbackUrl(baseUrl: string, accountId?: string | null): string {

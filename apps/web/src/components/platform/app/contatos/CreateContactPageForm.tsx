@@ -50,9 +50,24 @@ function formatWhatsapp(value: string): string {
   return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
 }
 
+function formatPhone(value: string): string {
+  const digits = normalizeDigits(value).slice(0, 11);
+
+  if (!digits) return "";
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 function isValidWhatsapp(value: string): boolean {
   const digits = normalizeDigits(value);
   return digits.length === 12 || digits.length === 13;
+}
+
+function isValidPhone(value: string): boolean {
+  const digits = normalizeDigits(value);
+  return digits.length === 10 || digits.length === 11;
 }
 
 export function CreateContactPageForm({
@@ -107,6 +122,11 @@ export function CreateContactPageForm({
 
     if (form.whatsapp.trim() && !isValidWhatsapp(form.whatsapp)) {
       toast.error("Informe o WhatsApp com DDI e DDD. Ex.: +55 (34) 99771-3731.");
+      return;
+    }
+
+    if (form.phone.trim() && !isValidPhone(form.phone)) {
+      toast.error("Informe o telefone com DDD. Ex.: (34) 3333-4444.");
       return;
     }
 
@@ -235,10 +255,15 @@ export function CreateContactPageForm({
                   <Label htmlFor="contact-phone">Telefone</Label>
                   <Input
                     id="contact-phone"
+                    inputMode="numeric"
+                    autoComplete="tel"
                     value={form.phone}
-                    onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                    onChange={(event) => setForm((prev) => ({ ...prev, phone: formatPhone(event.target.value) }))}
                     placeholder="(00) 0000-0000"
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    Informe o telefone com DDD. O sistema salva apenas os digitos.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contact-whatsapp">WhatsApp</Label>
