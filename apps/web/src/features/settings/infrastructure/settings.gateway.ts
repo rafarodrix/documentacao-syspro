@@ -1,6 +1,12 @@
 import {
+  settingsAuthorizationContextResponseSchema,
+  settingsContractsAdminViewResponseSchema,
+  settingsRemoteAdminViewResponseSchema,
   sefazRoutesSchema,
   settingsSchema,
+  type SettingsAuthorizationContextResponse,
+  type SettingsContractsAdminViewResponse,
+  type SettingsRemoteAdminViewResponse,
   type SefazRoutesInput,
   type SettingsOutput,
 } from "@dosc-syspro/contracts";
@@ -55,4 +61,22 @@ export async function runSefazCheckGateway(): Promise<SettingsGatewayResponse<{ 
   return callBackendApi<SettingsGatewayResponse<{ count: number }>>("settings", "/sefaz/check", {
     method: "POST",
   });
+}
+
+export async function fetchSettingsContractsAdminViewGateway(): Promise<SettingsContractsAdminViewResponse> {
+  return settingsContractsAdminViewResponseSchema.parse(
+    await callBackendApi<SettingsContractsAdminViewResponse>("settings", "/contracts/admin-view"),
+  );
+}
+
+export async function fetchSettingsRemoteAdminViewGateway(): Promise<SettingsRemoteAdminViewResponse> {
+  return settingsRemoteAdminViewResponseSchema.parse(
+    await callBackendApi<SettingsRemoteAdminViewResponse>("settings", "/remote/admin-view"),
+  );
+}
+
+export async function fetchSettingsAuthorizationContextGateway(): Promise<SettingsAuthorizationContextResponse> {
+  return settingsAuthorizationContextResponseSchema.parse(
+    await callBackendApi<SettingsAuthorizationContextResponse>("settings", "/authorization/context"),
+  );
 }

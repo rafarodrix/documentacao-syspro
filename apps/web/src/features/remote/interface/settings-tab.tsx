@@ -2,10 +2,13 @@ import Link from "next/link";
 import { ArrowUpRight, MonitorCog } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { RemotePlatformOverview } from "@/features/remote/domain/model";
 import { RemoteModuleSettingsForm } from "@/components/platform/app/settings/RemoteModuleSettingsForm";
 
-export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatformOverview }) {
+type RemoteAccessSettingsTabProps = {
+  companyOptions: Array<{ id: string; label: string }>;
+};
+
+export function RemoteAccessSettingsTab({ companyOptions }: RemoteAccessSettingsTabProps) {
   return (
     <div className="space-y-6">
       <Card className="border-border/50">
@@ -36,7 +39,7 @@ export function RemoteAccessSettingsTab({ overview }: { overview: RemotePlatform
         </CardContent>
       </Card>
 
-      <RemoteModuleSettingsForm companyOptions={overview.companyOptions} />
+      <RemoteModuleSettingsForm companyOptions={companyOptions} />
     </div>
   );
 }

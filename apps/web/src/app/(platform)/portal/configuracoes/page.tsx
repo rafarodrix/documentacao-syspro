@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { requireSession } from "@/lib/auth-helpers";
-import { getContractsAdminViewData } from "@/features/contracts/application/queries";
-import { getSettingsAdminViewData } from "@/features/settings/application/queries";
-import { getRemotePlatformOverview } from "@/features/remote/application/queries";
-import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import {
+    getSettingsAdminViewData,
+    getSettingsContractsAdminViewData,
+    getSettingsRemoteAdminViewData,
+} from "@/features/settings/application/queries";
 import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-tab";
 import { TicketSettingsTab } from "@/features/tickets/interface/components/TicketSettingsTab";
 import EvolutionSettingsTab from "./evolution-tab";
@@ -43,7 +44,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const mode = typeof params?.mode === "string" ? params.mode : "";
     const isContractsCreateMode = mode === "create";
 
-    const tenantScope = await getRemoteTenantScope();
     let settingsView: SettingsViewData;
     try {
         settingsView = await getSettingsAdminViewData();
@@ -51,16 +51,17 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         redirect("/portal");
     }
 
-    const [contractsViewResult, remoteOverviewResult] = await Promise.allSettled([
-        getContractsAdminViewData(),
-        getRemotePlatformOverview(tenantScope),
+    const [contractsViewResult, remoteAdminViewResult] = await Promise.allSettled([
+        getSettingsContractsAdminViewData(),
+        getSettingsRemoteAdminViewData(),
     ]);
 
     const contractsView =
         contractsViewResult.status === "fulfilled"
             ? contractsViewResult.value
             : { contracts: [], companies: [] };
-    const remoteOverview = remoteOverviewResult.status === "fulfilled" ? remoteOverviewResult.value : null;
+    const remoteAdminView =
+        remoteAdminViewResult.status === "fulfilled" ? remoteAdminViewResult.value : { companyOptions: [] };
 
     const contracts = contractsView.contracts;
     const companies = contractsView.companies;
@@ -158,8 +159,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
                 <TabsContent value="remote" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-6xl">
-                        {remoteOverview ? (
-                            <RemoteAccessSettingsTab overview={remoteOverview} />
+                        {remoteAdminView ? (
+                            <RemoteAccessSettingsTab companyOptions={remoteAdminView.companyOptions} />
                         ) : (
                             <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-6 text-sm text-muted-foreground">
                                 Nao foi possivel carregar as configuracoes globais do modulo remoto nesta requisicao.

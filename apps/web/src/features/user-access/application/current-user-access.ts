@@ -1,11 +1,10 @@
 import "server-only";
 
 import { cache } from "react";
-import type { Role } from "@prisma/client";
-import type { SettingsPermissionKey } from "@dosc-syspro/contracts";
-import { prisma } from "@/lib/prisma";
-import { getProtectedSession } from "@/lib/auth-helpers";
+import type { SettingsAuthorizationContext, SettingsPermissionKey } from "@dosc-syspro/contracts";
+import { getProtectedSession, type UserRole } from "@/lib/auth-helpers";
 import { ACCESS_MATRIX } from "@/features/user-access/domain/permissions";
+import { fetchSettingsAuthorizationContextGateway } from "@/features/settings/infrastructure/settings.gateway";
 
 type CurrentUserAuthorizationContext = {
   session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>;
@@ -17,7 +16,7 @@ type CurrentUserAuthorizationContext = {
 
 const ALL_PERMISSIONS = Object.values(ACCESS_MATRIX).flat();
 
-function getFallbackPermissions(role: Role): SettingsPermissionKey[] {
+function getFallbackPermissions(role: UserRole): SettingsPermissionKey[] {
   if (role === "ADMIN" || role === "DEVELOPER") {
     return Array.from(new Set(ALL_PERMISSIONS)) as SettingsPermissionKey[];
   }
@@ -25,86 +24,45 @@ function getFallbackPermissions(role: Role): SettingsPermissionKey[] {
   return (ACCESS_MATRIX[role] ?? []) as SettingsPermissionKey[];
 }
 
+function mapAuthorizationContext(
+  session: NonNullable<Awaited<ReturnType<typeof getProtectedSession>>>,
+  data: SettingsAuthorizationContext,
+): CurrentUserAuthorizationContext {
+  return {
+    session,
+    fallbackPermissions: new Set<SettingsPermissionKey>(data.fallbackPermissions),
+    globalPermissions: new Set<SettingsPermissionKey>(data.globalPermissions),
+    companyPermissions: new Map(
+      Object.entries(data.companyPermissions).map(([companyId, permissions]) => [
+        companyId,
+        new Set<SettingsPermissionKey>(permissions),
+      ]),
+    ),
+    membershipCompanyIds: data.membershipCompanyIds,
+  };
+}
+
 export const getCurrentUserAuthorizationContext = cache(async (): Promise<CurrentUserAuthorizationContext | null> => {
   const session = await getProtectedSession();
   if (!session) return null;
 
-  const fallbackPermissions = new Set<SettingsPermissionKey>(getFallbackPermissions(session.role as Role));
-  let assignments: Array<{
-    scopeType: "GLOBAL" | "COMPANY";
-    companyId: string | null;
-    profile: {
-      permissions: Array<{
-        permission: {
-          key: string;
-        };
-      }>;
-    };
-  }> = [];
-  let memberships: Array<{ companyId: string }> = [];
+  const fallbackPermissions = new Set<SettingsPermissionKey>(getFallbackPermissions(session.role));
 
   try {
-    assignments = await prisma.userAccessProfile.findMany({
-      where: {
-        userId: session.userId,
-        OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }],
-        profile: { isActive: true },
-      },
-      select: {
-        scopeType: true,
-        companyId: true,
-        profile: {
-          select: {
-            permissions: {
-              select: {
-                permission: {
-                  select: { key: true },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-  } catch (error) {
-    console.error("[current-user-access] Falha ao carregar userAccessProfile; usando fallback por role.", error);
-  }
-
-  try {
-    memberships = await prisma.membership.findMany({
-      where: { userId: session.userId },
-      select: { companyId: true },
-    });
-  } catch (error) {
-    console.error("[current-user-access] Falha ao carregar memberships; usando escopo vazio.", error);
-  }
-
-  const globalPermissions = new Set<SettingsPermissionKey>();
-  const companyPermissions = new Map<string, Set<SettingsPermissionKey>>();
-  const membershipCompanyIds = [...new Set(memberships.map((membership) => membership.companyId))];
-
-  for (const assignment of assignments) {
-    const permissionKeys = assignment.profile.permissions.map(
-      (profilePermission) => profilePermission.permission.key as SettingsPermissionKey,
-    );
-
-    if (assignment.scopeType === "GLOBAL") {
-      permissionKeys.forEach((permission) => globalPermissions.add(permission));
-      continue;
+    const response = await fetchSettingsAuthorizationContextGateway();
+    if (response.success && response.data) {
+      return mapAuthorizationContext(session, response.data);
     }
-
-    if (!assignment.companyId) continue;
-    const current = companyPermissions.get(assignment.companyId) ?? new Set<SettingsPermissionKey>();
-    permissionKeys.forEach((permission) => current.add(permission));
-    companyPermissions.set(assignment.companyId, current);
+  } catch (error) {
+    console.error("[current-user-access] Falha ao carregar contexto central de autorizacao; usando fallback por role.", error);
   }
 
   return {
     session,
     fallbackPermissions,
-    globalPermissions,
-    companyPermissions,
-    membershipCompanyIds,
+    globalPermissions: new Set<SettingsPermissionKey>(),
+    companyPermissions: new Map<string, Set<SettingsPermissionKey>>(),
+    membershipCompanyIds: [],
   };
 });
 

@@ -9,9 +9,12 @@ import {
 } from "@/features/settings/permissions/application/permissions-actions";
 import { buildFallbackSettingsPermissionsCatalog } from "@/features/settings/permissions/domain/catalog";
 import {
+  fetchSettingsContractsAdminViewGateway,
+  fetchSettingsRemoteAdminViewGateway,
   fetchGeneralSettingsGateway,
   fetchSefazRoutesGateway,
 } from "@/features/settings/infrastructure/settings.gateway";
+import type { SettingsContractsAdminView, SettingsRemoteAdminView } from "@dosc-syspro/contracts";
 
 export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsOutput>> {
   try {
@@ -86,4 +89,22 @@ export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData>
       assignments: [],
     },
   };
+}
+
+export async function getSettingsContractsAdminViewData(): Promise<SettingsContractsAdminView> {
+  const response = await fetchSettingsContractsAdminViewGateway();
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Falha ao carregar contratos.");
+  }
+
+  return response.data;
+}
+
+export async function getSettingsRemoteAdminViewData(): Promise<SettingsRemoteAdminView> {
+  const response = await fetchSettingsRemoteAdminViewGateway();
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Falha ao carregar dados do modulo remoto.");
+  }
+
+  return response.data;
 }

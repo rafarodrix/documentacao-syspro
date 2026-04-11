@@ -41,6 +41,28 @@ export type {
   SettingsUserAccessProfileCreateInput,
   SettingsPermissionsMutationResponse,
 } from "./settings-permissions";
+export {
+  settingsContractCompanySchema,
+  settingsContractListItemSchema,
+  settingsContractCompanyOptionSchema,
+  settingsContractsAdminViewSchema,
+  settingsContractsAdminViewResponseSchema,
+  settingsRemoteAdminViewSchema,
+  settingsRemoteAdminViewResponseSchema,
+  settingsAuthorizationContextSchema,
+  settingsAuthorizationContextResponseSchema,
+} from "./settings-admin-view";
+export type {
+  SettingsContractCompany,
+  SettingsContractListItem,
+  SettingsContractCompanyOption,
+  SettingsContractsAdminView,
+  SettingsContractsAdminViewResponse,
+  SettingsRemoteAdminView,
+  SettingsRemoteAdminViewResponse,
+  SettingsAuthorizationContext,
+  SettingsAuthorizationContextResponse,
+} from "./settings-admin-view";
 
 export { sefazRouteSchema, sefazRoutesSchema } from "./sefaz-routes";
 export type { SefazRouteInput, SefazRoutesInput } from "./sefaz-routes";

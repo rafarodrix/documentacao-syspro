@@ -3,6 +3,7 @@ import { Prisma, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import type {
   SettingsAccessProfileUpsertInput,
+  SettingsAuthorizationContext,
   SettingsPermissionKey,
   SettingsPermissionsAdminView,
   SettingsProfileKey,
@@ -187,6 +188,40 @@ export class AuthorizationService {
     }
 
     return { isGlobal: false, companyIds: [] };
+  }
+
+  async getCurrentAuthorizationContext(rawHeaders?: IncomingHttpHeaders): Promise<SettingsAuthorizationContext> {
+    const requester = await this.getRequester(rawHeaders);
+    await this.syncSystemAuthorizationCatalog();
+
+    const fallbackPermissions = getDefaultPermissionsForProfileKey(requester.role as SettingsProfileKey);
+    const assignments = await this.getPermissionAssignments(requester.userId);
+    const membershipCompanyIds = await this.getUserCompanyIds(requester);
+    const globalPermissions = new Set<SettingsPermissionKey>();
+    const companyPermissions = new Map<string, Set<SettingsPermissionKey>>();
+
+    for (const assignment of assignments) {
+      if (assignment.scopeType === 'GLOBAL') {
+        assignment.permissionKeys.forEach((permission) => globalPermissions.add(permission));
+        continue;
+      }
+
+      if (!assignment.companyId) continue;
+      const current = companyPermissions.get(assignment.companyId) ?? new Set<SettingsPermissionKey>();
+      assignment.permissionKeys.forEach((permission) => current.add(permission));
+      companyPermissions.set(assignment.companyId, current);
+    }
+
+    return {
+      userId: requester.userId,
+      role: requester.role,
+      fallbackPermissions,
+      globalPermissions: Array.from(globalPermissions),
+      companyPermissions: Object.fromEntries(
+        Array.from(companyPermissions.entries()).map(([companyId, permissions]) => [companyId, Array.from(permissions)]),
+      ),
+      membershipCompanyIds,
+    };
   }
 
   async getPermissionsCatalog(): Promise<SettingsPermissionsCatalog> {

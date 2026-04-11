@@ -1,9 +1,11 @@
 import { Controller, Get, Put, Body, Param, Post, Delete, Query, NotFoundException, Req } from '@nestjs/common';
+import { CompanyStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationConnectionsService } from './integration-connections.service';
 import {
   DEFAULT_EVOLUTION_SETTINGS,
   evolutionSettingsSchema,
+  type SettingsContractsAdminView,
   settingsSchema,
   sefazRoutesSchema,
   settingsAccessProfileUpsertSchema,
@@ -246,6 +248,106 @@ export class SettingsController {
   @Delete('permissions/assignments/:id')
   async removePermissionsAssignment(@Req() req: Request, @Param('id') id: string) {
     return this.settingsPermissionsService.removeAssignment(id, req.headers);
+  }
+
+  @Get('authorization/context')
+  async getAuthorizationContext(@Req() req: Request) {
+    const data = await this.authorizationService.getCurrentAuthorizationContext(req.headers);
+    return { success: true, data };
+  }
+
+  @Get('contracts/admin-view')
+  async getContractsAdminView(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'contracts:view');
+
+    const [contracts, companies] = await Promise.all([
+      this.prisma.contract.findMany({
+        select: {
+          id: true,
+          companyId: true,
+          percentage: true,
+          minimumWage: true,
+          taxRate: true,
+          programmerRate: true,
+          contractNumber: true,
+          notes: true,
+          status: true,
+          startDate: true,
+          endDate: true,
+          createdAt: true,
+          updatedAt: true,
+          company: {
+            select: {
+              id: true,
+              razaoSocial: true,
+              cnpj: true,
+            },
+          },
+        },
+        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      }),
+      this.prisma.company.findMany({
+        where: { deletedAt: null, status: { not: CompanyStatus.INACTIVE } },
+        orderBy: { razaoSocial: 'asc' },
+        select: { id: true, razaoSocial: true, cnpj: true },
+      }),
+    ]);
+
+    const data: SettingsContractsAdminView = {
+      contracts: contracts.map((contract) => ({
+        id: contract.id,
+        companyId: contract.companyId,
+        percentage: Number(contract.percentage),
+        minimumWage: Number(contract.minimumWage),
+        taxRate: Number(contract.taxRate),
+        programmerRate: Number(contract.programmerRate),
+        contractNumber: contract.contractNumber,
+        notes: contract.notes,
+        status: contract.status,
+        startDate: contract.startDate.toISOString(),
+        endDate: contract.endDate?.toISOString() ?? null,
+        createdAt: contract.createdAt.toISOString(),
+        updatedAt: contract.updatedAt.toISOString(),
+        company: contract.company,
+      })),
+      companies,
+    };
+
+    return { success: true, data };
+  }
+
+  @Get('remote/admin-view')
+  async getRemoteAdminView(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+    const requester = await this.authorizationService.getRequester(req.headers);
+    const companyScope = await this.authorizationService.resolveCompanyAccessScope(
+      requester,
+      'companies:view_own',
+      'companies:view_all',
+    );
+
+    const companies = await this.prisma.company.findMany({
+      where: companyScope.isGlobal
+        ? { deletedAt: null }
+        : { deletedAt: null, id: { in: companyScope.companyIds.length ? companyScope.companyIds : ['__none__'] } },
+      select: {
+        id: true,
+        nomeFantasia: true,
+        razaoSocial: true,
+      },
+      orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
+      take: 200,
+    });
+
+    return {
+      success: true,
+      data: {
+        companyOptions: companies.map((company) => ({
+          id: company.id,
+          label: company.nomeFantasia?.trim() || company.razaoSocial,
+        })),
+      },
+    };
   }
 
   @Get(':key')
