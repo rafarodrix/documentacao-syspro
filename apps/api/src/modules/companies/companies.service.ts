@@ -64,6 +64,7 @@ function onlyDigits(value: string) {
 function firstString(...values: unknown[]) {
   for (const value of values) {
     if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   }
   return undefined;
 }
@@ -94,9 +95,10 @@ function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
   const addressSource = asRecord(
     payloadRecord.address ?? payloadRecord.endereco ?? payloadRecord.estabelecimento ?? payloadRecord,
   );
-  const cnaeSource = asRecord(
-    payloadRecord.primaryCnae ?? payloadRecord.cnaePrincipal ?? payloadRecord.atividade_principal ?? payloadRecord,
-  );
+  const primaryActivitySource = payloadRecord.atividade_principal;
+  const cnaeSource = Array.isArray(primaryActivitySource)
+    ? asRecord(primaryActivitySource[0])
+    : asRecord(payloadRecord.primaryCnae ?? payloadRecord.cnaePrincipal ?? primaryActivitySource ?? payloadRecord);
   const secondaryCnaesSource = asArray(
     payloadRecord.cnaesSecundarios ?? payloadRecord.cnaes_secundarios ?? payloadRecord.secondaryCnaes,
   );
@@ -149,18 +151,29 @@ function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
     ),
     status: firstString(payloadRecord.status, payloadRecord.situacaoCadastral, payloadRecord.situacao_cadastral),
     openingDate: normalizeDate(
-      firstString(payloadRecord.openingDate, payloadRecord.dataAbertura, payloadRecord.data_abertura),
+      firstString(
+        payloadRecord.openingDate,
+        payloadRecord.dataAbertura,
+        payloadRecord.data_abertura,
+        payloadRecord.dataInicioAtividade,
+        payloadRecord.data_inicio_atividade,
+      ),
     ),
     primaryCnae: firstString(
       cnaeSource.code,
       cnaeSource.codigo,
+      cnaeSource.id,
+      cnaeSource.cod,
       payloadRecord.cnae,
       payloadRecord.cnaePrincipalCodigo,
       payloadRecord.cnae_principal_codigo,
+      payloadRecord.cnae_fiscal,
     ),
     primaryCnaeDescription: firstString(
       cnaeSource.description,
       cnaeSource.descricao,
+      cnaeSource.text,
+      cnaeSource.nome,
       payloadRecord.cnaeDescricao,
       payloadRecord.cnae_descricao,
       payloadRecord.cnae_fiscal_descricao,
@@ -191,8 +204,8 @@ function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
     phone: firstString(payloadRecord.phone, payloadRecord.telefone, asRecord(payloadRecord.contato).telefone),
     address: {
       cep: onlyDigits(firstString(addressSource.cep, payloadRecord.cep) ?? ''),
-      street: firstString(addressSource.street, addressSource.logradouro),
-      number: firstString(addressSource.number, addressSource.numero),
+      street: firstString(addressSource.street, addressSource.logradouro, addressSource.tipo_logradouro),
+      number: firstString(addressSource.number, addressSource.numero, payloadRecord.numero),
       complement: firstString(addressSource.complement, addressSource.complemento),
       district: firstString(addressSource.district, addressSource.bairro),
       city: firstString(addressSource.city, addressSource.cidade, addressSource.municipio),
