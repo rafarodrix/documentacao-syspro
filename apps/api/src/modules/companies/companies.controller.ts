@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { CompanyContactSource, CompanyContactStatus, CompanySegment, CompanyStatus } from '@prisma/client';
+import { CompanySegment, CompanyStatus } from '@prisma/client';
 import type { CreateCompanyInput, CreateCompanyOutput } from '@dosc-syspro/contracts/company';
 import { CompaniesService } from './companies.service';
 
@@ -36,11 +36,6 @@ export class CompaniesController {
     return this.companiesService.canAccessByCompanySegment(requiredSegments, req.headers);
   }
 
-  @Get(':id/ticket-emails')
-  getTicketEmails(@Req() req: Request, @Param('id') id: string) {
-    return this.companiesService.getCompanyTicketEmails(id, req.headers);
-  }
-
   @Get(':id/edit-view')
   getEditView(@Req() req: Request, @Param('id') id: string) {
     return this.companiesService.getCompanyEditView(id, req.headers);
@@ -52,17 +47,6 @@ export class CompaniesController {
     @Body()
     body: {
       data: CreateCompanyInput | CreateCompanyOutput;
-      ticketEmails?: Array<{ email: string; label?: string; isActive?: boolean }>;
-      contacts?: Array<{
-        name: string;
-        email?: string;
-        phone?: string;
-        whatsapp?: string;
-        notes?: string;
-        isPrimary?: boolean;
-        source?: CompanyContactSource;
-        status?: CompanyContactStatus;
-      }>;
     },
   ) {
     return this.companiesService.createCompany(body, req.headers);
@@ -75,17 +59,6 @@ export class CompaniesController {
     @Body()
     body: {
       data: CreateCompanyInput | CreateCompanyOutput;
-      ticketEmails?: Array<{ email: string; label?: string; isActive?: boolean }>;
-      contacts?: Array<{
-        name: string;
-        email?: string;
-        phone?: string;
-        whatsapp?: string;
-        notes?: string;
-        isPrimary?: boolean;
-        source?: CompanyContactSource;
-        status?: CompanyContactStatus;
-      }>;
     },
   ) {
     return this.companiesService.updateCompany(id, body, req.headers);

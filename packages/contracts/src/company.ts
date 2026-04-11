@@ -4,8 +4,6 @@ import {
   CompanyStatus,
   IndicadorIE,
   CompanySegment,
-  CompanyContactSource,
-  CompanyContactStatus,
 } from "@prisma/client";
 import { addressSchema } from "./address";
 
@@ -23,17 +21,6 @@ export const DEFAULT_COMPANY_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\Syspr
 export const COMPANY_SERVER_TYPE_VALUES = ["SYSPRO_SERVER", "IIS"] as const;
 export const COMPANY_SERVER_PROTOCOL_VALUES = ["HTTP", "HTTPS"] as const;
 export const COMPANY_REMOTE_CONNECTION_TYPE_VALUES = ["DDNS_NOIP", "RADMIN_VPN"] as const;
-
-const companyContactSchema = z.object({
-  name: z.string().min(2, "Nome do contato obrigatorio").trim(),
-  email: emptyToUndefined.pipe(z.string().email("E-mail invalido").optional()),
-  phone: emptyToUndefined,
-  whatsapp: emptyToUndefined,
-  notes: emptyToUndefined,
-  isPrimary: z.boolean().optional().default(false),
-  source: z.nativeEnum(CompanyContactSource).optional().default(CompanyContactSource.MANUAL),
-  status: z.nativeEnum(CompanyContactStatus).optional().default(CompanyContactStatus.LINKED),
-});
 
 const companyRemoteConnectionSchema = z.object({
   type: z.enum(COMPANY_REMOTE_CONNECTION_TYPE_VALUES),
@@ -95,7 +82,6 @@ export const createCompanySchema = z
     website: emptyToUndefined,
     address: addressSchema.optional().nullable().or(z.literal("")),
     observacoes: emptyToUndefined,
-    contacts: z.array(companyContactSchema).optional().default([]),
   })
   .refine(
     (data) => {

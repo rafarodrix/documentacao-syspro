@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { CompanyContactSource, CompanyContactStatus, CompanySegment, CompanyStatus, Role } from '@prisma/client';
+import { CompanySegment, CompanyStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
   createCompanySchema,
@@ -8,23 +8,6 @@ import {
 } from '@dosc-syspro/contracts/company';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
-
-type CompanyTicketEmailInput = {
-  email: string;
-  label?: string;
-  isActive?: boolean;
-};
-
-type CompanyContactInput = {
-  name: string;
-  email?: string;
-  phone?: string;
-  whatsapp?: string;
-  notes?: string;
-  isPrimary?: boolean;
-  source?: CompanyContactSource;
-  status?: CompanyContactStatus;
-};
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CREATE_ROLES: Role[] = SYSTEM_ROLES;
@@ -350,23 +333,6 @@ export class CompaniesService {
     });
   }
 
-  async getCompanyTicketEmails(companyId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    await this.assertCompanyAccess(companyId, requester.userId, requester.role);
-
-    const rows = await this.prisma.companyTicketEmail.findMany({
-      where: { companyId },
-      orderBy: [{ isActive: 'desc' }, { email: 'asc' }],
-      select: { email: true, label: true, isActive: true },
-    });
-
-    return rows.map((item) => ({
-      email: item.email,
-      label: item.label ?? undefined,
-      isActive: item.isActive,
-    }));
-  }
-
   async getCompanyEditView(companyId: string, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.getRequester(rawHeaders);
     await this.assertCompanyAccess(companyId, requester.userId, requester.role);
@@ -417,19 +383,6 @@ export class CompaniesService {
         whatsapp: true,
         website: true,
         observacoes: true,
-        contacts: {
-          orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }],
-          select: {
-            name: true,
-            email: true,
-            phone: true,
-            whatsapp: true,
-            notes: true,
-            isPrimary: true,
-            source: true,
-            status: true,
-          },
-        },
         addresses: {
           take: 1,
           orderBy: { id: 'asc' },
@@ -454,10 +407,7 @@ export class CompaniesService {
       throw new NotFoundException('Empresa nao encontrada.');
     }
 
-    const [companies, ticketEmailsResult] = await Promise.all([
-      this.getCompanyOptions(rawHeaders),
-      this.getCompanyTicketEmails(company.id, rawHeaders),
-    ]);
+    const companies = await this.getCompanyOptions(rawHeaders);
 
     const address = company.addresses[0];
     const remoteConnections = Array.isArray((company as any).remoteConnections)
@@ -476,23 +426,10 @@ export class CompaniesService {
           ]
         : [];
 
-    const initialContacts = company.contacts.map((contact: any) => ({
-      name: contact.name,
-      email: contact.email ?? undefined,
-      phone: contact.phone ?? undefined,
-      whatsapp: contact.whatsapp ?? undefined,
-      notes: contact.notes ?? undefined,
-      isPrimary: contact.isPrimary,
-      source: contact.source,
-      status: contact.status,
-    }));
-
     return {
       companyId: company.id,
       companies,
       canEditCnpj: requester.role !== Role.CLIENTE_ADMIN,
-      initialTicketEmails: ticketEmailsResult,
-      initialContacts,
       initialData: {
         cnpj: company.cnpj,
         razaoSocial: company.razaoSocial,
@@ -649,8 +586,6 @@ export class CompaniesService {
   async createCompany(
     payload: {
       data: CreateCompanyInput | CreateCompanyOutput;
-      ticketEmails?: CompanyTicketEmailInput[];
-      contacts?: CompanyContactInput[];
     },
     rawHeaders?: IncomingHttpHeaders,
   ) {
@@ -668,8 +603,7 @@ export class CompaniesService {
       };
     }
 
-    const { address, parentCompanyId, accountingFirmId, contacts: validatedContacts, ...validData } =
-      validation.data;
+    const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
 
     try {
       const result = await this.prisma.company.create({
@@ -689,10 +623,6 @@ export class CompaniesService {
           parentCompany: parentCompanyId ? { connect: { id: parentCompanyId } } : undefined,
         } as any,
       });
-
-      await this.replaceCompanyTicketEmails(result.id, payload.ticketEmails);
-      await this.replaceCompanyContacts(result.id, payload.contacts ?? validatedContacts);
-
       return { success: true, message: 'Empresa criada com sucesso!' };
     } catch (error: any) {
       return this.toMutationError(error);
@@ -703,8 +633,6 @@ export class CompaniesService {
     companyId: string,
     payload: {
       data: CreateCompanyInput | CreateCompanyOutput;
-      ticketEmails?: CompanyTicketEmailInput[];
-      contacts?: CompanyContactInput[];
     },
     rawHeaders?: IncomingHttpHeaders,
   ) {
@@ -742,8 +670,7 @@ export class CompaniesService {
         return { success: false, message: 'Empresa nao encontrada.' };
       }
 
-      const { address, parentCompanyId, accountingFirmId, contacts: validatedContacts, ...validData } =
-        validation.data;
+      const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
       const nextCnpj = requester.role === Role.CLIENTE_ADMIN ? existing.cnpj : validData.cnpj;
 
       await this.prisma.company.update({
@@ -780,10 +707,6 @@ export class CompaniesService {
                 : undefined,
         } as any,
       });
-
-      await this.replaceCompanyTicketEmails(companyId, payload.ticketEmails);
-      await this.replaceCompanyContacts(companyId, payload.contacts ?? validatedContacts);
-
       return { success: true, message: 'Empresa atualizada com sucesso!' };
     } catch (error: any) {
       return this.toMutationError(error);
@@ -930,93 +853,6 @@ export class CompaniesService {
     }
 
     return headers;
-  }
-
-  private normalizeTicketEmails(items: CompanyTicketEmailInput[] | undefined): CompanyTicketEmailInput[] {
-    if (!Array.isArray(items)) return [];
-
-    const map = new Map<string, CompanyTicketEmailInput>();
-    for (const item of items) {
-      const rawEmail = typeof item?.email === 'string' ? item.email.trim().toLowerCase() : '';
-      if (!rawEmail) continue;
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) continue;
-
-      map.set(rawEmail, {
-        email: rawEmail,
-        label: typeof item?.label === 'string' ? item.label.trim() || undefined : undefined,
-        isActive: item?.isActive ?? true,
-      });
-    }
-
-    return Array.from(map.values());
-  }
-
-  private normalizeCompanyContacts(items: CompanyContactInput[] | undefined): CompanyContactInput[] {
-    if (!Array.isArray(items)) return [];
-
-    return items
-      .map((item) => ({
-        name: typeof item?.name === 'string' ? item.name.trim() : '',
-        email: typeof item?.email === 'string' ? item.email.trim().toLowerCase() || undefined : undefined,
-        phone: typeof item?.phone === 'string' ? item.phone.trim() || undefined : undefined,
-        whatsapp: typeof item?.whatsapp === 'string' ? item.whatsapp.trim() || undefined : undefined,
-        notes: typeof item?.notes === 'string' ? item.notes.trim() || undefined : undefined,
-        isPrimary: item?.isPrimary ?? false,
-        source: item?.source,
-        status: item?.status,
-      }))
-      .filter((item) => item.name.length > 0);
-  }
-
-  private async replaceCompanyTicketEmails(companyId: string, items: CompanyTicketEmailInput[] | undefined) {
-    if (items === undefined) return;
-
-    const normalized = this.normalizeTicketEmails(items);
-
-    await this.prisma.companyTicketEmail.deleteMany({
-      where: { companyId },
-    });
-
-    if (normalized.length === 0) return;
-
-    await this.prisma.companyTicketEmail.createMany({
-      data: normalized.map((item) => ({
-        companyId,
-        email: item.email,
-        label: item.label,
-        isActive: item.isActive ?? true,
-      })),
-      skipDuplicates: true,
-    });
-  }
-
-  private async replaceCompanyContacts(companyId: string, items: CompanyContactInput[] | undefined) {
-    if (items === undefined) return;
-
-    const normalized = this.normalizeCompanyContacts(items).map((item, index) => ({
-      ...item,
-      isPrimary: index === 0 ? true : Boolean(item.isPrimary),
-    }));
-
-    await this.prisma.companyContact.deleteMany({
-      where: { companyId },
-    });
-
-    if (normalized.length === 0) return;
-
-    await this.prisma.companyContact.createMany({
-      data: normalized.map((item) => ({
-        companyId,
-        name: item.name,
-        email: item.email,
-        phone: item.phone,
-        whatsapp: item.whatsapp,
-        notes: item.notes,
-        isPrimary: item.isPrimary ?? false,
-        source: item.source,
-        status: item.status,
-      })),
-    });
   }
 
   private toMutationError(error: any) {

@@ -3,22 +3,14 @@ import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
 import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
-  CompanyTicketEmailInput,
 } from "@/features/company/domain/model";
 
 export interface CompanyWriteRepository {
   lookupCompanyProfileByCnpj(
     cnpj: string,
   ): Promise<CompanyActionResponse<CompanyRegistryLookupResponse>>;
-  createCompany(
-    data: CreateCompanyInput,
-    ticketEmails?: CompanyTicketEmailInput[],
-  ): Promise<CompanyActionResponse>;
-  updateCompany(
-    id: string,
-    data: CreateCompanyInput,
-    ticketEmails?: CompanyTicketEmailInput[],
-  ): Promise<CompanyActionResponse>;
+  createCompany(data: CreateCompanyInput): Promise<CompanyActionResponse>;
+  updateCompany(id: string, data: CreateCompanyInput): Promise<CompanyActionResponse>;
   updateCompanyStatus(id: string, status: CompanyStatus): Promise<CompanyActionResponse>;
   deleteCompany(id: string): Promise<CompanyActionResponse>;
 }

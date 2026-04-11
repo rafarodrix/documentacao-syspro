@@ -111,18 +111,25 @@ export async function startRemoteSessionService(input: {
         select: { 
           nomeFantasia: true, 
           whatsapp: true,
-          contacts: {
-            where: { isPrimary: true, whatsapp: { not: null } },
-            take: 1,
-            select: { whatsapp: true, name: true }
-          }
         } 
       },
     },
   });
 
+  const primaryContact = await prisma.companyContact.findFirst({
+    where: {
+      whatsapp: { not: null },
+      companyLinks: {
+        some: {
+          companyId: input.companyId,
+          isPrimary: true,
+        },
+      },
+    },
+    select: { whatsapp: true, name: true },
+  });
+
   // 2. Notificacao WhatsApp
-  const primaryContact = remoteSession.company.contacts[0];
   const targetWhatsapp = primaryContact?.whatsapp || remoteSession.company.whatsapp;
   
   if (targetWhatsapp) {

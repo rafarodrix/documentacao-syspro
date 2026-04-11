@@ -5,7 +5,6 @@ import type {
   CompanyAdminListViewData,
   CompanyEditViewData,
   CompanyOption,
-  CompanyTicketEmailInput,
 } from "@/features/company/domain/model";
 
 async function apiRequest(path: string, init?: RequestInit) {
@@ -31,12 +30,6 @@ export async function getCompaniesQuery(filters?: {
   if (filters?.status && filters.status !== "ALL") params.set("status", filters.status);
 
   const response = await apiRequest(`/companies${params.toString() ? `?${params.toString()}` : ""}`);
-  if (!response.ok) return [];
-  return response.json();
-}
-
-export async function getCompanyTicketEmailsQuery(companyId: string): Promise<CompanyTicketEmailInput[]> {
-  const response = await apiRequest(`/companies/${encodeURIComponent(companyId)}/ticket-emails`);
   if (!response.ok) return [];
   return response.json();
 }

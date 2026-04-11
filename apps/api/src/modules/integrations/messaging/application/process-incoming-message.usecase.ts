@@ -449,7 +449,13 @@ export class ProcessIncomingMessageUseCase {
       if (!link) {
         let sysproContact = await this.prisma.companyContact.findFirst({
           where: { whatsapp: phone },
-          include: { company: true },
+          include: {
+            companyLinks: {
+              where: { isPrimary: true },
+              take: 1,
+              include: { company: true },
+            },
+          },
         });
 
         if (!sysproContact) {
@@ -460,14 +466,21 @@ export class ProcessIncomingMessageUseCase {
               source: 'WHATSAPP',
               status: 'PENDING_LINK',
             },
-            include: { company: true },
+            include: {
+              companyLinks: {
+                where: { isPrimary: true },
+                take: 1,
+                include: { company: true },
+              },
+            },
           });
         }
 
         if (!sysproContact) throw new Error('Falha ao processar o contato no banco de dados');
 
-        const contactName = sysproContact.company
-          ? `${sysproContact.name} - ${sysproContact.company.nomeFantasia || sysproContact.company.razaoSocial}`
+        const primaryCompany = sysproContact.companyLinks[0]?.company;
+        const contactName = primaryCompany
+          ? `${sysproContact.name} - ${primaryCompany.nomeFantasia || primaryCompany.razaoSocial}`
           : sysproContact.name;
 
         let picResult: { profilePictureUrl?: string } = {};

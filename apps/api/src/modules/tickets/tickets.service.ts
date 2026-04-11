@@ -130,7 +130,6 @@ export class TicketsService {
     const contacts = await this.prisma.companyContact.findMany({
       where: { email: requester.email },
       include: {
-        company: true,
         companyLinks: {
           include: { company: true }
         }
@@ -138,12 +137,6 @@ export class TicketsService {
     });
 
     for (const contact of contacts) {
-      if (contact.company) {
-        companiesMap.set(contact.company.id, {
-          id: contact.company.id,
-          name: contact.company.nomeFantasia || contact.company.razaoSocial,
-        });
-      }
       for (const link of contact.companyLinks) {
         if (link.company) {
           companiesMap.set(link.company.id, {

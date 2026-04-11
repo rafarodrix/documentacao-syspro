@@ -287,7 +287,6 @@ model Company {
   accountingClients            Company[]                     @relation("AccountantClient")
   contracts                    Contract[]
   memberships                  Membership[]
-  contacts                     CompanyContact[]
   contactLinks                 CompanyContactCompanyLink[]
   userContactLinks             UserContactLink[]
   conversations                Conversation[]
@@ -295,7 +294,6 @@ model Company {
   remoteHostSysproUpdates      RemoteHostSysproUpdate[]
   remoteSessions               RemoteSession[]
   remoteAddressBookCredentials RemoteAddressBookCredential[]
-  ticketEmails                 CompanyTicketEmail[]
   integrationConnections       IntegrationConnection[]
   conversationLinks            ConversationLink[]
   messageLinks                 MessageLink[]
@@ -313,9 +311,6 @@ model Company {
 
 model CompanyContact {
   id String @id @default(cuid())
-
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   name      String
   email     String?
@@ -337,7 +332,7 @@ model CompanyContact {
   users                        User[]
   companyLinks                 CompanyContactCompanyLink[]
 
-  @@index([companyId, status])
+  @@index([status])
   @@index([whatsapp])
   @@map("company_contact")
 }
@@ -360,25 +355,6 @@ model CompanyContactCompanyLink {
   @@index([companyId])
   @@index([contactId, isPrimary])
   @@map("company_contact_company_link")
-}
-
-model CompanyTicketEmail {
-  id String @id @default(cuid())
-
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  email    String
-  label    String?
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([companyId, email])
-  @@index([companyId, isActive])
-  @@index([email])
-  @@map("company_ticket_email")
 }
 
 model Address {

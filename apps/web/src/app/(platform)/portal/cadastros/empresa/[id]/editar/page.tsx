@@ -28,8 +28,6 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
       canEditCnpj={view.canEditCnpj}
       backHref="/portal/cadastros/empresa"
       companies={view.companies}
-      initialTicketEmails={view.initialTicketEmails}
-      initialContacts={view.initialContacts}
       initialData={view.initialData}
     />
   );

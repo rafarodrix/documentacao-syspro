@@ -759,7 +759,6 @@ export class UsersService {
       : [];
 
     if (fromLinks.length) return Array.from(new Set(fromLinks));
-    if (contact?.companyId) return [contact.companyId];
     return [];
   }
 

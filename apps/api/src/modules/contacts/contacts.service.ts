@@ -131,7 +131,6 @@ export class ContactsService {
               phone,
               whatsapp,
               notes: input.notes?.trim() || null,
-              companyId: companyIds[0] ?? null,
               source: existing.source,
               status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
             },
@@ -161,7 +160,6 @@ export class ContactsService {
             phone,
             whatsapp,
             notes: input.notes?.trim() || null,
-            companyId: companyIds[0] ?? null,
             source: CompanyContactSource.MANUAL,
             status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
           },
@@ -200,7 +198,6 @@ export class ContactsService {
     if (input.phone !== undefined) data.phone = this.normalizePhone(input.phone);
     if (input.whatsapp !== undefined) data.whatsapp = this.normalizePhone(input.whatsapp);
     if (input.companyId !== undefined || input.companyIds !== undefined) {
-      data.companyId = nextCompanyIds[0] ?? null;
       data.status = nextCompanyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK;
     }
 
@@ -321,13 +318,6 @@ export class ContactsService {
 
   private contactInclude() {
     return {
-      company: {
-        select: {
-          id: true,
-          razaoSocial: true,
-          nomeFantasia: true,
-        },
-      },
       companyLinks: {
         include: {
           company: {
@@ -348,7 +338,7 @@ export class ContactsService {
       .map((link: any) => link.company)
       .filter(Boolean);
 
-    const primaryCompany = companies[0] ?? contact?.company ?? null;
+    const primaryCompany = companies[0] ?? null;
 
     return {
       ...contact,
@@ -365,7 +355,6 @@ export class ContactsService {
       : [];
 
     if (fromLinks.length) return Array.from(new Set(fromLinks));
-    if (contact?.companyId) return [contact.companyId];
     return [];
   }
 
@@ -392,7 +381,6 @@ export class ContactsService {
       await tx.companyContact.update({
         where: { id: contactId },
         data: {
-          companyId: null,
           status: CompanyContactStatus.PENDING_LINK,
         },
       });
@@ -421,7 +409,6 @@ export class ContactsService {
     await tx.companyContact.update({
       where: { id: contactId },
       data: {
-        companyId: companyIds[0],
         status: CompanyContactStatus.LINKED,
       },
     });

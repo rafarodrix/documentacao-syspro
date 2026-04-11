@@ -14,13 +14,7 @@ import {
   DEFAULT_COMPANY_SERVER_TYPE,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
-import type {
-  CompanyContactInput,
-  CompanyActionResponse,
-  CompanyRegistryLookupResponse,
-  CompanyOption,
-  CompanyTicketEmailInput,
-} from "@/features/company/domain/model";
+import type { CompanyActionResponse, CompanyRegistryLookupResponse, CompanyOption } from "@/features/company/domain/model";
 import { CompanyStatus, IndicadorIE } from "@prisma/client";
 import { createCompanyAction, updateCompanyAction } from "@/features/company/application/actions";
 import { useAddressLookup } from "@/features/company/interface";
@@ -130,8 +124,6 @@ interface CreateCompanyPageFormProps {
   mode?: "create" | "edit";
   companyId?: string;
   initialData?: Partial<CreateCompanyInput>;
-  initialTicketEmails?: CompanyTicketEmailInput[];
-  initialContacts?: CompanyContactInput[];
   canEditCnpj?: boolean;
 }
 
@@ -142,8 +134,6 @@ export function CreateCompanyPageForm({
   mode = "create",
   companyId,
   initialData,
-  initialTicketEmails = [],
-  initialContacts = [],
   canEditCnpj = true,
 }: CreateCompanyPageFormProps) {
   const router = useRouter();
@@ -508,14 +498,7 @@ export function CreateCompanyPageForm({
                   {currentSection === "endereco" && (
                     <CompanyAddressTab isLoadingCep={isLoadingCep} onCepChange={handleCepChange} />
                   )}
-                  {currentSection === "contato" && (
-                    <CompanyContactTab
-                      contacts={contacts}
-                      ticketEmails={ticketEmails}
-                      onContactsChange={setContacts}
-                      onTicketEmailsChange={setTicketEmails}
-                    />
-                  )}
+                  {currentSection === "contato" && <CompanyContactTab />}
                   {currentSection === "fiscal" && <CompanyFiscalTab companies={companies} />}
                   {currentSection === "configuracoes" && <CompanySettingsTab />}
                 </motion.div>
