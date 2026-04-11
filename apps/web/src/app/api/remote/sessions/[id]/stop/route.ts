@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
-import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
+import { createRequestLogger } from "@dosc-syspro/shared/logger";
 import { createRemoteSessionPort } from "@/features/remote/infrastructure/gateways/remote-domain/session-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";

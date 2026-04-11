@@ -6,7 +6,7 @@ import type {
   TicketModuleRecord,
 } from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
+import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
 import {

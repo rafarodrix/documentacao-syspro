@@ -4,10 +4,48 @@ Shell HTTP dedicado do monorepo.
 
 ## Objetivo
 
-- expor transporte HTTP para o `@dosc-syspro/api`
+- expor transporte HTTP para os casos de uso e contratos compartilhados do workspace
 - desacoplar backend do runtime do `apps/web`
-- preparar a ligacao gradual dos casos de uso reais fora do Next.js
-- operar a integracao Evolution Go <-> Chatwoot como bridge de webhook e envio outbound
+- concentrar webhooks, integrações operacionais e autenticação de serviço
+- operar a integração Evolution Go <-> Chatwoot e os endpoints administrativos do portal
+
+## Papel na arquitetura
+
+- `apps/api` e o adapter HTTP/NestJS
+- a superfície de contratos e routers compartilháveis vive em `packages/api`
+- contratos tipados compartilhados vivem em `packages/contracts`
+- utilitários transversais reutilizados por `web` e `api` agora vivem em `packages/shared`
+- persistência e schema Prisma vivem em `packages/database`
+
+Em outras palavras: `apps/api` deixou de ser o lugar para utilitário transversal consumido pelo `web`; esse papel foi movido para pacotes neutros.
+
+## Refatorações recentes
+
+- extração de utilitários compartilháveis para `packages/shared`:
+  - `logger`
+  - `request-auth`
+  - `action-rate-limit`
+  - `action-error-handler`
+- remoção do acoplamento direto do `apps/web` com esses módulos internos de `packages/api`
+- consolidação do RBAC em perfis persistidos
+- introdução de perfis de acesso persistidos no banco:
+  - `permission`
+  - `access_profile`
+  - `access_profile_permission`
+  - `user_access_profile`
+- perfis de sistema (`ADMIN`, `DEVELOPER`, `SUPORTE`, `CLIENTE_ADMIN`, `CLIENTE_USER`) passam a existir no banco e servir como fallback real de autorização
+- edição de perfis de sistema liberada no fluxo administrativo, mantendo chave fixa para preservar o vínculo com o role legado
+- sincronização do catálogo de autorização ajustada para:
+  - garantir existência dos perfis padrão
+  - não sobrescrever permissões já persistidas de perfis existentes
+
+## Responsabilidades atuais
+
+- expor endpoints HTTP e RPC do sistema
+- validar sessão e permissões no backend
+- responder por `settings`, `authorization`, integrações e webhooks
+- centralizar a fonte efetiva de autorização usada pelo portal
+- manter o bridge operacional entre Evolution Go e Chatwoot
 
 ## Scripts
 
@@ -15,9 +53,10 @@ Shell HTTP dedicado do monorepo.
 npm run dev -w @dosc-syspro/app-api
 npm run start -w @dosc-syspro/app-api
 npm run typecheck -w @dosc-syspro/app-api
+npm run test -w @dosc-syspro/app-api
 ```
 
-## Deploy dedicado (backend separado)
+## Deploy dedicado
 
 Use `apps/api/Dockerfile` com contexto na raiz do monorepo:
 
@@ -26,7 +65,7 @@ docker build -f apps/api/Dockerfile -t dosc-syspro-api .
 docker run --rm -p 3001:3001 --env-file .env dosc-syspro-api
 ```
 
-Variaveis minimas:
+## Variáveis mínimas
 
 - `PORT` (opcional, default local `3001`)
 - `DATABASE_URL`
@@ -37,207 +76,84 @@ Variaveis minimas:
 - `EVOLUTION_API_URL`
 - `EVOLUTION_API_KEY`
 - `EVOLUTION_INSTANCE`
-- `EVOLUTION_INSTANCE_TOKEN` (opcional, valida `instanceToken` do payload do webhook Evolution Go)
+- `EVOLUTION_INSTANCE_TOKEN` (opcional)
 - `CHATWOOT_URL`
 - `CHATWOOT_ACCOUNT_ID`
 - `CHATWOOT_API_TOKEN`
-- `CHATWOOT_INBOX_ID` (id numerico do inbox, usado na API `/api/v1/accounts/...`)
-- `CHATWOOT_INBOX_IDENTIFIER` (identificador publico nao numerico, usado na API `/public/api/v1/inboxes/...`)
-- `CHATWOOT_WEBHOOK_SECRET` (usado para HMAC assinatura do webhook Chatwoot)
+- `CHATWOOT_INBOX_ID`
+- `CHATWOOT_INBOX_IDENTIFIER`
+- `CHATWOOT_WEBHOOK_SECRET`
 - `CHATWOOT_WEBHOOK_MAX_SKEW_SECONDS` (opcional, default `300`)
 - `INTEGRATION_WEBHOOK_DEDUP_TTL_SECONDS` (opcional, default `86400`)
-- `INTEGRATION_CONFIG_ENCRYPTION_KEY` (opcional, recomendado para criptografar credenciais de conexoes; fallback usa `BETTER_AUTH_SECRET`)
+- `INTEGRATION_CONFIG_ENCRYPTION_KEY` (opcional; fallback usa `BETTER_AUTH_SECRET`)
 
-## Rotas atuais
+## Rotas relevantes
 
 - `GET /health`
-- `GET /health/integrations/chatwoot` (valida rota critica da API Chatwoot e resolucao de inbox)
+- `GET /health/integrations/chatwoot`
 - `POST /rpc/:namespace/:procedure`
-- `POST /api/webhooks/evolution` (inbound Evolution Go; processa `Message` e `Receipt`)
-- `POST /integrations/evolution/messages/send` (envio direto outbound via Evolution, protegido por `x-internal-api-key`)
-- `GET /settings/evolution` (configuracao global do canal Evolution)
-- `PUT /settings/evolution` (persistencia das configuracoes globais do canal)
-- `GET /settings/integrations/connections` (listar conexoes de integracao por empresa/opcional)
-- `GET /settings/integrations/connections/:id` (detalhe da conexao)
-- `POST /settings/integrations/connections` (criar conexao Evolution + Chatwoot)
-- `PUT /settings/integrations/connections/:id` (atualizar conexao)
-- `DELETE /settings/integrations/connections/:id` (remover conexao)
-- `POST /settings/integrations/connections/:id/test` (testar conectividade Evolution + Chatwoot)
+- `POST /api/webhooks/evolution`
+- `POST /integrations/evolution/messages/send`
+- `GET /settings/evolution`
+- `PUT /settings/evolution`
+- `GET /settings/integrations/connections`
+- `GET /settings/integrations/connections/:id`
+- `POST /settings/integrations/connections`
+- `PUT /settings/integrations/connections/:id`
+- `DELETE /settings/integrations/connections/:id`
+- `POST /settings/integrations/connections/:id/test`
+- endpoints de `settings` e `authorization` usados pelo portal para RBAC persistido
 
-Observacao sobre Evolution Go:
+## Autorização e RBAC
 
-- envio outbound prioriza `/send/text` e `/send/media`
-- o cliente possui fallback para `/message/sendText/{instance}` e `/message/sendMedia/{instance}` quando a instalacao exposta usar o contrato v2
-- teste de conexao usa `GET /instance/status`
-- quando `evolutionInstanceId` + `metadata.evolution.webhookUrl` estiverem definidos, o teste reaplica configuracao via `POST /instance/connect`
-- recursos legados da API antiga foram removidos do fluxo principal: sync incremental de contatos, fetch extra de midia e delete remoto de mensagem
-- o backend nao guarda historico completo da conversa como fonte primaria; o historico principal permanece na Evolution Go e no Chatwoot
-- persistencia local usada no fluxo atual:
-  - `conversation_link`
-  - `message_link`
-  - `integration_webhook_dedup`
-  - `company_contact`
+O backend e a fonte de verdade da autorização.
 
-## Roadmap do modulo de contatos
+Fluxo atual:
 
-Visao prevista para evolucao do modulo:
+- o usuário continua possuindo um `role` legado
+- esse `role` aponta para um perfil persistido de mesma chave em `access_profile`
+- permissões efetivas são resolvidas a partir de:
+  - perfil base do role
+  - vínculos adicionais em `user_access_profile`
+  - escopo global ou por empresa
 
-- os contatos continuarao sendo a entidade primaria de relacionamento com pessoas
-- uma empresa podera prestar suporte para varios contatos e varias empresas clientes
-- filiais/unidades da empresa prestadora poderao operar subconjuntos da carteira de atendimento
-- no futuro, o mesmo ambiente podera liberar o modulo de gestao para clientes finais, mantendo isolamento de dados por carteira/tenant
+Consequências práticas:
 
-Direcao arquitetural desejada:
+- permissões de `DEVELOPER` e `SUPORTE` não são mais apenas hardcoded em memória
+- a edição de perfis impacta o comportamento real do sistema
+- o frontend consulta o contexto central de autorização em vez de depender só de matriz local
 
-- separar explicitamente empresa prestadora, empresa cliente e unidade operadora
-- formalizar no banco a relacao de atendimento entre empresas
-- permitir que contatos, conversas, tickets e conexoes de integracao carreguem escopo de operacao e visibilidade
-- garantir que usuarios internos vejam apenas a carteira permitida e que clientes finais vejam apenas seus proprios dados
-
-Objetivo futuro:
-
-- operar atendimento multiempresa na mesma infraestrutura
-- suportar prestadora principal + filiais
-- permitir white-label ou portal de atendimento para clientes, sem mistura de dados entre carteiras
-
-## Roteiro de teste ponta a ponta
-
-1. Preparar ambiente
-
-- garantir que o backend esteja no ar
-- garantir que o Chatwoot esteja acessivel
-- garantir que a instancia Evolution Go esteja conectada
-
-2. Configurar variaveis no backend
-
-- `EVOLUTION_API_URL`
-- `EVOLUTION_API_KEY`
-- `EVOLUTION_INSTANCE`
-- `EVOLUTION_INSTANCE_TOKEN` se o webhook da Evolution Go enviar esse valor
-- `CHATWOOT_URL`
-- `CHATWOOT_ACCOUNT_ID`
-- `CHATWOOT_API_TOKEN`
-- `CHATWOOT_INBOX_ID` ou `CHATWOOT_INBOX_IDENTIFIER`
-- `CHATWOOT_WEBHOOK_SECRET` se a assinatura HMAC estiver habilitada
-
-3. Configurar webhook da Evolution Go
-
-- URL:
-  - oficial: `https://SEU_BACKEND/api/webhooks/evolution`
-- eventos minimos:
-  - `Message`
-  - `Receipt`
-- se usar filtro por subscribe no painel:
-  - `MESSAGE`
-  - `READ_RECEIPT`
-  - ou `ALL`
-
-4. Configurar webhook do Chatwoot
-
-- URL preferencial: `https://SEU_BACKEND/api/webhooks/chatwoot`
-- Alias legado aceito pelo backend: `https://SEU_BACKEND/webhooks/chatwoot`
-- evento essencial para resposta outbound:
-  - `message_created`
-- se `CHATWOOT_WEBHOOK_SECRET` estiver configurado:
-  - confirmar que o Chatwoot envia `x-chatwoot-signature`
-  - confirmar que o Chatwoot envia `x-chatwoot-timestamp`
-
-5. Validar inbound WhatsApp -> Chatwoot
-
-- enviar uma mensagem do numero cliente para o WhatsApp conectado na Evolution Go
-- confirmar que o backend recebe `Message`
-- confirmar que:
-  - um `CompanyContact` e criado ou reutilizado
-  - um `ConversationLink` e criado ou reutilizado
-  - a mensagem aparece na conversa do Chatwoot
-
-6. Validar outbound Chatwoot -> WhatsApp
-
-- responder a conversa dentro do Chatwoot
-- confirmar que o Chatwoot dispara `message_created`
-- confirmar que o backend envia via `/send/text` ou `/send/media` (ou fallback v2 quando a instalacao exposta exigir)
-- confirmar que o cliente recebe no WhatsApp
-- confirmar que um `MessageLink` foi criado quando houver `messageId`
-
-7. Validar status de entrega/leitura
-
-- apos a resposta outbound, confirmar que a Evolution Go envia `Receipt`
-- confirmar que o backend recebe `Receipt`
-- confirmar que o status da mensagem no Chatwoot muda para:
-  - `delivered`
-  - `read`
-
-8. Validar seguranca
-
-- se `EVOLUTION_INSTANCE_TOKEN` estiver definido:
-  - confirmar que o payload da Evolution Go envia o mesmo `instanceToken`
-- se `CHATWOOT_WEBHOOK_SECRET` estiver definido:
-  - confirmar que a assinatura HMAC e aceita pelo backend
-
-9. Validar banco local minimo
-
-- `conversation_link`
-- `message_link`
-- `integration_webhook_dedup`
-- `company_contact`
-
-10. Sintomas comuns de falha
-
-- mensagem chega no backend mas nao abre no Chatwoot:
-  - revisar `CHATWOOT_*`
-  - revisar inbox configurado
-- mensagem sai do Chatwoot mas nao chega no WhatsApp:
-  - revisar `EVOLUTION_API_URL`
-  - revisar `EVOLUTION_API_KEY`
-  - revisar `EVOLUTION_INSTANCE`
-- webhook Evolution retorna `401`:
-  - revisar `EVOLUTION_INSTANCE_TOKEN`
-- webhook Chatwoot retorna `401`:
-  - revisar `CHATWOOT_WEBHOOK_SECRET`
-
-## Checklist operacional curto
-
-- backend no ar
-- Evolution Go conectada
-- Chatwoot acessivel
-- `EVOLUTION_API_URL` configurada
-- `EVOLUTION_API_KEY` configurada
-- `EVOLUTION_INSTANCE` configurada
-- `EVOLUTION_INSTANCE_TOKEN` revisado se estiver em uso
-- `CHATWOOT_URL` configurada
-- `CHATWOOT_ACCOUNT_ID` configurada
-- `CHATWOOT_API_TOKEN` configurada
-- `CHATWOOT_INBOX_ID` ou `CHATWOOT_INBOX_IDENTIFIER` configurado
-- webhook Evolution Go apontando para `/api/webhooks/evolution`
-- webhook Evolution Go enviando `Message` e `Receipt`
-- webhook Chatwoot apontando para `/api/webhooks/chatwoot` (ou `/webhooks/chatwoot`, mantido como alias)
-- Chatwoot enviando `message_created`
-- teste inbound realizado com sucesso
-- teste outbound realizado com sucesso
-- `Receipt` atualizando status no Chatwoot
-- `conversation_link` criado
-- `message_link` criado quando houver `messageId`
-
-## Headers de sessao aceitos
+## Headers de sessão aceitos
 
 - `x-user-id`
 - `x-user-role`
 - `x-company-ids`
 - `x-request-id`
 
-## Seguranca de servico (`web -> api`)
+## Segurança de serviço (`web -> api`)
 
-- Header obrigatorio: `x-internal-api-key`
-- Variavel obrigatoria: `INTERNAL_API_KEY` (deve estar igual no `apps/web` e `apps/api`)
+- header obrigatório: `x-internal-api-key`
+- variável obrigatória: `INTERNAL_API_KEY`
 
-## Estado atual
+## Evolution Go e Chatwoot
 
-- shell HTTP pronto
-- consumo direto do `packages/api`
-- authz e error mapping reaproveitados do core do BFF
-- webhook inbound WhatsApp movido para `apps/api`
-- fluxo principal operando como bridge entre Evolution Go e Chatwoot
+Observações operacionais:
 
-## Limite atual
+- envio outbound prioriza `/send/text` e `/send/media`
+- há fallback para contrato v2 quando a instalação exposta exigir
+- teste de conexão usa `GET /instance/status`
+- quando `evolutionInstanceId` + `metadata.evolution.webhookUrl` estiverem definidos, o teste pode reaplicar configuração via `POST /instance/connect`
+- o backend não guarda histórico completo da conversa como fonte primária
 
-Este app ainda esta em migracao progressiva. `apps/web` segue como UI/admin, enquanto o recebimento de webhooks e a integracao operacional ficam concentrados no `apps/api`.
+Persistência local usada no fluxo atual:
+
+- `conversation_link`
+- `message_link`
+- `integration_webhook_dedup`
+- `company_contact`
+
+## Limites atuais
+
+- `apps/api` ainda está em migração progressiva
+- parte dos adapters de domínio remoto ainda é exportada via `packages/api`, embora o `web` já consuma isso por `packages/remote-infra`
+- ainda existem fluxos no `web` com fallback por role legado; a direção correta é reduzir isso e depender cada vez mais do contexto central de autorização do backend

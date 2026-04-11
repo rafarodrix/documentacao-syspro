@@ -22,8 +22,10 @@
     "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
+    "@dosc-syspro/shared": "file:../../packages/shared",
     "@dosc-syspro/api": "file:../../packages/api",
     "@dosc-syspro/config": "file:../../packages/config",
+    "@dosc-syspro/remote-infra": "file:../../packages/remote-infra",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-accordion": "^1.2.12",

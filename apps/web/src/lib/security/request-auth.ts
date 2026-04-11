@@ -4,5 +4,5 @@ export {
   isValidHmacSignature,
   isValidSecretToken,
   safeTimingEqual,
-} from "@dosc-syspro/api/request-auth";
-export type { RequestLike, SecretTokenOptions } from "@dosc-syspro/api/request-auth";
+} from "@dosc-syspro/shared/request-auth";
+export type { RequestLike, SecretTokenOptions } from "@dosc-syspro/shared/request-auth";

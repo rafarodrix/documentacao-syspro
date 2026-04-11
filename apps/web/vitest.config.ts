@@ -11,6 +11,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      "@dosc-syspro/shared": path.resolve(__dirname, "../../packages/shared/src/index.ts"),
+      "@dosc-syspro/shared/logger": path.resolve(__dirname, "../../packages/shared/src/logger.ts"),
+      "@dosc-syspro/shared/request-auth": path.resolve(__dirname, "../../packages/shared/src/request-auth.ts"),
+      "@dosc-syspro/shared/action-rate-limit": path.resolve(__dirname, "../../packages/shared/src/action-rate-limit.ts"),
+      "@dosc-syspro/shared/action-error-handler": path.resolve(__dirname, "../../packages/shared/src/action-error-handler.ts"),
       "@dosc-syspro/core": path.resolve(__dirname, "../../packages/core/src/index.ts"),
       "@dosc-syspro/core/config/route-access": path.resolve(__dirname, "../../packages/core/src/config/route-access.ts"),
       "@dosc-syspro/core/config/role-labels": path.resolve(__dirname, "../../packages/core/src/config/role-labels.ts"),
@@ -31,6 +36,10 @@ export default defineConfig({
       "@dosc-syspro/contracts/user": path.resolve(__dirname, "../../packages/contracts/src/user.ts"),
       "@dosc-syspro/contracts/ticket-api": path.resolve(__dirname, "../../packages/contracts/src/ticket-api.ts"),
       "@dosc-syspro/database": path.resolve(__dirname, "../../packages/database/src/index.ts"),
+      "@dosc-syspro/remote-infra": path.resolve(__dirname, "../../packages/remote-infra/src/index.ts"),
+      "@dosc-syspro/remote-infra/remote-session-port": path.resolve(__dirname, "../../packages/remote-infra/src/remote-session-port.ts"),
+      "@dosc-syspro/remote-infra/remote-host-admin-port": path.resolve(__dirname, "../../packages/remote-infra/src/remote-host-admin-port.ts"),
+      "@dosc-syspro/remote-infra/remote-address-book-port": path.resolve(__dirname, "../../packages/remote-infra/src/remote-address-book-port.ts"),
     },
   },
 });

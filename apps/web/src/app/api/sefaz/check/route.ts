@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { SefazService } from "@/app/api/sefaz/sefaz.service";
-import { isValidSecretToken } from "@dosc-syspro/api/request-auth";
-import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
+import { isValidSecretToken } from "@dosc-syspro/shared/request-auth";
+import { createRequestLogger } from "@dosc-syspro/shared/logger";
 
 function isAuthorized(request: Request): boolean {
   const expected = process.env.SEFAZ_CHECK_SECRET ?? process.env.REVALIDATE_SECRET;

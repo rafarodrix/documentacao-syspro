@@ -5,12 +5,12 @@ import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { Role } from "@prisma/client";
 import { z } from "zod";
-import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
+import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type { UserAccessActionResponse, UserAccessValidationErrors } from "@/features/user-access/domain/model";
 import { SYSTEM_ROLES } from "@/features/user-access/domain/constants";
-import { handleActionError } from "@dosc-syspro/api/errors/action-error-handler";
+import { handleActionError } from "@dosc-syspro/shared/action-error-handler";
 import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 
 interface GetUsersParams {

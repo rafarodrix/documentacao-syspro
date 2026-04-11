@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
+import { createRequestLogger } from "@dosc-syspro/shared/logger";
 
 export const dynamic = "force-dynamic";
 

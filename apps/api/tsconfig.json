@@ -17,6 +17,8 @@
       "@dosc-syspro/api/*": ["../../packages/api/src/*"],
       "@dosc-syspro/config": ["../../packages/config/src/index.ts"],
       "@dosc-syspro/config/*": ["../../packages/config/src/*"],
+      "@dosc-syspro/shared": ["../../packages/shared/src/index.ts"],
+      "@dosc-syspro/shared/*": ["../../packages/shared/src/*"],
       "@dosc-syspro/contracts": ["../../packages/contracts/src/index.ts"],
       "@dosc-syspro/contracts/*": ["../../packages/contracts/src/*"],
       "@dosc-syspro/remote-domain": ["../../packages/remote-domain/src/index.ts"],

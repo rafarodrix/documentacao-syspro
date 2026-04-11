@@ -9,7 +9,7 @@ import {
   saveTaxNcmBatch,
 } from "@/features/tax/application/actions";
 import type { TaxActionResponse, TaxSyncChunkRequest, TaxSyncMode } from "@/features/tax/domain/model";
-import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
+import { createRequestLogger } from "@dosc-syspro/shared/logger";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 function isSyncMode(value: unknown): value is TaxSyncMode {
