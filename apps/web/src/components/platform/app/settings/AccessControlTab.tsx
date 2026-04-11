@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Lock, Plus, ShieldCheck, Trash2, Users, X } from "lucide-react";
+import { Check, Lock, Pencil, Plus, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import type {
   SettingsPermissionKey,
@@ -39,16 +39,20 @@ const EMPTY_ASSIGNMENT_FORM: SettingsUserAccessProfileCreateInput = {
   reason: "",
 };
 
+const EMPTY_PROFILE_FORM = {
+  id: undefined as string | undefined,
+  key: "",
+  label: "",
+  description: "",
+  permissions: [] as SettingsPermissionKey[],
+  isSystem: false,
+};
+
 export function AccessControlTab({ adminView }: AccessControlTabProps) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(adminView.catalog.matrixEnabled);
   const [isPending, startTransition] = useTransition();
-  const [profileForm, setProfileForm] = useState({
-    key: "",
-    label: "",
-    description: "",
-    permissions: [] as SettingsPermissionKey[],
-  });
+  const [profileForm, setProfileForm] = useState(EMPTY_PROFILE_FORM);
   const [assignmentForm, setAssignmentForm] = useState(EMPTY_ASSIGNMENT_FORM);
 
   const profiles = adminView.profiles;
@@ -86,7 +90,24 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
     }));
   };
 
-  const handleCreateProfile = () => {
+  const isEditingProfile = Boolean(profileForm.id);
+
+  const resetProfileForm = () => {
+    setProfileForm(EMPTY_PROFILE_FORM);
+  };
+
+  const handleEditProfile = (profile: SettingsPermissionsAdminView["profiles"][number]) => {
+    setProfileForm({
+      id: profile.id,
+      key: profile.key,
+      label: profile.label,
+      description: profile.description ?? "",
+      permissions: profile.permissions,
+      isSystem: profile.isSystem,
+    });
+  };
+
+  const handleSaveProfile = () => {
     if (!profileForm.key.trim() || !profileForm.label.trim()) {
       toast.error("Informe chave e nome do perfil.");
       return;
@@ -99,6 +120,7 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
 
     startTransition(async () => {
       const result = await saveSettingsAccessProfileAction({
+        id: profileForm.id,
         key: profileForm.key.trim(),
         label: profileForm.label.trim(),
         description: profileForm.description.trim() || undefined,
@@ -112,7 +134,7 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
       }
 
       toast.success(result.message ?? "Perfil salvo.");
-      setProfileForm({ key: "", label: "", description: "", permissions: [] });
+      resetProfileForm();
       router.refresh();
     });
   };
@@ -256,9 +278,11 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <CardTitle>Criar Perfil</CardTitle>
+                <CardTitle>{isEditingProfile ? "Editar Perfil" : "Criar Perfil"}</CardTitle>
                 <CardDescription>
-                  Monte perfis customizados a partir das permissoes do catalogo central.
+                  {isEditingProfile
+                    ? "Ajuste nome, descricao e permissoes do perfil selecionado."
+                    : "Monte perfis customizados a partir das permissoes do catalogo central."}
                 </CardDescription>
               </div>
             </div>
@@ -273,7 +297,13 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                   value={profileForm.key}
                   onChange={(event) => setProfileForm((current) => ({ ...current, key: event.target.value }))}
                   placeholder="financeiro_leitura"
+                  disabled={isPending || profileForm.isSystem}
                 />
+                {profileForm.isSystem ? (
+                  <p className="text-xs text-muted-foreground">
+                    Perfis de sistema mantem a chave fixa para preservar o role legado.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="profile-label">Nome</Label>
@@ -336,10 +366,15 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
               ))}
             </div>
 
-            <div className="flex justify-end">
-              <Button onClick={handleCreateProfile} disabled={isPending} className="gap-2">
+            <div className="flex justify-end gap-2">
+              {isEditingProfile ? (
+                <Button variant="ghost" onClick={resetProfileForm} disabled={isPending}>
+                  Cancelar
+                </Button>
+              ) : null}
+              <Button onClick={handleSaveProfile} disabled={isPending} className="gap-2">
                 <Plus className="h-4 w-4" />
-                Salvar perfil
+                {isEditingProfile ? "Atualizar perfil" : "Salvar perfil"}
               </Button>
             </div>
           </CardContent>
@@ -366,7 +401,17 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                       <p className="text-xs text-muted-foreground">{profile.description}</p>
                     ) : null}
                   </div>
-                  <Badge variant="outline">{profile.permissions.length} permissoes</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{profile.permissions.length} permissoes</Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={isPending}
+                      onClick={() => handleEditProfile(profile)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

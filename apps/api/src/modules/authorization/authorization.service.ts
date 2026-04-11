@@ -15,7 +15,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import {
   SETTINGS_PERMISSION_DEFINITIONS,
   buildDefaultPermissionProfiles,
-  getDefaultPermissionsForProfileKey,
 } from '../settings/permissions/permissions.catalog';
 
 type Requester = {
@@ -79,7 +78,7 @@ export class AuthorizationService {
   ) {
     await this.syncSystemAuthorizationCatalog();
 
-    const fallbackPermissions = getDefaultPermissionsForProfileKey(requester.role as SettingsProfileKey);
+    const fallbackPermissions = await this.getFallbackPermissionsForProfileKey(requester.role as SettingsProfileKey);
     if (fallbackPermissions.includes(permission)) {
       return true;
     }
@@ -175,7 +174,7 @@ export class AuthorizationService {
       return { isGlobal: false, companyIds: companyIdsFromAssignments };
     }
 
-    const fallbackPermissions = getDefaultPermissionsForProfileKey(requester.role as SettingsProfileKey);
+    const fallbackPermissions = await this.getFallbackPermissionsForProfileKey(requester.role as SettingsProfileKey);
     if (globalPermission && fallbackPermissions.includes(globalPermission)) {
       return { isGlobal: true, companyIds: [] };
     }
@@ -194,7 +193,7 @@ export class AuthorizationService {
     const requester = await this.getRequester(rawHeaders);
     await this.syncSystemAuthorizationCatalog();
 
-    const fallbackPermissions = getDefaultPermissionsForProfileKey(requester.role as SettingsProfileKey);
+    const fallbackPermissions = await this.getFallbackPermissionsForProfileKey(requester.role as SettingsProfileKey);
     const assignments = await this.getPermissionAssignments(requester.userId);
     const membershipCompanyIds = await this.getUserCompanyIds(requester);
     const globalPermissions = new Set<SettingsPermissionKey>();
@@ -408,31 +407,32 @@ export class AuthorizationService {
     });
 
     if (input.id) {
-      const existing = await this.prisma.accessProfile.findUnique({
+      const existingProfile = await this.prisma.accessProfile.findUnique({
         where: { id: input.id },
-        select: { id: true, isSystem: true },
+        select: { id: true, key: true, isSystem: true },
       });
 
-      if (!existing) {
+      if (!existingProfile) {
         throw new ForbiddenException('Perfil nao encontrado.');
       }
 
-      if (existing.isSystem) {
-        throw new ForbiddenException('Perfis padrao do sistema nao podem ser alterados por esta tela.');
+      if (existingProfile.isSystem && input.key !== existingProfile.key) {
+        throw new ForbiddenException('A chave de perfis padrao do sistema nao pode ser alterada.');
       }
 
-      if (existingByKey && existingByKey.id !== existing.id) {
+      if (existingByKey && existingByKey.id !== existingProfile.id) {
         throw new ForbiddenException('Ja existe um perfil com esta chave.');
       }
 
       return this.prisma.$transaction(async (tx) => {
         const savedProfile = await tx.accessProfile.update({
-          where: { id: existing.id },
+          where: { id: existingProfile.id },
           data: {
-            key: input.key,
+            key: existingProfile.isSystem ? existingProfile.key : input.key,
             name: input.label,
             description: input.description?.trim() || null,
-            isActive: input.isActive ?? true,
+            isActive: existingProfile.isSystem ? true : input.isActive ?? true,
+            isSystem: existingProfile.isSystem,
           },
           select: { id: true },
         });
@@ -573,43 +573,88 @@ export class AuthorizationService {
       const defaultProfiles = buildDefaultPermissionProfiles();
 
       for (const profile of defaultProfiles) {
-        const savedProfile = await tx.accessProfile.upsert({
+        const existingProfile = await tx.accessProfile.findUnique({
           where: { key: profile.key },
-          update: {
-            name: profile.label,
-            isSystem: true,
-            isActive: true,
+          select: {
+            id: true,
+            permissions: {
+              select: { id: true },
+            },
           },
-          create: {
-            key: profile.key,
-            name: profile.label,
-            description: `Perfil padrao sincronizado a partir do role ${profile.key}.`,
-            isSystem: true,
-            isActive: true,
-          },
-          select: { id: true },
         });
 
-        const permissions = await tx.permission.findMany({
-          where: { key: { in: profile.permissions as string[] } },
-          select: { id: true },
-        });
-
-        await tx.accessProfilePermission.deleteMany({
-          where: { profileId: savedProfile.id },
-        });
-
-        if (permissions.length > 0) {
-          await tx.accessProfilePermission.createMany({
-            data: permissions.map((permission) => ({
-              profileId: savedProfile.id,
-              permissionId: permission.id,
-            })),
-            skipDuplicates: true,
+        if (!existingProfile) {
+          const savedProfile = await tx.accessProfile.create({
+            data: {
+              key: profile.key,
+              name: profile.label,
+              description: `Perfil padrao sincronizado a partir do role ${profile.key}.`,
+              isSystem: true,
+              isActive: true,
+            },
+            select: { id: true },
           });
+
+          const permissions = await tx.permission.findMany({
+            where: { key: { in: profile.permissions as string[] } },
+            select: { id: true },
+          });
+
+          if (permissions.length > 0) {
+            await tx.accessProfilePermission.createMany({
+              data: permissions.map((permission) => ({
+                profileId: savedProfile.id,
+                permissionId: permission.id,
+              })),
+              skipDuplicates: true,
+            });
+          }
+          continue;
+        }
+
+        await tx.accessProfile.update({
+          where: { id: existingProfile.id },
+          data: {
+            isSystem: true,
+            isActive: true,
+          },
+        });
+
+        if (existingProfile.permissions.length === 0) {
+          const permissions = await tx.permission.findMany({
+            where: { key: { in: profile.permissions as string[] } },
+            select: { id: true },
+          });
+
+          if (permissions.length > 0) {
+            await tx.accessProfilePermission.createMany({
+              data: permissions.map((permission) => ({
+                profileId: existingProfile.id,
+                permissionId: permission.id,
+              })),
+              skipDuplicates: true,
+            });
+          }
         }
       }
     });
+  }
+
+  private async getFallbackPermissionsForProfileKey(profileKey: SettingsProfileKey): Promise<SettingsPermissionKey[]> {
+    const profile = await this.prisma.accessProfile.findUnique({
+      where: { key: profileKey },
+      select: {
+        permissions: {
+          select: {
+            permission: {
+              select: { key: true },
+            },
+          },
+        },
+      },
+    });
+
+    return profile?.permissions.map((item) => item.permission.key as SettingsPermissionKey) ?? [];
   }
 
   private toHeaders(rawHeaders?: IncomingHttpHeaders): Headers {
