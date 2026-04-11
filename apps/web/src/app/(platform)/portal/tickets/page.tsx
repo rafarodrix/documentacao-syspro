@@ -1,11 +1,9 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { getTicketsAction } from "@/features/tickets/application/ticket-actions";
 import { TicketsContainer } from "@/features/tickets/interface";
-import { Role } from "@prisma/client";
 import { type QueueKey, type TicketStatusGroup, TICKET_QUEUE_KEYS, isTicketStatusGroup } from "@dosc-syspro/core";
 import type { ClosedTicketsWindow } from "@/features/tickets/domain/ticket-model";
-
-const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 const CLOSED_WINDOW_OPTIONS: ClosedTicketsWindow[] = ["30d", "60d", "90d", "180d", "365d", "all"];
 
 interface TicketsPageProps {
@@ -30,6 +28,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const closedWindow: ClosedTicketsWindow = CLOSED_WINDOW_OPTIONS.includes(closedWindowParam as ClosedTicketsWindow)
     ? (closedWindowParam as ClosedTicketsWindow)
     : "30d";
+  const canManageTickets = await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true });
 
   console.info("[TicketsDiag][page] loading", {
     at: new Date().toISOString(),
@@ -88,7 +87,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   return (
     <TicketsContainer
       tickets={data}
-      isAdmin={SYSTEM_ROLES.includes(session.role)}
+      isAdmin={canManageTickets}
       pagination={safePagination}
       staleWarning={staleWarning}
       queue={queue}

@@ -1,15 +1,15 @@
-import { Role } from "@prisma/client";
 import { getTicketDetailsAction } from "@/features/tickets/application/ticket-actions";
 import { TicketDetails } from "@/features/tickets/interface";
 import { requireSession } from "@/lib/auth-helpers";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 export default async function ClientTicketPage({ params }: PageProps) {
-  const session = await requireSession();
-  const isAdmin = session.role === Role.ADMIN || session.role === Role.DEVELOPER || session.role === Role.SUPORTE;
+  await requireSession();
+  const isAdmin = await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true });
 
   try {
     const { id } = await params;

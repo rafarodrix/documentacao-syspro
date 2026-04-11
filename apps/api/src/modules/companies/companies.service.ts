@@ -8,8 +8,6 @@ import {
 } from '@dosc-syspro/contracts/company';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
-
-const DELETE_ROLES: Role[] = [Role.ADMIN];
 const COMPANY_REGISTRY_PROVIDER = process.env.COMPANY_REGISTRY_PROVIDER?.toLowerCase() ?? 'brasilapi';
 const COMPANY_REGISTRY_AUTH_URL = process.env.COMPANY_REGISTRY_AUTH_URL;
 const COMPANY_REGISTRY_LOOKUP_URL =
@@ -745,7 +743,7 @@ export class CompaniesService {
 
   async deleteCompany(companyId: string, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    if (!DELETE_ROLES.includes(requester.role)) {
+    if (!(await this.authorizationService.userHasPermission(requester, 'companies:delete'))) {
       return { success: false, message: 'Sem permissao.' };
     }
 

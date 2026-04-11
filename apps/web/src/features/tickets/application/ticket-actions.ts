@@ -1,6 +1,5 @@
 "use server";
 
-import { Role } from "@prisma/client";
 import type {
   TicketModuleCreateRequest,
   TicketModulePriority,
@@ -25,9 +24,9 @@ import type {
   TicketsDataResponse,
   TicketListItem,
 } from "@/features/tickets/domain/ticket-model";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 const CREATE_TICKET_RATE_LIMIT = { max: 10, windowMs: 60_000 };
-const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
 
 export async function finalizeTicketAction(input: {
   ticketId: string | number;
@@ -38,7 +37,7 @@ export async function finalizeTicketAction(input: {
   publishToReleases?: boolean;
 }): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
-  if (!session || !isSystemRole(session.role)) {
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
     return { success: false, error: "Nao autorizado." };
   }
 
@@ -77,10 +76,6 @@ export async function finalizeTicketAction(input: {
     console.error("Erro ao finalizar ticket:", error);
     return { success: false, error: "Falha ao finalizar ticket." };
   }
-}
-
-function isSystemRole(role: Role): boolean {
-  return SYSTEM_ROLES.has(role);
 }
 
 function mapPriorityToLevel(priority: TicketModulePriority | string | null | undefined): number {
@@ -384,7 +379,7 @@ export async function ticketQuickAction(input: {
   action: "assume" | "priority_high" | "macro_followup";
 }): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
-  if (!session || !isSystemRole(session.role)) {
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
     return { success: false, error: "Nao autorizado." };
   }
 

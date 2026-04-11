@@ -1,11 +1,9 @@
-import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
-import { hasPermission } from "@/features/user-access/domain/rbac";
-import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
+import { requireSession } from "@/lib/auth-helpers";
 import { getCadastrosCompaniesAdminViewData } from "@/features/company/application/queries";
 import { CompanyTab } from "@/features/company/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 interface CadastrosEmpresaPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -21,15 +19,17 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
         ? empresaParam[0] ?? ""
         : "";
 
-  const session = await requireRole(
-    [...CADASTROS_ROUTE_RULES.empresa.allowed] as Role[],
-    CADASTROS_ROUTE_RULES.empresa.redirectIfBlocked,
-  );
+  await requireSession();
   const result = await getCadastrosCompaniesAdminViewData();
 
   if ("error" in result) return <div>Erro: {result.error}</div>;
+  const canViewCompanies = await currentUserHasPermission("companies:view");
+  const canCreateCompanies = await currentUserHasPermission("companies:create");
+  const canEditCompanies = await currentUserHasPermission("companies:edit", { acceptCompanyScope: true });
+  const canToggleCompanies = await currentUserHasPermission("companies:status");
+  const canDeleteCompanies = await currentUserHasPermission("companies:delete");
 
-  if (!hasPermission(session.role, "companies:view")) return <CadastrosAccessDenied />;
+  if (!canViewCompanies) return <CadastrosAccessDenied />;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -41,10 +41,10 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
       <CompanyTab
         data={result.companies}
         initialSearchTerm={initialCompanySearch}
-        canCreate={hasPermission(session.role, "companies:create")}
-        canEdit={hasPermission(session.role, "companies:edit")}
-        canToggleStatus={hasPermission(session.role, "companies:status")}
-        canDelete={session.role === Role.ADMIN}
+        canCreate={canCreateCompanies}
+        canEdit={canEditCompanies}
+        canToggleStatus={canToggleCompanies}
+        canDelete={canDeleteCompanies}
       />
     </div>
   );

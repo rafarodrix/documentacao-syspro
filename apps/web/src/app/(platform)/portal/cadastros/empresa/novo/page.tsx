@@ -1,18 +1,12 @@
-import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/auth-helpers";
-import { hasPermission } from "@/features/user-access/domain/rbac";
-import { CADASTROS_ROUTE_RULES } from "@dosc-syspro/core";
+import { requireSession } from "@/lib/auth-helpers";
 import { getCompanyOptionsAction } from "@/features/company/application/queries";
 import { CreateCompanyPageForm } from "@/features/company/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export default async function CadastrosEmpresaNovoPage() {
-  const session = await requireRole(
-    [...CADASTROS_ROUTE_RULES.empresa.allowed] as Role[],
-    CADASTROS_ROUTE_RULES.empresa.redirectIfBlocked,
-  );
-
-  if (!hasPermission(session.role, "companies:create")) return <CadastrosAccessDenied />;
+  await requireSession();
+  if (!(await currentUserHasPermission("companies:create"))) return <CadastrosAccessDenied />;
 
   const companies = await getCompanyOptionsAction();
 

@@ -17,6 +17,7 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "companies:create", label: "Cadastrar nova empresa", module: "companies", description: "Permite abrir cadastro de nova empresa." },
   { key: "companies:edit", label: "Editar dados da empresa", module: "companies", description: "Permite alterar cadastro empresarial." },
   { key: "companies:status", label: "Ativar ou desativar empresa", module: "companies", description: "Permite alterar status operacional da empresa." },
+  { key: "companies:delete", label: "Excluir empresa", module: "companies", description: "Permite excluir empresa sem vinculos operacionais." },
   { key: "users:view", label: "Visualizar lista de usuarios", module: "users", description: "Permite acessar a lista de usuarios." },
   { key: "users:view_all", label: "Visualizar todos os usuarios", module: "users", description: "Libera escopo global para usuarios." },
   { key: "users:view_team", label: "Visualizar equipe do proprio escopo", module: "users", description: "Restringe a visao de usuarios ao proprio escopo." },

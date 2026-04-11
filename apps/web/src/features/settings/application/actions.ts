@@ -1,20 +1,16 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { settingsSchema, type SettingsOutput, SETTING_KEYS } from "@dosc-syspro/contracts";
-import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
 import { SefazService } from "@/app/api/sefaz/sefaz.service";
 import { revalidateSettingsViews } from "@/lib/cache-invalidation";
 import type { SettingsActionResponse } from "@/features/settings/domain/model";
 import { updateSettingsPermissionsMatrixVisibilityAction } from "@/features/settings/permissions/application/permissions-actions";
-
-const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export async function updateSettingsAction(data: SettingsOutput): Promise<SettingsActionResponse> {
-  const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!(await currentUserHasPermission("settings:edit"))) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -65,8 +61,7 @@ export async function updateRbacMatrixVisibilityAction(enabled: boolean): Promis
 }
 
 export async function updateSefazRoutesAction(routes: SefazRoutesInput): Promise<SettingsActionResponse> {
-  const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!(await currentUserHasPermission("settings:edit"))) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -96,8 +91,7 @@ export async function updateSefazRoutesAction(routes: SefazRoutesInput): Promise
 }
 
 export async function runSefazCheckAction(): Promise<SettingsActionResponse> {
-  const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!(await currentUserHasPermission("settings:edit"))) {
     return { success: false, error: "Permissao negada." };
   }
 

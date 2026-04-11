@@ -1,9 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { settingsSchema, type SettingsOutput, SETTING_KEYS } from "@dosc-syspro/contracts";
-import { Role } from "@prisma/client";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
 import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
@@ -11,12 +9,12 @@ import {
   getSettingsPermissionsAdminViewAction,
 } from "@/features/settings/permissions/application/permissions-actions";
 import { buildFallbackSettingsPermissionsCatalog } from "@/features/settings/permissions/domain/catalog";
-
-const WRITE_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER];
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsOutput>> {
-  const session = await getProtectedSession();
-  if (!session) return { success: false, error: "Nao autorizado." };
+  if (!(await currentUserHasPermission("settings:view"))) {
+    return { success: false, error: "Nao autorizado." };
+  }
 
   try {
     const settings = await prisma.systemSetting.findMany();
@@ -46,8 +44,7 @@ export async function getSettingsAction(): Promise<SettingsActionResponse<Settin
 }
 
 export async function getSefazRoutesAction(): Promise<SettingsActionResponse<SefazRoutesInput>> {
-  const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!(await currentUserHasPermission("settings:edit"))) {
     return { success: false, error: "Permissao negada." };
   }
 

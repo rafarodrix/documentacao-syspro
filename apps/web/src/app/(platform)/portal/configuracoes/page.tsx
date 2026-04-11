@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Role } from "@prisma/client";
 import { requireSession } from "@/lib/auth-helpers";
 import { getContractsAdminViewData } from "@/features/contracts/application/queries";
 import { getSettingsAdminViewData } from "@/features/settings/application/queries";
@@ -26,6 +25,7 @@ import {
     TaxSyncStatusBar,
 } from "@/features/tax/interface";
 import { BulkReadjustDialog, ContractSheet, ContractStats, ContractsTable } from "@/features/contracts/interface";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 interface SettingsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -34,8 +34,8 @@ interface SettingsPageProps {
 const TAB_VALUES = new Set(["general", "remote", "evolution", "access", "tax", "contracts", "sefaz", "tickets"]);
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
-    const session = await requireSession();
-    if (session.role !== Role.ADMIN && session.role !== Role.DEVELOPER) {
+    await requireSession();
+    if (!(await currentUserHasPermission("settings:edit"))) {
         redirect("/portal");
     }
 
