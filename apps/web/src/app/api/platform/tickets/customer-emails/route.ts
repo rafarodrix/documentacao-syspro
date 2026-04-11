@@ -34,8 +34,12 @@ export async function GET(request: Request) {
       where: {
         email: { not: null },
         status: "LINKED",
-        company: {
-          deletedAt: null,
+        companyLinks: {
+          some: {
+            company: {
+              deletedAt: null,
+            },
+          },
         },
         ...(q
           ? {
@@ -49,10 +53,21 @@ export async function GET(request: Request) {
       orderBy: [{ email: "asc" }],
       select: {
         email: true,
-        company: {
+        companyLinks: {
+          where: {
+            company: {
+              deletedAt: null,
+            },
+          },
+          orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+          take: 1,
           select: {
-            nomeFantasia: true,
-            razaoSocial: true,
+            company: {
+              select: {
+                nomeFantasia: true,
+                razaoSocial: true,
+              },
+            },
           },
         },
       },
@@ -63,9 +78,10 @@ export async function GET(request: Request) {
     for (const row of rows) {
       const email = String(row.email || "").trim().toLowerCase();
       if (!email || dedup.has(email)) continue;
+      const company = row.companyLinks[0]?.company;
       dedup.set(email, {
         email,
-        companyName: row.company?.nomeFantasia?.trim() || row.company?.razaoSocial || "",
+        companyName: company?.nomeFantasia?.trim() || company?.razaoSocial || "",
       });
       if (dedup.size >= limit) break;
     }

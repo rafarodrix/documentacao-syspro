@@ -155,7 +155,7 @@ export function CreateCompanyPageForm({
 
   const initialNormalizedTicketEmails = useMemo(
     () => normalizeTicketEmails(Array.isArray(initialTicketEmails) ? initialTicketEmails : []),
-    [initialTicketEmails],
+    [],
   );
   const [ticketEmails, setTicketEmails] = useState<CompanyTicketEmailInput[]>(initialNormalizedTicketEmails);
 
@@ -174,7 +174,7 @@ export function CreateCompanyPageForm({
           status: item.status,
         }))
         .filter((item) => item.name.length > 0),
-    [initialContacts],
+    [],
   );
   const [contacts, setContacts] = useState<CompanyContactInput[]>(initialNormalizedContacts);
 
