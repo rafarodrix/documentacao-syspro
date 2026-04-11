@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { CompanySegment, CompanyStatus } from "@prisma/client"
 import { toast } from "sonner"
 import {
@@ -100,10 +101,20 @@ function CompanyActionsMenu({
   onToggleStatus: () => void
   onDelete: () => void
 }) {
+  const router = useRouter()
+  const [isNavigating, startNavigation] = useTransition()
+  const editHref = `/portal/cadastros/empresa/${company.id}/editar`
+
   if (!canEdit && !canToggleStatus && !canDelete) return null
 
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (open && canEdit) {
+          router.prefetch(editHref)
+        }
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -128,11 +139,18 @@ function CompanyActionsMenu({
         <DropdownMenuSeparator />
 
         {canEdit && (
-          <DropdownMenuItem asChild className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md">
-            <Link href={`/portal/cadastros/empresa/${company.id}/editar`}>
+          <DropdownMenuItem
+            className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md"
+            onPointerEnter={() => router.prefetch(editHref)}
+            onSelect={() => {
+              startNavigation(() => {
+                router.push(editHref)
+              })
+            }}
+            disabled={isNavigating}
+          >
               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-sm">Editar empresa</span>
-            </Link>
           </DropdownMenuItem>
         )}
 

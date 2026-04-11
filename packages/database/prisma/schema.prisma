@@ -150,6 +150,11 @@ enum RemoteAddressBookCredentialStatus {
   REVOKED
 }
 
+enum AccessScopeType {
+  GLOBAL
+  COMPANY
+}
+
 enum ConversationChannel {
   WHATSAPP
   EMAIL
@@ -297,6 +302,7 @@ model Company {
   integrationConnections       IntegrationConnection[]
   conversationLinks            ConversationLink[]
   messageLinks                 MessageLink[]
+  userAccessProfiles           UserAccessProfile[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -432,6 +438,8 @@ model User {
   createdRemoteAddressBookCredentials RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialCreatedBy")
   rotatedRemoteAddressBookCredentials RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialRotatedBy")
   revokedRemoteAddressBookCredentials RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialRevokedBy")
+  accessProfileAssignments            UserAccessProfile[]           @relation("UserAccessProfileUser")
+  assignedAccessProfiles              UserAccessProfile[]           @relation("UserAccessProfileAssignedBy")
 
   // INDICES PARA PERFORMANCE
   @@index([name])
@@ -489,6 +497,86 @@ model Membership {
   @@index([userId])
   @@index([companyId])
   @@map("membership")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  moduleKey   String
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  accessProfilePermissions AccessProfilePermission[]
+
+  @@index([moduleKey, isActive])
+  @@map("permission")
+}
+
+model AccessProfile {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?  @db.Text
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions     AccessProfilePermission[]
+  userAssignments UserAccessProfile[]
+
+  @@index([isSystem, isActive])
+  @@map("access_profile")
+}
+
+model AccessProfilePermission {
+  id String @id @default(cuid())
+
+  profileId String
+  profile   AccessProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([profileId, permissionId])
+  @@index([permissionId])
+  @@map("access_profile_permission")
+}
+
+model UserAccessProfile {
+  id String @id @default(cuid())
+
+  userId String
+  user   User @relation("UserAccessProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  profileId String
+  profile   AccessProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  scopeType AccessScopeType @default(GLOBAL)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  assignedByUserId String?
+  assignedByUser   User? @relation("UserAccessProfileAssignedBy", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+
+  reason    String?  @db.Text
+  startsAt  DateTime @default(now())
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, scopeType])
+  @@index([profileId, scopeType])
+  @@index([companyId])
+  @@index([assignedByUserId])
+  @@map("user_access_profile")
 }
 
 // ---------------------------------------------------------

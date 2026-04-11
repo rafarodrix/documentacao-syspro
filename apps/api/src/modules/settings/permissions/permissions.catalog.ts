@@ -13,7 +13,7 @@ const PROFILE_LABELS: Record<SettingsProfileKey, string> = {
   CLIENTE_USER: 'Cliente Usuario',
 };
 
-const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPermissionKey[]> = {
+export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPermissionKey[]> = {
   ADMIN: SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key),
   DEVELOPER: SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key),
   SUPORTE: [
@@ -73,6 +73,10 @@ export function buildDefaultPermissionProfiles(): SettingsPermissionProfile[] {
       permissions,
     }),
   );
+}
+
+export function getDefaultPermissionsForProfileKey(profileKey: SettingsProfileKey): SettingsPermissionKey[] {
+  return DEFAULT_PROFILE_PERMISSIONS[profileKey] ?? [];
 }
 
 export { SETTINGS_PERMISSION_DEFINITIONS };

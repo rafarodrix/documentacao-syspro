@@ -47,7 +47,7 @@ export const SETTINGS_PERMISSION_KEY_VALUES = SETTINGS_PERMISSION_DEFINITIONS.ma
   ...(typeof SETTINGS_PERMISSION_DEFINITIONS)[number]["key"][],
 ];
 
-export const settingsProfileKeySchema = z.enum(SETTINGS_PROFILE_KEY_VALUES);
+export const settingsProfileKeySchema = z.string().trim().min(1);
 export const settingsPermissionKeySchema = z.enum(SETTINGS_PERMISSION_KEY_VALUES);
 
 export const settingsPermissionDefinitionSchema = z.object({

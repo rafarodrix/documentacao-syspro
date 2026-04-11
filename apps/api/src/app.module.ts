@@ -10,6 +10,7 @@ import { CompaniesModule } from './modules/companies/companies.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { DocsModule } from './modules/docs/docs.module';
 
@@ -24,6 +25,7 @@ import { DocsModule } from './modules/docs/docs.module';
     SettingsModule,
     UsersModule,
     AuthModule,
+    AuthorizationModule,
     TicketsModule,
     DocsModule,
   ],
