@@ -558,7 +558,6 @@ export class UsersService {
           name: true,
           whatsapp: true,
           email: true,
-          companyId: true,
           companyLinks: {
             select: {
               companyId: true,
@@ -570,13 +569,6 @@ export class UsersService {
                   nomeFantasia: true,
                 },
               },
-            },
-          },
-          company: {
-            select: {
-              id: true,
-              razaoSocial: true,
-              nomeFantasia: true,
             },
           },
         },
@@ -659,7 +651,6 @@ export class UsersService {
       where: { id: contactId },
       select: {
         id: true,
-        companyId: true,
         companyLinks: {
           select: {
             companyId: true,
@@ -729,7 +720,6 @@ export class UsersService {
       where: { id: contactId },
       select: {
         id: true,
-        companyId: true,
         companyLinks: {
           select: {
             companyId: true,
