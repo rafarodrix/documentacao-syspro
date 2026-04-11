@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft as IconLeft, ChevronRight as IconRight, Download as DownloadIcon } from "lucide-react";
-import { TicketDialog } from "@/features/tickets/interface/components/TicketDialog";
+import Link from "next/link";
+import { ChevronLeft as IconLeft, ChevronRight as IconRight, Download as DownloadIcon, PlusCircle } from "lucide-react";
+
 import { TicketsStats } from "@/features/tickets/interface/components/TicketsStats";
 import { TicketsFilters } from "@/features/tickets/interface/components/TicketsFilters";
 import { TicketsTable } from "@/features/tickets/interface/components/TicketsTable";
@@ -26,13 +27,7 @@ interface TicketsContainerProps {
   closedWindow: ClosedTicketsWindow;
 }
 
-function TicketDialogFallback() {
-  return (
-    <Button className="h-10 w-full shadow-lg shadow-primary/20 transition-all bg-linear-to-r from-primary to-primary/90 gap-2 sm:w-auto" disabled>
-      Novo
-    </Button>
-  );
-}
+
 
 export function TicketsContainer({
   tickets,
@@ -149,10 +144,14 @@ export function TicketsContainer({
             {isAdmin ? "Gerencie a fila de suporte e solicitacoes." : "Acompanhe o status das suas solicitacoes."}
           </p>
         </div>
-        <div className="w-full sm:w-auto">
-          <Suspense fallback={<TicketDialogFallback />}>
-            <TicketDialog isSystemUser={isAdmin} />
-          </Suspense>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Link href="/portal/tickets/novo">
+            <Button className="h-10 w-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-linear-to-r from-primary to-primary/90 gap-2 sm:w-auto">
+              <PlusCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Abrir Novo Chamado</span>
+              <span className="sm:hidden">Novo</span>
+            </Button>
+          </Link>
         </div>
       </div>
 

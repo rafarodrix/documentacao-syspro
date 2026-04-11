@@ -7,10 +7,11 @@ import { getSettingsAdminViewData } from "@/features/settings/application/querie
 import { getRemotePlatformOverview } from "@/features/remote/application/queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-tab";
+import { TicketSettingsTab } from "@/features/tickets/interface/components/TicketSettingsTab";
 import EvolutionSettingsTab from "./evolution-tab";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files, Wallet, Boxes, Monitor } from "lucide-react";
+import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files, Wallet, Boxes, Monitor, MessageSquare } from "lucide-react";
 
 import { AccessControlTab, GeneralSettingsForm, SefazRoutesTab } from "@/features/settings/interface";
 import {
@@ -30,7 +31,7 @@ interface SettingsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const TAB_VALUES = new Set(["general", "remote", "evolution", "access", "tax", "contracts", "sefaz"]);
+const TAB_VALUES = new Set(["general", "remote", "evolution", "access", "tax", "contracts", "sefaz", "tickets"]);
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
     const session = await requireSession();
@@ -105,6 +106,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                         <TabsTrigger value="sefaz" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Activity className="h-4 w-4" />
                             <span className="font-medium">Rotas SEFAZ</span>
+                        </TabsTrigger>
+
+                        <TabsTrigger value="tickets" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
+                            <MessageSquare className="h-4 w-4" />
+                            <span className="font-medium">Tickets</span>
                         </TabsTrigger>
 
                     </TabsList>
@@ -227,6 +233,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <TabsContent value="sefaz" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-6xl">
                         <SefazRoutesTab initialRoutes={sefazRoutes} />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="tickets" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
+                    <div className="max-w-4xl">
+                        <TicketSettingsTab />
                     </div>
                 </TabsContent>
 

@@ -253,7 +253,24 @@ export class ContactsService {
       };
     }
 
-    const contacts = await this.evolutionClient.fetchContacts(context.evolution);
+    let contacts: Awaited<ReturnType<EvolutionClient['fetchContacts']>>;
+    try {
+      contacts = await this.evolutionClient.fetchContacts(context.evolution);
+    } catch (error: any) {
+      this.logger.warn(
+        `Sincronizacao manual de contatos indisponivel para ${context.evolution.instance}: ${error?.message ?? 'unknown_error'}`
+      );
+      return {
+        success: false,
+        syncedCount: 0,
+        createdCount: 0,
+        updatedCount: 0,
+        mode: 'unavailable',
+        message:
+          'A instancia Evolution conectada nao expoe uma rota compativel para sincronizacao manual de contatos ou rejeitou a autenticacao. O fluxo principal de webhook segue operacional.',
+        error: error?.message ?? 'unknown_error',
+      };
+    }
     let syncedCount = 0;
     let createdCount = 0;
     let updatedCount = 0;

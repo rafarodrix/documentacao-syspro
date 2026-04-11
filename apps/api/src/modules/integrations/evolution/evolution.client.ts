@@ -35,44 +35,63 @@ export class EvolutionClient {
 
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
-
-    const primaryResponse = await fetch(`${baseUrl}/chat/findContacts/${encodeURIComponent(instance)}`, {
-      method: 'POST',
-      headers: {
-        apikey: config.apiKey,
-        'Content-Type': 'application/json',
+    const sharedHeaders = this.buildAuthHeaders(config.apiKey);
+    const attempts: Array<{
+      label: string;
+      url: string;
+      init: RequestInit;
+    }> = [
+      {
+        label: 'primary_findContacts_instance',
+        url: `${baseUrl}/chat/findContacts/${encodeURIComponent(instance)}`,
+        init: {
+          method: 'POST',
+          headers: sharedHeaders,
+          body: JSON.stringify({ where: {}, take: 1000, skip: 0, orderBy: {} }),
+        },
       },
-      body: JSON.stringify({
-        where: {},
-        take: 1000,
-        skip: 0,
-        orderBy: {},
-      }),
-    });
+      {
+        label: 'fallback_findContacts_body',
+        url: `${baseUrl}/chat/findContacts`,
+        init: {
+          method: 'POST',
+          headers: sharedHeaders,
+          body: JSON.stringify({ id: instance, instance, where: {}, take: 1000, skip: 0, orderBy: {} }),
+        },
+      },
+      {
+        label: 'fallback_findChats_instance',
+        url: `${baseUrl}/chat/findChats/${encodeURIComponent(instance)}`,
+        init: {
+          method: 'POST',
+          headers: sharedHeaders,
+          body: JSON.stringify({ where: {}, take: 1000, skip: 0, orderBy: {} }),
+        },
+      },
+      {
+        label: 'legacy_user_contacts',
+        url: `${baseUrl}/user/contacts`,
+        init: {
+          method: 'GET',
+          headers: sharedHeaders,
+        },
+      },
+    ];
 
-    if (primaryResponse.ok) {
-      const payload: any = await primaryResponse.json().catch(() => []);
-      return this.normalizeContactList(this.resolveContactsPayload(payload));
+    const failures: string[] = [];
+
+    for (const attempt of attempts) {
+      const response = await fetch(attempt.url, attempt.init);
+      if (response.ok) {
+        const payload: any = await response.json().catch(() => ({}));
+        return this.normalizeContactList(this.resolveContactsPayload(payload));
+      }
+
+      const errorText = await response.text().catch(() => 'unknown_error');
+      failures.push(`${attempt.label}=${response.status} ${errorText}`);
     }
 
-    const fallbackResponse = await fetch(`${baseUrl}/user/contacts`, {
-      method: 'GET',
-      headers: {
-        apikey: config.apiKey,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (fallbackResponse.ok) {
-      const payload: any = await fallbackResponse.json().catch(() => ({}));
-      return this.normalizeContactList(this.resolveContactsPayload(payload));
-    }
-
-    const primaryError = await primaryResponse.text().catch(() => 'unknown_error');
-    const fallbackError = await fallbackResponse.text().catch(() => 'unknown_error');
-    throw new Error(
-      `Evolution fetchContacts failed: primary=${primaryResponse.status} ${primaryError}; fallback=${fallbackResponse.status} ${fallbackError}`
-    );
+    throw new Error(`Evolution fetchContacts failed: ${failures.join('; ')}`);
   }
 
   async sendTextMessage(
@@ -450,5 +469,13 @@ export class EvolutionClient {
     if (!raw) return '';
     const jidCandidate = raw.includes('@') ? raw.split('@')[0] : raw;
     return jidCandidate.replace(/\D/g, '');
+  }
+
+  private buildAuthHeaders(apiKey: string): Record<string, string> {
+    return {
+      apikey: apiKey,
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    };
   }
 }
