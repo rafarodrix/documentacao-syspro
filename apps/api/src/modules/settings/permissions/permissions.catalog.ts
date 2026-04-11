@@ -1,10 +1,17 @@
-import { ROLE_LABELS } from '@dosc-syspro/core';
 import {
   SETTINGS_PERMISSION_DEFINITIONS,
   type SettingsPermissionKey,
   type SettingsPermissionProfile,
   type SettingsProfileKey,
 } from '@dosc-syspro/contracts';
+
+const PROFILE_LABELS: Record<SettingsProfileKey, string> = {
+  ADMIN: 'Administrador',
+  DEVELOPER: 'Desenvolvedor',
+  SUPORTE: 'Suporte',
+  CLIENTE_ADMIN: 'Cliente Admin',
+  CLIENTE_USER: 'Cliente Usuario',
+};
 
 const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPermissionKey[]> = {
   ADMIN: SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key),
@@ -62,7 +69,7 @@ export function buildDefaultPermissionProfiles(): SettingsPermissionProfile[] {
   return (Object.entries(DEFAULT_PROFILE_PERMISSIONS) as Array<[SettingsProfileKey, SettingsPermissionKey[]]>).map(
     ([key, permissions]) => ({
       key,
-      label: ROLE_LABELS[key] ?? key,
+      label: PROFILE_LABELS[key],
       permissions,
     }),
   );
