@@ -39,7 +39,7 @@ export function readEvolutionRuntimeConfig(env: RuntimeEnv = readRuntimeEnvFromG
   return {
     apiUrl: config.EVOLUTION_API_URL?.trim() ?? "",
     apiKey: config.EVOLUTION_API_KEY?.trim() ?? "",
-    instance: config.EVOLUTION_INSTANCE?.trim() || "Syspro",
+    instance: config.EVOLUTION_INSTANCE?.trim() ?? "",
     instanceToken: config.EVOLUTION_INSTANCE_TOKEN?.trim() ?? "",
   };
 }

@@ -40,7 +40,7 @@ export class IntegrationConnectionsService {
   }
 
   async create(input: UpsertConnectionInput) {
-    this.validateInput(input);
+    await this.validateInput(input);
     const created = await (this.prisma as any).integrationConnection.create({
       data: this.toDatabaseInput(input),
     });
@@ -69,7 +69,7 @@ export class IntegrationConnectionsService {
       metadata: (input.metadata ?? current.metadata) as Record<string, unknown> | null,
     };
 
-    this.validateInput(merged);
+    await this.validateInput(merged, id);
     const updated = await (this.prisma as any).integrationConnection.update({
       where: { id },
       data: this.toDatabaseInput(merged),
@@ -238,8 +238,9 @@ export class IntegrationConnectionsService {
     }
   }
 
-  private validateInput(input: UpsertConnectionInput) {
+  private async validateInput(input: UpsertConnectionInput, excludeId?: string) {
     if (!input.name?.trim()) throw new Error('name obrigatorio');
+    if (!input.companyId?.trim()) throw new Error('companyId obrigatorio');
     if (!input.evolutionApiUrl?.trim()) throw new Error('evolutionApiUrl obrigatorio');
     if (!input.evolutionApiKey?.trim()) throw new Error('evolutionApiKey obrigatorio');
     if (!input.evolutionInstance?.trim()) throw new Error('evolutionInstance obrigatorio');
@@ -251,6 +252,48 @@ export class IntegrationConnectionsService {
     }
     if (input.chatwootInboxIdentifier && /^\d+$/.test(input.chatwootInboxIdentifier)) {
       throw new Error('chatwootInboxIdentifier nao deve ser numerico');
+    }
+
+    const normalizedCompanyId = input.companyId.trim();
+    const company = await this.prisma.company.findUnique({
+      where: { id: normalizedCompanyId },
+      select: { id: true, deletedAt: true },
+    });
+
+    if (!company || company.deletedAt) {
+      throw new Error('companyId invalido');
+    }
+
+    const activeConnectionWhere = {
+      companyId: normalizedCompanyId,
+      status: 'ACTIVE',
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    };
+    const existingActiveForCompany = await (this.prisma as any).integrationConnection.findFirst({
+      where: activeConnectionWhere,
+      select: { id: true, name: true },
+    });
+
+    if ((input.status ?? 'ACTIVE') === 'ACTIVE' && existingActiveForCompany) {
+      throw new Error(`A empresa ja possui conexao ativa (${existingActiveForCompany.name}).`);
+    }
+
+    const inboxConflict = await (this.prisma as any).integrationConnection.findFirst({
+      where: {
+        status: 'ACTIVE',
+        companyId: { not: normalizedCompanyId },
+        chatwootUrl: input.chatwootUrl.trim(),
+        chatwootAccountId: input.chatwootAccountId.toString().trim(),
+        ...(input.chatwootInboxId
+          ? { chatwootInboxId: input.chatwootInboxId.toString().trim() }
+          : { chatwootInboxIdentifier: input.chatwootInboxIdentifier?.trim() || null }),
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true, name: true, companyId: true },
+    });
+
+    if ((input.status ?? 'ACTIVE') === 'ACTIVE' && inboxConflict) {
+      throw new Error(`Inbox do Chatwoot ja vinculada a outra empresa pela conexao ${inboxConflict.name}.`);
     }
   }
 

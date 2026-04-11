@@ -287,6 +287,14 @@ export class ChatwootClient {
     return url;
   }
 
+  async deletePlatformUser(config: ChatwootConnectionConfig, userId: string): Promise<void> {
+    await this.platformRequest(
+      config,
+      `/platform/api/v1/users/${userId}`,
+      'DELETE'
+    );
+  }
+
   async createConversation(config: ChatwootConnectionConfig, contactIdentifier: string, contactId?: string) {
     const inboxIdentifier = await this.resolveInboxIdentifier(config);
     if (inboxIdentifier) {

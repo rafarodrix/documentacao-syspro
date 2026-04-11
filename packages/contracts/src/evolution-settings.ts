@@ -24,6 +24,9 @@ export const evolutionSettingsSchema = z.object({
   subscribe: z.array(evolutionWebhookSubscribeSchema).min(1).default(["ALL"]),
   immediate: z.boolean().default(true),
   phone: z.string().trim().optional().default(""),
+  instance: z.string().trim().optional().default(""),
+  instanceId: z.string().trim().optional().default(""),
+  instanceToken: z.string().trim().optional().default(""),
 });
 
 export type EvolutionSettingsInput = z.input<typeof evolutionSettingsSchema>;
@@ -34,4 +37,7 @@ export const DEFAULT_EVOLUTION_SETTINGS: EvolutionSettings = {
   subscribe: ["ALL"],
   immediate: true,
   phone: "",
+  instance: "",
+  instanceId: "",
+  instanceToken: "",
 };

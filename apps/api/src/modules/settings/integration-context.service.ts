@@ -1,9 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createDecipheriv, createHash } from 'crypto';
 import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig } from '@dosc-syspro/config';
+import { DEFAULT_EVOLUTION_SETTINGS, evolutionSettingsSchema } from '@dosc-syspro/contracts';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const ENV_DEFAULT_CONNECTION_KEY = 'env:default';
+
+function readTrimmedString(...values: unknown[]): string {
+  for (const value of values) {
+    const normalized = String(value ?? '').trim();
+    if (normalized) return normalized;
+  }
+  return '';
+}
 
 export type ResolvedIntegrationContext = {
   source: 'database' | 'env';
@@ -50,7 +59,39 @@ export class IntegrationContextService {
       );
     }
 
-    return this.toResolvedContext(connection) ?? this.readEnvFallback();
+    return this.toResolvedContext(connection) ?? await this.readEnvFallback();
+  }
+
+  async listActiveContexts(filters?: { companyIds?: string[] | null }): Promise<ResolvedIntegrationContext[]> {
+    const companyIds = Array.isArray(filters?.companyIds)
+      ? Array.from(new Set(filters!.companyIds.map((item) => String(item ?? '').trim()).filter(Boolean)))
+      : [];
+
+    let rows: any[] = [];
+    try {
+      rows = await (this.prisma as any).integrationConnection.findMany({
+        where: {
+          status: 'ACTIVE',
+          ...(companyIds.length ? { companyId: { in: companyIds } } : {}),
+        },
+        orderBy: [{ companyId: 'asc' }, { createdAt: 'asc' }],
+      });
+    } catch (error: any) {
+      this.logger.warn(
+        `[integration_context] listActiveContexts database lookup failed; falling back to env runtime: ${error?.code ?? 'unknown'} ${error?.message ?? 'unknown_error'}`,
+      );
+    }
+
+    const contexts = rows
+      .map((row) => this.toResolvedContext(row))
+      .filter((item): item is ResolvedIntegrationContext => item !== null);
+
+    if (contexts.length > 0) {
+      return contexts;
+    }
+
+    const fallback = await this.readEnvFallback();
+    return fallback ? [fallback] : [];
   }
 
   async resolveByConnectionKey(connectionKey?: string | null): Promise<ResolvedIntegrationContext | null> {
@@ -70,12 +111,29 @@ export class IntegrationContextService {
       );
     }
 
-    return this.toResolvedContext(connection) ?? this.readEnvFallback();
+    return this.toResolvedContext(connection) ?? await this.readEnvFallback();
   }
 
   async resolveForEvolutionWebhook(payload: any): Promise<ResolvedIntegrationContext | null> {
-    const instanceId = String(payload?.instanceId ?? payload?.data?.instanceId ?? '').trim();
-    const instance = String(payload?.instance ?? payload?.instanceName ?? payload?.data?.instance ?? '').trim();
+    const instanceId = readTrimmedString(
+      payload?.instanceId,
+      payload?.data?.instanceId,
+      payload?.data?.instance?.instanceId,
+      payload?.data?.instance?.id,
+      payload?.instance?.instanceId,
+      payload?.instance?.id,
+      payload?.sender,
+    );
+    const instance = readTrimmedString(
+      payload?.instance,
+      payload?.instanceName,
+      payload?.data?.instance,
+      payload?.data?.instanceName,
+      payload?.data?.instance?.instanceName,
+      payload?.data?.instance?.name,
+      payload?.instance?.instanceName,
+      payload?.instance?.name,
+    );
     const hasExplicitMatchInput = Boolean(instanceId || instance);
     const orFilters = [
       ...(instanceId ? [{ evolutionInstanceId: instanceId }] : []),
@@ -99,8 +157,18 @@ export class IntegrationContextService {
 
     const matched = this.toResolvedContext(candidates?.[0]);
     if (matched) return matched;
+
+    const allActiveContexts = await this.listActiveContexts();
+    if (allActiveContexts.length === 1) {
+      const [singleContext] = allActiveContexts;
+      this.logger.warn(
+        `[integration_context] resolveForEvolutionWebhook using single active connection fallback: connectionKey=${singleContext.connectionKey}, instanceId=${instanceId || 'n/a'}, instance=${instance || 'n/a'}`,
+      );
+      return singleContext;
+    }
+
     if (hasExplicitMatchInput) return null;
-    return this.readEnvFallback();
+    return await this.readEnvFallback();
   }
 
   async resolveForChatwootWebhook(payload: any): Promise<ResolvedIntegrationContext | null> {
@@ -148,7 +216,7 @@ export class IntegrationContextService {
       return !inboxId && !inboxIdentifier;
     });
 
-    return this.toResolvedContext(matched ?? candidates?.[0]) ?? this.readEnvFallback();
+    return this.toResolvedContext(matched ?? candidates?.[0]) ?? await this.readEnvFallback();
   }
 
   private toResolvedContext(row: any): ResolvedIntegrationContext | null {
@@ -188,13 +256,16 @@ export class IntegrationContextService {
     };
   }
 
-  private readEnvFallback(): ResolvedIntegrationContext | null {
+  private async readEnvFallback(): Promise<ResolvedIntegrationContext | null> {
     const evolution = readEvolutionRuntimeConfig();
     const chatwoot = readChatwootRuntimeConfig();
+    const storedEvolution = await this.readStoredEvolutionSettings();
     const hasAnyValue = Boolean(
       evolution.apiUrl ||
       evolution.apiKey ||
-      evolution.instance ||
+      storedEvolution.instance ||
+      storedEvolution.instanceId ||
+      storedEvolution.instanceToken ||
       chatwoot.url ||
       chatwoot.apiToken ||
       chatwoot.accountId ||
@@ -213,9 +284,9 @@ export class IntegrationContextService {
       evolution: {
         apiUrl: evolution.apiUrl,
         apiKey: evolution.apiKey,
-        instance: evolution.instance,
-        instanceId: '',
-        instanceToken: evolution.instanceToken || undefined,
+        instance: storedEvolution.instance,
+        instanceId: storedEvolution.instanceId || '',
+        instanceToken: storedEvolution.instanceToken || undefined,
         webhookSecret: undefined,
       },
       chatwoot: {
@@ -229,6 +300,25 @@ export class IntegrationContextService {
         webhookMaxSkewSeconds: chatwoot.webhookMaxSkewSeconds ?? 300,
       },
     };
+  }
+
+  private async readStoredEvolutionSettings() {
+    try {
+      const row = await this.prisma.systemSetting.findUnique({
+        where: { key: 'evolution_config' },
+        select: { value: true },
+      });
+
+      if (!row?.value) {
+        return DEFAULT_EVOLUTION_SETTINGS;
+      }
+
+      const parsed = JSON.parse(row.value);
+      const validation = evolutionSettingsSchema.safeParse(parsed);
+      return validation.success ? validation.data : DEFAULT_EVOLUTION_SETTINGS;
+    } catch {
+      return DEFAULT_EVOLUTION_SETTINGS;
+    }
   }
 
   private readWebhookSkew(metadata: Record<string, unknown>): number {

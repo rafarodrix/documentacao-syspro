@@ -11,7 +11,7 @@ import { Role, Prisma } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
 import type { IncomingHttpHeaders } from 'node:http';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
-import { IntegrationContextService } from '../settings/integration-context.service';
+import { IntegrationContextService, type ResolvedIntegrationContext } from '../settings/integration-context.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
@@ -161,7 +161,7 @@ export class UsersService {
     if (!authResult?.user) throw new Error('Falha critica ao obter o ID do novo usuario.');
     const createdUserId = authResult.user.id;
 
-    return this.prisma.$transaction(async (tx) => {
+    const createdUser = await this.prisma.$transaction(async (tx) => {
       const userRole = data.role || Role.CLIENTE_USER;
 
       await (tx.user as any).update({
@@ -188,6 +188,9 @@ export class UsersService {
         include: this.userInclude(),
       });
     });
+
+    await this.syncPortalUserToChatwootSafe(createdUserId);
+    return createdUser;
   }
 
   async update(id: string, data: UpdateUserInput, rawHeaders?: IncomingHttpHeaders) {
@@ -226,7 +229,7 @@ export class UsersService {
       await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, true);
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedUser = await this.prisma.$transaction(async (tx) => {
       const updatedUser = await (tx.user as any).update({
         where: { id },
         data: {
@@ -255,6 +258,9 @@ export class UsersService {
 
       return updatedUser;
     });
+
+    await this.syncPortalUserToChatwootSafe(id);
+    return updatedUser;
   }
 
   async remove(id: string, rawHeaders?: IncomingHttpHeaders) {
@@ -271,10 +277,13 @@ export class UsersService {
       await this.assertClientManagerCanManageTarget(requester.userId, id);
     }
 
-    return this.prisma.user.update({
+    const removedUser = await this.prisma.user.update({
       where: { id },
       data: { isActive: false, deletedAt: new Date() },
     });
+
+    await this.syncPortalUserToChatwootSafe(id);
+    return removedUser;
   }
 
   async getChatwootSsoLinkForCurrentUser(rawHeaders?: IncomingHttpHeaders) {
@@ -441,6 +450,154 @@ export class UsersService {
     }
 
     return `${normalizedBaseUrl}/app/accounts/${normalizedAccountId}`;
+  }
+
+  private async syncPortalUserToChatwootSafe(userId: string) {
+    try {
+      await this.syncPortalUserToChatwoot(userId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error ?? 'unknown_error');
+      this.logger.warn(`Falha ao sincronizar usuario ${userId} com Chatwoot: ${message}`);
+    }
+  }
+
+  private async syncPortalUserToChatwoot(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        deletedAt: true,
+        memberships: {
+          select: { companyId: true },
+        },
+      },
+    });
+
+    if (!user) {
+      return;
+    }
+
+    const companyIds = Array.from(new Set(user.memberships.map((membership) => membership.companyId)));
+    const contexts = await this.integrationContext.listActiveContexts();
+    const dedupedContexts = this.dedupeChatwootContexts(contexts);
+
+    if (!dedupedContexts.length) {
+      return;
+    }
+
+    const shouldProvision = this.authorizationService.isSystemRole(user.role) && user.isActive && !user.deletedAt;
+    if (!shouldProvision) {
+      await this.removePortalUserFromChatwoot(user.email, dedupedContexts);
+      return;
+    }
+
+    const chatwootRole = this.mapRoleToChatwoot(user.role);
+    const customAttributes = {
+      portal_user_id: user.id,
+      portal_role: user.role,
+      portal_is_active: user.isActive,
+      portal_company_ids: companyIds,
+    };
+
+    const platformUserIdByBase = new Map<string, string>();
+
+    for (const context of dedupedContexts) {
+      if (!context.chatwoot.url || !context.chatwoot.accountId || !context.chatwoot.platformApiToken) {
+        continue;
+      }
+
+      const cacheKey = context.chatwoot.url.replace(/\/+$/, '').toLowerCase();
+      let platformUserId = platformUserIdByBase.get(cacheKey);
+      let accountAgent = null as any;
+
+      if (!platformUserId) {
+        const agents = await this.chatwootClient.listAgents(context.chatwoot);
+        accountAgent = agents.find((item: any) => String(item?.email ?? '').trim().toLowerCase() === user.email.toLowerCase()) ?? null;
+        platformUserId = accountAgent ? String(accountAgent.id ?? '').trim() : '';
+      }
+
+      if (!platformUserId) {
+        const created = await this.chatwootClient.createPlatformUser(context.chatwoot, {
+          name: user.name?.trim() || user.email,
+          displayName: user.name?.trim() || user.email,
+          email: user.email,
+          customAttributes,
+        });
+
+        platformUserId = String(created?.id ?? '').trim();
+        if (!platformUserId) {
+          throw new Error(`Falha ao provisionar usuario ${user.email} no Chatwoot.`);
+        }
+      } else {
+        await this.chatwootClient.updatePlatformUser(context.chatwoot, platformUserId, {
+          name: user.name?.trim() || user.email,
+          displayName: user.name?.trim() || user.email,
+          email: user.email,
+          customAttributes,
+        });
+      }
+
+      platformUserIdByBase.set(cacheKey, platformUserId);
+
+      const alreadyInAccount = accountAgent
+        ? true
+        : await this.chatwootUserExistsInAccount(context, platformUserId);
+
+      if (!alreadyInAccount) {
+        await this.chatwootClient.createAccountUser(context.chatwoot, platformUserId, chatwootRole);
+      }
+    }
+  }
+
+  private async removePortalUserFromChatwoot(email: string, contexts: ResolvedIntegrationContext[]) {
+    const userIdsByBase = new Map<string, string>();
+
+    for (const context of contexts) {
+      if (!context?.chatwoot.url || !context.chatwoot.platformApiToken) {
+        continue;
+      }
+
+      const cacheKey = context.chatwoot.url.replace(/\/+$/, '').toLowerCase();
+      if (userIdsByBase.has(cacheKey)) {
+        continue;
+      }
+
+      const agents = await this.chatwootClient.listAgents(context.chatwoot);
+      const agent = agents.find((item: any) => String(item?.email ?? '').trim().toLowerCase() === email.toLowerCase()) ?? null;
+      const platformUserId = String(agent?.id ?? '').trim();
+      if (!platformUserId) {
+        continue;
+      }
+
+      await this.chatwootClient.deletePlatformUser(context.chatwoot, platformUserId);
+      userIdsByBase.set(cacheKey, platformUserId);
+    }
+  }
+
+  private dedupeChatwootContexts(contexts: ResolvedIntegrationContext[]) {
+    const seen = new Set<string>();
+    return contexts.filter((context) => {
+      const key = [
+        context.chatwoot.url.replace(/\/+$/, '').toLowerCase(),
+        context.chatwoot.accountId,
+      ].join('|');
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  private async chatwootUserExistsInAccount(
+    context: ResolvedIntegrationContext,
+    platformUserId: string,
+  ) {
+    const agents = await this.chatwootClient.listAgents(context.chatwoot);
+    return agents.some((item: any) => String(item?.id ?? '').trim() === platformUserId);
   }
 
   async getClientAdminView(rawHeaders?: IncomingHttpHeaders) {

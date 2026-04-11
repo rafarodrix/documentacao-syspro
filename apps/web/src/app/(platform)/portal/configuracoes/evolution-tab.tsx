@@ -116,7 +116,7 @@ export default function EvolutionSettingsTab() {
         <CardHeader>
           <CardTitle>Configuracoes do Webhook</CardTitle>
           <CardDescription>
-            Esses dados definem a configuracao esperada da instancia Evolution Go e servem como referencia para o fluxo de webhook.
+            Esses dados definem a configuracao exata esperada da instancia Evolution Go. O backend usa os valores salvos aqui para casar a instancia do webhook.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -161,6 +161,57 @@ export default function EvolutionSettingsTab() {
                     value={settings.phone}
                     onChange={(event) => setSettings((prev) => ({ ...prev, phone: event.target.value }))}
                     placeholder="5534XXXXXXXX"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <LabelWithHelp
+                    htmlFor="instance"
+                    label="Instance"
+                    help={
+                      "Alias/nome exato da instancia na Evolution.\n" +
+                      "Use exatamente o mesmo valor exibido na instancia para o backend casar o webhook.\n" +
+                      "Esse valor nao deve mais depender do .env."
+                    }
+                  />
+                  <Input
+                    id="instance"
+                    value={settings.instance}
+                    onChange={(event) => setSettings((prev) => ({ ...prev, instance: event.target.value }))}
+                    placeholder="Trilink"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <LabelWithHelp
+                    htmlFor="instanceId"
+                    label="Instance ID"
+                    help={
+                      "Identificador exato da instancia na Evolution.\n" +
+                      "Preencha se sua instalacao expor esse campo no manager e voce quiser casamento mais preciso.\n" +
+                      "Esse valor fica persistido nas configuracoes do portal."
+                    }
+                  />
+                  <Input
+                    id="instanceId"
+                    value={settings.instanceId}
+                    onChange={(event) => setSettings((prev) => ({ ...prev, instanceId: event.target.value }))}
+                    placeholder="uuid-da-instancia"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <LabelWithHelp
+                    htmlFor="instanceToken"
+                    label="Instance Token"
+                    help={
+                      "Token opcional de validacao do webhook da Evolution.\n" +
+                      "So preencha se sua instancia realmente enviar instanceToken no payload.\n" +
+                      "Se preencher aqui, o backend passa a exigir esse mesmo valor."
+                    }
+                  />
+                  <Input
+                    id="instanceToken"
+                    value={settings.instanceToken}
+                    onChange={(event) => setSettings((prev) => ({ ...prev, instanceToken: event.target.value }))}
+                    placeholder="token-opcional-da-instancia"
                   />
                 </div>
               </div>
@@ -243,8 +294,8 @@ export default function EvolutionSettingsTab() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>- Evolution Go deve apontar para `POST /api/webhooks/evolution` com `Message` e `Receipt` habilitados.</p>
-          <p>- O backend precisa ter `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` e `EVOLUTION_INSTANCE` configurados.</p>
-          <p>- Se `EVOLUTION_INSTANCE_TOKEN` estiver definido no backend, o `instanceToken` enviado pela Evolution Go deve bater exatamente.</p>
+          <p>- O backend precisa ter `EVOLUTION_API_URL` e `EVOLUTION_API_KEY` configurados.</p>
+          <p>- Os campos `Instance`, `Instance ID` e `Instance Token` desta tela sao a fonte de verdade para o casamento exato do webhook.</p>
           <p>- O Chatwoot precisa apontar webhook para `POST /api/webhooks/chatwoot`; `/webhooks/chatwoot` tambem e aceito como alias.</p>
           <p>- O fluxo principal atual depende de `message_created` no Chatwoot para enviar respostas ao WhatsApp.</p>
         </CardContent>
