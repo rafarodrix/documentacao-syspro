@@ -1,5 +1,9 @@
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
-import type { ActivityPoint } from "@/components/platform/app/dashboard/ActivityChart";
+
+export interface ActivityPoint {
+    label: string;
+    value: number;
+}
 
 export type TicketPriorityLevel = number;
 

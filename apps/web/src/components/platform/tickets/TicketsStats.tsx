@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { ElementType } from "react";
 import { Inbox, Clock, CheckCircle2 } from "lucide-react";
@@ -109,4 +109,3 @@ export function TicketsStats({ counts, activeStatus, onSelectStatus }: TicketsSt
         </div>
     );
 }
-

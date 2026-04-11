@@ -1,6 +1,6 @@
 import { Role } from "@prisma/client";
 import { getTicketDetailsAction } from "@/features/tickets/application/ticket-actions";
-import { TicketDetails } from "@/components/platform/tickets/TicketDetails";
+import { TicketDetails } from "@/features/tickets/interface";
 import { requireSession } from "@/lib/auth-helpers";
 
 interface PageProps {

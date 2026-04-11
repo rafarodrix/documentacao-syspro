@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useTicketChat } from "@/features/tickets/interface";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,8 @@ import dynamic from "next/dynamic";
 import { useRef } from "react";
 import type { TicketArticleItem } from "./types";
 
-// Dynamic import for ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import("react-quill-new"), { 
-    ssr: false, 
+const ReactQuill = dynamic(() => import("react-quill-new"), {
+    ssr: false,
     loading: () => <div className="h-24 w-full bg-muted/20 animate-pulse rounded-xl border border-border/50" />
 });
 import "react-quill-new/dist/quill.snow.css";
@@ -25,13 +24,12 @@ interface TicketChatProps {
 }
 
 export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps) {
-    const { 
-        message, setMessage, files, addFiles, removeFile, 
-        isPending, scrollRef, handleSend, isMe, isSystem 
+    const {
+        message, setMessage, files, addFiles, removeFile,
+        isPending, scrollRef, handleSend, isMe, isSystem
     } = useTicketChat(ticketId, articles);
-    
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const isClosed = ["closed", "merged", "fechado", "resolvido", "finalizado", "recusado"].includes(
         (ticketStatus || "").toLowerCase()
     );
@@ -65,10 +63,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                             }
 
                             return (
-                                <div
-                                    key={article.id}
-                                    className={cn("flex gap-3 max-w-[92%]", messageIsMe ? "ml-auto flex-row-reverse" : "mr-auto")}
-                                >
+                                <div key={article.id} className={cn("flex gap-3 max-w-[92%]", messageIsMe ? "ml-auto flex-row-reverse" : "mr-auto")}>
                                     <Avatar className="h-9 w-9 border shadow-sm">
                                         <AvatarFallback
                                             className={cn(
@@ -120,16 +115,10 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                             {files.length > 0 && (
                                 <div className="flex flex-wrap gap-2 px-1">
                                     {files.map((file, idx) => (
-                                        <div 
-                                            key={`${file.name}-${idx}`}
-                                            className="flex items-center gap-2 px-2 py-1 rounded-md bg-primary/10 border border-primary/20 text-xs animate-in fade-in zoom-in duration-200"
-                                        >
+                                        <div key={`${file.name}-${idx}`} className="flex items-center gap-2 px-2 py-1 rounded-md bg-primary/10 border border-primary/20 text-xs animate-in fade-in zoom-in duration-200">
                                             <FileText className="h-3 w-3 text-primary" />
                                             <span className="max-w-40 truncate font-medium">{file.name}</span>
-                                            <button 
-                                                onClick={() => removeFile(idx)}
-                                                className="p-0.5 hover:bg-primary/20 rounded-full transition-colors"
-                                            >
+                                            <button onClick={() => removeFile(idx)} className="p-0.5 hover:bg-primary/20 rounded-full transition-colors">
                                                 <X className="h-3 w-3" />
                                             </button>
                                         </div>
@@ -145,23 +134,13 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                         onChange={setMessage}
                                         placeholder="Digite sua resposta..."
                                         modules={{
-                                            toolbar: [
-                                                ['bold', 'italic', 'underline'],
-                                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                                                ['clean']
-                                            ],
+                                            toolbar: [["bold", "italic", "underline"], [{ list: "ordered" }, { list: "bullet" }], ["clean"]],
                                         }}
                                     />
                                 </div>
 
                                 <div className="flex flex-col gap-2">
-                                    <input 
-                                        type="file" 
-                                        multiple 
-                                        hidden 
-                                        ref={fileInputRef} 
-                                        onChange={(e) => addFiles(e.target.files)} 
-                                    />
+                                    <input type="file" multiple hidden ref={fileInputRef} onChange={(e) => addFiles(e.target.files)} />
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -173,12 +152,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                         <Paperclip className="h-4 w-4" />
                                     </Button>
 
-                                    <Button
-                                        onClick={handleSend}
-                                        disabled={isPending || (!message.trim() && files.length === 0)}
-                                        size="icon"
-                                        className="h-10 w-10 rounded-lg shadow shrink-0"
-                                    >
+                                    <Button onClick={handleSend} disabled={isPending || (!message.trim() && files.length === 0)} size="icon" className="h-10 w-10 rounded-lg shadow shrink-0">
                                         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                                     </Button>
                                 </div>
@@ -190,5 +164,3 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
         </Card>
     );
 }
-
-

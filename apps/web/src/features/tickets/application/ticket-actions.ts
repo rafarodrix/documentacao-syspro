@@ -2,95 +2,30 @@
 
 import { headers } from "next/headers";
 import { Role } from "@prisma/client";
+import type {
+  TicketModuleCreateRequest,
+  TicketModuleDetailsResponse,
+  TicketModuleLinkedCompaniesResponse,
+  TicketModuleListResponse,
+  TicketModuleMutationResponse,
+  TicketModulePriority,
+  TicketModuleRecord,
+} from "@dosc-syspro/contracts";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { resolveServerOrigin } from "@/lib/server-origin";
 import { consumeActionRateLimit } from "@dosc-syspro/api/security/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
-import type { TicketQueryParams, TicketsDataResponse, TicketListItem, TicketStatusCounts } from "@/components/platform/tickets/types";
-import type { TicketDetailsResponse, TicketMutationResponse, ClosedTicketsWindow } from "@/features/tickets/domain/ticket-model";
+import type {
+  TicketDetailsResponse,
+  TicketMutationResponse,
+  TicketQueryParams,
+  TicketsDataResponse,
+  TicketListItem,
+} from "@/features/tickets/domain/ticket-model";
 
 const CREATE_TICKET_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 const SYSTEM_ROLES = new Set<Role>([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE]);
-
-type TicketStatusApi = "NEW" | "UNASSIGNED" | "IN_PROGRESS" | "WAITING_CUSTOMER" | "RESOLVED" | "ARCHIVED";
-type TicketPriorityApi = "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
-type TicketChannelApi = "WHATSAPP" | "EMAIL" | "PORTAL" | "PHONE";
-type TicketDirectionApi = "INBOUND" | "OUTBOUND" | "INTERNAL";
-type TicketMessageTypeApi = "TEXT" | "IMAGE" | "DOCUMENT" | "AUDIO";
-
-type ApiTicketMessage = {
-  id: string;
-  direction: TicketDirectionApi;
-  type: TicketMessageTypeApi;
-  body: string | null;
-  createdAt: string;
-  authorUser?: { id: string; name: string | null; email: string } | null;
-  authorContact?: { id: string; name: string | null } | null;
-};
-
-type ApiTicket = {
-  id: string;
-  channel: TicketChannelApi;
-  status: TicketStatusApi;
-  priority: TicketPriorityApi;
-  companyId: string | null;
-  company?: { id: string; razaoSocial: string; nomeFantasia: string | null } | null;
-  companyContactId: string | null;
-  companyContact?: { id: string; name: string | null; email: string | null; whatsapp: string | null } | null;
-  assignedUserId: string | null;
-  assignedUser?: { id: string; name: string | null; email: string } | null;
-  resolvedByUserId: string | null;
-  ticketNumber: string | null;
-  subject: string | null;
-  resolutionSummary?: string | null;
-  resolutionVideoUrl?: string | null;
-  releaseType?: string | null;
-  releaseModule?: string | null;
-  publishToReleases?: boolean;
-  externalThreadId?: string | null;
-  metadata?: Record<string, unknown> | null;
-  contactPhoneSnapshot?: string | null;
-  contactWhatsappSnapshot?: string | null;
-  contactNameSnapshot?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  closedAt: string | null;
-  messages?: ApiTicketMessage[];
-};
-
-type ApiTicketsListResponse = {
-  success: boolean;
-  data?: ApiTicket[];
-  pagination?: {
-    page: number;
-    pageSize: number;
-    total: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-  };
-  queueCounts?: {
-    all: number;
-    my_queue: number;
-    unassigned: number;
-    critical: number;
-    no_response: number;
-  };
-  statusCounts?: TicketStatusCounts;
-  error?: string;
-};
-
-type ApiTicketDetailsResponse = {
-  success: boolean;
-  data?: ApiTicket;
-  error?: string;
-};
-
-type ApiMutationResponse = {
-  success: boolean;
-  message?: string;
-  error?: string;
-};
 
 export async function finalizeTicketAction(input: {
   ticketId: string | number;
@@ -120,7 +55,7 @@ export async function finalizeTicketAction(input: {
   }
 
   try {
-    const result = await callTicketsApi<ApiMutationResponse>(`/${String(input.ticketId)}/status`, {
+    const result = await callTicketsApi<TicketModuleMutationResponse>(`/${String(input.ticketId)}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -150,20 +85,20 @@ function isSystemRole(role: Role): boolean {
   return SYSTEM_ROLES.has(role);
 }
 
-function mapPriorityToLevel(priority: TicketPriorityApi | string | null | undefined): number {
+function mapPriorityToLevel(priority: TicketModulePriority | string | null | undefined): number {
   if (priority === "LOW") return 1;
   if (priority === "HIGH" || priority === "CRITICAL") return 3;
   return 2;
 }
 
-function parsePriorityFromForm(value: string): TicketPriorityApi {
+function parsePriorityFromForm(value: string): TicketModulePriority {
   const firstToken = (value || "").trim().toLowerCase().split(/\s+/)[0];
   if (firstToken === "1" || firstToken === "low" || firstToken === "baixa") return "LOW";
   if (firstToken === "3" || firstToken === "high" || firstToken === "alta" || firstToken === "urgent") return "HIGH";
   return "NORMAL";
 }
 
-function mapStatusLabel(status: TicketStatusApi | string): string {
+function mapStatusLabel(status: TicketModuleRecord["status"] | string): string {
   switch (status) {
     case "NEW":
       return "Novo";
@@ -187,7 +122,7 @@ function readStringMetadata(metadata: Record<string, unknown> | null | undefined
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function toTicketListItem(ticket: ApiTicket): TicketListItem {
+function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
   const companyName = ticket.company?.nomeFantasia || ticket.company?.razaoSocial || null;
   const customerName =
     ticket.companyContact?.name ||
@@ -279,7 +214,7 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
   };
 
   try {
-    const response = await callTicketsApi<ApiTicketsListResponse>(`?${query.toString()}`);
+    const response = await callTicketsApi<TicketModuleListResponse>(`?${query.toString()}`);
     
     if (!response.success || !response.data) {
       return { ...emptyResult, error: response.error || "Falha ao carregar chamados." };
@@ -339,10 +274,9 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
       return { success: false, message: "Preencha assunto e descricao." };
     }
 
-    let companyId: string | undefined;
     const userSelectedCompanyId = String(formData.get("userSelectedCompanyId") || "").trim() || undefined;
 
-    const payload = {
+    const payload: TicketModuleCreateRequest = {
       title: subject,
       description,
       priority: parsePriorityFromForm(priorityRaw),
@@ -370,7 +304,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
         : {}),
     };
 
-    const result = await callTicketsApi<ApiMutationResponse>("", {
+    const result = await callTicketsApi<TicketModuleMutationResponse>("", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -393,7 +327,7 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
   if (!session) return { success: false, error: "Nao autorizado" };
 
   try {
-    const response = await callTicketsApi<ApiTicketDetailsResponse>(`/${ticketId}`);
+    const response = await callTicketsApi<TicketModuleDetailsResponse>(`/${ticketId}`);
     if (!response.success || !response.data) {
       return { success: false, error: response.error || "Chamado nao encontrado." };
     }
@@ -433,7 +367,7 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
         },
         createdAt: new Date(ticket.createdAt).toLocaleDateString("pt-BR"),
       },
-      articles: (ticket.messages || []).map((message) => ({
+      articles: (ticket.messages || []).map((message: NonNullable<TicketModuleRecord["messages"]>[number]) => ({
         id: message.id,
         from:
           message.authorUser?.email ||
@@ -473,7 +407,7 @@ export async function replyTicketAction(
       : "";
     const outbound = `${body || "Mensagem com anexos"}${attachmentNote}`.trim();
 
-    const result = await callTicketsApi<ApiMutationResponse>(`/${ticketId}/reply`, {
+    const result = await callTicketsApi<TicketModuleMutationResponse>(`/${ticketId}/reply`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: outbound }),
@@ -504,7 +438,7 @@ export async function ticketQuickAction(input: {
 
   try {
     if (input.action === "assume") {
-      const result = await callTicketsApi<ApiMutationResponse>(`/${ticketId}/status`, {
+      const result = await callTicketsApi<TicketModuleMutationResponse>(`/${ticketId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ assignedUserId: session.userId, status: "IN_PROGRESS" }),
@@ -515,7 +449,7 @@ export async function ticketQuickAction(input: {
     }
 
     if (input.action === "priority_high") {
-      const result = await callTicketsApi<ApiMutationResponse>(`/${ticketId}/status`, {
+      const result = await callTicketsApi<TicketModuleMutationResponse>(`/${ticketId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ priority: "HIGH" }),
@@ -526,7 +460,7 @@ export async function ticketQuickAction(input: {
     }
 
     if (input.action === "macro_followup") {
-      const result = await callTicketsApi<ApiMutationResponse>(`/${ticketId}/reply`, {
+      const result = await callTicketsApi<TicketModuleMutationResponse>(`/${ticketId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: "Atualizacao automatica: estamos analisando este chamado e retornaremos em breve." }),
@@ -552,7 +486,7 @@ export async function getUserLinkedCompaniesAction() {
   if (!session) return { success: false, data: [] };
 
   try {
-    const response = await callTicketsApi<{ success: boolean; data: { id: string; name: string }[] }>("/linked-companies");
+    const response = await callTicketsApi<TicketModuleLinkedCompaniesResponse>("/linked-companies");
     if (!response.success) {
       return { success: false, data: [] };
     }

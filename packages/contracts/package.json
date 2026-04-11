@@ -10,6 +10,7 @@
     "./sefaz-endpoints": "./src/sefaz-endpoints.ts",
     "./ticket-form": "./src/ticket-form.ts",
     "./ticket-api": "./src/ticket-api.ts",
+    "./ticket-module-api": "./src/ticket-module-api.ts",
     "./ticket-provider-api": "./src/ticket-provider-api.ts",
     "./ticket-global-settings": "./src/ticket-global-settings.ts",
     "./address": "./src/address.ts",
