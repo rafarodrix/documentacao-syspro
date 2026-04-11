@@ -26,6 +26,7 @@ import { SettingsPermissionsService } from './permissions/permissions.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { SettingsSefazMonitorService } from './sefaz-monitor.service';
 import { TicketsService } from '../tickets/tickets.service';
+import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
 
 @Controller('settings')
 export class SettingsController {
@@ -207,6 +208,16 @@ export class SettingsController {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
     const result = await this.sefazMonitorService.runFullCheck();
     return { success: true, count: result.count, message: `Verificacao concluida (${result.count} rotas).` };
+  }
+
+  @Post('sefaz/check/internal')
+  async runSefazCheckInternal(@Req() req: Request) {
+    const internalApiKeyHeader = Array.isArray(req.headers['x-internal-api-key'])
+      ? req.headers['x-internal-api-key'][0]
+      : req.headers['x-internal-api-key'];
+    assertInternalApiKey(internalApiKeyHeader);
+    const result = await this.sefazMonitorService.runFullCheck();
+    return { ok: true, ...result };
   }
 
   @Get('remote/module-settings')

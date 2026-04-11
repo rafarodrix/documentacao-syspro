@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { SefazService } from "@/app/api/sefaz/sefaz.service";
 import { isValidSecretToken } from "@dosc-syspro/shared/request-auth";
 import { createRequestLogger } from "@dosc-syspro/shared/logger";
+import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 
 function isAuthorized(request: Request): boolean {
   const expected = process.env.SEFAZ_CHECK_SECRET ?? process.env.REVALIDATE_SECRET;
@@ -23,10 +23,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Nao autorizado." }, { status: 401, headers: responseHeaders });
   }
 
-  const service = new SefazService(correlationId);
-  const result = await service.runFullCheck();
+  const response = await fetch(`${getBackendApiBaseUrl()}/settings/sefaz/check/internal`, {
+    method: "POST",
+    headers: withInternalApiHeaders({
+      "x-correlation-id": correlationId,
+    }),
+    cache: "no-store",
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    logger.warn("sefaz.check.backend_failed", { status: response.status });
+    return NextResponse.json(result, { status: response.status, headers: responseHeaders });
+  }
   logger.info("sefaz.check.completed", result);
-  return NextResponse.json({ ok: true, ...result }, { headers: responseHeaders });
+  return NextResponse.json(result, { headers: responseHeaders });
 }
 
 export async function POST(request: Request) {
@@ -39,8 +49,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Nao autorizado." }, { status: 401, headers: responseHeaders });
   }
 
-  const service = new SefazService(correlationId);
-  const result = await service.runFullCheck();
+  const response = await fetch(`${getBackendApiBaseUrl()}/settings/sefaz/check/internal`, {
+    method: "POST",
+    headers: withInternalApiHeaders({
+      "x-correlation-id": correlationId,
+    }),
+    cache: "no-store",
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    logger.warn("sefaz.check.backend_failed", { status: response.status });
+    return NextResponse.json(result, { status: response.status, headers: responseHeaders });
+  }
   logger.info("sefaz.check.completed", result);
-  return NextResponse.json({ ok: true, ...result }, { headers: responseHeaders });
+  return NextResponse.json(result, { headers: responseHeaders });
 }

@@ -13,6 +13,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { DocsModule } from './modules/docs/docs.module';
+import { TaxModule } from './modules/tax/tax.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DocsModule } from './modules/docs/docs.module';
     AuthorizationModule,
     TicketsModule,
     DocsModule,
+    TaxModule,
   ],
   controllers: [AppController],
   providers: [AppService],
