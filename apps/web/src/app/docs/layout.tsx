@@ -4,15 +4,16 @@ import { RootProvider } from 'fumadocs-ui/provider';
 import { source } from '@/lib/source';
 import { SiteHeader } from "@/components/site/Header";
 import { requireSession } from "@/lib/auth-helpers";
-import { SYSTEM_ROLES } from '@dosc-syspro/core';
 import { isAdminOnlyDocUrl, DOCS_TECHNICAL_PATH_PREFIX } from '@/app/docs/docs-access';
 import { filterDocTree } from '@/lib/docs-tree-utils';
 import { DocsLayoutClient } from '@/components/docs/DocsLayoutClient';
+import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
 
 export default async function Layout({ children }: { children: ReactNode }) {
   const session = await requireSession();
 
-  const canViewTechnicalDocs = SYSTEM_ROLES.includes(session.role);
+  const canViewTechnicalDocs = await currentUserHasPermission("tools:all");
+  const canViewAdminOnlyDocs = await currentUserHasPermission("settings:edit");
 
   // Filtragens compostas: cada chamada a filterDocTree aplica um predicado.
   // Antes: ~60 linhas com 4 funções espelhadas (stripTechnicalDocs* + stripAdminOnly*).
@@ -21,7 +22,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
       source.pageTree,
       (url) => canViewTechnicalDocs || !url.startsWith(DOCS_TECHNICAL_PATH_PREFIX),
     ),
-    (url) => session.role === Role.ADMIN || !isAdminOnlyDocUrl(url),
+    (url) => canViewAdminOnlyDocs || !isAdminOnlyDocUrl(url),
   );
 
   return (

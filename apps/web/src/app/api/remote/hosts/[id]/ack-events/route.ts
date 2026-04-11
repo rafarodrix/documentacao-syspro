@@ -1,21 +1,14 @@
 import { NextRequest } from "next/server";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { ackEvents } from "@/features/remote/infrastructure/events/ack-events";
-import { Role } from "@prisma/client";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
-/**
- * Endpoint de Server-Sent Events (SSE) para monitoramento de comandos em um host especifico.
- * Reservado para ADMIN, SUPORTE e DEVELOPER.
- */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: hostId } = await params;
-  const session = await getProtectedSession();
-
-  const allowedRoles: Role[] = [Role.ADMIN, Role.SUPORTE, Role.DEVELOPER];
-  if (!session || !allowedRoles.includes(session.role)) {
+  const access = await requireRemotePermission("tools:all", "Nao autorizado");
+  if (!access.ok) {
     return new Response("Nao autorizado", { status: 401 });
   }
 
@@ -23,15 +16,13 @@ export async function GET(
     start(controller) {
       const encoder = new TextEncoder();
 
-      // Envia heartbeat inicial
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "heartbeat", hostId, timestamp: new Date().toISOString() })}\n\n`));
 
-      // Subscreve a mudancas de comando NO HOST especifico
       const unsubscribe = ackEvents.onAck(hostId, (payload) => {
         try {
           const data = JSON.stringify({
             type: "ack_event",
-            ...payload
+            ...payload,
           });
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
         } catch (error) {
@@ -39,7 +30,6 @@ export async function GET(
         }
       });
 
-      // Cleanup
       req.signal.addEventListener("abort", () => {
         unsubscribe();
         controller.close();

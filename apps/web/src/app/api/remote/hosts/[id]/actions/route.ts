@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { createRemoteHostAdminPort } from "@/features/remote/infrastructure/gateways/remote-domain/host-admin-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
 export const dynamic = "force-dynamic";
 
 type HostRemoteAction = "REBOOTSTRAP" | "RESEND_CONFIG" | "REAPPLY_ALIAS";
-
-function canManageHost(role: string): boolean {
-  return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
-}
 
 function parseRequestedAction(body: unknown): HostRemoteAction | null {
   if (!body || typeof body !== "object") return null;
@@ -24,18 +20,11 @@ function parseRequestedAction(body: unknown): HostRemoteAction | null {
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getProtectedSession();
-  if (!session) {
-    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
+  const access = await requireRemotePermission("tools:all", "Sem permissao para acionar comandos remotos.");
+  if (!access.ok) {
+    return access.response;
   }
-
-  if (!canManageHost(session.role)) {
-    return remoteErrorResponse({
-      code: "FORBIDDEN",
-      message: "Sem permissao para acionar comandos remotos.",
-      httpStatus: 403,
-    });
-  }
+  const session = access.session;
 
   const body = await request.json().catch(() => null);
   const action = parseRequestedAction(body);

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { getTicketsAction } from "@/features/tickets/application/ticket-actions";
-import { Role } from "@prisma/client";
 import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export const dynamic = "force-dynamic";
 
@@ -17,12 +17,6 @@ type NotificationItem = {
   href: string;
   createdAt: string;
 };
-
-const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-
-function isSystemRole(role: Role): boolean {
-  return SYSTEM_ROLES.includes(role);
-}
 
 function minutesBetween(now: Date, dateLike: string | Date): number {
   const date = new Date(dateLike);
@@ -160,10 +154,11 @@ export async function GET() {
     return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
   }
 
-  const systemUser = isSystemRole(session.role);
+  const systemUser = await currentUserHasPermission("tools:all");
+  const includeContracts = await currentUserHasPermission("settings:edit");
   const ticketsResponse = await getTicketsAction({ page: 1, pageSize: 50, queue: "all", statusGroup: "all" });
   const ticketNotifications = ticketsResponse.success ? buildTicketNotifications(ticketsResponse.data) : [];
-  const operational = systemUser ? await buildSystemOperationalNotifications(session.role === Role.ADMIN) : [];
+  const operational = systemUser ? await buildSystemOperationalNotifications(includeContracts) : [];
   const merged = sortNotifications([...ticketNotifications, ...operational]).slice(0, 12);
 
   return NextResponse.json({

@@ -1,17 +1,10 @@
 import { NextRequest } from "next/server";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { sessionEvents, SessionEventPayload } from "@/features/remote/infrastructure/events/session-events";
-import { Role } from "@prisma/client";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
-/**
- * Endpoint de Server-Sent Events (SSE) para monitoramento global de sessoes.
- * Reservado para ADMIN, SUPORTE e DEVELOPER.
- */
 export async function GET(req: NextRequest) {
-  const session = await getProtectedSession();
-
-  const allowedRoles: Role[] = [Role.ADMIN, Role.SUPORTE, Role.DEVELOPER];
-  if (!session || !allowedRoles.includes(session.role)) {
+  const access = await requireRemotePermission("tools:all", "Nao autorizado");
+  if (!access.ok) {
     return new Response("Nao autorizado", { status: 401 });
   }
 
@@ -19,15 +12,13 @@ export async function GET(req: NextRequest) {
     start(controller) {
       const encoder = new TextEncoder();
 
-      // Envia heartbeat inicial
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "heartbeat", timestamp: new Date().toISOString() })}\n\n`));
 
-      // Subscreve a qualquer mudanca de sessao
       const unsubscribe = sessionEvents.onAnySessionChange((payload: SessionEventPayload) => {
         try {
           const data = JSON.stringify({
             type: "session_change",
-            ...payload
+            ...payload,
           });
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
         } catch (error) {
@@ -35,7 +26,6 @@ export async function GET(req: NextRequest) {
         }
       });
 
-      // Cleanup
       req.signal.addEventListener("abort", () => {
         unsubscribe();
         controller.close();

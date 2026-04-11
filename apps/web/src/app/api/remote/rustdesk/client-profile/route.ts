@@ -1,21 +1,14 @@
 import { NextResponse } from "next/server";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { getRemoteModuleSettingsSnapshot } from "@/features/remote/application/module-settings-server";
 import { remoteErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
 export const dynamic = "force-dynamic";
 
-function canManageRemote(role: string) {
-  return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
-}
-
 export async function GET(request: Request) {
-  const session = await getProtectedSession();
-  if (!session) {
-    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
-  }
-  if (!canManageRemote(session.role)) {
-    return remoteErrorResponse({ code: "FORBIDDEN", message: "Sem permissao.", httpStatus: 403 });
+  const access = await requireRemotePermission("tools:all", "Sem permissao.");
+  if (!access.ok) {
+    return access.response;
   }
 
   const settings = await getRemoteModuleSettingsSnapshot();

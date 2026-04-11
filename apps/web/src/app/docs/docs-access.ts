@@ -1,9 +1,7 @@
 import { CompanySegment, Role } from "@prisma/client";
-import { SYSTEM_ROLES } from "@dosc-syspro/core";
 import { canAccessByCompanySegment } from "@/features/company/application/company-segment-access";
 
 export const DOCS_TECHNICAL_PATH_PREFIX = "/docs/manuais-tecnicos";
-export const DOCS_TECHNICAL_ROLES: Role[] = SYSTEM_ROLES;
 export const DOCS_ADMIN_ONLY_SLUGS = new Set<string>([
   "suporte/documentacao-docs-interna",
 ]);
@@ -60,12 +58,14 @@ export async function canUserAccessDocUrl({
   url,
   role,
   userId,
+  canViewTechnical,
 }: {
   url: string;
   role: Role;
   userId: string;
+  canViewTechnical: boolean;
 }): Promise<boolean> {
-  if (!SYSTEM_ROLES.includes(role) && url.startsWith(DOCS_TECHNICAL_PATH_PREFIX)) {
+  if (!canViewTechnical && url.startsWith(DOCS_TECHNICAL_PATH_PREFIX)) {
     return false;
   }
 

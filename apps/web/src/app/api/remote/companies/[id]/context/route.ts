@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { remoteErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
 export const dynamic = "force-dynamic";
 const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
-
-function canEditCompanyContext(role: string) {
-  return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
-}
 
 function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
   return isGlobalView ? {} : { id: { in: companyIds.length ? companyIds : ["__none__"] } };
@@ -19,17 +15,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getProtectedSession();
-  if (!session) {
-    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
-  }
-
-  if (!canEditCompanyContext(session.role)) {
-    return remoteErrorResponse({
-      code: "FORBIDDEN",
-      message: "Sem permissao para editar configuracoes da empresa.",
-      httpStatus: 403,
-    });
+  const access = await requireRemotePermission("tools:all", "Sem permissao para editar configuracoes da empresa.");
+  if (!access.ok) {
+    return access.response;
   }
 
   const tenantScope = await getRemoteTenantScope();

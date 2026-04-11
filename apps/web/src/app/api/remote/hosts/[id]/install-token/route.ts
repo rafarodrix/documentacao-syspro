@@ -1,28 +1,16 @@
 import { NextResponse } from "next/server";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { createRemoteHostAdminPort } from "@/features/remote/infrastructure/gateways/remote-domain/host-admin-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
-import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
 export const dynamic = "force-dynamic";
 
-function canManageHost(role: string): boolean {
-  return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
-}
-
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getProtectedSession();
-  if (!session) {
-    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
-  }
-
-  if (!canManageHost(session.role)) {
-    return remoteErrorResponse({
-      code: "FORBIDDEN",
-      message: "Sem permissao para regenerar installToken.",
-      httpStatus: 403,
-    });
+  const access = await requireRemotePermission("tools:all", "Sem permissao para regenerar installToken.");
+  if (!access.ok) {
+    return access.response;
   }
 
   const tenantScope = await getRemoteTenantScope();

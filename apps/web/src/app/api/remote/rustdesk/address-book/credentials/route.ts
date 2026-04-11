@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { createRemoteAddressBookPort } from "@/features/remote/infrastructure/gateways/remote-domain/address-book-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
-import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
-
-function canManageCredentials(role: string) {
-  return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER";
-}
+import { toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
 export async function GET() {
-  const session = await getProtectedSession();
-  if (!session) {
-    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
-  }
-  if (!canManageCredentials(session.role)) {
-    return remoteErrorResponse({ code: "FORBIDDEN", message: "Acesso negado.", httpStatus: 403 });
+  const access = await requireRemotePermission("tools:all", "Acesso negado.");
+  if (!access.ok) {
+    return access.response;
   }
 
   const addressBookPort = createRemoteAddressBookPort();
@@ -31,13 +24,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getProtectedSession();
-  if (!session) {
-    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
+  const access = await requireRemotePermission("tools:all", "Acesso negado.");
+  if (!access.ok) {
+    return access.response;
   }
-  if (!canManageCredentials(session.role)) {
-    return remoteErrorResponse({ code: "FORBIDDEN", message: "Acesso negado.", httpStatus: 403 });
-  }
+  const session = access.session;
 
   const body = await request.json().catch(() => null);
 

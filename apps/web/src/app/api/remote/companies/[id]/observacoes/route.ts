@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { remoteErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
 export const dynamic = "force-dynamic";
-
-function canEditCompanyObservacoes(role: string) {
-  return role === "ADMIN" || role === "SUPORTE" || role === "DEVELOPER" || role === "CLIENTE_ADMIN";
-}
 
 function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
   return isGlobalView ? {} : { id: { in: companyIds.length ? companyIds : ["__none__"] } };
@@ -18,17 +14,13 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getProtectedSession();
-  if (!session) {
-    return remoteErrorResponse({ code: "UNAUTHORIZED", message: "Nao autorizado.", httpStatus: 401 });
-  }
-
-  if (!canEditCompanyObservacoes(session.role)) {
-    return remoteErrorResponse({
-      code: "FORBIDDEN",
-      message: "Sem permissao para editar observacoes da empresa.",
-      httpStatus: 403,
-    });
+  const access = await requireRemotePermission(
+    "companies:edit",
+    "Sem permissao para editar observacoes da empresa.",
+    { acceptCompanyScope: true },
+  );
+  if (!access.ok) {
+    return access.response;
   }
 
   const tenantScope = await getRemoteTenantScope();

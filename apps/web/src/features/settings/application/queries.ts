@@ -56,8 +56,12 @@ export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData>
     throw new Error(sefazRoutesRes.error || "Falha ao carregar rotas SEFAZ.");
   }
 
-  if (!permissionsAdminViewRes.success || !permissionsAdminViewRes.data) {
+  if (!permissionsAdminViewRes.success) {
     throw new Error(permissionsAdminViewRes.error || "Falha ao carregar a administracao de acessos.");
+  }
+
+  if (!permissionsAdminViewRes.data) {
+    throw new Error("Falha ao carregar a administracao de acessos.");
   }
 
   const matrixEnabled = settingsRes.data.rbacMatrixEnabled;

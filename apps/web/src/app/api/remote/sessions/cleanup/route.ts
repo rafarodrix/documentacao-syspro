@@ -1,10 +1,8 @@
-﻿import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
-import { getProtectedSession } from "@/lib/auth-helpers";
+import { NextResponse } from "next/server";
 import { cleanupExpiredRemoteSessions } from "@/features/remote/application/session-queries";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
 export const dynamic = "force-dynamic";
-const OPERATOR_ROLES: Role[] = [Role.ADMIN, Role.SUPORTE, Role.DEVELOPER];
 
 function hasValidInternalKey(request: Request) {
   const expected = process.env.INTERNAL_API_KEY?.trim();
@@ -14,8 +12,8 @@ function hasValidInternalKey(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getProtectedSession();
-  const isOperator = Boolean(session && OPERATOR_ROLES.includes(session.role));
+  const access = await requireRemotePermission("tools:all", "Nao autorizado.");
+  const isOperator = access.ok;
 
   if (!isOperator && !hasValidInternalKey(request)) {
     return NextResponse.json(
