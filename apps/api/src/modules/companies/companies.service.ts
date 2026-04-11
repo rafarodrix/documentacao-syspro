@@ -39,6 +39,9 @@ const COMPANY_REGISTRY_CLIENT_SECRET = process.env.COMPANY_REGISTRY_CLIENT_SECRE
 const COMPANY_REGISTRY_SCOPE = process.env.COMPANY_REGISTRY_SCOPE;
 const COMPANY_REGISTRY_AUDIENCE = process.env.COMPANY_REGISTRY_AUDIENCE;
 const COMPANY_REGISTRY_TIMEOUT_MS = Number(process.env.COMPANY_REGISTRY_TIMEOUT_MS ?? 12000);
+const COMPANY_REGISTRY_USER_AGENT =
+  process.env.COMPANY_REGISTRY_USER_AGENT?.trim() ||
+  'TrilinkSoftware/1.0 (+https://ajuda.trilinksoftware.com.br)';
 const CONTRACT_BLOCK_MARKER = '[CONTRACT_BLOCK]';
 const CONTRACT_BLOCK_REASON_LABEL = {
   EMPRESA_FECHOU: 'Empresa fechou',
@@ -1081,13 +1084,15 @@ export class CompaniesService {
       ? COMPANY_REGISTRY_LOOKUP_URL.replace('{cnpj}', cnpj)
       : `${COMPANY_REGISTRY_LOOKUP_URL}${COMPANY_REGISTRY_LOOKUP_URL.includes('?') ? '&' : '?'}cnpj=${cnpj}`;
 
-    return this.fetchWithTimeout(resolvedUrl, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-  }
+      return this.fetchWithTimeout(resolvedUrl, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': COMPANY_REGISTRY_USER_AGENT,
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+        },
+      });
+    }
 
   private async fetchCustomOauthCompanyProfile(cnpj: string) {
     const token = await this.getCompanyRegistryAccessToken();
