@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CompanySegment, CompanyStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
@@ -7,11 +7,8 @@ import {
   type CreateCompanyOutput,
 } from '@dosc-syspro/contracts/company';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AuthService } from '../auth/auth.service';
+import { AuthorizationService } from '../authorization/authorization.service';
 
-const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const CREATE_ROLES: Role[] = SYSTEM_ROLES;
-const UPDATE_ROLES: Role[] = [...SYSTEM_ROLES, Role.CLIENTE_ADMIN];
 const DELETE_ROLES: Role[] = [Role.ADMIN];
 const COMPANY_REGISTRY_PROVIDER = process.env.COMPANY_REGISTRY_PROVIDER?.toLowerCase() ?? 'brasilapi';
 const COMPANY_REGISTRY_AUTH_URL = process.env.COMPANY_REGISTRY_AUTH_URL;
@@ -219,22 +216,25 @@ export class CompaniesService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authService: AuthService,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
   async searchCompanies(query: string | undefined, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     const q = query?.trim() ?? '';
     if (!q) {
       return [];
     }
 
-    const companyIds = await this.getScopedCompanyIds(requester.userId, requester.role);
+    const accessScope = await this.getCompanyViewScope(requester);
+    if (!accessScope.isGlobal && accessScope.companyIds.length === 0) {
+      return [];
+    }
 
     return this.prisma.company.findMany({
       where: {
         deletedAt: null,
-        ...(companyIds ? { id: { in: companyIds.length ? companyIds : ['__none__'] } } : {}),
+        ...(!accessScope.isGlobal ? { id: { in: accessScope.companyIds } } : {}),
         OR: [
           { razaoSocial: { contains: q, mode: 'insensitive' } },
           { nomeFantasia: { contains: q, mode: 'insensitive' } },
@@ -251,8 +251,8 @@ export class CompaniesService {
     filters?: { search?: string; status?: string },
     rawHeaders?: IncomingHttpHeaders,
   ) {
-    const requester = await this.getRequester(rawHeaders);
-    const companyIds = await this.getScopedCompanyIds(requester.userId, requester.role);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const accessScope = await this.getCompanyViewScope(requester);
 
     const where: any = { deletedAt: null };
 
@@ -269,8 +269,8 @@ export class CompaniesService {
       where.status = filters.status as CompanyStatus;
     }
 
-    if (companyIds) {
-      where.id = { in: companyIds.length ? companyIds : ['__none__'] };
+    if (!accessScope.isGlobal) {
+      where.id = { in: accessScope.companyIds.length ? accessScope.companyIds : ['__none__'] };
     }
 
     const companies = await this.prisma.company.findMany({
@@ -306,23 +306,24 @@ export class CompaniesService {
   }
 
   async getAdminView(rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const accessScope = await this.getCompanyViewScope(requester);
     const companies = await this.listCompanies(undefined, rawHeaders);
 
     return {
       companies,
-      isGlobalView: requester.role !== Role.CLIENTE_ADMIN,
+      isGlobalView: accessScope.isGlobal,
     };
   }
 
   async getCompanyOptions(rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    const companyIds = await this.getScopedCompanyIds(requester.userId, requester.role);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const accessScope = await this.getCompanyViewScope(requester);
 
     return this.prisma.company.findMany({
       where: {
         deletedAt: null,
-        ...(companyIds ? { id: { in: companyIds.length ? companyIds : ['__none__'] } } : {}),
+        ...(!accessScope.isGlobal ? { id: { in: accessScope.companyIds.length ? accessScope.companyIds : ['__none__'] } } : {}),
       },
       orderBy: { razaoSocial: 'asc' },
       select: {
@@ -334,8 +335,9 @@ export class CompaniesService {
   }
 
   async getCompanyEditView(companyId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    await this.assertCompanyAccess(companyId, requester.userId, requester.role);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const editScope = await this.getCompanyEditScope(requester);
+    await this.assertCompanyAccess(companyId, editScope);
 
     const company = (await this.prisma.company.findFirst({
       where: {
@@ -429,7 +431,7 @@ export class CompaniesService {
     return {
       companyId: company.id,
       companies,
-      canEditCnpj: requester.role !== Role.CLIENTE_ADMIN,
+      canEditCnpj: editScope.isGlobal,
       initialData: {
         cnpj: company.cnpj,
         razaoSocial: company.razaoSocial,
@@ -512,7 +514,7 @@ export class CompaniesService {
   async canAccessByCompanySegment(requiredSegments: CompanySegment[], rawHeaders?: IncomingHttpHeaders) {
     if (!requiredSegments.length) return true;
 
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     const memberships = await this.prisma.membership.findMany({
       where: {
         userId: requester.userId,
@@ -541,8 +543,8 @@ export class CompaniesService {
   }
 
   async lookupCompanyProfileByCnpj(cnpj: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    if (!UPDATE_ROLES.includes(requester.role)) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    if (!(await this.authorizationService.userHasPermission(requester, 'companies:edit', { acceptCompanyScope: true }))) {
       return { success: false, message: 'Permissao negada.' };
     }
 
@@ -589,8 +591,8 @@ export class CompaniesService {
     },
     rawHeaders?: IncomingHttpHeaders,
   ) {
-    const requester = await this.getRequester(rawHeaders);
-    if (!CREATE_ROLES.includes(requester.role)) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    if (!(await this.authorizationService.userHasPermission(requester, 'companies:create'))) {
       return { success: false, message: 'Permissao negada.' };
     }
 
@@ -636,12 +638,13 @@ export class CompaniesService {
     },
     rawHeaders?: IncomingHttpHeaders,
   ) {
-    const requester = await this.getRequester(rawHeaders);
-    if (!UPDATE_ROLES.includes(requester.role)) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    if (!(await this.authorizationService.userHasPermission(requester, 'companies:edit', { acceptCompanyScope: true }))) {
       return { success: false, message: 'Permissao negada.' };
     }
 
-    await this.assertCompanyAccess(companyId, requester.userId, requester.role);
+    const editScope = await this.getCompanyEditScope(requester);
+    await this.assertCompanyAccess(companyId, editScope);
 
     const validation = createCompanySchema.safeParse(payload.data);
     if (!validation.success) {
@@ -671,7 +674,7 @@ export class CompaniesService {
       }
 
       const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
-      const nextCnpj = requester.role === Role.CLIENTE_ADMIN ? existing.cnpj : validData.cnpj;
+      const nextCnpj = editScope.isGlobal ? validData.cnpj : existing.cnpj;
 
       await this.prisma.company.update({
         where: { id: companyId },
@@ -714,8 +717,8 @@ export class CompaniesService {
   }
 
   async updateCompanyStatus(companyId: string, status: CompanyStatus, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    if (!SYSTEM_ROLES.includes(requester.role)) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    if (!(await this.authorizationService.userHasPermission(requester, 'companies:status'))) {
       return { success: false, message: 'Sem permissao.' };
     }
 
@@ -741,7 +744,7 @@ export class CompaniesService {
   }
 
   async deleteCompany(companyId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     if (!DELETE_ROLES.includes(requester.role)) {
       return { success: false, message: 'Sem permissao.' };
     }
@@ -786,40 +789,7 @@ export class CompaniesService {
     }
   }
 
-  private async getRequester(rawHeaders?: IncomingHttpHeaders) {
-    const session = await this.authService.auth.api.getSession({
-      headers: this.toHeaders(rawHeaders),
-    });
-
-    const email = session?.user?.email;
-    if (!email) throw new UnauthorizedException('Nao autenticado.');
-
-    const requester = await this.prisma.user.findUnique({
-      where: { email },
-      select: { id: true, role: true, isActive: true, deletedAt: true },
-    });
-
-    if (!requester || requester.deletedAt || !requester.isActive) {
-      throw new UnauthorizedException('Sessao invalida.');
-    }
-
-    return { userId: requester.id, role: requester.role };
-  }
-
-  private async getScopedCompanyIds(userId: string, role: Role) {
-    if (role !== Role.CLIENTE_ADMIN) {
-      return null;
-    }
-
-    const memberships = await this.prisma.membership.findMany({
-      where: { userId },
-      select: { companyId: true },
-    });
-
-    return memberships.map((item) => item.companyId);
-  }
-
-  private async assertCompanyAccess(companyId: string, userId: string, role: Role) {
+  private async assertCompanyAccess(companyId: string, accessScope: { isGlobal: boolean; companyIds: string[] }) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
       select: { id: true, deletedAt: true },
@@ -829,30 +799,13 @@ export class CompaniesService {
       throw new NotFoundException('Empresa nao encontrada.');
     }
 
-    if (role !== Role.CLIENTE_ADMIN) {
+    if (accessScope.isGlobal) {
       return;
     }
 
-    const companyIds = await this.getScopedCompanyIds(userId, role);
-    if (!companyIds?.includes(companyId)) {
+    if (!accessScope.companyIds.includes(companyId)) {
       throw new ForbiddenException('Sem permissao para acessar esta empresa.');
     }
-  }
-
-  private toHeaders(rawHeaders?: IncomingHttpHeaders): Headers {
-    const headers = new Headers();
-    if (!rawHeaders) return headers;
-
-    for (const [key, value] of Object.entries(rawHeaders)) {
-      if (!value) continue;
-      if (Array.isArray(value)) {
-        headers.set(key, value.join(', '));
-      } else {
-        headers.set(key, value);
-      }
-    }
-
-    return headers;
   }
 
   private toMutationError(error: any) {
@@ -1001,5 +954,21 @@ export class CompaniesService {
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  private async getCompanyViewScope(requester: { userId: string; role: Role; email?: string }) {
+    return this.authorizationService.resolveCompanyAccessScope(
+      requester as { userId: string; role: Role; email: string },
+      'companies:view_own',
+      'companies:view_all',
+    );
+  }
+
+  private async getCompanyEditScope(requester: { userId: string; role: Role; email?: string }) {
+    return this.authorizationService.resolveCompanyAccessScope(
+      requester as { userId: string; role: Role; email: string },
+      'companies:edit',
+      'companies:view_all',
+    );
   }
 }
