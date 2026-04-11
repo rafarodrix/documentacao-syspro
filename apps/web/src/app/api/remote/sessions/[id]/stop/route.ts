@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 import { createRemoteSessionPort } from "@/features/remote/infrastructure/gateways/remote-domain/session-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +14,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     feature: "remote-session-stop",
   });
 
-  const session = await getProtectedSession();
-  if (!session) {
+  const access = await requireRemotePermission("tools:all", "Nao autorizado.");
+  if (!access.ok) {
     logger.warn("remote.sessions.stop.unauthorized");
     return remoteErrorResponse({
       code: "UNAUTHORIZED",
@@ -24,6 +24,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       headers: responseHeaders,
     });
   }
+  const session = access.session;
 
   const { id } = await context.params;
   const tenantScope = await getRemoteTenantScope();

@@ -17,7 +17,6 @@ import {
   isTechnicalManualSlug,
   canUserAccessDocUrl,
 } from '@/app/docs/docs-access';
-import { SYSTEM_ROLES } from '@dosc-syspro/core';
 import { DocsHomePage } from '@/components/docs/home/DocsHomePage';
 import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
 import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
@@ -35,6 +34,7 @@ import {
   formatSlugLabel,
   formatDateLong,
 } from '@/lib/docs-utils';
+import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -42,8 +42,9 @@ export default async function Page(props: {
   const params = await props.params;
   const session = await requireSession();
   const slug = params.slug ?? [];
+  const canViewTechnicalDocs = await currentUserHasPermission("tools:all");
 
-  if (isTechnicalManualSlug(slug) && !SYSTEM_ROLES.includes(session.role)) {
+  if (isTechnicalManualSlug(slug) && !canViewTechnicalDocs) {
     redirect("/docs");
   }
 
@@ -65,7 +66,7 @@ export default async function Page(props: {
     // Promise.all paralelo: antes eram dois Promise.all sequenciais
     const visibility = await Promise.all(
       allPages.map((item) =>
-        canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId }),
+        canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId, canViewTechnical: canViewTechnicalDocs }),
       ),
     );
 
@@ -85,7 +86,7 @@ export default async function Page(props: {
         <DocsBody>
           <DocsHomePage
             pages={visiblePages}
-            canViewTechnical={SYSTEM_ROLES.includes(session.role)}
+            canViewTechnical={canViewTechnicalDocs}
             role={session.role}
           />
         </DocsBody>
@@ -136,7 +137,7 @@ export default async function Page(props: {
   const navigationPool = source.getPages().filter((item) => item.url !== '/docs');
   const navigationVisibility = await Promise.all(
     navigationPool.map((item) =>
-      canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId }),
+      canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId, canViewTechnical: canViewTechnicalDocs }),
     ),
   );
   const visibleNavigationPages = navigationPool.filter((_, i) => navigationVisibility[i]);

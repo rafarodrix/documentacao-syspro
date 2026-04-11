@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { getProtectedSession } from "@/lib/auth-helpers";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { createRequestLogger } from "@dosc-syspro/api/observability/logger";
 import { createRemoteSessionPort } from "@/features/remote/infrastructure/gateways/remote-domain/session-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +15,8 @@ export async function GET(request: Request) {
     feature: "remote-sessions",
   });
 
-  const session = await getProtectedSession();
-  if (!session) {
+  const access = await requireRemotePermission("tools:all", "Nao autorizado.");
+  if (!access.ok) {
     logger.warn("remote.sessions.list.unauthorized");
     return remoteErrorResponse({
       code: "UNAUTHORIZED",
@@ -61,8 +61,8 @@ export async function POST(request: Request) {
     feature: "remote-sessions",
   });
 
-  const session = await getProtectedSession();
-  if (!session) {
+  const access = await requireRemotePermission("tools:all", "Nao autorizado.");
+  if (!access.ok) {
     logger.warn("remote.sessions.create.unauthorized");
     return remoteErrorResponse({
       code: "UNAUTHORIZED",
@@ -71,6 +71,7 @@ export async function POST(request: Request) {
       headers: responseHeaders,
     });
   }
+  const session = access.session;
 
   const tenantScope = await getRemoteTenantScope();
   const body = (await request.json()) as {

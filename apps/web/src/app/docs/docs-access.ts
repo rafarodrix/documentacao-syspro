@@ -1,4 +1,5 @@
-import { CompanySegment, Role } from "@prisma/client";
+import { CompanySegment } from "@prisma/client";
+import type { UserRole } from "@/lib/auth-helpers";
 import { canAccessByCompanySegment } from "@/features/company/application/company-segment-access";
 
 export const DOCS_TECHNICAL_PATH_PREFIX = "/docs/manuais-tecnicos";
@@ -61,7 +62,7 @@ export async function canUserAccessDocUrl({
   canViewTechnical,
 }: {
   url: string;
-  role: Role;
+  role: UserRole;
   userId: string;
   canViewTechnical: boolean;
 }): Promise<boolean> {
@@ -69,7 +70,7 @@ export async function canUserAccessDocUrl({
     return false;
   }
 
-  if (role === Role.CLIENTE_ADMIN || role === Role.CLIENTE_USER) {
+  if (role === "CLIENTE_ADMIN" || role === "CLIENTE_USER") {
     const relativeSlug = url.replace(/^\/docs\/?/, "").split("/").filter(Boolean);
     const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
     if (requiredSegments.length === 0) return true;
