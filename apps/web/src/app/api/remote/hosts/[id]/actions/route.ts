@@ -5,6 +5,7 @@ import { createRemoteHostAdminPort } from "@/features/remote/infrastructure/gate
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
 import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
 import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
+import { getBackendApiBaseUrl } from "@/lib/backend-api";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!access.ok) {
     return access.response;
   }
-  const session = access.session;
 
   const body = await request.json().catch(() => null);
   const action = parseRequestedAction(body);
@@ -78,55 +78,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
   }
 
-  const commandType = action === "RESEND_CONFIG" ? "REAPPLY_CONFIG" : "REAPPLY_ALIAS";
-  const reason =
-    action === "RESEND_CONFIG"
-      ? "Acao manual do portal: reenviar configuracao para o agente."
-      : "Acao manual do portal: reaplicar alias no agente.";
-
-  const existing = await prisma.remoteAgentCommand.findFirst({
-    where: {
-      hostId: id,
-      type: commandType,
-      status: { in: ["PENDING", "DELIVERED"] },
-    },
-    orderBy: [{ createdAt: "desc" }],
-    select: { id: true, type: true, status: true, createdAt: true },
+  const upstreamHeaders = new Headers(request.headers);
+  upstreamHeaders.delete("host");
+  upstreamHeaders.delete("content-length");
+  const upstreamResponse = await fetch(`${getBackendApiBaseUrl()}/remote-admin/hosts/${id}/actions`, {
+    method: "POST",
+    headers: upstreamHeaders,
+    body: JSON.stringify({ action }),
+    redirect: "manual",
+    cache: "no-store",
   });
-
-  if (existing) {
-    return NextResponse.json({
-      success: true,
-      data: existing,
-      message: "Ja existe comando pendente deste tipo para o host.",
-    });
-  }
-
-  const command = await prisma.remoteAgentCommand.create({
-    data: {
-      hostId: id,
-      type: commandType,
-      status: "PENDING",
-      reason,
-      payload: {
-        source: "portal.manual_action",
-        requestedByUserId: session.userId,
-        requestedAt: new Date().toISOString(),
-        action,
-      },
-    },
-    select: {
-      id: true,
-      type: true,
-      status: true,
-      reason: true,
-      createdAt: true,
-    },
-  });
-
-  return NextResponse.json({
-    success: true,
-    data: command,
-    message: "Comando remoto enfileirado. Aguarde ciclo de sync/ack do agente.",
+  return new Response(upstreamResponse.body, {
+    status: upstreamResponse.status,
+    statusText: upstreamResponse.statusText,
+    headers: upstreamResponse.headers,
   });
 }

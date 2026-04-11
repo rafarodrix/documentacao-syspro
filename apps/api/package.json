@@ -18,6 +18,7 @@
     "@dosc-syspro/api": "file:../../packages/api",
     "@dosc-syspro/config": "file:../../packages/config",
     "@dosc-syspro/contracts": "file:../../packages/contracts",
+    "@dosc-syspro/database": "file:../../packages/database",
     "@dosc-syspro/remote-domain": "file:../../packages/remote-domain",
     "@prisma/client": "^5.22.0",
     "@nestjs/common": "^11.1.18",

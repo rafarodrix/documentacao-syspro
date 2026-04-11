@@ -14,6 +14,7 @@ import { AuthorizationModule } from './modules/authorization/authorization.modul
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { DocsModule } from './modules/docs/docs.module';
 import { TaxModule } from './modules/tax/tax.module';
+import { RemoteAdminModule } from './modules/remote-admin/remote-admin.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { TaxModule } from './modules/tax/tax.module';
     TicketsModule,
     DocsModule,
     TaxModule,
+    RemoteAdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

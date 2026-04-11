@@ -1,56 +1,28 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getRemoteTenantScope } from "@/features/remote/application/scope";
-import { remoteErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
-import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
+import { getBackendApiBaseUrl } from "@/lib/backend-api";
 
 export const dynamic = "force-dynamic";
-
-function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { id: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const access = await requireRemotePermission(
-    "companies:edit",
-    "Sem permissao para editar observacoes da empresa.",
-    { acceptCompanyScope: true },
-  );
-  if (!access.ok) {
-    return access.response;
-  }
-
-  const tenantScope = await getRemoteTenantScope();
   const { id } = await params;
-  const body = (await request.json()) as { observacoes?: string | null };
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const upstreamHeaders = new Headers(request.headers);
+  upstreamHeaders.delete("host");
+  upstreamHeaders.delete("content-length");
+  const body = await request.arrayBuffer();
 
-  const company = await prisma.company.findFirst({
-    where: {
-      id,
-      deletedAt: null,
-      ...scopedWhere,
-    },
-    select: { id: true },
+  const upstreamResponse = await fetch(`${getBackendApiBaseUrl()}/remote-admin/companies/${id}/observacoes`, {
+    method: "PATCH",
+    headers: upstreamHeaders,
+    body,
+    redirect: "manual",
+    cache: "no-store",
   });
 
-  if (!company) {
-    return remoteErrorResponse({ code: "COMPANY_NOT_FOUND", message: "Empresa nao encontrada.", httpStatus: 404 });
-  }
-
-  const updated = await prisma.company.update({
-    where: { id },
-    data: {
-      observacoes: body.observacoes?.trim() || null,
-    },
-    select: {
-      id: true,
-      observacoes: true,
-    },
+  return new Response(upstreamResponse.body, {
+    status: upstreamResponse.status,
+    statusText: upstreamResponse.statusText,
+    headers: upstreamResponse.headers,
   });
-
-  return NextResponse.json({ success: true, data: updated });
 }
