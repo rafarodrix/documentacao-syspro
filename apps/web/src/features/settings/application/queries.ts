@@ -8,7 +8,7 @@ import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts
 import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
 import {
-  getSettingsPermissionsCatalogAction,
+  getSettingsPermissionsAdminViewAction,
 } from "@/features/settings/permissions/application/permissions-actions";
 import { buildFallbackSettingsPermissionsCatalog } from "@/features/settings/permissions/domain/catalog";
 
@@ -76,20 +76,37 @@ export async function getSefazRoutesAction(): Promise<SettingsActionResponse<Sef
 }
 
 export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData> {
-  const [rbacSetting, sefazRoutesRes, permissionsCatalogRes] = await Promise.all([
+  const [rbacSetting, sefazRoutesRes, permissionsAdminViewRes] = await Promise.all([
     prisma.systemSetting.findUnique({
       where: { key: SETTING_KEYS.RBAC_MATRIX_ENABLED },
       select: { value: true },
     }),
     getSefazRoutesAction(),
-    getSettingsPermissionsCatalogAction(),
+    getSettingsPermissionsAdminViewAction(),
   ]);
 
+  const matrixEnabled = rbacSetting?.value !== "false";
+  const fallbackCatalog = buildFallbackSettingsPermissionsCatalog(matrixEnabled);
+
   return {
-    rbacMatrixEnabled: rbacSetting?.value !== "false",
+    rbacMatrixEnabled: matrixEnabled,
     sefazRoutes: sefazRoutesRes.success ? (sefazRoutesRes.data ?? buildDefaultSefazRoutes()) : buildDefaultSefazRoutes(),
-    permissionsCatalog: permissionsCatalogRes.success
-      ? permissionsCatalogRes.data
-      : buildFallbackSettingsPermissionsCatalog(rbacSetting?.value !== "false"),
+    permissionsAdminView: permissionsAdminViewRes.success && permissionsAdminViewRes.data
+      ? permissionsAdminViewRes.data
+      : {
+          catalog: fallbackCatalog,
+          profiles: fallbackCatalog.profiles.map((profile) => ({
+            id: profile.key,
+            key: profile.key,
+            label: profile.label,
+            description: "Perfil padrao em modo fallback.",
+            isSystem: true,
+            isActive: true,
+            permissions: profile.permissions,
+          })),
+          users: [],
+          companies: [],
+          assignments: [],
+        },
   };
 }

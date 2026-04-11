@@ -161,7 +161,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
                 <TabsContent value="access" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
                     <div className="max-w-5xl">
-                        <AccessControlTab initialCatalog={settingsView.permissionsCatalog} />
+                        <AccessControlTab adminView={settingsView.permissionsAdminView} />
                     </div>
                 </TabsContent>
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   TicketModuleCreateRequest,
   TicketModuleEntryPoint,
@@ -20,7 +20,6 @@ import {
   Role,
 } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
-import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   serializeLinkedCompaniesResponse,
@@ -28,23 +27,24 @@ import {
   serializeTicketDetailsResponse,
   serializeTicketListResponse,
 } from './ticket-contract.mapper';
+import { AuthorizationService } from '../authorization/authorization.service';
 
 @Injectable()
 export class TicketsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authService: AuthService,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
   async create(data: TicketModuleCreateRequest, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     const ticketNumber = this.generateTicketNumber();
     const accessScope = await this.getTicketAccessScope(requester);
     
     let resolvedCompanyId = data.companyId;
     let resolvedContactId = data.companyContactId;
     
-    const isSystemAdmin = this.isSystemRole(requester.role);
+    const isSystemAdmin = accessScope.isGlobal;
 
     if (isSystemAdmin && data.customerEmail) {
       const contact = await this.prisma.companyContact.findFirst({
@@ -135,7 +135,7 @@ export class TicketsService {
   }
 
   async getLinkedCompanies(rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     
     const companiesMap = new Map<string, { id: string; name: string }>();
 
@@ -176,7 +176,7 @@ export class TicketsService {
   }
 
   async findAll(input: TicketModuleListQuery, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
 
     const page = Math.max(1, Number.parseInt(input.page || '1', 10) || 1);
@@ -232,7 +232,7 @@ export class TicketsService {
   }
 
   async findOne(id: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
 
     const ticket = await this.prisma.conversation.findUnique({
@@ -267,7 +267,7 @@ export class TicketsService {
   }
 
   async reply(id: string, message: string | undefined, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
 
     if (!message?.trim()) {
@@ -309,7 +309,7 @@ export class TicketsService {
   }
 
   async updateStatus(id: string, input: TicketModuleUpdateRequest, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
 
     const exists = await this.prisma.conversation.findUnique({
@@ -385,42 +385,6 @@ export class TicketsService {
     return serializeMutationResponse('Ticket atualizado com sucesso.');
   }
 
-  private async getRequester(rawHeaders?: IncomingHttpHeaders): Promise<{ userId: string; role: Role; email: string }> {
-    const session = await this.authService.auth.api.getSession({
-      headers: this.toHeaders(rawHeaders),
-    });
-
-    const email = session?.user?.email;
-    if (!email) throw new UnauthorizedException('Nao autenticado.');
-
-    const requester = await this.prisma.user.findUnique({
-      where: { email },
-      select: { id: true, role: true, isActive: true, deletedAt: true, email: true },
-    });
-
-    if (!requester || requester.deletedAt || !requester.isActive) {
-      throw new UnauthorizedException('Sessao invalida.');
-    }
-
-    return { userId: requester.id, role: requester.role, email: requester.email };
-  }
-
-  private toHeaders(rawHeaders?: IncomingHttpHeaders): Headers {
-    const headers = new Headers();
-    if (!rawHeaders) return headers;
-
-    for (const [key, value] of Object.entries(rawHeaders)) {
-      if (!value) continue;
-      if (Array.isArray(value)) {
-        headers.set(key, value.join(', '));
-      } else {
-        headers.set(key, value);
-      }
-    }
-
-    return headers;
-  }
-
   private generateTicketNumber() {
     const timestamp = Date.now().toString().slice(-8);
     const random = Math.floor(Math.random() * 900 + 100);
@@ -431,45 +395,15 @@ export class TicketsService {
     return contact.companyLinks?.[0]?.companyId;
   }
 
-  private isSystemRole(role: Role) {
-    return ([Role.ADMIN, Role.DEVELOPER, Role.SUPORTE] as Role[]).includes(role);
-  }
-
   private async getTicketAccessScope(requester: { userId: string; role: Role; email: string }): Promise<{
     isGlobal: boolean;
     companyIds: string[];
   }> {
-    if (this.isSystemRole(requester.role)) {
-      return { isGlobal: true, companyIds: [] };
-    }
-
-    const companiesMap = new Set<string>();
-
-    const memberships = await this.prisma.membership.findMany({
-      where: { userId: requester.userId },
-      select: { companyId: true },
-    });
-
-    for (const membership of memberships) {
-      companiesMap.add(membership.companyId);
-    }
-
-    const contacts = await this.prisma.companyContact.findMany({
-      where: { email: requester.email },
-      select: {
-        companyLinks: {
-          select: { companyId: true },
-        },
-      },
-    });
-
-    for (const contact of contacts) {
-      for (const link of contact.companyLinks) {
-        companiesMap.add(link.companyId);
-      }
-    }
-
-    return { isGlobal: false, companyIds: Array.from(companiesMap) };
+    return this.authorizationService.resolveCompanyAccessScope(
+      requester,
+      'tickets:view_own',
+      'tickets:view_all',
+    );
   }
 
   private assertTicketAccess(companyId: string | null, accessScope: { isGlobal: boolean; companyIds: string[] }) {

@@ -10,7 +10,16 @@ export {
   settingsPermissionProfileSchema,
   settingsPermissionsCatalogSchema,
   settingsPermissionsCatalogResponseSchema,
+  settingsAccessScopeTypeSchema,
+  settingsAccessProfileSchema,
+  settingsAccessAssignmentSchema,
+  settingsAccessUserOptionSchema,
+  settingsAccessCompanyOptionSchema,
+  settingsPermissionsAdminViewSchema,
+  settingsPermissionsAdminViewResponseSchema,
   settingsPermissionsMatrixVisibilityUpdateSchema,
+  settingsAccessProfileUpsertSchema,
+  settingsUserAccessProfileCreateSchema,
   settingsPermissionsMutationResponseSchema,
 } from "./settings-permissions";
 export type {
@@ -20,7 +29,16 @@ export type {
   SettingsPermissionProfile,
   SettingsPermissionsCatalog,
   SettingsPermissionsCatalogResponse,
+  SettingsAccessScopeType,
+  SettingsAccessProfile,
+  SettingsAccessAssignment,
+  SettingsAccessUserOption,
+  SettingsAccessCompanyOption,
+  SettingsPermissionsAdminView,
+  SettingsPermissionsAdminViewResponse,
   SettingsPermissionsMatrixVisibilityUpdateInput,
+  SettingsAccessProfileUpsertInput,
+  SettingsUserAccessProfileCreateInput,
   SettingsPermissionsMutationResponse,
 } from "./settings-permissions";
 

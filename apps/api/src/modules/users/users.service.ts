@@ -3,7 +3,6 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
-  UnauthorizedException,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
@@ -13,6 +12,7 @@ import { AuthService } from '../auth/auth.service';
 import type { IncomingHttpHeaders } from 'node:http';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
+import { AuthorizationService } from '../authorization/authorization.service';
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
@@ -48,20 +48,24 @@ export class UsersService {
     private readonly authService: AuthService,
     private readonly chatwootClient: ChatwootClient,
     private readonly integrationContext: IntegrationContextService,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
   async findAll(filters?: { search?: string; role?: string }, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
 
     const where: any = { deletedAt: null };
-    const isSystemRole = this.isSystemRole(requester.role);
+    const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canViewTeam = await this.authorizationService.userHasPermission(requester, 'users:view_team', {
+      acceptCompanyScope: true,
+    });
 
-    if (!isSystemRole) {
-      if (requester.role !== Role.CLIENTE_ADMIN) {
+    if (!isGlobalView) {
+      if (requester.role !== Role.CLIENTE_ADMIN || !canViewTeam) {
         throw new ForbiddenException('Acesso negado.');
       }
 
-      const companyIds = await this.getManagedCompanyIds(requester.userId);
+      const companyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
       if (!companyIds.length) return [];
 
       where.role = { in: CLIENT_ROLES };
@@ -78,7 +82,7 @@ export class UsersService {
       ];
     }
 
-    if (filters?.role && filters.role !== 'ALL' && isSystemRole) {
+    if (filters?.role && filters.role !== 'ALL' && isGlobalView) {
       where.role = filters.role as Role;
     }
 
@@ -90,13 +94,14 @@ export class UsersService {
   }
 
   async findOne(id: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
 
-    if (!this.isSystemRole(requester.role) && requester.role === Role.CLIENTE_ADMIN) {
+    if (!isGlobalView && requester.role === Role.CLIENTE_ADMIN) {
       await this.assertClientManagerCanManageTarget(requester.userId, id);
     }
 
-    if (!this.isSystemRole(requester.role) && requester.role !== Role.CLIENTE_ADMIN) {
+    if (!isGlobalView && requester.role !== Role.CLIENTE_ADMIN) {
       throw new ForbiddenException('Acesso negado.');
     }
 
@@ -109,11 +114,14 @@ export class UsersService {
   }
 
   async create(data: CreateUserInput, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    const isSystemRole = this.isSystemRole(requester.role);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const isSystemRole = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canCreateUsers = await this.authorizationService.userHasPermission(requester, 'users:create', {
+      acceptCompanyScope: true,
+    });
     const isClientManager = requester.role === Role.CLIENTE_ADMIN;
 
-    if (!isSystemRole && !isClientManager) {
+    if (!canCreateUsers || (!isSystemRole && !isClientManager)) {
       throw new ForbiddenException('Acesso negado.');
     }
 
@@ -128,7 +136,7 @@ export class UsersService {
     }
 
     if (isClientManager) {
-      const managedCompanyIds = await this.getManagedCompanyIds(requester.userId);
+      const managedCompanyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
       if (data.role && !CLIENT_ROLES.includes(data.role)) {
         throw new ForbiddenException('Gestor pode cadastrar apenas usuarios da unidade.');
       }
@@ -143,7 +151,7 @@ export class UsersService {
           email: data.email,
           name: data.name || 'Sem nome',
           password: data.password || Math.random().toString(36).slice(-10),
-          role: this.isSystemRole(data.role || Role.CLIENTE_USER) ? 'admin' : 'user',
+          role: this.authorizationService.isSystemRole(data.role || Role.CLIENTE_USER) ? 'admin' : 'user',
         },
       });
     } catch (error: any) {
@@ -183,11 +191,14 @@ export class UsersService {
   }
 
   async update(id: string, data: UpdateUserInput, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    const isSystemRole = this.isSystemRole(requester.role);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const isSystemRole = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canEditUsers = await this.authorizationService.userHasPermission(requester, 'users:edit', {
+      acceptCompanyScope: true,
+    });
     const isClientManager = requester.role === Role.CLIENTE_ADMIN;
 
-    if (!isSystemRole && !isClientManager) throw new ForbiddenException('Acesso negado.');
+    if (!canEditUsers || (!isSystemRole && !isClientManager)) throw new ForbiddenException('Acesso negado.');
 
     const user = await (this.prisma.user as any).findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario nao encontrado');
@@ -200,7 +211,7 @@ export class UsersService {
         throw new ForbiddenException('Gestor nao pode atribuir perfil interno.');
       }
 
-      managedCompanyIds = await this.getManagedCompanyIds(requester.userId);
+      managedCompanyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
     }
 
     const normalizedContactId = data.contactId === undefined
@@ -247,10 +258,15 @@ export class UsersService {
   }
 
   async remove(id: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canUpdateStatus = await this.authorizationService.userHasPermission(requester, 'users:status', {
+      acceptCompanyScope: true,
+    });
     if (requester.userId === id) throw new ForbiddenException('Operacao invalida.');
+    if (!canUpdateStatus) throw new ForbiddenException('Acesso negado.');
 
-    if (!this.isSystemRole(requester.role)) {
+    if (!isGlobalView) {
       if (requester.role !== Role.CLIENTE_ADMIN) throw new ForbiddenException('Acesso negado.');
       await this.assertClientManagerCanManageTarget(requester.userId, id);
     }
@@ -262,8 +278,8 @@ export class UsersService {
   }
 
   async getChatwootSsoLinkForCurrentUser(rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    if (!this.isSystemRole(requester.role)) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    if (!this.authorizationService.isSystemRole(requester.role)) {
       throw new ForbiddenException('Acesso ao Chatwoot permitido apenas para atendentes internos.');
     }
 
@@ -366,10 +382,13 @@ export class UsersService {
   }
 
   async getClientAdminView(rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    const isSystemRole = this.isSystemRole(requester.role);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const isSystemRole = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canViewTeam = await this.authorizationService.userHasPermission(requester, 'users:view_team', {
+      acceptCompanyScope: true,
+    });
 
-    if (!isSystemRole && requester.role !== Role.CLIENTE_ADMIN) {
+    if (!isSystemRole && (requester.role !== Role.CLIENTE_ADMIN || !canViewTeam)) {
       throw new ForbiddenException('Acesso negado.');
     }
 
@@ -390,7 +409,7 @@ export class UsersService {
       return { companies, users, isGlobalView: true };
     }
 
-    const companyIds = await this.getManagedCompanyIds(requester.userId);
+    const companyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
     if (!companyIds.length) {
       return { companies: [], users: [], isGlobalView: false };
     }
@@ -416,8 +435,8 @@ export class UsersService {
   }
 
   async getSystemAdminView(rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    if (!this.isSystemRole(requester.role)) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    if (!(await this.authorizationService.userHasPermission(requester, 'users:view_all'))) {
       return { users: [], isGlobalView: false };
     }
 
@@ -431,15 +450,18 @@ export class UsersService {
   }
 
   async getClientUserEditView(userId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    const isSystemRole = this.isSystemRole(requester.role);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const isSystemRole = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canViewTeam = await this.authorizationService.userHasPermission(requester, 'users:view_team', {
+      acceptCompanyScope: true,
+    });
 
-    if (!isSystemRole && requester.role !== Role.CLIENTE_ADMIN) {
+    if (!isSystemRole && (requester.role !== Role.CLIENTE_ADMIN || !canViewTeam)) {
       throw new ForbiddenException('Acesso negado.');
     }
 
     const managedCompanyIds = requester.role === Role.CLIENTE_ADMIN
-      ? await this.getManagedCompanyIds(requester.userId)
+      ? await this.authorizationService.getManagedCompanyIds(requester.userId)
       : null;
 
     const safeCompanyFilter = managedCompanyIds?.length ? managedCompanyIds : ['__none__'];
@@ -502,8 +524,8 @@ export class UsersService {
   }
 
   async getSystemUserEditView(userId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.getRequester(rawHeaders);
-    if (requester.role !== Role.ADMIN) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    if (!(await this.authorizationService.userHasPermission(requester, 'system_team:manage'))) {
       throw new ForbiddenException('Acesso negado.');
     }
 
@@ -576,10 +598,6 @@ export class UsersService {
     } as any;
   }
 
-  private isSystemRole(role: Role) {
-    return SYSTEM_ROLES.includes(role);
-  }
-
   private mapRoleToChatwoot(role: Role): 'agent' | 'administrator' {
     if (role === Role.ADMIN || role === Role.DEVELOPER) {
       return 'administrator';
@@ -637,7 +655,7 @@ export class UsersService {
     role: Role,
     contactId: string,
   ) {
-    if (this.isSystemRole(role)) {
+    if (this.authorizationService.isSystemRole(role)) {
       await tx.membership.deleteMany({
         where: { userId },
       });
@@ -752,14 +770,6 @@ export class UsersService {
     return [];
   }
 
-  private async getManagedCompanyIds(userId: string) {
-    const memberships = await this.prisma.membership.findMany({
-      where: { userId },
-      select: { companyId: true },
-    });
-    return memberships.map((m) => m.companyId);
-  }
-
   private async assertClientManagerCanManageTarget(managerUserId: string, targetUserId: string) {
     const targetUser = await this.prisma.user.findUnique({
       where: { id: targetUserId },
@@ -774,7 +784,7 @@ export class UsersService {
       throw new ForbiddenException('Voce nao pode editar este usuario.');
     }
 
-    const managedCompanyIds = await this.getManagedCompanyIds(managerUserId);
+    const managedCompanyIds = await this.authorizationService.getManagedCompanyIds(managerUserId);
     if (!managedCompanyIds.length) {
       throw new ForbiddenException('Voce nao pode editar este usuario.');
     }
@@ -789,39 +799,4 @@ export class UsersService {
     }
   }
 
-  private async getRequester(rawHeaders?: IncomingHttpHeaders) {
-    const session = await this.authService.auth.api.getSession({
-      headers: this.toHeaders(rawHeaders),
-    });
-
-    const email = session?.user?.email;
-    if (!email) throw new UnauthorizedException('Nao autenticado.');
-
-    const requester = await this.prisma.user.findUnique({
-      where: { email },
-      select: { id: true, role: true, isActive: true, deletedAt: true },
-    });
-
-    if (!requester || requester.deletedAt || !requester.isActive) {
-      throw new UnauthorizedException('Sessao invalida.');
-    }
-
-    return { userId: requester.id, role: requester.role };
-  }
-
-  private toHeaders(rawHeaders?: IncomingHttpHeaders): Headers {
-    const headers = new Headers();
-    if (!rawHeaders) return headers;
-
-    for (const [key, value] of Object.entries(rawHeaders)) {
-      if (!value) continue;
-      if (Array.isArray(value)) {
-        headers.set(key, value.join(', '));
-      } else {
-        headers.set(key, value);
-      }
-    }
-
-    return headers;
-  }
 }

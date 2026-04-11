@@ -4,7 +4,9 @@ import { IntegrationConnectionsService } from './integration-connections.service
 import {
   DEFAULT_EVOLUTION_SETTINGS,
   evolutionSettingsSchema,
+  settingsAccessProfileUpsertSchema,
   settingsPermissionsMatrixVisibilityUpdateSchema,
+  settingsUserAccessProfileCreateSchema,
   type EvolutionSettingsInput,
 } from '@dosc-syspro/contracts';
 import type { Request } from 'express';
@@ -114,10 +116,32 @@ export class SettingsController {
     return this.settingsPermissionsService.getCatalog(req.headers);
   }
 
+  @Get('permissions/admin-view')
+  async getPermissionsAdminView(@Req() req: Request) {
+    return this.settingsPermissionsService.getAdminView(req.headers);
+  }
+
   @Put('permissions/matrix-visibility')
   async updatePermissionsMatrixVisibility(@Req() req: Request, @Body() body: { enabled?: boolean }) {
     const parsed = settingsPermissionsMatrixVisibilityUpdateSchema.parse(body);
     return this.settingsPermissionsService.updateMatrixVisibility(parsed.enabled, req.headers);
+  }
+
+  @Post('permissions/profiles')
+  async savePermissionsProfile(@Req() req: Request, @Body() body: unknown) {
+    const parsed = settingsAccessProfileUpsertSchema.parse(body);
+    return this.settingsPermissionsService.saveProfile(parsed, req.headers);
+  }
+
+  @Post('permissions/assignments')
+  async assignPermissionsProfile(@Req() req: Request, @Body() body: unknown) {
+    const parsed = settingsUserAccessProfileCreateSchema.parse(body);
+    return this.settingsPermissionsService.assignProfile(parsed, req.headers);
+  }
+
+  @Delete('permissions/assignments/:id')
+  async removePermissionsAssignment(@Req() req: Request, @Param('id') id: string) {
+    return this.settingsPermissionsService.removeAssignment(id, req.headers);
   }
 
   @Get(':key')

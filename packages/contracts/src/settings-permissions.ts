@@ -69,14 +69,88 @@ export const settingsPermissionsCatalogSchema = z.object({
   profiles: z.array(settingsPermissionProfileSchema),
 });
 
+export const settingsAccessScopeTypeSchema = z.enum(["GLOBAL", "COMPANY"]);
+
+export const settingsAccessProfileSchema = z.object({
+  id: z.string().min(1),
+  key: settingsProfileKeySchema,
+  label: z.string().min(1),
+  description: z.string().optional(),
+  isSystem: z.boolean(),
+  isActive: z.boolean(),
+  permissions: z.array(settingsPermissionKeySchema),
+});
+
+export const settingsAccessAssignmentSchema = z.object({
+  id: z.string().min(1),
+  userId: z.string().min(1),
+  userName: z.string().min(1),
+  userEmail: z.string().email(),
+  profileId: z.string().min(1),
+  profileKey: settingsProfileKeySchema,
+  profileLabel: z.string().min(1),
+  scopeType: settingsAccessScopeTypeSchema,
+  companyId: z.string().min(1).nullable().optional(),
+  companyName: z.string().min(1).nullable().optional(),
+  assignedByUserId: z.string().min(1).nullable().optional(),
+  assignedByUserName: z.string().min(1).nullable().optional(),
+  reason: z.string().nullable().optional(),
+  startsAt: z.string().min(1),
+  endsAt: z.string().nullable().optional(),
+});
+
+export const settingsAccessUserOptionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  email: z.string().email(),
+  role: z.string().min(1),
+});
+
+export const settingsAccessCompanyOptionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+});
+
+export const settingsPermissionsAdminViewSchema = z.object({
+  catalog: settingsPermissionsCatalogSchema,
+  profiles: z.array(settingsAccessProfileSchema),
+  users: z.array(settingsAccessUserOptionSchema),
+  companies: z.array(settingsAccessCompanyOptionSchema),
+  assignments: z.array(settingsAccessAssignmentSchema),
+});
+
 export const settingsPermissionsCatalogResponseSchema = z.object({
   success: z.boolean(),
   data: settingsPermissionsCatalogSchema.optional(),
   error: z.string().optional(),
 });
 
+export const settingsPermissionsAdminViewResponseSchema = z.object({
+  success: z.boolean(),
+  data: settingsPermissionsAdminViewSchema.optional(),
+  error: z.string().optional(),
+});
+
 export const settingsPermissionsMatrixVisibilityUpdateSchema = z.object({
   enabled: z.boolean(),
+});
+
+export const settingsAccessProfileUpsertSchema = z.object({
+  id: z.string().min(1).optional(),
+  key: settingsProfileKeySchema,
+  label: z.string().min(1),
+  description: z.string().trim().optional(),
+  isActive: z.boolean().optional(),
+  permissions: z.array(settingsPermissionKeySchema),
+});
+
+export const settingsUserAccessProfileCreateSchema = z.object({
+  userId: z.string().min(1),
+  profileId: z.string().min(1),
+  scopeType: settingsAccessScopeTypeSchema,
+  companyId: z.string().min(1).optional(),
+  reason: z.string().trim().optional(),
+  endsAt: z.string().datetime().optional(),
 });
 
 export const settingsPermissionsMutationResponseSchema = z.object({
@@ -91,5 +165,14 @@ export type SettingsPermissionDefinition = z.infer<typeof settingsPermissionDefi
 export type SettingsPermissionProfile = z.infer<typeof settingsPermissionProfileSchema>;
 export type SettingsPermissionsCatalog = z.infer<typeof settingsPermissionsCatalogSchema>;
 export type SettingsPermissionsCatalogResponse = z.infer<typeof settingsPermissionsCatalogResponseSchema>;
+export type SettingsAccessScopeType = z.infer<typeof settingsAccessScopeTypeSchema>;
+export type SettingsAccessProfile = z.infer<typeof settingsAccessProfileSchema>;
+export type SettingsAccessAssignment = z.infer<typeof settingsAccessAssignmentSchema>;
+export type SettingsAccessUserOption = z.infer<typeof settingsAccessUserOptionSchema>;
+export type SettingsAccessCompanyOption = z.infer<typeof settingsAccessCompanyOptionSchema>;
+export type SettingsPermissionsAdminView = z.infer<typeof settingsPermissionsAdminViewSchema>;
+export type SettingsPermissionsAdminViewResponse = z.infer<typeof settingsPermissionsAdminViewResponseSchema>;
 export type SettingsPermissionsMatrixVisibilityUpdateInput = z.infer<typeof settingsPermissionsMatrixVisibilityUpdateSchema>;
+export type SettingsAccessProfileUpsertInput = z.infer<typeof settingsAccessProfileUpsertSchema>;
+export type SettingsUserAccessProfileCreateInput = z.infer<typeof settingsUserAccessProfileCreateSchema>;
 export type SettingsPermissionsMutationResponse = z.infer<typeof settingsPermissionsMutationResponseSchema>;
