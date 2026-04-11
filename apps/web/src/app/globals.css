@@ -252,6 +252,33 @@
 }
 
 @layer components {
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border) / 0.6) transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: hsl(var(--border) / 0.55);
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.35);
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   #nd-subnav {
     position: sticky;
     top: var(--fd-banner-height);

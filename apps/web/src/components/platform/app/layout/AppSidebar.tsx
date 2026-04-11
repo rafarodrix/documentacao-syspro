@@ -74,12 +74,9 @@ const NAV_SYSTEM: NavItemType[] = [
   { title: "Plataforma Remota", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
 ]
 
-const NAV_DOCS_USER: NavItemType[] = [
+const NAV_DOCS: NavItemType[] = [
   { title: "Documentacao", href: "/docs", icon: BookOpen },
   { title: "Releases", href: "/releases", icon: Rocket },
-]
-
-const NAV_DOCS_TECHNICAL: NavItemType[] = [
   { title: "Manuais Tecnicos", href: "/docs/manuais-tecnicos", icon: BookLock, roles: [...SIDEBAR_ROLE_RULES.docsTechnical] },
 ]
 
@@ -103,7 +100,7 @@ function getInitials(name: string): string {
 
 function NavGroup({ title, children, collapsed }: { title: string; children: ReactNode; collapsed?: boolean }) {
   return (
-    <nav className="grid gap-0.5">
+    <nav className="grid min-w-0 gap-0.5">
       {!collapsed && (
         <p className="px-3 text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1">{title}</p>
       )}
@@ -276,7 +273,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
   return (
     <div
       className={cn(
-        "flex flex-col bg-background border-r border-border/40",
+        "flex flex-col overflow-x-hidden border-r border-border/40 bg-background",
         mobile
           ? "h-full w-full"
           : cn("h-screen fixed left-0 top-0 hidden md:flex transition-[width] duration-200", isSidebarCollapsed ? "w-20" : "w-72"),
@@ -284,7 +281,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
     >
       <SidebarBrand isSystemUser={isSystemUser} onClose={onClose} collapsed={isSidebarCollapsed} />
 
-      <div className="flex-1 overflow-y-auto py-5 px-2.5 space-y-5">
+      <div className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-2 py-5 space-y-5">
         <NavGroup title="Principal" collapsed={isSidebarCollapsed}>
           {filterByRole(NAV_MAIN, user.role).map((item) => (
             <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
@@ -315,22 +312,11 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
 
         <Separator className="bg-border/30 mx-1" />
 
-        <NavGroup title="Documentacao de Usuario" collapsed={isSidebarCollapsed}>
-          {filterByRole(NAV_DOCS_USER, user.role).map((item) => (
+        <NavGroup title="Documentacao" collapsed={isSidebarCollapsed}>
+          {filterByRole(NAV_DOCS, user.role).map((item) => (
             <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
           ))}
         </NavGroup>
-
-        {filterByRole(NAV_DOCS_TECHNICAL, user.role).length > 0 && (
-          <>
-            <Separator className="bg-border/30 mx-1" />
-            <NavGroup title="Documentacao Tecnica" collapsed={isSidebarCollapsed}>
-              {filterByRole(NAV_DOCS_TECHNICAL, user.role).map((item) => (
-                <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
-              ))}
-            </NavGroup>
-          </>
-        )}
       </div>
 
       <SidebarFooter user={user} isSystemUser={isSystemUser} onClose={onClose} collapsed={isSidebarCollapsed} />

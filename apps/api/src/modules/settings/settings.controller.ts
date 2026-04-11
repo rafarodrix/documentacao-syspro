@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Param, Post, Delete, Query, NotFoundException, Req } from '@nestjs/common';
+import { Controller, Get, Put, Body, Param, Post, Delete, Query, NotFoundException, Req, Logger } from '@nestjs/common';
 import { CompanyStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationConnectionsService } from './integration-connections.service';
@@ -18,6 +18,7 @@ import {
   settingsUserAccessProfileCreateSchema,
   type EvolutionSettingsInput,
   type SettingsInput,
+  type SettingsOutput,
   type SefazRoutesInput,
 } from '@dosc-syspro/contracts';
 import type { Request } from 'express';
@@ -30,6 +31,14 @@ import { TicketsService } from '../tickets/tickets.service';
 export class SettingsController {
   private static readonly EVOLUTION_CONFIG_KEY = 'evolution_config';
   private static readonly LEGACY_EVOLUTION_CONFIG_KEY = 'whatsapp_evolution_config';
+  private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
+    minimumWage: 1,
+    maintenanceMode: false,
+    supportEmail: 'equipe@trilinksoftware.com.br',
+    supportPhone: '34997713731',
+    rbacMatrixEnabled: true,
+  };
+  private readonly logger = new Logger(SettingsController.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -57,15 +66,55 @@ export class SettingsController {
       return acc;
     }, {});
 
-    const data = settingsSchema.parse({
+    const rawData = {
       minimumWage: Number(configMap.minimumWage || 0),
       maintenanceMode: configMap.maintenanceMode === 'true',
       supportEmail: configMap.supportEmail || '',
       supportPhone: configMap.supportPhone || '',
       rbacMatrixEnabled: configMap.rbacMatrixEnabled !== 'false',
-    });
+    };
+
+    const validation = settingsSchema.safeParse(rawData);
+    const data = validation.success ? validation.data : this.buildSafeGeneralSettings(rawData);
+
+    if (!validation.success) {
+      this.logger.warn(
+        `Configuracoes gerais invalidas no banco; aplicando fallback seguro. Campos: ${validation.error.issues
+          .map((issue) => issue.path.join('.'))
+          .join(', ')}`,
+      );
+    }
 
     return { success: true, data };
+  }
+
+  private buildSafeGeneralSettings(input: {
+    minimumWage: number;
+    maintenanceMode: boolean;
+    supportEmail: string;
+    supportPhone: string;
+    rbacMatrixEnabled: boolean;
+  }): SettingsOutput {
+    const supportEmailValidation = settingsSchema.shape.supportEmail.safeParse(input.supportEmail);
+    const supportPhoneValidation = settingsSchema.shape.supportPhone.safeParse(this.normalizeDigits(input.supportPhone));
+
+    return {
+      minimumWage: Number.isFinite(input.minimumWage) && input.minimumWage >= 1
+        ? input.minimumWage
+        : SettingsController.DEFAULT_GENERAL_SETTINGS.minimumWage,
+      maintenanceMode: input.maintenanceMode,
+      supportEmail: supportEmailValidation.success
+        ? supportEmailValidation.data
+        : SettingsController.DEFAULT_GENERAL_SETTINGS.supportEmail,
+      supportPhone: supportPhoneValidation.success
+        ? supportPhoneValidation.data
+        : SettingsController.DEFAULT_GENERAL_SETTINGS.supportPhone,
+      rbacMatrixEnabled: input.rbacMatrixEnabled,
+    };
+  }
+
+  private normalizeDigits(value: string): string {
+    return value.replace(/\D+/g, '');
   }
 
   @Put('general')

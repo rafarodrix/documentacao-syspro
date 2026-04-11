@@ -36,6 +36,25 @@ type Props = {
   initialData?: Partial<ContactInitialData>;
 };
 
+function normalizeDigits(value: string): string {
+  return value.replace(/\D+/g, "");
+}
+
+function formatWhatsapp(value: string): string {
+  const digits = normalizeDigits(value).slice(0, 13);
+
+  if (!digits) return "";
+  if (digits.length <= 2) return `+${digits}`;
+  if (digits.length <= 4) return `+${digits.slice(0, 2)} (${digits.slice(2)}`;
+  if (digits.length <= 9) return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4)}`;
+  return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
+}
+
+function isValidWhatsapp(value: string): boolean {
+  const digits = normalizeDigits(value);
+  return digits.length === 12 || digits.length === 13;
+}
+
 export function CreateContactPageForm({
   companies,
   backHref,
@@ -83,6 +102,11 @@ export function CreateContactPageForm({
 
     if (!form.name.trim()) {
       toast.error("Informe o nome do contato.");
+      return;
+    }
+
+    if (form.whatsapp.trim() && !isValidWhatsapp(form.whatsapp)) {
+      toast.error("Informe o WhatsApp com DDI e DDD. Ex.: +55 (34) 99771-3731.");
       return;
     }
 
@@ -220,10 +244,15 @@ export function CreateContactPageForm({
                   <Label htmlFor="contact-whatsapp">WhatsApp</Label>
                   <Input
                     id="contact-whatsapp"
+                    inputMode="numeric"
+                    autoComplete="tel"
                     value={form.whatsapp}
-                    onChange={(event) => setForm((prev) => ({ ...prev, whatsapp: event.target.value }))}
-                    placeholder="5500000000000"
+                    onChange={(event) => setForm((prev) => ({ ...prev, whatsapp: formatWhatsapp(event.target.value) }))}
+                    placeholder="+55 (34) 99771-3731"
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    Use o numero com DDI e DDD. O sistema salva apenas os digitos.
+                  </p>
                 </div>
               </div>
 
