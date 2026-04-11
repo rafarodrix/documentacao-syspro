@@ -27,7 +27,7 @@ export class RemoteAdminService {
       'companies:view_all',
     );
 
-    const role = requester.user.role as Role;
+    const role = requester.role as Role;
     const normalizedRole =
       role === 'ADMIN' ? 'ADMIN' : role === 'SUPORTE' ? 'SUPORTE' : role === 'DEVELOPER' ? 'DEVELOPER' : 'CLIENTE_ADMIN';
 
@@ -285,7 +285,7 @@ export class RemoteAdminService {
         reason,
         payload: {
           source: 'portal.manual_action',
-          requestedByUserId: requester.user.id,
+          requestedByUserId: requester.userId,
           requestedAt: new Date().toISOString(),
           action,
         },
