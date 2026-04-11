@@ -5,7 +5,12 @@ import { IntegrationConnectionsService } from './integration-connections.service
 import {
   DEFAULT_EVOLUTION_SETTINGS,
   evolutionSettingsSchema,
+  DEFAULT_REMOTE_MODULE_SETTINGS,
+  platformNotificationsResponseSchema,
+  remoteModuleSettingsSchema,
   type SettingsContractsAdminView,
+  type PlatformNotificationItem,
+  type RemoteModuleSettingsInput,
   settingsSchema,
   sefazRoutesSchema,
   settingsAccessProfileUpsertSchema,
@@ -19,6 +24,7 @@ import type { Request } from 'express';
 import { SettingsPermissionsService } from './permissions/permissions.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { SettingsSefazMonitorService } from './sefaz-monitor.service';
+import { TicketsService } from '../tickets/tickets.service';
 
 @Controller('settings')
 export class SettingsController {
@@ -31,6 +37,7 @@ export class SettingsController {
     private readonly settingsPermissionsService: SettingsPermissionsService,
     private readonly authorizationService: AuthorizationService,
     private readonly sefazMonitorService: SettingsSefazMonitorService,
+    private readonly ticketsService: TicketsService,
   ) {}
 
   @Get('general')
@@ -127,6 +134,50 @@ export class SettingsController {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
     const result = await this.sefazMonitorService.runFullCheck();
     return { success: true, count: result.count, message: `Verificacao concluida (${result.count} rotas).` };
+  }
+
+  @Get('remote/module-settings')
+  async getRemoteModuleSettings(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'remote.module.settings' },
+        select: { value: true },
+      });
+
+      if (!setting?.value) {
+        return { success: true, data: DEFAULT_REMOTE_MODULE_SETTINGS };
+      }
+
+      const parsed = JSON.parse(setting.value);
+      const validation = remoteModuleSettingsSchema.safeParse(parsed);
+      if (!validation.success) {
+        return { success: true, data: DEFAULT_REMOTE_MODULE_SETTINGS };
+      }
+
+      return { success: true, data: validation.data };
+    } catch {
+      return { success: true, data: DEFAULT_REMOTE_MODULE_SETTINGS };
+    }
+  }
+
+  @Put('remote/module-settings')
+  async updateRemoteModuleSettings(@Req() req: Request, @Body() body: RemoteModuleSettingsInput) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = remoteModuleSettingsSchema.parse(body);
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: 'remote.module.settings' },
+      update: { value: JSON.stringify(parsed) },
+      create: {
+        key: 'remote.module.settings',
+        value: JSON.stringify(parsed),
+        description: 'Configuracoes globais do modulo remoto',
+      },
+    });
+
+    return { success: true, message: 'Configuracoes do modulo remoto salvas.', data: parsed };
   }
 
   @Get('evolution')
@@ -350,6 +401,28 @@ export class SettingsController {
     };
   }
 
+  @Get('platform-notifications')
+  async getPlatformNotifications(@Req() req: Request) {
+    const requester = await this.authorizationService.getRequester(req.headers);
+    const systemUser = await this.authorizationService.userHasPermission(requester, 'tools:all');
+    const includeContracts = await this.authorizationService.userHasPermission(requester, 'settings:edit');
+    const ticketsResponse = await this.ticketsService.findAll(
+      { page: '1', pageSize: '50' },
+      req.headers,
+    );
+
+    const items = this.sortNotifications([
+      ...(ticketsResponse.success ? this.buildTicketNotifications(ticketsResponse.data ?? []) : []),
+      ...(systemUser ? await this.buildSystemOperationalNotifications(includeContracts) : []),
+    ]).slice(0, 12);
+
+    return platformNotificationsResponseSchema.parse({
+      items,
+      unreadCount: items.filter((item) => item.level !== 'info').length,
+      generatedAt: new Date().toISOString(),
+    });
+  }
+
   @Get(':key')
   async getSetting(@Param('key') key: string) {
     const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
@@ -364,5 +437,136 @@ export class SettingsController {
       create: { key, value, description: 'Configuracao Global' },
     });
     return { success: true, value: setting.value };
+  }
+
+  private minutesBetween(now: Date, dateLike: string | Date) {
+    const date = new Date(dateLike);
+    return Math.floor((now.getTime() - date.getTime()) / 1000 / 60);
+  }
+
+  private buildTicketNotifications(tickets: Array<{ id: string; status: string; priority: string; updatedAt: string; ticketNumber: string | null; subject: string | null }>): PlatformNotificationItem[] {
+    const now = new Date();
+    const items: PlatformNotificationItem[] = [];
+
+    for (const ticket of tickets) {
+      const status = String(ticket.status || '').toUpperCase();
+      if (status === 'RESOLVED' || status === 'ARCHIVED') continue;
+
+      const mins = this.minutesBetween(now, ticket.updatedAt);
+      const hours = Math.max(1, Math.floor(mins / 60));
+      const href = `/portal/tickets/${ticket.id}`;
+      const number = ticket.ticketNumber || String(ticket.id);
+      const title = ticket.subject || 'Sem assunto';
+
+      if ((ticket.priority === 'HIGH' || ticket.priority === 'CRITICAL') && mins >= 240) {
+        items.push({
+          id: `ticket-high-${ticket.id}`,
+          level: 'critical',
+          title: 'Chamado critico sem resposta',
+          description: `#${number} ${title} sem atualizacao ha ${hours}h.`,
+          href,
+          createdAt: ticket.updatedAt,
+        });
+        continue;
+      }
+
+      if (mins >= 1440) {
+        items.push({
+          id: `ticket-stale-${ticket.id}`,
+          level: 'warning',
+          title: 'Chamado parado ha mais de 24h',
+          description: `#${number} ${title} sem atualizacao ha ${hours}h.`,
+          href,
+          createdAt: ticket.updatedAt,
+        });
+        continue;
+      }
+
+      if (mins <= 30) {
+        items.push({
+          id: `ticket-recent-${ticket.id}`,
+          level: 'info',
+          title: 'Chamado atualizado recentemente',
+          description: `#${number} ${title} atualizado nos ultimos ${Math.max(1, mins)} min.`,
+          href,
+          createdAt: ticket.updatedAt,
+        });
+      }
+    }
+
+    return items;
+  }
+
+  private async buildSystemOperationalNotifications(includeContracts: boolean): Promise<PlatformNotificationItem[]> {
+    const now = new Date();
+    const in30Days = new Date(now);
+    in30Days.setDate(now.getDate() + 30);
+
+    const [contracts, sefazRecords] = await Promise.all([
+      includeContracts
+        ? this.prisma.contract.findMany({
+            where: {
+              status: 'ACTIVE',
+              endDate: { not: null, lte: in30Days },
+            },
+            include: { company: { select: { razaoSocial: true } } },
+            orderBy: { endDate: 'asc' },
+            take: 8,
+          })
+        : Promise.resolve([]),
+      this.prisma.sefazStatus.findMany({
+        where: { uf: 'MG' },
+        orderBy: { createdAt: 'desc' },
+        distinct: ['service'],
+        take: 2,
+      }),
+    ]);
+
+    const items: PlatformNotificationItem[] = [];
+
+    for (const contract of contracts) {
+      if (!contract.endDate) continue;
+      const isExpired = contract.endDate < now;
+      const days = Math.ceil((contract.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      items.push({
+        id: `contract-${contract.id}`,
+        level: isExpired ? 'critical' : 'warning',
+        title: isExpired ? 'Contrato vencido' : 'Contrato proximo do vencimento',
+        description: isExpired
+          ? `${contract.company.razaoSocial} com contrato vencido.`
+          : `${contract.company.razaoSocial} vence em ${days} dia(s).`,
+        href: '/portal/contratos',
+        createdAt: contract.updatedAt.toISOString(),
+      });
+    }
+
+    for (const sefaz of sefazRecords) {
+      if (sefaz.status === 'ONLINE') continue;
+      items.push({
+        id: `sefaz-${sefaz.service}-${sefaz.id}`,
+        level: sefaz.status === 'OFFLINE' ? 'critical' : 'warning',
+        title: `SEFAZ ${sefaz.service} ${sefaz.status === 'OFFLINE' ? 'indisponivel' : 'instavel'}`,
+        description: `UF ${sefaz.uf} com latencia ${sefaz.latency}ms.`,
+        href: '/portal',
+        createdAt: sefaz.createdAt.toISOString(),
+      });
+    }
+
+    return items;
+  }
+
+  private sortNotifications(items: PlatformNotificationItem[]) {
+    const levelWeight = {
+      critical: 3,
+      warning: 2,
+      info: 1,
+    } as const;
+
+    return [...items].sort((a, b) => {
+      const levelDiff = levelWeight[b.level] - levelWeight[a.level];
+      if (levelDiff !== 0) return levelDiff;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }
 }

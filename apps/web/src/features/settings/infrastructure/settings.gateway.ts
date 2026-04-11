@@ -1,9 +1,15 @@
 import {
+  platformNotificationsResponseSchema,
+  remoteModuleSettingsSchema,
+  remoteModuleSettingsResponseSchema,
   settingsAuthorizationContextResponseSchema,
   settingsContractsAdminViewResponseSchema,
   settingsRemoteAdminViewResponseSchema,
   sefazRoutesSchema,
   settingsSchema,
+  type PlatformNotificationsResponse,
+  type RemoteModuleSettings,
+  type RemoteModuleSettingsResponse,
   type SettingsAuthorizationContextResponse,
   type SettingsContractsAdminViewResponse,
   type SettingsRemoteAdminViewResponse,
@@ -78,5 +84,30 @@ export async function fetchSettingsRemoteAdminViewGateway(): Promise<SettingsRem
 export async function fetchSettingsAuthorizationContextGateway(): Promise<SettingsAuthorizationContextResponse> {
   return settingsAuthorizationContextResponseSchema.parse(
     await callBackendApi<SettingsAuthorizationContextResponse>("settings", "/authorization/context"),
+  );
+}
+
+export async function fetchRemoteModuleSettingsGateway(): Promise<RemoteModuleSettingsResponse> {
+  return remoteModuleSettingsResponseSchema.parse(
+    await callBackendApi<RemoteModuleSettingsResponse>("settings", "/remote/module-settings"),
+  );
+}
+
+export async function updateRemoteModuleSettingsGateway(
+  input: RemoteModuleSettings,
+): Promise<RemoteModuleSettingsResponse> {
+  const payload = remoteModuleSettingsSchema.parse(input);
+  return remoteModuleSettingsResponseSchema.parse(
+    await callBackendApi<RemoteModuleSettingsResponse>("settings", "/remote/module-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function fetchPlatformNotificationsGateway(): Promise<PlatformNotificationsResponse> {
+  return platformNotificationsResponseSchema.parse(
+    await callBackendApi<PlatformNotificationsResponse>("settings", "/platform-notifications"),
   );
 }

@@ -214,3 +214,24 @@ export type {
   EvolutionSettingsInput,
   EvolutionSettings,
 } from "./evolution-settings";
+export {
+  REMOTE_MODULE_SETTINGS_KEY,
+  remoteModuleSettingsSchema,
+  remoteModuleSettingsResponseSchema,
+  DEFAULT_REMOTE_MODULE_SETTINGS,
+} from "./remote-module-settings";
+export type {
+  RemoteModuleSettingsInput,
+  RemoteModuleSettings,
+  RemoteModuleSettingsResponse,
+} from "./remote-module-settings";
+export {
+  platformNotificationLevelSchema,
+  platformNotificationItemSchema,
+  platformNotificationsResponseSchema,
+} from "./platform-notifications";
+export type {
+  PlatformNotificationLevel,
+  PlatformNotificationItem,
+  PlatformNotificationsResponse,
+} from "./platform-notifications";
