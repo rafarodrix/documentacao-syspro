@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CompanyContactSource, CompanyContactStatus, CompanySegment, CompanyStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
@@ -216,6 +216,8 @@ function parseContractBlockReason(notes: string | null | undefined) {
 
 @Injectable()
 export class CompaniesService {
+  private readonly logger = new Logger(CompaniesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
@@ -617,7 +619,13 @@ export class CompaniesService {
           profile,
         },
       };
-    } catch {
+    } catch (error) {
+      this.logger.error(
+        `Falha ao consultar CNPJ ${normalizedCnpj} via ${this.getCompanyRegistryProviderLabel()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return { success: false, message: 'Ocorreu um erro interno. Tente novamente.' };
     }
   }
@@ -1039,18 +1047,29 @@ export class CompaniesService {
       throw new Error('Integracao oficial de CNPJ nao configurada.');
     }
 
+    const resolvedUrl = COMPANY_REGISTRY_LOOKUP_URL.includes('{cnpj}')
+      ? COMPANY_REGISTRY_LOOKUP_URL.replace('{cnpj}', cnpj)
+      : `${COMPANY_REGISTRY_LOOKUP_URL}${COMPANY_REGISTRY_LOOKUP_URL.includes('?') ? '&' : '?'}cnpj=${cnpj}`;
+
+    this.logger.log(`Consultando CNPJ ${cnpj} via ${this.getCompanyRegistryProviderLabel()} em ${resolvedUrl}`);
+
     const response =
-      COMPANY_REGISTRY_PROVIDER === 'brasilapi'
-        ? await this.fetchBrasilApiCompanyProfile(cnpj)
-        : await this.fetchCustomOauthCompanyProfile(cnpj);
+        COMPANY_REGISTRY_PROVIDER === 'brasilapi'
+          ? await this.fetchBrasilApiCompanyProfile(cnpj)
+          : await this.fetchCustomOauthCompanyProfile(cnpj);
 
     if (!response.ok) {
+      const bodyText = await response.text();
+      this.logger.warn(
+        `Consulta CNPJ ${cnpj} retornou HTTP ${response.status} ${response.statusText}. Body: ${bodyText.slice(0, 600)}`,
+      );
       throw new Error(`Falha ao consultar CNPJ no provedor oficial [${response.status}].`);
     }
 
     const payload = await response.json();
     const normalized = normalizeRegistryPayload(payload, cnpj);
     if (!normalized.legalName) {
+      this.logger.warn(`Consulta CNPJ ${cnpj} retornou payload sem razao social utilizavel.`);
       throw new Error('O provedor retornou dados sem razao social normalizavel.');
     }
 
