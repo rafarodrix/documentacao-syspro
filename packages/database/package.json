@@ -12,5 +12,9 @@
                     "db:deploy":  "dotenv -e ../../.env prisma migrate deploy --schema ./prisma/schema.prisma",
                     "db:seed:companies":  "dotenv -e ../../.env node ./prisma/seed-companies.mjs",
                     "db:seed:remote":  "dotenv -e ../../.env node ./prisma/seed-remote-hosts.mjs"
-                }
+                },
+    "devDependencies":  {
+                            "dotenv-cli":  "^11.0.0",
+                            "prisma":  "^5.22.0"
+                        }
 }

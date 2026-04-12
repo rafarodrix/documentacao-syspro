@@ -9,6 +9,7 @@ node_modules/
 # Build & Generated
 # -----------------------------------------------------------------------------
 .next/
+apps/web/.next/
 dist/
 build/
 out/
@@ -79,6 +80,3 @@ apps/web/tests/e2e/.auth/
 # -----------------------------------------------------------------------------
 .DS_Store
 Thumbs.db
-
-.vercel
-.env*.local

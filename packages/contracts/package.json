@@ -23,6 +23,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@prisma/client": "^5.22.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
   }
 }

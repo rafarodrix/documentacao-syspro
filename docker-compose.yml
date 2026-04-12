@@ -8,10 +8,18 @@ services:
       - .env
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${PORT:-3000}
+      PORT: ${API_PORT:-3000}
+    ports:
+      - "${API_PORT:-3000}:3000"
     expose:
       - "3000"
-    # Habilite apenas se sua instância Dokploy exigir rede externa explícita.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    # Habilite apenas se sua instancia Dokploy exigir rede externa explicita.
     # networks:
     #   - dokploy-network
 

@@ -13,5 +13,8 @@
     "@dosc-syspro/contracts": "0.0.0",
     "@dosc-syspro/core": "0.0.0",
     "@dosc-syspro/shared": "0.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
   }
 }

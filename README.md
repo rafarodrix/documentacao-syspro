@@ -13,6 +13,34 @@ Este workspace concentra:
 
 Hoje o runtime principal continua sendo o `@dosc-syspro/web`, mas a base ja esta organizada para evolucao incremental de multi-app.
 
+## Setup rapido
+
+1. Instale as dependencias do workspace:
+
+```bash
+npm install
+```
+
+2. Crie os arquivos de ambiente a partir dos exemplos:
+
+```bash
+cp .env.example .env
+cp .env.e2e.example .env.e2e
+```
+
+3. Gere o client do Prisma quando necessario:
+
+```bash
+npm run db:generate
+```
+
+4. Rode o runtime desejado:
+
+```bash
+npm run dev
+npm run dev:api
+```
+
 ## Estrutura
 
 ```text
@@ -64,6 +92,14 @@ npm run db:generate
 npm run db:validate
 npm run db:migrate
 npm run db:seed:remote
+```
+
+Scripts uteis adicionais:
+
+```bash
+npm run test:e2e
+npm run test:api
+npm run test:packages
 ```
 
 ## Aplicacoes
@@ -120,14 +156,22 @@ O projeto depende de variaveis em `.env`, principalmente para:
 
 - banco (`DATABASE_URL`, `DIRECT_URL`)
 - auth (`BETTER_AUTH_*`)
+- integracoes (`EVOLUTION_*`, `CHATWOOT_*`)
+- operacao remota (`REMOTE_*`, `PORTAL_API_*`)
 
 Sem essas variaveis, partes do portal podem abrir em modo reduzido ou falhar em fluxos autenticados e de integracao.
+
+Arquivos versionados de referencia:
+
+- `.env.example`
+- `.env.e2e.example`
 
 ## Documentacao interna
 
 A referencia arquitetural e operacional fica em:
 
 - `apps/web/content/docs/manuais-tecnicos`
+- `_bmad-output/project-context.md`
 
 Documentos principais:
 
