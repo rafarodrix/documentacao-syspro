@@ -1,5 +1,4 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,12 +7,46 @@ import Link from "next/link";
 import { MagicCard } from "@/components/magicui/MagicCard";
 import { NumberTicker } from "@/components/magicui/NumberTicker";
 import { ShineBorder } from "@/components/magicui/ShineBorder";
-import { ArrowUpRight, BookOpen, Headset, KeyRound, PlusCircle, Sparkles, Users, Zap } from "lucide-react";
+import {
+  ArrowUpRight,
+  BookOpen,
+  Building2,
+  Headset,
+  KeyRound,
+  Minus,
+  PlusCircle,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  Zap,
+} from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
 import { cn } from "@/lib/utils";
 
 type SefazStatusKey = "ONLINE" | "UNSTABLE" | "OFFLINE";
+
+function GrowthIndicator({ value }: { value: number }) {
+  if (value === 0) {
+    return (
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Minus className="h-3 w-3" />
+        Estavel este mes
+      </span>
+    );
+  }
+
+  const positive = value > 0;
+
+  return (
+    <span className={cn("flex items-center gap-1 text-xs font-medium", positive ? "text-emerald-500" : "text-red-500")}>
+      {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {positive ? "+" : ""}
+      {value} este mes
+    </span>
+  );
+}
 
 export default async function DashboardPage() {
   await requireSession();
@@ -22,7 +55,7 @@ export default async function DashboardPage() {
 
   if (data.mode === "admin") {
     const adminData = data;
-    const sefazNfeStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
+    const sefazStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
       ONLINE: {
         label: "Operacional",
         color: "text-emerald-500",
@@ -39,7 +72,9 @@ export default async function DashboardPage() {
         dot: "bg-red-500",
       },
     };
-    const sefazNfeStatus = sefazNfeStatusMap[adminData.sefazNfe.status as SefazStatusKey];
+
+    const sefazNfeStatus = sefazStatusMap[adminData.sefazNfe.status as SefazStatusKey];
+    const sefazNfceStatus = sefazStatusMap[adminData.sefazNfce.status as SefazStatusKey];
 
     return (
       <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
@@ -48,58 +83,116 @@ export default async function DashboardPage() {
           <p className="mt-0.5 text-sm text-muted-foreground">Visao operacional do sistema em tempo real.</p>
         </div>
 
-        <div className={`grid gap-3 ${dailyPassword ? "lg:grid-cols-[minmax(0,1.7fr)_320px]" : "lg:grid-cols-1"}`}>
-          <Card className={cn("border-border/50 bg-card/70", adminData.sefazNfe.status !== "ONLINE" && "border-amber-500/30")}>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <Card
+            className={cn(
+              "border-border/50 bg-card/70",
+              (adminData.sefazNfe.status !== "ONLINE" || adminData.sefazNfce.status !== "ONLINE") && "border-amber-500/30",
+            )}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm">
-                <Zap className={cn("h-4 w-4", sefazNfeStatus.color)} />
-                SEFAZ MG · NFe
+                <Zap className="h-4 w-4 text-amber-500" />
+                SEFAZ MG
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex items-center justify-between gap-4 pt-0">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                  {adminData.sefazNfe.status === "ONLINE" ? (
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  ) : null}
-                  <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfeStatus.dot)} />
-                </span>
-                <span className={cn("text-lg font-semibold", sefazNfeStatus.color)}>{sefazNfeStatus.label}</span>
-              </div>
-              <div className="text-right">
-                <p className="font-mono text-sm text-muted-foreground">
+            <CardContent className="space-y-3 pt-0">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">NFe</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                      {adminData.sefazNfe.status === "ONLINE" ? (
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      ) : null}
+                      <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfeStatus.dot)} />
+                    </span>
+                    <span className={cn("text-sm font-semibold", sefazNfeStatus.color)}>{sefazNfeStatus.label}</span>
+                  </div>
+                </div>
+                <p className="font-mono text-xs text-muted-foreground">
                   {adminData.sefazNfe.status === "OFFLINE" || adminData.sefazNfe.latency <= 0
                     ? "Sem medicao"
                     : `${adminData.sefazNfe.latency}ms`}
                 </p>
-                <p className="text-xs text-muted-foreground">Producao</p>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">NFC-e</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                      {adminData.sefazNfce.status === "ONLINE" ? (
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      ) : null}
+                      <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfceStatus.dot)} />
+                    </span>
+                    <span className={cn("text-sm font-semibold", sefazNfceStatus.color)}>{sefazNfceStatus.label}</span>
+                  </div>
+                </div>
+                <p className="font-mono text-xs text-muted-foreground">
+                  {adminData.sefazNfce.status === "OFFLINE" || adminData.sefazNfce.latency <= 0
+                    ? "Sem medicao"
+                    : `${adminData.sefazNfce.latency}ms`}
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          {dailyPassword ? (
-            <Card className="border-border/50 bg-card/70">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <KeyRound className="h-4 w-4" />
-                  Senha do dia
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-center font-mono text-xl font-semibold tracking-[0.18em]">
-                  {dailyPassword.password}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
-        </div>
+          <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+            <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
+              <Building2 className="h-20 w-20 -rotate-12 text-blue-500" />
+            </div>
+            <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Empresas Ativas
+              </CardTitle>
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
+                <Building2 className="h-3.5 w-3.5 text-blue-500" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="text-3xl font-bold tracking-tight tabular-nums">{adminData.companiesCount.toLocaleString("pt-BR")}</div>
+              <div className="mt-1">
+                <GrowthIndicator value={adminData.companiesGrowth} />
+              </div>
+            </CardContent>
+          </Card>
 
-        <DashboardStats
-          companiesCount={adminData.companiesCount}
-          companiesGrowth={adminData.companiesGrowth}
-          usersCount={adminData.usersCount}
-          activeUsersCount={adminData.activeUsersCount}
-        />
+          <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+            <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
+              <Users className="h-20 w-20 rotate-12 text-violet-500" />
+            </div>
+            <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Usuarios</CardTitle>
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10">
+                <Users className="h-3.5 w-3.5 text-violet-500" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="text-3xl font-bold tracking-tight tabular-nums">{adminData.usersCount.toLocaleString("pt-BR")}</div>
+              <div className="mt-1">
+                <span className="text-xs text-muted-foreground">
+                  <span className="font-medium text-emerald-500">{adminData.activeUsersCount}</span> ativos
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-card/70">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <KeyRound className="h-4 w-4" />
+                Senha do dia
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-center font-mono text-xl font-semibold tracking-[0.18em]">
+                {dailyPassword?.password ?? "-----"}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
           <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
