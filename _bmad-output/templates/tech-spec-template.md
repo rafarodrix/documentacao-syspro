@@ -78,6 +78,8 @@ Short technical objective.
 - Unit/integration checks
 - Manual verification path
 - Failure-path verification
+- Scope-specific `typecheck` command
+- Scope-specific test command
 
 ## Risks
 
@@ -92,5 +94,8 @@ Short technical objective.
 ## Definition Of Done
 
 - Code implemented
+- Scope `typecheck` completed
+- Scope tests completed
+- No generated artifacts committed
 - Relevant docs updated
 - Verification completed

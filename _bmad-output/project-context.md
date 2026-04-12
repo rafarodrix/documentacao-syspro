@@ -51,12 +51,35 @@ Primary backlog source:
 - Shared contracts and reusable pure logic should move to `packages/*` only when stable.
 - Avoid duplicate flows across `apps/web`, `apps/api`, and future `apps/mobile`.
 
+### Repository Structure Targets
+
+- `apps/web`: UI, admin, portal, docs, and legacy BFF behavior still in transition
+- `apps/api`: central backend runtime in NestJS
+- `apps/mobile`: mobile shell/app runtime
+- `packages/*`: shared contracts, domain, persistence, utilities, and UI primitives
+
+### Naming Conventions
+
+- React components: `PascalCase.tsx`
+- Hooks, actions, services, gateways, controllers, and utility modules: `kebab-case.ts`
+- Local type files: `types.ts`
+- Tests: `*.test.ts` or `*.test.tsx`
+- Controlled exception:
+  - vendored UI components in `apps/web/src/components/ui/*` may stay in `kebab-case.tsx`
+  - `index.ts` and `index.tsx` are acceptable only as module entrypoints
+- Avoid duplicate naming styles for the same responsibility:
+  - do not keep both `ThemeProvider.tsx` and `theme-provider.tsx` for equivalent roles
+
 ### Runtime Boundaries
 
 - `apps/web` is the main production runtime today.
 - `apps/api` is a dedicated shell and should absorb backend/integration behavior progressively.
 - `packages/contracts` is for boundary DTOs/schemas that are stable enough to be shared.
 - `packages/core` and `packages/shared` should contain logic that is not tied to framework runtime.
+- Do not commit generated artifacts under source folders:
+  - compiled `*.js` in `src`
+  - `node_modules`
+  - test outputs and similar generated files
 
 ### Integration Design
 
@@ -79,12 +102,42 @@ Primary backlog source:
 - For broad refactors, define scope first, then implement by slices.
 - Preserve existing user changes and local worktree changes unless explicitly asked otherwise.
 
+### Feature Architecture In `apps/web`
+
+- Each feature under `apps/web/src/features/*` should keep these layers when applicable:
+  - `application/`
+  - `domain/`
+  - `infrastructure/`
+  - `interface/`
+- UI hooks belong in `interface/hooks/`
+- Shared feature helpers belong in:
+  - `application/utils/` for use-case-oriented helpers
+  - `infrastructure/*` for adapter-technical helpers
+
 ## Testing Expectations
 
 - Run the smallest meaningful test set for the area touched.
 - For `apps/api`, prefer targeted tests around service/controller behavior when available.
 - For `apps/web`, keep Vitest for logic and Playwright for critical route journeys.
 - If a change is hard to validate automatically, document the manual verification path.
+
+### Common Commands
+
+- Web:
+  - `npm run test -w @dosc-syspro/web`
+  - `npm run test:e2e -w @dosc-syspro/web`
+- API app:
+  - `npm run typecheck -w @dosc-syspro/app-api`
+  - `npm run test -w @dosc-syspro/app-api`
+- Package API:
+  - `npm run test -w @dosc-syspro/api`
+
+### Pull Request Checklist
+
+- Run `typecheck` for the touched scope.
+- Run tests for the touched scope.
+- Confirm no generated files were added accidentally.
+- Update technical documentation when behavior or architecture changes.
 
 ## Current High-Value Areas
 
