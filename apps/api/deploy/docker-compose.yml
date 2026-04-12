@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: ../../..
-      dockerfile: apps/api/Dockerfile
+      dockerfile: apps/api/deploy/Dockerfile
     restart: unless-stopped
     env_file:
       - ../../../.env
