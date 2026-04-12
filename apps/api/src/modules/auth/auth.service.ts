@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CompanyStatus, ContractStatus, Role } from '@prisma/client';
 import { betterAuth } from 'better-auth';
@@ -30,12 +30,11 @@ export type ProtectedSessionPayload = {
 @Injectable()
 export class AuthService {
   public readonly auth;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(private prisma: PrismaService) {
-    const trustedOrigins = (process.env.EXTRA_TRUSTED_ORIGINS ?? '')
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter(Boolean);
+    const baseURL = (process.env.BETTER_AUTH_URL || 'http://localhost:3000').trim();
+    const trustedOrigins = this.resolveTrustedOrigins(baseURL);
 
     // Instancia o nucleo do better-auth rodando 100% no backend NestJS
     this.auth = betterAuth({
@@ -83,8 +82,12 @@ export class AuthService {
       },
       // Estas variaveis de ambiente devem existir no Dokploy / .env
       secret: process.env.BETTER_AUTH_SECRET || 'fallback-secret-para-dev-local',
-      baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+      baseURL,
     });
+
+    if (trustedOrigins.length > 0) {
+      this.logger.log(`Better Auth trusted origins: ${trustedOrigins.join(', ')}`);
+    }
   }
 
   async register(input: RegisterInput, rawHeaders?: IncomingHttpHeaders) {
@@ -252,6 +255,40 @@ export class AuthService {
       });
     } catch (error) {
       console.error('Falha critica ao enviar e-mail de redefinicao:', error);
+    }
+  }
+
+  private resolveTrustedOrigins(baseURL: string): string[] {
+    const configuredOrigins = (process.env.EXTRA_TRUSTED_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+
+    const candidates = [
+      baseURL,
+      ...configuredOrigins,
+      process.env.NEXT_PUBLIC_APP_URL,
+      process.env.NEXT_PUBLIC_WEB_URL,
+    ];
+
+    const trustedOrigins = new Set<string>();
+
+    for (const candidate of candidates) {
+      const normalized = this.normalizeOrigin(candidate);
+      if (normalized) trustedOrigins.add(normalized);
+    }
+
+    return Array.from(trustedOrigins);
+  }
+
+  private normalizeOrigin(value?: string | null): string | null {
+    const trimmed = value?.trim();
+    if (!trimmed) return null;
+
+    try {
+      return new URL(trimmed).origin;
+    } catch {
+      return trimmed.replace(/\/+$/, '');
     }
   }
 }
