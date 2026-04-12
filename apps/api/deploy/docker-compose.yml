@@ -4,18 +4,15 @@ services:
       context: ../../..
       dockerfile: apps/api/deploy/Dockerfile
     restart: unless-stopped
-    env_file:
-        - ../../../.env
+    #env_file:
+        #- ../../../.env
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3000}
     expose:
       - "3000"
     # Habilite apenas se sua instância Dokploy exigir rede externa explícita.
+
     # networks:
-    #   - dokploy-network
-
-# networks:
-#   dokploy-network:
-#     external: true
-
+    #   dokploy-network:
+    #     external: true

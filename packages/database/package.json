@@ -6,12 +6,12 @@
                     ".":  "./src/index.ts"
                 },
     "scripts":  {
-                    "db:validate":  "dotenv -e ../../.env prisma validate --schema ./prisma/schema.prisma",
-                    "db:generate":  "dotenv -e ../../.env prisma generate --schema ./prisma/schema.prisma",
-                    "db:migrate":  "dotenv -e ../../.env prisma migrate dev --schema ./prisma/schema.prisma",
-                    "db:deploy":  "dotenv -e ../../.env prisma migrate deploy --schema ./prisma/schema.prisma",
-                    "db:seed:companies":  "dotenv -e ../../.env node ./prisma/seed-companies.mjs",
-                    "db:seed:remote":  "dotenv -e ../../.env node ./prisma/seed-remote-hosts.mjs"
+                    "db:validate":  "dotenv -e ../../apps/api/.env prisma validate --schema ./prisma/schema.prisma",
+                    "db:generate":  "dotenv -e ../../apps/api/.env prisma generate --schema ./prisma/schema.prisma",
+                    "db:migrate":  "dotenv -e ../../apps/api/.env prisma migrate dev --schema ./prisma/schema.prisma",
+                    "db:deploy":  "dotenv -e ../../apps/api/.env prisma migrate deploy --schema ./prisma/schema.prisma",
+                    "db:seed:companies":  "dotenv -e ../../apps/api/.env node ./prisma/seed-companies.mjs",
+                    "db:seed:remote":  "dotenv -e ../../apps/api/.env node ./prisma/seed-remote-hosts.mjs"
                 },
     "devDependencies":  {
                             "dotenv-cli":  "^11.0.0",

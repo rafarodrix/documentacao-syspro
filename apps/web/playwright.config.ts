@@ -23,10 +23,8 @@ function loadEnvFile(filePath: string, override = false) {
   }
 }
 
-const workspaceRoot = path.resolve(__dirname, "../..");
-loadEnvFile(path.join(workspaceRoot, ".env"));
 loadEnvFile(path.join(__dirname, ".env"));
-loadEnvFile(path.join(workspaceRoot, ".env.e2e"), true);
+loadEnvFile(path.join(__dirname, ".env.local"));
 loadEnvFile(path.join(__dirname, ".env.e2e"), true);
 
 const PORT = Number(process.env.E2E_PORT ?? 3100);

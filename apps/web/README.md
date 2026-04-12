@@ -95,6 +95,20 @@ npm run test -w @dosc-syspro/web
 npm run docs:check -w @dosc-syspro/web
 ```
 
+## Ambiente
+
+Exemplo versionado:
+
+- `apps/web/.env.example`
+- `apps/web/.env.e2e.example`
+
+Para desenvolvimento local, use:
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+cp apps/web/.env.e2e.example apps/web/.env.e2e
+```
+
 ## Observações operacionais
 
 - o `postinstall` gera tipos do Fumadocs e Prisma Client

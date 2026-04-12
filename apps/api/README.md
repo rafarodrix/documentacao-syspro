@@ -58,15 +58,18 @@ npm run test -w @dosc-syspro/app-api
 
 ## Deploy dedicado
 
-Use `apps/api/Dockerfile` com contexto na raiz do monorepo:
+Use `apps/api/deploy/Dockerfile` com contexto na raiz do monorepo:
 
 ```bash
-docker build -f apps/api/Dockerfile -t dosc-syspro-api .
-docker run --rm -p 3001:3001 --env-file .env dosc-syspro-api
+docker build -f apps/api/deploy/Dockerfile -t dosc-syspro-api .
+docker run --rm -p 3001:3000 --env-file apps/api/.env dosc-syspro-api
 ```
 
 ## Variáveis mínimas
 
+Exemplo versionado:
+
+- `apps/api/.env.example`
 - `PORT` (opcional, default local `3001`)
 - `DATABASE_URL`
 - `DIRECT_URL` (quando usar migrations/Prisma em runtime)

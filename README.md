@@ -21,11 +21,12 @@ Hoje o runtime principal continua sendo o `@dosc-syspro/web`, mas a base ja esta
 npm install
 ```
 
-2. Crie os arquivos de ambiente a partir dos exemplos:
+2. Crie os arquivos de ambiente a partir dos exemplos de cada app:
 
 ```bash
-cp .env.example .env
-cp .env.e2e.example .env.e2e
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
+cp apps/web/.env.e2e.example apps/web/.env.e2e
 ```
 
 3. Gere o client do Prisma quando necessario:
@@ -152,7 +153,13 @@ Primitives e componentes reutilizaveis sem regra de negocio.
 
 ## Ambiente
 
-O projeto depende de variaveis em `.env`, principalmente para:
+O projeto depende de variaveis por app:
+
+- `apps/api/.env`
+- `apps/web/.env.local`
+- `apps/web/.env.e2e`
+
+Principais grupos:
 
 - banco (`DATABASE_URL`, `DIRECT_URL`)
 - auth (`BETTER_AUTH_*`)
@@ -163,8 +170,9 @@ Sem essas variaveis, partes do portal podem abrir em modo reduzido ou falhar em 
 
 Arquivos versionados de referencia:
 
-- `.env.example`
-- `.env.e2e.example`
+- `apps/api/.env.example`
+- `apps/web/.env.example`
+- `apps/web/.env.e2e.example`
 
 ## Documentacao interna
 
