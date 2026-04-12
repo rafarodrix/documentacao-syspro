@@ -13,12 +13,14 @@ import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
 import { cn } from "@/lib/utils";
 
+type SefazStatusKey = "ONLINE" | "UNSTABLE" | "OFFLINE";
+
 export default async function DashboardPage() {
   await requireSession();
   const data = await getDashboardData();
   const dailyPassword = data.dailyPassword ?? null;
 
-  const sefazNfeStatus = {
+  const sefazNfeStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
     ONLINE: {
       label: "Operacional",
       color: "text-emerald-500",
@@ -34,7 +36,8 @@ export default async function DashboardPage() {
       color: "text-red-500",
       dot: "bg-red-500",
     },
-  }[data.sefazNfe.status];
+  };
+  const sefazNfeStatus = sefazNfeStatusMap[data.sefazNfe.status as SefazStatusKey];
 
   if (data.mode === "admin") {
     return (
