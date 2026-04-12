@@ -11,8 +11,8 @@ services:
       PORT: ${PORT:-3000}
     expose:
       - "3000"
-    # Habilite apenas se sua instância Dokploy exigir rede externa explícita.
 
+    # Habilite apenas se sua instância Dokploy exigir rede externa explícita.
     # networks:
     #   dokploy-network:
     #     external: true
