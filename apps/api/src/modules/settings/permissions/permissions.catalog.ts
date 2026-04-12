@@ -19,6 +19,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
   SUPORTE: [
     "dashboard:view",
     "dashboard:stats_full",
+    "dashboard:view_daily_password",
     "companies:view",
     "companies:view_all",
     "companies:create",
@@ -42,6 +43,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
   ],
   CLIENTE_ADMIN: [
     "dashboard:view",
+    "dashboard:view_daily_password",
     "companies:view",
     "companies:view_own",
     "companies:edit",
@@ -58,6 +60,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
   ],
   CLIENTE_USER: [
     "dashboard:view",
+    "dashboard:view_daily_password",
     "tickets:view_own",
     "tickets:create",
     "tools:view",

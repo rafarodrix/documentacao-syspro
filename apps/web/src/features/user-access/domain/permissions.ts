@@ -21,6 +21,7 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
   SUPORTE: [
     "dashboard:view",
     "dashboard:stats_full",
+    "dashboard:view_daily_password",
     "companies:view",
     "companies:view_all",
     "companies:create",
@@ -45,6 +46,7 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
 
   CLIENTE_ADMIN: [
     "dashboard:view",
+    "dashboard:view_daily_password",
     "companies:view",
     "companies:view_own",
     "companies:edit",
@@ -62,6 +64,7 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
 
   CLIENTE_USER: [
     "dashboard:view",
+    "dashboard:view_daily_password",
     "tickets:view_own",
     "tickets:create",
     "tools:view",

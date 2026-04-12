@@ -3,19 +3,19 @@ import { DashboardStats } from "@/components/platform/app/dashboard/DashboardSta
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { MagicCard } from "@/components/magicui/MagicCard";
 import { NumberTicker } from "@/components/magicui/NumberTicker";
 import { ShineBorder } from "@/components/magicui/ShineBorder";
-import { ArrowUpRight, BookOpen, Headset, PlusCircle, Sparkles, Users } from "lucide-react";
+import { ArrowUpRight, BookOpen, Headset, KeyRound, PlusCircle, Sparkles, Users } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
 
 export default async function DashboardPage() {
-  const session = await requireSession();
-  const data = await getDashboardData(session.userId, session.email, session.role);
+  await requireSession();
+  const data = await getDashboardData();
+  const dailyPassword = data.dailyPassword ?? null;
 
   if (data.mode === "admin") {
     return (
@@ -24,6 +24,25 @@ export default async function DashboardPage() {
           <h1 className="text-lg font-semibold tracking-tight sm:text-xl">Painel operacional</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Visao operacional do sistema em tempo real.</p>
         </div>
+
+        {dailyPassword ? (
+          <Card className="border-border/50 bg-card/70">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <KeyRound className="h-4 w-4" />
+                Senha diaria do sistema
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="rounded-lg border border-border/60 bg-background px-3 py-2 font-mono text-2xl font-semibold tracking-[0.2em]">
+                {dailyPassword.password}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Valida para {dailyPassword.formattedDate}. Regra: dia x (ano + mes + dia).
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <DashboardStats
           companiesCount={data.companiesCount}
@@ -93,7 +112,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className={`grid grid-cols-1 gap-4 ${dailyPassword ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <MagicCard className="rounded-xl">
           <Card className="h-full border-border/50 bg-card/70">
             <CardHeader className="pb-2">
@@ -142,6 +161,25 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </MagicCard>
+
+        {dailyPassword ? (
+          <MagicCard className="rounded-xl">
+            <Card className="h-full border-border/50 bg-card/70">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <KeyRound className="h-4 w-4" />
+                  Senha do dia
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border/60 bg-background px-3 py-2 font-mono text-2xl font-semibold tracking-[0.2em]">
+                  {dailyPassword.password}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">Valida para {dailyPassword.formattedDate}</p>
+              </CardContent>
+            </Card>
+          </MagicCard>
+        ) : null}
       </div>
 
       <div className="relative overflow-hidden rounded-2xl border border-border/50 p-1">

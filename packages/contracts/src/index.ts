@@ -235,3 +235,30 @@ export type {
   PlatformNotificationItem,
   PlatformNotificationsResponse,
 } from "./platform-notifications";
+export {
+  PORTAL_DASHBOARD_TIME_ZONE,
+  dashboardActivityPointSchema,
+  dashboardTicketSummarySchema,
+  dashboardTicketKpisSchema,
+  dashboardCompanySummarySchema,
+  dashboardSefazStatusSchema,
+  dashboardDailyPasswordSchema,
+  adminDashboardViewSchema,
+  clientDashboardViewSchema,
+  dashboardViewSchema,
+  dashboardResponseSchema,
+  calculateDailyPassword,
+  getDailyPasswordForDate,
+} from "./dashboard";
+export type {
+  DashboardActivityPoint,
+  DashboardTicketSummary,
+  DashboardTicketKpis,
+  DashboardCompanySummary,
+  DashboardSefazStatus,
+  DashboardDailyPassword,
+  AdminDashboardView,
+  ClientDashboardView,
+  DashboardView,
+  DashboardResponse,
+} from "./dashboard";

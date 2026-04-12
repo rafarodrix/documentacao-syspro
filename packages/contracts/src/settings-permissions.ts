@@ -11,6 +11,7 @@ export const SETTINGS_PROFILE_KEY_VALUES = [
 export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "dashboard:view", label: "Visualizar dashboard", module: "dashboard", description: "Acessa a visao principal do portal." },
   { key: "dashboard:stats_full", label: "Visualizar estatisticas completas", module: "dashboard", description: "Libera indicadores operacionais completos." },
+  { key: "dashboard:view_daily_password", label: "Visualizar senha diaria", module: "dashboard", description: "Exibe a senha do dia calculada automaticamente no portal." },
   { key: "companies:view", label: "Visualizar lista de empresas", module: "companies", description: "Permite acessar o cadastro de empresas." },
   { key: "companies:view_all", label: "Visualizar todas as empresas", module: "companies", description: "Libera escopo global para empresas." },
   { key: "companies:view_own", label: "Visualizar empresas do proprio escopo", module: "companies", description: "Restringe a visao as empresas vinculadas." },
