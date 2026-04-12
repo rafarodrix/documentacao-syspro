@@ -220,9 +220,9 @@ export class DashboardService {
             addresses: { take: 1, select: { cidade: true, estado: true } },
           },
         }),
-        this.prisma.sefazStatus.findMany({
+        this.prisma.sefazStatusCurrent.findMany({
           where: { uf: dashboardUF },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { checkedAt: 'desc' },
           distinct: ['service'],
           take: 2,
         }),
@@ -284,12 +284,16 @@ export class DashboardService {
             service: 'NFE',
             status: latestNfe?.status ?? 'OFFLINE',
             latency: latestNfe?.latency ?? 0,
+            checkedAt: latestNfe?.checkedAt.toISOString() ?? new Date(0).toISOString(),
+            changedAt: latestNfe?.changedAt.toISOString() ?? new Date(0).toISOString(),
           },
           sefazNfce: {
             uf: dashboardUF,
             service: 'NFCE',
             status: latestNfce?.status ?? 'OFFLINE',
             latency: latestNfce?.latency ?? 0,
+            checkedAt: latestNfce?.checkedAt.toISOString() ?? new Date(0).toISOString(),
+            changedAt: latestNfce?.changedAt.toISOString() ?? new Date(0).toISOString(),
           },
           tickets,
           totalOpen,

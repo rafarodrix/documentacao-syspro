@@ -1332,9 +1332,30 @@ model SefazStatus {
   service   SefazServiceType
   status    SefazStatusType
   latency   Int
+  statusCode Int?
+  errorMessage String?
+  checkedAt DateTime
   createdAt DateTime         @default(now())
 
   @@index([uf, service, createdAt])
+  @@index([checkedAt])
+}
+
+model SefazStatusCurrent {
+  id           String           @id @default(cuid())
+  uf           String
+  service      SefazServiceType
+  status       SefazStatusType
+  latency      Int
+  statusCode   Int?
+  errorMessage String?
+  checkedAt    DateTime
+  changedAt    DateTime
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([uf, service])
+  @@index([checkedAt])
 }
 
 model ConversationLink {

@@ -39,6 +39,8 @@ export const dashboardSefazStatusSchema = z.object({
   service: z.enum(["NFE", "NFCE"]),
   status: z.enum(["ONLINE", "UNSTABLE", "OFFLINE"]),
   latency: z.number().int().nonnegative(),
+  checkedAt: z.string().min(1),
+  changedAt: z.string().min(1),
 });
 
 export const dashboardDailyPasswordSchema = z.object({

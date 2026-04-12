@@ -207,7 +207,12 @@ export class SettingsController {
   async runSefazCheck(@Req() req: Request) {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
     const result = await this.sefazMonitorService.runFullCheck();
-    return { success: true, count: result.count, message: `Verificacao concluida (${result.count} rotas).` };
+    return {
+      success: true,
+      count: result.count,
+      changedCount: result.changedCount,
+      message: `Verificacao concluida (${result.count} rotas, ${result.changedCount} alteracoes).`,
+    };
   }
 
   @Post('sefaz/check/internal')
@@ -598,9 +603,9 @@ export class SettingsController {
             take: 8,
           })
         : Promise.resolve([]),
-      this.prisma.sefazStatus.findMany({
+      this.prisma.sefazStatusCurrent.findMany({
         where: { uf: 'MG' },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { checkedAt: 'desc' },
         distinct: ['service'],
         take: 2,
       }),
@@ -633,7 +638,7 @@ export class SettingsController {
         title: `SEFAZ ${sefaz.service} ${sefaz.status === 'OFFLINE' ? 'indisponivel' : 'instavel'}`,
         description: `UF ${sefaz.uf} com latencia ${sefaz.latency}ms.`,
         href: '/portal',
-        createdAt: sefaz.createdAt.toISOString(),
+        createdAt: sefaz.checkedAt.toISOString(),
       });
     }
 
