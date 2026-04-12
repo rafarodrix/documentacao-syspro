@@ -17,6 +17,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       this.logger.log('Conectado ao Prisma via NestJS Standalone');
     } catch (e) {
       this.logger.error('Falha ao conectar usando Prisma', e);
+      throw e;
     }
   }
 
