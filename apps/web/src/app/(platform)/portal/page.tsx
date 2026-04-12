@@ -20,26 +20,27 @@ export default async function DashboardPage() {
   const data = await getDashboardData();
   const dailyPassword = data.dailyPassword ?? null;
 
-  const sefazNfeStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
-    ONLINE: {
-      label: "Operacional",
-      color: "text-emerald-500",
-      dot: "bg-emerald-500",
-    },
-    UNSTABLE: {
-      label: "Instavel",
-      color: "text-amber-500",
-      dot: "bg-amber-500",
-    },
-    OFFLINE: {
-      label: "Indisponivel",
-      color: "text-red-500",
-      dot: "bg-red-500",
-    },
-  };
-  const sefazNfeStatus = sefazNfeStatusMap[data.sefazNfe.status as SefazStatusKey];
-
   if (data.mode === "admin") {
+    const adminData = data;
+    const sefazNfeStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
+      ONLINE: {
+        label: "Operacional",
+        color: "text-emerald-500",
+        dot: "bg-emerald-500",
+      },
+      UNSTABLE: {
+        label: "Instavel",
+        color: "text-amber-500",
+        dot: "bg-amber-500",
+      },
+      OFFLINE: {
+        label: "Indisponivel",
+        color: "text-red-500",
+        dot: "bg-red-500",
+      },
+    };
+    const sefazNfeStatus = sefazNfeStatusMap[adminData.sefazNfe.status as SefazStatusKey];
+
     return (
       <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
         <div>
@@ -48,7 +49,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className={`grid gap-3 ${dailyPassword ? "lg:grid-cols-[minmax(0,1.7fr)_320px]" : "lg:grid-cols-1"}`}>
-          <Card className={cn("border-border/50 bg-card/70", data.sefazNfe.status !== "ONLINE" && "border-amber-500/30")}>
+          <Card className={cn("border-border/50 bg-card/70", adminData.sefazNfe.status !== "ONLINE" && "border-amber-500/30")}>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <Zap className={cn("h-4 w-4", sefazNfeStatus.color)} />
@@ -58,7 +59,7 @@ export default async function DashboardPage() {
             <CardContent className="flex items-center justify-between gap-4 pt-0">
               <div className="flex items-center gap-2">
                 <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                  {data.sefazNfe.status === "ONLINE" ? (
+                  {adminData.sefazNfe.status === "ONLINE" ? (
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   ) : null}
                   <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfeStatus.dot)} />
@@ -67,7 +68,9 @@ export default async function DashboardPage() {
               </div>
               <div className="text-right">
                 <p className="font-mono text-sm text-muted-foreground">
-                  {data.sefazNfe.status === "OFFLINE" || data.sefazNfe.latency <= 0 ? "Sem medicao" : `${data.sefazNfe.latency}ms`}
+                  {adminData.sefazNfe.status === "OFFLINE" || adminData.sefazNfe.latency <= 0
+                    ? "Sem medicao"
+                    : `${adminData.sefazNfe.latency}ms`}
                 </p>
                 <p className="text-xs text-muted-foreground">Producao</p>
               </div>
@@ -92,24 +95,24 @@ export default async function DashboardPage() {
         </div>
 
         <DashboardStats
-          companiesCount={data.companiesCount}
-          companiesGrowth={data.companiesGrowth}
-          usersCount={data.usersCount}
-          activeUsersCount={data.activeUsersCount}
+          companiesCount={adminData.companiesCount}
+          companiesGrowth={adminData.companiesGrowth}
+          usersCount={adminData.usersCount}
+          activeUsersCount={adminData.activeUsersCount}
         />
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-          <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
+          <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
         </div>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-7">
           <ActivityChart
             title="Novos cadastros por dia"
             description="Empresas criadas nos ultimos 7 dias"
-            points={data.activity}
+            points={adminData.activity}
             badgeLabel="Atualizado agora"
           />
-          <RecentCompanies companies={data.companies} />
+          <RecentCompanies companies={adminData.companies} />
         </div>
       </div>
     );
