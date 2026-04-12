@@ -1,4 +1,4 @@
-﻿import { requireSession } from "@/lib/auth-helpers";
+import { requireSession } from "@/lib/auth-helpers";
 import { DashboardStats } from "@/components/platform/app/dashboard/DashboardStats";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
@@ -8,14 +8,33 @@ import Link from "next/link";
 import { MagicCard } from "@/components/magicui/MagicCard";
 import { NumberTicker } from "@/components/magicui/NumberTicker";
 import { ShineBorder } from "@/components/magicui/ShineBorder";
-import { ArrowUpRight, BookOpen, Headset, KeyRound, PlusCircle, Sparkles, Users } from "lucide-react";
+import { ArrowUpRight, BookOpen, Headset, KeyRound, PlusCircle, Sparkles, Users, Zap } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
+import { cn } from "@/lib/utils";
 
 export default async function DashboardPage() {
   await requireSession();
   const data = await getDashboardData();
   const dailyPassword = data.dailyPassword ?? null;
+
+  const sefazNfeStatus = {
+    ONLINE: {
+      label: "Operacional",
+      color: "text-emerald-500",
+      dot: "bg-emerald-500",
+    },
+    UNSTABLE: {
+      label: "Instavel",
+      color: "text-amber-500",
+      dot: "bg-amber-500",
+    },
+    OFFLINE: {
+      label: "Indisponivel",
+      color: "text-red-500",
+      dot: "bg-red-500",
+    },
+  }[data.sefazNfe.status];
 
   if (data.mode === "admin") {
     return (
@@ -25,32 +44,55 @@ export default async function DashboardPage() {
           <p className="mt-0.5 text-sm text-muted-foreground">Visao operacional do sistema em tempo real.</p>
         </div>
 
-        {dailyPassword ? (
-          <Card className="border-border/50 bg-card/70">
-            <CardHeader className="pb-3">
+        <div className={`grid gap-3 ${dailyPassword ? "lg:grid-cols-[minmax(0,1.7fr)_320px]" : "lg:grid-cols-1"}`}>
+          <Card className={cn("border-border/50 bg-card/70", data.sefazNfe.status !== "ONLINE" && "border-amber-500/30")}>
+            <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm">
-                <KeyRound className="h-4 w-4" />
-                Senha diaria do sistema
+                <Zap className={cn("h-4 w-4", sefazNfeStatus.color)} />
+                SEFAZ MG · NFe
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="rounded-lg border border-border/60 bg-background px-3 py-2 font-mono text-2xl font-semibold tracking-[0.2em]">
-                {dailyPassword.password}
+            <CardContent className="flex items-center justify-between gap-4 pt-0">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                  {data.sefazNfe.status === "ONLINE" ? (
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  ) : null}
+                  <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfeStatus.dot)} />
+                </span>
+                <span className={cn("text-lg font-semibold", sefazNfeStatus.color)}>{sefazNfeStatus.label}</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Valida para {dailyPassword.formattedDate}. Regra: dia x (ano + mes + dia).
-              </p>
+              <div className="text-right">
+                <p className="font-mono text-sm text-muted-foreground">
+                  {data.sefazNfe.status === "OFFLINE" || data.sefazNfe.latency <= 0 ? "Sem medicao" : `${data.sefazNfe.latency}ms`}
+                </p>
+                <p className="text-xs text-muted-foreground">Producao</p>
+              </div>
             </CardContent>
           </Card>
-        ) : null}
+
+          {dailyPassword ? (
+            <Card className="border-border/50 bg-card/70">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <KeyRound className="h-4 w-4" />
+                  Senha do dia
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-center font-mono text-xl font-semibold tracking-[0.18em]">
+                  {dailyPassword.password}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
 
         <DashboardStats
           companiesCount={data.companiesCount}
           companiesGrowth={data.companiesGrowth}
           usersCount={data.usersCount}
           activeUsersCount={data.activeUsersCount}
-          sefazNfe={data.sefazNfe}
-          sefazNfce={data.sefazNfce}
         />
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
@@ -71,7 +113,7 @@ export default async function DashboardPage() {
   }
 
   const hasMultipleCompanies = data.companyCount > 1;
-  const previewCompanies = data.companyNames.slice(0, 2).join(" â€¢ ");
+  const previewCompanies = data.companyNames.slice(0, 2).join(" • ");
   const extraCompaniesCount = Math.max(data.companyCount - 2, 0);
 
   return (
@@ -112,7 +154,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 gap-4 ${dailyPassword ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+      <div className={`grid grid-cols-1 gap-4 ${dailyPassword ? "md:grid-cols-[1.2fr_1fr_1fr_0.85fr]" : "md:grid-cols-3"}`}>
         <MagicCard className="rounded-xl">
           <Card className="h-full border-border/50 bg-card/70">
             <CardHeader className="pb-2">
@@ -172,10 +214,9 @@ export default async function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border border-border/60 bg-background px-3 py-2 font-mono text-2xl font-semibold tracking-[0.2em]">
+                <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-center font-mono text-xl font-semibold tracking-[0.16em]">
                   {dailyPassword.password}
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">Valida para {dailyPassword.formattedDate}</p>
               </CardContent>
             </Card>
           </MagicCard>
