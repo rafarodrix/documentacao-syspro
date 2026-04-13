@@ -1,6 +1,7 @@
 "use server";
 
-import { buildDefaultSefazRoutes, type SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
+import type { SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
+import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts/sefaz-endpoints";
 import { type SettingsOutput, type SettingsContractsAdminView, type SettingsRemoteAdminView } from "@dosc-syspro/contracts/settings";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
 import {
