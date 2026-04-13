@@ -6,13 +6,13 @@ import type {
   TicketModuleMutationResponse,
   TicketModuleReplyRequest,
   TicketModuleUpdateRequest,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/ticket";
 import {
   ticketModuleDetailsResponseSchema,
   ticketModuleLinkedCompaniesResponseSchema,
   ticketModuleListResponseSchema,
   ticketModuleMutationResponseSchema,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/ticket";
 import { callBackendApi } from "@/lib/backend-api-client";
 
 async function callTicketsApi<T>(path: string, init?: RequestInit): Promise<T> {

@@ -3,7 +3,7 @@ import type {
   TicketModuleCreateRequest,
   TicketModuleEntryPoint,
   TicketModulePriority,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/ticket';
 
 export class CreateTicketDto implements TicketModuleCreateRequest {
   title: string = '';

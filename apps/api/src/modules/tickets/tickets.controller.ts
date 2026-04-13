@@ -4,7 +4,7 @@ import {
   ticketModuleListQuerySchema,
   ticketModuleReplyRequestSchema,
   ticketModuleUpdateRequestSchema,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/ticket';
 import type { Request } from 'express';
 import type { ZodType } from 'zod';
 import { CreateTicketDto } from './create-ticket.dto';

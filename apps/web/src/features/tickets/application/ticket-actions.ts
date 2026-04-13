@@ -4,7 +4,7 @@ import type {
   TicketModuleCreateRequest,
   TicketModulePriority,
   TicketModuleRecord,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/ticket";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";

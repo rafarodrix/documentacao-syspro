@@ -4,7 +4,7 @@ import type {
   TicketModuleEntryPoint,
   TicketModuleListQuery,
   TicketModuleUpdateRequest,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/ticket';
 import {
   ConversationAssignmentStatus as TicketAssignmentStatus,
   ConversationAssignmentType as TicketAssignmentType,

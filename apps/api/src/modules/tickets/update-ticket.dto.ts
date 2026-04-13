@@ -2,7 +2,7 @@ import type {
   TicketModulePriority,
   TicketModuleStatus,
   TicketModuleUpdateRequest,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/ticket';
 
 export class UpdateTicketDto implements TicketModuleUpdateRequest {
   status?: TicketModuleStatus;

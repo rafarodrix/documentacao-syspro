@@ -94,17 +94,47 @@ Enquanto a fronteira arquitetural continuar sendo "contratos compartilhados", o 
 
 O consumo oficial deve priorizar:
 
-- `@dosc-syspro/contracts`
+- `@dosc-syspro/contracts/settings`
 - `@dosc-syspro/contracts/ticket`
+- `@dosc-syspro/contracts/company`
+- `@dosc-syspro/contracts/documento`
+- `@dosc-syspro/contracts/dashboard`
+- `@dosc-syspro/contracts/evolution`
+- `@dosc-syspro/contracts/remote`
 - `@dosc-syspro/contracts/agent`
 
-Subpaths muito especificos como `@dosc-syspro/contracts/ticket-api` podem continuar existindo por compatibilidade, mas nao devem ser o padrao para novos modulos.
+O barrel raiz `@dosc-syspro/contracts` continua existindo por compatibilidade, mas nao deve ser o padrao para novos consumidores.
+
+Subpaths muito especificos como `@dosc-syspro/contracts/ticket-api` nao devem mais ser o padrao para novos modulos.
 
 Objetivo:
 
 - reduzir espalhamento de imports
 - deixar claro o contexto dono do contrato
 - facilitar reorganizacao interna sem quebrar consumidores
+
+## Regra operacional
+
+Para codigo novo:
+
+- importar do contexto dono do contrato
+- evitar importar do barrel raiz quando houver subpath claro
+
+Para codigo legado:
+
+- manter funcionando via barrel raiz enquanto a migracao nao terminar
+- migrar gradualmente para subpaths contextuais quando o arquivo for tocado
+
+## Compatibilidade que ainda fica no root
+
+O root barrel ainda pode reexportar contratos por compatibilidade quando pelo menos uma destas condicoes existir:
+
+- o contrato ainda e consumido por codigo legado
+- o contrato e muito pequeno e nao merece remover a exposicao agora
+- a remocao causaria churn desnecessario sem ganho arquitetural imediato
+
+Essa tolerancia e temporaria.
+O padrao oficial continua sendo consumo por contexto.
 
 ---
 

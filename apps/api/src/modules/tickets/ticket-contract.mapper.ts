@@ -8,7 +8,7 @@ import type {
   TicketModuleMutationResponse,
   TicketModuleRecord,
   TicketModuleUser,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/ticket';
 
 type NullableRecord = Record<string, unknown> | null;
 
