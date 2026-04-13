@@ -1,4 +1,4 @@
-# Arquitetura de Packages do Monorepo
+﻿# Arquitetura de Packages do Monorepo
 
 ## Visão Geral
 
@@ -44,7 +44,7 @@ A estrutura recomendada para `packages/` fica assim:
 
 ```text
 packages/
-  sdk/
+  bff/
   config/
   contracts/
   core/
@@ -64,7 +64,7 @@ Evite nomes genéricos ou ambíguos.
 
 Exemplo:
 
-- `sdk` é melhor que `api`
+- `bff` é melhor que `api` quando o pacote é backend-for-frontend, não cliente HTTP
 - `contracts` é melhor que `types-shared`
 - `database` é melhor que `prisma-stuff`
 
@@ -304,14 +304,14 @@ Centralizar **configurações compartilhadas** do monorepo.
 
 ---
 
-## 6. `packages/sdk`
+## 6. `packages/bff`
 
 ### Responsabilidade
 Ser o **cliente oficial de consumo da API**.
 
-### Por que usar `sdk` em vez de `api`
+### Por que usar `bff` em vez de `api`
 O nome `api` é ambíguo, porque já existe `apps/api`.  
-`sdk` deixa claro que o package é um consumidor da API, e não o backend em si.
+`bff` deixa claro que o package é a superfície de aplicação/backend compartilhada, e não o backend HTTP em si.
 
 ### Deve conter
 
@@ -338,7 +338,7 @@ O nome `api` é ambíguo, porque já existe `apps/api`.
 
 ### Regra de ouro
 
-> `sdk` fala com a API; não substitui o domínio.
+> `bff` organiza a borda de aplicação; não substitui o domínio.
 
 ---
 
@@ -446,7 +446,7 @@ Conter a **implementação técnica** do módulo remoto.
 contracts  → acordo de comunicação
 core       → regra de negócio pura
 database   → persistência
-sdk        → consumo tipado da API
+bff        → superfície de aplicação/backend
 ui         → apresentação
 config     → configuração compartilhada
 shared     → utilitários transversais
@@ -460,7 +460,7 @@ remote-infra  → implementação técnica remota
 
 ## Dependências que fazem sentido
 
-### `sdk`
+### `bff`
 pode depender de:
 - `contracts`
 - `shared`
@@ -487,7 +487,7 @@ podem depender de:
 - `contracts`
 - `core`
 - `database`
-- `sdk`
+- `bff`
 - `ui`
 - `config`
 - `shared`
@@ -501,12 +501,12 @@ podem depender de:
 ### `contracts` não deve depender de:
 - `database`
 - `ui`
-- `sdk`
+- `bff`
 - frameworks
 
 ### `core` não deve depender de:
 - `database`
-- `sdk`
+- `bff`
 - `ui`
 - NestJS
 - React
@@ -533,7 +533,7 @@ Use nomes curtos, claros e estáveis.
 - `database`
 - `ui`
 - `config`
-- `sdk`
+- `bff`
 - `shared`
 - `remote-domain`
 - `remote-infra`
@@ -577,7 +577,7 @@ Use nomes curtos, claros e estáveis.
 - `providers/`
 - `tokens/`
 
-## Em `sdk`
+## Em `bff`
 - `client/`
 - `modules/`
 - `serializers/`
@@ -589,7 +589,7 @@ Use nomes curtos, claros e estáveis.
 
 ```text
 packages/
-  sdk/
+  bff/
   config/
   contracts/
   core/
@@ -659,7 +659,7 @@ Sintoma:
 
 # Decisões recomendadas para seu monorepo
 
-## 1. Renomear `packages/api` para `packages/sdk`
+## 1. Renomear `packages/api` para `packages/bff`
 Essa é a mudança mais recomendada.
 
 ## 2. Manter `contracts` como fonte única de acordos compartilhados
@@ -702,7 +702,7 @@ Pode:
 Não pode:
 - regra de negócio central
 
-## `sdk`
+## `bff`
 
 Pode:
 - client HTTP, consumo tipado da API
@@ -752,7 +752,7 @@ Com o ajuste de nomenclatura e com fronteiras bem documentadas, ela fica em um n
 
 ```text
 packages/
-  sdk/
+  bff/
   config/
   contracts/
   core/
@@ -767,6 +767,6 @@ packages/
 
 A única mudança estrutural que eu recomendo fazer agora é:
 
-**`packages/api` → `packages/sdk`**
+**`packages/api` → `packages/bff`**
 
 Porque isso elimina ambiguidade e melhora a leitura do monorepo.

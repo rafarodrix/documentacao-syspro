@@ -26,7 +26,7 @@
     "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
-    "@dosc-syspro/sdk": "file:../../packages/sdk",
+    "@dosc-syspro/bff": "file:../../packages/bff",
     "@dosc-syspro/config": "file:../../packages/config",
     "@dosc-syspro/remote-infra": "file:../../packages/remote-infra",
     "@dosc-syspro/shared": "file:../../packages/shared",

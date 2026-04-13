@@ -1,4 +1,4 @@
-# Guia de Criação de Novos Packages e Novos Módulos
+﻿# Guia de Criação de Novos Packages e Novos Módulos
 
 ## Visão Geral
 
@@ -327,7 +327,7 @@ Você precisa de um client tipado compartilhado.
 Criar:
 
 ```text
-packages/sdk/
+packages/bff/
 ```
 
 Motivo: há uma fronteira clara, reuso entre apps e responsabilidade própria.
@@ -397,7 +397,7 @@ O nome deve explicar a responsabilidade.
 ### Bom
 
 * `contracts`
-* `sdk`
+* `bff`
 * `database`
 * `remote-infra`
 
@@ -636,10 +636,10 @@ database/src/
   settings/
 ```
 
-## Exemplo em `sdk`
+## Exemplo em `bff`
 
 ```text
-sdk/src/
+bff/src/
   ticket/
   company/
   agent/
@@ -655,7 +655,7 @@ Usar nomes curtos, estáveis e sem ambiguidade.
 
 ### Recomendado
 
-* `sdk`
+* `bff`
 * `contracts`
 * `database`
 * `remote-domain`
@@ -764,7 +764,7 @@ Se a maioria for “sim”, faz sentido criar.
 
 Exemplo:
 
-* nome: `sdk`
+* nome: `bff`
 * responsabilidade: cliente oficial de consumo da API
 
 ## 2. Definir dependências permitidas
@@ -808,7 +808,7 @@ Hoje, a estrutura correta é continuar com:
 
 ```text
 packages/
-  sdk/
+  bff/
   config/
   contracts/
   core/
@@ -899,7 +899,7 @@ Não criar package novo
 
 ### Correto
 
-Adicionar no `apps/web` e reaproveitar `contracts`, `sdk` e `ui`
+Adicionar no `apps/web` e reaproveitar `contracts`, `bff` e `ui`
 
 ---
 

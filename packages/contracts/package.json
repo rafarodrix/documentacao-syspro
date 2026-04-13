@@ -27,7 +27,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {

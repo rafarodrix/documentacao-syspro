@@ -33,8 +33,8 @@
       "@dosc-syspro/remote-infra/*": ["../../packages/remote-infra/src/*"],
       "@dosc-syspro/remote-domain": ["../../packages/remote-domain/src/index.ts"],
       "@dosc-syspro/remote-domain/*": ["../../packages/remote-domain/src/*"],
-      "@dosc-syspro/sdk": ["../../packages/sdk/src/index.ts"],
-      "@dosc-syspro/sdk/*": ["../../packages/sdk/src/*"],
+      "@dosc-syspro/bff": ["../../packages/bff/src/index.ts"],
+      "@dosc-syspro/bff/*": ["../../packages/bff/src/*"],
       "@dosc-syspro/config": ["../../packages/config/src/index.ts"],
       "@dosc-syspro/config/*": ["../../packages/config/src/*"]
     },

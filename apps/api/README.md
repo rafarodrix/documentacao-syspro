@@ -12,7 +12,7 @@ Shell HTTP dedicado do monorepo.
 ## Papel na arquitetura
 
 - `apps/api` e o adapter HTTP/NestJS
-- a superfície de contratos e routers compartilháveis vive em `packages/sdk`
+- a superfície de contratos e routers compartilháveis vive em `packages/bff`
 - contratos tipados compartilhados vivem em `packages/contracts`
 - utilitários transversais reutilizados por `web` e `api` agora vivem em `packages/shared`
 - persistência e schema Prisma vivem em `packages/database`
@@ -26,7 +26,7 @@ Em outras palavras: `apps/api` deixou de ser o lugar para utilitário transversa
   - `request-auth`
   - `action-rate-limit`
   - `action-error-handler`
-- remoção do acoplamento direto do `apps/web` com esses módulos internos de `packages/sdk`
+- remoção do acoplamento direto do `apps/web` com esses módulos internos de `packages/bff`
 - consolidação do RBAC em perfis persistidos
 - introdução de perfis de acesso persistidos no banco:
   - `permission`
@@ -168,5 +168,5 @@ Persistência local usada no fluxo atual:
 ## Limites atuais
 
 - `apps/api` ainda está em migração progressiva
-- parte dos adapters de domínio remoto ainda é exportada via `packages/sdk`, embora o `web` já consuma isso por `packages/remote-infra`
+- a superfície de aplicação compartilhada fica em `packages/bff`, enquanto os adapters concretos do remoto agora vivem em `packages/remote-infra`
 - ainda existem fluxos no `web` com fallback por role legado; a direção correta é reduzir isso e depender cada vez mais do contexto central de autorização do backend

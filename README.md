@@ -115,7 +115,7 @@ Aplicacao principal em Next.js 15 com:
 
 ### `apps/api`
 
-Shell HTTP em Node para expor o pacote `@dosc-syspro/sdk` fora do runtime do web.
+Shell HTTP em Node para expor o pacote `@dosc-syspro/bff` fora do runtime do web.
 
 ### `apps/mobile`
 
@@ -123,9 +123,9 @@ Shell estrutural que fixa os boundaries do mobile sobre `contracts`, `core` e `s
 
 ## Packages
 
-### `@dosc-syspro/sdk`
+### `@dosc-syspro/bff`
 
-Nucleo modular do BFF, com contexto, procedures e roteadores.
+Nucleo modular do backend-for-frontend, com contexto, procedures e roteadores.
 
 ### `@dosc-syspro/contracts`
 

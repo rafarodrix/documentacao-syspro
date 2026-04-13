@@ -1,5 +1,5 @@
 {
-  "name": "@dosc-syspro/sdk",
+  "name": "@dosc-syspro/bff",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -21,14 +21,11 @@
     "./routers/settings": "./src/routers/settings.ts",
     "./routers/tax": "./src/routers/tax.ts",
     "./routers/tickets": "./src/routers/tickets.ts",
-    "./routers/remote": "./src/routers/remote.ts",
-    "./remote-host-admin.port": "./src/remote-host-admin.port.ts",
-    "./remote-address-book.port": "./src/remote-address-book.port.ts",
-    "./remote-session.port": "./src/remote-session.port.ts"
+    "./routers/remote": "./src/routers/remote.ts"
   },
   "dependencies": {
     "@dosc-syspro/config": "0.0.0",
-    "@dosc-syspro/database": "0.0.0",
+    "@dosc-syspro/remote-infra": "0.0.0",
     "@dosc-syspro/remote-domain": "0.0.0",
     "@dosc-syspro/shared": "0.0.0",
     "nodemailer": "^8.0.4"

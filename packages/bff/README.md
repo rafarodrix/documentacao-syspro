@@ -1,4 +1,4 @@
-# @dosc-syspro/sdk
+# @dosc-syspro/bff
 
 Nucleo modular do BFF do monorepo.
 
@@ -18,9 +18,9 @@ Nucleo modular do BFF do monorepo.
 
 ## Exportacoes atuais
 
-- `@dosc-syspro/sdk`
-- `@dosc-syspro/sdk/context`
-- `@dosc-syspro/sdk/router`
-- `@dosc-syspro/sdk/routers/*`
+- `@dosc-syspro/bff`
+- `@dosc-syspro/bff/context`
+- `@dosc-syspro/bff/router`
+- `@dosc-syspro/bff/routers/*`
 
 Este pacote continua isolado do runtime do `apps/web`. A decisao foi manter o rollout seguro: primeiro o nucleo modular, depois o shell HTTP dedicado, e so entao a ligacao dos casos de uso reais.

@@ -17,7 +17,7 @@
                     "test":  "npm run test -w @dosc-syspro/web",
                     "docs:check":  "npm run docs:check -w @dosc-syspro/web",
                     "test:web":  "npm run test -w @dosc-syspro/web",
-                    "test:packages":  "npm run test -w @dosc-syspro/sdk && npm run test -w @dosc-syspro/remote-domain",
+                    "test:packages":  "npm run test -w @dosc-syspro/bff && npm run test -w @dosc-syspro/remote-domain",
                     "test:authz":  "npm run test:authz -w @dosc-syspro/web",
                     "test:tickets":  "npm run test:tickets -w @dosc-syspro/web",
                     "postinstall":  "npm run postinstall -w @dosc-syspro/web",

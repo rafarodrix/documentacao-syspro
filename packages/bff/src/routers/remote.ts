@@ -32,7 +32,7 @@ import {
   createRemoteSessionPort,
   createRemoteSyncPort,
   revokeExpiredSyncAgentToken,
-} from "../remote-domain-ports";
+} from "@dosc-syspro/remote-infra";
 
 const GLOBAL_SCOPE_ROLES = new Set(["ADMIN", "SUPORTE", "DEVELOPER"]);
 

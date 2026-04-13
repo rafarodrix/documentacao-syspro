@@ -1,4 +1,4 @@
-# Padrão Interno de Estrutura de Pastas por Package e por App
+﻿# Padrão Interno de Estrutura de Pastas por Package e por App
 
 ## Visão Geral
 
@@ -48,7 +48,7 @@ A estrutura-base recomendada é:
   /agent
 
 /packages
-  /sdk
+  /bff
   /config
   /contracts
   /core
@@ -214,7 +214,7 @@ Responsabilidade:
 * interface web principal
 * dashboard
 * páginas de gestão
-* composição visual com `ui`, `sdk` e `contracts`
+* composição visual com `ui`, `bff` e `contracts`
 
 ## Estrutura recomendada para Next.js App Router
 
@@ -294,7 +294,7 @@ Responsabilidade:
 
 * app mobile
 * experiência mobile do domínio já existente
-* consumo do `sdk` e dos `contracts`
+* consumo do `bff` e dos `contracts`
 
 ## Estrutura recomendada
 
@@ -697,7 +697,7 @@ packages/database/
 
 ---
 
-## 4. `packages/sdk`
+## 4. `packages/bff`
 
 Responsabilidade:
 
@@ -707,7 +707,7 @@ Responsabilidade:
 ## Estrutura recomendada
 
 ```text
-packages/sdk/
+packages/bff/
   src/
     client/
       http-client.ts
@@ -752,7 +752,7 @@ packages/sdk/
   README.md
 ```
 
-## Regras do `sdk`
+## Regras do `bff`
 
 ### Deve conter
 
@@ -1073,7 +1073,7 @@ Centralizar contratos compartilhados entre apps e packages.
 - apps/web
 - apps/mobile
 - apps/agent
-- packages/sdk
+- packages/bff
 ```
 
 ---
@@ -1135,7 +1135,7 @@ temp/
 * `*.mapper.ts`
 * `*.query.ts`
 
-### Em sdk
+### Em bff
 
 * `*.client.ts`
 * `*.mapper.ts`
@@ -1254,7 +1254,7 @@ apps/
 
 ```text
 packages/
-  sdk/
+  bff/
   config/
   contracts/
   core/

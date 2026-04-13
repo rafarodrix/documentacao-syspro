@@ -16,7 +16,7 @@ vi.mock("@dosc-syspro/remote-domain", async () => {
   };
 });
 
-vi.mock("../src/remote-domain-ports", () => ({
+vi.mock("@dosc-syspro/remote-infra", () => ({
   createRemoteDiscoverPort: vi.fn(() => ({})),
   createRemoteBootstrapPort: vi.fn(() => ({})),
   createRemoteSyncPort: vi.fn(() => ({})),

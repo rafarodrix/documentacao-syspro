@@ -1,4 +1,4 @@
-# Padrão de Nomenclatura de Arquivos, Tipos, Módulos e Imports do Monorepo
+﻿# Padrão de Nomenclatura de Arquivos, Tipos, Módulos e Imports do Monorepo
 
 ## Visão Geral
 
@@ -260,7 +260,7 @@ Se o arquivo persiste, consulta ou traduz dados para o banco, o sufixo deve most
 
 ---
 
-## 4. `packages/sdk`
+## 4. `packages/bff`
 
 ### Objetivo
 
@@ -289,7 +289,7 @@ auth-client.ts
 
 ### Regra
 
-No `sdk`, o nome precisa deixar claro que se trata de consumo da API, não regra de negócio.
+No `bff`, o nome precisa deixar claro que se trata de superfície de aplicação/backend compartilhada, não regra de negócio pura.
 
 ---
 
@@ -912,7 +912,7 @@ Usar alias do monorepo.
 
 ```ts
 import { Ticket } from '@trilink/contracts/ticket';
-import { getTickets } from '@trilink/sdk/ticket';
+import { getTickets } from '@trilink/bff/ticket';
 import { Button } from '@trilink/ui';
 ```
 
@@ -956,7 +956,7 @@ import { Ticket } from '@trilink/contracts/src/ticket/ticket.types';
 import { z } from 'zod';
 
 import { Ticket } from '@trilink/contracts/ticket';
-import { createTicket } from '@trilink/sdk/ticket';
+import { createTicket } from '@trilink/bff/ticket';
 
 import { mapTicketToView } from './ticket-view.mapper';
 ```

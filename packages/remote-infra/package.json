@@ -3,13 +3,22 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./remote-session.port": "./src/remote-session.port.ts",
     "./remote-host-admin.port": "./src/remote-host-admin.port.ts",
-    "./remote-address-book.port": "./src/remote-address-book.port.ts"
+    "./remote-address-book.port": "./src/remote-address-book.port.ts",
+    "./remote-domain-ports": "./src/remote-domain-ports.ts"
   },
   "dependencies": {
-    "@dosc-syspro/sdk": "0.0.0"
+    "@dosc-syspro/database": "0.0.0",
+    "@dosc-syspro/remote-domain": "0.0.0",
+    "@prisma/client": "^5.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
   }
 }

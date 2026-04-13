@@ -16,7 +16,7 @@ out/
 .contentlayer/
 .content-collections/
 .source/
-packages/sdk/src/**/*.js
+packages/bff/src/**/*.js
 packages/config/src/**/*.js
 apps/api/src/**/*.js
 apps/api/tests/**/*.js
