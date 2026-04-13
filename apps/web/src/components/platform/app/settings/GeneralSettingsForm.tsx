@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { settingsSchema, type SettingsInput, type SettingsOutput } from "@dosc-syspro/contracts";
+import { settingsSchema, type SettingsInput, type SettingsOutput } from "@dosc-syspro/contracts/settings";
 import { updateSettingsAction } from "@/features/settings/application/actions";
 import { getSettingsAction } from "@/features/settings/application/queries";
 

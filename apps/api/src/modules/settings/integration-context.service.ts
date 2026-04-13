@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createDecipheriv, createHash } from 'crypto';
 import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig } from '@dosc-syspro/config';
-import { DEFAULT_EVOLUTION_SETTINGS, evolutionSettingsSchema } from '@dosc-syspro/contracts';
+import { DEFAULT_EVOLUTION_SETTINGS, evolutionSettingsSchema } from '@dosc-syspro/contracts/evolution';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const ENV_DEFAULT_CONNECTION_KEY = 'env:default';

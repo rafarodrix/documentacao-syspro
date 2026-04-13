@@ -6,9 +6,9 @@ import type {
   DashboardResponse,
   DashboardTicketKpis,
   DashboardTicketSummary,
-  TicketModuleRecord,
-} from '@dosc-syspro/contracts';
-import { getDailyPasswordForDate } from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/dashboard';
+import { getDailyPasswordForDate } from '@dosc-syspro/contracts/dashboard';
+import type { TicketModuleRecord } from '@dosc-syspro/contracts/ticket';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { TicketsService } from '../tickets/tickets.service';

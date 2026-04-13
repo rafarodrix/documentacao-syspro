@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import type { SettingsAuthorizationContext, SettingsPermissionKey } from "@dosc-syspro/contracts";
+import type { SettingsAuthorizationContext, SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 import { getProtectedSession, type UserRole } from "@/lib/auth-helpers";
 import { ACCESS_MATRIX } from "@/features/user-access/domain/permissions";
 import { fetchSettingsAuthorizationContextGateway } from "@/features/settings/infrastructure/settings.gateway";

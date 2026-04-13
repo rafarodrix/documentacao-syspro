@@ -6,7 +6,7 @@ import {
   EVOLUTION_WEBHOOK_SUBSCRIBE_OPTIONS,
   evolutionSettingsSchema,
   type EvolutionSettings,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/evolution";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

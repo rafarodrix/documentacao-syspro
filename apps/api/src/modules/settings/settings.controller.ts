@@ -3,24 +3,29 @@ import { CompanyStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationConnectionsService } from './integration-connections.service';
 import {
+  platformNotificationsResponseSchema,
+  type PlatformNotificationItem,
+} from '@dosc-syspro/contracts';
+import {
   DEFAULT_EVOLUTION_SETTINGS,
   evolutionSettingsSchema,
+  type EvolutionSettingsInput,
+} from '@dosc-syspro/contracts/evolution';
+import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
-  platformNotificationsResponseSchema,
   remoteModuleSettingsSchema,
-  type SettingsContractsAdminView,
-  type PlatformNotificationItem,
   type RemoteModuleSettingsInput,
+} from '@dosc-syspro/contracts/remote';
+import {
+  type SettingsContractsAdminView,
   settingsSchema,
-  sefazRoutesSchema,
   settingsAccessProfileUpsertSchema,
   settingsPermissionsMatrixVisibilityUpdateSchema,
   settingsUserAccessProfileCreateSchema,
-  type EvolutionSettingsInput,
   type SettingsInput,
   type SettingsOutput,
-  type SefazRoutesInput,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/settings';
+import { sefazRoutesSchema, type SefazRoutesInput } from '@dosc-syspro/contracts/sefaz-routes';
 import type { Request } from 'express';
 import { SettingsPermissionsService } from './permissions/permissions.service';
 import { AuthorizationService } from '../authorization/authorization.service';

@@ -1,4 +1,4 @@
-import { SETTINGS_PERMISSION_DEFINITIONS, type SettingsPermissionsCatalog } from "@dosc-syspro/contracts";
+import { SETTINGS_PERMISSION_DEFINITIONS, type SettingsPermissionsCatalog } from "@dosc-syspro/contracts/settings";
 import { ACCESS_MATRIX, ROLE_LABELS } from "@/features/user-access/domain/permissions";
 
 export function buildFallbackSettingsPermissionsCatalog(matrixEnabled = true): SettingsPermissionsCatalog {

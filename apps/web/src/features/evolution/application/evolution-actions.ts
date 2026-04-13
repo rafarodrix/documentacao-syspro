@@ -4,7 +4,7 @@ import {
   DEFAULT_EVOLUTION_SETTINGS,
   evolutionSettingsSchema,
   type EvolutionSettingsInput,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/evolution";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 

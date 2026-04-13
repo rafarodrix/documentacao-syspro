@@ -3,7 +3,7 @@ import {
   type SettingsPermissionKey,
   type SettingsPermissionProfile,
   type SettingsProfileKey,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/settings';
 
 const PROFILE_LABELS: Record<SettingsProfileKey, string> = {
   ADMIN: 'Administrador',

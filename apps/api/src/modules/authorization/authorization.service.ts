@@ -9,7 +9,7 @@ import type {
   SettingsProfileKey,
   SettingsPermissionsCatalog,
   SettingsUserAccessProfileCreateInput,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/settings';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import {

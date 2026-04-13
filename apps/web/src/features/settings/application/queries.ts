@@ -1,8 +1,7 @@
 "use server";
 
-import { type SettingsOutput } from "@dosc-syspro/contracts";
-import { type SefazRoutesInput } from "@dosc-syspro/contracts";
-import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
+import { buildDefaultSefazRoutes, type SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
+import { type SettingsOutput, type SettingsContractsAdminView, type SettingsRemoteAdminView } from "@dosc-syspro/contracts/settings";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
 import {
   getSettingsPermissionsAdminViewAction,
@@ -14,8 +13,6 @@ import {
   fetchGeneralSettingsGateway,
   fetchSefazRoutesGateway,
 } from "@/features/settings/infrastructure/settings.gateway";
-import type { SettingsContractsAdminView, SettingsRemoteAdminView } from "@dosc-syspro/contracts";
-
 export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsOutput>> {
   try {
     const response = await fetchGeneralSettingsGateway();

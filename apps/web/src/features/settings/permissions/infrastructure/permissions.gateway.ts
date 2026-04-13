@@ -10,7 +10,7 @@ import {
   type SettingsPermissionsCatalogResponse,
   type SettingsPermissionsMutationResponse,
   type SettingsUserAccessProfileCreateInput,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/settings";
 import { callBackendApi } from "@/lib/backend-api-client";
 
 export async function fetchSettingsPermissionsCatalogGateway(): Promise<SettingsPermissionsCatalogResponse> {

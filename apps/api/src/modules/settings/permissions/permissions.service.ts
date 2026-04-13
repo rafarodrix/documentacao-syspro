@@ -7,7 +7,7 @@ import {
   type SettingsPermissionsCatalogResponse,
   type SettingsPermissionsMutationResponse,
   type SettingsUserAccessProfileCreateInput,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/settings';
 import { AuthorizationService } from '../../authorization/authorization.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 

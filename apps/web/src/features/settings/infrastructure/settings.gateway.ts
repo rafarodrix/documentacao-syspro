@@ -1,21 +1,24 @@
 import {
   platformNotificationsResponseSchema,
+  type PlatformNotificationsResponse,
+} from "@dosc-syspro/contracts";
+import {
   remoteModuleSettingsSchema,
   remoteModuleSettingsResponseSchema,
+  type RemoteModuleSettings,
+  type RemoteModuleSettingsResponse,
+} from "@dosc-syspro/contracts/remote";
+import {
   settingsAuthorizationContextResponseSchema,
   settingsContractsAdminViewResponseSchema,
   settingsRemoteAdminViewResponseSchema,
-  sefazRoutesSchema,
   settingsSchema,
-  type PlatformNotificationsResponse,
-  type RemoteModuleSettings,
-  type RemoteModuleSettingsResponse,
   type SettingsAuthorizationContextResponse,
   type SettingsContractsAdminViewResponse,
   type SettingsRemoteAdminViewResponse,
-  type SefazRoutesInput,
   type SettingsOutput,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/settings";
+import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
 import { callBackendApi } from "@/lib/backend-api-client";
 
 type SettingsGatewayResponse<T> = {

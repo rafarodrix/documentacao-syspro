@@ -1,6 +1,5 @@
-import type { SettingsInput } from "@dosc-syspro/contracts";
-import type { SefazRoutesInput } from "@dosc-syspro/contracts";
-import type { SettingsPermissionsAdminView } from "@dosc-syspro/contracts";
+import type { SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
+import type { SettingsInput, SettingsPermissionsAdminView } from "@dosc-syspro/contracts/settings";
 
 export type SettingsSnapshot = SettingsInput;
 export type SefazRoutesSnapshot = SefazRoutesInput;

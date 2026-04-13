@@ -9,7 +9,7 @@ import {
   DEFAULT_CONTRACT_TAX_RATE,
 } from "@/features/contracts/application/contract-schema";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { SETTING_KEYS } from "@dosc-syspro/contracts";
+import { SETTING_KEYS } from "@dosc-syspro/contracts/settings";
 import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
 import { revalidateContractsViews } from "@/lib/cache-invalidation";
 import {

@@ -1,4 +1,4 @@
-import { dashboardResponseSchema, type DashboardView } from "@dosc-syspro/contracts";
+import { dashboardResponseSchema, type DashboardView } from "@dosc-syspro/contracts/dashboard";
 import { callBackendApi } from "@/lib/backend-api-client";
 
 export async function getDashboardData(): Promise<DashboardView> {

@@ -1,149 +1,27 @@
-export { settingsSchema, SETTING_KEYS } from "./settings";
-export type { SettingsInput, SettingsOutput } from "./settings";
-export {
-  SETTINGS_PROFILE_KEY_VALUES,
-  SETTINGS_PERMISSION_DEFINITIONS,
-  SETTINGS_PERMISSION_KEY_VALUES,
-  settingsProfileKeySchema,
-  settingsPermissionKeySchema,
-  settingsPermissionDefinitionSchema,
-  settingsPermissionProfileSchema,
-  settingsPermissionsCatalogSchema,
-  settingsPermissionsCatalogResponseSchema,
-  settingsAccessScopeTypeSchema,
-  settingsAccessProfileSchema,
-  settingsAccessAssignmentSchema,
-  settingsAccessUserOptionSchema,
-  settingsAccessCompanyOptionSchema,
-  settingsPermissionsAdminViewSchema,
-  settingsPermissionsAdminViewResponseSchema,
-  settingsPermissionsMatrixVisibilityUpdateSchema,
-  settingsAccessProfileUpsertSchema,
-  settingsUserAccessProfileCreateSchema,
-  settingsPermissionsMutationResponseSchema,
-} from "./settings-permissions";
-export type {
-  SettingsProfileKey,
-  SettingsPermissionKey,
-  SettingsPermissionDefinition,
-  SettingsPermissionProfile,
-  SettingsPermissionsCatalog,
-  SettingsPermissionsCatalogResponse,
-  SettingsAccessScopeType,
-  SettingsAccessProfile,
-  SettingsAccessAssignment,
-  SettingsAccessUserOption,
-  SettingsAccessCompanyOption,
-  SettingsPermissionsAdminView,
-  SettingsPermissionsAdminViewResponse,
-  SettingsPermissionsMatrixVisibilityUpdateInput,
-  SettingsAccessProfileUpsertInput,
-  SettingsUserAccessProfileCreateInput,
-  SettingsPermissionsMutationResponse,
-} from "./settings-permissions";
-export {
-  settingsContractCompanySchema,
-  settingsContractListItemSchema,
-  settingsContractCompanyOptionSchema,
-  settingsContractsAdminViewSchema,
-  settingsContractsAdminViewResponseSchema,
-  settingsRemoteAdminViewSchema,
-  settingsRemoteAdminViewResponseSchema,
-  settingsAuthorizationContextSchema,
-  settingsAuthorizationContextResponseSchema,
-} from "./settings-admin-view";
-export type {
-  SettingsContractCompany,
-  SettingsContractListItem,
-  SettingsContractCompanyOption,
-  SettingsContractsAdminView,
-  SettingsContractsAdminViewResponse,
-  SettingsRemoteAdminView,
-  SettingsRemoteAdminViewResponse,
-  SettingsAuthorizationContext,
-  SettingsAuthorizationContextResponse,
-} from "./settings-admin-view";
+export * from "./settings/index.js";
 
-export { sefazRouteSchema, sefazRoutesSchema } from "./sefaz-routes";
-export type { SefazRouteInput, SefazRoutesInput } from "./sefaz-routes";
+export { sefazRouteSchema, sefazRoutesSchema } from "./sefaz/sefaz-routes";
+export type { SefazRouteInput, SefazRoutesInput } from "./sefaz/sefaz-routes";
 
 export {
   SEFAZ_ENDPOINTS,
   SEFAZ_ROUTE_PRESETS,
   buildDefaultSefazRoutes,
   analyzeSefazResponse,
-} from "./sefaz-endpoints";
-export type { SefazConfig, SefazRoutePreset } from "./sefaz-endpoints";
+} from "./sefaz/sefaz-endpoints";
+export type { SefazConfig, SefazRoutePreset } from "./sefaz/sefaz-endpoints";
 
 export { addressSchema } from "./address";
 export type { AddressInput } from "./address";
 
-export {
-  createCompanySchema,
-  COMPANY_STATUS_VALUES,
-  COMPANY_SEGMENT_VALUES,
-  TAX_REGIME_VALUES,
-  INDICADOR_IE_VALUES,
-  COMPANY_REMOTE_CONNECTION_TYPE_VALUES,
-  COMPANY_SERVER_PROTOCOL_VALUES,
-  COMPANY_SERVER_TYPE_VALUES,
-  DEFAULT_COMPANY_INSTALLATION_DIRECTORY,
-  DEFAULT_COMPANY_SERVER_HOST,
-  DEFAULT_COMPANY_SERVER_PORT,
-  DEFAULT_COMPANY_SERVER_PROTOCOL,
-  DEFAULT_COMPANY_SERVER_TYPE,
-} from "./company";
-export type {
-  CreateCompanyInput,
-  CreateCompanyOutput,
-  CompanyStatusValue,
-  CompanySegmentValue,
-  TaxRegimeValue,
-  IndicadorIEValue,
-} from "./company";
-
-export { documentoSchema } from "./documento";
-export type { DocumentoFormInput, DocumentoFormValues } from "./documento";
-
-export {
-  FIELD_METADATA,
-  GRUPOS_DOCUMENTO,
-  COMPORTAMENTOS_DOCUMENTO,
-  TIPOS_NOTA_DEBITO,
-  TIPOS_NOTA_CREDITO,
-} from "./documento-config";
-export type { FieldMetadata } from "./documento-config";
-
-export { USER_ROLE_VALUES, createUserSchema } from "./user";
-export type { CreateUserInput, CreateUserOutput } from "./user";
-
+export * from "./company/index.js";
+export * from "./documento/index.js";
+export * from "./user/index.js";
 export * from "./ticket/index.js";
 export * from "./agent/index.js";
+export * from "./evolution/index.js";
+export * from "./remote/index.js";
 
-
-export { evolutionWebhookEnvelopeSchema, evolutionMessageEventSchema } from "./evolution-webhook";
-export type { EvolutionWebhookEnvelope, EvolutionMessageEvent } from "./evolution-webhook";
-export {
-  EVOLUTION_WEBHOOK_SUBSCRIBE_OPTIONS,
-  evolutionWebhookSubscribeSchema,
-  evolutionSettingsSchema,
-  DEFAULT_EVOLUTION_SETTINGS,
-} from "./evolution-settings";
-export type {
-  EvolutionSettingsInput,
-  EvolutionSettings,
-} from "./evolution-settings";
-export {
-  REMOTE_MODULE_SETTINGS_KEY,
-  remoteModuleSettingsSchema,
-  remoteModuleSettingsResponseSchema,
-  DEFAULT_REMOTE_MODULE_SETTINGS,
-} from "./remote-module-settings";
-export type {
-  RemoteModuleSettingsInput,
-  RemoteModuleSettings,
-  RemoteModuleSettingsResponse,
-} from "./remote-module-settings";
 export {
   platformNotificationLevelSchema,
   platformNotificationItemSchema,
@@ -154,30 +32,5 @@ export type {
   PlatformNotificationItem,
   PlatformNotificationsResponse,
 } from "./platform-notifications";
-export {
-  PORTAL_DASHBOARD_TIME_ZONE,
-  dashboardActivityPointSchema,
-  dashboardTicketSummarySchema,
-  dashboardTicketKpisSchema,
-  dashboardCompanySummarySchema,
-  dashboardSefazStatusSchema,
-  dashboardDailyPasswordSchema,
-  adminDashboardViewSchema,
-  clientDashboardViewSchema,
-  dashboardViewSchema,
-  dashboardResponseSchema,
-  calculateDailyPassword,
-  getDailyPasswordForDate,
-} from "./dashboard";
-export type {
-  DashboardActivityPoint,
-  DashboardTicketSummary,
-  DashboardTicketKpis,
-  DashboardCompanySummary,
-  DashboardSefazStatus,
-  DashboardDailyPassword,
-  AdminDashboardView,
-  ClientDashboardView,
-  DashboardView,
-  DashboardResponse,
-} from "./dashboard";
+
+export * from "./dashboard/index.js";

@@ -8,7 +8,7 @@ import type {
   SettingsPermissionKey,
   SettingsPermissionsAdminView,
   SettingsUserAccessProfileCreateInput,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,

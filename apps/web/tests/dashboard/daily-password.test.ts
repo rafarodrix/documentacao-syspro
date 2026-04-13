@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateDailyPassword, getDailyPasswordForDate } from "@dosc-syspro/contracts";
+import { calculateDailyPassword, getDailyPasswordForDate } from "@dosc-syspro/contracts/dashboard";
 
 describe("daily password", () => {
   it("calcula a senha conforme a regra dia x (ano + mes + dia)", () => {

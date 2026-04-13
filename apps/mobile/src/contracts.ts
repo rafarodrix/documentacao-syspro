@@ -7,9 +7,9 @@ export type {
 } from "@dosc-syspro/contracts";
 
 export {
-  settingsSchema,
   ticketFormSchema,
-  createUserSchema,
   documentoSchema,
   addressSchema,
 } from "@dosc-syspro/contracts";
+export { settingsSchema } from "@dosc-syspro/contracts/settings";
+export { createUserSchema } from "@dosc-syspro/contracts/user";

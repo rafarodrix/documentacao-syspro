@@ -1,7 +1,7 @@
 "use server";
 
-import { settingsSchema, type SettingsOutput } from "@dosc-syspro/contracts";
-import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts";
+import { settingsSchema, type SettingsOutput } from "@dosc-syspro/contracts/settings";
+import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
 import { revalidateSettingsViews } from "@/lib/cache-invalidation";
 import type { SettingsActionResponse } from "@/features/settings/domain/model";
 import { updateSettingsPermissionsMatrixVisibilityAction } from "@/features/settings/permissions/application/permissions-actions";
