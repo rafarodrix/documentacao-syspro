@@ -38,8 +38,35 @@ func (c *PortalClient) SendHeartbeat(ctx context.Context) error {
 
 func (c *PortalClient) GetDesiredState(ctx context.Context) (domain.DesiredState, error) {
 	_ = ctx
-	return domain.DesiredState{
-		Version:   1,
+
+	state := domain.DesiredState{
+		Version:   2,
 		UpdatedAt: time.Now().UTC(),
-	}, nil
+
+		Remote: domain.RemoteDesiredState{
+			Enabled: true,
+			Version: "1.0.0",
+		},
+
+		Tunnel: domain.TunnelDesiredState{
+			Enabled:     true,
+			Version:     "1.0.0",
+			ServerHost:  "tunnel.trilink.local",
+			ServerPort:  2333,
+			RemotePort:  5001,
+			LocalTarget: "127.0.0.1:3050",
+			Token:       "dev-token",
+		},
+
+		Backup: domain.BackupDesiredState{
+			Enabled:       true,
+			Version:       "1.0.0",
+			Schedule:      "0 0 * * *",
+			RetentionDays: 7,
+			Target:        "sftp://backup",
+		},
+	}
+
+	c.logger.Info("desired state stub returned", "version", state.Version)
+	return state, nil
 }

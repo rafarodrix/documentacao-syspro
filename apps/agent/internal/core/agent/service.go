@@ -17,6 +17,7 @@ type Service struct {
 	executor     Executor
 	logger       Logger
 	events       EventBus
+	reconcile    ReconcileService
 }
 
 func NewService(
@@ -24,6 +25,7 @@ func NewService(
 	registration RegistrationService,
 	heartbeat HeartbeatService,
 	desiredState DesiredStateService,
+	reconcile ReconcileService,
 	store StateStore,
 	executor Executor,
 	logger Logger,
@@ -34,6 +36,7 @@ func NewService(
 		registration: registration,
 		heartbeat:    heartbeat,
 		desiredState: desiredState,
+		reconcile:    reconcile,
 		store:        store,
 		executor:     executor,
 		logger:       logger,
@@ -65,6 +68,10 @@ func (s *Service) Run(ctx context.Context) error {
 
 	g.Go(func() error {
 		return s.runHealthLoop(ctx)
+	})
+
+	g.Go(func() error {
+		return s.reconcile.Start(ctx)
 	})
 
 	if err := g.Wait(); err != nil {

@@ -56,3 +56,7 @@ type ExecResult struct {
 	Stderr   string
 	Err      error
 }
+
+type ReconcileService interface {
+	Start(ctx context.Context) error
+}
