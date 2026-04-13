@@ -1,6 +1,6 @@
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
-import { remoteErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { remoteErrorResponse } from "@/features/remote/application/remote-domain-error";
 
 export async function requireRemotePermission(
   permission: Parameters<typeof currentUserHasPermission>[0],

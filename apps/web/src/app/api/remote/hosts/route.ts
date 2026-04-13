@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { createRemoteHostAdminPort } from "@/features/remote/infrastructure/gateways/remote-domain/host-admin-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
-import { toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
-import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
+import { toRemoteDomainErrorResponse } from "@/features/remote/application/remote-domain-error";
+import { requireRemotePermission } from "@/features/remote/application/remote-access";
 
 export const dynamic = "force-dynamic";
 

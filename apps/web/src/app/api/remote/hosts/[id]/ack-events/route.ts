@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ackEvents } from "@/features/remote/infrastructure/events/ack-events";
-import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
+import { requireRemotePermission } from "@/features/remote/application/remote-access";
 
 export async function GET(
   req: NextRequest,

@@ -3,7 +3,7 @@ import { createRequestLogger } from "@dosc-syspro/shared/logger";
 import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { createRemoteAckPort } from "@/features/remote/infrastructure/gateways/remote-domain/ack-port.gateway";
 import { createTrilinkRemote, isRemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain";
-import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/features/remote/application/remote-domain-error";
 
 export const dynamic = "force-dynamic";
 

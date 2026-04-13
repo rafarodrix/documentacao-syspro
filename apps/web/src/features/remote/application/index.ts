@@ -6,6 +6,8 @@ export * from './module-settings';
 export * from './module-settings-actions';
 export * from './module-settings-server';
 export * from './queries';
+export * from './remote-access';
+export * from './remote-domain-error';
 export * from './report-queries';
 export * from './rustdesk-sync';
 export * from './scope';

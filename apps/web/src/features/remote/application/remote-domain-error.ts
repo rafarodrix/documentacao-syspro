@@ -57,4 +57,3 @@ export function mapRemoteDomainHttpError(
 ) {
   return mapRemoteDomainError(error, options);
 }
-

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createRemoteAddressBookPort } from "@/features/remote/infrastructure/gateways/remote-domain/address-book-port.gateway";
 import { createTrilinkRemote } from "@dosc-syspro/remote-domain";
-import { toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
-import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
+import { toRemoteDomainErrorResponse } from "@/features/remote/application/remote-domain-error";
+import { requireRemotePermission } from "@/features/remote/application/remote-access";
 
 export async function GET() {
   const access = await requireRemotePermission("tools:all", "Acesso negado.");

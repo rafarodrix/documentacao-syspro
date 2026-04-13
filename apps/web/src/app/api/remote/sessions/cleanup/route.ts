@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cleanupExpiredRemoteSessions } from "@/features/remote/application/session-queries";
-import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
+import { requireRemotePermission } from "@/features/remote/application/remote-access";
 
 export const dynamic = "force-dynamic";
 

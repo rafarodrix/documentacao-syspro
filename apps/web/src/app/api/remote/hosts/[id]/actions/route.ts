@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
-import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
-import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
+import { remoteErrorResponse, toRemoteDomainErrorResponse } from "@/features/remote/application/remote-domain-error";
+import { requireRemotePermission } from "@/features/remote/application/remote-access";
 import {
   ensureRemoteHostIsInTenantScope,
   parseRequestedHostRemoteAction,

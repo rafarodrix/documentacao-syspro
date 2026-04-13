@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { remoteErrorResponse } from "@/app/api/remote/_shared/remote-domain-error";
-import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
+import { remoteErrorResponse } from "@/features/remote/application/remote-domain-error";
+import { requireRemotePermission } from "@/features/remote/application/remote-access";
 import { fetchRemoteModuleSettingsGateway } from "@/features/settings/infrastructure/settings.gateway";
 
 export const dynamic = "force-dynamic";

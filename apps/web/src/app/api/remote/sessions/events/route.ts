@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { sessionEvents, SessionEventPayload } from "@/features/remote/infrastructure/events/session-events";
-import { requireRemotePermission } from "@/app/api/remote/_shared/remote-access";
+import { requireRemotePermission } from "@/features/remote/application/remote-access";
 
 export async function GET(req: NextRequest) {
   const access = await requireRemotePermission("tools:all", "Nao autorizado");
