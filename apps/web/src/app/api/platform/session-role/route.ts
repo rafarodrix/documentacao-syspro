@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { getProtectedSession } from "@/lib/auth-helpers";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { getCurrentSessionRoleView } from "@/features/user-access/application/session-role";
 
 export async function GET() {
-  const session = await getProtectedSession();
+  const sessionRoleView = await getCurrentSessionRoleView();
 
-  if (!session) {
+  if (!sessionRoleView) {
     return NextResponse.json(
       { role: null },
       {
@@ -18,20 +17,12 @@ export async function GET() {
   }
 
   return NextResponse.json(
-    {
-      role: session.role,
-      userId: session.userId,
-      permissions: {
-        canManageTools: await currentUserHasPermission("tools:all"),
-        canEditSettings: await currentUserHasPermission("settings:edit"),
-        canManageTax: await currentUserHasPermission("tax_reform:manage"),
-      },
-    },
+    sessionRoleView,
     {
       status: 200,
       headers: {
         "Cache-Control": "private, max-age=15",
-        "x-session-role": session.role,
+        "x-session-role": sessionRoleView.role,
       },
     },
   );
