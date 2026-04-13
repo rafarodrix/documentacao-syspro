@@ -1,2 +1,2 @@
-export * from "./documento.js";
-export * from "./documento-config.js";
+export * from "./documento";
+export * from "./documento-config";

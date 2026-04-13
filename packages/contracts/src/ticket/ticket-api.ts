@@ -5,7 +5,7 @@ export {
   ticketProviderTicketArticleSchema as ticketArticleSchema,
   ticketProviderUserSearchSchema as ticketUserSearchSchema,
   ticketProviderUserSchema as ticketUserSchema,
-} from "./ticket-provider-api.js";
+} from "./ticket-provider-api";
 
 export type {
   TicketProviderTicketApi as TicketApi,
@@ -14,4 +14,4 @@ export type {
   TicketProviderTicketArticle as TicketArticle,
   TicketProviderUserSearch as TicketUserSearch,
   TicketProviderUser as TicketUser,
-} from "./ticket-provider-api.js";
+} from "./ticket-provider-api";

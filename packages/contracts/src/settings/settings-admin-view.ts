@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { settingsPermissionKeySchema } from "./settings-permissions.js";
+import { settingsPermissionKeySchema } from "./settings-permissions";
 
 export const settingsContractCompanySchema = z.object({
   id: z.string().min(1),

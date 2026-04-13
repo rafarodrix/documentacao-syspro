@@ -7,7 +7,7 @@ export {
   ticketProviderCatalogPrioritySchema as ticketCatalogPrioritySchema,
   ticketProviderCatalogOwnerSchema as ticketCatalogOwnerSchema,
   ticketProviderGlobalCatalogSchema as ticketGlobalCatalogSchema,
-} from "./ticket-provider-global-settings.js";
+} from "./ticket-provider-global-settings";
 
 export type {
   TicketProviderOwnerMode as TicketOwnerMode,
@@ -18,4 +18,4 @@ export type {
   TicketProviderCatalogPriority as TicketCatalogPriority,
   TicketProviderCatalogOwner as TicketCatalogOwner,
   TicketProviderGlobalCatalog as TicketGlobalCatalog,
-} from "./ticket-provider-global-settings.js";
+} from "./ticket-provider-global-settings";

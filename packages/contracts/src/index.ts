@@ -1,7 +1,7 @@
 // Root barrel kept for compatibility and broad consumption.
 // New imports should prefer context subpaths such as
 // @dosc-syspro/contracts/settings or @dosc-syspro/contracts/ticket.
-export * from "./settings/index.js";
+export * from "./settings/index";
 
 // Keep direct exports here only for stable leaf contracts that are still
 // broadly consumed or do not justify their own context package entry yet.
@@ -20,13 +20,13 @@ export { addressSchema } from "./address";
 export type { AddressInput } from "./address";
 
 // Context exports
-export * from "./company/index.js";
-export * from "./documento/index.js";
-export * from "./user/index.js";
-export * from "./ticket/index.js";
-export * from "./agent/index.js";
-export * from "./evolution/index.js";
-export * from "./remote/index.js";
+export * from "./company/index";
+export * from "./documento/index";
+export * from "./user/index";
+export * from "./ticket/index";
+export * from "./agent/index";
+export * from "./evolution/index";
+export * from "./remote/index";
 
 // Isolated shared contract kept as a direct leaf export.
 export {
@@ -40,4 +40,4 @@ export type {
   PlatformNotificationsResponse,
 } from "./platform-notifications";
 
-export * from "./dashboard/index.js";
+export * from "./dashboard/index";

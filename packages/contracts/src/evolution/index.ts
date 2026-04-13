@@ -1,2 +1,2 @@
-export * from "./evolution-settings.js";
-export * from "./evolution-webhook.js";
+export * from "./evolution-settings";
+export * from "./evolution-webhook";
