@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import type { SefazServiceType, SefazStatusType } from '@prisma/client';
-import { buildDefaultSefazRoutes } from '@dosc-syspro/contracts';
+import { buildDefaultSefazRoutes } from '@dosc-syspro/contracts/sefaz-endpoints';
 import { sefazRoutesSchema } from '@dosc-syspro/contracts/sefaz-routes';
 import { SETTING_KEYS } from '@dosc-syspro/contracts/settings';
 import { PrismaService } from '../../prisma/prisma.service';

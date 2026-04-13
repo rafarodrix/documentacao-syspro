@@ -33,6 +33,7 @@ export default defineConfig({
       "@dosc-syspro/contracts/evolution-webhook": path.resolve(__dirname, "../../packages/contracts/src/evolution/evolution-webhook.ts"),
       "@dosc-syspro/contracts/remote": path.resolve(__dirname, "../../packages/contracts/src/remote/index.ts"),
       "@dosc-syspro/contracts/remote-module-settings": path.resolve(__dirname, "../../packages/contracts/src/remote/remote-module-settings.ts"),
+      "@dosc-syspro/contracts/platform-notifications": path.resolve(__dirname, "../../packages/contracts/src/platform-notifications.ts"),
       "@dosc-syspro/contracts/settings": path.resolve(__dirname, "../../packages/contracts/src/settings/index.ts"),
       "@dosc-syspro/contracts/sefaz-routes": path.resolve(__dirname, "../../packages/contracts/src/sefaz/sefaz-routes.ts"),
       "@dosc-syspro/contracts/sefaz-endpoints": path.resolve(__dirname, "../../packages/contracts/src/sefaz/sefaz-endpoints.ts"),

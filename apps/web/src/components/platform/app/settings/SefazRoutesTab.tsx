@@ -2,9 +2,9 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { type SefazRoutesInput } from "@dosc-syspro/contracts";
+import { type SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
 import { runSefazCheckAction, updateSefazRoutesAction } from "@/features/settings/application/actions";
-import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts";
+import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts/sefaz-endpoints";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { documentoSchema, type DocumentoFormInput, type DocumentoFormValues } from "@dosc-syspro/contracts";
+import { documentoSchema, type DocumentoFormInput, type DocumentoFormValues } from "@dosc-syspro/contracts/documento";
 
 export function useDocumentoForm(initialValues?: Partial<DocumentoFormValues> | null) {
   // 1. Sanitização manual: garante que null vire valor válido

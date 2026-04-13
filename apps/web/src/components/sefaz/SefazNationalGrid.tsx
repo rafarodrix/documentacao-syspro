@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SEFAZ_ENDPOINTS } from "@dosc-syspro/contracts";
+import { SEFAZ_ENDPOINTS } from "@dosc-syspro/contracts/sefaz-endpoints";
 
 type SefazStatusItem = {
   uf: string;

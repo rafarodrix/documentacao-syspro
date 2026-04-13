@@ -5,7 +5,7 @@ import { IntegrationConnectionsService } from './integration-connections.service
 import {
   platformNotificationsResponseSchema,
   type PlatformNotificationItem,
-} from '@dosc-syspro/contracts';
+} from '@dosc-syspro/contracts/platform-notifications';
 import {
   DEFAULT_EVOLUTION_SETTINGS,
   evolutionSettingsSchema,

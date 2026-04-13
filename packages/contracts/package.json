@@ -12,6 +12,7 @@
     "./evolution-webhook": "./src/evolution/evolution-webhook.ts",
     "./remote": "./src/remote/index.ts",
     "./remote-module-settings": "./src/remote/remote-module-settings.ts",
+    "./platform-notifications": "./src/platform-notifications.ts",
     "./settings": "./src/settings/index.ts",
     "./sefaz-routes": "./src/sefaz/sefaz-routes.ts",
     "./sefaz-endpoints": "./src/sefaz/sefaz-endpoints.ts",

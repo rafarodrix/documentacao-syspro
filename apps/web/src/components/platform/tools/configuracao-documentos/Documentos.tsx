@@ -6,10 +6,10 @@ import {
   PackageCheck, PackageX, ScrollText
 } from 'lucide-react';
 import { DocumentoForm } from './DocumentoForm';
-import { DocumentoFormValues } from '@dosc-syspro/contracts';
+import { type DocumentoFormValues } from '@dosc-syspro/contracts/documento';
 import type { DocumentoItem } from '@/features/documentos/domain/model';
 import { Button } from "@/components/ui/button";
-import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts";
+import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts/documento-config";
 import { getDocumentos, saveDocumento, deleteDocumento } from '@/features/documentos/application/actions';
 
 export default function DocumentosContainer() {

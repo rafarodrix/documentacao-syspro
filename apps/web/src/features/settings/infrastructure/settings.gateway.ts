@@ -1,7 +1,7 @@
 import {
   platformNotificationsResponseSchema,
   type PlatformNotificationsResponse,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/platform-notifications";
 import {
   remoteModuleSettingsSchema,
   remoteModuleSettingsResponseSchema,
