@@ -16,8 +16,8 @@ export {
 } from "./sefaz/sefaz-endpoints";
 export type { SefazConfig, SefazRoutePreset } from "./sefaz/sefaz-endpoints";
 
-export { addressSchema } from "./address";
-export type { AddressInput } from "./address";
+export { addressSchema } from "./shared/address";
+export type { AddressInput } from "./shared/address";
 
 // Context exports
 export * from "./company/index";
@@ -33,11 +33,11 @@ export {
   platformNotificationLevelSchema,
   platformNotificationItemSchema,
   platformNotificationsResponseSchema,
-} from "./platform-notifications";
+} from "./shared/platform-notifications";
 export type {
   PlatformNotificationLevel,
   PlatformNotificationItem,
   PlatformNotificationsResponse,
-} from "./platform-notifications";
+} from "./shared/platform-notifications";
 
 export * from "./dashboard/index";

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { addressSchema } from "../address";
+import { addressSchema } from "../shared/address";
 
 const emptyToUndefined = z.preprocess(
   (val) => (val === "" || val === null ? undefined : val),
