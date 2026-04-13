@@ -150,7 +150,7 @@ Exemplos corretos:
 Exemplos que fogem do padrao:
 
 - `ticket-form.ts`
-- `ticket-api.ts`
+- `ticket-provider-api.ts`
 - `types.ts`
 - `model.ts`
 - `data.ts`

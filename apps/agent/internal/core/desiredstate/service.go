@@ -1,0 +1,72 @@
+package desiredstate
+
+import (
+	"context"
+	"time"
+
+	"trilink/agent/internal/domain"
+)
+
+type Service struct {
+	client PortalClient
+	store  StateStore
+	logger Logger
+	events EventBus
+	last   domain.DesiredState
+}
+
+func NewService(client PortalClient, store StateStore, logger Logger, events EventBus) *Service {
+	return &Service{
+		client: client,
+		store:  store,
+		logger: logger,
+		events: events,
+	}
+}
+
+func (s *Service) Start(ctx context.Context) error {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			state, err := s.client.GetDesiredState(ctx)
+			if err != nil {
+				s.logger.Warn("desired state fetch failed", "error", err)
+				continue
+			}
+
+			if state.Version != s.last.Version {
+				s.last = state
+				_ = s.store.SaveJSON(ctx, "desired_state.json", state)
+				_ = s.events.Publish(ctx, domain.TelemetryEvent{
+					Type:       "desired_state_updated",
+					Severity:   "info",
+					Module:     "desiredstate",
+					Message:    "desired state updated",
+					OccurredAt: time.Now().UTC(),
+					Metadata:   map[string]any{"version": state.Version},
+				})
+			}
+
+			s.logger.Debug("desired state checked", "version", state.Version)
+		}
+	}
+}
+
+func (s *Service) GetLast(ctx context.Context) (domain.DesiredState, error) {
+	if s.last.Version != 0 {
+		return s.last, nil
+	}
+
+	var state domain.DesiredState
+	if err := s.store.LoadJSON(ctx, "desired_state.json", &state); err != nil {
+		return domain.DesiredState{}, err
+	}
+
+	s.last = state
+	return state, nil
+}
