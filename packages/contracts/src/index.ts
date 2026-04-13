@@ -75,13 +75,15 @@ export {
 } from "./sefaz-endpoints";
 export type { SefazConfig, SefazRoutePreset } from "./sefaz-endpoints";
 
-export { ticketFormSchema } from "./ticket-form";
-export type { TicketFormInput, TicketFormOutput } from "./ticket-form";
 export { addressSchema } from "./address";
 export type { AddressInput } from "./address";
 
 export {
   createCompanySchema,
+  COMPANY_STATUS_VALUES,
+  COMPANY_SEGMENT_VALUES,
+  TAX_REGIME_VALUES,
+  INDICADOR_IE_VALUES,
   COMPANY_REMOTE_CONNECTION_TYPE_VALUES,
   COMPANY_SERVER_PROTOCOL_VALUES,
   COMPANY_SERVER_TYPE_VALUES,
@@ -91,7 +93,14 @@ export {
   DEFAULT_COMPANY_SERVER_PROTOCOL,
   DEFAULT_COMPANY_SERVER_TYPE,
 } from "./company";
-export type { CreateCompanyInput, CreateCompanyOutput } from "./company";
+export type {
+  CreateCompanyInput,
+  CreateCompanyOutput,
+  CompanyStatusValue,
+  CompanySegmentValue,
+  TaxRegimeValue,
+  IndicadorIEValue,
+} from "./company";
 
 export { documentoSchema } from "./documento";
 export type { DocumentoFormInput, DocumentoFormValues } from "./documento";
@@ -108,98 +117,8 @@ export type { FieldMetadata } from "./documento-config";
 export { USER_ROLE_VALUES, createUserSchema } from "./user";
 export type { CreateUserInput, CreateUserOutput } from "./user";
 
-export {
-  ticketApiSchema,
-  operationalTicketSchema,
-  ticketDetailsSchema,
-  ticketArticleSchema,
-  ticketUserSearchSchema,
-  ticketUserSchema,
-} from "./ticket-api";
-export type {
-  TicketApi,
-  OperationalTicket,
-  TicketDetails,
-  TicketArticle,
-  TicketUserSearch,
-  TicketUser,
-} from "./ticket-api";
-
-export {
-  TICKET_MODULE_STATUS_VALUES,
-  TICKET_MODULE_PRIORITY_VALUES,
-  TICKET_MODULE_CHANNEL_VALUES,
-  TICKET_MODULE_ENTRY_POINT_VALUES,
-  TICKET_MODULE_DIRECTION_VALUES,
-  TICKET_MODULE_MESSAGE_TYPE_VALUES,
-  ticketModuleStatusSchema,
-  ticketModulePrioritySchema,
-  ticketModuleChannelSchema,
-  ticketModuleEntryPointSchema,
-  ticketModuleDirectionSchema,
-  ticketModuleMessageTypeSchema,
-  ticketModuleStatusCountsSchema,
-  ticketModuleQueueCountsSchema,
-  ticketModuleCreateRequestSchema,
-  ticketModuleUpdateRequestSchema,
-  ticketModuleReplyRequestSchema,
-  ticketModuleListQuerySchema,
-  ticketModuleUserSchema,
-  ticketModuleContactSchema,
-  ticketModuleCompanySchema,
-  ticketModuleMessageSchema,
-  ticketModuleRecordSchema,
-  ticketModuleMutationResponseSchema,
-  ticketModuleListResponseSchema,
-  ticketModuleDetailsResponseSchema,
-  ticketModuleLinkedCompanySchema,
-  ticketModuleLinkedCompaniesResponseSchema,
-} from "./ticket-module-api";
-export type {
-  TicketModuleStatus,
-  TicketModulePriority,
-  TicketModuleChannel,
-  TicketModuleEntryPoint,
-  TicketModuleDirection,
-  TicketModuleMessageType,
-  TicketModuleStatusCounts,
-  TicketModuleQueueCounts,
-  TicketModuleCreateRequest,
-  TicketModuleUpdateRequest,
-  TicketModuleReplyRequest,
-  TicketModuleListQuery,
-  TicketModuleUser,
-  TicketModuleContact,
-  TicketModuleCompany,
-  TicketModuleMessage,
-  TicketModuleRecord,
-  TicketModuleMutationResponse,
-  TicketModuleListResponse,
-  TicketModuleDetailsResponse,
-  TicketModuleLinkedCompany,
-  TicketModuleLinkedCompaniesResponse,
-} from "./ticket-module-api";
-
-export {
-  ticketOwnerModeSchema,
-  ticketArticleTypeSchema,
-  ticketGlobalSettingsSchema,
-  ticketCatalogGroupSchema,
-  ticketCatalogStateSchema,
-  ticketCatalogPrioritySchema,
-  ticketCatalogOwnerSchema,
-  ticketGlobalCatalogSchema,
-} from "./ticket-global-settings";
-export type {
-  TicketOwnerMode,
-  TicketArticleType,
-  TicketGlobalSettings,
-  TicketCatalogGroup,
-  TicketCatalogState,
-  TicketCatalogPriority,
-  TicketCatalogOwner,
-  TicketGlobalCatalog,
-} from "./ticket-global-settings";
+export * from "./ticket/index.js";
+export * from "./agent/index.js";
 
 
 export { evolutionWebhookEnvelopeSchema, evolutionMessageEventSchema } from "./evolution-webhook";
