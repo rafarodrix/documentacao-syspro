@@ -27,7 +27,7 @@ import { rotateHostInstallToken } from "./use-cases/rotate-host-install-token.us
 import { revokeHostAgentToken } from "./use-cases/revoke-host-agent-token.use-case";
 import { relinkHostSysproUpdate } from "./use-cases/relink-host-syspro-update.use-case";
 import { listAddressBook } from "./use-cases/list-address-book.use-case";
-import { listAddressBookCredentials } from "./use-cases/list-address-book.use-case-credentials.use-case";
+import { listAddressBookCredentials } from "./use-cases/list-address-book-credentials.use-case";
 import { createAddressBookCredential } from "./use-cases/create-address-book-credential.use-case";
 import { rotateAddressBookCredential } from "./use-cases/rotate-address-book-credential.use-case";
 import { revokeAddressBookCredential } from "./use-cases/revoke-address-book-credential.use-case";
@@ -272,7 +272,7 @@ export * from "./use-cases/rotate-host-install-token.use-case";
 export * from "./use-cases/revoke-host-agent-token.use-case";
 export * from "./use-cases/relink-host-syspro-update.use-case";
 export * from "./use-cases/list-address-book.use-case";
-export * from "./use-cases/list-address-book.use-case-credentials.use-case";
+export * from "./use-cases/list-address-book-credentials.use-case";
 export * from "./use-cases/create-address-book-credential.use-case";
 export * from "./use-cases/rotate-address-book-credential.use-case";
 export * from "./use-cases/revoke-address-book-credential.use-case";

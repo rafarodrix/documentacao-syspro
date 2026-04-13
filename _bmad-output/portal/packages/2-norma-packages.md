@@ -44,7 +44,7 @@ A norma considera esta estrutura como base oficial:
 
 ```text
 packages/
-  bff/
+  application/
   config/
   contracts/
   core/
@@ -84,7 +84,7 @@ Packages mais estáveis não devem depender dos mais concretos.
 
 ## 4. Infra implementa domínio
 
-`database`, `bff` e `remote-infra` podem depender de domínio e contratos, nunca o contrário.
+`database`, `application` e `remote-infra` podem depender de domínio e contratos, nunca o contrário.
 
 ## 5. UI consome contrato, não persistência
 
@@ -119,7 +119,7 @@ Packages com regra de negócio:
 Packages concretos:
 
 * `database`
-* `bff`
+* `application`
 * `remote-infra`
 * `ui`
 
@@ -180,7 +180,7 @@ Pode depender de:
 * `config` ❌
 * `core` ❌
 * `database` ❌
-* `bff` ❌
+* `application` ❌
 * `ui` ❌
 * `remote-domain` ❌
 * `remote-infra` ❌
@@ -210,7 +210,7 @@ Pode depender de:
 * `contracts`
 * `core`
 * `database`
-* `bff`
+* `application`
 * `ui`
 * `remote-domain`
 * `remote-infra`
@@ -228,7 +228,7 @@ Pode depender de:
 * `contracts` ⚠️ evitar
 * `core`
 * `database`
-* `bff`
+* `application`
 * `ui`
 * `remote-domain`
 * `remote-infra`
@@ -250,7 +250,7 @@ Pode depender de:
 ### Proibido depender de:
 
 * `database`
-* `bff`
+* `application`
 * `ui`
 * `remote-domain` ⚠️ salvo se houver composição arquitetural explícita
 * `remote-infra`
@@ -272,7 +272,7 @@ Pode depender de:
 ### Proibido depender de:
 
 * `database`
-* `bff`
+* `application`
 * `ui`
 * `remote-infra`
 * `core` ⚠️ depende da modelagem; o ideal é evitar acoplamento bidirecional
@@ -294,7 +294,7 @@ Pode depender de:
 
 ### Proibido depender de:
 
-* `bff`
+* `application`
 * `ui`
 * `remote-infra`
 
@@ -308,7 +308,7 @@ Pode depender de:
 
 ---
 
-## `packages/bff`
+## `packages/application`
 
 Pode depender de:
 
@@ -326,7 +326,7 @@ Pode depender de:
 
 ### Regra
 
-`bff` é superfície de aplicação/backend compartilhada, não cliente HTTP puro.
+`application` é camada de aplicação compartilhada, não cliente HTTP puro.
 
 ---
 
@@ -338,7 +338,7 @@ Pode depender de:
 * `contracts` ✅
 * `config` ✅
 
-### Pode depender de `bff`?
+### Pode depender de `application`?
 
 * ⚠️ preferencialmente não no núcleo do package
 * se houver hooks/clientes visuais, isolar em submódulo explícito
@@ -369,7 +369,7 @@ Pode depender de:
 
 * `database` ⚠️ salvo quando a implementação realmente exigir persistência remota compartilhada
 * `ui`
-* `bff` ⚠️ evitar
+* `application` ⚠️ evitar
 
 ### Regra
 
@@ -386,7 +386,7 @@ Pode depender de:
 * `contracts`
 * `core`
 * `database`
-* `bff` ⚠️ em geral evitar dentro do backend
+* `application` ⚠️ em geral evitar dentro do backend
 * `shared`
 * `config`
 * `remote-domain`
@@ -404,7 +404,7 @@ Ele pode consumir vários packages, mas deve manter a separação interna.
 Pode depender de:
 
 * `contracts`
-* `bff`
+* `application`
 * `ui`
 * `shared`
 * `config`
@@ -430,7 +430,7 @@ O web não deve conhecer persistência nem infra técnica.
 Pode depender de:
 
 * `contracts`
-* `bff`
+* `application`
 * `ui`
 * `shared`
 * `config`
@@ -454,7 +454,7 @@ Pode depender de:
 
 * `database`
 * `ui`
-* `bff` backend-oriented
+* `application` backend-oriented
 * `remote-infra` TypeScript, se o agent for Go
 
 ### Regra
@@ -538,7 +538,7 @@ Quem decide é o domínio.
 
 ```ts
 import { Ticket } from '@trilink/contracts'
-import { getTickets } from '@trilink/bff'
+import { getTickets } from '@trilink/application'
 import { DataTable } from '@trilink/ui'
 ```
 
@@ -707,7 +707,7 @@ As respostas definem onde ele deve ficar.
 * é repositório concreto?
 * é mapper para banco?
 
-## Vai para `bff`?
+## Vai para `application`?
 
 * é client da API?
 * é fetch tipado?
@@ -752,7 +752,7 @@ Isso evita que a norma fique só no papel.
 
 ```text
 packages/
-  bff/
+  application/
   config/
   contracts/
   core/
@@ -768,7 +768,7 @@ packages/
 ```text
 contracts/shared/config = base
 core/remote-domain = domínio
-database/bff/remote-infra/ui = implementação e consumo
+database/application/remote-infra/ui = implementação e consumo
 apps = composição final
 ```
 

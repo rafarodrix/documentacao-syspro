@@ -214,7 +214,7 @@ Responsabilidade:
 * interface web principal
 * dashboard
 * páginas de gestão
-* composição visual com `ui`, `bff` e `contracts`
+* composição visual com `ui`, `application` e `contracts`
 
 ## Estrutura recomendada para Next.js App Router
 
@@ -294,7 +294,7 @@ Responsabilidade:
 
 * app mobile
 * experiência mobile do domínio já existente
-* consumo do `bff` e dos `contracts`
+* consumo do `application` e dos `contracts`
 
 ## Estrutura recomendada
 
@@ -697,7 +697,7 @@ packages/database/
 
 ---
 
-## 4. `packages/bff`
+## 4. `packages/application`
 
 Responsabilidade:
 
@@ -707,7 +707,7 @@ Responsabilidade:
 ## Estrutura recomendada
 
 ```text
-packages/bff/
+packages/application/
   src/
     client/
       http-client.ts
@@ -752,7 +752,7 @@ packages/bff/
   README.md
 ```
 
-## Regras do `bff`
+## Regras do `application`
 
 ### Deve conter
 
@@ -1073,7 +1073,7 @@ Centralizar contratos compartilhados entre apps e packages.
 - apps/web
 - apps/mobile
 - apps/agent
-- packages/bff
+- packages/application
 ```
 
 ---
@@ -1254,7 +1254,7 @@ apps/
 
 ```text
 packages/
-  bff/
+  application/
   config/
   contracts/
   core/

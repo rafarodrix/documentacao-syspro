@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@dosc-syspro/app-api",
   "version": "0.0.0",
   "private": true,
@@ -15,7 +15,7 @@
     "test:watch": "vitest tests"
   },
   "dependencies": {
-    "@dosc-syspro/bff": "file:../../packages/bff",
+    "@dosc-syspro/application": "file:../../packages/application",
     "@dosc-syspro/config": "file:../../packages/config",
     "@dosc-syspro/contracts": "file:../../packages/contracts",
     "@dosc-syspro/database": "file:../../packages/database",

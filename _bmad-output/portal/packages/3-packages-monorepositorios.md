@@ -44,7 +44,7 @@ A estrutura recomendada para `packages/` fica assim:
 
 ```text
 packages/
-  bff/
+  application/
   config/
   contracts/
   core/
@@ -64,7 +64,7 @@ Evite nomes genéricos ou ambíguos.
 
 Exemplo:
 
-- `bff` é melhor que `api` quando o pacote é backend-for-frontend, não cliente HTTP
+- `application` é melhor que `api` quando o pacote é uma camada de aplicação compartilhada
 - `contracts` é melhor que `types-shared`
 - `database` é melhor que `prisma-stuff`
 
@@ -304,14 +304,14 @@ Centralizar **configurações compartilhadas** do monorepo.
 
 ---
 
-## 6. `packages/bff`
+## 6. `packages/application`
 
 ### Responsabilidade
 Ser o **cliente oficial de consumo da API**.
 
-### Por que usar `bff` em vez de `api`
+### Por que usar `application` em vez de `api`
 O nome `api` é ambíguo, porque já existe `apps/api`.  
-`bff` deixa claro que o package é a superfície de aplicação/backend compartilhada, e não o backend HTTP em si.
+`application` deixa claro que o package é uma camada de aplicação compartilhada, e não o backend HTTP em si.
 
 ### Deve conter
 
@@ -338,7 +338,7 @@ O nome `api` é ambíguo, porque já existe `apps/api`.
 
 ### Regra de ouro
 
-> `bff` organiza a borda de aplicação; não substitui o domínio.
+> `application` organiza casos de uso e roteadores de aplicação; não substitui o domínio.
 
 ---
 
@@ -460,7 +460,7 @@ remote-infra  → implementação técnica remota
 
 ## Dependências que fazem sentido
 
-### `bff`
+### `application`
 pode depender de:
 - `contracts`
 - `shared`
@@ -487,7 +487,7 @@ podem depender de:
 - `contracts`
 - `core`
 - `database`
-- `bff`
+- `application`
 - `ui`
 - `config`
 - `shared`
@@ -501,12 +501,12 @@ podem depender de:
 ### `contracts` não deve depender de:
 - `database`
 - `ui`
-- `bff`
+- `application`
 - frameworks
 
 ### `core` não deve depender de:
 - `database`
-- `bff`
+- `application`
 - `ui`
 - NestJS
 - React
@@ -533,7 +533,7 @@ Use nomes curtos, claros e estáveis.
 - `database`
 - `ui`
 - `config`
-- `bff`
+- `application`
 - `shared`
 - `remote-domain`
 - `remote-infra`
@@ -577,7 +577,7 @@ Use nomes curtos, claros e estáveis.
 - `providers/`
 - `tokens/`
 
-## Em `bff`
+## Em `application`
 - `client/`
 - `modules/`
 - `serializers/`
@@ -589,7 +589,7 @@ Use nomes curtos, claros e estáveis.
 
 ```text
 packages/
-  bff/
+  application/
   config/
   contracts/
   core/
@@ -659,7 +659,7 @@ Sintoma:
 
 # Decisões recomendadas para seu monorepo
 
-## 1. Renomear `packages/api` para `packages/bff`
+## 1. Renomear `packages/api` para `packages/application`
 Essa é a mudança mais recomendada.
 
 ## 2. Manter `contracts` como fonte única de acordos compartilhados
@@ -702,7 +702,7 @@ Pode:
 Não pode:
 - regra de negócio central
 
-## `bff`
+## `application`
 
 Pode:
 - client HTTP, consumo tipado da API
@@ -752,7 +752,7 @@ Com o ajuste de nomenclatura e com fronteiras bem documentadas, ela fica em um n
 
 ```text
 packages/
-  bff/
+  application/
   config/
   contracts/
   core/
@@ -767,6 +767,6 @@ packages/
 
 A única mudança estrutural que eu recomendo fazer agora é:
 
-**`packages/api` → `packages/bff`**
+**`packages/api` → `packages/application`**
 
 Porque isso elimina ambiguidade e melhora a leitura do monorepo.

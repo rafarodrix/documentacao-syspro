@@ -1,4 +1,4 @@
-# @dosc-syspro/database
+﻿# @dosc-syspro/database
 
 Pacote responsável por centralizar a camada de banco do workspace.
 
@@ -17,7 +17,7 @@ O schema e o client oficiais do workspace vivem aqui.
 
 - fonte única de verdade do schema Prisma
 - origem do `PrismaClient` compartilhado
-- base de persistência usada por `apps/web`, `apps/api`, `packages/bff` e adapters remotos
+- base de persistência usada por `apps/web`, `apps/api`, `packages/application` e adapters remotos
 
 Quando o schema muda, todos os consumidores dependem de `prisma generate` atualizado.
 

@@ -260,7 +260,7 @@ Se o arquivo persiste, consulta ou traduz dados para o banco, o sufixo deve most
 
 ---
 
-## 4. `packages/bff`
+## 4. `packages/application`
 
 ### Objetivo
 
@@ -289,7 +289,7 @@ auth-client.ts
 
 ### Regra
 
-No `bff`, o nome precisa deixar claro que se trata de superfície de aplicação/backend compartilhada, não regra de negócio pura.
+No `application`, o nome precisa deixar claro que se trata de camada de aplicação compartilhada, não regra de negócio pura.
 
 ---
 
@@ -912,7 +912,7 @@ Usar alias do monorepo.
 
 ```ts
 import { Ticket } from '@trilink/contracts/ticket';
-import { getTickets } from '@trilink/bff/ticket';
+import { getTickets } from '@trilink/application/ticket';
 import { Button } from '@trilink/ui';
 ```
 
@@ -956,7 +956,7 @@ import { Ticket } from '@trilink/contracts/src/ticket/ticket.types';
 import { z } from 'zod';
 
 import { Ticket } from '@trilink/contracts/ticket';
-import { createTicket } from '@trilink/bff/ticket';
+import { createTicket } from '@trilink/application/ticket';
 
 import { mapTicketToView } from './ticket-view.mapper';
 ```
