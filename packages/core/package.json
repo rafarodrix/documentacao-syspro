@@ -5,15 +5,15 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./entities/ticket": "./src/entities/ticket.ts",
-    "./entities/release": "./src/entities/release.ts",
+    "./entities/ticket": "./src/entities/ticket.entity.ts",
+    "./entities/release": "./src/entities/release.entity.ts",
     "./config/contract-blocking": "./src/config/contract-blocking.ts",
     "./config/route-access": "./src/config/route-access.ts",
     "./config/role-labels": "./src/config/role-labels.ts",
     "./config/ticket-state-matrix": "./src/config/ticket-state-matrix.ts",
     "./config/ticket-provider-state-matrix": "./src/config/ticket-provider-state-matrix.ts",
     "./config/tickets-workflow": "./src/config/tickets-workflow.ts",
-    "./services/ticket-sla": "./src/services/ticket-sla.ts",
-    "./services/ticket-provider-sla": "./src/services/ticket-provider-sla.ts"
+    "./services/ticket-sla": "./src/services/ticket-sla.service.ts",
+    "./services/ticket-provider-sla": "./src/services/ticket-provider-sla.service.ts"
   }
 }

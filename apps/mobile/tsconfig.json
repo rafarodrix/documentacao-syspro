@@ -16,7 +16,7 @@
         "../../packages/contracts/src/agent/index.ts"
       ],
       "@dosc-syspro/contracts/address": [
-        "../../packages/contracts/src/shared/address.ts"
+        "../../packages/contracts/src/shared/address.types.ts"
       ],
       "@dosc-syspro/contracts/company": [
         "../../packages/contracts/src/company/index.ts"
@@ -25,37 +25,37 @@
         "../../packages/contracts/src/dashboard/index.ts"
       ],
       "@dosc-syspro/contracts/documento": [
-        "../../packages/contracts/src/documento/documento.ts"
+        "../../packages/contracts/src/documento/documento.types.ts"
       ],
       "@dosc-syspro/contracts/documento-config": [
-        "../../packages/contracts/src/documento/documento-config.ts"
+        "../../packages/contracts/src/documento/documento-config.types.ts"
       ],
       "@dosc-syspro/contracts/evolution": [
         "../../packages/contracts/src/evolution/index.ts"
       ],
       "@dosc-syspro/contracts/evolution-settings": [
-        "../../packages/contracts/src/evolution/evolution-settings.ts"
+        "../../packages/contracts/src/evolution/evolution-settings.types.ts"
       ],
       "@dosc-syspro/contracts/evolution-webhook": [
-        "../../packages/contracts/src/evolution/evolution-webhook.ts"
+        "../../packages/contracts/src/evolution/evolution-webhook.types.ts"
       ],
       "@dosc-syspro/contracts/platform-notifications": [
-        "../../packages/contracts/src/shared/platform-notifications.ts"
+        "../../packages/contracts/src/shared/platform-notifications.types.ts"
       ],
       "@dosc-syspro/contracts/remote": [
         "../../packages/contracts/src/remote/index.ts"
       ],
       "@dosc-syspro/contracts/remote-module-settings": [
-        "../../packages/contracts/src/remote/remote-module-settings.ts"
+        "../../packages/contracts/src/remote/remote-module-settings.types.ts"
       ],
       "@dosc-syspro/contracts/settings": [
         "../../packages/contracts/src/settings/index.ts"
       ],
       "@dosc-syspro/contracts/sefaz-endpoints": [
-        "../../packages/contracts/src/sefaz/sefaz-endpoints.ts"
+        "../../packages/contracts/src/sefaz/sefaz-endpoints.types.ts"
       ],
       "@dosc-syspro/contracts/sefaz-routes": [
-        "../../packages/contracts/src/sefaz/sefaz-routes.ts"
+        "../../packages/contracts/src/sefaz/sefaz-routes.types.ts"
       ],
       "@dosc-syspro/contracts/ticket": [
         "../../packages/contracts/src/ticket/index.ts"

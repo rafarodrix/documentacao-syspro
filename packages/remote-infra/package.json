@@ -5,11 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./remote-session-port": "./src/remote-session-port.ts",
-    "./remote-host-admin-port": "./src/remote-host-admin-port.ts",
-    "./remote-address-book-port": "./src/remote-address-book-port.ts"
+    "./remote-session.port": "./src/remote-session.port.ts",
+    "./remote-host-admin.port": "./src/remote-host-admin.port.ts",
+    "./remote-address-book.port": "./src/remote-address-book.port.ts"
   },
   "dependencies": {
-    "@dosc-syspro/api": "0.0.0"
+    "@dosc-syspro/sdk": "0.0.0"
   }
 }

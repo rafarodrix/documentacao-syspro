@@ -1,4 +1,4 @@
-import type { TicketStatus } from "../entities/ticket";
+import type { TicketStatus } from "../entities/ticket.entity";
 
 type StatusRule = {
   status: TicketStatus;

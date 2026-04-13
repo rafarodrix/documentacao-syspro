@@ -1,2 +1,2 @@
-export * from "./address";
-export * from "./platform-notifications";
+export * from "./address.types";
+export * from "./platform-notifications.types";

@@ -1,0 +1,41 @@
+{
+  "name": "@dosc-syspro/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run tests --reporter=verbose"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./context": "./src/context.ts",
+    "./router": "./src/router.ts",
+    "./errors/action-error-handler": "./src/lib/errors/action-error-handler.ts",
+    "./observability/logger": "./src/lib/observability/logger.ts",
+    "./security/action-rate-limit": "./src/lib/security/action-rate-limit.ts",
+    "./request-auth": "./src/lib/security/request-auth.ts",
+    "./routers/app": "./src/routers/app.ts",
+    "./routers/company": "./src/routers/company.ts",
+    "./routers/contracts": "./src/routers/contracts.ts",
+    "./routers/settings": "./src/routers/settings.ts",
+    "./routers/tax": "./src/routers/tax.ts",
+    "./routers/tickets": "./src/routers/tickets.ts",
+    "./routers/remote": "./src/routers/remote.ts",
+    "./remote-host-admin.port": "./src/remote-host-admin.port.ts",
+    "./remote-address-book.port": "./src/remote-address-book.port.ts",
+    "./remote-session.port": "./src/remote-session.port.ts"
+  },
+  "dependencies": {
+    "@dosc-syspro/config": "0.0.0",
+    "@dosc-syspro/database": "0.0.0",
+    "@dosc-syspro/remote-domain": "0.0.0",
+    "@dosc-syspro/shared": "0.0.0",
+    "nodemailer": "^8.0.4"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.17",
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.0"
+  }
+}

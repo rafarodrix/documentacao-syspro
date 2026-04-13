@@ -15,7 +15,7 @@
     "test:watch": "vitest tests"
   },
   "dependencies": {
-    "@dosc-syspro/api": "file:../../packages/api",
+    "@dosc-syspro/sdk": "file:../../packages/sdk",
     "@dosc-syspro/config": "file:../../packages/config",
     "@dosc-syspro/contracts": "file:../../packages/contracts",
     "@dosc-syspro/database": "file:../../packages/database",

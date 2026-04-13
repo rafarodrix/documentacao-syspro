@@ -1,1 +1,1 @@
-export * from "./remote-module-settings";
+export * from "./remote-module-settings.types";

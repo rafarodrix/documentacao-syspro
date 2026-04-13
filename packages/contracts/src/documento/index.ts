@@ -1,2 +1,2 @@
-export * from "./documento";
-export * from "./documento-config";
+export * from "./documento.types";
+export * from "./documento-config.types";

@@ -1,4 +1,4 @@
-import { createRemoteSessionPort as createSharedRemoteSessionPort } from "@dosc-syspro/remote-infra/remote-session-port";
+import { createRemoteSessionPort as createSharedRemoteSessionPort } from "@dosc-syspro/remote-infra/remote-session.port";
 import type { RemoteSessionPort } from "@dosc-syspro/remote-domain";
 import { evolutionWhatsApp } from "@/lib/integrations/evolution-whatsapp.gateway";
 

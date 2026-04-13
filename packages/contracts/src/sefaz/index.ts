@@ -1,2 +1,2 @@
-export * from "./sefaz-routes";
-export * from "./sefaz-endpoints";
+export * from "./sefaz-routes.types";
+export * from "./sefaz-endpoints.types";

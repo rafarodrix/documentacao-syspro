@@ -17,7 +17,7 @@ O schema e o client oficiais do workspace vivem aqui.
 
 - fonte única de verdade do schema Prisma
 - origem do `PrismaClient` compartilhado
-- base de persistência usada por `apps/web`, `apps/api`, `packages/api` e adapters remotos
+- base de persistência usada por `apps/web`, `apps/api`, `packages/sdk` e adapters remotos
 
 Quando o schema muda, todos os consumidores dependem de `prisma generate` atualizado.
 

@@ -8,29 +8,29 @@ import type {
   RemoteSessionPort,
   RemoteSyncPort,
   TrilinkRemoteDomain,
-} from "./ports";
-import { processAck } from "./use-cases/process-ack";
-import { processBootstrap } from "./use-cases/process-bootstrap";
-import { processDiscover } from "./use-cases/process-discover";
-import { processHeartbeat } from "./use-cases/process-heartbeat";
-import { processSync } from "./use-cases/process-sync";
-import { createSession } from "./use-cases/create-session";
-import { listSessions } from "./use-cases/list-sessions";
-import { startSession } from "./use-cases/start-session";
-import { stopSession } from "./use-cases/stop-session";
-import { linkDiscoveredHost } from "./use-cases/link-discovered-host";
-import { createHost } from "./use-cases/create-host";
-import { updateHost } from "./use-cases/update-host";
-import { deleteHost } from "./use-cases/delete-host";
-import { rotateHostAgentToken } from "./use-cases/rotate-host-agent-token";
-import { rotateHostInstallToken } from "./use-cases/rotate-host-install-token";
-import { revokeHostAgentToken } from "./use-cases/revoke-host-agent-token";
-import { relinkHostSysproUpdate } from "./use-cases/relink-host-syspro-update";
-import { listAddressBook } from "./use-cases/list-address-book";
-import { listAddressBookCredentials } from "./use-cases/list-address-book-credentials";
-import { createAddressBookCredential } from "./use-cases/create-address-book-credential";
-import { rotateAddressBookCredential } from "./use-cases/rotate-address-book-credential";
-import { revokeAddressBookCredential } from "./use-cases/revoke-address-book-credential";
+} from "./remote-domain.port";
+import { processAck } from "./use-cases/process-ack.use-case";
+import { processBootstrap } from "./use-cases/process-bootstrap.use-case";
+import { processDiscover } from "./use-cases/process-discover.use-case";
+import { processHeartbeat } from "./use-cases/process-heartbeat.use-case";
+import { processSync } from "./use-cases/process-sync.use-case";
+import { createSession } from "./use-cases/create-session.use-case";
+import { listSessions } from "./use-cases/list-sessions.use-case";
+import { startSession } from "./use-cases/start-session.use-case";
+import { stopSession } from "./use-cases/stop-session.use-case";
+import { linkDiscoveredHost } from "./use-cases/link-discovered-host.use-case";
+import { createHost } from "./use-cases/create-host.use-case";
+import { updateHost } from "./use-cases/update-host.use-case";
+import { deleteHost } from "./use-cases/delete-host.use-case";
+import { rotateHostAgentToken } from "./use-cases/rotate-host-agent-token.use-case";
+import { rotateHostInstallToken } from "./use-cases/rotate-host-install-token.use-case";
+import { revokeHostAgentToken } from "./use-cases/revoke-host-agent-token.use-case";
+import { relinkHostSysproUpdate } from "./use-cases/relink-host-syspro-update.use-case";
+import { listAddressBook } from "./use-cases/list-address-book.use-case";
+import { listAddressBookCredentials } from "./use-cases/list-address-book.use-case-credentials.use-case";
+import { createAddressBookCredential } from "./use-cases/create-address-book-credential.use-case";
+import { rotateAddressBookCredential } from "./use-cases/rotate-address-book-credential.use-case";
+import { revokeAddressBookCredential } from "./use-cases/revoke-address-book-credential.use-case";
 
 export function createTrilinkRemote(deps: {
   heartbeatPort?: RemoteHeartbeatPort;
@@ -252,30 +252,30 @@ export function createTrilinkRemote(deps: {
   };
 }
 
-export * from "./contracts";
-export * from "./ports";
-export * from "./use-cases/process-heartbeat";
-export * from "./use-cases/process-bootstrap";
-export * from "./use-cases/process-ack";
-export * from "./use-cases/process-sync";
-export * from "./use-cases/process-discover";
-export * from "./use-cases/create-session";
-export * from "./use-cases/list-sessions";
-export * from "./use-cases/start-session";
-export * from "./use-cases/stop-session";
-export * from "./use-cases/link-discovered-host";
-export * from "./use-cases/create-host";
-export * from "./use-cases/update-host";
-export * from "./use-cases/delete-host";
-export * from "./use-cases/rotate-host-agent-token";
-export * from "./use-cases/rotate-host-install-token";
-export * from "./use-cases/revoke-host-agent-token";
-export * from "./use-cases/relink-host-syspro-update";
-export * from "./use-cases/list-address-book";
-export * from "./use-cases/list-address-book-credentials";
-export * from "./use-cases/create-address-book-credential";
-export * from "./use-cases/rotate-address-book-credential";
-export * from "./use-cases/revoke-address-book-credential";
+export * from "./remote-domain.contracts";
+export * from "./remote-domain.port";
+export * from "./use-cases/process-heartbeat.use-case";
+export * from "./use-cases/process-bootstrap.use-case";
+export * from "./use-cases/process-ack.use-case";
+export * from "./use-cases/process-sync.use-case";
+export * from "./use-cases/process-discover.use-case";
+export * from "./use-cases/create-session.use-case";
+export * from "./use-cases/list-sessions.use-case";
+export * from "./use-cases/start-session.use-case";
+export * from "./use-cases/stop-session.use-case";
+export * from "./use-cases/link-discovered-host.use-case";
+export * from "./use-cases/create-host.use-case";
+export * from "./use-cases/update-host.use-case";
+export * from "./use-cases/delete-host.use-case";
+export * from "./use-cases/rotate-host-agent-token.use-case";
+export * from "./use-cases/rotate-host-install-token.use-case";
+export * from "./use-cases/revoke-host-agent-token.use-case";
+export * from "./use-cases/relink-host-syspro-update.use-case";
+export * from "./use-cases/list-address-book.use-case";
+export * from "./use-cases/list-address-book.use-case-credentials.use-case";
+export * from "./use-cases/create-address-book-credential.use-case";
+export * from "./use-cases/rotate-address-book-credential.use-case";
+export * from "./use-cases/revoke-address-book-credential.use-case";
 
 export type { RemoteDomainHttpError } from "./errors";
 export { mapRemoteDomainError } from "./errors";

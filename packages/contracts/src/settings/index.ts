@@ -1,3 +1,3 @@
-export * from "./settings";
-export * from "./settings-permissions";
-export * from "./settings-admin-view";
+export * from "./settings.types";
+export * from "./settings-permissions.types";
+export * from "./settings-admin-view.types";

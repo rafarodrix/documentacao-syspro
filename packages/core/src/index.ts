@@ -1,5 +1,5 @@
-export type { Ticket, TicketPriority, TicketStatus } from "./entities/ticket";
-export type { Release } from "./entities/release";
+export type { Ticket, TicketPriority, TicketStatus } from "./entities/ticket.entity";
+export type { Release } from "./entities/release.entity";
 export {
   CONTRACT_BLOCK_MARKER,
   CONTRACT_BLOCK_REASONS,
@@ -33,5 +33,5 @@ export {
   getStateIdsForStatusGroup,
 } from "./config/tickets-workflow";
 export type { QueueKey, TicketStatusGroup } from "./config/tickets-workflow";
-export { computeTicketSla } from "./services/ticket-sla";
-export type { TicketSlaMeta } from "./services/ticket-sla";
+export { computeTicketSla } from "./services/ticket-sla.service";
+export type { TicketSlaMeta } from "./services/ticket-sla.service";
