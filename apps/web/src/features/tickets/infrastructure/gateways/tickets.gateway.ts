@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import type {
   TicketModuleCreateRequest,
   TicketModuleDetailsResponse,
@@ -14,47 +13,10 @@ import {
   ticketModuleListResponseSchema,
   ticketModuleMutationResponseSchema,
 } from "@dosc-syspro/contracts";
-import { resolveServerOrigin } from "@/lib/server-origin";
+import { callBackendApi } from "@/lib/backend-api-client";
 
-async function getAppOriginAndCookie() {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie") || "";
-  const appOrigin = resolveServerOrigin(requestHeaders);
-  return { appOrigin, cookie };
-}
-
-async function callTicketsApi(path: string, init?: RequestInit): Promise<unknown> {
-  const { appOrigin, cookie } = await getAppOriginAndCookie();
-  const url = `${appOrigin}/api/tickets${path}`;
-  const requestHeaders = new Headers(init?.headers);
-
-  if (cookie && !requestHeaders.has("cookie")) {
-    requestHeaders.set("cookie", cookie);
-  }
-
-  const response = await fetch(url, {
-    ...init,
-    headers: requestHeaders,
-    cache: "no-store",
-  });
-
-  let json: unknown = null;
-  try {
-    json = await response.json();
-  } catch {
-    json = null;
-  }
-
-  if (!response.ok) {
-    const data = typeof json === "object" && json !== null ? (json as Record<string, unknown>) : null;
-    const message =
-      (typeof data?.error === "string" && data.error) ||
-      (typeof data?.message === "string" && data.message) ||
-      `Falha na API de tickets (${response.status}).`;
-    throw new Error(message);
-  }
-
-  return json;
+async function callTicketsApi<T>(path: string, init?: RequestInit): Promise<T> {
+  return callBackendApi<T>("tickets", path, init);
 }
 
 export async function fetchTicketsGateway(query: URLSearchParams): Promise<TicketModuleListResponse> {

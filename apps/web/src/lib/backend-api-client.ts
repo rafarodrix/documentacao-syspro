@@ -1,19 +1,16 @@
 import { headers } from "next/headers";
-import { resolveServerOrigin } from "@/lib/server-origin";
+import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 
-export async function getAppOriginAndCookie() {
+export async function getRequestCookie() {
   const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie") || "";
-  const appOrigin = resolveServerOrigin(requestHeaders);
-  return { appOrigin, cookie };
+  return requestHeaders.get("cookie") || "";
 }
 
 export async function callBackendApi<T>(feature: string, path: string, init?: RequestInit): Promise<T> {
-  const { appOrigin, cookie } = await getAppOriginAndCookie();
-  
-  // Example: feature="users", path="/me" -> /api/users/me -> proxies to NestJS
-  const url = `${appOrigin}/api/${feature}${path}`;
-  const requestHeaders = new Headers(init?.headers);
+  const cookie = await getRequestCookie();
+  const url = `${getBackendApiBaseUrl()}/${feature}${path}`;
+  const requestHeaders = withInternalApiHeaders(init?.headers);
+
   if (cookie && !requestHeaders.has("cookie")) {
     requestHeaders.set("cookie", cookie);
   }
