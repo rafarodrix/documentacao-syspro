@@ -1,7 +1,3 @@
-Perfeito. Abaixo está o **Padrão Interno de Estrutura de Pastas por Package e por App**, já escrito como documentação-base oficial do monorepo, alinhado com as convenções e práticas que vocês estão consolidando.
-
----
-
 # Padrão Interno de Estrutura de Pastas por Package e por App
 
 ## Visão Geral
