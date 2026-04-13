@@ -30,6 +30,7 @@ func (s *Service) Start(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
+			s.logger.Info("heartbeat loop stopped")
 			return nil
 		case <-ticker.C:
 			if err := s.client.SendHeartbeat(ctx); err != nil {

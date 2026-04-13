@@ -25,13 +25,21 @@ func NewService(client PortalClient, store StateStore, logger Logger, events Eve
 }
 
 func (s *Service) Start(ctx context.Context) error {
+	var cached domain.DesiredState
+	if err := s.store.LoadJSON(ctx, "desired_state.json", &cached); err == nil {
+		s.last = cached
+		s.logger.Debug("desired state loaded from cache", "version", cached.Version)
+	}
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
+			s.logger.Info("desired state loop stopped")
 			return nil
+
 		case <-ticker.C:
 			state, err := s.client.GetDesiredState(ctx)
 			if err != nil {
@@ -40,15 +48,24 @@ func (s *Service) Start(ctx context.Context) error {
 			}
 
 			if state.Version != s.last.Version {
+				s.logger.Info("desired state changed",
+					"old_version", s.last.Version,
+					"new_version", state.Version,
+				)
+
 				s.last = state
+
 				_ = s.store.SaveJSON(ctx, "desired_state.json", state)
+
 				_ = s.events.Publish(ctx, domain.TelemetryEvent{
 					Type:       "desired_state_updated",
 					Severity:   "info",
 					Module:     "desiredstate",
 					Message:    "desired state updated",
 					OccurredAt: time.Now().UTC(),
-					Metadata:   map[string]any{"version": state.Version},
+					Metadata: map[string]any{
+						"version": state.Version,
+					},
 				})
 			}
 
