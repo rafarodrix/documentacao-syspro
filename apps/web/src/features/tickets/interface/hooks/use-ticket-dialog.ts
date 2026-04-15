@@ -13,8 +13,10 @@ type UseTicketDialogOptions = {
 };
 
 type CustomerEmailOption = {
+    companyId: string;
     email: string;
     companyName: string;
+    contactName: string | null;
 };
 
 type CompanyOption = {
@@ -147,9 +149,9 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     }, [searchQuery, options.isSystemUser]);
 
     const onSubmit = (data: TicketFormOutput) => {
-        logInfo("submit.invoked", { filesCount: files.length, hasCustomerEmail: Boolean(customerEmail.trim()) });
-        if (options.isSystemUser && !customerEmail.trim()) {
-            toast.error("Informe o e-mail do cliente para abrir o chamado.");
+        logInfo("submit.invoked", { filesCount: files.length, hasCustomerEmail: Boolean(customerEmail.trim()), hasCompanyId: Boolean(selectedCompanyId) });
+        if (options.isSystemUser && !customerEmail.trim() && !selectedCompanyId) {
+            toast.error("Selecione a empresa ou contato do cliente para abrir o chamado.");
             return;
         }
 
@@ -162,7 +164,12 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 formData.append("priority", data.priority);
                 formData.append("type", data.type);
                 if (options.isSystemUser) {
-                    formData.append("customerEmail", customerEmail.trim().toLowerCase());
+                    if (customerEmail.trim()) {
+                        formData.append("customerEmail", customerEmail.trim().toLowerCase());
+                    }
+                    if (selectedCompanyId) {
+                        formData.append("companyId", selectedCompanyId);
+                    }
                 } else if (selectedCompanyId) {
                     formData.append("userSelectedCompanyId", selectedCompanyId);
                 }

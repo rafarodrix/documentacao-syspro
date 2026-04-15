@@ -9,15 +9,9 @@ import {
   ArrowLeft,
   Building2,
   Check,
-  ChevronsUpDown,
-  FileText,
   Loader2,
-  Paperclip,
-  Save,
-  Search,
   Send,
   Sparkles,
-  X,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,11 +31,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Form,
   FormControl,
   FormField,
@@ -52,6 +41,11 @@ import {
 import { cn } from "@/lib/utils";
 import { createTicketAction, getUserLinkedCompaniesAction } from "@/features/tickets/application/ticket-actions";
 import { useEffect } from "react";
+import { TicketAttachmentField } from "@/features/tickets/interface/components/TicketAttachmentField";
+import {
+  TicketCompanyPicker,
+  type TicketCompanyPickerOption,
+} from "@/features/tickets/interface/components/TicketCompanyPicker";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
@@ -63,8 +57,10 @@ import "react-quill-new/dist/quill.snow.css";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type CustomerEmailOption = {
+  companyId: string;
   email: string;
   companyName: string;
+  contactName: string | null;
 };
 
 type CompanyOption = {
@@ -98,7 +94,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
-  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerCompany, setCustomerCompany] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -121,6 +116,22 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const watchedSubject = form.watch("subject");
   const watchedType = form.watch("type") as TypeKey;
   const watchedPriority = form.watch("priority") as PriorityKey;
+  const selectedClientCompany = clientCompanies.find((company) => company.id === selectedCompanyId) ?? null;
+  const selectedSystemOption = customerOptions.find(
+    (option) =>
+      option.companyId === selectedCompanyId &&
+      option.email === customerEmail.trim().toLowerCase(),
+  ) ?? null;
+  const systemCompanyOptions: TicketCompanyPickerOption[] = customerOptions.map((option) => ({
+    id: `${option.companyId}::${option.email}`,
+    label: option.companyName,
+    description: option.contactName || option.email,
+    meta: option.contactName ? option.email : null,
+  }));
+  const clientCompanyOptions: TicketCompanyPickerOption[] = clientCompanies.map((company) => ({
+    id: company.id,
+    label: company.name,
+  }));
 
   // ── Load client companies ──────────────────────────────────────────────
   useEffect(() => {
@@ -200,16 +211,16 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     const items = [
       watchedSubject.trim().length >= 5,
       descriptionHtml.replace(/<[^>]*>?/gm, "").trim().length >= 20,
-      isSystemUser ? !!customerEmail.trim() : true,
+      isSystemUser ? !!selectedCompanyId || !!customerEmail.trim() : true,
     ];
     const completed = items.filter(Boolean).length;
     return Math.round((completed / items.length) * 100);
-  }, [watchedSubject, descriptionHtml, isSystemUser, customerEmail]);
+  }, [watchedSubject, descriptionHtml, isSystemUser, customerEmail, selectedCompanyId]);
 
   // ── Submit ─────────────────────────────────────────────────────────────
   const handleFormSubmit = (data: TicketFormOutput) => {
-    if (isSystemUser && !customerEmail.trim()) {
-      toast.error("Informe o e-mail do cliente para abrir o chamado.");
+    if (isSystemUser && !selectedCompanyId && !customerEmail.trim()) {
+      toast.error("Selecione a empresa ou contato do cliente para abrir o chamado.");
       return;
     }
     if (!isSystemUser && clientCompanies.length > 1 && !selectedCompanyId) {
@@ -225,7 +236,12 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
         formData.append("priority", data.priority);
         formData.append("type", data.type);
         if (isSystemUser) {
-          formData.append("customerEmail", customerEmail.trim().toLowerCase());
+          if (customerEmail.trim()) {
+            formData.append("customerEmail", customerEmail.trim().toLowerCase());
+          }
+          if (selectedCompanyId) {
+            formData.append("companyId", selectedCompanyId);
+          }
         } else if (selectedCompanyId) {
           formData.append("userSelectedCompanyId", selectedCompanyId);
         }
@@ -353,48 +369,12 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                 </div>
 
                 {/* Attachments */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Anexos (Opcional)</Label>
-                  <div
-                    className="border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/30 hover:border-primary/40 transition-all group"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                      <Paperclip className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
-                    </div>
-                    <p className="text-sm font-medium text-foreground">Clique para adicionar arquivos</p>
-                    <p className="text-xs text-muted-foreground mt-1">Imagens, PDFs ou documentos (Max. 5MB total)</p>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      multiple
-                      accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
-                      onChange={handleFileChange}
-                    />
-                  </div>
-
-                  {files.length > 0 && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                      {files.map((file, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-2.5 rounded-md border bg-background/50 text-sm">
-                          <div className="flex items-center gap-3 truncate">
-                            <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center text-primary">
-                              <FileText className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col truncate">
-                              <span className="truncate max-w-[200px] font-medium">{file.name}</span>
-                              <span className="text-[10px] text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</span>
-                            </div>
-                          </div>
-                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500" onClick={() => removeFile(idx)}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <TicketAttachmentField
+                  files={files}
+                  inputRef={fileInputRef}
+                  onChange={handleFileChange}
+                  onRemove={removeFile}
+                />
               </div>
 
               {/* ── Sidebar (4 cols) ────────────────────────────────────── */}
@@ -461,78 +441,47 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                 {/* Customer (system users) */}
                 {isSystemUser && (
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cliente</Label>
-                    <Popover open={customerPickerOpen} onOpenChange={setCustomerPickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={cn("w-full justify-between", !customerEmail && "text-muted-foreground")}
-                        >
-                          <span className="truncate text-left text-xs">
-                            {customerEmail ? `${customerEmail}` : "Buscar cliente..."}
-                          </span>
-                          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent align="start" className="w-72 p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
-                        <div className="border-b p-2.5">
-                          <div className="relative">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                            <Input
-                              type="text"
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              placeholder="Nome ou e-mail..."
-                              className="pl-8 h-8 text-xs bg-background"
-                            />
-                          </div>
-                        </div>
-                        <div className="max-h-52 overflow-y-auto py-1">
-                          {customerOptions.map((option) => {
-                            const selected = option.email === customerEmail.trim().toLowerCase();
-                            return (
-                              <button
-                                key={`${option.email}:${option.companyName}`}
-                                type="button"
-                                onClick={() => {
-                                  setCustomerEmail(option.email);
-                                  setCustomerCompany(option.companyName);
-                                  setCustomerPickerOpen(false);
-                                }}
-                                className={cn(
-                                  "flex w-full items-center gap-3 px-3 py-2 text-left text-xs hover:bg-muted/60",
-                                  selected && "bg-primary/5",
-                                )}
-                              >
-                                <Building2 className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate font-medium">{option.companyName}</span>
-                                  <span className="block truncate text-[10px] text-muted-foreground">{option.email}</span>
-                                </span>
-                                {selected && <Check className="h-3 w-3 shrink-0 text-primary" />}
-                              </button>
-                            );
-                          })}
-                          {!customerOptions.length && !isCustomerOptionsLoading && searchQuery.trim() && (
-                            <p className="px-3 py-4 text-xs text-muted-foreground text-center">Nenhum cliente encontrado.</p>
-                          )}
-                          {isCustomerOptionsLoading && (
-                            <div className="px-3 py-4 text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
-                              <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
-                            </div>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                    {customerEmail && customerCompany && (
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empresa / contato</Label>
+                    <TicketCompanyPicker
+                      value={selectedSystemOption ? `${selectedSystemOption.companyId}::${selectedSystemOption.email}` : ""}
+                      options={systemCompanyOptions}
+                      onChange={(value) => {
+                        const [companyId, email] = value.split("::");
+                        const option = customerOptions.find((item) => item.companyId === companyId && item.email === email);
+                        setSelectedCompanyId(companyId || "");
+                        setCustomerEmail(option?.email || email || "");
+                        setCustomerCompany(option?.companyName || null);
+                      }}
+                      placeholder="Buscar empresa, contato ou e-mail..."
+                      searchPlaceholder="Digite empresa, contato ou e-mail..."
+                      emptyMessage={isCustomerOptionsLoading ? "Buscando..." : "Nenhum cliente encontrado."}
+                      className="bg-background text-xs"
+                    />
+                    <div className="space-y-1">
+                      <Input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Refinar busca por empresa, contato ou e-mail..."
+                        className="h-9 bg-background text-xs"
+                      />
+                      {isCustomerOptionsLoading ? (
+                        <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Buscando contexto do cliente...
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">A busca considera empresa, contato e e-mail.</p>
+                      )}
+                    </div>
+                    {(customerEmail && customerCompany) || selectedCompanyId ? (
                       <Card className="border-primary/20 bg-primary/5">
                         <CardContent className="p-3 text-xs space-y-1">
-                          <p className="font-medium text-foreground">{customerCompany}</p>
-                          <p className="text-muted-foreground">{customerEmail}</p>
+                          <p className="font-medium text-foreground">{customerCompany || "Empresa vinculada ao ticket"}</p>
+                          {customerEmail ? <p className="text-muted-foreground">{customerEmail}</p> : null}
                         </CardContent>
                       </Card>
-                    )}
+                    ) : null}
                   </div>
                 )}
 
@@ -540,16 +489,14 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                 {!isSystemUser && clientCompanies.length > 1 && (
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empresa</Label>
-                    <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-                      <SelectTrigger className="bg-background text-xs">
-                        <SelectValue placeholder="Selecione a empresa" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clientCompanies.map((c) => (
-                          <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <TicketCompanyPicker
+                      value={selectedCompanyId}
+                      options={clientCompanyOptions}
+                      onChange={setSelectedCompanyId}
+                      placeholder="Selecione a empresa"
+                      searchPlaceholder="Buscar empresa vinculada..."
+                      className="bg-background text-xs"
+                    />
                   </div>
                 )}
 
@@ -560,7 +507,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                       <CardContent className="p-3 text-xs">
                         <p className="font-medium flex items-center gap-2">
                           <Building2 className="h-3 w-3 text-muted-foreground" />
-                          {clientCompanies[0].name}
+                          {selectedClientCompany?.name || clientCompanies[0].name}
                         </p>
                       </CardContent>
                     </Card>
@@ -573,7 +520,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   <div className="space-y-1.5">
                     <ChecklistItem done={watchedSubject.trim().length >= 5} label="Assunto preenchido" />
                     <ChecklistItem done={descriptionHtml.replace(/<[^>]*>?/gm, "").trim().length >= 20} label="Descricao detalhada" />
-                    {isSystemUser && <ChecklistItem done={!!customerEmail.trim()} label="Cliente selecionado" />}
+                    {isSystemUser && <ChecklistItem done={!!selectedCompanyId || !!customerEmail.trim()} label="Empresa ou contato selecionado" />}
                     {!isSystemUser && clientCompanies.length > 1 && <ChecklistItem done={!!selectedCompanyId} label="Empresa selecionada" />}
                     <ChecklistItem done={files.length > 0} label="Anexos adicionados" optional />
                   </div>

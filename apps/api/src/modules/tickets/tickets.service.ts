@@ -40,10 +40,10 @@ export class TicketsService {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const ticketNumber = this.generateTicketNumber();
     const accessScope = await this.getTicketAccessScope(requester);
-    
-    let resolvedCompanyId = data.companyId;
+
+    let resolvedCompanyId = data.companyId?.trim() || undefined;
     let resolvedContactId = data.companyContactId;
-    
+
     const isSystemAdmin = accessScope.isGlobal;
 
     if (isSystemAdmin && data.customerEmail) {
@@ -51,16 +51,24 @@ export class TicketsService {
         where: { email: data.customerEmail },
         select: {
           id: true,
+          name: true,
           companyLinks: {
-            where: { isPrimary: true },
+            orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
             select: { companyId: true },
-            take: 1,
           },
         },
       });
       if (contact) {
         resolvedContactId = contact.id;
-        resolvedCompanyId = this.getPrimaryCompanyId(contact) ?? undefined;
+        const linkedCompanyIds = contact.companyLinks.map((link) => link.companyId);
+
+        if (resolvedCompanyId && linkedCompanyIds.length > 0 && !linkedCompanyIds.includes(resolvedCompanyId)) {
+          throw new BadRequestException('A empresa selecionada nao esta vinculada ao contato informado.');
+        }
+
+        if (!resolvedCompanyId) {
+          resolvedCompanyId = this.getPrimaryCompanyId(contact) ?? undefined;
+        }
       }
     } else if (!isSystemAdmin) {
       const selfContact = await this.prisma.companyContact.findFirst({
@@ -88,6 +96,17 @@ export class TicketsService {
           select: { companyId: true },
         });
         resolvedCompanyId = membership?.companyId;
+      }
+    }
+
+    if (isSystemAdmin && resolvedCompanyId) {
+      const companyExists = await this.prisma.company.findFirst({
+        where: { id: resolvedCompanyId, deletedAt: null },
+        select: { id: true },
+      });
+
+      if (!companyExists) {
+        throw new NotFoundException('Empresa nao encontrada para vincular ao ticket.');
       }
     }
 

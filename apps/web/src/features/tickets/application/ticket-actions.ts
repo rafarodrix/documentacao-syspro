@@ -218,6 +218,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     const description = String(formData.get("description") || "").trim();
     const priorityRaw = String(formData.get("priority") || "2 normal");
     const customerEmailInput = String(formData.get("customerEmail") || "").trim().toLowerCase();
+    const companyIdInput = String(formData.get("companyId") || "").trim();
     const source = String(formData.get("source") || "").trim().toLowerCase();
     const chatwootConversationId = String(formData.get("chatwootConversationId") || "").trim();
     const chatwootContactId = String(formData.get("chatwootContactId") || "").trim();
@@ -239,6 +240,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
       priority: parsePriorityFromForm(priorityRaw),
       channel: source === "chatwoot" ? "WHATSAPP" : "PORTAL",
       entryPoint: "INBOUND",
+      companyId: companyIdInput || undefined,
       userSelectedCompanyId,
       customerEmail: customerEmailInput,
       ...(source === "chatwoot" && chatwootConversationId ? { externalThreadId: chatwootConversationId } : {}),

@@ -8,8 +8,10 @@ const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 30;
 
 export type CustomerEmailOption = {
+  companyId: string;
   email: string;
   companyName: string;
+  contactName: string | null;
 };
 
 export function parseCustomerEmailSearchParams(url: string) {
@@ -37,15 +39,49 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
       },
       ...(input.q
         ? {
-            email: {
-              contains: input.q,
-              mode: "insensitive",
-            },
+            OR: [
+              {
+                email: {
+                  contains: input.q,
+                  mode: "insensitive",
+                },
+              },
+              {
+                name: {
+                  contains: input.q,
+                  mode: "insensitive",
+                },
+              },
+              {
+                companyLinks: {
+                  some: {
+                    company: {
+                      deletedAt: null,
+                      OR: [
+                        {
+                          nomeFantasia: {
+                            contains: input.q,
+                            mode: "insensitive",
+                          },
+                        },
+                        {
+                          razaoSocial: {
+                            contains: input.q,
+                            mode: "insensitive",
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
           }
         : {}),
     },
-    orderBy: [{ email: "asc" }],
+    orderBy: [{ name: "asc" }, { email: "asc" }],
     select: {
+      name: true,
       email: true,
       companyLinks: {
         where: {
@@ -54,8 +90,8 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
           },
         },
         orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
-        take: 1,
         select: {
+          companyId: true,
           company: {
             select: {
               nomeFantasia: true,
@@ -71,13 +107,26 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
   const dedup = new Map<string, CustomerEmailOption>();
   for (const row of rows) {
     const email = String(row.email || "").trim().toLowerCase();
-    if (!email || dedup.has(email)) continue;
-    const company = row.companyLinks[0]?.company;
-    dedup.set(email, {
-      email,
-      companyName: company?.nomeFantasia?.trim() || company?.razaoSocial || "",
-    });
-    if (dedup.size >= input.limit) break;
+    if (!email) continue;
+
+    for (const link of row.companyLinks) {
+      const companyName = link.company?.nomeFantasia?.trim() || link.company?.razaoSocial || "";
+      if (!companyName) continue;
+
+      const dedupKey = `${email}:${link.companyId}`;
+      if (dedup.has(dedupKey)) continue;
+
+      dedup.set(dedupKey, {
+        companyId: link.companyId,
+        email,
+        companyName,
+        contactName: row.name?.trim() || null,
+      });
+
+      if (dedup.size >= input.limit) {
+        return Array.from(dedup.values());
+      }
+    }
   }
 
   return Array.from(dedup.values());

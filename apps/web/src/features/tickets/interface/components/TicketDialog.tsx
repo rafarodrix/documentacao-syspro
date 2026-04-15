@@ -9,14 +9,9 @@ import {
   Send,
   FileText,
   AlertCircle,
-  Paperclip,
-  X,
   MessageSquare,
   HelpCircle,
   Info,
-  ChevronsUpDown,
-  Building2,
-  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,9 +21,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { TicketAttachmentField } from "@/features/tickets/interface/components/TicketAttachmentField";
+import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/TicketCompanyPicker";
 
 interface TicketDialogProps {
   isSystemUser?: boolean;
@@ -36,7 +31,6 @@ interface TicketDialogProps {
 
 export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
   const [open, setOpen] = useState(false);
-  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -75,7 +69,6 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     fileInputRef,
     handleFileChange,
     removeFile,
-    triggerFileInput,
     onSubmit,
     customerEmail,
     setCustomerEmail,
@@ -89,6 +82,24 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     selectedCompanyId,
     setSelectedCompanyId,
   } = useTicketDialog(() => setOpen(false), { isSystemUser });
+
+  const selectedSystemOption = customerOptions.find(
+    (option) =>
+      option.companyId === selectedCompanyId &&
+      option.email === customerEmail.trim().toLowerCase(),
+  ) ?? null;
+
+  const systemCompanyOptions: TicketCompanyPickerOption[] = customerOptions.map((option) => ({
+    id: `${option.companyId}::${option.email}`,
+    label: option.companyName,
+    description: option.contactName || option.email,
+    meta: option.contactName ? option.email : null,
+  }));
+
+  const clientCompanyOptions: TicketCompanyPickerOption[] = clientCompanies.map((company) => ({
+    id: company.id,
+    label: company.name,
+  }));
 
   useEffect(() => {
     const shouldOpen = searchParams?.get("novo") === "1";
@@ -256,81 +267,50 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
 
                   {isSystemUser && (
                     <FormItem>
-                      <Label>E-mail do cliente</Label>
-                      <Popover open={customerPickerOpen} onOpenChange={setCustomerPickerOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className={cn("w-full justify-between bg-muted/30 hover:bg-muted/40", !customerEmail && "text-muted-foreground")}
-                          >
-                            <span className="truncate text-left">
-                              {customerEmail ? `${customerEmail} (${customerCompany})` : "Buscar e-mail do cliente..."}
-                            </span>
-                            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="center" className="w-[min(30rem,calc(100vw-2rem))] p-0 max-w-full" onOpenAutoFocus={(e) => e.preventDefault()}>
-                          <div className="border-b p-2.5">
-                            <Input
-                              type="text"
-                              value={searchQuery}
-                              onChange={(event) => setSearchQuery(event.target.value)}
-                              placeholder="Digite nome ou e-mail para buscar..."
-                              className="bg-background"
-                            />
-                          </div>
-                          <div className="max-h-64 overflow-y-auto py-1">
-                            {customerOptions.map((option) => {
-                              const selected = option.email === customerEmail.trim().toLowerCase();
-                              return (
-                                <button
-                                  key={`${option.email}:${option.companyName}`}
-                                  type="button"
-                                  onClick={() => {
-                                    setCustomerEmail(option.email);
-                                    setCustomerCompany(option.companyName);
-                                    setCustomerPickerOpen(false);
-                                  }}
-                                  className={cn("flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60", selected && "bg-primary/5")}
-                                >
-                                  <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                  <span className="min-w-0 flex-1">
-                                    <span className="block truncate font-medium">{option.companyName}</span>
-                                    <span className="block truncate text-xs text-muted-foreground">{option.email}</span>
-                                  </span>
-                                  {selected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                                </button>
-                              );
-                            })}
-                            {!customerOptions.length && !isCustomerOptionsLoading && (
-                              <p className="px-3 py-4 text-xs text-muted-foreground">Nenhum cliente encontrado para o filtro informado.</p>
-                            )}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                      <p className="text-[0.8rem] text-muted-foreground">Informe um e-mail de cliente ativo e vinculado no portal.</p>
-                      {isCustomerOptionsLoading && <p className="text-xs text-muted-foreground">Buscando clientes...</p>}
+                      <Label>Empresa / contato</Label>
+                      <TicketCompanyPicker
+                        value={selectedSystemOption ? `${selectedSystemOption.companyId}::${selectedSystemOption.email}` : ""}
+                        options={systemCompanyOptions}
+                        onChange={(value) => {
+                          const [companyId, email] = value.split("::");
+                          const option = customerOptions.find((item) => item.companyId === companyId && item.email === email);
+                          setSelectedCompanyId(companyId || "");
+                          setCustomerEmail(option?.email || email || "");
+                          setCustomerCompany(option?.companyName || null);
+                        }}
+                        placeholder="Buscar empresa, contato ou e-mail..."
+                        searchPlaceholder="Digite empresa, contato ou e-mail..."
+                        emptyMessage={isCustomerOptionsLoading ? "Buscando..." : "Nenhum cliente encontrado."}
+                        className="bg-muted/30 hover:bg-muted/40"
+                      />
+                      <Input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        placeholder="Refinar busca por empresa, contato ou e-mail..."
+                        className="bg-background"
+                      />
+                      <p className="text-[0.8rem] text-muted-foreground">O ticket pode nascer com empresa definida, mesmo quando o contato atua em mais de uma conta.</p>
+                      {customerCompany || customerEmail ? (
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
+                          <p className="font-medium text-foreground">{customerCompany || "Empresa selecionada"}</p>
+                          {customerEmail ? <p className="text-muted-foreground">{customerEmail}</p> : null}
+                        </div>
+                      ) : null}
                     </FormItem>
                   )}
 
                   {!isSystemUser && clientCompanies.length > 1 && (
                     <FormItem>
                       <Label>Empresa (Vinculo)</Label>
-                      <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-                        <FormControl>
-                          <SelectTrigger className="bg-muted/30">
-                            <SelectValue placeholder="Selecione a empresa" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {clientCompanies.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <TicketCompanyPicker
+                        value={selectedCompanyId}
+                        options={clientCompanyOptions}
+                        onChange={setSelectedCompanyId}
+                        placeholder="Selecione a empresa"
+                        searchPlaceholder="Buscar empresa vinculada..."
+                        className="bg-muted/30"
+                      />
                       <p className="text-[0.8rem] text-muted-foreground">Selecione para qual empresa deseja abrir o chamado.</p>
                     </FormItem>
                   )}
@@ -406,41 +386,14 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     )}
                   />
 
-                  <div className="space-y-3">
-                    <Label>Anexos (Opcional)</Label>
-                    <div
-                      className="border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/30 hover:border-primary/40 transition-all group"
-                      onClick={triggerFileInput}
-                    >
-                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                        <Paperclip className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
-                      </div>
-                      <p className="text-sm font-medium text-foreground">Clique para adicionar arquivos</p>
-                      <p className="text-xs text-muted-foreground mt-1">Imagens ou PDFs (Max. 5MB)</p>
-                      <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*,application/pdf" onChange={handleFileChange} />
-                    </div>
-
-                    {files.length > 0 && (
-                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        {files.map((file, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2.5 rounded-md border bg-background/50 text-sm">
-                            <div className="flex items-center gap-3 truncate">
-                              <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center text-primary">
-                                <FileText className="h-4 w-4" />
-                              </div>
-                              <div className="flex flex-col truncate">
-                                <span className="truncate max-w-[200px] font-medium">{file.name}</span>
-                                <span className="text-[10px] text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</span>
-                              </div>
-                            </div>
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500" onClick={() => removeFile(idx)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <TicketAttachmentField
+                    files={files}
+                    inputRef={fileInputRef}
+                    onChange={handleFileChange}
+                    onRemove={removeFile}
+                    accept="image/*,application/pdf"
+                    compact
+                  />
                 </div>
               </form>
             </Form>
