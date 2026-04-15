@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { json, urlencoded } from 'express';
 import { validateChatwootRuntimeConfigOrThrow } from './modules/integrations/chatwoot/chatwoot-config';
+import { readEvolutionRuntimeConfig } from '@dosc-syspro/config';
 
 function captureRawBody(req: any, _res: any, buffer: Buffer) {
   if (buffer?.length) {
@@ -11,6 +12,16 @@ function captureRawBody(req: any, _res: any, buffer: Buffer) {
 }
 
 async function bootstrap() {
+  const evolutionRuntime = readEvolutionRuntimeConfig();
+  Logger.log(JSON.stringify({
+    stage: 'runtime_config_bootstrap',
+    flow: 'chatwoot_to_evolution',
+    hasEvolutionApiUrl: Boolean(evolutionRuntime.apiUrl),
+    hasEvolutionApiKey: Boolean(evolutionRuntime.apiKey),
+    evolutionInstance: evolutionRuntime.instance || null,
+    hasEvolutionInstanceToken: Boolean(evolutionRuntime.instanceToken),
+  }), 'Bootstrap');
+
   try {
     validateChatwootRuntimeConfigOrThrow();
   } catch (error) {
