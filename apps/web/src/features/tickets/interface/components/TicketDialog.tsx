@@ -81,6 +81,15 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     clientCompanies,
     selectedCompanyId,
     setSelectedCompanyId,
+    ticketSettings,
+    selectedCategory,
+    setSelectedCategory,
+    selectedModule,
+    setSelectedModule,
+    selectedEnvironment,
+    setSelectedEnvironment,
+    selectedTeam,
+    setSelectedTeam,
   } = useTicketDialog(() => setOpen(false), { isSystemUser });
 
   const selectedSystemOption = customerOptions.find(
@@ -317,6 +326,24 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                   {!isSystemUser && clientCompanies.length === 1 && <p className="text-xs text-muted-foreground">Empresa vinculada: {clientCompanies[0].name}</p>}
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormItem>
+                      <Label>Categoria</Label>
+                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <FormControl>
+                          <SelectTrigger className="bg-muted/30">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ticketSettings.categories.map((category) => (
+                            <SelectItem key={category.id} value={category.value}>
+                              {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+
                     <FormField
                       control={form.control}
                       name="type"
@@ -361,6 +388,65 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                       )}
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormItem>
+                      <Label>Modulo</Label>
+                      <Select value={selectedModule} onValueChange={setSelectedModule}>
+                        <FormControl>
+                          <SelectTrigger className="bg-muted/30">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ticketSettings.modules.map((moduleOption) => (
+                            <SelectItem key={moduleOption.id} value={moduleOption.value}>
+                              {moduleOption.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+
+                    <FormItem>
+                      <Label>Ambiente</Label>
+                      <Select value={selectedEnvironment} onValueChange={setSelectedEnvironment}>
+                        <FormControl>
+                          <SelectTrigger className="bg-muted/30">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ticketSettings.environments.map((environment) => (
+                            <SelectItem key={environment.id} value={environment.value}>
+                              {environment.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  </div>
+
+                  {isSystemUser ? (
+                    <FormItem>
+                      <Label>Setor atual</Label>
+                      <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                        <FormControl>
+                          <SelectTrigger className="bg-muted/30">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ticketSettings.teams.map((team) => (
+                            <SelectItem key={team.id} value={team.value}>
+                              {team.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[0.8rem] text-muted-foreground">Define se o chamado nasce com Suporte ou Desenvolvimento como setor operacional.</p>
+                    </FormItem>
+                  ) : null}
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-border/50">

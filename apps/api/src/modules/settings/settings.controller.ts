@@ -17,6 +17,7 @@ import {
   type RemoteModuleSettingsInput,
 } from '@dosc-syspro/contracts/remote';
 import {
+  DEFAULT_TICKET_MODULE_SETTINGS,
   type SettingsContractsAdminView,
   settingsSchema,
   settingsAccessProfileUpsertSchema,
@@ -25,6 +26,10 @@ import {
   type SettingsInput,
   type SettingsOutput,
 } from '@dosc-syspro/contracts/settings';
+import {
+  ticketModuleSettingsSchema,
+  type TicketModuleSettings,
+} from '@dosc-syspro/contracts/ticket';
 import { sefazRoutesSchema, type SefazRoutesInput } from '@dosc-syspro/contracts/sefaz-routes';
 import type { Request } from 'express';
 import { SettingsPermissionsService } from './permissions/permissions.service';
@@ -45,6 +50,7 @@ export class SettingsController {
     rbacMatrixEnabled: true,
   };
   private readonly logger = new Logger(SettingsController.name);
+  private static readonly TICKETS_SETTINGS_KEY = 'tickets.module.settings';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -254,6 +260,50 @@ export class SettingsController {
     } catch {
       return { success: true, data: DEFAULT_REMOTE_MODULE_SETTINGS };
     }
+  }
+
+  @Get('tickets')
+  async getTicketModuleSettings(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.TICKETS_SETTINGS_KEY },
+        select: { value: true },
+      });
+
+      if (!setting?.value) {
+        return { success: true, data: DEFAULT_TICKET_MODULE_SETTINGS };
+      }
+
+      const parsed = JSON.parse(setting.value);
+      const validation = ticketModuleSettingsSchema.safeParse(parsed);
+
+      return {
+        success: true,
+        data: validation.success ? validation.data : DEFAULT_TICKET_MODULE_SETTINGS,
+      };
+    } catch {
+      return { success: true, data: DEFAULT_TICKET_MODULE_SETTINGS };
+    }
+  }
+
+  @Put('tickets')
+  async updateTicketModuleSettings(@Req() req: Request, @Body() body: TicketModuleSettings) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = ticketModuleSettingsSchema.parse(body);
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: SettingsController.TICKETS_SETTINGS_KEY },
+      update: { value: JSON.stringify(parsed) },
+      create: {
+        key: SettingsController.TICKETS_SETTINGS_KEY,
+        value: JSON.stringify(parsed),
+        description: 'Configuracoes globais do modulo de tickets',
+      },
+    });
+
+    return { success: true, message: 'Configuracoes do modulo de tickets salvas.', data: parsed };
   }
 
   @Put('remote/module-settings')

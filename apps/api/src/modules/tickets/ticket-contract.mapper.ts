@@ -24,6 +24,7 @@ type TicketRecordSource = {
   assignedUserId: string | null;
   assignedUser?: { id: string; name: string | null; email: string } | null;
   resolvedByUserId?: string | null;
+  resolvedByUser?: { id: string; name: string | null; email: string } | null;
   ticketNumber: string | null;
   subject: string | null;
   resolutionSummary?: string | null;
@@ -121,6 +122,7 @@ export function serializeTicketRecord(ticket: TicketRecordSource): TicketModuleR
     assignedUserId: ticket.assignedUserId,
     assignedUser: toUser(ticket.assignedUser),
     resolvedByUserId: ticket.resolvedByUserId ?? null,
+    resolvedByUser: toUser(ticket.resolvedByUser),
     ticketNumber: ticket.ticketNumber,
     subject: ticket.subject,
     resolutionSummary: ticket.resolutionSummary ?? null,

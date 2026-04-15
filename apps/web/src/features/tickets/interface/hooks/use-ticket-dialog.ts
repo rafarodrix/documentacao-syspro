@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ticketFormSchema, type TicketFormInput, type TicketFormOutput } from "@dosc-syspro/contracts/ticket";
+import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModuleSettings } from "@dosc-syspro/contracts/ticket";
 import { createTicketAction, getUserLinkedCompaniesAction } from "@/features/tickets/application/ticket-actions";
 import { toast } from "sonner";
 
@@ -33,6 +34,11 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const [customerOptions, setCustomerOptions] = useState<CustomerEmailOption[]>([]);
     const [clientCompanies, setClientCompanies] = useState<CompanyOption[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+    const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
+    const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
+    const [selectedModule, setSelectedModule] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
+    const [selectedEnvironment, setSelectedEnvironment] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.defaultEnvironment);
+    const [selectedTeam, setSelectedTeam] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam);
     const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -89,6 +95,30 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     };
 
     const triggerFileInput = () => fileInputRef.current?.click();
+
+    useEffect(() => {
+        let active = true;
+
+        fetch("/api/platform/settings/tickets", { method: "GET", cache: "no-store" })
+            .then(async (response) => {
+                const json = (await response.json()) as { success?: boolean; data?: TicketModuleSettings };
+                if (!active || !json.success || !json.data) return;
+
+                setTicketSettings(json.data);
+                setSelectedCategory(json.data.categories[0]?.value || "incident");
+                setSelectedModule(json.data.modules[0]?.value || "");
+                setSelectedEnvironment(json.data.defaultEnvironment);
+                setSelectedTeam(json.data.defaultTeam);
+            })
+            .catch((error) => {
+                logError("ticket_settings.fetch_failed", error);
+            });
+
+        return () => {
+            active = false;
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (!options.isSystemUser) {
@@ -173,6 +203,10 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 } else if (selectedCompanyId) {
                     formData.append("userSelectedCompanyId", selectedCompanyId);
                 }
+                if (selectedCategory) formData.append("category", selectedCategory);
+                if (selectedModule) formData.append("module", selectedModule);
+                if (selectedEnvironment) formData.append("environment", selectedEnvironment);
+                if (selectedTeam) formData.append("team", selectedTeam);
                 const source = searchParams?.get("source") || "";
                 const chatwootConversationId = searchParams?.get("chatwootConversationId") || "";
                 const chatwootContactId = searchParams?.get("chatwootContactId") || "";
@@ -240,5 +274,14 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         clientCompanies,
         selectedCompanyId,
         setSelectedCompanyId,
+        ticketSettings,
+        selectedCategory,
+        setSelectedCategory,
+        selectedModule,
+        setSelectedModule,
+        selectedEnvironment,
+        setSelectedEnvironment,
+        selectedTeam,
+        setSelectedTeam,
     };
 }

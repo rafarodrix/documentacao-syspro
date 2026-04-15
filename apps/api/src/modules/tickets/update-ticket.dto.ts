@@ -20,4 +20,12 @@ export class UpdateTicketDto implements TicketModuleUpdateRequest {
   releaseModule?: string;
 
   publishToReleases?: boolean;
+
+  category?: string;
+
+  module?: string;
+
+  environment?: string;
+
+  team?: string;
 }

@@ -33,4 +33,12 @@ export class CreateTicketDto implements TicketModuleCreateRequest {
   userSelectedCompanyId?: string;
 
   customerEmail?: string;
+
+  category?: string;
+
+  module?: string;
+
+  environment?: string;
+
+  team?: string;
 }

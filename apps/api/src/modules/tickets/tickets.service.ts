@@ -1,10 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
+  TicketModuleSettings,
   TicketModuleCreateRequest,
   TicketModuleEntryPoint,
   TicketModuleListQuery,
   TicketModuleUpdateRequest,
 } from '@dosc-syspro/contracts/ticket';
+import { DEFAULT_TICKET_MODULE_SETTINGS, ticketModuleSettingsSchema } from '@dosc-syspro/contracts/ticket';
 import {
   ConversationAssignmentStatus as TicketAssignmentStatus,
   ConversationAssignmentType as TicketAssignmentType,
@@ -40,6 +42,7 @@ export class TicketsService {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const ticketNumber = this.generateTicketNumber();
     const accessScope = await this.getTicketAccessScope(requester);
+    const settings = await this.getTicketModuleSettings();
 
     let resolvedCompanyId = data.companyId?.trim() || undefined;
     let resolvedContactId = data.companyContactId;
@@ -120,6 +123,31 @@ export class TicketsService {
       }
     }
 
+    const normalizedCategory = data.category?.trim() || null;
+    const normalizedModule = data.module?.trim() || null;
+    const normalizedEnvironment = data.environment?.trim() || settings.defaultEnvironment || null;
+    const normalizedTeam = this.resolveTicketTeam(data.team, requester.role, settings, normalizedCategory);
+    const openedByName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
+    const assignedUserId = settings.autoAssignToCreator && isSystemAdmin ? requester.userId : null;
+    const metadata = {
+      ...(data.metadata && typeof data.metadata === 'object' ? data.metadata : {}),
+      category: normalizedCategory,
+      module: normalizedModule,
+      environment: normalizedEnvironment,
+      currentTeam: normalizedTeam,
+      currentOwnerUserId: assignedUserId,
+      currentOwnerName: assignedUserId ? openedByName : null,
+      currentOwnerRole: assignedUserId ? requester.role : null,
+      openedByUserId: requester.userId,
+      openedByName,
+      openedByEmail: requester.email,
+      openedByRole: requester.role,
+      supportOwnerUserId: normalizedTeam === 'SUPORTE' && assignedUserId ? requester.userId : null,
+      supportOwnerName: normalizedTeam === 'SUPORTE' && assignedUserId ? openedByName : null,
+      developmentOwnerUserId: normalizedTeam === 'DESENVOLVIMENTO' && assignedUserId ? requester.userId : null,
+      developmentOwnerName: normalizedTeam === 'DESENVOLVIMENTO' && assignedUserId ? openedByName : null,
+    } as Prisma.InputJsonValue;
+
     await this.prisma.conversation.create({
       data: {
         channel: data.channel ?? TicketChannel.PORTAL,
@@ -130,12 +158,12 @@ export class TicketsService {
         ticketNumber,
         companyId: resolvedCompanyId,
         companyContactId: resolvedContactId,
-        assignedUserId: requester.userId,
+        assignedUserId,
         externalThreadId: data.externalThreadId?.trim() || null,
         contactPhoneSnapshot: data.contactPhoneSnapshot?.trim() || null,
         contactWhatsappSnapshot: data.contactWhatsappSnapshot?.trim() || null,
         contactNameSnapshot: data.contactNameSnapshot?.trim() || null,
-        metadata: data.metadata as Prisma.InputJsonValue | undefined,
+        metadata,
         messages: {
           create: {
             direction: TicketMessageDirection.INTERNAL,
@@ -330,10 +358,11 @@ export class TicketsService {
   async updateStatus(id: string, input: TicketModuleUpdateRequest, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
+    const settings = await this.getTicketModuleSettings();
 
     const exists = await this.prisma.conversation.findUnique({
       where: { id },
-      select: { id: true, status: true, companyId: true },
+      select: { id: true, status: true, companyId: true, metadata: true },
     });
     if (!exists) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(exists.companyId, accessScope);
@@ -366,21 +395,80 @@ export class TicketsService {
 
     await this.prisma.$transaction(async (tx) => {
       const data: Record<string, unknown> = {};
+      const currentMetadata =
+        exists.metadata && typeof exists.metadata === 'object' && !Array.isArray(exists.metadata)
+          ? { ...(exists.metadata as Record<string, unknown>) }
+          : {};
+
+      if (input.team !== undefined) {
+        currentMetadata.currentTeam = this.resolveTicketTeam(input.team, requester.role, settings);
+      }
+      if (input.category !== undefined) currentMetadata.category = input.category?.trim() || null;
+      if (input.module !== undefined) currentMetadata.module = input.module?.trim() || null;
+      if (input.environment !== undefined) currentMetadata.environment = input.environment?.trim() || null;
 
       if (input.status !== undefined) {
         data.status = input.status;
         data.closedAt =
           input.status === TicketStatus.RESOLVED || input.status === TicketStatus.ARCHIVED ? new Date() : null;
         data.resolvedByUserId = input.status === TicketStatus.RESOLVED ? requester.userId : null;
+        if (input.status === TicketStatus.RESOLVED) {
+          const resolver = await tx.user.findUnique({
+            where: { id: requester.userId },
+            select: { name: true, email: true },
+          });
+          const resolverName = resolver?.name?.trim() || resolver?.email || requester.email;
+          currentMetadata.resolvedByName = resolverName;
+          currentMetadata.resolvedByRole = requester.role;
+          if (requester.role === Role.DEVELOPER) {
+            currentMetadata.developmentOwnerUserId = requester.userId;
+            currentMetadata.developmentOwnerName = resolverName;
+            currentMetadata.currentTeam = 'DESENVOLVIMENTO';
+          } else {
+            currentMetadata.supportOwnerUserId = requester.userId;
+            currentMetadata.supportOwnerName = resolverName;
+            currentMetadata.currentTeam = 'SUPORTE';
+          }
+        }
       }
 
       if (input.priority !== undefined) data.priority = input.priority;
-      if (input.assignedUserId !== undefined) data.assignedUserId = input.assignedUserId;
+      if (input.assignedUserId !== undefined) {
+        data.assignedUserId = input.assignedUserId;
+        if (input.assignedUserId) {
+          const assignee = await tx.user.findUnique({
+            where: { id: input.assignedUserId },
+            select: { id: true, name: true, email: true, role: true },
+          });
+
+          if (assignee) {
+            const assigneeName = assignee.name?.trim() || assignee.email;
+            currentMetadata.currentOwnerUserId = assignee.id;
+            currentMetadata.currentOwnerName = assigneeName;
+            currentMetadata.currentOwnerRole = assignee.role;
+            const targetTeam =
+              input.team !== undefined
+                ? this.resolveTicketTeam(input.team, requester.role, settings)
+                : assignee.role === Role.DEVELOPER
+                  ? 'DESENVOLVIMENTO'
+                  : 'SUPORTE';
+            currentMetadata.currentTeam = targetTeam;
+            if (targetTeam === 'DESENVOLVIMENTO') {
+              currentMetadata.developmentOwnerUserId = assignee.id;
+              currentMetadata.developmentOwnerName = assigneeName;
+            } else {
+              currentMetadata.supportOwnerUserId = assignee.id;
+              currentMetadata.supportOwnerName = assigneeName;
+            }
+          }
+        }
+      }
       if (input.resolutionSummary !== undefined) data.resolutionSummary = resolutionSummary || null;
       if (input.resolutionVideoUrl !== undefined) data.resolutionVideoUrl = resolutionVideoUrl || null;
       if (input.releaseType !== undefined) data.releaseType = releaseType || null;
       if (input.releaseModule !== undefined) data.releaseModule = releaseModule || null;
       if (input.publishToReleases !== undefined) data.publishToReleases = Boolean(publishToReleases);
+      data.metadata = currentMetadata as Prisma.InputJsonValue;
 
       await tx.conversation.update({
         where: { id },
@@ -408,6 +496,57 @@ export class TicketsService {
     const timestamp = Date.now().toString().slice(-8);
     const random = Math.floor(Math.random() * 900 + 100);
     return `TK-${timestamp}${random}`;
+  }
+
+  private async getTicketModuleSettings(): Promise<TicketModuleSettings> {
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'tickets.module.settings' },
+        select: { value: true },
+      });
+
+      if (!setting?.value) {
+        return DEFAULT_TICKET_MODULE_SETTINGS;
+      }
+
+      const parsed = JSON.parse(setting.value);
+      const validation = ticketModuleSettingsSchema.safeParse(parsed);
+      return validation.success ? validation.data : DEFAULT_TICKET_MODULE_SETTINGS;
+    } catch {
+      return DEFAULT_TICKET_MODULE_SETTINGS;
+    }
+  }
+
+  private resolveTicketTeam(
+    requestedTeam: string | undefined,
+    role: Role,
+    settings: TicketModuleSettings,
+    category?: string | null,
+  ): 'SUPORTE' | 'DESENVOLVIMENTO' {
+    const normalizedRequestedTeam = requestedTeam?.trim().toUpperCase();
+    if (normalizedRequestedTeam === 'SUPORTE' || normalizedRequestedTeam === 'DESENVOLVIMENTO') {
+      return normalizedRequestedTeam;
+    }
+
+    const categoryDefaultTeam = settings.categories.find((item) => item.value === category)?.defaultTeam;
+    if (categoryDefaultTeam === 'SUPORTE' || categoryDefaultTeam === 'DESENVOLVIMENTO') {
+      return categoryDefaultTeam;
+    }
+
+    if (role === Role.DEVELOPER) {
+      return 'DESENVOLVIMENTO';
+    }
+
+    return settings.defaultTeam === 'DESENVOLVIMENTO' ? 'DESENVOLVIMENTO' : 'SUPORTE';
+  }
+
+  private async resolveRequesterDisplayName(userId: string, email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+
+    return user?.name?.trim() || user?.email || email;
   }
 
   private getPrimaryCompanyId(contact: { companyLinks?: Array<{ companyId: string }> }) {

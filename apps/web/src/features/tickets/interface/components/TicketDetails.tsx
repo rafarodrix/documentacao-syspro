@@ -177,7 +177,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                         />
                         <SummaryPill
                             label="Responsavel"
-                            value={ticket.ownerId ? `Owner #${ticket.ownerId}` : "Sem dono"}
+                            value={ticket.ownerName || (ticket.ownerId ? `Owner #${ticket.ownerId}` : "Sem dono")}
                             icon={UserRound}
                             tone={ticket.ownerId ? "ok" : "warning"}
                         />
@@ -219,10 +219,34 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                                 <SidebarField label="Responsavel" value={
                                     <span className="text-sm flex items-center gap-1.5">
                                         <UserRound className="h-3 w-3 text-muted-foreground" />
-                                        {ticket.ownerId ? `#${ticket.ownerId}` : "Nao atribuido"}
+                                        {ticket.ownerName || (ticket.ownerId ? `#${ticket.ownerId}` : "Nao atribuido")}
                                     </span>
                                 } />
+                                {ticket.operations?.currentTeam && (
+                                    <SidebarField label="Setor" value={<span className="text-xs">{ticket.operations.currentTeam}</span>} />
+                                )}
+                                {ticket.operations?.module && (
+                                    <SidebarField label="Modulo" value={<span className="text-xs">{ticket.operations.module}</span>} />
+                                )}
+                                {ticket.operations?.environment && (
+                                    <SidebarField label="Ambiente" value={<span className="text-xs">{ticket.operations.environment}</span>} />
+                                )}
+                                {ticket.operations?.category && (
+                                    <SidebarField label="Categoria" value={<span className="text-xs">{ticket.operations.category}</span>} />
+                                )}
                                 <Separator className="my-2" />
+                                {ticket.operations?.openedByName && (
+                                    <SidebarField label="Operador" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />
+                                )}
+                                {ticket.operations?.supportOwnerName && (
+                                    <SidebarField label="Resp. suporte" value={<span className="text-xs">{ticket.operations.supportOwnerName}</span>} />
+                                )}
+                                {ticket.operations?.developmentOwnerName && (
+                                    <SidebarField label="Resp. desenvolvimento" value={<span className="text-xs">{ticket.operations.developmentOwnerName}</span>} />
+                                )}
+                                {ticket.resolvedByName && (
+                                    <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />
+                                )}
                                 <SidebarField label="Criado em" value={<span className="text-xs font-mono text-muted-foreground">{ticket.createdAt}</span>} />
                                 {ticket.updatedAt && (
                                     <SidebarField label="Atualizado" value={<span className="text-xs font-mono text-muted-foreground">{new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}</span>} />

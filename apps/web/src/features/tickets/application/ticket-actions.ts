@@ -115,6 +115,13 @@ function readStringMetadata(metadata: Record<string, unknown> | null | undefined
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function readNullableMetadata(metadata: Record<string, unknown> | null | undefined, key: string): string | null {
+  const value = metadata?.[key];
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized ? normalized : null;
+}
+
 function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
   const companyName = ticket.company?.nomeFantasia || ticket.company?.razaoSocial || null;
   const customerName =
@@ -219,6 +226,10 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     const priorityRaw = String(formData.get("priority") || "2 normal");
     const customerEmailInput = String(formData.get("customerEmail") || "").trim().toLowerCase();
     const companyIdInput = String(formData.get("companyId") || "").trim();
+    const categoryInput = String(formData.get("category") || "").trim();
+    const moduleInput = String(formData.get("module") || "").trim();
+    const environmentInput = String(formData.get("environment") || "").trim();
+    const teamInput = String(formData.get("team") || "").trim().toUpperCase();
     const source = String(formData.get("source") || "").trim().toLowerCase();
     const chatwootConversationId = String(formData.get("chatwootConversationId") || "").trim();
     const chatwootContactId = String(formData.get("chatwootContactId") || "").trim();
@@ -243,6 +254,10 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
       companyId: companyIdInput || undefined,
       userSelectedCompanyId,
       customerEmail: customerEmailInput,
+      category: categoryInput || undefined,
+      module: moduleInput || undefined,
+      environment: environmentInput || undefined,
+      team: teamInput || undefined,
       ...(source === "chatwoot" && chatwootConversationId ? { externalThreadId: chatwootConversationId } : {}),
       ...(customerPhoneInput ? { contactPhoneSnapshot: customerPhoneInput } : {}),
       ...(customerWhatsappInput || customerPhoneInput
@@ -298,9 +313,11 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
         number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
         priority: mapPriorityToLevel(ticket.priority),
         ownerId: ticket.assignedUserId,
+        ownerName: ticket.assignedUser?.name || ticket.assignedUser?.email || readStringMetadata(ticket.metadata, "currentOwnerName"),
         updatedAt: ticket.updatedAt,
         firstResponseAt: null,
         resolvedAt: ticket.closedAt,
+        resolvedByName: ticket.resolvedByUser?.name || ticket.resolvedByUser?.email || readStringMetadata(ticket.metadata, "resolvedByName"),
         resolutionSummary: ticket.resolutionSummary || null,
         resolutionVideoUrl: ticket.resolutionVideoUrl || null,
         releaseType: ticket.releaseType || null,
@@ -319,6 +336,17 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
           chatwootContactId: readStringMetadata(ticket.metadata, "chatwootContactId"),
           chatwootAccountId: readStringMetadata(ticket.metadata, "chatwootAccountId"),
           chatwootConversationUrl: readStringMetadata(ticket.metadata, "chatwootConversationUrl"),
+        },
+        operations: {
+          openedByName: readNullableMetadata(ticket.metadata, "openedByName"),
+          openedByEmail: readNullableMetadata(ticket.metadata, "openedByEmail"),
+          openedByRole: readNullableMetadata(ticket.metadata, "openedByRole"),
+          currentTeam: readNullableMetadata(ticket.metadata, "currentTeam"),
+          category: readNullableMetadata(ticket.metadata, "category"),
+          module: readNullableMetadata(ticket.metadata, "module"),
+          environment: readNullableMetadata(ticket.metadata, "environment"),
+          supportOwnerName: readNullableMetadata(ticket.metadata, "supportOwnerName"),
+          developmentOwnerName: readNullableMetadata(ticket.metadata, "developmentOwnerName"),
         },
         createdAt: new Date(ticket.createdAt).toLocaleDateString("pt-BR"),
       },

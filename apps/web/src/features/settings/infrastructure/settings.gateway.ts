@@ -9,6 +9,12 @@ import {
   type RemoteModuleSettingsResponse,
 } from "@dosc-syspro/contracts/remote";
 import {
+  ticketModuleSettingsResponseSchema,
+  ticketModuleSettingsSchema,
+  type TicketModuleSettings,
+  type TicketModuleSettingsResponse,
+} from "@dosc-syspro/contracts/ticket";
+import {
   settingsAuthorizationContextResponseSchema,
   settingsContractsAdminViewResponseSchema,
   settingsRemoteAdminViewResponseSchema,
@@ -112,5 +118,24 @@ export async function updateRemoteModuleSettingsGateway(
 export async function fetchPlatformNotificationsGateway(): Promise<PlatformNotificationsResponse> {
   return platformNotificationsResponseSchema.parse(
     await callBackendApi<PlatformNotificationsResponse>("settings", "/platform-notifications"),
+  );
+}
+
+export async function fetchTicketModuleSettingsGateway(): Promise<TicketModuleSettingsResponse> {
+  return ticketModuleSettingsResponseSchema.parse(
+    await callBackendApi<TicketModuleSettingsResponse>("settings", "/tickets"),
+  );
+}
+
+export async function updateTicketModuleSettingsGateway(
+  input: TicketModuleSettings,
+): Promise<TicketModuleSettingsResponse> {
+  const payload = ticketModuleSettingsSchema.parse(input);
+  return ticketModuleSettingsResponseSchema.parse(
+    await callBackendApi<TicketModuleSettingsResponse>("settings", "/tickets", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
   );
 }

@@ -1,319 +1,380 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { AlertCircle, Clock, Loader2, Plus, Save, Settings2, Tag, Trash2, Workflow } from "lucide-react";
 import {
-    AlertCircle,
-    Check,
-    Clock,
-    Loader2,
-    Palette,
-    Plus,
-    Save,
-    Settings2,
-    Tag,
-    Trash2,
-    Zap,
-} from "lucide-react";
+  DEFAULT_TICKET_MODULE_SETTINGS,
+  type TicketModuleSettings,
+  type TicketModuleSettingsOption,
+  type TicketModuleSettingsPriority,
+} from "@dosc-syspro/contracts/ticket";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-type TicketCategory = {
-    id: string;
-    label: string;
-    value: string;
-    icon: string;
-    color: string;
-};
+function createOption(prefix: string): TicketModuleSettingsOption {
+  const id = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  return { id, label: "", value: id };
+}
 
-type TicketPriorityConfig = {
-    id: string;
-    label: string;
-    value: string;
-    color: string;
-    slaHours: number;
-};
-
-type TicketSettingsState = {
-    categories: TicketCategory[];
-    priorities: TicketPriorityConfig[];
-    autoAssignToCreator: boolean;
-    autoResponseEnabled: boolean;
-    autoResponseMessage: string;
-    defaultPriority: string;
-};
-
-// ─── Defaults ────────────────────────────────────────────────────────────────
-const DEFAULT_CATEGORIES: TicketCategory[] = [
-    { id: "1", label: "Incidente / Erro", value: "incident", icon: "🔴", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-    { id: "2", label: "Duvida", value: "question", icon: "🔵", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-    { id: "3", label: "Solicitacao", value: "request", icon: "🟢", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-];
-
-const DEFAULT_PRIORITIES: TicketPriorityConfig[] = [
-    { id: "1", label: "Baixa", value: "1 low", color: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400", slaHours: 48 },
-    { id: "2", label: "Normal", value: "2 normal", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", slaHours: 24 },
-    { id: "3", label: "Alta (Urgente)", value: "3 high", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", slaHours: 4 },
-];
-
-const DEFAULT_AUTO_RESPONSE = "Olá! Recebemos sua solicitacao e nossa equipe ja esta ciente. Retornaremos em breve com uma analise detalhada.";
-
-// ─── Component ───────────────────────────────────────────────────────────────
 export function TicketSettingsTab() {
-    const [isSaving, setIsSaving] = useState(false);
-    const [settings, setSettings] = useState<TicketSettingsState>({
-        categories: DEFAULT_CATEGORIES,
-        priorities: DEFAULT_PRIORITIES,
-        autoAssignToCreator: true,
-        autoResponseEnabled: false,
-        autoResponseMessage: DEFAULT_AUTO_RESPONSE,
-        defaultPriority: "2 normal",
-    });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [settings, setSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
 
-    // ── Category CRUD ────────────────────────────────────────────────────
-    const addCategory = () => {
-        const newId = String(Date.now());
-        setSettings((prev) => ({
-            ...prev,
-            categories: [
-                ...prev.categories,
-                { id: newId, label: "", value: "", icon: "⚪", color: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400" },
-            ],
-        }));
-    };
+  useEffect(() => {
+    let active = true;
 
-    const updateCategory = (id: string, field: keyof TicketCategory, value: string) => {
-        setSettings((prev) => ({
-            ...prev,
-            categories: prev.categories.map((c) =>
-                c.id === id ? { ...c, [field]: value, ...(field === "label" ? { value: value.toLowerCase().replace(/\s+/g, "_").normalize("NFD").replace(/[\u0300-\u036f]/g, "") } : {}) } : c,
-            ),
-        }));
-    };
-
-    const removeCategory = (id: string) => {
-        if (settings.categories.length <= 1) {
-            toast.error("E necessario manter ao menos uma categoria.");
-            return;
+    fetch("/api/platform/settings/tickets", { method: "GET", cache: "no-store" })
+      .then(async (response) => {
+        const json = (await response.json()) as { success?: boolean; data?: TicketModuleSettings };
+        if (!active) return;
+        if (json.success && json.data) {
+          setSettings(json.data);
         }
-        setSettings((prev) => ({
-            ...prev,
-            categories: prev.categories.filter((c) => c.id !== id),
-        }));
-    };
+      })
+      .catch((error) => {
+        console.error("Erro ao carregar configuracoes de tickets:", error);
+        toast.error("Nao foi possivel carregar as configuracoes de tickets.");
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
 
-    // ── Priority update ──────────────────────────────────────────────────
-    const updatePriority = (id: string, field: keyof TicketPriorityConfig, value: string | number) => {
-        setSettings((prev) => ({
-            ...prev,
-            priorities: prev.priorities.map((p) => (p.id === id ? { ...p, [field]: value } : p)),
-        }));
+    return () => {
+      active = false;
     };
+  }, []);
 
-    // ── Save (stub for future backend) ───────────────────────────────────
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
-            // TODO: POST /api/settings/tickets with settings payload
-            await new Promise((r) => setTimeout(r, 800));
-            toast.success("Configuracoes de tickets salvas com sucesso.");
-        } catch {
-            toast.error("Erro ao salvar configuracoes.");
-        } finally {
-            setIsSaving(false);
-        }
-    };
+  const updateOptionList = (
+    key: "categories" | "teams" | "modules" | "environments",
+    id: string,
+    field: keyof TicketModuleSettingsOption,
+    value: string,
+  ) => {
+    setSettings((prev) => ({
+      ...prev,
+      [key]: prev[key].map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [field]: value,
+              ...(field === "label"
+                ? {
+                    value:
+                      key === "teams"
+                        ? value.trim().toUpperCase().replace(/\s+/g, "_")
+                        : value
+                            .trim()
+                            .toLowerCase()
+                            .replace(/\s+/g, "_")
+                            .normalize("NFD")
+                            .replace(/[\u0300-\u036f]/g, ""),
+                  }
+                : {}),
+            }
+          : item,
+      ),
+    }));
+  };
 
+  const removeOption = (key: "categories" | "teams" | "modules" | "environments", id: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      [key]: prev[key].length > 1 ? prev[key].filter((item) => item.id !== id) : prev[key],
+    }));
+  };
+
+  const updatePriority = (id: string, field: keyof TicketModuleSettingsPriority, value: string | number) => {
+    setSettings((prev) => ({
+      ...prev,
+      priorities: prev.priorities.map((priority) => (priority.id === id ? { ...priority, [field]: value } : priority)),
+    }));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/platform/settings/tickets", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const json = (await response.json()) as { success?: boolean; error?: string; message?: string; data?: TicketModuleSettings };
+
+      if (!response.ok || !json.success) {
+        toast.error(json.error || "Erro ao salvar configuracoes.");
+        return;
+      }
+
+      if (json.data) {
+        setSettings(json.data);
+      }
+      toast.success(json.message || "Configuracoes do modulo de tickets salvas.");
+    } catch (error) {
+      console.error("Erro ao salvar configuracoes de tickets:", error);
+      toast.error("Erro ao salvar configuracoes.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
     return (
-        <div className="space-y-6 max-w-4xl">
-            {/* ── Info banner ──────────────────────────────────────────── */}
-            <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <AlertCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <div className="text-sm text-muted-foreground">
-                    <p className="font-medium text-foreground">Configuracoes do modulo de Tickets</p>
-                    <p className="mt-1">Configure categorias, prioridades, SLA e comportamentos automaticos para os chamados da plataforma. As alteracoes afetam todos os novos tickets.</p>
-                </div>
-            </div>
-
-            {/* ── Categories ──────────────────────────────────────────── */}
-            <Card className="border-border/60">
-                <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <Tag className="h-4 w-4 text-primary/70" />
-                            Categorias de Ticket
-                        </CardTitle>
-                        <Button variant="outline" size="sm" className="gap-2 h-8" onClick={addCategory}>
-                            <Plus className="h-3.5 w-3.5" />
-                            Nova categoria
-                        </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Defina os tipos de ticket que os usuarios podem selecionar ao abrir um chamado.</p>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                    {settings.categories.map((cat) => (
-                        <div
-                            key={cat.id}
-                            className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/10 hover:bg-muted/20 transition-colors"
-                        >
-                            <Input
-                                value={cat.icon}
-                                onChange={(e) => updateCategory(cat.id, "icon", e.target.value)}
-                                className="w-14 h-9 text-center text-lg"
-                                maxLength={2}
-                            />
-                            <Input
-                                value={cat.label}
-                                onChange={(e) => updateCategory(cat.id, "label", e.target.value)}
-                                placeholder="Nome da categoria"
-                                className="flex-1 h-9 text-sm"
-                            />
-                            <Badge variant="outline" className={cn("text-[10px] px-2 shrink-0", cat.color)}>
-                                {cat.value || "slug"}
-                            </Badge>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-red-500 shrink-0"
-                                onClick={() => removeCategory(cat.id)}
-                            >
-                                <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-
-            {/* ── Priorities & SLA ────────────────────────────────────── */}
-            <Card className="border-border/60">
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Palette className="h-4 w-4 text-primary/70" />
-                        Prioridades e SLA
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">Configure os niveis de prioridade e o tempo de SLA (tempo maximo de resolucao) para cada nivel.</p>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                    {settings.priorities.map((priority) => (
-                        <div
-                            key={priority.id}
-                            className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/10"
-                        >
-                            <Badge variant="outline" className={cn("text-[10px] px-3 py-1 min-w-20 justify-center shrink-0", priority.color)}>
-                                {priority.label}
-                            </Badge>
-                            <div className="flex-1">
-                                <Input
-                                    value={priority.label}
-                                    onChange={(e) => updatePriority(priority.id, "label", e.target.value)}
-                                    className="h-9 text-sm"
-                                    placeholder="Nome da prioridade"
-                                />
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                                <Input
-                                    type="number"
-                                    min={1}
-                                    max={720}
-                                    value={priority.slaHours}
-                                    onChange={(e) => updatePriority(priority.id, "slaHours", Number(e.target.value))}
-                                    className="w-20 h-9 text-sm text-center"
-                                />
-                                <span className="text-xs text-muted-foreground">horas</span>
-                            </div>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-
-            {/* ── Automations ─────────────────────────────────────────── */}
-            <Card className="border-border/60">
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-amber-500" />
-                        Automacoes
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">Configure comportamentos automaticos ao criar ou atualizar tickets.</p>
-                </CardHeader>
-                <CardContent className="space-y-5 pt-0">
-                    {/* Auto-assign */}
-                    <div className="flex items-center justify-between gap-4 p-3 rounded-lg border border-border/50 bg-muted/10">
-                        <div>
-                            <p className="text-sm font-medium text-foreground">Auto-atribuicao</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">Atribuir automaticamente o ticket ao usuario que o criou.</p>
-                        </div>
-                        <Switch
-                            checked={settings.autoAssignToCreator}
-                            onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, autoAssignToCreator: checked }))}
-                        />
-                    </div>
-
-                    {/* Auto-response */}
-                    <div className="space-y-3 p-3 rounded-lg border border-border/50 bg-muted/10">
-                        <div className="flex items-center justify-between gap-4">
-                            <div>
-                                <p className="text-sm font-medium text-foreground">Resposta automatica</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">Enviar uma mensagem automatica ao abrir o chamado.</p>
-                            </div>
-                            <Switch
-                                checked={settings.autoResponseEnabled}
-                                onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, autoResponseEnabled: checked }))}
-                            />
-                        </div>
-
-                        {settings.autoResponseEnabled && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mensagem</Label>
-                                <Textarea
-                                    rows={3}
-                                    value={settings.autoResponseMessage}
-                                    onChange={(e) => setSettings((prev) => ({ ...prev, autoResponseMessage: e.target.value }))}
-                                    placeholder="Mensagem de resposta automatica..."
-                                    className="mt-1.5 text-sm"
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Default priority */}
-                    <div className="flex items-center justify-between gap-4 p-3 rounded-lg border border-border/50 bg-muted/10">
-                        <div>
-                            <p className="text-sm font-medium text-foreground">Prioridade padrao</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">Prioridade atribuida automaticamente a novos tickets.</p>
-                        </div>
-                        <select
-                            value={settings.defaultPriority}
-                            onChange={(e) => setSettings((prev) => ({ ...prev, defaultPriority: e.target.value }))}
-                            className="flex h-9 rounded-md border border-input bg-background px-3 text-sm"
-                        >
-                            {settings.priorities.map((p) => (
-                                <option key={p.id} value={p.value}>{p.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* ── Save button ─────────────────────────────────────────── */}
-            <div className="flex justify-end pt-2">
-                <Button onClick={handleSave} disabled={isSaving} className="gap-2 min-w-[180px]">
-                    {isSaving ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <Save className="h-4 w-4" />
-                    )}
-                    Salvar configuracoes
-                </Button>
-            </div>
-        </div>
+      <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-card p-4 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Carregando configuracoes de tickets...
+      </div>
     );
+  }
+
+  return (
+    <div className="max-w-5xl space-y-6">
+      <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <div className="text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">Configuracoes operacionais do modulo de tickets</p>
+          <p className="mt-1">Centralize categorias, times, modulos, ambientes e regras padrao para que os tickets nascam com contexto operacional consistente.</p>
+        </div>
+      </div>
+
+      <Card className="border-border/60">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Settings2 className="h-4 w-4 text-primary/70" />
+            Workflow Padrao
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 pt-0 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Setor padrao</Label>
+            <Select value={settings.defaultTeam} onValueChange={(value) => setSettings((prev) => ({ ...prev, defaultTeam: value as "SUPORTE" | "DESENVOLVIMENTO" }))}>
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {settings.teams.map((team) => (
+                  <SelectItem key={team.id} value={team.value}>{team.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Ambiente padrao</Label>
+            <Select value={settings.defaultEnvironment} onValueChange={(value) => setSettings((prev) => ({ ...prev, defaultEnvironment: value }))}>
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {settings.environments.map((environment) => (
+                  <SelectItem key={environment.id} value={environment.value}>{environment.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Prioridade padrao</Label>
+            <Select value={settings.defaultPriority} onValueChange={(value) => setSettings((prev) => ({ ...prev, defaultPriority: value }))}>
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {settings.priorities.map((priority) => (
+                  <SelectItem key={priority.id} value={priority.value}>{priority.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
+            <p className="text-sm font-medium text-foreground">Auto-atribuicao</p>
+            <div className="mt-2 flex items-center justify-between gap-4">
+              <p className="text-xs text-muted-foreground">Quando habilitado, tickets internos nascem atribuídos ao operador que abriu.</p>
+              <Switch
+                checked={settings.autoAssignToCreator}
+                onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, autoAssignToCreator: checked }))}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <SettingsListCard
+        title="Categorias"
+        icon={Tag}
+        description="Classificacoes funcionais do ticket. Cada categoria pode sugerir um setor padrao."
+        onAdd={() => setSettings((prev) => ({ ...prev, categories: [...prev.categories, createOption("category")] }))}
+      >
+        {settings.categories.map((category) => (
+          <div key={category.id} className="grid gap-3 rounded-lg border border-border/50 bg-muted/10 p-3 md:grid-cols-[1.1fr_1fr_180px_120px_40px]">
+            <Input value={category.label} onChange={(event) => updateOptionList("categories", category.id, "label", event.target.value)} placeholder="Nome da categoria" />
+            <Input value={category.value} onChange={(event) => updateOptionList("categories", category.id, "value", event.target.value)} placeholder="slug" />
+            <Select value={category.defaultTeam ?? settings.defaultTeam} onValueChange={(value) => setSettings((prev) => ({ ...prev, categories: prev.categories.map((item) => item.id === category.id ? { ...item, defaultTeam: value as "SUPORTE" | "DESENVOLVIMENTO" } : item) }))}>
+              <SelectTrigger><SelectValue placeholder="Setor padrao" /></SelectTrigger>
+              <SelectContent>
+                {settings.teams.map((team) => (
+                  <SelectItem key={team.id} value={team.value}>{team.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input value={category.icon ?? ""} onChange={(event) => updateOptionList("categories", category.id, "icon", event.target.value)} placeholder="Icone" />
+            <Button variant="ghost" size="icon" onClick={() => removeOption("categories", category.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </SettingsListCard>
+
+      <SettingsListCard
+        title="Times, Modulos e Ambientes"
+        icon={Workflow}
+        description="Catalogos usados para roteamento, responsabilidade e contexto tecnico."
+      >
+        <TripleListEditor
+          title="Times"
+          items={settings.teams}
+          onAdd={() => setSettings((prev) => ({ ...prev, teams: [...prev.teams, createOption("team")] }))}
+          onChange={(id, field, value) => updateOptionList("teams", id, field, value)}
+          onRemove={(id) => removeOption("teams", id)}
+        />
+        <TripleListEditor
+          title="Modulos"
+          items={settings.modules}
+          onAdd={() => setSettings((prev) => ({ ...prev, modules: [...prev.modules, createOption("module")] }))}
+          onChange={(id, field, value) => updateOptionList("modules", id, field, value)}
+          onRemove={(id) => removeOption("modules", id)}
+        />
+        <TripleListEditor
+          title="Ambientes"
+          items={settings.environments}
+          onAdd={() => setSettings((prev) => ({ ...prev, environments: [...prev.environments, createOption("environment")] }))}
+          onChange={(id, field, value) => updateOptionList("environments", id, field, value)}
+          onRemove={(id) => removeOption("environments", id)}
+        />
+      </SettingsListCard>
+
+      <Card className="border-border/60">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Clock className="h-4 w-4 text-primary/70" />
+            Prioridades e SLA
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-0">
+          {settings.priorities.map((priority) => (
+            <div key={priority.id} className="grid gap-3 rounded-lg border border-border/50 bg-muted/10 p-3 md:grid-cols-[1fr_160px_120px]">
+              <Input value={priority.label} onChange={(event) => updatePriority(priority.id, "label", event.target.value)} placeholder="Nome da prioridade" />
+              <Input value={priority.value} onChange={(event) => updatePriority(priority.id, "value", event.target.value)} placeholder="valor" />
+              <Input type="number" min={1} max={720} value={priority.slaHours} onChange={(event) => updatePriority(priority.id, "slaHours", Number(event.target.value) || 1)} placeholder="SLA" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/60">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Automacoes</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-0">
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">Resposta automatica</p>
+              <p className="text-xs text-muted-foreground">Mensagem padrao para abertura de chamado.</p>
+            </div>
+            <Switch
+              checked={settings.autoResponseEnabled}
+              onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, autoResponseEnabled: checked }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Mensagem automatica</Label>
+            <Textarea
+              rows={3}
+              value={settings.autoResponseMessage}
+              onChange={(event) => setSettings((prev) => ({ ...prev, autoResponseMessage: event.target.value }))}
+              placeholder="Mensagem enviada na abertura do ticket..."
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end pt-2">
+        <Button onClick={handleSave} disabled={isSaving} className="min-w-[220px] gap-2">
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Salvar configuracoes
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SettingsListCard({
+  title,
+  icon: Icon,
+  description,
+  onAdd,
+  children,
+}: {
+  title: string;
+  icon: typeof Tag;
+  description: string;
+  onAdd?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="border-border/60">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon className="h-4 w-4 text-primary/70" />
+              {title}
+            </CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          </div>
+          {onAdd ? (
+            <Button variant="outline" size="sm" className="gap-2" onClick={onAdd}>
+              <Plus className="h-3.5 w-3.5" />
+              Adicionar
+            </Button>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 pt-0">{children}</CardContent>
+    </Card>
+  );
+}
+
+function TripleListEditor({
+  title,
+  items,
+  onAdd,
+  onChange,
+  onRemove,
+}: {
+  title: string;
+  items: TicketModuleSettingsOption[];
+  onAdd: () => void;
+  onChange: (id: string, field: keyof TicketModuleSettingsOption, value: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <Button variant="outline" size="sm" className="gap-2" onClick={onAdd}>
+          <Plus className="h-3.5 w-3.5" />
+          Novo
+        </Button>
+      </div>
+      {items.map((item) => (
+        <div key={item.id} className="grid gap-3 rounded-lg border border-border/50 bg-muted/10 p-3 md:grid-cols-[1fr_1fr_40px]">
+          <Input value={item.label} onChange={(event) => onChange(item.id, "label", event.target.value)} placeholder={`${title} - nome`} />
+          <Input value={item.value} onChange={(event) => onChange(item.id, "value", event.target.value)} placeholder="valor" />
+          <Button variant="ghost" size="icon" onClick={() => onRemove(item.id)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
 }

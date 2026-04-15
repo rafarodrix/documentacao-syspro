@@ -51,6 +51,10 @@ export const ticketModuleCreateRequestSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
   userSelectedCompanyId: z.string().trim().optional(),
   customerEmail: z.string().trim().email().optional(),
+  category: z.string().trim().optional(),
+  module: z.string().trim().optional(),
+  environment: z.string().trim().optional(),
+  team: z.string().trim().optional(),
 });
 
 export const ticketModuleUpdateRequestSchema = z.object({
@@ -62,6 +66,10 @@ export const ticketModuleUpdateRequestSchema = z.object({
   releaseType: z.string().trim().optional(),
   releaseModule: z.string().trim().optional(),
   publishToReleases: z.boolean().optional(),
+  category: z.string().trim().optional(),
+  module: z.string().trim().optional(),
+  environment: z.string().trim().optional(),
+  team: z.string().trim().optional(),
 });
 
 export const ticketModuleReplyRequestSchema = z.object({
@@ -121,6 +129,7 @@ export const ticketModuleRecordSchema = z.object({
   assignedUserId: z.string().nullable(),
   assignedUser: ticketModuleUserSchema.nullable().optional(),
   resolvedByUserId: z.string().nullable(),
+  resolvedByUser: ticketModuleUserSchema.nullable().optional(),
   ticketNumber: z.string().nullable(),
   subject: z.string().nullable(),
   resolutionSummary: z.string().nullable().optional(),

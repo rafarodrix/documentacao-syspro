@@ -82,9 +82,11 @@ export interface TicketDetailsItem {
     number: string;
     priority: number;
     ownerId?: string | number | null;
+    ownerName?: string | null;
     updatedAt?: string | null;
     firstResponseAt?: string | null;
     resolvedAt?: string | null;
+    resolvedByName?: string | null;
     resolutionSummary?: string | null;
     resolutionVideoUrl?: string | null;
     releaseType?: string | null;
@@ -103,6 +105,17 @@ export interface TicketDetailsItem {
         chatwootContactId?: string | null;
         chatwootAccountId?: string | null;
         chatwootConversationUrl?: string | null;
+    } | null;
+    operations?: {
+        openedByName?: string | null;
+        openedByEmail?: string | null;
+        openedByRole?: string | null;
+        currentTeam?: string | null;
+        category?: string | null;
+        module?: string | null;
+        environment?: string | null;
+        supportOwnerName?: string | null;
+        developmentOwnerName?: string | null;
     } | null;
     createdAt: string;
 }
