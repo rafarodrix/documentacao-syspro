@@ -494,6 +494,7 @@ export class ProcessOutgoingMessageUseCase {
       return this.prisma.conversationLink.update({
         where: { id: existingLink.id },
         data: {
+          chatwootConversationId,
           chatwootContactId:
             existingLink.chatwootContactId && existingLink.chatwootContactId !== 'unknown'
               ? existingLink.chatwootContactId

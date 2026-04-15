@@ -160,8 +160,14 @@ export class ChatwootWebhookController {
             event: payload?.event,
             messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
             error: error?.message ?? 'unknown_error',
+            errorName: error?.name ?? 'Error',
+            stack: this.serializeErrorStack(error),
           }));
-          throw error;
+          return {
+            ok: false,
+            acknowledged: true,
+            error: error?.message ?? 'unknown_error',
+          };
         }
         break;
       case 'contact_updated':
@@ -213,6 +219,12 @@ export class ChatwootWebhookController {
     }
 
     return { ok: true };
+  }
+
+  private serializeErrorStack(error: unknown): string | null {
+    const stack = error instanceof Error ? error.stack : null;
+    if (!stack) return null;
+    return stack.split('\n').slice(0, 8).join('\n');
   }
 
   private computeSignature(secret: string, timestamp: string, rawBody: string): string {
