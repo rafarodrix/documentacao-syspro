@@ -11,6 +11,7 @@ import {
   evolutionSettingsSchema,
   type EvolutionSettingsInput,
 } from '@dosc-syspro/contracts/evolution';
+import { readEvolutionRuntimeConfig } from '@dosc-syspro/config';
 import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
   remoteModuleSettingsSchema,
@@ -37,6 +38,7 @@ import { AuthorizationService } from '../authorization/authorization.service';
 import { SettingsSefazMonitorService } from './sefaz-monitor.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
+import { IntegrationContextService } from './integration-context.service';
 
 @Controller('settings')
 export class SettingsController {
@@ -55,6 +57,7 @@ export class SettingsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly integrationConnections: IntegrationConnectionsService,
+    private readonly integrationContext: IntegrationContextService,
     private readonly settingsPermissionsService: SettingsPermissionsService,
     private readonly authorizationService: AuthorizationService,
     private readonly sefazMonitorService: SettingsSefazMonitorService,
@@ -326,31 +329,7 @@ export class SettingsController {
 
   @Get('evolution')
   async getEvolutionSettings() {
-    const setting = await this.prisma.systemSetting.findUnique({
-      where: { key: SettingsController.EVOLUTION_CONFIG_KEY },
-    });
-
-    const fallbackLegacySetting = !setting?.value
-      ? await this.prisma.systemSetting.findUnique({
-          where: { key: SettingsController.LEGACY_EVOLUTION_CONFIG_KEY },
-        })
-      : null;
-    const sourceValue = setting?.value ?? fallbackLegacySetting?.value;
-
-    if (!sourceValue) {
-      return { success: true, settings: DEFAULT_EVOLUTION_SETTINGS };
-    }
-
-    try {
-      const parsed = JSON.parse(sourceValue);
-      const validation = evolutionSettingsSchema.safeParse(parsed);
-      if (!validation.success) {
-        return { success: true, settings: DEFAULT_EVOLUTION_SETTINGS };
-      }
-      return { success: true, settings: validation.data };
-    } catch {
-      return { success: true, settings: DEFAULT_EVOLUTION_SETTINGS };
-    }
+    return { success: true, settings: await this.readStoredEvolutionSettings() };
   }
 
   @Put('evolution')
@@ -370,6 +349,103 @@ export class SettingsController {
       success: true,
       settings: parsed,
       updatedAt: setting.updatedAt,
+    };
+  }
+
+  @Get('evolution/diagnostics')
+  async getEvolutionDiagnostics(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+
+    const [defaultContext, activeContexts, storedSettings] = await Promise.all([
+      this.integrationContext.getDefaultContext(),
+      this.integrationContext.listActiveContexts(),
+      this.readStoredEvolutionSettings(),
+    ]);
+
+    const runtime = readEvolutionRuntimeConfig();
+    const issues: string[] = [];
+
+    if (!defaultContext) {
+      issues.push('Nenhum contexto de integracao ativo foi resolvido.');
+    }
+
+    if (defaultContext?.source === 'env') {
+      issues.push('O backend esta usando o fallback de ambiente `env:default`.');
+    }
+
+    if (!defaultContext?.evolution.apiUrl?.trim()) {
+      issues.push('Evolution API URL ausente no contexto efetivo.');
+    }
+
+    if (!defaultContext?.evolution.apiKey?.trim()) {
+      issues.push('Evolution API key ausente no contexto efetivo.');
+    }
+
+    if (!defaultContext?.evolution.instance?.trim()) {
+      issues.push('Evolution instance ausente no contexto efetivo.');
+    }
+
+    if (!runtime.apiUrl?.trim()) {
+      issues.push('EVOLUTION_API_URL ausente no runtime do backend.');
+    }
+
+    if (!runtime.apiKey?.trim()) {
+      issues.push('EVOLUTION_API_KEY ausente no runtime do backend.');
+    }
+
+    if (!String(runtime.instance ?? '').trim() && !String(storedSettings.instance ?? '').trim()) {
+      issues.push('Nenhuma instance foi encontrada nem nas variaveis de ambiente nem em `evolution_config`.');
+    }
+
+    return {
+      success: true,
+      data: {
+        resolvedDefaultContext: defaultContext
+          ? {
+              source: defaultContext.source,
+              connectionKey: defaultContext.connectionKey,
+              connectionId: defaultContext.connectionId,
+              companyId: defaultContext.companyId,
+              name: defaultContext.name,
+              evolution: {
+                apiUrl: defaultContext.evolution.apiUrl || null,
+                hasApiKey: Boolean(defaultContext.evolution.apiKey),
+                instance: defaultContext.evolution.instance || null,
+                instanceId: defaultContext.evolution.instanceId || null,
+                hasInstanceToken: Boolean(defaultContext.evolution.instanceToken),
+              },
+            }
+          : null,
+        runtime: {
+          apiUrl: runtime.apiUrl || null,
+          hasApiKey: Boolean(runtime.apiKey),
+          instance: String(runtime.instance ?? '').trim() || null,
+        },
+        storedSettings: {
+          instance: String(storedSettings.instance ?? '').trim() || null,
+          instanceId: String(storedSettings.instanceId ?? '').trim() || null,
+          hasInstanceToken: Boolean(storedSettings.instanceToken),
+        },
+        activeConnections: activeContexts.map((context) => ({
+          source: context.source,
+          connectionKey: context.connectionKey,
+          connectionId: context.connectionId,
+          companyId: context.companyId,
+          name: context.name,
+          evolution: {
+            apiUrl: context.evolution.apiUrl || null,
+            hasApiKey: Boolean(context.evolution.apiKey),
+            instance: context.evolution.instance || null,
+            instanceId: context.evolution.instanceId || null,
+          },
+          chatwoot: {
+            accountId: context.chatwoot.accountId || null,
+            inboxId: context.chatwoot.inboxId || null,
+            inboxIdentifier: context.chatwoot.inboxIdentifier || null,
+          },
+        })),
+        issues,
+      },
     };
   }
 
@@ -712,5 +788,32 @@ export class SettingsController {
       if (levelDiff !== 0) return levelDiff;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
+  }
+
+  private async readStoredEvolutionSettings() {
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: SettingsController.EVOLUTION_CONFIG_KEY },
+      select: { value: true },
+    });
+
+    const fallbackLegacySetting = !setting?.value
+      ? await this.prisma.systemSetting.findUnique({
+          where: { key: SettingsController.LEGACY_EVOLUTION_CONFIG_KEY },
+          select: { value: true },
+        })
+      : null;
+    const sourceValue = setting?.value ?? fallbackLegacySetting?.value;
+
+    if (!sourceValue) {
+      return DEFAULT_EVOLUTION_SETTINGS;
+    }
+
+    try {
+      const parsed = JSON.parse(sourceValue);
+      const validation = evolutionSettingsSchema.safeParse(parsed);
+      return validation.success ? validation.data : DEFAULT_EVOLUTION_SETTINGS;
+    } catch {
+      return DEFAULT_EVOLUTION_SETTINGS;
+    }
   }
 }
