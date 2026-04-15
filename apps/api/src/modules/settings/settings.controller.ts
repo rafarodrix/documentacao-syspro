@@ -17,7 +17,6 @@ import {
   type RemoteModuleSettingsInput,
 } from '@dosc-syspro/contracts/remote';
 import {
-  DEFAULT_TICKET_MODULE_SETTINGS,
   type SettingsContractsAdminView,
   settingsSchema,
   settingsAccessProfileUpsertSchema,
@@ -27,6 +26,7 @@ import {
   type SettingsOutput,
 } from '@dosc-syspro/contracts/settings';
 import {
+  DEFAULT_TICKET_MODULE_SETTINGS,
   ticketModuleSettingsSchema,
   type TicketModuleSettings,
 } from '@dosc-syspro/contracts/ticket';
