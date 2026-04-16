@@ -108,6 +108,7 @@ export class EvolutionClient {
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
     const requestStartedAt = Date.now();
+    const sharedHeaders = this.buildAuthHeaders(config.apiKey);
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'provider_request_text',
@@ -119,10 +120,7 @@ export class EvolutionClient {
 
     const primaryResponse = await fetch(`${baseUrl}/send/text`, {
       method: 'POST',
-      headers: {
-        apikey: config.apiKey,
-        'Content-Type': 'application/json',
-      },
+      headers: sharedHeaders,
       body: JSON.stringify({
         id: instance,
         number: normalizedNumber,
@@ -149,10 +147,7 @@ export class EvolutionClient {
 
     const fallbackResponse = await fetch(`${baseUrl}/message/sendText/${encodeURIComponent(instance)}`, {
       method: 'POST',
-      headers: {
-        apikey: config.apiKey,
-        'Content-Type': 'application/json',
-      },
+      headers: sharedHeaders,
       body: JSON.stringify({
         number: normalizedNumber,
         textMessage: {
@@ -214,6 +209,7 @@ export class EvolutionClient {
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
     const requestStartedAt = Date.now();
+    const sharedHeaders = this.buildAuthHeaders(config.apiKey);
 
     const evMediaType = this.resolveEvolutionMediaType(mediaType);
     const resolvedFileName = fileName || 'arquivo';
@@ -231,10 +227,7 @@ export class EvolutionClient {
 
     const primaryResponse = await fetch(`${baseUrl}/send/media`, {
       method: 'POST',
-      headers: {
-        apikey: config.apiKey,
-        'Content-Type': 'application/json',
-      },
+      headers: sharedHeaders,
       body: JSON.stringify({
         id: instance,
         number: normalizedNumber,
@@ -264,10 +257,7 @@ export class EvolutionClient {
 
     const fallbackResponse = await fetch(`${baseUrl}/message/sendMedia/${encodeURIComponent(instance)}`, {
       method: 'POST',
-      headers: {
-        apikey: config.apiKey,
-        'Content-Type': 'application/json',
-      },
+      headers: sharedHeaders,
       body: JSON.stringify({
         number: normalizedNumber,
         mediatype: evMediaType,
@@ -323,9 +313,10 @@ export class EvolutionClient {
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
     const normalizedNumber = this.normalizeNumber(number);
+    const sharedHeaders = this.buildAuthHeaders(config.apiKey);
     const primaryResponse = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instance)}`, {
       method: 'POST',
-      headers: { apikey: config.apiKey, 'Content-Type': 'application/json' },
+      headers: sharedHeaders,
       body: JSON.stringify({ number: normalizedNumber }),
     });
 
@@ -345,7 +336,7 @@ export class EvolutionClient {
 
     const fallbackResponse = await fetch(`${baseUrl}/user/avatar`, {
       method: 'POST',
-      headers: { apikey: config.apiKey, 'Content-Type': 'application/json' },
+      headers: sharedHeaders,
       body: JSON.stringify({ id: instance, number: normalizedNumber }),
     });
 
