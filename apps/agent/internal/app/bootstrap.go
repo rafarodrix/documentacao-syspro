@@ -31,7 +31,7 @@ func Bootstrap(ctx context.Context) (*Container, error) {
 	logger := logging.New(cfg.LogLevel)
 
 	stateStore := storage.NewLocalStateStore(cfg.Paths.StateDir, logger)
-	portalClient := http.NewPortalClient(cfg, logger)
+	portalClient := http.NewPortalClient(cfg, stateStore, logger)
 	executor := runtime.NewExecutor(logger)
 
 	eventBus := telemetry.NewAsyncBus(logger, 100)
@@ -45,7 +45,16 @@ func Bootstrap(ctx context.Context) (*Container, error) {
 	desiredStateService := desiredstate.NewService(portalClient, stateStore, logger, eventBus)
 
 	modules := []reconcile.Module{
-		remotemodule.New(),
+		remotemodule.New(
+			portalClient,
+			stateStore,
+			logger,
+			eventBus,
+			remotemodule.WithDiscoveryToken(cfg.Remote.DiscoveryToken),
+			remotemodule.WithInstallToken(cfg.Remote.InstallToken),
+			remotemodule.WithAgentVersion(cfg.Agent.Version),
+			remotemodule.WithEnvironment(cfg.Agent.Environment),
+		),
 		tunnelmodule.New(),
 		backupmodule.New(),
 	}
