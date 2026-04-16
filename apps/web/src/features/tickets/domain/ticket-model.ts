@@ -90,6 +90,7 @@ export interface TicketDetailsItem {
     resolutionSummary?: string | null;
     resolutionVideoUrl?: string | null;
     releaseType?: string | null;
+    releaseTitle?: string | null;
     releaseModule?: string | null;
     publishToReleases?: boolean;
     slaBreached?: boolean;
@@ -114,6 +115,8 @@ export interface TicketDetailsItem {
         category?: string | null;
         module?: string | null;
         environment?: string | null;
+        databaseUrl?: string | null;
+        developmentVideoUrl?: string | null;
         supportOwnerName?: string | null;
         developmentOwnerName?: string | null;
     } | null;

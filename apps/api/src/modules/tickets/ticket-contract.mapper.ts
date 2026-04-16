@@ -30,6 +30,7 @@ type TicketRecordSource = {
   resolutionSummary?: string | null;
   resolutionVideoUrl?: string | null;
   releaseType?: string | null;
+  releaseTitle?: string | null;
   releaseModule?: string | null;
   publishToReleases?: boolean | null;
   externalThreadId?: string | null;
@@ -128,6 +129,9 @@ export function serializeTicketRecord(ticket: TicketRecordSource): TicketModuleR
     resolutionSummary: ticket.resolutionSummary ?? null,
     resolutionVideoUrl: ticket.resolutionVideoUrl ?? null,
     releaseType: ticket.releaseType ?? null,
+    releaseTitle: typeof ticket.metadata === 'object' && ticket.metadata && !Array.isArray(ticket.metadata) && typeof (ticket.metadata as Record<string, unknown>).releaseTitle === 'string'
+      ? ((ticket.metadata as Record<string, unknown>).releaseTitle as string)
+      : null,
     releaseModule: ticket.releaseModule ?? null,
     publishToReleases: Boolean(ticket.publishToReleases),
     externalThreadId: ticket.externalThreadId ?? null,

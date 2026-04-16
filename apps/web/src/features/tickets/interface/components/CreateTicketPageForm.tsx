@@ -8,7 +8,6 @@ import {
   AlertCircle,
   ArrowLeft,
   Building2,
-  Check,
   Loader2,
   Send,
   Sparkles,
@@ -107,6 +106,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const [selectedModule, setSelectedModule] = useState(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
   const [selectedEnvironment, setSelectedEnvironment] = useState(DEFAULT_TICKET_MODULE_SETTINGS.defaultEnvironment);
   const [selectedTeam, setSelectedTeam] = useState(isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE");
+  const [databaseUrl, setDatabaseUrl] = useState("");
+  const [developmentVideoUrl, setDevelopmentVideoUrl] = useState("");
 
   const form = useForm<TicketFormInput, undefined, TicketFormOutput>({
     resolver: zodResolver(ticketFormSchema),
@@ -275,6 +276,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
         if (selectedModule) formData.append("module", selectedModule);
         if (selectedEnvironment) formData.append("environment", selectedEnvironment);
         if (selectedTeam) formData.append("team", selectedTeam);
+        if (databaseUrl.trim()) formData.append("databaseUrl", databaseUrl.trim());
+        if (developmentVideoUrl.trim()) formData.append("developmentVideoUrl", developmentVideoUrl.trim());
         files.forEach((file) => formData.append("attachments", file));
 
         const result = await createTicketAction(null, formData);
@@ -370,6 +373,71 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                     </FormItem>
                   )}
                 />
+
+                {isSystemUser && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Empresa / contato</Label>
+                    <TicketCompanyPicker
+                      value={selectedSystemOption ? `${selectedSystemOption.companyId}::${selectedSystemOption.email}` : ""}
+                      options={systemCompanyOptions}
+                      onChange={(value) => {
+                        const [companyId, email] = value.split("::");
+                        const option = customerOptions.find((item) => item.companyId === companyId && item.email === email);
+                        setSelectedCompanyId(companyId || "");
+                        setCustomerEmail(option?.email || email || "");
+                        setCustomerCompany(option?.companyName || null);
+                      }}
+                      placeholder="Buscar empresa cadastrada, contato ou e-mail..."
+                      searchPlaceholder="Digite empresa, contato, CNPJ ou e-mail..."
+                      emptyMessage={isCustomerOptionsLoading ? "Buscando..." : "Nenhuma empresa encontrada."}
+                      className="h-11 bg-muted/30 hover:bg-muted/40"
+                    />
+                    <Input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Refinar busca por empresa, contato, CNPJ ou e-mail..."
+                      className="h-10 bg-background"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      A busca considera empresas cadastradas no modulo Empresas e contatos vinculados.
+                    </p>
+                    {(customerEmail && customerCompany) || selectedCompanyId ? (
+                      <Card className="border-primary/20 bg-primary/5">
+                        <CardContent className="p-3 text-xs space-y-1">
+                          <p className="font-medium text-foreground">{customerCompany || "Empresa vinculada ao ticket"}</p>
+                          {customerEmail ? <p className="text-muted-foreground">{customerEmail}</p> : null}
+                        </CardContent>
+                      </Card>
+                    ) : null}
+                  </div>
+                )}
+
+                {!isSystemUser && clientCompanies.length > 1 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Empresa</Label>
+                    <TicketCompanyPicker
+                      value={selectedCompanyId}
+                      options={clientCompanyOptions}
+                      onChange={setSelectedCompanyId}
+                      placeholder="Selecione a empresa"
+                      searchPlaceholder="Buscar empresa vinculada..."
+                      className="h-11 bg-muted/30"
+                    />
+                    <p className="text-xs text-muted-foreground">Selecione para qual empresa deseja abrir o chamado.</p>
+                  </div>
+                )}
+
+                {!isSystemUser && clientCompanies.length === 1 && (
+                  <Card className="border-border/50">
+                    <CardContent className="p-3 text-xs">
+                      <p className="font-medium flex items-center gap-2">
+                        <Building2 className="h-3 w-3 text-muted-foreground" />
+                        Empresa vinculada: {selectedClientCompany?.name || clientCompanies[0].name}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Description (Rich Text) */}
                 <div className="space-y-2">
@@ -547,93 +615,30 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   </Select>
                 </div>
 
-                {/* Customer (system users) */}
                 {isSystemUser && (
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empresa / contato</Label>
-                    <TicketCompanyPicker
-                      value={selectedSystemOption ? `${selectedSystemOption.companyId}::${selectedSystemOption.email}` : ""}
-                      options={systemCompanyOptions}
-                      onChange={(value) => {
-                        const [companyId, email] = value.split("::");
-                        const option = customerOptions.find((item) => item.companyId === companyId && item.email === email);
-                        setSelectedCompanyId(companyId || "");
-                        setCustomerEmail(option?.email || email || "");
-                        setCustomerCompany(option?.companyName || null);
-                      }}
-                      placeholder="Buscar empresa, contato ou e-mail..."
-                      searchPlaceholder="Digite empresa, contato ou e-mail..."
-                      emptyMessage={isCustomerOptionsLoading ? "Buscando..." : "Nenhum cliente encontrado."}
-                      className="bg-background text-xs"
-                    />
-                    <div className="space-y-1">
-                      <Input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Refinar busca por empresa, contato ou e-mail..."
-                        className="h-9 bg-background text-xs"
-                      />
-                      {isCustomerOptionsLoading ? (
-                        <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          Buscando contexto do cliente...
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-muted-foreground">A busca considera empresa, contato e e-mail.</p>
-                      )}
-                    </div>
-                    {(customerEmail && customerCompany) || selectedCompanyId ? (
-                      <Card className="border-primary/20 bg-primary/5">
-                        <CardContent className="p-3 text-xs space-y-1">
-                          <p className="font-medium text-foreground">{customerCompany || "Empresa vinculada ao ticket"}</p>
-                          {customerEmail ? <p className="text-muted-foreground">{customerEmail}</p> : null}
-                        </CardContent>
-                      </Card>
-                    ) : null}
-                  </div>
-                )}
-
-                {/* Company (client users) */}
-                {!isSystemUser && clientCompanies.length > 1 && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empresa</Label>
-                    <TicketCompanyPicker
-                      value={selectedCompanyId}
-                      options={clientCompanyOptions}
-                      onChange={setSelectedCompanyId}
-                      placeholder="Selecione a empresa"
-                      searchPlaceholder="Buscar empresa vinculada..."
-                      className="bg-background text-xs"
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link da base de dados</Label>
+                    <Input
+                      value={databaseUrl}
+                      onChange={(e) => setDatabaseUrl(e.target.value)}
+                      placeholder="https://... ou caminho interno"
+                      className="h-9 bg-background text-xs"
                     />
                   </div>
                 )}
 
-                {!isSystemUser && clientCompanies.length === 1 && (
+                {isSystemUser && (
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empresa</Label>
-                    <Card className="border-border/50">
-                      <CardContent className="p-3 text-xs">
-                        <p className="font-medium flex items-center gap-2">
-                          <Building2 className="h-3 w-3 text-muted-foreground" />
-                          {selectedClientCompany?.name || clientCompanies[0].name}
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Video explicativo para desenvolvimento</Label>
+                    <Input
+                      value={developmentVideoUrl}
+                      onChange={(e) => setDevelopmentVideoUrl(e.target.value)}
+                      placeholder="https://www.loom.com/... ou YouTube"
+                      className="h-9 bg-background text-xs"
+                    />
+                    <p className="text-[11px] text-muted-foreground">Use para evidencias tecnicas internas quando o chamado for para desenvolvimento.</p>
                   </div>
                 )}
-
-                {/* Completion badges */}
-                <div className="pt-2 border-t border-border/40 space-y-2">
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Checklist</p>
-                  <div className="space-y-1.5">
-                    <ChecklistItem done={watchedSubject.trim().length >= 5} label="Assunto preenchido" />
-                    <ChecklistItem done={descriptionHtml.replace(/<[^>]*>?/gm, "").trim().length >= 20} label="Descricao detalhada" />
-                    {isSystemUser && <ChecklistItem done={!!selectedCompanyId || !!customerEmail.trim()} label="Empresa ou contato selecionado" />}
-                    {!isSystemUser && clientCompanies.length > 1 && <ChecklistItem done={!!selectedCompanyId} label="Empresa selecionada" />}
-                    <ChecklistItem done={files.length > 0} label="Anexos adicionados" optional />
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -669,17 +674,3 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
-function ChecklistItem({ done, label, optional }: { done: boolean; label: string; optional?: boolean }) {
-  return (
-    <div className={cn("flex items-center gap-2 text-xs rounded-md px-2 py-1.5 transition-colors", done ? "text-foreground" : "text-muted-foreground")}>
-      <div className={cn(
-        "h-4 w-4 rounded-full border flex items-center justify-center transition-all shrink-0",
-        done ? "bg-emerald-500 border-emerald-500 text-white" : "border-border/60",
-      )}>
-        {done && <Check className="h-2.5 w-2.5" />}
-      </div>
-      <span className={cn(done && "line-through opacity-60")}>{label}</span>
-      {optional && !done && <span className="text-[10px] text-muted-foreground italic ml-auto">opcional</span>}
-    </div>
-  );
-}

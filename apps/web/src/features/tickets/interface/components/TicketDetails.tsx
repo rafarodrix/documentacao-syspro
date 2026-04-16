@@ -49,6 +49,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
     const [loadingAction, setLoadingAction] = useState<"finalize" | null>(null);
     const [resolutionSummary, setResolutionSummary] = useState(ticket?.resolutionSummary || "");
     const [resolutionVideoUrl, setResolutionVideoUrl] = useState(ticket?.resolutionVideoUrl || "");
+    const [releaseTitle, setReleaseTitle] = useState(ticket?.releaseTitle || ticket?.title || "");
     const [releaseType, setReleaseType] = useState<"BUG" | "MELHORIA" | "">(
         ticket?.releaseType === "BUG" || ticket?.releaseType === "MELHORIA" ? ticket.releaseType : ""
     );
@@ -68,6 +69,10 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
             toast.error("Selecione o tipo da release para publicar no changelog.");
             return;
         }
+        if (shouldRequireReleaseFields && !releaseTitle.trim()) {
+            toast.error("Informe o titulo que vai aparecer no modulo de releases.");
+            return;
+        }
 
         setLoadingAction("finalize");
         startTransition(async () => {
@@ -77,6 +82,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                     resolutionSummary,
                     resolutionVideoUrl,
                     releaseType: shouldRequireReleaseFields && releaseType ? releaseType : undefined,
+                    releaseTitle: shouldRequireReleaseFields ? releaseTitle : undefined,
                     releaseModule,
                     publishToReleases,
                 });
@@ -231,6 +237,18 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                                 {ticket.operations?.environment && (
                                     <SidebarField label="Ambiente" value={<span className="text-xs">{ticket.operations.environment}</span>} />
                                 )}
+                                {ticket.operations?.databaseUrl && (
+                                    <SidebarField
+                                        label="Base"
+                                        value={<ExternalTicketLink href={ticket.operations.databaseUrl} label="Abrir" />}
+                                    />
+                                )}
+                                {ticket.operations?.developmentVideoUrl && (
+                                    <SidebarField
+                                        label="Video dev"
+                                        value={<ExternalTicketLink href={ticket.operations.developmentVideoUrl} label="Abrir" />}
+                                    />
+                                )}
                                 {ticket.operations?.category && (
                                     <SidebarField label="Categoria" value={<span className="text-xs">{ticket.operations.category}</span>} />
                                 )}
@@ -318,6 +336,16 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                                     </div>
 
                                     <div className="space-y-2">
+                                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Titulo da release</Label>
+                                        <Input
+                                            placeholder="Titulo publico da melhoria/correcao"
+                                            className="text-xs h-9"
+                                            value={releaseTitle}
+                                            onChange={(e) => setReleaseTitle(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
                                         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo da release</Label>
                                         <Select value={releaseType} onValueChange={(val) => setReleaseType(val as "BUG" | "MELHORIA" | "")}>
                                             <SelectTrigger className="text-xs h-9">
@@ -394,6 +422,20 @@ function SidebarField({ label, value }: { label: string; value: React.ReactNode 
             <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold shrink-0">{label}</span>
             <div className="text-right">{value}</div>
         </div>
+    );
+}
+
+function ExternalTicketLink({ href, label }: { href: string; label: string }) {
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+            {label}
+            <ExternalLink className="h-3 w-3" />
+        </a>
     );
 }
 

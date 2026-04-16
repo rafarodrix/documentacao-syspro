@@ -17,6 +17,8 @@ export class UpdateTicketDto implements TicketModuleUpdateRequest {
 
   releaseType?: string;
 
+  releaseTitle?: string;
+
   releaseModule?: string;
 
   publishToReleases?: boolean;

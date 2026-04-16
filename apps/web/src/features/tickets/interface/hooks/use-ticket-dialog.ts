@@ -41,6 +41,8 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const [selectedTeam, setSelectedTeam] = useState<string>(
         options.isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE",
     );
+    const [databaseUrl, setDatabaseUrl] = useState("");
+    const [developmentVideoUrl, setDevelopmentVideoUrl] = useState("");
     const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -209,6 +211,8 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 if (selectedModule) formData.append("module", selectedModule);
                 if (selectedEnvironment) formData.append("environment", selectedEnvironment);
                 if (selectedTeam) formData.append("team", selectedTeam);
+                if (databaseUrl.trim()) formData.append("databaseUrl", databaseUrl.trim());
+                if (developmentVideoUrl.trim()) formData.append("developmentVideoUrl", developmentVideoUrl.trim());
                 const source = searchParams?.get("source") || "";
                 const chatwootConversationId = searchParams?.get("chatwootConversationId") || "";
                 const chatwootContactId = searchParams?.get("chatwootContactId") || "";
@@ -241,6 +245,8 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                     setCustomerEmail("");
                     setCustomerCompany(null);
                     setSearchQuery("");
+                    setDatabaseUrl("");
+                    setDevelopmentVideoUrl("");
                     if (clientCompanies.length > 0) {
                         setSelectedCompanyId(clientCompanies.length === 1 ? clientCompanies[0].id : "");
                     }
@@ -285,5 +291,9 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         setSelectedEnvironment,
         selectedTeam,
         setSelectedTeam,
+        databaseUrl,
+        setDatabaseUrl,
+        developmentVideoUrl,
+        setDevelopmentVideoUrl,
     };
 }

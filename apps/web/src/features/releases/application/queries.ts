@@ -21,6 +21,7 @@ async function fetchReleases(): Promise<Release[]> {
                 resolutionVideoUrl: true,
                 releaseType: true,
                 releaseModule: true,
+                metadata: true,
                 closedAt: true,
                 updatedAt: true,
             },
@@ -32,6 +33,7 @@ async function fetchReleases(): Promise<Release[]> {
             resolutionVideoUrl: string | null;
             releaseType: string | null;
             releaseModule: string | null;
+            metadata: Prisma.JsonValue | null;
             closedAt: Date | null;
             updatedAt: Date;
         }>;
@@ -42,7 +44,7 @@ async function fetchReleases(): Promise<Release[]> {
                 id: ticket.ticketNumber || ticket.id,
                 type: ticket.releaseType === "BUG" ? "Bug" : "Melhoria",
                 isoDate: (ticket.closedAt || ticket.updatedAt).toISOString().slice(0, 10),
-                title: ticket.subject || "Atualizacao sem titulo",
+                title: readReleaseMetadataString(ticket.metadata, "releaseTitle") || ticket.subject || "Atualizacao sem titulo",
                 summary:
                     (typeof ticket.resolutionSummary === "string" ? ticket.resolutionSummary.trim() : "") ||
                     ticket.subject ||
@@ -59,6 +61,12 @@ async function fetchReleases(): Promise<Release[]> {
 
         throw error;
     }
+}
+
+function readReleaseMetadataString(metadata: Prisma.JsonValue | null, key: string): string | null {
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+    const value = (metadata as Record<string, unknown>)[key];
+    return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function isReleaseQueryDatabaseError(error: unknown): boolean {

@@ -33,6 +33,7 @@ export async function finalizeTicketAction(input: {
   resolutionSummary: string;
   resolutionVideoUrl?: string;
   releaseType?: "BUG" | "MELHORIA";
+  releaseTitle?: string;
   releaseModule?: string;
   publishToReleases?: boolean;
 }): Promise<TicketMutationResponse> {
@@ -61,6 +62,7 @@ export async function finalizeTicketAction(input: {
       resolutionSummary,
       resolutionVideoUrl: video,
       releaseType: input.releaseType,
+      releaseTitle: input.releaseTitle?.trim() || undefined,
       releaseModule: input.releaseModule?.trim() || undefined,
       publishToReleases: Boolean(input.publishToReleases),
     });
@@ -230,6 +232,8 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     const moduleInput = String(formData.get("module") || "").trim();
     const environmentInput = String(formData.get("environment") || "").trim();
     const teamInput = String(formData.get("team") || "").trim().toUpperCase();
+    const databaseUrlInput = String(formData.get("databaseUrl") || "").trim();
+    const developmentVideoUrlInput = String(formData.get("developmentVideoUrl") || "").trim();
     const source = String(formData.get("source") || "").trim().toLowerCase();
     const chatwootConversationId = String(formData.get("chatwootConversationId") || "").trim();
     const chatwootContactId = String(formData.get("chatwootContactId") || "").trim();
@@ -258,6 +262,8 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
       module: moduleInput || undefined,
       environment: environmentInput || undefined,
       team: teamInput || undefined,
+      databaseUrl: databaseUrlInput || undefined,
+      developmentVideoUrl: developmentVideoUrlInput || undefined,
       ...(source === "chatwoot" && chatwootConversationId ? { externalThreadId: chatwootConversationId } : {}),
       ...(customerPhoneInput ? { contactPhoneSnapshot: customerPhoneInput } : {}),
       ...(customerWhatsappInput || customerPhoneInput
@@ -321,6 +327,7 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
         resolutionSummary: ticket.resolutionSummary || null,
         resolutionVideoUrl: ticket.resolutionVideoUrl || null,
         releaseType: ticket.releaseType || null,
+        releaseTitle: ticket.releaseTitle || readStringMetadata(ticket.metadata, "releaseTitle"),
         releaseModule: ticket.releaseModule || null,
         publishToReleases: Boolean(ticket.publishToReleases),
         slaBreached: false,
@@ -345,6 +352,8 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
           category: readNullableMetadata(ticket.metadata, "category"),
           module: readNullableMetadata(ticket.metadata, "module"),
           environment: readNullableMetadata(ticket.metadata, "environment"),
+          databaseUrl: readNullableMetadata(ticket.metadata, "databaseUrl"),
+          developmentVideoUrl: readNullableMetadata(ticket.metadata, "developmentVideoUrl"),
           supportOwnerName: readNullableMetadata(ticket.metadata, "supportOwnerName"),
           developmentOwnerName: readNullableMetadata(ticket.metadata, "developmentOwnerName"),
         },

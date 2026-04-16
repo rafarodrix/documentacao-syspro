@@ -127,6 +127,8 @@ export class TicketsService {
     const normalizedModule = data.module?.trim() || null;
     const normalizedEnvironment = data.environment?.trim() || settings.defaultEnvironment || null;
     const normalizedTeam = this.resolveTicketTeam(data.team, requester.role, settings, normalizedCategory, isSystemAdmin);
+    const databaseUrl = data.databaseUrl?.trim() || null;
+    const developmentVideoUrl = data.developmentVideoUrl?.trim() || null;
     const openedByName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const assignedUserId = settings.autoAssignToCreator && isSystemAdmin ? requester.userId : null;
     const metadata = {
@@ -142,6 +144,8 @@ export class TicketsService {
       openedByName,
       openedByEmail: requester.email,
       openedByRole: requester.role,
+      databaseUrl,
+      developmentVideoUrl,
       supportOwnerUserId: normalizedTeam === 'SUPORTE' && assignedUserId ? requester.userId : null,
       supportOwnerName: normalizedTeam === 'SUPORTE' && assignedUserId ? openedByName : null,
       developmentOwnerUserId: normalizedTeam === 'DESENVOLVIMENTO' && assignedUserId ? requester.userId : null,
@@ -370,6 +374,7 @@ export class TicketsService {
     const resolutionSummary = input.resolutionSummary?.trim();
     const resolutionVideoUrl = input.resolutionVideoUrl?.trim();
     const releaseType = input.releaseType?.trim().toUpperCase();
+    const releaseTitle = input.releaseTitle?.trim();
     const releaseModule = input.releaseModule?.trim();
     const publishToReleases = input.publishToReleases;
 
@@ -466,6 +471,7 @@ export class TicketsService {
       if (input.resolutionSummary !== undefined) data.resolutionSummary = resolutionSummary || null;
       if (input.resolutionVideoUrl !== undefined) data.resolutionVideoUrl = resolutionVideoUrl || null;
       if (input.releaseType !== undefined) data.releaseType = releaseType || null;
+      if (input.releaseTitle !== undefined) currentMetadata.releaseTitle = releaseTitle || null;
       if (input.releaseModule !== undefined) data.releaseModule = releaseModule || null;
       if (input.publishToReleases !== undefined) data.publishToReleases = Boolean(publishToReleases);
       data.metadata = currentMetadata as Prisma.InputJsonValue;

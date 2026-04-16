@@ -90,6 +90,10 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     setSelectedEnvironment,
     selectedTeam,
     setSelectedTeam,
+    databaseUrl,
+    setDatabaseUrl,
+    developmentVideoUrl,
+    setDevelopmentVideoUrl,
   } = useTicketDialog(() => setOpen(false), { isSystemUser });
 
   const selectedSystemOption = customerOptions.find(
@@ -287,20 +291,20 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                           setCustomerEmail(option?.email || email || "");
                           setCustomerCompany(option?.companyName || null);
                         }}
-                        placeholder="Buscar empresa, contato ou e-mail..."
-                        searchPlaceholder="Digite empresa, contato ou e-mail..."
-                        emptyMessage={isCustomerOptionsLoading ? "Buscando..." : "Nenhum cliente encontrado."}
+                        placeholder="Buscar empresa cadastrada, contato ou e-mail..."
+                        searchPlaceholder="Digite empresa, contato, CNPJ ou e-mail..."
+                        emptyMessage={isCustomerOptionsLoading ? "Buscando..." : "Nenhuma empresa encontrada."}
                         className="bg-muted/30 hover:bg-muted/40"
                       />
                       <Input
                         type="text"
                         value={searchQuery}
                         onChange={(event) => setSearchQuery(event.target.value)}
-                        placeholder="Refinar busca por empresa, contato ou e-mail..."
+                        placeholder="Refinar busca por empresa, contato, CNPJ ou e-mail..."
                         className="bg-background"
                       />
-                      <p className="text-[0.8rem] text-muted-foreground">O ticket pode nascer com empresa definida, mesmo quando o contato atua em mais de uma conta.</p>
-                      {customerCompany || customerEmail ? (
+                      <p className="text-[0.8rem] text-muted-foreground">Busca empresas cadastradas no modulo Empresas e contatos vinculados.</p>
+                      {(customerCompany || customerEmail || selectedCompanyId) ? (
                         <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
                           <p className="font-medium text-foreground">{customerCompany || "Empresa selecionada"}</p>
                           {customerEmail ? <p className="text-muted-foreground">{customerEmail}</p> : null}
@@ -459,6 +463,29 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                       </Select>
                     </FormItem>
                   </div>
+
+                  {isSystemUser && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <FormItem>
+                        <Label>Link da base de dados</Label>
+                        <Input
+                          value={databaseUrl}
+                          onChange={(event) => setDatabaseUrl(event.target.value)}
+                          placeholder="https://... ou caminho interno"
+                          className="bg-muted/30"
+                        />
+                      </FormItem>
+                      <FormItem>
+                        <Label>Video explicativo dev</Label>
+                        <Input
+                          value={developmentVideoUrl}
+                          onChange={(event) => setDevelopmentVideoUrl(event.target.value)}
+                          placeholder="https://www.loom.com/... ou YouTube"
+                          className="bg-muted/30"
+                        />
+                      </FormItem>
+                    </div>
+                  )}
 
                 </div>
 

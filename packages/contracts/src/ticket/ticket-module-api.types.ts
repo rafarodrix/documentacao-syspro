@@ -55,6 +55,8 @@ export const ticketModuleCreateRequestSchema = z.object({
   module: z.string().trim().optional(),
   environment: z.string().trim().optional(),
   team: z.string().trim().optional(),
+  databaseUrl: z.string().trim().optional(),
+  developmentVideoUrl: z.string().trim().optional(),
 });
 
 export const ticketModuleUpdateRequestSchema = z.object({
@@ -64,6 +66,7 @@ export const ticketModuleUpdateRequestSchema = z.object({
   resolutionSummary: z.string().trim().optional(),
   resolutionVideoUrl: z.string().trim().optional(),
   releaseType: z.string().trim().optional(),
+  releaseTitle: z.string().trim().optional(),
   releaseModule: z.string().trim().optional(),
   publishToReleases: z.boolean().optional(),
   category: z.string().trim().optional(),
@@ -135,6 +138,7 @@ export const ticketModuleRecordSchema = z.object({
   resolutionSummary: z.string().nullable().optional(),
   resolutionVideoUrl: z.string().nullable().optional(),
   releaseType: z.string().nullable().optional(),
+  releaseTitle: z.string().nullable().optional(),
   releaseModule: z.string().nullable().optional(),
   publishToReleases: z.boolean().optional(),
   externalThreadId: z.string().nullable().optional(),

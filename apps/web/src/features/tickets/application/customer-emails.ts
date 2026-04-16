@@ -26,6 +26,31 @@ export function parseCustomerEmailSearchParams(url: string) {
 }
 
 export async function findCustomerEmailOptions(input: { q: string; limit: number }): Promise<CustomerEmailOption[]> {
+  const cnpjQuery = input.q.replace(/\D/g, "");
+  const companyRows = await prisma.company.findMany({
+    where: {
+      deletedAt: null,
+      ...(input.q
+        ? {
+            OR: [
+              { nomeFantasia: { contains: input.q, mode: "insensitive" } },
+              { razaoSocial: { contains: input.q, mode: "insensitive" } },
+              ...(cnpjQuery ? [{ cnpj: { contains: cnpjQuery, mode: "insensitive" } }] : []),
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
+    select: {
+      id: true,
+      nomeFantasia: true,
+      razaoSocial: true,
+      cnpj: true,
+      emailContato: true,
+    },
+    take: input.limit,
+  });
+
   const rows = await prisma.companyContact.findMany({
     where: {
       email: { not: null },
@@ -105,6 +130,19 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
   });
 
   const dedup = new Map<string, CustomerEmailOption>();
+
+  for (const company of companyRows) {
+    const companyName = company.nomeFantasia?.trim() || company.razaoSocial?.trim();
+    if (!companyName) continue;
+
+    dedup.set(`company:${company.id}`, {
+      companyId: company.id,
+      email: "",
+      companyName,
+      contactName: company.emailContato?.trim() || company.cnpj || "Empresa cadastrada",
+    });
+  }
+
   for (const row of rows) {
     const email = String(row.email || "").trim().toLowerCase();
     if (!email) continue;
@@ -134,7 +172,7 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
 
 export async function getCustomerEmailOptionsForCurrentUser(url: string) {
   const session = await getProtectedSession();
-  const canAccess = session && await currentUserHasPermission("tools:all");
+  const canAccess = session && (await currentUserHasPermission("tickets:view_all"));
   if (!canAccess) {
     return {
       authorized: false,
