@@ -422,7 +422,7 @@ export class ChatwootClient {
     conversationId: string,
     content: string,
     attachment?: { base64: string; mimetype: string; filename: string; publicUrl?: string }
-  ) {
+  ): Promise<any> {
     const inboxIdentifier = await this.resolveInboxIdentifier(config);
     const echoId = this.buildEchoId();
 
