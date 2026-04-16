@@ -421,7 +421,7 @@ export class ChatwootClient {
     contactIdentifier: string,
     conversationId: string,
     content: string,
-    attachment?: { base64: string; mimetype: string; filename: string }
+    attachment?: { base64: string; mimetype: string; filename: string; publicUrl?: string }
   ) {
     const inboxIdentifier = await this.resolveInboxIdentifier(config);
     const echoId = this.buildEchoId();
@@ -468,6 +468,24 @@ export class ChatwootClient {
         return result;
       } catch (e: any) {
         this.logger.error(`Erro ao processar anexo para o Chatwoot: ${e.message}`);
+        if (this.isAttachmentStorageError(e)) {
+          const fallbackContent = this.buildAttachmentFallbackContent(content, attachment);
+          this.logger.warn(JSON.stringify({
+            flow: 'evolution_to_chatwoot',
+            stage: 'attachment_native_upload_failed_fallback_text',
+            conversationId,
+            filename: attachment.filename,
+            mimetype: attachment.mimetype,
+            hasPublicUrl: Boolean(attachment.publicUrl),
+            error: e?.message ?? 'unknown_error',
+          }));
+          return this.createIncomingMessage(
+            config,
+            contactIdentifier,
+            conversationId,
+            fallbackContent,
+          );
+        }
         throw e;
       }
     }
@@ -889,6 +907,29 @@ export class ChatwootClient {
     formData.append('private', 'false');
     formData.append('content_type', 'text');
     return formData;
+  }
+
+  private isAttachmentStorageError(error: any): boolean {
+    const message = String(error?.message ?? '').toLowerCase();
+    return (
+      message.includes('checksum') ||
+      message.includes('nosuchkey') ||
+      message.includes('active storage') ||
+      message.includes('falha ao baixar anexo')
+    );
+  }
+
+  private buildAttachmentFallbackContent(
+    content: string,
+    attachment: { filename: string; mimetype: string; publicUrl?: string },
+  ): string {
+    const lines = [
+      content?.trim(),
+      `[Midia recebida: ${attachment.filename} (${attachment.mimetype})]`,
+      attachment.publicUrl ? `Arquivo: ${attachment.publicUrl}` : 'Arquivo nao anexado: falha no storage do Chatwoot.',
+    ].filter(Boolean);
+
+    return lines.join('\n');
   }
 
   private toNumericIdentifier(value: string): string | null {

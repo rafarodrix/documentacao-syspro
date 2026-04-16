@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { EvolutionClient } from '../../evolution/evolution.client';
+import { R2StorageService } from '../../storage/r2-storage.service';
 import { IntegrationWebhookDedupService } from './integration-webhook-dedup.service';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../../../settings/integration-context.service';
 
@@ -14,6 +15,7 @@ export class ProcessIncomingMessageUseCase {
     private readonly chatwootClient: ChatwootClient,
     private readonly prisma: PrismaService,
     private readonly evolutionClient: EvolutionClient,
+    private readonly r2Storage: R2StorageService,
     private readonly dedupService: IntegrationWebhookDedupService,
     private readonly integrationContext: IntegrationContextService,
   ) {}
@@ -132,7 +134,11 @@ export class ProcessIncomingMessageUseCase {
           fileName,
         );
         if (mediaPayload?.base64) {
-          attachment = mediaPayload;
+          attachment = await this.attachPublicMediaUrl(mediaPayload, {
+            instanceId,
+            messageId,
+            whatsappNumber: phone,
+          });
         } else {
           this.logger.warn(JSON.stringify({
             flow: 'evolution_to_chatwoot',
@@ -307,6 +313,60 @@ export class ProcessIncomingMessageUseCase {
     }
 
     return undefined;
+  }
+
+  private async attachPublicMediaUrl(
+    attachment: { base64: string; mimetype: string; filename: string },
+    context: { instanceId?: string | null; messageId?: string; whatsappNumber: string },
+  ): Promise<{ base64: string; mimetype: string; filename: string; publicUrl?: string }> {
+    if (!this.r2Storage.isEnabled()) {
+      return attachment;
+    }
+
+    try {
+      const buffer = Buffer.from(attachment.base64, 'base64');
+      const uploaded = await this.r2Storage.uploadBuffer({
+        buffer,
+        filename: attachment.filename,
+        contentType: attachment.mimetype,
+        prefix: 'evolution-media',
+      });
+
+      this.logger.log(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'incoming_attachment_uploaded_r2',
+        instanceId: context.instanceId ?? null,
+        messageId: context.messageId ?? null,
+        whatsappNumber: context.whatsappNumber,
+        storageKey: uploaded.key,
+        storageUrlHost: this.extractUrlHost(uploaded.url),
+      }));
+
+      return {
+        ...attachment,
+        publicUrl: uploaded.url,
+      };
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'incoming_attachment_r2_upload_failed',
+        instanceId: context.instanceId ?? null,
+        messageId: context.messageId ?? null,
+        whatsappNumber: context.whatsappNumber,
+        filename: attachment.filename,
+        mimetype: attachment.mimetype,
+        error: error?.message ?? 'unknown_error',
+      }));
+      return attachment;
+    }
+  }
+
+  private extractUrlHost(value: string): string | null {
+    try {
+      return new URL(value).host;
+    } catch {
+      return null;
+    }
   }
 
   async handleStatusUpdate(payload: any, context?: { instanceId?: string; connection?: ResolvedIntegrationContext }) {
