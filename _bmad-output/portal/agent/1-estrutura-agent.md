@@ -1,131 +1,46 @@
-Perfeito. Abaixo está a **documentação atual da Etapa 1 do Master Agent Trilink**, já consolidada com o que foi definido e com o que vocês **validaram na prática**.
+# Master Agent Trilink - Estado atual da arquitetura
 
----
+Atualizado em 2026-04-16.
 
-# Master Agent Trilink — Etapa 1
+## Visao geral
 
-## Fundação revisada do agente
+O Master Agent Trilink ja passou da fundacao inicial. O codigo atual possui um nucleo operacional em Go com bootstrap central, identidade persistida, registro local, heartbeat, desired state, reconcile engine, modulos plugaveis e um primeiro modulo remoto funcional para o ciclo RustDesk.
 
-## Visão geral
+O agente ainda nao deve ser tratado como completo para producao final, porque algumas capacidades seguem parciais: telemetria remota duravel, protecao local de segredos, inventario operacional real, supervisao avancada de processos e integracao completa do modulo de backup com `desired_state`.
 
-A Etapa 1 estabelece a base estrutural e operacional do **Master Agent Trilink**.
-
-O foco desta fase não é ainda aplicar configurações de módulos como RustDesk, Rathole ou backup, mas sim criar o **núcleo confiável do agente**, com capacidade de:
-
-* iniciar corretamente
-* gerar e persistir identidade local
-* registrar o dispositivo no portal
-* manter heartbeat periódico
-* consultar o desired state do portal
-* persistir estado local com segurança
-* operar com loops coordenados e canceláveis
-* preparar a base para o futuro mecanismo de reconcile
-
-Esta etapa já nasce com preocupações de produção, como:
-
-* desacoplamento via contratos
-* prevenção de importação cíclica
-* persistência local atômica
-* telemetria assíncrona
-* base para evolução da identidade da máquina
-* ciclo de vida controlado com `context`
-
----
-
-# Objetivo da Etapa 1
-
-A Etapa 1 tem como objetivo transformar o agente em um serviço com fundação sólida, previsível e extensível.
-
-## Objetivos funcionais
-
-* subir o agente a partir de um único ponto de entrada
-* inicializar dependências de forma centralizada
-* gerar ou reutilizar identidade da máquina
-* registrar o dispositivo no portal
-* manter loops de heartbeat e desired state
-* persistir o estado mínimo necessário para reinicialização limpa
-
-## Objetivos arquiteturais
-
-* separar domínio, core e infraestrutura
-* evitar acoplamento entre serviços
-* evitar ciclos de importação
-* permitir troca futura de implementações sem retrabalho
-* preparar a base para testes e para o mecanismo de reconcile
-
-## Objetivos operacionais
-
-* garantir que reinícios do agente reutilizem o estado local
-* garantir escrita segura de arquivos JSON
-* garantir que telemetria não bloqueie o funcionamento principal
-* garantir desligamento limpo por cancelamento de contexto
-
----
-
-# Escopo da Etapa 1
-
-Esta fase contempla exclusivamente a fundação do agente.
-
-## Incluído
-
-* estrutura inicial do projeto em Go
-* bootstrap central
-* container de dependências
-* modelos de domínio compartilhados
-* serviço principal do agente
-* serviço de identidade
-* serviço de registro
-* serviço de heartbeat
-* serviço de desired state
-* persistência local com escrita atômica
-* executor central básico
-* event bus assíncrono
-* cliente HTTP inicial em modo stub
-
-## Não incluído ainda
-
-* reconcile engine
-* diff entre current state e desired state
-* aplicação de mudanças por módulos
-* instalação/configuração de RustDesk
-* instalação/configuração de Rathole
-* execução de backup
-* atualização remota de componentes
-* criptografia local com DPAPI
-* Job Objects do Windows
-* integridade por hash dos binários embarcados
-* fila persistente de eventos
-* recovery com backup de estado
-
----
-
-# Estrutura lógica consolidada
-
-A estrutura atual do agent foi definida para separar claramente:
-
-* entrada da aplicação
-* orquestração
-* domínio compartilhado
-* serviços de núcleo
-* infraestrutura técnica
-* utilitários transversais
-
-## Estrutura do projeto
+## Estrutura atual
 
 ```text
-agent/
+apps/agent/
   cmd/
     agent/
+      main.go
 
   internal/
     app/
+      bootstrap.go
+      container.go
+      run.go
+
     domain/
+      applied_state.go
+      current_state.go
+      desired_state.go
+      device.go
+      event.go
+      module_state.go
+      reconcile_plan.go
+      remote_contracts.go
+      result.go
+
     core/
       agent/
       desiredstate/
       heartbeat/
       identity/
+      reconcile/
       registration/
+
     infra/
       config/
       http/
@@ -134,555 +49,344 @@ agent/
       runtime/
       storage/
       telemetry/
+
+    modules/
+      backup/
+      remote/
+      tunnel/
+
+    backup/
+      compress.go
+      gbak.go
+      hash.go
+      manager.go
+      policy.go
+      queue.go
+      report.go
+      result.go
+      task.go
+      upload.go
+      validate.go
+
     shared/
       retry/
-
-  go.mod
-  go.sum
 ```
 
----
+## Estado por camada
 
-# Princípios arquiteturais adotados
+### App
 
-## 1. Modelos compartilhados em `internal/domain`
+`internal/app` monta o container de dependencias e injeta as implementacoes concretas nos servicos.
 
-Os modelos puros de dados foram movidos para uma camada de domínio compartilhado para evitar acoplamento excessivo entre pacotes e reduzir risco de import cycles.
+Responsabilidades atuais:
 
-Essa camada concentra estruturas como:
+- carregar configuracao via `config.Load`
+- criar logger
+- criar state store local
+- criar portal client
+- criar executor
+- iniciar event bus assincrono
+- criar identity, registration, heartbeat, desired state e reconcile services
+- registrar os modulos `remote`, `tunnel` e `backup`
 
-* identidade do dispositivo
-* desired state
-* evento de telemetria
+Arquivo principal: `apps/agent/internal/app/bootstrap.go`.
 
-Isso permite que core, infra e futuros módulos usem os mesmos tipos sem criar dependências cruzadas perigosas.
+### Domain
 
----
+`internal/domain` concentra tipos compartilhados entre core, infra e modulos.
 
-## 2. Core depende de contratos, não de implementações
+Tipos principais:
 
-O núcleo do agente não conhece detalhes concretos de infraestrutura.
+- `DeviceIdentity`
+- `DesiredState`
+- `CurrentState`
+- `AppliedState`
+- `ReconcilePlan`
+- `ApplyResult`
+- `TelemetryEvent`
+- contratos remotos `discover/bootstrap/sync/ack`
 
-Ele depende de contratos como:
+O arquivo `remote_contracts.go` agora inclui constantes tipadas para:
 
-* provedor de identidade
-* serviço de registro
-* serviço de heartbeat
-* serviço de desired state
-* store de estado
-* executor
-* logger
-* event bus
+- schema versions remotas
+- fluxos de bootstrap
+- tipo de autenticacao de heartbeat
+- comandos da fila remota
+- status de ACK
+- reason codes de ACK
 
-Essa decisão permite:
+Isso reduz strings soltas no modulo remoto e mantem o contrato Go alinhado ao dominio remoto do portal.
 
-* maior testabilidade
-* menor acoplamento
-* troca futura de implementações sem impacto estrutural
-* evolução do runtime sem refatoração em cascata
+### Core / Agent
 
----
+`core/agent` coordena o ciclo de vida principal:
 
-## 3. Persistência local com escrita atômica
+1. inicia o agente
+2. resolve identidade local
+3. garante registro
+4. inicia loops concorrentes com `errgroup`
+5. executa heartbeat
+6. executa desired state
+7. executa health loop
+8. executa reconcile loop
+9. encerra por cancelamento de contexto
 
-A escrita de estado local foi desenhada para reduzir risco de corrupção de arquivo.
+### Core / Desired State
 
-O padrão adotado é:
+`core/desiredstate` carrega o ultimo desired state persistido e faz uma busca inicial imediatamente ao iniciar.
 
-* gerar o conteúdo em memória
-* escrever em arquivo temporário
-* substituir o arquivo final por rename
-* aplicar retry no rename para lidar com comportamento do Windows
+Estado atual:
 
-Essa abordagem protege os arquivos mais importantes do agente, como:
+- carrega `desired_state.json` se existir
+- chama o portal client no boot
+- persiste apenas quando a versao muda
+- emite evento `desired_state_updated` quando ha alteracao
+- fornece `GetLast` para o reconcile
 
-* `identity.json`
-* `registration.json`
-* `heartbeat.json`
-* `desired_state.json`
+Observacao importante: quando `PORTAL_AGENT_API_ENABLED=false`, o portal client retorna um desired state local minimo para permitir que o modulo `remote` rode sem depender de endpoints genericos de agente ainda inexistentes.
 
----
+### Core / Reconcile
 
-## 4. Telemetria separada de logging
+`core/reconcile` ja existe e roda em loop.
 
-A arquitetura diferencia claramente:
+Responsabilidades atuais:
 
-### Logging
+- obter desired state
+- inspecionar estado atual de cada modulo
+- gerar plano de reconcile
+- persistir `current_state.json`
+- persistir `reconcile_plan.json`
+- aplicar modulos com acoes pendentes
+- persistir `apply_results.json`
+- persistir `applied_state.json`
+- emitir evento `reconcile_applied`
 
-Uso local, humano e diagnóstico.
+O reconcile atual e funcional, mas ainda simples. Ele chama cada modulo e deixa a logica especifica de diff/aplicacao dentro do proprio modulo.
 
-Exemplos:
+### Infra / Config
 
-* início do agente
-* heartbeat enviado
-* desired state consultado
-* erro de comunicação
+Configuracao atual via env vars:
 
-### EventBus
+```text
+AGENT_LOG_LEVEL
+PORTAL_BASE_URL
+PORTAL_API_KEY
+PORTAL_AGENT_API_ENABLED
+REMOTE_ENABLED
+REMOTE_DISCOVERY_TOKEN
+REMOTE_INSTALL_TOKEN
+AGENT_VERSION
+AGENT_ENVIRONMENT
+AGENT_STATE_DIR
+```
 
-Uso operacional, orientado a máquina e portal.
+Defaults relevantes:
 
-Exemplos:
+- `PORTAL_BASE_URL=http://localhost:3000`
+- `PORTAL_AGENT_API_ENABLED=false`
+- `REMOTE_ENABLED=true`
+- `AGENT_VERSION=go-agent-v1`
+- `AGENT_ENVIRONMENT=Producao`
+- Windows: estado em `%ProgramData%\Trilink\agent`
+- Linux/macOS/dev: estado em `~/.trilink/agent`
 
-* registration succeeded
-* registration failed
-* desired state updated
-* heartbeat failed
+### Infra / HTTP
 
-Essa separação prepara a plataforma para dashboards, alertas e histórico operacional.
+`infra/http/portal_client.go` deixou de ser apenas stub para o modulo remoto.
 
----
+Endpoints remotos implementados:
 
-## 5. Telemetria assíncrona
+- `POST /api/remote/agents/discover`
+- `POST /api/remote/rustdesk/bootstrap`
+- `POST /api/remote/rustdesk/sync`
+- `POST /api/remote/rustdesk/ack`
 
-O `EventBus` foi desenhado para não bloquear os loops principais do agente.
+Comportamento atual:
 
-A publicação de eventos:
+- usa `Authorization: Bearer <PORTAL_API_KEY>` quando configurado
+- aceita resposta direta ou envelope `{ "data": ... }`
+- aplica retry simples para erro de rede, `429` e `5xx`
+- usa timeout HTTP de 30 segundos
 
-* usa buffer interno
-* opera em segundo plano
-* evita travamento do heartbeat ou desired state por latência de rede
+Endpoints genericos de agente continuam opcionais:
 
-No estado atual, a implementação ainda é simples e local, mas a arquitetura já está pronta para crescer.
+- `/api/agents/register`
+- `/api/agents/heartbeat`
+- `/api/agents/:id/desired-state`
 
----
+Esses endpoints so sao chamados quando `PORTAL_AGENT_API_ENABLED=true`. Isso evita quebrar o boot enquanto o portal atual ainda expoe principalmente a superficie `remote/*`.
 
-## 6. Fonte de identidade pluggável
+### Infra / Storage
 
-O serviço de identidade não gera a identidade diretamente.
+`infra/storage` persiste JSON com escrita atomica.
 
-Ele depende de uma fonte de identidade separada.
+Arquivos usados atualmente:
 
-Na implementação atual, a identidade usa:
+- `identity.json`
+- `registration.json`
+- `heartbeat.json`
+- `desired_state.json`
+- `current_state.json`
+- `reconcile_plan.json`
+- `apply_results.json`
+- `applied_state.json`
+- `remote_state.json`
 
-* hostname
-* sistema operacional
-* hash derivado desses dados
+A escrita usa arquivo temporario + rename com retry, reduzindo risco de corrupcao em Windows.
 
-Isso está marcado como **fallback inicial**.
+### Infra / Telemetry
 
-A arquitetura já foi preparada para futura evolução para uma identidade mais estável no Windows, como:
+Existe event bus assincrono com buffer.
 
-* `MachineGuid` do registro
+Estado atual:
 
----
+- eventos sao publicados sem bloquear os loops principais
+- consumo ainda e local/simples
+- ainda nao ha transporte duravel para portal
+- ainda nao ha fila persistida de eventos
 
-## 7. Ciclo de vida coordenado por contexto
+### Modules / Remote
 
-O agente principal opera com:
+`modules/remote` e o modulo mais avancado hoje.
 
-* `context.Context`
-* cancelamento central
-* `errgroup` para coordenação dos loops
+Fluxo implementado:
 
-Isso garante que o agente tenha comportamento previsível em:
+1. inspeciona `remote_state.json`
+2. se ha `agent_token` valido, executa sync token-first
+3. se nao ha token, executa discover
+4. processa `bootstrapFlow`
+5. se necessario e possivel, executa bootstrap com `REMOTE_INSTALL_TOKEN`
+6. persiste `agent_token`, `host_id`, alias e metadados locais
+7. executa sync
+8. processa `commandQueue`
+9. envia ACK por comando
+10. invalida token local quando recebe `ROTATE_TOKEN_REQUIRED`
 
-* inicialização
-* operação contínua
-* shutdown
-* falhas críticas
+Comandos tratados hoje:
 
----
+- `REAPPLY_ALIAS`: ACK noop
+- `REAPPLY_CONFIG`: ACK noop
+- `ROTATE_TOKEN_REQUIRED`: ACK e marca rebootstrap
+- `UPGRADE_CLIENT`: retorna falha controlada porque upgrade ainda nao foi implementado
+- comando desconhecido: ACK failed com `COMMAND_UNKNOWN`
 
-# Componentes da Etapa 1
+Limitacoes atuais do remote:
 
-## App
+- ainda nao aplica configuracao RustDesk real
+- ainda nao coleta inventario operacional real
+- ainda nao persiste fila de ACK pendente se o envio do ACK falhar
+- ainda nao executa upgrade de binario
+- ainda nao protege `agent_token` com DPAPI
 
-A camada `app` é responsável por montar o container de dependências e iniciar o serviço principal.
+### Modules / Tunnel
 
-Ela faz:
+`modules/tunnel` ainda e estrutural.
 
-* carregamento de configuração
-* construção do logger
-* construção do state store
-* construção do client HTTP
-* construção do executor
-* construção do event bus
-* construção dos serviços do core
-* entrega do serviço principal do agente
+Estado atual:
 
-É a porta de entrada da aplicação.
+- participa do reconcile
+- inspeciona estado atual como ausente/stub
+- gera acoes quando desired state diverge
+- apply ainda nao instala/configura Rathole
 
----
+### Modules / Backup
 
-## Domain
+`modules/backup` ainda e o adaptador de reconcile do modulo de backup, mas segue em stub.
 
-A camada `domain` concentra os tipos compartilhados da aplicação.
+Importante: o pacote `internal/backup` ja possui pipeline interno bem mais avancado. O que falta e conectar esse pipeline ao modulo `modules/backup` e ao `desired_state`.
 
-Ela representa apenas dados, sem comportamento operacional.
+## Fluxo operacional atual
 
-Atualmente cobre:
+### Boot
 
-* identidade do dispositivo
-* desired state
-* evento de telemetria
+```text
+main.go
+  -> app.Run
+  -> app.Bootstrap
+  -> config.Load
+  -> cria dependencias
+  -> agent.Service.Run
+```
 
----
+### Runtime
 
-## Core / Agent
+```text
+identity.Get
+registration.EnsureRegistered
 
-É o serviço principal do agente.
+goroutines:
+  heartbeat.Start
+  desiredstate.Start
+  health loop
+  reconcile.Start
+```
 
-Responsabilidades:
+### Reconcile remoto
 
-* iniciar o agente
-* obter identidade
-* garantir registro
-* iniciar heartbeat
-* iniciar desired state
-* manter health loop
-* coordenar o ciclo de vida dos loops
+```text
+desired state
+  -> current state
+  -> plan
+  -> remote.Inspect
+  -> remote.Plan
+  -> remote.Apply
+     -> sync token-first
+     -> ou discover/bootstrap/sync
+     -> ack commandQueue
+```
 
-Ele ainda não faz reconcile, mas já funciona como núcleo de orquestração básica.
+## Estado local
 
----
+### `remote_state.json`
 
-## Core / Identity
+Contem:
 
-Responsável por:
+- `agent_token`
+- `host_id`
+- `alias`
+- `rustdesk_id`
+- `machine_name`
+- `rebootstrap_required`
+- `last_bootstrap_flow`
+- `last_sync_at`
+- `updated_at`
 
-* tentar carregar identidade já persistida
-* gerar nova identidade se necessário
-* persistir a identidade
-* devolver a identidade do dispositivo para o restante do sistema
+Esse arquivo hoje e sensivel porque contem `agent_token`. Proteger esse estado com DPAPI e uma prioridade antes de producao.
 
-Na etapa atual, a identidade já é persistida e reutilizada entre reinicializações.
+## Validacao atual
 
----
+Com o workspace Go configurado pela raiz:
 
-## Core / Registration
+```powershell
+$env:GOCACHE='C:\DEV\documentacao-syspro\apps\agent\.gocache'
+$env:GOWORK='C:\DEV\documentacao-syspro\go.work'
+go test ./apps/agent/...
+```
 
-Responsável por:
+Resultado atual: todos os pacotes compilam; nao ha testes unitarios dedicados ainda.
 
-* verificar se o dispositivo já está registrado
-* registrar no portal quando necessário
-* persistir o estado de registro
-* emitir evento de sucesso ou falha
+## Decisoes consolidadas
 
-Na etapa atual, a comunicação com o portal ainda está em stub, mas o fluxo lógico já está completo.
+- manter tipos compartilhados em `internal/domain`
+- manter contratos de consumo nas camadas core
+- usar state store local atomico
+- usar `context` e `errgroup`
+- usar reconcile modular
+- manter APIs genericas de agente como opt-in ate existirem no portal
+- implementar remote primeiro porque o portal ja tem endpoints `remote/*`
+- nao copiar arquivos gerados sem adaptar aos contratos reais do repo
 
----
+## Roadmap tecnico recomendado
 
-## Core / Heartbeat
-
-Responsável por:
-
-* executar heartbeat periódico
-* persistir o timestamp do último sucesso
-* emitir evento em caso de falha
-
-Na etapa atual, o heartbeat já roda em loop e atualiza o estado local.
-
----
-
-## Core / Desired State
-
-Responsável por:
-
-* consultar periodicamente o desired state do portal
-* manter o último desired state em memória
-* carregar o desired state persistido ao iniciar
-* persistir o desired state quando mudar
-* emitir evento apenas quando houver alteração real
-
-Um refinamento importante já foi aplicado aqui:
-
-* no boot, o serviço carrega o cache salvo em disco
-* isso evita falso evento de atualização logo após reiniciar o agente
-
----
-
-## Infra / Config
-
-Responsável por fornecer a configuração de execução do agente.
-
-Na etapa atual, cobre:
-
-* nível de log
-* configuração do portal
-* diretório de estado local
-
----
-
-## Infra / HTTP
-
-Responsável pela comunicação com o portal.
-
-Na etapa atual está em modo stub e oferece operações iniciais para:
-
-* registrar dispositivo
-* enviar heartbeat
-* obter desired state
-
----
-
-## Infra / Logging
-
-Responsável pelo log local da aplicação.
-
-Na etapa atual a implementação é simples, mas suficiente para desenvolvimento e validação estrutural.
-
----
-
-## Infra / Platform
-
-Responsável por detalhes específicos do ambiente operacional.
-
-Na etapa atual cobre a fonte de identidade Windows inicial.
-
----
-
-## Infra / Runtime
-
-Responsável por executar processos externos de forma centralizada.
-
-Na etapa atual já existe um executor básico que captura:
-
-* saída padrão
-* saída de erro
-* código de retorno
-* erro de execução
-
-Ele será a base futura para execução de RustDesk, Rathole, Rclone e tarefas auxiliares.
-
----
-
-## Infra / Storage
-
-Responsável pela persistência local do estado do agente.
-
-Características atuais:
-
-* serialização em JSON
-* escrita atômica
-* retry no rename
-* leitura e gravação centralizadas
-
-É uma das camadas mais críticas da Etapa 1.
-
----
-
-## Infra / Telemetry
-
-Responsável pela emissão assíncrona de eventos operacionais.
-
-No estágio atual:
-
-* há implementação `Noop`
-* há implementação assíncrona com buffer
-* eventos são consumidos localmente
-
-A estrutura já está pronta para futura integração real com o portal.
-
----
-
-## Shared / Retry
-
-Responsável por utilitário simples de retry.
-
-Hoje é usado no rename da escrita atômica, especialmente para reduzir falhas transitórias no Windows.
-
----
-
-# Fluxo operacional atual
-
-## Fluxo de inicialização
-
-O fluxo atual do agente é:
-
-1. iniciar aplicação
-2. carregar configuração
-3. inicializar logger
-4. inicializar state store
-5. inicializar client HTTP
-6. inicializar executor
-7. inicializar event bus
-8. inicializar source de identidade
-9. construir serviços do core
-10. iniciar serviço principal do agente
-
----
-
-## Fluxo de identidade
-
-1. tentar carregar `identity.json`
-2. se existir e for válido, reutilizar
-3. se não existir, gerar nova identidade
-4. persistir identidade
-5. devolver identidade ao núcleo do agente
-
----
-
-## Fluxo de registro
-
-1. tentar carregar `registration.json`
-2. se o dispositivo já estiver marcado como registrado, seguir
-3. se não estiver, executar registro no portal
-4. persistir estado de registro
-5. emitir evento de sucesso ou falha
-
----
-
-## Fluxo de heartbeat
-
-1. iniciar ticker periódico
-2. enviar heartbeat ao portal
-3. em caso de sucesso, persistir `heartbeat.json`
-4. em caso de falha, registrar aviso e emitir evento
-5. repetir enquanto o contexto estiver ativo
-
----
-
-## Fluxo de desired state
-
-1. carregar `desired_state.json` no boot, se existir
-2. iniciar ticker periódico
-3. consultar desired state do portal
-4. comparar com o último estado carregado
-5. se mudou, persistir novo estado e emitir evento
-6. se não mudou, apenas registrar verificação
-7. repetir enquanto o contexto estiver ativo
-
----
-
-## Fluxo de shutdown
-
-1. receber cancelamento de contexto
-2. interromper loops principais
-3. finalizar goroutines coordenadas
-4. encerrar o agente de forma limpa
-
-A base do shutdown já está funcional. A observabilidade de encerramento pode ser expandida nas próximas etapas.
-
----
-
-# Estado local persistido
-
-A Etapa 1 já produz e mantém os seguintes arquivos de estado:
-
-## `identity.json`
-
-Representa a identidade persistida do dispositivo.
-
-Contém:
-
-* `device_id`
-* `hostname`
-* `os`
-* `identity_source`
-
----
-
-## `registration.json`
-
-Representa se o dispositivo já foi registrado com sucesso.
-
-Contém:
-
-* status de registro
-* device id associado
-
----
-
-## `heartbeat.json`
-
-Representa o último heartbeat bem-sucedido.
-
-Contém:
-
-* timestamp do último sucesso
-
----
-
-## `desired_state.json`
-
-Representa o último desired state persistido localmente.
-
-Contém:
-
-* versão
-* timestamp de atualização
-
----
-
-# Resultado validado na prática
-
-A Etapa 1 não ficou apenas no desenho; ela foi validada com execução real.
-
-## Validações concluídas
-
-* compilação do módulo sem erro
-* inicialização do agente via `main`
-* criação correta dos arquivos de estado
-* execução periódica do heartbeat
-* execução periódica da consulta de desired state
-* reaproveitamento de identidade já persistida
-* reaproveitamento de estado de registro
-* desired state carregado do cache no boot
-* ausência de falso positivo de atualização do desired state ao reiniciar
-* telemetria assíncrona sem travar os loops principais
-
----
-
-## Evidências funcionais observadas
-
-Durante os testes, o agente demonstrou:
-
-* criação inicial da identidade
-* registro inicial do dispositivo
-* carregamento posterior da identidade persistida
-* reconhecimento de dispositivo já registrado
-* atualização contínua do heartbeat
-* consulta contínua do desired state
-* carregamento do desired state do cache no boot
-
----
-
-# Decisões de projeto consolidadas nesta etapa
-
-## Adotadas
-
-* `internal/domain` para tipos compartilhados
-* contratos nos pacotes consumidores
-* identidade com source separada
-* persistência local atômica
-* retry no rename
-* telemetria assíncrona
-* uso de `context`
-* coordenação por `errgroup`
-* desired state com cache carregado no boot
-
-## Postergadas para próximas etapas
-
-* DPAPI
-* MachineGuid real
-* hash de integridade dos binários
-* recuperação por `.bak`
-* fila persistente de eventos
-* execution supervision com Job Objects
-* retries com backoff exponencial
-* reconcile engine
-* current state model
-* apply de módulos
-
----
-
-# Limitações atuais conhecidas
-
-A Etapa 1 está sólida, mas ainda intencionalmente simples em alguns pontos.
-
-## Limitações atuais
-
-* logger ainda básico
-* cliente HTTP ainda em stub
-* event bus ainda sem envio real ao portal
-* executor ainda sem supervisão avançada de processos
-* identity ainda usando fallback por hostname
-* storage ainda sem recovery por backup secundário
-* sem current state consolidado
-* sem reconcile
-* sem aplicação de desired state em módulos reais
-
-Essas limitações são esperadas para a fase atual.
-
----
+1. Conectar `modules/backup` ao pipeline `internal/backup`.
+2. Expandir `domain.BackupDesiredState` para suportar multiplas politicas.
+3. Persistir fila de backup em disco.
+4. Coletar snapshots reais para `RemoteSyncRequest`.
+5. Implementar fila persistente para ACK remoto pendente.
+6. Proteger `remote_state.json` com DPAPI no Windows.
+7. Evoluir identidade para `MachineGuid` com fallback controlado.
+8. Implementar aplicacao real do RustDesk em `REAPPLY_CONFIG`.
+9. Implementar upgrade controlado do agente.
+10. Adicionar testes com `httptest` para `portal_client`.
+11. Adicionar testes unitarios do modulo remote com fake client/store.
+12. Criar transporte duravel de telemetria para o portal.

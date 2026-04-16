@@ -1,342 +1,306 @@
-# Master Agent Trilink — Módulo de Backup
+# Master Agent Trilink - Modulo de Backup
 
-## Visão Geral
+Atualizado em 2026-04-16.
 
-O módulo de backup do **Master Agent Trilink** é responsável por executar o ciclo completo de proteção das bases do cliente, com foco em:
+## Visao geral
 
-- backup lógico do Firebird
-- compressão agressiva para economia de banda
-- envio confiável para o destino remoto
-- telemetria detalhada por etapa
-- execução declarativa baseada em política recebida do portal
+O modulo de backup do Master Agent Trilink tem como objetivo executar backup logico de bases Firebird, compactar o artefato, enviar para destino remoto e reportar o resultado ao portal.
 
-O módulo **não trabalha com cópia cega de arquivos `.fdb`**.  
-O fluxo padrão utiliza o **`gbak`** para gerar backup lógico, seguido por compressão e transferência.
+O pacote `internal/backup` ja contem a maior parte do pipeline tecnico. O adaptador `internal/modules/backup`, que liga esse pipeline ao reconcile e ao `desired_state`, ainda esta em stub.
 
----
+Em termos praticos:
 
-# Objetivos
+- pipeline interno: implementado em estrutura
+- modulo de reconcile: parcial/stub
+- integracao com desired state: pendente
+- persistencia de fila: pendente
+- report HTTP: implementado como componente, mas ainda nao conectado no bootstrap
 
-## Funcionais
+## Estrutura atual do codigo
 
-- executar backup de uma ou mais bases por dispositivo
-- suportar múltiplos caminhos e múltiplas instâncias
-- compactar arquivos antes do envio
-- enviar com retry controlado
-- reportar sucesso ou falha por etapa
+```text
+apps/agent/internal/backup/
+  compress.go
+  gbak.go
+  hash.go
+  manager.go
+  policy.go
+  queue.go
+  report.go
+  result.go
+  task.go
+  upload.go
+  validate.go
 
-## Operacionais
+apps/agent/internal/modules/backup/
+  module.go
+```
 
-- reduzir tráfego de rede
-- evitar intervenção manual
-- padronizar backup em todos os clientes
-- permitir monitoramento central no portal
-- sustentar política por cliente, dispositivo e serviço
-
----
-
-# Escopo do Módulo
-
-## O módulo cobre
-
-- descoberta de bases elegíveis
-- execução do `gbak`
-- validação do artefato `.fbk`
-- compressão com `7z`
-- upload via `rclone`
-- report de resultado
-- fila e retry
-
-## O módulo não cobre
-
-- gestão de storage remoto
-- interface visual de acompanhamento
-- retenção final no servidor remoto
-- restore automático
-
----
-
-# Pipeline do Backup
-
-## Fluxo padrão
+## Pipeline previsto
 
 ```text
 Database (.fdb)
-   ↓
-GBAK
-   ↓
-Backup lógico (.fbk)
-   ↓
-Validação
-   ↓
-7-Zip
-   ↓
-Arquivo compactado (.7z)
-   ↓
-Rclone
-   ↓
-Destino remoto
-   ↓
-Report para o Portal
-````
-
-## Etapas do pipeline
-
-### 1. Preparação
-
-- validar política de backup
-- resolver caminhos
-- validar credenciais
-- preparar diretório temporário
-- verificar espaço em disco
-
-### 2. Execução do GBAK
-
-- chamar `gbak.exe`
-- gerar arquivo `.fbk`
-- capturar stdout/stderr
-- medir duração
-
-### 3. Validação do `.fbk`
-
-- verificar existência
-- verificar tamanho mínimo
-- verificar timestamp
-- marcar falha se arquivo estiver ausente ou inválido
-
-### 4. Compressão
-
-- compactar `.fbk` em `.7z`
-- aplicar perfil de compressão
-- opcionalmente remover `.fbk` após sucesso
-- medir duração
-
-### 5. Upload
-
-- enviar o `.7z` ao destino remoto
-- aplicar limite de banda, se configurado
-- capturar log do `rclone`
-- medir duração
-
-### 6. Report
-
-- consolidar metadata
-- registrar status final
-- enviar resultado ao portal
-
----
-
-# Estado Atual da Implementação
-
-## Decisões já consolidadas
-
-- uso de `exec.CommandContext` em subprocessos
-- uso de `CombinedOutput` para capturar saída
-- `gbak` como fonte oficial do backup lógico
-- compressão via `7z.exe`
-- envio via `rclone`
-- resultado estruturado por execução
-- hash do artefato final
-- fila com retry e backoff
-- report de resultado para o portal
-
-## Ajustes feitos no código inicial
-
-- remoção de credenciais hardcoded
-- remoção de exclusão automática via `-sdel`
-- validação de artefatos após cada etapa
-- uso de `rclone copyto` para destino exato
-- medição de duração por etapa
-- separação clara entre policy, task, result e queue
-
----
-
-# Estrutura do Código
-
-## Estrutura atual do módulo
-
-```text
-internal/backup/
-├── manager.go
-├── policy.go
-├── task.go
-├── result.go
-├── validate.go
-├── hash.go
-├── gbak.go
-├── compress.go
-├── upload.go
-├── report.go
-└── queue.go
+  -> gbak
+  -> backup logico (.fbk)
+  -> validacao do .fbk
+  -> 7-Zip
+  -> arquivo compactado (.7z)
+  -> hash SHA-256
+  -> rclone copyto
+  -> report ao portal
 ```
 
----
+O fluxo evita copia cega de `.fdb` e usa `gbak` como etapa oficial para gerar backup logico.
 
-# Responsabilidades por Arquivo
+## Estado por arquivo
 
-## `manager.go`
+### `policy.go`
 
-Orquestra o ciclo completo de backup.
+Define os contratos internos de politica:
 
-Responsável por:
+- `BackupPolicy`
+- `DatabaseCredentials`
+- `CompressionPolicy`
+- `UploadPolicy`
+- `CompressionProfile`
+- `UploadType`
 
-- criar a tarefa
-- montar caminhos temporários
-- controlar timeout global da execução
-- chamar `gbak`, compressão, hash e upload
-- consolidar o `Result`
+Estado atual: implementado como modelo interno.
 
----
+Limite atual: ainda nao ha conversao de `domain.BackupDesiredState` para `BackupPolicy`.
 
-## `policy.go`
+### `task.go`
 
-Define os contratos internos de política de backup.
+Representa uma execucao em runtime.
 
-Responsável por:
+Campos atuais:
 
-- modelagem da política
-- definição de perfis de compressão
-- definição do destino de upload
-- encapsulamento de credenciais
-- parâmetros de timeout e diretório de trabalho
+- id da task
+- politica aplicada
+- timestamps de inicio e fim
+- stage atual
+- caminhos do `.fbk` e do `.7z`
+- tamanhos dos artefatos
+- duracoes por etapa
+- ultimo erro
 
-### Observação
+Estado atual: implementado.
 
-`policy.go` **continua necessário**, pois é a base de entrada do pipeline e o ponto de integração com o `desired_state`.
+### `result.go`
 
----
+Consolida o resultado final da task.
 
-## `task.go`
+Inclui:
 
-Representa uma execução de backup em runtime.
+- task id
+- policy id
+- service id
+- database path
+- status
+- erro por stage
+- duracao total
+- tamanhos
+- compression ratio
+- duracoes por etapa
+- hash
 
-Responsável por:
+Estado atual: implementado.
 
-- manter identificador da tarefa
-- armazenar estado corrente
-- rastrear estágio atual
-- armazenar caminhos de artefatos
-- registrar durações e tamanhos
+### `validate.go`
 
----
+Valida artefatos intermediarios.
 
-## `result.go`
+Estado atual: implementado.
 
-Modela o resultado consolidado da execução.
+Responsabilidades:
 
-Responsável por:
+- verificar existencia
+- validar tamanho minimo
+- bloquear continuidade quando artefato esta ausente ou invalido
 
-- representar sucesso ou falha
-- expor metadados de duração
-- expor tamanhos
-- expor hash
-- registrar etapa e mensagem de erro
+### `hash.go`
 
----
+Calcula SHA-256 do artefato final.
 
-## `validate.go`
+Estado atual: implementado.
 
-Valida artefatos intermediários.
+### `gbak.go`
 
-Responsável por:
+Executa o `gbak` via subprocesso.
 
-- verificar se arquivo existe
-- validar tamanho mínimo
-- bloquear continuidade em caso de artefato inválido
+Estado atual: implementado em estrutura.
 
----
+Responsabilidades:
 
-## `hash.go`
+- montar comando
+- executar com contexto
+- capturar saida
+- medir duracao
+- validar `.fbk`
 
-Calcula hash SHA-256 do artefato final.
+Ponto de atencao: credenciais precisam vir da politica/desired state e nao devem ser logadas.
 
-Responsável por:
+### `compress.go`
 
-- abrir arquivo
+Executa compressao com `7z`.
+
+Estado atual: implementado em estrutura.
+
+Regras preservadas:
+
+- nao usar exclusao automatica insegura
+- remover `.fbk` apenas quando politica permitir e depois de sucesso validado
+- validar `.7z`
+- medir duracao
+
+### `upload.go`
+
+Executa upload com `rclone copyto`.
+
+Estado atual: implementado em estrutura.
+
+Regras:
+
+- usar destino exato
+- nao usar `sync`
+- respeitar `bwlimit` quando configurado
+- medir duracao
+
+### `report.go`
+
+Envia resultado de backup ao portal.
+
+Estado atual: componente existe, mas ainda nao esta conectado no bootstrap do agente.
+
+Endpoint documentado:
+
+```http
+POST /agents/backup/result
+```
+
+Ponto de decisao: alinhar rota final com a superficie atual do portal. O portal hoje esta mais consolidado em `/api/remote/*`; antes de ativar report em producao, confirmar se o endpoint deve ser `/api/agents/backup/result`, `/agents/backup/result` ou outro contrato versionado.
+
+### `queue.go`
+
+Gerencia jobs em memoria.
+
+Estado atual: implementado em memoria.
+
+Funcionalidades atuais:
+
+- enfileirar job
+- controlar status
+- evitar concorrencia por `DatabasePath`
+- retry com backoff exponencial
+- disparar report assincrono apos execucao
+
+Limite atual:
+
+- fila nao e persistida em disco
+- jobs sao perdidos se o agente reiniciar
+- ainda nao existe recovery de boot para jobs incompletos
+
+### `manager.go`
+
+Orquestra o pipeline completo.
+
+Estado atual: implementado em estrutura.
+
+Responsabilidades:
+
+- criar task
+- preparar paths
+- executar `gbak`
+- validar `.fbk`
+- comprimir
+- validar archive
 - calcular hash
-- retornar assinatura para telemetria e integridade
+- fazer upload
+- consolidar `Result`
 
----
+### `internal/modules/backup/module.go`
 
-## `gbak.go`
+Este e o adaptador que deveria ligar backup ao reconcile.
 
-Executa o backup lógico do Firebird.
+Estado atual: stub.
 
-Responsável por:
+Comportamento atual:
 
-- montar o comando do `gbak`
-- usar credenciais recebidas via política
-- capturar stdout/stderr
-- validar o `.fbk` gerado
-- medir duração da etapa
+- `Inspect` retorna modulo ausente
+- `Plan` cria acoes quando desired diverge do current
+- `Apply` retorna mensagem de stub
 
----
+Esse e o principal gap do modulo de backup.
 
-## `compress.go`
+## Desired state atual
 
-Executa compressão com `7z`.
+O tipo atual em `domain.BackupDesiredState` e simples:
 
-Responsável por:
+```go
+type BackupDesiredState struct {
+    Enabled       bool
+    Version       string
+    Schedule      string
+    RetentionDays int
+    Target        string
+}
+```
 
-- aplicar perfil de compressão
-- gerar `.7z`
-- validar arquivo gerado
-- remover `.fbk` apenas se a política permitir
+Esse modelo nao e suficiente para o pipeline real, porque faltam:
 
----
+- lista de politicas
+- service id
+- database path
+- gbak path
+- 7z path
+- rclone path
+- working dir
+- timeout
+- credenciais do banco
+- politica de compressao
+- politica de upload
+- limites de banda
+- estrategia de retry
 
-## `upload.go`
+## Modelo recomendado para evoluir
 
-Executa envio com `rclone`.
+Evoluir `BackupDesiredState` para algo proximo de:
 
-Responsável por:
+```go
+type BackupDesiredState struct {
+    Enabled  bool
+    Version  string
+    Policies []BackupDesiredPolicy
+}
 
-- resolver o arquivo fonte
-- montar destino remoto
-- aplicar limite de banda
-- executar `copyto`
-- medir duração do upload
+type BackupDesiredPolicy struct {
+    ID           string
+    ServiceID    string
+    Enabled      bool
+    Schedule     string
+    DatabasePath string
+    GbakPath     string
+    SevenZipPath string
+    RclonePath   string
+    WorkingDir   string
+    TimeoutMinutes int
+    CredentialsRef string
+    Compression BackupDesiredCompression
+    Upload      BackupDesiredUpload
+}
+```
 
----
+Credenciais sensiveis devem preferencialmente vir por referencia ou por canal protegido, nao como texto puro persistido no desired state local.
 
-## `report.go`
-
-Envia o resultado da execução ao portal.
-
-Responsável por:
-
-- montar payload com `instance_id`
-- serializar resultado
-- enviar para `/agents/backup/result`
-- tratar erro de comunicação
-    
----
-
-## `queue.go`
-
-Gerencia fila de execução.
-
-Responsável por:
-
-- enfileirar jobs
-    
-- processar jobs elegíveis
-    
-- impedir concorrência na mesma base
-    
-- aplicar retry com backoff exponencial
-    
-- disparar report assíncrono após execução
-    
-
----
-
-# Estrutura de Runtime
-
-## Diretórios locais
+## Runtime local recomendado
 
 ```text
 C:\ProgramData\Trilink\
+  agent\
+    identity.json
+    desired_state.json
+    remote_state.json
+
   backup\
     queue\
     temp\
@@ -344,581 +308,88 @@ C:\ProgramData\Trilink\
     logs\
 ```
 
-## Finalidade
+## Estados de job
 
-### `queue/`
+Estados ja modelados:
 
-Armazena jobs pendentes ou reprocessáveis.
+- `queued`
+- `running`
+- `success`
+- `failed`
+- `retry_wait`
+- `canceled`
 
-### `temp/`
+Tipos de job ja modelados:
 
-Armazena arquivos temporários de trabalho:
+- `scheduled`
+- `manual`
+- `retry`
+- `boot`
 
-- `.fbk`
-    
-- `.7z`
-    
-- arquivos intermediários
-    
+Stages ja modelados:
 
-### `archives/`
-
-Opcional para retenção local curta.
-
-### `logs/`
-
-Logs por execução:
-
+- `prepare`
 - `gbak`
-    
-- compressão
-    
-- upload
-    
-- report
-    
-
----
-
-# Política de Backup
-
-## Modelo conceitual
-
-Cada política representa uma base específica ou um serviço de banco específico.
-
-## Exemplo
-
-```json
-{
-  "id": "bkp-prod",
-  "service_id": "firebird-prod",
-  "database_path": "C:\\Dados\\PROD.FDB",
-  "gbak_path": "C:\\Program Files\\Firebird\\Firebird_3_0\\gbak.exe",
-  "enabled": true,
-  "schedule": "0 2 * * *",
-  "timeout_minutes": 120,
-  "compression": {
-    "enabled": true,
-    "profile": "max",
-    "delete_source_after_success": true
-  },
-  "upload": {
-    "type": "sftp",
-    "remote_name": "trilink-remote",
-    "remote_path": "/backup/clientes/cliente-abc/prod",
-    "bwlimit": "2M"
-  }
-}
-```
-
----
-
-# Contratos Internos
-
-## `BackupPolicy`
-
-```go
-type BackupPolicy struct {
-	ID           string
-	ServiceID    string
-	DatabasePath string
-	GbakPath     string
-	SevenZipPath string
-	RclonePath   string
-	WorkingDir   string
-	Timeout      time.Duration
-	Credentials  DatabaseCredentials
-	Compression  CompressionPolicy
-	Upload       UploadPolicy
-}
-```
-
-## `DatabaseCredentials`
-
-```go
-type DatabaseCredentials struct {
-	Username string
-	Password string
-}
-```
-
-## `CompressionPolicy`
-
-```go
-type CompressionPolicy struct {
-	Enabled                  bool
-	Profile                  CompressionProfile
-	DeleteSourceAfterSuccess bool
-}
-```
-
-## `UploadPolicy`
-
-```go
-type UploadPolicy struct {
-	Type       UploadType
-	RemoteName string
-	RemotePath string
-	BwLimit    string
-}
-```
-
-## `Task`
-
-```go
-type Task struct {
-	ID           string
-	Policy       BackupPolicy
-	StartedAt    time.Time
-	FinishedAt   time.Time
-	CurrentStage Stage
-
-	FBKPath     string
-	ArchivePath string
-
-	FBKSizeBytes     int64
-	ArchiveSizeBytes int64
-
-	GbakDuration     time.Duration
-	CompressDuration time.Duration
-	UploadDuration   time.Duration
-
-	LastError error
-}
-```
-
-## `Result`
-
-```go
-type Result struct {
-	TaskID          string       `json:"task_id"`
-	PolicyID        string       `json:"policy_id"`
-	ServiceID       string       `json:"service_id"`
-	DatabasePath    string       `json:"database_path"`
-	Status          ResultStatus `json:"status"`
-	ErrorStage      string       `json:"error_stage,omitempty"`
-	ErrorMessage    string       `json:"error_message,omitempty"`
-	StartedAt       time.Time    `json:"started_at"`
-	FinishedAt      time.Time    `json:"finished_at"`
-	DurationSeconds int          `json:"duration_seconds"`
-
-	FBKSizeBytes     int64   `json:"fbk_size_bytes"`
-	ArchiveSizeBytes int64   `json:"archive_size_bytes"`
-	CompressionRatio float64 `json:"compression_ratio"`
-
-	GbakDurationSeconds     int `json:"gbak_duration_seconds"`
-	CompressDurationSeconds int `json:"compress_duration_seconds"`
-	UploadDurationSeconds   int `json:"upload_duration_seconds"`
-
-	Hash string `json:"hash,omitempty"`
-}
-```
-
----
-
-# Etapa 1 — Descoberta
-
-## Objetivo
-
-Descobrir bases candidatas antes de existir política fixa no portal.
-
-## Fontes de descoberta
-
-- caminhos padrões
-- varredura controlada em diretórios conhecidos
-- informação trazida por discovery do agente
-- configuração recebida do portal
-
-## Regra operacional
-
-A descoberta ajuda no onboarding, mas a execução definitiva deve usar o que foi aprovado no `desired_state`.
-
----
-
-# Etapa 2 — Execução do GBAK
-
-## Objetivo
-
-Gerar backup lógico da base Firebird.
-
-## Entrada
-
-- caminho da base
-- caminho do `gbak.exe`
-- credenciais
-- destino temporário
-- timeout
-
-## Saída
-
-- arquivo `.fbk`
-- duração
-- stdout/stderr
-- status
-
-## Regras
-
-- executar com contexto e timeout
-- não hardcodar credenciais no código
-- registrar saída detalhada
-- validar artefato ao final
-
-## Exemplo conceitual
-
-```go
-cmd := exec.CommandContext(ctx, gbakPath,
-    "-b",
-    "-v",
-    "-user", user,
-    "-pass", pass,
-    databasePath,
-    backupFile,
-)
-```
-
----
-
-# Etapa 3 — Validação do `.fbk`
-
-## Objetivo
-
-Garantir que o artefato intermediário é minimamente válido antes de seguir.
-
-## Validações mínimas
-
-- arquivo existe
-- tamanho maior que zero
-- permissões de leitura válidas
-
-## Resultado
-
-- sucesso
-- falha com motivo
-- bloqueio da etapa seguinte em caso de erro
-
----
-
-# Etapa 4 — Compressão
-
-## Objetivo
-Reduzir o volume de dados enviados pela rede.
-
-## Estratégia
-Compressão com `7z.exe` embutido no agente.
-
-## Perfis atuais
-
-### `fast`
-Menor uso de CPU, menor compressão.
-
-### `balanced`
-Equilíbrio entre CPU e tamanho final.
-
-### `max`
-Compressão máxima, melhor economia de banda.
-
-## Exemplo conceitual
-
-```go
-cmd := exec.CommandContext(ctx, sevenZipPath,
-    "a",
-    archiveFile,
-    sourceFile,
-    "-mx=9",
-    "-mmt=on",
-)
-```
-
-## Regras
-
-- não usar `-sdel` diretamente
-- só remover o `.fbk` após sucesso validado
-- registrar duração da compressão
-- validar o `.7z` gerado
-- calcular hash do artefato final
-
----
-
-# Etapa 5 — Upload
-
-## Objetivo
-
-Enviar o backup compactado ao destino remoto configurado.
-
-## Estratégia atual
-
-- destino: **SFTPGo**
-- protocolo: **SFTP**
-- transporte: **rclone**
-
-## Comando adotado
-
-Uso de `copyto` para envio do arquivo ao destino exato.
-
-## Exemplo conceitual
-
-```go
-cmd := exec.CommandContext(ctx, rclonePath,
-    "copyto",
-    sourceFile,
-    remoteTarget,
-    "--bwlimit", "2M",
-)
-```
-
-## Regras
-
-- usar `copyto`
-- não usar `sync`
-- respeitar limite de banda da política
-- capturar stdout/stderr
-- registrar duração
-
----
-
-# Etapa 6 — Report
-
-## Objetivo
-
-Entregar ao portal resultado detalhado da execução.
-
-## Conteúdo mínimo
-
-- política executada
-- serviço associado
-- base processada
-- status final
-- duração total
-- tamanhos
-- hash
-- etapa que falhou
-- mensagem de erro
-
-## Endpoint atual
-
-```http
-POST /agents/backup/result
-```
-
-## Exemplo de payload
-
-```json
-{
-  "instance_id": "uuid",
-  "policy_id": "bkp-prod",
-  "service_id": "firebird-prod",
-  "database_path": "C:\\Dados\\PROD.FDB",
-  "status": "success",
-  "started_at": "2026-04-12T22:00:00Z",
-  "finished_at": "2026-04-12T22:05:00Z",
-  "duration_seconds": 300,
-  "fbk_size_bytes": 1258291200,
-  "archive_size_bytes": 367001600,
-  "compression_ratio": 0.29,
-  "hash": "abc123",
-  "error_stage": "",
-  "error_message": ""
-}
-```
-
----
-
-# Fila de Backup
-
-## Objetivo
-
-Evitar perda de execução em caso de erro pontual ou indisponibilidade do destino.
-
-## Tipos de job
-
-- agendado
-- manual
-- retry
-- fallback no boot
-
-## Regras
-
-- retry com backoff exponencial
-- limitar número de tentativas
-- impedir múltiplos backups concorrentes da mesma base
-- reportar cada execução
-- persistência em disco ainda pendente de implementação
-
----
-
-# Estados do Job
-
-## Status possíveis
-
-|Status|Descrição|
-|---|---|
-|queued|aguardando execução|
-|running|em execução|
-|success|concluído|
-|failed|falhou|
-|retry_wait|aguardando retry|
-|canceled|cancelado|
-
-## Etapas possíveis
-
-|Stage|Descrição|
-|---|---|
-|prepare|preparação|
-|gbak|geração do `.fbk`|
-|validate_fbk|validação do `.fbk`|
-|compress|compressão|
-|validate_archive|validação do `.7z`|
-|upload|envio|
-
----
-
-# Segurança
-
-## Regras obrigatórias
-
-- nunca hardcodar credenciais do banco
-- nunca hardcodar credenciais de upload
-- logs não devem vazar segredos
-- arquivos temporários devem ser limpos após sucesso
-- falhas devem registrar contexto sem expor credenciais
-
----
-
-# Observabilidade
-
-## Eventos a registrar
-
-- job enfileirado
-- início da execução
-- fim do `gbak`
-- falha de validação
-- fim da compressão
-- falha no upload
-- sucesso final
-- retry agendado
-- falha no report
-
-## Logs recomendados
-
-- um arquivo de log por job
-- correlação por `task_id`
-- separação por etapa
-
----
-
-# Falhas esperadas
-
-## Categorias
-
-### Falha de descoberta
-
-- `gbak` não encontrado
-- base não localizada
-
-### Falha de permissão
-
-- sem acesso à base
-- sem permissão em pasta temporária
-
-### Falha de execução
-
-- timeout do `gbak`
-- processo abortado
-- arquivo intermediário não gerado
-
-### Falha de compressão
-
-- 7z indisponível
-- espaço insuficiente
-- artefato inválido
-
-### Falha de upload
-
-- destino indisponível
-- credencial inválida
-- timeout de rede
-
-### Falha de report
-
-- portal indisponível
-- token inválido
-- timeout HTTP
-
----
-
-# Regras de Limpeza
-
-## Após sucesso
-
-- remover `.fbk` se a política permitir
-- manter `.7z` temporariamente apenas se exigido
-- limpar arquivos temporários antigos
-
-## Após falha
-
-- preservar artefatos úteis para diagnóstico
-- preservar log da execução
-- marcar job para retry quando aplicável
-
----
-
-# Roadmap do Módulo
-
-## Já implementado
-
-- `policy.go`
-- `task.go`
-- `result.go`
-- `validate.go`
-- `hash.go`
-- `gbak.go`
-- `compress.go`
-- `upload.go`
-- `manager.go`
-- `report.go`
-- `queue.go`
-
-## Próximas entregas
-
-- persistência da fila em disco
-- discovery de Firebird/gbak
-- integração com `desired_state`
-- heartbeat com status de backup
-- limpeza automática estruturada
-- tipagem de erros por estágio
-
----
-
-# Melhorias planejadas
-
-## `errors.go`
-
-Padronização de erros por etapa:
-
-- `ErrGbakNotFound`
-- `ErrFBKValidation`
-- `ErrCompressionFailed`
-- `ErrUploadFailed`
-- `ErrReportFailed`
-
-## Persistência de fila
-
-Persistência de jobs em disco para recuperar tentativas após reboot.
-
-## Múltiplos destinos
-
-Suporte futuro a S3-compatible além de SFTP.
-
----
-
-# Conclusão
-
-O módulo de backup do Master Agent opera hoje como um pipeline confiável, observável e declarativo.
-
-Ele é responsável por transformar:
-
-- uma base Firebird em uso
-- em um artefato lógico seguro
-- compactado
-- enviado
-- e rastreável no portal
+- `validate_fbk`
+- `compress`
+- `validate_archive`
+- `upload`
+
+## Seguranca
+
+Regras obrigatorias antes de producao:
+
+- nao hardcodar credenciais de banco
+- nao hardcodar credenciais de upload
+- nao logar senha, token, DSN completo ou headers sensiveis
+- proteger credenciais locais com DPAPI no Windows
+- proteger `remote_state.json`, porque contem `agent_token`
+- separar logs de execucao por task sem vazar segredo
+- limpar temporarios apenas apos sucesso validado
+
+## Observabilidade
+
+Eventos recomendados:
+
+- backup job queued
+- backup job started
+- gbak completed
+- gbak failed
+- fbk validation failed
+- compression completed
+- archive validation failed
+- upload completed
+- upload failed
+- backup succeeded
+- backup failed
+- backup retry scheduled
+- backup report failed
+
+O agente ja possui `TelemetryEvent` e event bus assincrono. Falta conectar o modulo de backup a esse barramento.
+
+## Gaps atuais
+
+1. `modules/backup` ainda nao instancia `Manager`, `Queue` e `Reporter`.
+2. `domain.BackupDesiredState` ainda nao expressa politicas reais.
+3. Fila de backup ainda nao e duravel.
+4. Reporter ainda nao esta injetado no bootstrap.
+5. Nao ha discovery real de Firebird/gbak.
+6. Nao ha coleta de status de backup no sync remoto.
+7. Nao ha erros tipados por etapa.
+8. Nao ha testes automatizados do pipeline.
+9. Nao ha protecao local de segredos.
+
+## Proximo corte recomendado
+
+Implementar uma primeira integracao pequena, sem scheduler completo:
+
+1. Expandir `BackupDesiredState` para `Policies []BackupPolicy`.
+2. Criar mapper de desired state para `backup.BackupPolicy`.
+3. Atualizar `modules/backup.New(...)` para receber `Manager`, `Queue`, `Reporter`, `StateStore`, `Logger` e `EventBus`.
+4. Fazer `Inspect` ler estado local `backup_state.json`.
+5. Fazer `Plan` criar acao quando houver policy habilitada e nenhuma execucao recente.
+6. Fazer `Apply` enfileirar job, sem executar diretamente no reconcile.
+7. Persistir snapshot simples de estado do backup.
+8. Adicionar teste unitario para mapper e `Plan`.
+
+Esse corte conecta o modulo ao agente sem bloquear o reconcile por execucao longa de backup.
