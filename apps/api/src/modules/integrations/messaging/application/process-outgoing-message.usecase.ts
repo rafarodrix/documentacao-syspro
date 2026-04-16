@@ -220,6 +220,8 @@ export class ProcessOutgoingMessageUseCase {
           messageId,
           chatwootConversationId,
           attachmentId: attachment?.id?.toString?.() ?? null,
+          attachmentType: fileType,
+          attachmentFileName: fileName,
           error: error?.message ?? 'unknown_error',
         }));
         return;
@@ -232,6 +234,8 @@ export class ProcessOutgoingMessageUseCase {
           messageId,
           chatwootConversationId,
           attachmentId: attachment?.id?.toString?.() ?? null,
+          attachmentType: fileType,
+          attachmentFileName: fileName,
         }));
         return;
       }

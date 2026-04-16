@@ -519,17 +519,12 @@ export class ChatwootClient {
     config: ChatwootConnectionConfig,
     attachment: any,
   ): Promise<{ dataUrl: string; mimetype: string; filename: string } | null> {
-    const directCandidate = [
-      attachment?.data_url,
-      attachment?.download_url,
-      attachment?.thumb_url,
-    ]
-      .map((value: unknown) => String(value ?? '').trim())
-      .find(Boolean);
+    const directCandidates = this.collectAttachmentCandidates(attachment);
 
     const fallbackMime = this.normalizeAttachmentMimeType(
       attachment?.file_type ??
       attachment?.data?.content_type ??
+      attachment?.content_type ??
       attachment?.extension,
     );
     const fallbackFilename = this.ensureFilenameExtension(
@@ -537,43 +532,60 @@ export class ChatwootClient {
       this.extensionFromMimeType(fallbackMime),
     );
 
-    if (!directCandidate) {
+    if (!directCandidates.length) {
       return null;
     }
 
-    if (directCandidate.startsWith('data:')) {
-      return {
-        dataUrl: directCandidate,
-        mimetype: fallbackMime,
-        filename: fallbackFilename,
-      };
+    for (const directCandidate of directCandidates) {
+      if (directCandidate.startsWith('data:')) {
+        return {
+          dataUrl: directCandidate,
+          mimetype: fallbackMime,
+          filename: fallbackFilename,
+        };
+      }
     }
 
-    const attachmentUrl = this.resolveAttachmentUrl(config, directCandidate);
-    const response = await fetch(attachmentUrl, {
-      method: 'GET',
-      headers: {
-        api_access_token: config.apiToken,
-      },
-    });
+    const failures: string[] = [];
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'unknown_error');
-      throw new Error(`Falha ao baixar anexo do Chatwoot: ${response.status} - ${errorText}`);
+    for (const directCandidate of directCandidates) {
+      const attachmentUrl = this.resolveAttachmentUrl(config, directCandidate);
+      const attempts = this.buildAttachmentFetchAttempts(config, attachmentUrl);
+
+      for (const attempt of attempts) {
+        const response = await fetch(attempt.url, {
+          method: 'GET',
+          headers: attempt.headers,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'unknown_error');
+          failures.push(
+            `${attempt.label}:${response.status}:${this.summarizeAttachmentCandidate(attachmentUrl)}:${this.truncateErrorText(errorText)}`
+          );
+          continue;
+        }
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const responseMime = this.normalizeAttachmentMimeType(response.headers.get('content-type') ?? fallbackMime);
+        const filename = this.ensureFilenameExtension(
+          fallbackFilename,
+          this.extensionFromMimeType(responseMime),
+        );
+
+        return {
+          dataUrl: `data:${responseMime};base64,${buffer.toString('base64')}`,
+          mimetype: responseMime,
+          filename,
+        };
+      }
     }
 
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const responseMime = this.normalizeAttachmentMimeType(response.headers.get('content-type') ?? fallbackMime);
-    const filename = this.ensureFilenameExtension(
-      fallbackFilename,
-      this.extensionFromMimeType(responseMime),
+    throw new Error(
+      `Falha ao baixar anexo do Chatwoot. attachmentId=${String(attachment?.id ?? '').trim() || 'unknown'} candidates=${directCandidates
+        .map((candidate) => this.summarizeAttachmentCandidate(this.resolveAttachmentUrl(config, candidate)))
+        .join(', ')} failures=${failures.join(' | ')}`
     );
-
-    return {
-      dataUrl: `data:${responseMime};base64,${buffer.toString('base64')}`,
-      mimetype: responseMime,
-      filename,
-    };
   }
 
   async getIntegrationHealth(config: ChatwootConnectionConfig): Promise<{
@@ -742,10 +754,27 @@ export class ChatwootClient {
         return '.gif';
       case 'video/mp4':
         return '.mp4';
+      case 'video/webm':
+        return '.webm';
+      case 'video/ogg':
+        return '.ogv';
+      case 'video/quicktime':
+        return '.mov';
       case 'audio/ogg':
+      case 'audio/opus':
         return '.ogg';
       case 'audio/mpeg':
         return '.mp3';
+      case 'audio/mp4':
+      case 'audio/aac':
+        return '.m4a';
+      case 'audio/amr':
+        return '.amr';
+      case 'audio/wav':
+      case 'audio/x-wav':
+        return '.wav';
+      case 'audio/webm':
+        return '.webm';
       case 'application/pdf':
         return '.pdf';
       default:
@@ -761,6 +790,21 @@ export class ChatwootClient {
     if (normalized === 'video') return 'video/mp4';
     if (normalized === 'audio') return 'audio/ogg';
     if (normalized === 'document') return 'application/pdf';
+    if (normalized === 'jpg') return 'image/jpeg';
+    if (normalized === 'jpeg') return 'image/jpeg';
+    if (normalized === 'png') return 'image/png';
+    if (normalized === 'gif') return 'image/gif';
+    if (normalized === 'webp') return 'image/webp';
+    if (normalized === 'mp4') return 'video/mp4';
+    if (normalized === 'mov') return 'video/quicktime';
+    if (normalized === 'webm') return 'video/webm';
+    if (normalized === 'ogg') return 'audio/ogg';
+    if (normalized === 'opus') return 'audio/opus';
+    if (normalized === 'mp3') return 'audio/mpeg';
+    if (normalized === 'm4a') return 'audio/mp4';
+    if (normalized === 'aac') return 'audio/aac';
+    if (normalized === 'amr') return 'audio/amr';
+    if (normalized === 'wav') return 'audio/wav';
     return normalized;
   }
 
@@ -781,6 +825,63 @@ export class ChatwootClient {
     const baseUrl = String(config.url || '').replace(/\/+$/, '');
     const suffix = value.startsWith('/') ? value : `/${value}`;
     return `${baseUrl}${suffix}`;
+  }
+
+  private collectAttachmentCandidates(attachment: any): string[] {
+    const rawCandidates = [
+      attachment?.data_url,
+      attachment?.download_url,
+      attachment?.thumb_url,
+      attachment?.external_url,
+      attachment?.file_url,
+      attachment?.url,
+      attachment?.data?.data_url,
+      attachment?.data?.download_url,
+      attachment?.data?.thumb_url,
+      attachment?.data?.external_url,
+      attachment?.data?.file_url,
+      attachment?.data?.url,
+    ];
+
+    const normalized = rawCandidates
+      .map((value: unknown) => String(value ?? '').trim())
+      .filter(Boolean);
+
+    return Array.from(new Set(normalized));
+  }
+
+  private buildAttachmentFetchAttempts(
+    config: ChatwootConnectionConfig,
+    attachmentUrl: string,
+  ): Array<{ label: string; url: string; headers?: Record<string, string> }> {
+    return [
+      {
+        label: 'with_api_token',
+        url: attachmentUrl,
+        headers: { api_access_token: config.apiToken },
+      },
+      {
+        label: 'without_auth',
+        url: attachmentUrl,
+      },
+    ];
+  }
+
+  private summarizeAttachmentCandidate(url: string): string {
+    try {
+      const parsed = new URL(url);
+      const pathname = parsed.pathname.length > 80
+        ? `${parsed.pathname.slice(0, 77)}...`
+        : parsed.pathname;
+      return `${parsed.origin}${pathname}`;
+    } catch {
+      return url.length > 120 ? `${url.slice(0, 117)}...` : url;
+    }
+  }
+
+  private truncateErrorText(value: string): string {
+    const normalized = String(value ?? '').replace(/\s+/g, ' ').trim();
+    return normalized.length > 220 ? `${normalized.slice(0, 217)}...` : normalized;
   }
 
   private appendAccountIncomingFields(formData: FormData): FormData {
