@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { readEvolutionRuntimeConfig } from '@dosc-syspro/config';
+import { randomUUID } from 'crypto';
 
 export type EvolutionConnectionConfig = {
   apiUrl: string;
@@ -97,7 +98,8 @@ export class EvolutionClient {
   async sendTextMessage(
     config: EvolutionConnectionConfig,
     number: string,
-    text: string
+    text: string,
+    clientMessageId?: string,
   ): Promise<{ messageId?: string }> {
     if (!config.apiUrl || !config.apiKey) {
       console.warn('[EvolutionClient] Credenciais ausentes. Envio de mensagem ignorado.');
@@ -110,12 +112,14 @@ export class EvolutionClient {
     const requestStartedAt = Date.now();
     const sharedHeaders = this.buildAuthHeaders(config.apiKey);
     const authHeaderMode = this.describeAuthHeaders(sharedHeaders);
+    const requestMessageId = this.buildRequestMessageId(clientMessageId);
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'provider_request_text',
       providerFlavor: 'evolution_go',
       route: '/send/text',
       authHeaderMode,
+      requestMessageId,
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
@@ -126,7 +130,7 @@ export class EvolutionClient {
       method: 'POST',
       headers: sharedHeaders,
       body: JSON.stringify({
-        id: instance,
+        id: requestMessageId,
         number: normalizedNumber,
         text,
         delay: 1200,
@@ -142,6 +146,7 @@ export class EvolutionClient {
         providerFlavor: 'evolution_go',
         route: '/send/text',
         authHeaderMode,
+        requestMessageId,
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
@@ -158,6 +163,7 @@ export class EvolutionClient {
       providerFlavor: 'evolution_go',
       route: '/send/text',
       authHeaderMode,
+      requestMessageId,
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
@@ -177,7 +183,8 @@ export class EvolutionClient {
     mediaUrlOrBase64: string,
     mediaType: string,
     fileName?: string,
-    caption?: string
+    caption?: string,
+    clientMessageId?: string,
   ): Promise<{ messageId?: string }> {
     if (!config.apiUrl || !config.apiKey) {
       console.warn('[EvolutionClient] Credenciais ausentes. Envio de midia ignorado.');
@@ -190,6 +197,7 @@ export class EvolutionClient {
     const requestStartedAt = Date.now();
     const sharedHeaders = this.buildAuthHeaders(config.apiKey);
     const authHeaderMode = this.describeAuthHeaders(sharedHeaders);
+    const requestMessageId = this.buildRequestMessageId(clientMessageId);
 
     const evMediaType = this.resolveEvolutionMediaType(mediaType);
     const resolvedFileName = fileName || 'arquivo';
@@ -200,6 +208,7 @@ export class EvolutionClient {
       providerFlavor: 'evolution_go',
       route: '/send/media',
       authHeaderMode,
+      requestMessageId,
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
@@ -212,7 +221,7 @@ export class EvolutionClient {
       method: 'POST',
       headers: sharedHeaders,
       body: JSON.stringify({
-        id: instance,
+        id: requestMessageId,
         number: normalizedNumber,
         type: evMediaType,
         url: mediaUrlOrBase64,
@@ -231,6 +240,7 @@ export class EvolutionClient {
         providerFlavor: 'evolution_go',
         route: '/send/media',
         authHeaderMode,
+        requestMessageId,
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
@@ -247,6 +257,7 @@ export class EvolutionClient {
       providerFlavor: 'evolution_go',
       route: '/send/media',
       authHeaderMode,
+      requestMessageId,
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
@@ -340,6 +351,8 @@ export class EvolutionClient {
       payload?.key?.id,
       payload?.data?.id,
       payload?.data?.key?.id,
+      payload?.data?.Info?.ID,
+      payload?.data?.Info?.Id,
       payload?.messages?.[0]?.id,
       payload?.messages?.[0]?.key?.id,
     ];
@@ -453,5 +466,18 @@ export class EvolutionClient {
     }
 
     return [];
+  }
+
+  private buildRequestMessageId(candidate?: string): string {
+    const normalized = String(candidate ?? '')
+      .trim()
+      .replace(/[^a-zA-Z0-9._:-]+/g, '-')
+      .slice(0, 80);
+
+    if (normalized) {
+      return normalized;
+    }
+
+    return `msg-${randomUUID()}`;
   }
 }

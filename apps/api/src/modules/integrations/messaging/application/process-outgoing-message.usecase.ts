@@ -274,7 +274,8 @@ export class ProcessOutgoingMessageUseCase {
         mediaTarget,
         mediaPayload.mimetype || fileType,
         mediaPayload.filename || fileName,
-        content || ''
+        content || '',
+        messageId ?? undefined,
       );
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution', stage: 'sent_media', messageId, providerMessageId: sendResult.messageId, chatwootConversationId, whatsappNumber: phone,
@@ -317,7 +318,12 @@ export class ProcessOutgoingMessageUseCase {
     const outboundContent = content ?? '';
     let sendResult: { messageId?: string };
     try {
-      sendResult = await this.evolutionClient.sendTextMessage(linkContext.evolution, phone, outboundContent);
+      sendResult = await this.evolutionClient.sendTextMessage(
+        linkContext.evolution,
+        phone,
+        outboundContent,
+        messageId ?? undefined,
+      );
     } catch (error: any) {
       this.logger.error(JSON.stringify({
         flow: 'chatwoot_to_evolution',
