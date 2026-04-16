@@ -11,7 +11,7 @@ import {
   evolutionSettingsSchema,
   type EvolutionSettingsInput,
 } from '@dosc-syspro/contracts/evolution';
-import { readEvolutionRuntimeConfig } from '@dosc-syspro/config';
+import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig, readR2RuntimeConfig } from '@dosc-syspro/config';
 import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
   remoteModuleSettingsSchema,
@@ -44,7 +44,6 @@ import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 @Controller('settings')
 export class SettingsController {
   private static readonly EVOLUTION_CONFIG_KEY = 'evolution_config';
-  private static readonly LEGACY_EVOLUTION_CONFIG_KEY = 'whatsapp_evolution_config';
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -455,6 +454,68 @@ export class SettingsController {
     };
   }
 
+  @Get('integrations/diagnostics')
+  async getIntegrationDiagnostics(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+
+    const [defaultContext, activeContexts] = await Promise.all([
+      this.integrationContext.getDefaultContext(),
+      this.integrationContext.listActiveContexts(),
+    ]);
+
+    const chatwootRuntime = readChatwootRuntimeConfig();
+    const r2Runtime = readR2RuntimeConfig();
+    const chatwootDiagnostics = defaultContext
+      ? await this.chatwootClient.inspectInboxConfiguration(defaultContext.chatwoot)
+      : null;
+
+    const r2Configured = Boolean(
+      r2Runtime.endpoint &&
+      r2Runtime.accessKeyId &&
+      r2Runtime.secretAccessKey &&
+      r2Runtime.bucketName,
+    );
+    const r2Issues: string[] = [];
+    if (!r2Runtime.endpoint) r2Issues.push('R2_ENDPOINT ausente no runtime.');
+    if (!r2Runtime.accessKeyId) r2Issues.push('R2_ACCESS_KEY_ID ausente no runtime.');
+    if (!r2Runtime.secretAccessKey) r2Issues.push('R2_SECRET_ACCESS_KEY ausente no runtime.');
+    if (!r2Runtime.bucketName) r2Issues.push('R2_BUCKET_NAME ausente no runtime.');
+    if (r2Configured && !r2Runtime.publicBaseUrl) {
+      r2Issues.push('R2_PUBLIC_BASE_URL ausente; anexos usarao URLs assinadas temporarias.');
+    }
+
+    return {
+      success: true,
+      chatwoot: {
+        configured: Boolean(defaultContext?.chatwoot?.url && defaultContext?.chatwoot?.accountId && defaultContext?.chatwoot?.apiToken),
+        source: defaultContext?.source ?? null,
+        activeConnections: activeContexts.length,
+        runtime: {
+          hasUrl: Boolean(chatwootRuntime.url),
+          hasAccountId: Boolean(chatwootRuntime.accountId),
+          hasApiToken: Boolean(chatwootRuntime.apiToken),
+          hasPlatformApiToken: Boolean(chatwootRuntime.platformApiToken),
+          hasInboxId: Boolean(chatwootRuntime.inboxId),
+          hasInboxIdentifier: Boolean(chatwootRuntime.inboxIdentifier),
+          hasWebhookSecret: Boolean(chatwootRuntime.webhookSecret),
+        },
+        diagnostics: chatwootDiagnostics,
+      },
+      storage: {
+        provider: 'Cloudflare R2',
+        configured: r2Configured,
+        mode: r2Runtime.publicBaseUrl ? 'public_base_url' : 'signed_url',
+        endpointHost: this.safeUrlHost(r2Runtime.endpoint),
+        bucketName: r2Runtime.bucketName || null,
+        publicBaseUrl: r2Runtime.publicBaseUrl || null,
+        signedUrlTtlSeconds: r2Runtime.signedUrlTtlSeconds,
+        hasAccessKeyId: Boolean(r2Runtime.accessKeyId),
+        hasSecretAccessKey: Boolean(r2Runtime.secretAccessKey),
+        issues: r2Issues,
+      },
+    };
+  }
+
   @Get('integrations/connections')
   async listIntegrationConnections(@Query('companyId') companyId?: string) {
     const rows = await this.integrationConnections.list(companyId?.trim() || undefined);
@@ -796,26 +857,27 @@ export class SettingsController {
     });
   }
 
+  private safeUrlHost(value: string | null | undefined) {
+    if (!value) return null;
+    try {
+      return new URL(value).host;
+    } catch {
+      return value;
+    }
+  }
+
   private async readStoredEvolutionSettings() {
     const setting = await this.prisma.systemSetting.findUnique({
       where: { key: SettingsController.EVOLUTION_CONFIG_KEY },
       select: { value: true },
     });
 
-    const fallbackLegacySetting = !setting?.value
-      ? await this.prisma.systemSetting.findUnique({
-          where: { key: SettingsController.LEGACY_EVOLUTION_CONFIG_KEY },
-          select: { value: true },
-        })
-      : null;
-    const sourceValue = setting?.value ?? fallbackLegacySetting?.value;
-
-    if (!sourceValue) {
+    if (!setting?.value) {
       return DEFAULT_EVOLUTION_SETTINGS;
     }
 
     try {
-      const parsed = JSON.parse(sourceValue);
+      const parsed = JSON.parse(setting.value);
       const validation = evolutionSettingsSchema.safeParse(parsed);
       return validation.success ? validation.data : DEFAULT_EVOLUTION_SETTINGS;
     } catch {

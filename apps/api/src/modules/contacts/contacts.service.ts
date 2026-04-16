@@ -147,7 +147,7 @@ export class ContactsService {
       );
 
       const serialized = this.serializeContact(updated);
-      await this.syncChatwootContactName(serialized);
+      await this.syncChatwootContactPresentation(serialized);
       return serialized;
     }
 
@@ -176,7 +176,7 @@ export class ContactsService {
     );
 
     const serialized = this.serializeContact(created);
-    await this.syncChatwootContactName(serialized);
+    await this.syncChatwootContactPresentation(serialized);
     return serialized;
   }
 
@@ -221,7 +221,7 @@ export class ContactsService {
     );
 
     const serialized = this.serializeContact(updated);
-    await this.syncChatwootContactName(serialized);
+    await this.syncChatwootContactPresentation(serialized);
     return serialized;
   }
 
@@ -342,6 +342,7 @@ export class ContactsService {
               id: true,
               razaoSocial: true,
               nomeFantasia: true,
+              cnpj: true,
             },
           },
         },
@@ -431,11 +432,29 @@ export class ContactsService {
     });
   }
 
-  private async syncChatwootContactName(updatedContact: {
+  async syncChatwootContactsForCompany(companyId: string) {
+    const contacts = await (this.prisma.companyContact as any).findMany({
+      where: {
+        whatsapp: { not: null },
+        companyLinks: { some: { companyId } },
+      },
+      include: this.contactInclude(),
+    });
+
+    for (const contact of contacts) {
+      await this.syncChatwootContactPresentation(this.serializeContact(contact));
+    }
+
+    return contacts.length;
+  }
+
+  private async syncChatwootContactPresentation(updatedContact: {
+    id?: string;
     name: string;
+    email?: string | null;
     whatsapp: string | null;
     companyId?: string | null;
-    company?: { nomeFantasia?: string | null; razaoSocial?: string | null } | null;
+    company?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null;
   }) {
     try {
       if (!updatedContact.whatsapp) return;
@@ -443,25 +462,48 @@ export class ContactsService {
       const links = await this.prisma.conversationLink.findMany({
         where: {
           whatsappNumber: updatedContact.whatsapp,
-          ...(updatedContact.companyId ? { companyId: updatedContact.companyId } : {}),
+        },
+        include: {
+          company: {
+            select: {
+              id: true,
+              razaoSocial: true,
+              nomeFantasia: true,
+              cnpj: true,
+            },
+          },
         },
       });
 
       if (!links.length) return;
 
-      const companyName = updatedContact.company?.nomeFantasia || updatedContact.company?.razaoSocial || '';
-      const fullName = companyName ? `${updatedContact.name} - ${companyName}` : updatedContact.name;
-
       for (const link of links) {
         if (!link.chatwootContactId) continue;
         const context = await this.integrationContext.resolveByConnectionKey(link.connectionKey);
         if (!context) continue;
-        await this.chatwootClient.updateContact(context.chatwoot, link.chatwootContactId, { name: fullName });
+
+        const company = link.company ?? updatedContact.company ?? null;
+        const companyName = company?.nomeFantasia || company?.razaoSocial || '';
+        const fullName = companyName ? `${updatedContact.name} - ${companyName}` : updatedContact.name;
+
+        await this.chatwootClient.updateContact(context.chatwoot, link.chatwootContactId, {
+          name: fullName,
+          ...(updatedContact.email ? { email: updatedContact.email } : {}),
+          custom_attributes: {
+            syspro_contact_id: updatedContact.id ?? null,
+            syspro_contact_name: updatedContact.name,
+            syspro_company_id: company?.id ?? updatedContact.companyId ?? null,
+            syspro_company_name: companyName || null,
+            syspro_company_legal_name: company?.razaoSocial ?? null,
+            syspro_company_trade_name: company?.nomeFantasia ?? null,
+            syspro_company_cnpj: company?.cnpj ?? null,
+          },
+        });
       }
 
-      this.logger.log(`Nome atualizado no Chatwoot para o contato ${updatedContact.whatsapp}: ${fullName}`);
+      this.logger.log(`Contato ${updatedContact.whatsapp} sincronizado no Chatwoot com dados do portal.`);
     } catch (error: any) {
-      this.logger.error(`Erro ao atualizar nome do contato no Chatwoot: ${error.message}`);
+      this.logger.error(`Erro ao sincronizar contato no Chatwoot: ${error.message}`);
     }
   }
 

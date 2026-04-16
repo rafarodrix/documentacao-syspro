@@ -8,6 +8,7 @@ import {
 } from '@dosc-syspro/contracts/company';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
+import { ContactsService } from '../contacts/contacts.service';
 const COMPANY_REGISTRY_PROVIDER = process.env.COMPANY_REGISTRY_PROVIDER?.toLowerCase() ?? 'brasilapi';
 const COMPANY_REGISTRY_AUTH_URL = process.env.COMPANY_REGISTRY_AUTH_URL;
 const COMPANY_REGISTRY_LOOKUP_URL =
@@ -215,6 +216,7 @@ export class CompaniesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
+    private readonly contactsService: ContactsService,
   ) {}
 
   async searchCompanies(query: string | undefined, rawHeaders?: IncomingHttpHeaders) {
@@ -708,6 +710,13 @@ export class CompaniesService {
                 : undefined,
         } as any,
       });
+
+      void this.contactsService.syncChatwootContactsForCompany(companyId).catch((error: any) => {
+        this.logger.error(
+          `Falha ao sincronizar contatos da empresa ${companyId} com Chatwoot: ${error?.message ?? 'unknown_error'}`,
+        );
+      });
+
       return { success: true, message: 'Empresa atualizada com sucesso!' };
     } catch (error: any) {
       return this.toMutationError(error);

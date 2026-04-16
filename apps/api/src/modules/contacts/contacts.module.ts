@@ -10,5 +10,6 @@ import { SettingsModule } from '../settings/settings.module';
   imports: [PrismaModule, EvolutionModule, ChatwootModule, SettingsModule],
   controllers: [ContactsController],
   providers: [ContactsService],
+  exports: [ContactsService],
 })
 export class ContactsModule {}

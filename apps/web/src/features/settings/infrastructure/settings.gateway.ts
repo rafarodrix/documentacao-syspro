@@ -34,6 +34,30 @@ type SettingsGatewayResponse<T> = {
   message?: string;
 };
 
+export type IntegrationDiagnosticsResponse = {
+  success: boolean;
+  chatwoot?: {
+    configured: boolean;
+    source: string | null;
+    activeConnections: number;
+    runtime: Record<string, boolean>;
+    diagnostics: unknown;
+  };
+  storage?: {
+    provider: string;
+    configured: boolean;
+    mode: "public_base_url" | "signed_url";
+    endpointHost: string | null;
+    bucketName: string | null;
+    publicBaseUrl: string | null;
+    signedUrlTtlSeconds: number;
+    hasAccessKeyId: boolean;
+    hasSecretAccessKey: boolean;
+    issues: string[];
+  };
+  error?: string;
+};
+
 export async function fetchGeneralSettingsGateway(): Promise<SettingsGatewayResponse<SettingsOutput>> {
   const response = await callBackendApi<SettingsGatewayResponse<SettingsOutput>>("settings", "/general");
   if (response.data) {
@@ -138,4 +162,8 @@ export async function updateTicketModuleSettingsGateway(
       body: JSON.stringify(payload),
     }),
   );
+}
+
+export async function fetchIntegrationDiagnosticsGateway(): Promise<IntegrationDiagnosticsResponse> {
+  return callBackendApi<IntegrationDiagnosticsResponse>("settings", "/integrations/diagnostics");
 }

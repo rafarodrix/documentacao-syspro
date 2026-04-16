@@ -320,20 +320,11 @@ export class IntegrationContextService {
         select: { value: true },
       });
 
-      const fallbackLegacyRow = !row?.value
-        ? await this.prisma.systemSetting.findUnique({
-            where: { key: 'whatsapp_evolution_config' },
-            select: { value: true },
-          })
-        : null;
-
-      const sourceValue = row?.value ?? fallbackLegacyRow?.value;
-
-      if (!sourceValue) {
+      if (!row?.value) {
         return DEFAULT_EVOLUTION_SETTINGS;
       }
 
-      const parsed = JSON.parse(sourceValue);
+      const parsed = JSON.parse(row.value);
       const validation = evolutionSettingsSchema.safeParse(parsed);
       return validation.success ? validation.data : DEFAULT_EVOLUTION_SETTINGS;
     } catch {
