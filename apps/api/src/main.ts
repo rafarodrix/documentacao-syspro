@@ -22,6 +22,22 @@ async function bootstrap() {
     hasEvolutionInstanceToken: Boolean(evolutionRuntime.instanceToken),
   }), 'Bootstrap');
 
+  const hasAnyEvolutionConfig = Boolean(
+    evolutionRuntime.apiUrl ||
+    evolutionRuntime.apiKey ||
+    evolutionRuntime.instance ||
+    evolutionRuntime.instanceToken,
+  );
+  const hasPartialEvolutionConfig = Boolean(
+    (evolutionRuntime.apiUrl || evolutionRuntime.apiKey) &&
+    !evolutionRuntime.instance,
+  );
+  if (hasAnyEvolutionConfig && hasPartialEvolutionConfig) {
+    throw new Error(
+      'Configuracao Evolution invalida no runtime: EVOLUTION_INSTANCE obrigatoria quando EVOLUTION_API_URL/EVOLUTION_API_KEY estiverem definidos.',
+    );
+  }
+
   try {
     validateChatwootRuntimeConfigOrThrow();
   } catch (error) {
