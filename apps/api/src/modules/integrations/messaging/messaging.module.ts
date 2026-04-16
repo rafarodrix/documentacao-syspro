@@ -6,6 +6,7 @@ import { EvolutionModule } from '../evolution/evolution.module';
 import { ChatwootModule } from '../chatwoot/chatwoot.module';
 import { PrismaModule } from '../../../prisma/prisma.module';
 import { SettingsModule } from '../../settings/settings.module';
+import { R2StorageService } from '../storage/r2-storage.service';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { SettingsModule } from '../../settings/settings.module';
     PrismaModule,
     SettingsModule,
   ],
-  providers: [ProcessIncomingMessageUseCase, ProcessOutgoingMessageUseCase, IntegrationWebhookDedupService],
-  exports: [ProcessIncomingMessageUseCase, ProcessOutgoingMessageUseCase, IntegrationWebhookDedupService],
+  providers: [ProcessIncomingMessageUseCase, ProcessOutgoingMessageUseCase, IntegrationWebhookDedupService, R2StorageService],
+  exports: [ProcessIncomingMessageUseCase, ProcessOutgoingMessageUseCase, IntegrationWebhookDedupService, R2StorageService],
 })
 export class MessagingModule {}

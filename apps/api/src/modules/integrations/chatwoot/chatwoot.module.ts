@@ -7,7 +7,7 @@ import { EvolutionModule } from '../evolution/evolution.module';
 import { SettingsModule } from '../../settings/settings.module';
 
 @Module({
-  imports: [forwardRef(() => MessagingModule), PrismaModule, forwardRef(() => EvolutionModule), SettingsModule],
+  imports: [forwardRef(() => MessagingModule), PrismaModule, forwardRef(() => EvolutionModule), forwardRef(() => SettingsModule)],
   controllers: [ChatwootWebhookController],
   providers: [ChatwootClient],
   exports: [ChatwootClient],

@@ -8,6 +8,12 @@ const commonRuntimeConfigSchema = z.object({
   EVOLUTION_API_KEY: z.string().trim().optional(),
   EVOLUTION_INSTANCE: z.string().trim().optional(),
   EVOLUTION_INSTANCE_TOKEN: z.string().trim().optional(),
+  R2_ENDPOINT: z.string().trim().optional(),
+  R2_ACCESS_KEY_ID: z.string().trim().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().trim().optional(),
+  R2_BUCKET_NAME: z.string().trim().optional(),
+  R2_PUBLIC_BASE_URL: z.string().trim().optional(),
+  R2_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().optional(),
   CHATWOOT_URL: z.string().trim().optional(),
   CHATWOOT_ACCOUNT_ID: z.string().trim().optional(),
   CHATWOOT_API_TOKEN: z.string().trim().optional(),
@@ -55,5 +61,17 @@ export function readChatwootRuntimeConfig(env: RuntimeEnv = readRuntimeEnvFromGl
     inboxIdentifier: config.CHATWOOT_INBOX_IDENTIFIER?.trim() ?? "",
     webhookSecret: config.CHATWOOT_WEBHOOK_SECRET?.trim() ?? "",
     webhookMaxSkewSeconds: config.CHATWOOT_WEBHOOK_MAX_SKEW_SECONDS ?? 300,
+  };
+}
+
+export function readR2RuntimeConfig(env: RuntimeEnv = readRuntimeEnvFromGlobal()) {
+  const config = readCommonRuntimeConfig(env);
+  return {
+    endpoint: config.R2_ENDPOINT?.trim() ?? "",
+    accessKeyId: config.R2_ACCESS_KEY_ID?.trim() ?? "",
+    secretAccessKey: config.R2_SECRET_ACCESS_KEY?.trim() ?? "",
+    bucketName: config.R2_BUCKET_NAME?.trim() ?? "",
+    publicBaseUrl: config.R2_PUBLIC_BASE_URL?.trim().replace(/\/+$/, "") ?? "",
+    signedUrlTtlSeconds: config.R2_SIGNED_URL_TTL_SECONDS ?? 900,
   };
 }
