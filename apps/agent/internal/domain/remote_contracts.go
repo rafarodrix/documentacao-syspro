@@ -8,6 +8,50 @@ const (
 	RemoteAckSchemaVersion      = "ack.payload.v1"
 )
 
+type RemoteBootstrapFlow string
+
+const (
+	RemoteBootstrapFlowPendingLink           RemoteBootstrapFlow = "pending_link"
+	RemoteBootstrapFlowLinkedHostDetected    RemoteBootstrapFlow = "linked_host_detected"
+	RemoteBootstrapFlowHostBootstrapRequired RemoteBootstrapFlow = "host_bootstrap_required"
+	RemoteBootstrapFlowTokenInvalid          RemoteBootstrapFlow = "token_invalid"
+)
+
+type RemoteHeartbeatAuth string
+
+const (
+	RemoteHeartbeatAuthDiscoveryToken RemoteHeartbeatAuth = "discoveryToken"
+	RemoteHeartbeatAuthAgentToken     RemoteHeartbeatAuth = "agentToken"
+)
+
+type RemoteSyncCommandType string
+
+const (
+	RemoteSyncCommandReapplyAlias        RemoteSyncCommandType = "REAPPLY_ALIAS"
+	RemoteSyncCommandReapplyConfig       RemoteSyncCommandType = "REAPPLY_CONFIG"
+	RemoteSyncCommandUpgradeClient       RemoteSyncCommandType = "UPGRADE_CLIENT"
+	RemoteSyncCommandRotateTokenRequired RemoteSyncCommandType = "ROTATE_TOKEN_REQUIRED"
+)
+
+type RemoteAckStatus string
+
+const (
+	RemoteAckStatusAcknowledged RemoteAckStatus = "ACKNOWLEDGED"
+	RemoteAckStatusFailed       RemoteAckStatus = "FAILED"
+)
+
+type RemoteAckReasonCode string
+
+const (
+	RemoteAckReasonCommandProcessed       RemoteAckReasonCode = "COMMAND_PROCESSED"
+	RemoteAckReasonReapplyAliasNoop       RemoteAckReasonCode = "REAPPLY_ALIAS_NOOP"
+	RemoteAckReasonReapplyConfigNoop      RemoteAckReasonCode = "REAPPLY_CONFIG_NOOP"
+	RemoteAckReasonUpgradeClientSuccess   RemoteAckReasonCode = "UPGRADE_CLIENT_SUCCESS"
+	RemoteAckReasonRotateTokenRequired    RemoteAckReasonCode = "ROTATE_TOKEN_REQUIRED"
+	RemoteAckReasonCommandUnknown         RemoteAckReasonCode = "COMMAND_UNKNOWN"
+	RemoteAckReasonCommandExecutionFailed RemoteAckReasonCode = "COMMAND_EXECUTION_FAILED"
+)
+
 type RemoteDiscoverRequest struct {
 	SchemaVersion  string `json:"schemaVersion"`
 	DiscoveryToken string `json:"discoveryToken"`
@@ -18,6 +62,8 @@ type RemoteDiscoverRequest struct {
 	Environment    string `json:"environment,omitempty"`
 	Provider       string `json:"provider,omitempty"`
 	Description    string `json:"description,omitempty"`
+	SysproUpdates  any    `json:"sysproUpdates,omitempty"`
+	SystemMetrics  any    `json:"systemMetrics,omitempty"`
 }
 
 type RemoteDiscoverTransition struct {
@@ -34,8 +80,8 @@ type RemoteDiscoverResponse struct {
 	DiscoveredHostID string                   `json:"discoveredHostId"`
 	HostID           string                   `json:"hostId,omitempty"`
 	HostName         string                   `json:"hostName,omitempty"`
-	HeartbeatAuth    string                   `json:"heartbeatAuth"`
-	BootstrapFlow    string                   `json:"bootstrapFlow"`
+	HeartbeatAuth    RemoteHeartbeatAuth      `json:"heartbeatAuth"`
+	BootstrapFlow    RemoteBootstrapFlow      `json:"bootstrapFlow"`
 	Transition       RemoteDiscoverTransition `json:"transition"`
 	Message          string                   `json:"message"`
 }
@@ -74,23 +120,38 @@ type RemoteBootstrapResponse struct {
 }
 
 type RemoteSyncRequest struct {
-	SchemaVersion string `json:"schemaVersion"`
-	AgentToken    string `json:"agentToken"`
-	RustDeskID    string `json:"rustdeskId,omitempty"`
-	MachineName   string `json:"machineName,omitempty"`
-	AgentVersion  string `json:"agentVersion,omitempty"`
-	ServiceStatus string `json:"serviceStatus,omitempty"`
+	SchemaVersion       string `json:"schemaVersion"`
+	AgentToken          string `json:"agentToken"`
+	RustDeskID          string `json:"rustdeskId,omitempty"`
+	MachineName         string `json:"machineName,omitempty"`
+	AgentVersion        string `json:"agentVersion,omitempty"`
+	CurrentAlias        string `json:"currentAlias,omitempty"`
+	CurrentVersion      string `json:"currentVersion,omitempty"`
+	ServerHost          string `json:"serverHost,omitempty"`
+	APIHost             string `json:"apiHost,omitempty"`
+	PublicKey           string `json:"publicKey,omitempty"`
+	ServiceStatus       string `json:"serviceStatus,omitempty"`
+	SysproUpdates       any    `json:"sysproUpdates,omitempty"`
+	SystemSnapshot      any    `json:"systemSnapshot,omitempty"`
+	NetworkSnapshot     any    `json:"networkSnapshot,omitempty"`
+	SoftwareSnapshot    any    `json:"softwareSnapshot,omitempty"`
+	HardwareIdentity    any    `json:"hardwareIdentity,omitempty"`
+	DiskSnapshot        any    `json:"diskSnapshot,omitempty"`
+	SysproProcesses     any    `json:"sysproProcesses,omitempty"`
+	WindowsUpdateStatus any    `json:"windowsUpdateStatus,omitempty"`
+	RebootPending       any    `json:"rebootPending,omitempty"`
+	AgentMetrics        any    `json:"agentMetrics,omitempty"`
 }
 
 type RemoteSyncCommand struct {
-	ID           string          `json:"id"`
-	Type         string          `json:"type"`
-	Status       string          `json:"status,omitempty"`
-	Reason       string          `json:"reason,omitempty"`
-	Payload      json.RawMessage `json:"payload,omitempty"`
-	AttemptCount int             `json:"attemptCount,omitempty"`
-	CreatedAt    string          `json:"createdAt,omitempty"`
-	DeliveredAt  string          `json:"deliveredAt,omitempty"`
+	ID           string                `json:"id"`
+	Type         RemoteSyncCommandType `json:"type"`
+	Status       string                `json:"status,omitempty"`
+	Reason       string                `json:"reason,omitempty"`
+	Payload      json.RawMessage       `json:"payload,omitempty"`
+	AttemptCount int                   `json:"attemptCount,omitempty"`
+	CreatedAt    string                `json:"createdAt,omitempty"`
+	DeliveredAt  string                `json:"deliveredAt,omitempty"`
 }
 
 type RemoteSyncResponse struct {
@@ -103,11 +164,11 @@ type RemoteSyncResponse struct {
 }
 
 type RemoteAckRequest struct {
-	SchemaVersion string         `json:"schemaVersion"`
-	AgentToken    string         `json:"agentToken"`
-	CommandID     string         `json:"commandId"`
-	Status        string         `json:"status"`
-	ReasonCode    string         `json:"reasonCode,omitempty"`
-	Message       string         `json:"message,omitempty"`
-	Details       map[string]any `json:"details,omitempty"`
+	SchemaVersion string              `json:"schemaVersion"`
+	AgentToken    string              `json:"agentToken"`
+	CommandID     string              `json:"commandId"`
+	Status        RemoteAckStatus     `json:"status"`
+	ReasonCode    RemoteAckReasonCode `json:"reasonCode,omitempty"`
+	Message       string              `json:"message,omitempty"`
+	Details       map[string]any      `json:"details,omitempty"`
 }

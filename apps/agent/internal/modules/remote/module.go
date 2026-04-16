@@ -187,7 +187,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState) 
 
 	st.HostID = firstNonEmpty(discoverResp.HostID, st.HostID)
 	st.MachineName = hostname
-	st.LastBootstrapFlow = flow
+	st.LastBootstrapFlow = string(flow)
 	_ = m.saveState(ctx, st)
 
 	m.logger.Info("remote discover completed",
@@ -204,13 +204,15 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState) 
 	})
 
 	switch flow {
-	case "pending_link":
+	case domain.RemoteBootstrapFlowPendingLink:
 		return domain.ApplyResult{
 			Module:  "remote",
 			Changed: false,
 			Message: "waiting for manual host link in portal",
 		}
-	case "linked_host_detected", "host_bootstrap_required", "token_invalid":
+	case domain.RemoteBootstrapFlowLinkedHostDetected,
+		domain.RemoteBootstrapFlowHostBootstrapRequired,
+		domain.RemoteBootstrapFlowTokenInvalid:
 		if m.installToken == "" {
 			return domain.ApplyResult{
 				Module:  "remote",
@@ -335,8 +337,8 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 }
 
 type commandAck struct {
-	status          string
-	reasonCode      string
+	status          domain.RemoteAckStatus
+	reasonCode      domain.RemoteAckReasonCode
 	message         string
 	details         map[string]any
 	invalidateToken bool
@@ -347,35 +349,35 @@ func (m *Module) executeCommand(ctx context.Context, cmd domain.RemoteSyncComman
 	m.logger.Info("remote command received", "command_id", cmd.ID, "type", cmd.Type)
 
 	switch cmd.Type {
-	case "REAPPLY_ALIAS":
+	case domain.RemoteSyncCommandReapplyAlias:
 		return commandAck{
-			status:     "ACKNOWLEDGED",
-			reasonCode: "REAPPLY_ALIAS_NOOP",
+			status:     domain.RemoteAckStatusAcknowledged,
+			reasonCode: domain.RemoteAckReasonReapplyAliasNoop,
 			message:    "alias reapply is not implemented by go agent yet",
 		}
-	case "REAPPLY_CONFIG":
+	case domain.RemoteSyncCommandReapplyConfig:
 		return commandAck{
-			status:     "ACKNOWLEDGED",
-			reasonCode: "REAPPLY_CONFIG_NOOP",
+			status:     domain.RemoteAckStatusAcknowledged,
+			reasonCode: domain.RemoteAckReasonReapplyConfigNoop,
 			message:    "config reapply is not implemented by go agent yet",
 		}
-	case "ROTATE_TOKEN_REQUIRED":
+	case domain.RemoteSyncCommandRotateTokenRequired:
 		return commandAck{
-			status:          "ACKNOWLEDGED",
-			reasonCode:      "ROTATE_TOKEN_REQUIRED",
+			status:          domain.RemoteAckStatusAcknowledged,
+			reasonCode:      domain.RemoteAckReasonRotateTokenRequired,
 			message:         "local token marked for rebootstrap",
 			invalidateToken: true,
 		}
-	case "UPGRADE_CLIENT":
+	case domain.RemoteSyncCommandUpgradeClient:
 		return commandAck{
-			status:     "FAILED",
-			reasonCode: "COMMAND_EXECUTION_FAILED",
+			status:     domain.RemoteAckStatusFailed,
+			reasonCode: domain.RemoteAckReasonCommandExecutionFailed,
 			message:    "client upgrade is not implemented by go agent yet",
 		}
 	default:
 		return commandAck{
-			status:     "FAILED",
-			reasonCode: "COMMAND_UNKNOWN",
+			status:     domain.RemoteAckStatusFailed,
+			reasonCode: domain.RemoteAckReasonCommandUnknown,
 			message:    fmt.Sprintf("unknown command type: %s", cmd.Type),
 			details: map[string]any{
 				"commandType": cmd.Type,
@@ -419,17 +421,17 @@ func currentHostname() string {
 	return hostname
 }
 
-func inferBootstrapFlow(resp *domain.RemoteDiscoverResponse) string {
+func inferBootstrapFlow(resp *domain.RemoteDiscoverResponse) domain.RemoteBootstrapFlow {
 	if resp == nil {
 		return ""
 	}
 	if resp.Transition.NextEndpoint == "/api/remote/rustdesk/bootstrap" {
-		return "host_bootstrap_required"
+		return domain.RemoteBootstrapFlowHostBootstrapRequired
 	}
 	if resp.Mode == "linked" {
-		return "linked_host_detected"
+		return domain.RemoteBootstrapFlowLinkedHostDetected
 	}
-	return "pending_link"
+	return domain.RemoteBootstrapFlowPendingLink
 }
 
 func firstNonEmpty(values ...string) string {
