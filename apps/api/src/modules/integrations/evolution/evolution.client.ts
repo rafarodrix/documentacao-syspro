@@ -109,9 +109,13 @@ export class EvolutionClient {
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
     const requestStartedAt = Date.now();
     const sharedHeaders = this.buildAuthHeaders(config.apiKey);
+    const authHeaderMode = this.describeAuthHeaders(sharedHeaders);
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'provider_request_text',
+      providerFlavor: 'evolution_go',
+      route: '/send/text',
+      authHeaderMode,
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
@@ -135,35 +139,9 @@ export class EvolutionClient {
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'provider_response_text',
+        providerFlavor: 'evolution_go',
         route: '/send/text',
-        evolutionBaseUrl: baseUrl,
-        evolutionInstance: instance,
-        whatsappNumber: normalizedNumber,
-        providerMessageId: messageId ?? null,
-        durationMs: Date.now() - requestStartedAt,
-      }));
-      return { messageId };
-    }
-
-    const fallbackResponse = await fetch(`${baseUrl}/message/sendText/${encodeURIComponent(instance)}`, {
-      method: 'POST',
-      headers: sharedHeaders,
-      body: JSON.stringify({
-        number: normalizedNumber,
-        textMessage: {
-          text,
-        },
-        delay: 1200,
-      }),
-    });
-
-    if (fallbackResponse.ok) {
-      const payload = await fallbackResponse.json().catch(() => ({}));
-      const messageId = this.extractMessageId(payload);
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'provider_response_text',
-        route: '/message/sendText/{instance}',
+        authHeaderMode,
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
@@ -174,21 +152,22 @@ export class EvolutionClient {
     }
 
     const primaryError = await primaryResponse.text().catch(() => 'unknown_error');
-    const fallbackError = await fallbackResponse.text().catch(() => 'unknown_error');
     this.logger.error(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'provider_error_text',
+      providerFlavor: 'evolution_go',
+      route: '/send/text',
+      authHeaderMode,
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
-      primaryStatus: primaryResponse.status,
-      primaryError,
-      fallbackStatus: fallbackResponse.status,
-      fallbackError,
+      status: primaryResponse.status,
+      error: primaryError,
+      diagnostics: this.buildProviderDiagnostics(primaryResponse.status),
       durationMs: Date.now() - requestStartedAt,
     }));
     throw new Error(
-      `Evolution send failed: primary=${primaryResponse.status} ${primaryError}; fallback=${fallbackResponse.status} ${fallbackError}`
+      `Evolution send failed via /send/text: status=${primaryResponse.status} body=${primaryError}`
     );
   }
 
@@ -210,6 +189,7 @@ export class EvolutionClient {
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
     const requestStartedAt = Date.now();
     const sharedHeaders = this.buildAuthHeaders(config.apiKey);
+    const authHeaderMode = this.describeAuthHeaders(sharedHeaders);
 
     const evMediaType = this.resolveEvolutionMediaType(mediaType);
     const resolvedFileName = fileName || 'arquivo';
@@ -217,6 +197,9 @@ export class EvolutionClient {
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'provider_request_media',
+      providerFlavor: 'evolution_go',
+      route: '/send/media',
+      authHeaderMode,
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
@@ -245,37 +228,9 @@ export class EvolutionClient {
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'provider_response_media',
+        providerFlavor: 'evolution_go',
         route: '/send/media',
-        evolutionBaseUrl: baseUrl,
-        evolutionInstance: instance,
-        whatsappNumber: normalizedNumber,
-        providerMessageId: messageId ?? null,
-        durationMs: Date.now() - requestStartedAt,
-      }));
-      return { messageId };
-    }
-
-    const fallbackResponse = await fetch(`${baseUrl}/message/sendMedia/${encodeURIComponent(instance)}`, {
-      method: 'POST',
-      headers: sharedHeaders,
-      body: JSON.stringify({
-        number: normalizedNumber,
-        mediatype: evMediaType,
-        mimetype: mediaType || 'application/octet-stream',
-        caption: caption || '',
-        media: mediaUrlOrBase64,
-        fileName: resolvedFileName,
-        delay: 1200,
-      }),
-    });
-
-    if (fallbackResponse.ok) {
-      const payload = await fallbackResponse.json().catch(() => ({}));
-      const messageId = this.extractMessageId(payload);
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'provider_response_media',
-        route: '/message/sendMedia/{instance}',
+        authHeaderMode,
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
         whatsappNumber: normalizedNumber,
@@ -286,21 +241,22 @@ export class EvolutionClient {
     }
 
     const primaryError = await primaryResponse.text().catch(() => 'unknown_error');
-    const fallbackError = await fallbackResponse.text().catch(() => 'unknown_error');
     this.logger.error(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'provider_error_media',
+      providerFlavor: 'evolution_go',
+      route: '/send/media',
+      authHeaderMode,
       evolutionBaseUrl: baseUrl,
       evolutionInstance: instance,
       whatsappNumber: normalizedNumber,
-      primaryStatus: primaryResponse.status,
-      primaryError,
-      fallbackStatus: fallbackResponse.status,
-      fallbackError,
+      status: primaryResponse.status,
+      error: primaryError,
+      diagnostics: this.buildProviderDiagnostics(primaryResponse.status),
       durationMs: Date.now() - requestStartedAt,
     }));
     throw new Error(
-      `Evolution sendMedia failed: primary=${primaryResponse.status} ${primaryError}; fallback=${fallbackResponse.status} ${fallbackError}`
+      `Evolution sendMedia failed via /send/media: status=${primaryResponse.status} body=${primaryError}`
     );
   }
 
@@ -468,5 +424,34 @@ export class EvolutionClient {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     };
+  }
+
+  private describeAuthHeaders(headers: Record<string, string>): string {
+    const hasApiKeyHeader = Boolean(headers.apikey);
+    const hasBearerHeader = Boolean(headers.Authorization);
+
+    if (hasApiKeyHeader && hasBearerHeader) return 'apikey+bearer';
+    if (hasApiKeyHeader) return 'apikey_only';
+    if (hasBearerHeader) return 'bearer_only';
+    return 'none';
+  }
+
+  private buildProviderDiagnostics(status: number): string[] {
+    if (status === 401) {
+      return [
+        'Verifique se a API key pertence ao servidor Evolution Go alvo.',
+        'Confirme se a chave configurada corresponde a GLOBAL_API_KEY ativa.',
+        'Se houver proxy reverso, valide se os headers apikey e Authorization estao sendo encaminhados.',
+      ];
+    }
+
+    if (status === 404) {
+      return [
+        'Confirme se a base URL aponta para o servidor Evolution Go correto.',
+        'Valide se a rota documentada existe nessa versao da API.',
+      ];
+    }
+
+    return [];
   }
 }
