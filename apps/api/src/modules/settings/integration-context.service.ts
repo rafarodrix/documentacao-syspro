@@ -260,12 +260,23 @@ export class IntegrationContextService {
     const evolution = readEvolutionRuntimeConfig();
     const chatwoot = readChatwootRuntimeConfig();
     const storedEvolution = await this.readStoredEvolutionSettings();
+    const resolvedEvolutionInstance = readTrimmedString(
+      evolution.instance,
+      storedEvolution.instance,
+    );
+    const resolvedEvolutionInstanceId = readTrimmedString(
+      storedEvolution.instanceId,
+    );
+    const resolvedEvolutionInstanceToken = readTrimmedString(
+      evolution.instanceToken,
+      storedEvolution.instanceToken,
+    );
     const hasAnyValue = Boolean(
       evolution.apiUrl ||
       evolution.apiKey ||
-      storedEvolution.instance ||
-      storedEvolution.instanceId ||
-      storedEvolution.instanceToken ||
+      resolvedEvolutionInstance ||
+      resolvedEvolutionInstanceId ||
+      resolvedEvolutionInstanceToken ||
       chatwoot.url ||
       chatwoot.apiToken ||
       chatwoot.accountId ||
@@ -284,9 +295,9 @@ export class IntegrationContextService {
       evolution: {
         apiUrl: evolution.apiUrl,
         apiKey: evolution.apiKey,
-        instance: storedEvolution.instance,
-        instanceId: storedEvolution.instanceId || '',
-        instanceToken: storedEvolution.instanceToken || undefined,
+        instance: resolvedEvolutionInstance,
+        instanceId: resolvedEvolutionInstanceId,
+        instanceToken: resolvedEvolutionInstanceToken || undefined,
         webhookSecret: undefined,
       },
       chatwoot: {
@@ -309,11 +320,20 @@ export class IntegrationContextService {
         select: { value: true },
       });
 
-      if (!row?.value) {
+      const fallbackLegacyRow = !row?.value
+        ? await this.prisma.systemSetting.findUnique({
+            where: { key: 'whatsapp_evolution_config' },
+            select: { value: true },
+          })
+        : null;
+
+      const sourceValue = row?.value ?? fallbackLegacyRow?.value;
+
+      if (!sourceValue) {
         return DEFAULT_EVOLUTION_SETTINGS;
       }
 
-      const parsed = JSON.parse(row.value);
+      const parsed = JSON.parse(sourceValue);
       const validation = evolutionSettingsSchema.safeParse(parsed);
       return validation.success ? validation.data : DEFAULT_EVOLUTION_SETTINGS;
     } catch {
