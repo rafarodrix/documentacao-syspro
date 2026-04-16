@@ -15,6 +15,85 @@ export type ChatwootConnectionConfig = {
 export class ChatwootClient {
   private readonly logger = new Logger(ChatwootClient.name);
 
+  async inspectInboxConfiguration(config: ChatwootConnectionConfig): Promise<{
+    status: 'ok' | 'error';
+    checkedAt: string;
+    accountRoute: { endpoint: string; ok: boolean; error?: string };
+    inbox: {
+      configuredInboxId?: string;
+      configuredInboxIdentifier?: string;
+      resolvedInboxId?: string;
+      resolvedInboxIdentifier?: string;
+      matchedInbox?: {
+        id?: string;
+        identifier?: string;
+        name?: string;
+        channelType?: string;
+        lockToSingleConversation?: boolean | null;
+      } | null;
+    };
+  }> {
+    const endpoint = `/api/v1/accounts/${config.accountId}/inboxes`;
+
+    try {
+      const inboxes = await this.fetchInboxes(config);
+      const resolvedInboxId = await this.resolveInboxId(config);
+      const resolvedInboxIdentifier = await this.resolveInboxIdentifier(config);
+
+      const matchedInbox = inboxes?.find((inbox: any) => {
+        const inboxId = inbox?.id?.toString?.();
+        const inboxIdentifier = inbox?.identifier?.toString?.();
+
+        return (
+          (resolvedInboxId && inboxId === resolvedInboxId) ||
+          (resolvedInboxIdentifier && inboxIdentifier === resolvedInboxIdentifier) ||
+          (config.inboxId && inboxId === config.inboxId) ||
+          (config.inboxIdentifier && inboxIdentifier === config.inboxIdentifier)
+        );
+      });
+
+      return {
+        status: 'ok',
+        checkedAt: new Date().toISOString(),
+        accountRoute: { endpoint, ok: true },
+        inbox: {
+          configuredInboxId: config.inboxId,
+          configuredInboxIdentifier: config.inboxIdentifier,
+          resolvedInboxId,
+          resolvedInboxIdentifier,
+          matchedInbox: matchedInbox
+            ? {
+                id: matchedInbox?.id?.toString?.(),
+                identifier: matchedInbox?.identifier?.toString?.(),
+                name: matchedInbox?.name?.toString?.() ?? matchedInbox?.channel?.name?.toString?.(),
+                channelType: matchedInbox?.channel_type?.toString?.() ?? matchedInbox?.channelType?.toString?.(),
+                lockToSingleConversation:
+                  typeof matchedInbox?.lock_to_single_conversation === 'boolean'
+                    ? matchedInbox.lock_to_single_conversation
+                    : typeof matchedInbox?.lockToSingleConversation === 'boolean'
+                      ? matchedInbox.lockToSingleConversation
+                      : null,
+              }
+            : null,
+        },
+      };
+    } catch (error: any) {
+      return {
+        status: 'error',
+        checkedAt: new Date().toISOString(),
+        accountRoute: {
+          endpoint,
+          ok: false,
+          error: error?.message ?? 'unknown_error',
+        },
+        inbox: {
+          configuredInboxId: config.inboxId,
+          configuredInboxIdentifier: config.inboxIdentifier,
+        },
+      };
+    }
+  }
+
   private async request(
     config: ChatwootConnectionConfig,
     endpoint: string,

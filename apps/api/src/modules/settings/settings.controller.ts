@@ -39,6 +39,7 @@ import { SettingsSefazMonitorService } from './sefaz-monitor.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
 import { IntegrationContextService } from './integration-context.service';
+import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 
 @Controller('settings')
 export class SettingsController {
@@ -58,6 +59,7 @@ export class SettingsController {
     private readonly prisma: PrismaService,
     private readonly integrationConnections: IntegrationConnectionsService,
     private readonly integrationContext: IntegrationContextService,
+    private readonly chatwootClient: ChatwootClient,
     private readonly settingsPermissionsService: SettingsPermissionsService,
     private readonly authorizationService: AuthorizationService,
     private readonly sefazMonitorService: SettingsSefazMonitorService,
@@ -363,6 +365,9 @@ export class SettingsController {
     ]);
 
     const runtime = readEvolutionRuntimeConfig();
+    const chatwootDiagnostics = defaultContext
+      ? await this.chatwootClient.inspectInboxConfiguration(defaultContext.chatwoot)
+      : null;
     const issues: string[] = [];
 
     if (!defaultContext) {
@@ -444,6 +449,7 @@ export class SettingsController {
             inboxIdentifier: context.chatwoot.inboxIdentifier || null,
           },
         })),
+        chatwootDiagnostics,
         issues,
       },
     };
