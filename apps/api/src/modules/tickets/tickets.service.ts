@@ -126,7 +126,7 @@ export class TicketsService {
     const normalizedCategory = data.category?.trim() || null;
     const normalizedModule = data.module?.trim() || null;
     const normalizedEnvironment = data.environment?.trim() || settings.defaultEnvironment || null;
-    const normalizedTeam = this.resolveTicketTeam(data.team, requester.role, settings, normalizedCategory);
+    const normalizedTeam = this.resolveTicketTeam(data.team, requester.role, settings, normalizedCategory, isSystemAdmin);
     const openedByName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const assignedUserId = settings.autoAssignToCreator && isSystemAdmin ? requester.userId : null;
     const metadata = {
@@ -401,7 +401,7 @@ export class TicketsService {
           : {};
 
       if (input.team !== undefined) {
-        currentMetadata.currentTeam = this.resolveTicketTeam(input.team, requester.role, settings);
+        currentMetadata.currentTeam = this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal);
       }
       if (input.category !== undefined) currentMetadata.category = input.category?.trim() || null;
       if (input.module !== undefined) currentMetadata.module = input.module?.trim() || null;
@@ -448,7 +448,7 @@ export class TicketsService {
             currentMetadata.currentOwnerRole = assignee.role;
             const targetTeam =
               input.team !== undefined
-                ? this.resolveTicketTeam(input.team, requester.role, settings)
+                ? this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal)
                 : assignee.role === Role.DEVELOPER
                   ? 'DESENVOLVIMENTO'
                   : 'SUPORTE';
@@ -522,22 +522,23 @@ export class TicketsService {
     role: Role,
     settings: TicketModuleSettings,
     category?: string | null,
+    allowDevelopment = true,
   ): 'SUPORTE' | 'DESENVOLVIMENTO' {
     const normalizedRequestedTeam = requestedTeam?.trim().toUpperCase();
     if (normalizedRequestedTeam === 'SUPORTE' || normalizedRequestedTeam === 'DESENVOLVIMENTO') {
-      return normalizedRequestedTeam;
+      return normalizedRequestedTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : normalizedRequestedTeam;
     }
 
     const categoryDefaultTeam = settings.categories.find((item) => item.value === category)?.defaultTeam;
     if (categoryDefaultTeam === 'SUPORTE' || categoryDefaultTeam === 'DESENVOLVIMENTO') {
-      return categoryDefaultTeam;
+      return categoryDefaultTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : categoryDefaultTeam;
     }
 
-    if (role === Role.DEVELOPER) {
+    if (role === Role.DEVELOPER && allowDevelopment) {
       return 'DESENVOLVIMENTO';
     }
 
-    return settings.defaultTeam === 'DESENVOLVIMENTO' ? 'DESENVOLVIMENTO' : 'SUPORTE';
+    return settings.defaultTeam === 'DESENVOLVIMENTO' && allowDevelopment ? 'DESENVOLVIMENTO' : 'SUPORTE';
   }
 
   private async resolveRequesterDisplayName(userId: string, email: string) {

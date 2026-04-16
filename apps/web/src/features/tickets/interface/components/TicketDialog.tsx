@@ -325,10 +325,43 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                   )}
                   {!isSystemUser && clientCompanies.length === 1 && <p className="text-xs text-muted-foreground">Empresa vinculada: {clientCompanies[0].name}</p>}
 
+                  {isSystemUser ? (
+                    <FormItem>
+                      <Label>Setor atual</Label>
+                      <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                        <FormControl>
+                          <SelectTrigger className="bg-muted/30">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ticketSettings.teams.map((team) => (
+                            <SelectItem key={team.id} value={team.value}>
+                              {team.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[0.8rem] text-muted-foreground">Clientes entram primeiro pelo suporte. Desenvolvimento fica restrito a usuarios internos.</p>
+                    </FormItem>
+                  ) : (
+                    <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm">
+                      <p className="font-medium text-foreground">Setor atual: Suporte</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Chamados de clientes entram primeiro na triagem do suporte.</p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <FormItem>
                       <Label>Categoria</Label>
-                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <Select
+                        value={selectedCategory}
+                        onValueChange={(value) => {
+                          setSelectedCategory(value);
+                          const category = ticketSettings.categories.find((item) => item.value === value);
+                          setSelectedTeam(isSystemUser ? category?.defaultTeam || selectedTeam : "SUPORTE");
+                        }}
+                      >
                         <FormControl>
                           <SelectTrigger className="bg-muted/30">
                             <SelectValue placeholder="Selecione..." />
@@ -348,7 +381,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                       control={form.control}
                       name="type"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="hidden">
                           <FormLabel>Tipo</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -427,26 +460,6 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     </FormItem>
                   </div>
 
-                  {isSystemUser ? (
-                    <FormItem>
-                      <Label>Setor atual</Label>
-                      <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                        <FormControl>
-                          <SelectTrigger className="bg-muted/30">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ticketSettings.teams.map((team) => (
-                            <SelectItem key={team.id} value={team.value}>
-                              {team.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[0.8rem] text-muted-foreground">Define se o chamado nasce com Suporte ou Desenvolvimento como setor operacional.</p>
-                    </FormItem>
-                  ) : null}
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-border/50">

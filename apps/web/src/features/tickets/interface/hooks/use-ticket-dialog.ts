@@ -38,7 +38,9 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
     const [selectedModule, setSelectedModule] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
     const [selectedEnvironment, setSelectedEnvironment] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.defaultEnvironment);
-    const [selectedTeam, setSelectedTeam] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam);
+    const [selectedTeam, setSelectedTeam] = useState<string>(
+        options.isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE",
+    );
     const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +110,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 setSelectedCategory(json.data.categories[0]?.value || "incident");
                 setSelectedModule(json.data.modules[0]?.value || "");
                 setSelectedEnvironment(json.data.defaultEnvironment);
-                setSelectedTeam(json.data.defaultTeam);
+                setSelectedTeam(options.isSystemUser ? json.data.defaultTeam : "SUPORTE");
             })
             .catch((error) => {
                 logError("ticket_settings.fetch_failed", error);

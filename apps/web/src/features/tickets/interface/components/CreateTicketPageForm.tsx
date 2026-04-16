@@ -80,14 +80,13 @@ const PRIORITY_CONFIG = {
   "3 high": { label: "Alta (Urgente)", color: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" },
 } as const;
 
-const TYPE_CONFIG = {
+export const TYPE_CONFIG = {
   incident: { label: "Incidente / Erro", icon: "🔴" },
   question: { label: "Duvida", icon: "🔵" },
   request: { label: "Solicitacao", icon: "🟢" },
 } as const;
 
 type PriorityKey = keyof typeof PRIORITY_CONFIG;
-type TypeKey = keyof typeof TYPE_CONFIG;
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps) {
@@ -107,7 +106,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
   const [selectedModule, setSelectedModule] = useState(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
   const [selectedEnvironment, setSelectedEnvironment] = useState(DEFAULT_TICKET_MODULE_SETTINGS.defaultEnvironment);
-  const [selectedTeam, setSelectedTeam] = useState(DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam);
+  const [selectedTeam, setSelectedTeam] = useState(isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE");
 
   const form = useForm<TicketFormInput, undefined, TicketFormOutput>({
     resolver: zodResolver(ticketFormSchema),
@@ -120,8 +119,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   });
 
   const watchedSubject = form.watch("subject");
-  const watchedType = form.watch("type") as TypeKey;
   const watchedPriority = form.watch("priority") as PriorityKey;
+  const selectedTeamLabel = ticketSettings.teams.find((team) => team.value === selectedTeam)?.label || "Suporte";
   const selectedClientCompany = clientCompanies.find((company) => company.id === selectedCompanyId) ?? null;
   const selectedSystemOption = customerOptions.find(
     (option) =>
@@ -152,14 +151,14 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
         setSelectedCategory(json.data.categories[0]?.value || "incident");
         setSelectedModule(json.data.modules[0]?.value || "");
         setSelectedEnvironment(json.data.defaultEnvironment);
-        setSelectedTeam(json.data.defaultTeam);
+        setSelectedTeam(isSystemUser ? json.data.defaultTeam : "SUPORTE");
       })
       .catch(() => {});
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [isSystemUser]);
 
   useEffect(() => {
     if (!isSystemUser) {
@@ -344,8 +343,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                     <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{watchedSubject || "Pendente"}</p>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tipo</p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground">{TYPE_CONFIG[watchedType]?.icon} {TYPE_CONFIG[watchedType]?.label || watchedType}</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Setor</p>
+                    <p className="mt-0.5 text-sm font-semibold text-foreground">{selectedTeamLabel}</p>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Anexos</p>
@@ -418,9 +417,40 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   <p className="text-[11px] text-muted-foreground">Classifique o chamado para agilizar o atendimento.</p>
                 </div>
 
+                {isSystemUser ? (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Setor atual</Label>
+                    <Select value={selectedTeam} onValueChange={(value) => setSelectedTeam(value as "SUPORTE" | "DESENVOLVIMENTO")}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Selecione o setor..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ticketSettings.teams.map((team) => (
+                          <SelectItem key={team.id} value={team.value}>
+                            {team.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border/50 bg-background p-3 text-xs">
+                    <p className="font-semibold uppercase tracking-wider text-muted-foreground">Setor atual</p>
+                    <p className="mt-1 font-medium text-foreground">Suporte</p>
+                    <p className="mt-1 text-muted-foreground">Chamados de clientes entram primeiro no suporte.</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categoria</Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <Select
+                    value={selectedCategory}
+                    onValueChange={(value) => {
+                      setSelectedCategory(value);
+                      const category = ticketSettings.categories.find((item) => item.value === value);
+                      setSelectedTeam(isSystemUser ? category?.defaultTeam || selectedTeam : "SUPORTE");
+                    }}
+                  >
                     <SelectTrigger className="bg-background">
                       <SelectValue placeholder="Selecione a categoria..." />
                     </SelectTrigger>
@@ -439,7 +469,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   control={form.control}
                   name="type"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="hidden">
                       <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
@@ -592,24 +622,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                     </Card>
                   </div>
                 )}
-
-                {isSystemUser ? (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Setor atual</Label>
-                    <Select value={selectedTeam} onValueChange={(value) => setSelectedTeam(value as "SUPORTE" | "DESENVOLVIMENTO")}>
-                      <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Selecione o setor..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ticketSettings.teams.map((team) => (
-                          <SelectItem key={team.id} value={team.value}>
-                            {team.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : null}
 
                 {/* Completion badges */}
                 <div className="pt-2 border-t border-border/40 space-y-2">
