@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
@@ -27,19 +28,21 @@ export function parseCustomerEmailSearchParams(url: string) {
 
 export async function findCustomerEmailOptions(input: { q: string; limit: number }): Promise<CustomerEmailOption[]> {
   const cnpjQuery = input.q.replace(/\D/g, "");
+  const companyWhere: Prisma.CompanyWhereInput = {
+    deletedAt: null,
+    ...(input.q
+      ? {
+          OR: [
+            { nomeFantasia: { contains: input.q, mode: "insensitive" } },
+            { razaoSocial: { contains: input.q, mode: "insensitive" } },
+            ...(cnpjQuery ? [{ cnpj: { contains: cnpjQuery, mode: "insensitive" as const } }] : []),
+          ],
+        }
+      : {}),
+  };
+
   const companyRows = await prisma.company.findMany({
-    where: {
-      deletedAt: null,
-      ...(input.q
-        ? {
-            OR: [
-              { nomeFantasia: { contains: input.q, mode: "insensitive" } },
-              { razaoSocial: { contains: input.q, mode: "insensitive" } },
-              ...(cnpjQuery ? [{ cnpj: { contains: cnpjQuery, mode: "insensitive" } }] : []),
-            ],
-          }
-        : {}),
-    },
+    where: companyWhere,
     orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
     select: {
       id: true,
