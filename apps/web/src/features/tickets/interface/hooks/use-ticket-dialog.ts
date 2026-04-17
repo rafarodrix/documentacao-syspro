@@ -32,6 +32,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const [customerCompany, setCustomerCompany] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [customerOptions, setCustomerOptions] = useState<CustomerEmailOption[]>([]);
+    const [customerOptionsError, setCustomerOptionsError] = useState<string | null>(null);
     const [clientCompanies, setClientCompanies] = useState<CompanyOption[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
     const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
@@ -155,15 +156,20 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                     signal: controller.signal,
                 });
                 if (!response.ok) {
-                    logInfo("customer_emails.non_ok_response", { status: response.status, query: searchQuery.trim() });
+                    const json = (await response.json().catch(() => null)) as { error?: string } | null;
+                    const message = json?.error || "Falha ao consultar empresas.";
+                    logInfo("customer_emails.non_ok_response", { status: response.status, query: searchQuery.trim(), message });
+                    setCustomerOptionsError(message);
                     setCustomerOptions([]);
                     return;
                 }
                 const json = (await response.json()) as { options?: CustomerEmailOption[] };
+                setCustomerOptionsError(null);
                 setCustomerOptions(Array.isArray(json.options) ? json.options : []);
             } catch (error) {
                 if ((error as Error).name !== "AbortError") {
                     logError("customer_emails.fetch_failed", error, { query: searchQuery.trim() });
+                    setCustomerOptionsError("Falha ao consultar empresas.");
                     setCustomerOptions([]);
                 }
             } finally {
@@ -273,6 +279,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         setCustomerCompany,
         setSearchQuery,
         customerOptions,
+        customerOptionsError,
         isCustomerOptionsLoading,
         clientCompanies,
         selectedCompanyId,

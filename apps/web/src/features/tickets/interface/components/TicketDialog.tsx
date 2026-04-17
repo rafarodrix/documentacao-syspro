@@ -77,6 +77,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     setCustomerCompany,
     setSearchQuery,
     customerOptions,
+    customerOptionsError,
     isCustomerOptionsLoading,
     clientCompanies,
     selectedCompanyId,
@@ -355,6 +356,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                         onSearch={setSearchQuery}
                         loading={isCustomerOptionsLoading}
                         placeholder="Pesquisar por Contatos ou Empresa..."
+                        emptyMessage={customerOptionsError || "Nenhum resultado encontrado."}
                         className="bg-muted/10 h-10 border-border/60 hover:bg-muted/20 hover:border-primary/40 focus:border-primary transition-all shadow-none"
                       />
                       {(customerCompany || customerEmail || selectedCompanyId) ? (

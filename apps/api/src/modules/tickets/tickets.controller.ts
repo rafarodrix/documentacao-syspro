@@ -35,6 +35,11 @@ export class TicketsController {
     return this.ticketsService.getLinkedCompanies(req.headers);
   }
 
+  @Get('customer-emails')
+  findCustomerOptions(@Req() req: Request, @Query('q') q?: string, @Query('limit') limit?: string) {
+    return this.ticketsService.findCustomerOptions({ q, limit }, req.headers);
+  }
+
   @Get()
   findAll(
     @Req() req: Request,

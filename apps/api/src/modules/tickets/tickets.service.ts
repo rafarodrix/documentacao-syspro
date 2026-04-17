@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   TicketModuleSettings,
   TicketModuleCreateRequest,
@@ -224,6 +224,137 @@ export class TicketsService {
     }
 
     return serializeLinkedCompaniesResponse(Array.from(companiesMap.values()));
+  }
+
+  async findCustomerOptions(input: { q?: string; limit?: string }, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const accessScope = await this.getTicketAccessScope(requester);
+
+    if (!accessScope.isGlobal) {
+      throw new ForbiddenException('Nao autorizado a consultar empresas para tickets.');
+    }
+
+    const q = (input.q || '').trim().toLowerCase();
+    const rawLimit = Number(input.limit || 15);
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(30, Math.trunc(rawLimit))) : 15;
+    const cnpjQuery = q.replace(/\D/g, '');
+
+    const companyRows = await this.prisma.company.findMany({
+      where: {
+        deletedAt: null,
+        ...(q
+          ? {
+              OR: [
+                { nomeFantasia: { contains: q, mode: 'insensitive' } },
+                { razaoSocial: { contains: q, mode: 'insensitive' } },
+                ...(cnpjQuery ? [{ cnpj: { contains: cnpjQuery, mode: 'insensitive' as const } }] : []),
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
+      select: {
+        id: true,
+        nomeFantasia: true,
+        razaoSocial: true,
+        cnpj: true,
+        emailContato: true,
+      },
+      take: limit,
+    });
+
+    const contactRows = await this.prisma.companyContact.findMany({
+      where: {
+        status: 'LINKED',
+        companyLinks: {
+          some: {
+            company: { deletedAt: null },
+          },
+        },
+        ...(q
+          ? {
+              OR: [
+                { email: { contains: q, mode: 'insensitive' } },
+                { name: { contains: q, mode: 'insensitive' } },
+                {
+                  companyLinks: {
+                    some: {
+                      company: {
+                        deletedAt: null,
+                        OR: [
+                          { nomeFantasia: { contains: q, mode: 'insensitive' } },
+                          { razaoSocial: { contains: q, mode: 'insensitive' } },
+                        ],
+                      },
+                    },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ name: 'asc' }, { email: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        companyLinks: {
+          where: {
+            company: { deletedAt: null },
+          },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+          select: {
+            companyId: true,
+            company: {
+              select: {
+                nomeFantasia: true,
+                razaoSocial: true,
+              },
+            },
+          },
+        },
+      },
+      take: limit * 2,
+    });
+
+    const dedup = new Map<string, { companyId: string; email: string; companyName: string; contactName: string | null }>();
+
+    for (const company of companyRows) {
+      const companyName = company.nomeFantasia?.trim() || company.razaoSocial?.trim();
+      if (!companyName) continue;
+
+      dedup.set(`company:${company.id}`, {
+        companyId: company.id,
+        email: '',
+        companyName,
+        contactName: company.emailContato?.trim() || company.cnpj || 'Empresa cadastrada',
+      });
+    }
+
+    for (const contact of contactRows) {
+      const email = String(contact.email || '').trim().toLowerCase();
+
+      for (const link of contact.companyLinks) {
+        const companyName = link.company?.nomeFantasia?.trim() || link.company?.razaoSocial || '';
+        if (!companyName) continue;
+
+        const dedupKey = email ? `${email}:${link.companyId}` : `contact:${contact.id}:${link.companyId}`;
+        if (dedup.has(dedupKey)) continue;
+
+        dedup.set(dedupKey, {
+          companyId: link.companyId,
+          email,
+          companyName,
+          contactName: contact.name?.trim() || null,
+        });
+
+        if (dedup.size >= limit) {
+          return { options: Array.from(dedup.values()) };
+        }
+      }
+    }
+
+    return { options: Array.from(dedup.values()) };
   }
 
   async findAll(input: TicketModuleListQuery, rawHeaders?: IncomingHttpHeaders) {

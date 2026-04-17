@@ -101,6 +101,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const [searchQuery, setSearchQuery] = useState("");
   const [customerOptions, setCustomerOptions] = useState<CustomerEmailOption[]>([]);
   const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
+  const [customerOptionsError, setCustomerOptionsError] = useState<string | null>(null);
   const [clientCompanies, setClientCompanies] = useState<CompanyOption[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [descriptionHtml, setDescriptionHtml] = useState("");
@@ -214,13 +215,19 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
           signal: controller.signal,
         });
         if (!response.ok) {
+          const json = (await response.json().catch(() => null)) as { error?: string } | null;
+          setCustomerOptionsError(json?.error || "Falha ao consultar empresas.");
           setCustomerOptions([]);
           return;
         }
         const json = (await response.json()) as { options?: CustomerEmailOption[] };
+        setCustomerOptionsError(null);
         setCustomerOptions(Array.isArray(json.options) ? json.options : []);
       } catch (error) {
-        if ((error as Error).name !== "AbortError") setCustomerOptions([]);
+        if ((error as Error).name !== "AbortError") {
+          setCustomerOptionsError("Falha ao consultar empresas.");
+          setCustomerOptions([]);
+        }
       } finally {
         setIsCustomerOptionsLoading(false);
       }
@@ -418,6 +425,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                       onSearch={setSearchQuery}
                       loading={isCustomerOptionsLoading}
                       placeholder="Pesquisar ou selecionar empresa..."
+                      emptyMessage={customerOptionsError || "Nenhum resultado encontrado."}
                       className="h-12 bg-white dark:bg-muted/10 hover:bg-muted/20 border-border/60 shadow-sm transition-all text-base"
                     />
                     <p className="text-xs text-muted-foreground mt-1.5 opacity-80">
