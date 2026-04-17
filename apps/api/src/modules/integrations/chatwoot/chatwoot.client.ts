@@ -966,10 +966,17 @@ export class ChatwootClient {
     content: string,
     attachment: { filename: string; mimetype: string; publicUrl?: string },
   ): string {
+    const isImage = attachment.mimetype.toLowerCase().startsWith('image/');
+    const mediaLine = attachment.publicUrl
+      ? isImage
+        ? `![${attachment.filename}](${attachment.publicUrl})`
+        : `Arquivo: ${attachment.publicUrl}`
+      : 'Arquivo nao anexado: falha no storage do Chatwoot.';
+
     const lines = [
       content?.trim(),
       `[Midia recebida: ${attachment.filename} (${attachment.mimetype})]`,
-      attachment.publicUrl ? `Arquivo: ${attachment.publicUrl}` : 'Arquivo nao anexado: falha no storage do Chatwoot.',
+      mediaLine,
     ].filter(Boolean);
 
     return lines.join('\n');
