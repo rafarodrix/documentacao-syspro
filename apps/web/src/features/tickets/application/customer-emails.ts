@@ -56,7 +56,6 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
 
   const rows = await prisma.companyContact.findMany({
     where: {
-      email: { not: null },
       status: "LINKED",
       companyLinks: {
         some: {
@@ -109,6 +108,7 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
     },
     orderBy: [{ name: "asc" }, { email: "asc" }],
     select: {
+      id: true,
       name: true,
       email: true,
       companyLinks: {
@@ -148,13 +148,12 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
 
   for (const row of rows) {
     const email = String(row.email || "").trim().toLowerCase();
-    if (!email) continue;
 
     for (const link of row.companyLinks) {
       const companyName = link.company?.nomeFantasia?.trim() || link.company?.razaoSocial || "";
       if (!companyName) continue;
 
-      const dedupKey = `${email}:${link.companyId}`;
+      const dedupKey = email ? `${email}:${link.companyId}` : `contact:${row.id}:${link.companyId}`;
       if (dedup.has(dedupKey)) continue;
 
       dedup.set(dedupKey, {

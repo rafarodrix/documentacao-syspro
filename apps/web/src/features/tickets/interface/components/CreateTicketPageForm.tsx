@@ -188,9 +188,9 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   useEffect(() => {
     if (!isSystemUser) return;
     const controller = new AbortController();
+    setIsCustomerOptionsLoading(true);
     const timer = setTimeout(async () => {
       try {
-        setIsCustomerOptionsLoading(true);
         const params = new URLSearchParams();
         params.set("q", searchQuery.trim());
         params.set("limit", "15");
@@ -608,11 +608,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                           <SelectItem value="3 high">Alta (Urgente)</SelectItem>
                         </SelectContent>
                       </Select>
-                      <div className="pt-1">
-                        <Badge variant="outline" className={cn("text-[10px] px-2", PRIORITY_CONFIG[watchedPriority]?.color)}>
-                          {PRIORITY_CONFIG[watchedPriority]?.label || "Normal"}
-                        </Badge>
-                      </div>
                     </FormItem>
                   )}
                 />

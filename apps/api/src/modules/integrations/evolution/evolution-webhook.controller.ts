@@ -60,6 +60,11 @@ export class EvolutionWebhookController {
     const isReceiptEvent =
       normalizedEvent === 'receipt' ||
       normalizedEvent === 'messages.update';
+    const isCallEvent =
+      normalizedEvent === 'call' ||
+      normalizedEvent === 'calls' ||
+      normalizedEvent.startsWith('call.') ||
+      normalizedEvent.startsWith('calls.');
 
     if (isInboundMessageEvent) {
       await this.processIncomingMessage.execute(payload?.data ?? payload, {
@@ -74,6 +79,12 @@ export class EvolutionWebhookController {
           connection: resolvedContext,
         }
       );
+    } else if (isCallEvent) {
+      await this.processIncomingMessage.handleCallEvent(payload?.data ?? payload, {
+        event: normalizedEvent,
+        instanceId: resolvedInstanceId,
+        connection: resolvedContext,
+      });
     }
     return { ok: true };
   }

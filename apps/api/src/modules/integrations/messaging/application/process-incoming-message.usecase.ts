@@ -387,6 +387,227 @@ export class ProcessIncomingMessageUseCase {
     }
   }
 
+  async handleCallEvent(
+    payload: any,
+    context?: { event?: string; instanceId?: string; connection?: ResolvedIntegrationContext }
+  ) {
+    const calls = this.normalizeCallPayload(payload);
+    if (!calls.length) {
+      this.logger.debug(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'call_event_ignored_no_payload',
+        event: context?.event ?? null,
+        instanceId: context?.instanceId ?? null,
+      }));
+      return;
+    }
+
+    const resolvedConnection =
+      context?.connection ??
+      await this.integrationContext.getDefaultContext();
+
+    if (!resolvedConnection) {
+      this.logger.error('Nenhuma conexao ativa encontrada para processar ligacao inbound da Evolution.');
+      return;
+    }
+
+    for (const call of calls) {
+      const callInfo = this.extractCallInfo(call, context?.event);
+      if (!callInfo.phone) {
+        this.logger.debug(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'call_event_ignored_no_phone',
+          event: context?.event ?? null,
+          instanceId: context?.instanceId ?? null,
+          callId: callInfo.callId ?? null,
+        }));
+        continue;
+      }
+
+      if (callInfo.fromMe) {
+        this.logger.debug(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'call_event_ignored_from_me',
+          event: context?.event ?? null,
+          instanceId: context?.instanceId ?? null,
+          callId: callInfo.callId ?? null,
+          whatsappNumber: callInfo.phone,
+        }));
+        continue;
+      }
+
+      const dedupId = callInfo.callId
+        ? `call:${callInfo.callId}`
+        : `call:${callInfo.phone}:${callInfo.status ?? context?.event ?? 'unknown'}`;
+      const dedupeClaimed = await this.dedupService.claim('evolution_call', dedupId, context?.instanceId ?? null);
+      if (!dedupeClaimed) {
+        this.logger.debug(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          dedup: 'db_hit',
+          stage: 'call_event_skipped_duplicate',
+          instanceId: context?.instanceId ?? null,
+          callId: callInfo.callId ?? null,
+          whatsappNumber: callInfo.phone,
+        }));
+        continue;
+      }
+
+      try {
+        const link = await this.resolveOrCreateConversationLink(
+          callInfo.phone,
+          callInfo.pushName ?? 'Cliente WhatsApp',
+          resolvedConnection,
+        );
+        const content = this.buildCallLogMessage(callInfo);
+
+        await this.chatwootClient.createIncomingMessage(
+          resolvedConnection.chatwoot,
+          link.contactIdentifier,
+          link.conversationId,
+          content,
+        );
+
+        this.logger.log(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'call_forwarded',
+          event: context?.event ?? null,
+          instanceId: context?.instanceId ?? null,
+          callId: callInfo.callId ?? null,
+          callStatus: callInfo.status ?? null,
+          callType: callInfo.callType,
+          chatwootConversationId: link.conversationId,
+          whatsappNumber: callInfo.phone,
+        }));
+      } catch (error: any) {
+        await this.dedupService.release('evolution_call', dedupId);
+        this.logger.error(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'call_forward_failed',
+          event: context?.event ?? null,
+          instanceId: context?.instanceId ?? null,
+          callId: callInfo.callId ?? null,
+          whatsappNumber: callInfo.phone,
+          error: error?.message ?? 'unknown_error',
+        }));
+      }
+    }
+  }
+
+  private normalizeCallPayload(payload: any): any[] {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.calls)) return payload.calls;
+    if (Array.isArray(payload?.call)) return payload.call;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (payload?.call && typeof payload.call === 'object') return [payload.call];
+    return payload ? [payload] : [];
+  }
+
+  private extractCallInfo(payload: any, event?: string): {
+    callId?: string;
+    phone: string | null;
+    pushName?: string;
+    status?: string;
+    callType: 'audio' | 'video';
+    fromMe: boolean;
+  } {
+    const remoteJid = this.readFirstString(
+      payload?.remoteJid,
+      payload?.chatId,
+      payload?.from,
+      payload?.sender,
+      payload?.key?.remoteJid,
+      payload?.Info?.Chat,
+      payload?.info?.Chat,
+      payload?.call?.from,
+      payload?.call?.chatId,
+      payload?.data?.from,
+      payload?.data?.chatId,
+      payload?.data?.remoteJid,
+    );
+    const phone = this.extractPhoneFromJidOrNumber(remoteJid);
+    const status = this.readFirstString(
+      payload?.status,
+      payload?.state,
+      payload?.type,
+      payload?.callStatus,
+      payload?.call?.status,
+      payload?.data?.status,
+      event,
+    );
+    const isVideo = Boolean(
+      payload?.isVideo ??
+      payload?.is_video ??
+      payload?.video ??
+      payload?.call?.isVideo ??
+      payload?.data?.isVideo
+    );
+
+    return {
+      callId: this.readFirstString(
+        payload?.id,
+        payload?.callId,
+        payload?.call_id,
+        payload?.call?.id,
+        payload?.data?.id,
+        payload?.data?.callId,
+      ),
+      phone,
+      pushName: this.readFirstString(
+        payload?.pushName,
+        payload?.name,
+        payload?.callerName,
+        payload?.call?.pushName,
+        payload?.data?.pushName,
+      ),
+      status,
+      callType: isVideo ? 'video' : 'audio',
+      fromMe: Boolean(
+        payload?.fromMe ??
+        payload?.isFromMe ??
+        payload?.key?.fromMe ??
+        payload?.call?.fromMe ??
+        payload?.data?.fromMe
+      ),
+    };
+  }
+
+  private buildCallLogMessage(call: { status?: string; callType: 'audio' | 'video' }): string {
+    const status = this.normalizeCallStatus(call.status);
+    const typeLabel = call.callType === 'video' ? 'video' : 'audio';
+    return [
+      `Ligacao de ${typeLabel} recebida via WhatsApp.`,
+      status ? `Status: ${status}.` : undefined,
+      'Registro automatico gerado pelo webhook da Evolution.',
+    ].filter(Boolean).join('\n');
+  }
+
+  private normalizeCallStatus(status?: string): string | null {
+    const normalized = String(status ?? '').trim().toLowerCase();
+    if (!normalized) return null;
+    if (normalized.includes('offer') || normalized.includes('ring')) return 'recebida';
+    if (normalized.includes('reject') || normalized.includes('miss')) return 'nao atendida';
+    if (normalized.includes('timeout')) return 'nao atendida';
+    if (normalized.includes('accept')) return 'atendida';
+    if (normalized.includes('terminate') || normalized.includes('end')) return 'encerrada';
+    return normalized;
+  }
+
+  private extractPhoneFromJidOrNumber(value?: string): string | null {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) return null;
+    const jidUser = normalized.split('@')[0] ?? normalized;
+    const digits = jidUser.replace(/\D/g, '');
+    return digits.length >= 10 ? digits : null;
+  }
+
+  private readFirstString(...values: unknown[]): string | undefined {
+    for (const value of values) {
+      const normalized = String(value ?? '').trim();
+      if (normalized) return normalized;
+    }
+    return undefined;
+  }
+
   private async handleReceiptStatusUpdate(
     payload: { messageIds: string[]; chatwootStatus: 'delivered' | 'read' },
     context?: { instanceId?: string; connection?: ResolvedIntegrationContext }
