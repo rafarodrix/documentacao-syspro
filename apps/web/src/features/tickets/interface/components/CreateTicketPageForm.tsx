@@ -22,7 +22,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ShineBorder } from "@/components/magicui/ShineBorder";
 import {
   Select,
   SelectContent,
@@ -123,17 +122,26 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const watchedPriority = form.watch("priority") as PriorityKey;
   const selectedTeamLabel = ticketSettings.teams.find((team) => team.value === selectedTeam)?.label || "Suporte";
   const selectedClientCompany = clientCompanies.find((company) => company.id === selectedCompanyId) ?? null;
-  const selectedSystemOption = customerOptions.find(
-    (option) =>
-      option.companyId === selectedCompanyId &&
-      option.email === customerEmail.trim().toLowerCase(),
-  ) ?? null;
-  const systemCompanyOptions: TicketCompanyPickerOption[] = customerOptions.map((option) => ({
-    id: `${option.companyId}::${option.email}`,
-    label: option.companyName,
-    description: option.contactName || option.email,
-    meta: option.contactName ? option.email : null,
-  }));
+  const systemCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
+    const opts: TicketCompanyPickerOption[] = customerOptions.map((option) => ({
+      id: option.email ? `${option.companyId}::${option.email}` : `${option.companyId}::`,
+      label: option.companyName,
+      description: option.contactName || option.email,
+      meta: option.contactName ? option.email : null,
+    }));
+    
+    if (selectedCompanyId) {
+      const currentId = customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`;
+      if (!opts.some(o => o.id === currentId)) {
+        opts.push({
+          id: currentId,
+          label: customerCompany || "Empresa selecionada",
+          description: customerEmail || undefined,
+        });
+      }
+    }
+    return opts;
+  }, [customerOptions, selectedCompanyId, customerEmail, customerCompany]);
   const clientCompanyOptions: TicketCompanyPickerOption[] = clientCompanies.map((company) => ({
     id: company.id,
     label: company.name,
@@ -293,7 +301,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   // ─── Render ────────────────────────────────────────────────────────────
   return (
     <div className="relative min-h-[calc(100vh-120px)] overflow-hidden rounded-2xl border border-border/50 bg-card/95 shadow-xl">
-      <ShineBorder borderWidth={1} duration={16} shineColor={["#f97316", "#3b82f6", "#8b5cf6"]} />
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4 border-b border-border/50 bg-gradient-to-r from-muted/30 via-background to-muted/20 px-6 py-4">
@@ -338,16 +345,16 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                 {/* Summary cards */}
                 <div className="grid gap-3 grid-cols-3">
                   <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Assunto</p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{watchedSubject || "Pendente"}</p>
-                  </div>
-                  <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Setor</p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground">{selectedTeamLabel}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{selectedTeamLabel}</p>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Anexos</p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground">{files.length} arquivo(s)</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Categoria</p>
+                    <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{ticketSettings.categories.find(c => c.value === selectedCategory)?.label || "Nenhuma"}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Módulo</p>
+                    <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{ticketSettings.modules.find(m => m.value === selectedModule)?.label || "Nenhum"}</p>
                   </div>
                 </div>
 
@@ -374,11 +381,15 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Empresa / contato</Label>
                     <TicketCompanyPicker
-                      value={selectedSystemOption ? `${selectedSystemOption.companyId}::${selectedSystemOption.email}` : ""}
+                      value={selectedCompanyId || customerEmail ? (customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`) : ""}
                       options={systemCompanyOptions}
                       onChange={(value) => {
                         const [companyId, email] = value.split("::");
-                        const option = customerOptions.find((item) => item.companyId === companyId && item.email === email);
+                        let option = customerOptions.find((item) => item.companyId === companyId && (email ? item.email === email : true));
+                        if (!option && (companyId === selectedCompanyId) && (email === customerEmail)) {
+                            // in case the option is the fallback memory structure
+                            option = { companyId, email, companyName: customerCompany || "", contactName: "" };
+                        }
                         setSelectedCompanyId(companyId || "");
                         setCustomerEmail(option?.email || email || "");
                         setCustomerCompany(option?.companyName || null);
@@ -455,12 +466,38 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   </p>
                 </div>
 
+                {/* Database and Video Links (System only) */}
+                {isSystemUser && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Link da base de dados</Label>
+                      <Input
+                        value={databaseUrl}
+                        onChange={(e) => setDatabaseUrl(e.target.value)}
+                        placeholder="https://... ou caminho interno"
+                        className="h-11 bg-muted/30 focus:bg-background text-base"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Video explicativo para desenvolvimento</Label>
+                      <Input
+                        value={developmentVideoUrl}
+                        onChange={(e) => setDevelopmentVideoUrl(e.target.value)}
+                        placeholder="https://www.loom.com/... ou YouTube"
+                        className="h-11 bg-muted/30 focus:bg-background text-base"
+                      />
+                      <p className="text-xs text-muted-foreground opacity-80">Use para evidencias tecnicas internas quando o chamado for para desenvolvimento.</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Attachments */}
                 <TicketAttachmentField
                   files={files}
                   inputRef={fileInputRef}
                   onChange={handleFileChange}
                   onRemove={removeFile}
+                  compact={true}
                 />
               </div>
 
@@ -612,30 +649,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   </Select>
                 </div>
 
-                {isSystemUser && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Link da base de dados</Label>
-                    <Input
-                      value={databaseUrl}
-                      onChange={(e) => setDatabaseUrl(e.target.value)}
-                      placeholder="https://... ou caminho interno"
-                      className="h-9 bg-background text-xs"
-                    />
-                  </div>
-                )}
-
-                {isSystemUser && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Video explicativo para desenvolvimento</Label>
-                    <Input
-                      value={developmentVideoUrl}
-                      onChange={(e) => setDevelopmentVideoUrl(e.target.value)}
-                      placeholder="https://www.loom.com/... ou YouTube"
-                      className="h-9 bg-background text-xs"
-                    />
-                    <p className="text-[11px] text-muted-foreground">Use para evidencias tecnicas internas quando o chamado for para desenvolvimento.</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>
