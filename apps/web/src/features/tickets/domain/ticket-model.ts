@@ -16,6 +16,9 @@ export interface TicketListItem {
     statusLabel: string;
     priority: TicketPriorityLevel;
     customer: string;
+    team?: "SUPORTE" | "DESENVOLVIMENTO" | null;
+    module?: string | null;
+    category?: string | null;
     ownerId?: string | number | null;
     firstResponseAt?: string | null;
     resolvedAt?: string | null;
@@ -39,6 +42,7 @@ export interface TicketsPagination {
 }
 
 export type ClosedTicketsWindow = "30d" | "60d" | "90d" | "180d" | "365d" | "all";
+export type TicketTeamFilter = "all" | "SUPORTE" | "DESENVOLVIMENTO";
 
 export interface TicketStatusCounts {
     open: number;
@@ -52,6 +56,7 @@ export interface TicketQueryParams {
     queue?: QueueKey;
     search?: string;
     statusGroup?: TicketStatusGroup | "all";
+    team?: Exclude<TicketTeamFilter, "all">;
     closedWindow?: ClosedTicketsWindow;
 }
 

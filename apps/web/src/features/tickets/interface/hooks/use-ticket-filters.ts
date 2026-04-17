@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
-import type { ClosedTicketsWindow } from "../components/types";
+import type { ClosedTicketsWindow, TicketTeamFilter } from "../components/types";
 
 export function useTicketFilters(initialSearch: string) {
   const router = useRouter();
@@ -99,6 +99,20 @@ export function useTicketFilters(initialSearch: string) {
     [updateParams]
   );
 
+  const setTeamFilter = useCallback(
+    (nextTeam: TicketTeamFilter) => {
+      updateParams((params) => {
+        if (nextTeam === "all") {
+          params.delete("team");
+        } else {
+          params.set("team", nextTeam);
+        }
+        params.set("page", "1");
+      });
+    },
+    [updateParams]
+  );
+
   return {
     searchTerm,
     setSearchTerm,
@@ -106,6 +120,7 @@ export function useTicketFilters(initialSearch: string) {
     setQueueFilter,
     setStatusFilter,
     setClosedWindowFilter,
+    setTeamFilter,
     isPending,
   };
 }

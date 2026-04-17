@@ -2,9 +2,10 @@ import { requireSession } from "@/lib/auth-helpers";
 import { getTicketsAction } from "@/features/tickets/application/ticket-actions";
 import { TicketsContainer } from "@/features/tickets/interface";
 import { type QueueKey, type TicketStatusGroup, TICKET_QUEUE_KEYS, isTicketStatusGroup } from "@dosc-syspro/core";
-import type { ClosedTicketsWindow } from "@/features/tickets/domain/ticket-model";
+import type { ClosedTicketsWindow, TicketTeamFilter } from "@/features/tickets/domain/ticket-model";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 const CLOSED_WINDOW_OPTIONS: ClosedTicketsWindow[] = ["30d", "60d", "90d", "180d", "365d", "all"];
+const TEAM_FILTER_OPTIONS: TicketTeamFilter[] = ["all", "SUPORTE", "DESENVOLVIMENTO"];
 
 interface TicketsPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -19,6 +20,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const queueParam = typeof params?.queue === "string" ? params.queue : "all";
   const search = typeof params?.search === "string" ? params.search : "";
   const statusParam = typeof params?.status === "string" ? params.status : "open";
+  const teamParam = typeof params?.team === "string" ? params.team : "all";
   const closedWindowParam = typeof params?.closedWindow === "string" ? params.closedWindow : "30d";
 
   const queue = TICKET_QUEUE_KEYS.includes(queueParam as QueueKey)
@@ -28,6 +30,9 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const closedWindow: ClosedTicketsWindow = CLOSED_WINDOW_OPTIONS.includes(closedWindowParam as ClosedTicketsWindow)
     ? (closedWindowParam as ClosedTicketsWindow)
     : "30d";
+  const team: TicketTeamFilter = TEAM_FILTER_OPTIONS.includes(teamParam as TicketTeamFilter)
+    ? (teamParam as TicketTeamFilter)
+    : "all";
   const canManageTickets = await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true });
 
   console.info("[TicketsDiag][page] loading", {
@@ -36,6 +41,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     role: session.role,
     page,
     queue,
+    team,
     statusGroup,
     closedWindow,
     hasSearch: Boolean(search.trim()),
@@ -45,6 +51,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     page,
     pageSize: 20,
     queue,
+    team: team === "all" ? undefined : team,
     search,
     statusGroup,
     closedWindow,
@@ -91,6 +98,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       pagination={safePagination}
       staleWarning={staleWarning}
       queue={queue}
+      team={team}
       queueCounts={safeQueueCounts}
       statusCounts={safeStatusCounts}
       search={search}

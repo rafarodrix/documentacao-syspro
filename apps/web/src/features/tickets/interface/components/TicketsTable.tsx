@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, Building2, SearchX } from "lucide-react";
+import { ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateSafe } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -79,6 +79,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
               </div>
               {isAdmin && <p className="text-xs text-muted-foreground truncate">{ticket.customer}</p>}
               <div className="flex items-center gap-2">
+                <TeamBadge team={ticket.team} />
                 <PriorityBadge priority={ticket.priority} />
                 <SlaBadge ticket={ticket} />
                 <span className="text-[11px] text-muted-foreground ml-auto">{formatDateSafe(ticket.updatedAt)}</span>
@@ -107,6 +108,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
               <TableHead className="w-28 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ticket</TableHead>
               <TableHead className="min-w-90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Assunto</TableHead>
               {isAdmin && <TableHead className="min-w-56 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</TableHead>}
+              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Equipe</TableHead>
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">SLA</TableHead>
@@ -133,7 +135,9 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                   <TableCell className="py-3">
                     <div className="flex flex-col gap-0.5">
                       <span className="max-w-96 truncate text-sm font-medium text-foreground">{ticket.title}</span>
-                      <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{ticket.group}</span>
+                      <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        {[ticket.module || ticket.group, ticket.category].filter(Boolean).join(" / ")}
+                      </span>
                     </div>
                   </TableCell>
 
@@ -148,6 +152,9 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                     </TableCell>
                   )}
 
+                  <TableCell>
+                    <TeamBadge team={ticket.team} />
+                  </TableCell>
                   <TableCell>
                     <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />
                   </TableCell>
@@ -185,10 +192,26 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
   );
 }
 
+function TeamBadge({ team }: { team?: TicketListItem["team"] }) {
+  if (team === "DESENVOLVIMENTO") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[10px] font-semibold text-violet-700 dark:text-violet-300">
+        <Code2 className="h-3 w-3" /> Dev
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300">
+      <Headphones className="h-3 w-3" /> Suporte
+    </span>
+  );
+}
+
 function EmptyState({ isAdmin }: { isAdmin: boolean }) {
   return (
     <TableRow>
-      <TableCell colSpan={isAdmin ? 8 : 7} className="h-64 text-center">
+      <TableCell colSpan={isAdmin ? 9 : 8} className="h-64 text-center">
         <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
           <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
             <SearchX className="h-6 w-6 text-muted-foreground/50" />

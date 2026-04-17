@@ -5,6 +5,7 @@ export type {
   TicketPriorityLevel,
   TicketsPagination,
   TicketStatusCounts,
+  TicketTeamFilter,
   ClosedTicketsWindow,
   TicketQueryParams,
   TicketsDataResponse,

@@ -104,6 +104,7 @@ export const ticketModuleListQuerySchema = z.object({
   status: z.string().optional(),
   statusGroup: z.enum(["open", "pending", "closed", "all"]).optional(),
   queue: z.enum(["all", "my_queue", "unassigned", "critical", "no_response"]).optional(),
+  team: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).optional(),
   closedWindow: z.enum(["30d", "60d", "90d", "180d", "365d", "all"]).optional(),
   assignedUserId: z.string().optional(),
   companyId: z.string().optional(),

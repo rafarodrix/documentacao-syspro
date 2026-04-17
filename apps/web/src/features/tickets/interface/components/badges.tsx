@@ -1,24 +1,27 @@
 import type { MouseEvent } from "react";
 import { Badge } from "@/components/ui/badge";
-import { getTicketStatusGroup } from "@dosc-syspro/core";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { TicketListItem, TicketPriorityLevel } from "./types";
 
-const STATUS_STYLES = {
-  open: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400",
-  pending: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400",
-  closed: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400",
+const STATUS_STYLES: Record<string, string> = {
+  NEW: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800",
+  UNASSIGNED: "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
+  TRIAGE: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+  IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
+  TESTING: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800",
+  WAITING_CUSTOMER: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
+  RESOLVED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+  ARCHIVED: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
 } as const;
 
 export function StatusBadge({ status, rawStatus }: { status?: string | null; rawStatus?: string | null }) {
   const resolvedStatus = typeof status === "string" ? status : "";
   const resolvedRawStatus = typeof rawStatus === "string" ? rawStatus : "";
-  const category = getTicketStatusGroup(resolvedRawStatus || resolvedStatus);
-  const style = STATUS_STYLES[category];
+  const style = STATUS_STYLES[resolvedRawStatus] ?? "bg-muted text-muted-foreground border-border";
   const label = (resolvedStatus || resolvedRawStatus || "Sem status").replace(/^\d+\.\s*/, "");
   return (
-    <Badge variant="outline" className={`border ${style} font-medium px-2.5 py-0.5 rounded-full text-[10px] whitespace-nowrap`}>
+    <Badge variant="outline" className={`border ${style} font-medium px-2.5 py-0.5 rounded-md text-[10px] whitespace-nowrap`}>
       {label}
     </Badge>
   );

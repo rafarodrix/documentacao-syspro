@@ -174,6 +174,8 @@ export function serializeTicketListResponse(input: {
   pageSize: number;
   total: number;
   requesterUserId?: string;
+  queueCounts?: TicketModuleListResponse['queueCounts'];
+  statusCounts?: TicketModuleListResponse['statusCounts'];
 }): TicketModuleListResponse {
   const { items, page, pageSize, total, requesterUserId } = input;
   const openCount = items.filter((item) => ['NEW', 'UNASSIGNED'].includes(item.status)).length;
@@ -195,14 +197,14 @@ export function serializeTicketListResponse(input: {
       hasNextPage: page * pageSize < total,
       hasPreviousPage: page > 1,
     },
-    queueCounts: {
+    queueCounts: input.queueCounts ?? {
       all: total,
       my_queue: requesterUserId ? items.filter((item) => item.assignedUserId === requesterUserId).length : 0,
       unassigned: unassignedCount,
       critical: criticalCount,
       no_response: noResponseCount,
     },
-    statusCounts: {
+    statusCounts: input.statusCounts ?? {
       open: openCount,
       pending: pendingCount,
       closed: closedCount,

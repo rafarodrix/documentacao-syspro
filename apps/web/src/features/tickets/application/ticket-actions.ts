@@ -155,6 +155,9 @@ function readNullableMetadata(metadata: Record<string, unknown> | null | undefin
 
 function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
   const companyName = ticket.company?.nomeFantasia || ticket.company?.razaoSocial || null;
+  const moduleName = readNullableMetadata(ticket.metadata, "module");
+  const categoryName = readNullableMetadata(ticket.metadata, "category");
+  const team = readNullableMetadata(ticket.metadata, "currentTeam");
   const customerName =
     ticket.companyContact?.name ||
     ticket.companyContact?.email ||
@@ -167,11 +170,14 @@ function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
     id: ticket.id,
     number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
     title: ticket.subject || "Sem assunto",
-    group: companyName || ticket.channel,
+    group: moduleName || categoryName || ticket.channel,
     status: ticket.status,
     statusLabel: mapStatusLabel(ticket.status),
     priority: mapPriorityToLevel(ticket.priority),
     customer: customerName,
+    team: team === "SUPORTE" || team === "DESENVOLVIMENTO" ? team : null,
+    module: moduleName,
+    category: categoryName,
     ownerId: ticket.assignedUserId,
     firstResponseAt: ticket.slaResponseHitAt ?? null,
     resolvedAt: ticket.closedAt,
@@ -194,6 +200,7 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
   query.set("pageSize", String(pageSize));
   if (params.queue) query.set("queue", params.queue);
   if (params.statusGroup) query.set("statusGroup", params.statusGroup);
+  if (params.team) query.set("team", params.team);
   if (params.closedWindow) query.set("closedWindow", params.closedWindow);
   if (params.search?.trim()) query.set("search", params.search.trim());
 

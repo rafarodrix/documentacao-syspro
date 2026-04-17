@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { downloadCsv } from "@/features/tickets/application/utils";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
-import type { ClosedTicketsWindow, TicketListItem, TicketStatusCounts, TicketsPagination } from "./types";
+import type { ClosedTicketsWindow, TicketListItem, TicketStatusCounts, TicketsPagination, TicketTeamFilter } from "./types";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 
 interface TicketsContainerProps {
@@ -20,6 +20,7 @@ interface TicketsContainerProps {
   pagination: TicketsPagination;
   staleWarning?: string;
   queue: QueueKey;
+  team: TicketTeamFilter;
   queueCounts: Record<QueueKey, number>;
   statusCounts: TicketStatusCounts;
   search: string;
@@ -35,6 +36,7 @@ export function TicketsContainer({
   pagination,
   staleWarning,
   queue,
+  team,
   queueCounts,
   statusCounts,
   search,
@@ -48,6 +50,7 @@ export function TicketsContainer({
     setQueueFilter,
     setStatusFilter,
     setClosedWindowFilter,
+    setTeamFilter,
   } = useTicketFilters(search);
 
   useTicketHotkeys({
@@ -65,7 +68,8 @@ export function TicketsContainer({
       "ID Chamado": t.id,
       Numero: t.number,
       Assunto: t.title,
-      Grupo: t.group,
+      Equipe: t.team || "",
+      Modulo: t.module || t.group,
       Status: t.statusLabel,
       Prioridade: t.priority,
       Cliente: t.customer,
@@ -123,6 +127,24 @@ export function TicketsContainer({
             {isAdmin && (
               <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="flex min-w-max gap-2">
+                  <Button variant={team === "all" ? "default" : "outline"} size="sm" className="h-9" onClick={() => setTeamFilter("all")}>
+                    Todas equipes
+                  </Button>
+                  <Button variant={team === "SUPORTE" ? "default" : "outline"} size="sm" className="h-9" onClick={() => setTeamFilter("SUPORTE")}>
+                    Suporte
+                  </Button>
+                  <Button variant={team === "DESENVOLVIMENTO" ? "default" : "outline"} size="sm" className="h-9" onClick={() => setTeamFilter("DESENVOLVIMENTO")}>
+                    Desenvolvimento
+                  </Button>
+                </div>
+              </div>
+            )}
+            {isAdmin && (
+              <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex min-w-max gap-2">
+                  <Button variant={queue === "all" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("all")}>
+                    Todos ({queueCounts.all})
+                  </Button>
                   <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("my_queue")}>
                     <UserRound className="h-3.5 w-3.5" /> Minha fila ({queueCounts.my_queue})
                   </Button>

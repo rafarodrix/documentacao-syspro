@@ -404,10 +404,36 @@ export class TicketsService {
     const page = Math.max(1, Number.parseInt(input.page || '1', 10) || 1);
     const pageSize = Math.min(100, Math.max(1, Number.parseInt(input.pageSize || '20', 10) || 20));
 
-    const where: Prisma.ConversationWhereInput = {};
+    const baseWhere: Prisma.ConversationWhereInput = {};
 
     if (!accessScope.isGlobal) {
-      where.companyId = { in: accessScope.companyIds };
+      baseWhere.companyId = { in: accessScope.companyIds };
+    }
+
+    if (input.companyId) {
+      if (!accessScope.isGlobal && !accessScope.companyIds.includes(input.companyId)) {
+        return serializeTicketListResponse({ items: [], page, pageSize, total: 0, requesterUserId: requester.userId });
+      }
+
+      baseWhere.companyId = input.companyId;
+    }
+
+    if (input.search?.trim()) {
+      const search = input.search.trim();
+      baseWhere.OR = [
+        { subject: { contains: search, mode: 'insensitive' } },
+        { ticketNumber: { contains: search, mode: 'insensitive' } },
+        { companyContact: { name: { contains: search, mode: 'insensitive' } } },
+        { companyContact: { email: { contains: search, mode: 'insensitive' } } },
+        { company: { nomeFantasia: { contains: search, mode: 'insensitive' } } },
+        { company: { razaoSocial: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const where: Prisma.ConversationWhereInput = { ...baseWhere };
+    const teamScopeWhere = input.team ? this.withTicketTeam(baseWhere, input.team) : baseWhere;
+    if (input.team) {
+      Object.assign(where, teamScopeWhere);
     }
 
     if (input.status && Object.values(TicketStatus).includes(input.status as TicketStatus)) {
@@ -441,24 +467,21 @@ export class TicketsService {
       }
     }
 
-    if (input.companyId) {
-      if (!accessScope.isGlobal && !accessScope.companyIds.includes(input.companyId)) {
-        return serializeTicketListResponse({ items: [], page, pageSize, total: 0, requesterUserId: requester.userId });
+    const openStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.NEW, TicketStatus.UNASSIGNED] } };
+    const pendingStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER] } };
+    const closedStatusWhere: Prisma.ConversationWhereInput = {
+      ...teamScopeWhere,
+      status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
+    };
+    if (input.closedWindow && input.closedWindow !== 'all') {
+      const days = Number.parseInt(input.closedWindow.replace('d', ''), 10);
+      if (Number.isFinite(days) && days > 0) {
+        closedStatusWhere.closedAt = { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) };
       }
-
-      where.companyId = input.companyId;
     }
+    const queueBaseWhere = teamScopeWhere;
 
-    if (input.search?.trim()) {
-      const search = input.search.trim();
-      where.OR = [
-        { subject: { contains: search, mode: 'insensitive' } },
-        { ticketNumber: { contains: search, mode: 'insensitive' } },
-        { companyContact: { name: { contains: search, mode: 'insensitive' } } },
-      ];
-    }
-
-    const [items, total] = await Promise.all([
+    const [items, total, baseTotal, openCount, pendingCount, closedCount, myQueueCount, unassignedCount, criticalCount, noResponseCount] = await Promise.all([
       this.prisma.conversation.findMany({
         where,
         orderBy: [{ updatedAt: 'desc' }],
@@ -471,9 +494,41 @@ export class TicketsService {
         },
       }),
       this.prisma.conversation.count({ where }),
+      this.prisma.conversation.count({ where: queueBaseWhere }),
+      this.prisma.conversation.count({ where: openStatusWhere }),
+      this.prisma.conversation.count({ where: pendingStatusWhere }),
+      this.prisma.conversation.count({ where: closedStatusWhere }),
+      this.prisma.conversation.count({ where: { ...queueBaseWhere, assignedUserId: requester.userId } }),
+      this.prisma.conversation.count({ where: { ...queueBaseWhere, assignedUserId: null } }),
+      this.prisma.conversation.count({ where: { ...queueBaseWhere, priority: TicketPriority.CRITICAL } }),
+      this.prisma.conversation.count({
+        where: {
+          ...queueBaseWhere,
+          slaResponseHitAt: null,
+          status: { notIn: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
+        },
+      }),
     ]);
 
-    return serializeTicketListResponse({ items, page, pageSize, total, requesterUserId: requester.userId });
+    return serializeTicketListResponse({
+      items,
+      page,
+      pageSize,
+      total,
+      requesterUserId: requester.userId,
+      statusCounts: {
+        open: openCount,
+        pending: pendingCount,
+        closed: closedCount,
+      },
+      queueCounts: {
+        all: baseTotal,
+        my_queue: myQueueCount,
+        unassigned: unassignedCount,
+        critical: criticalCount,
+        no_response: noResponseCount,
+      },
+    });
   }
 
   async findOne(id: string, rawHeaders?: IncomingHttpHeaders) {
@@ -901,6 +956,16 @@ export class TicketsService {
       name: configured?.label ?? priority,
       firstResponseMinutes: configured?.firstResponseMinutes ?? fallback.firstResponseMinutes,
       resolutionMinutes: configured?.resolutionMinutes ?? (configured?.slaHours ? configured.slaHours * 60 : fallback.resolutionMinutes),
+    };
+  }
+
+  private withTicketTeam(where: Prisma.ConversationWhereInput, team: 'SUPORTE' | 'DESENVOLVIMENTO'): Prisma.ConversationWhereInput {
+    return {
+      ...where,
+      AND: [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        { metadata: { path: ['currentTeam'], equals: team } },
+      ],
     };
   }
 
