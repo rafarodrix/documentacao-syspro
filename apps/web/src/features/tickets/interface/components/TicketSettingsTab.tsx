@@ -176,7 +176,7 @@ export function TicketSettingsTab() {
                  <Card className="border-dashed border-border/50 bg-muted/5 pointer-events-none grayscale">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base text-muted-foreground"><HelpCircle className="h-4 w-4"/> Pesquisa CSAT <Badge variant="secondary" className="ml-auto text-[10px]">Em breve</Badge></CardTitle>
-                      <CardDescription className="text-xs">Enviar pesquisa de 1 a 5 estrelas quando Ticket eh 'Resolvido'.</CardDescription>
+                      <CardDescription className="text-xs">Enviar pesquisa de 1 a 5 estrelas quando Ticket for &apos;Resolvido&apos;.</CardDescription>
                     </CardHeader>
                  </Card>
                  <Card className="border-dashed border-border/50 bg-muted/5 pointer-events-none grayscale">

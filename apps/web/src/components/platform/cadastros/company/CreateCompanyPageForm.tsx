@@ -165,6 +165,7 @@ export function CreateCompanyPageForm({
 
   const initialNormalizedTicketEmails = useMemo(
     () => normalizeTicketEmails(Array.isArray(initialTicketEmails) ? initialTicketEmails : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
   const [ticketEmails, setTicketEmails] = useState<CompanyTicketEmailInput[]>(initialNormalizedTicketEmails);
@@ -184,6 +185,7 @@ export function CreateCompanyPageForm({
           status: item.status,
         }))
         .filter((item) => item.name.length > 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
   const [contacts, setContacts] = useState<CompanyContactInput[]>(initialNormalizedContacts);
