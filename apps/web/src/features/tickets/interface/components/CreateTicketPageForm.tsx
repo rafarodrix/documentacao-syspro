@@ -123,16 +123,27 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const selectedTeamLabel = ticketSettings.teams.find((team) => team.value === selectedTeam)?.label || "Suporte";
   const selectedClientCompany = clientCompanies.find((company) => company.id === selectedCompanyId) ?? null;
   const systemCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
-    const opts: TicketCompanyPickerOption[] = customerOptions.map((option) => ({
-      id: option.email ? `${option.companyId}::${option.email}` : `${option.companyId}::`,
-      label: option.companyName,
-      description: option.contactName || option.email,
-      meta: option.contactName ? option.email : null,
-    }));
+    const opts: TicketCompanyPickerOption[] = [];
+    const usedIds = new Set<string>();
+
+    for (const option of customerOptions) {
+      let baseId = option.email ? `${option.companyId}::${option.email}` : `${option.companyId}::`;
+      if (usedIds.has(baseId)) {
+        baseId = `${baseId}::${option.contactName || Math.random()}`;
+      }
+      usedIds.add(baseId);
+
+      opts.push({
+        id: baseId,
+        label: option.companyName,
+        description: option.contactName || option.email,
+        meta: option.contactName ? option.email : null,
+      });
+    }
     
     if (selectedCompanyId) {
       const currentId = customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`;
-      if (!opts.some(o => o.id === currentId)) {
+      if (!opts.some(o => o.id === currentId || o.id.startsWith(currentId + "::"))) {
         opts.push({
           id: currentId,
           label: customerCompany || "Empresa selecionada",

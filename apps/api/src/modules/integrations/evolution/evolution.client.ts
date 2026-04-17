@@ -334,7 +334,10 @@ export class EvolutionClient {
   }
 
   private normalizeNumber(number: string): string {
-    const digits = number.replace(/\D/g, '');
+    const recipient = String(number ?? '').trim();
+    if (recipient.includes('@')) return recipient;
+
+    const digits = recipient.replace(/\D/g, '');
     if (!digits) return digits;
     return digits.startsWith('55') ? digits : `55${digits}`;
   }

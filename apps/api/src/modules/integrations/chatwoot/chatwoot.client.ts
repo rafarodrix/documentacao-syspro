@@ -207,6 +207,70 @@ export class ChatwootClient {
     }
   }
 
+  async createOrFindContactByIdentifier(
+    config: ChatwootConnectionConfig,
+    identifier: string,
+    name: string,
+    customAttributes?: Record<string, unknown>
+  ) {
+    const normalizedIdentifier = String(identifier ?? '').trim();
+    if (!normalizedIdentifier) {
+      throw new Error('Chatwoot contact identifier obrigatorio');
+    }
+
+    const searchResponse: any = await this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/contacts/search?q=${encodeURIComponent(normalizedIdentifier)}`,
+      'GET'
+    );
+
+    if (searchResponse?.payload && Array.isArray(searchResponse.payload)) {
+      const existingContact = searchResponse.payload.find((contact: any) =>
+        contact?.identifier === normalizedIdentifier ||
+        contact?.custom_attributes?.whatsapp_group_jid === normalizedIdentifier
+      );
+      if (existingContact) {
+        return { payload: { contact: existingContact } };
+      }
+    }
+
+    const inboxId = await this.resolveInboxId(config);
+    if (!inboxId) {
+      throw new Error('CHATWOOT_INBOX_ID nao configurado/resolvido para criar contato de grupo via API de conta');
+    }
+
+    const payload: any = {
+      inbox_id: inboxId,
+      name,
+      identifier: normalizedIdentifier,
+      custom_attributes: {
+        ...(customAttributes ?? {}),
+        whatsapp_group_jid: normalizedIdentifier,
+      },
+    };
+
+    try {
+      return await this.request(config, `/api/v1/accounts/${config.accountId}/contacts`, 'POST', payload);
+    } catch (error: any) {
+      if (error.message.includes('422')) {
+        const retrySearch: any = await this.request(
+          config,
+          `/api/v1/accounts/${config.accountId}/contacts/search?q=${encodeURIComponent(normalizedIdentifier)}`,
+          'GET'
+        );
+        const retryExisting = retrySearch?.payload?.find((contact: any) =>
+          contact?.identifier === normalizedIdentifier ||
+          contact?.custom_attributes?.whatsapp_group_jid === normalizedIdentifier
+        );
+        if (retryExisting) {
+          return { payload: { contact: retryExisting } };
+        }
+      }
+
+      throw error;
+    }
+  }
+
   async updateContact(
     config: ChatwootConnectionConfig,
     contactIdentifier: string,

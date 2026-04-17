@@ -86,13 +86,29 @@ export class ProcessIncomingMessageUseCase {
 
       const remoteJid = msg?.key?.remoteJid ?? msg?.Info?.Chat ?? msg?.info?.Chat;
       if (!remoteJid) continue;
-      if (!remoteJid.endsWith('@s.whatsapp.net')) {
+      const isGroupChat = String(remoteJid).endsWith('@g.us');
+      if (isGroupChat && !this.isAllowedGroupJid(String(remoteJid), resolvedConnection)) {
+        this.logger.debug(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'group_message_ignored_not_allowed',
+          instanceId,
+          messageId: messageId ?? null,
+          groupJid: String(remoteJid),
+          connectionKey: resolvedConnection.connectionKey,
+        }));
+        continue;
+      }
+
+      if (!String(remoteJid).endsWith('@s.whatsapp.net') && !isGroupChat) {
         this.logger.debug(`JID nao suportado ignorado: ${remoteJid}`);
         continue;
       }
 
-      const phone = remoteJid.replace('@s.whatsapp.net', '');
+      const phone = isGroupChat ? String(remoteJid) : String(remoteJid).replace('@s.whatsapp.net', '');
       const pushName = msg?.pushName ?? msg?.Info?.PushName ?? msg?.info?.PushName ?? 'Cliente WhatsApp';
+      const groupParticipantJid = isGroupChat
+        ? this.readFirstString(msg?.key?.participant, msg?.Info?.Sender, msg?.info?.Sender, msg?.participant)
+        : undefined;
       const messagePayload = msg?.message ?? msg?.Message;
 
       let textContent = '';
@@ -102,6 +118,13 @@ export class ProcessIncomingMessageUseCase {
       else if (messagePayload?.videoMessage?.caption) textContent = messagePayload.videoMessage.caption;
       else if (messagePayload?.documentMessage?.caption) textContent = messagePayload.documentMessage.caption;
       else textContent = '';
+
+      if (isGroupChat) {
+        textContent = this.prefixGroupMessage(textContent, {
+          pushName,
+          participantJid: groupParticipantJid,
+        });
+      }
 
       let attachment: any = undefined;
       let isMedia = false;
@@ -164,7 +187,9 @@ export class ProcessIncomingMessageUseCase {
       let conversationId: string | undefined;
 
       try {
-        const link = await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection);
+        const link = isGroupChat
+          ? await this.resolveOrCreateGroupConversationLink(String(remoteJid), resolvedConnection)
+          : await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection);
         contactIdentifier = link.contactIdentifier;
         conversationId = link.conversationId;
 
@@ -499,6 +524,8 @@ export class ProcessIncomingMessageUseCase {
           callType: callInfo.callType,
           chatwootConversationId: link.conversationId,
           whatsappNumber: callInfo.phone,
+          remoteJid: callInfo.remoteJid ?? null,
+          contactIdentifier: link.contactIdentifier,
         }));
       } catch (error: any) {
         await this.dedupService.release('evolution_call', dedupId);
@@ -533,6 +560,7 @@ export class ProcessIncomingMessageUseCase {
     fromMe: boolean;
     isGroup: boolean;
     isRelayLatency: boolean;
+    remoteJid?: string;
   } {
     const normalizedEvent = String(event ?? '').trim().toLowerCase();
     const remoteJid = this.readFirstString(
@@ -542,6 +570,8 @@ export class ProcessIncomingMessageUseCase {
       payload?.Chat,
       payload?.from,
       payload?.From,
+      payload?.callCreator,
+      payload?.CallCreator,
       payload?.sender,
       payload?.Sender,
       payload?.jid,
@@ -549,14 +579,20 @@ export class ProcessIncomingMessageUseCase {
       payload?.key?.remoteJid,
       payload?.Info?.Chat,
       payload?.Info?.Sender,
+      payload?.Info?.CallCreator,
       payload?.info?.Chat,
       payload?.info?.Sender,
+      payload?.info?.CallCreator,
       payload?.call?.from,
       payload?.call?.From,
+      payload?.call?.callCreator,
+      payload?.call?.CallCreator,
       payload?.call?.chatId,
       payload?.call?.Chat,
       payload?.data?.from,
       payload?.data?.From,
+      payload?.data?.callCreator,
+      payload?.data?.CallCreator,
       payload?.data?.chatId,
       payload?.data?.Chat,
       payload?.data?.remoteJid,
@@ -620,6 +656,7 @@ export class ProcessIncomingMessageUseCase {
         payload?.data?.CallId,
       ),
       phone,
+      remoteJid,
       pushName: this.readFirstString(
         payload?.pushName,
         payload?.PushName,
@@ -684,7 +721,7 @@ export class ProcessIncomingMessageUseCase {
   private extractPhoneFromJidOrNumber(value?: string): string | null {
     const normalized = String(value ?? '').trim();
     if (!normalized) return null;
-    const jidUser = normalized.split('@')[0] ?? normalized;
+    const jidUser = (normalized.split('@')[0] ?? normalized).split(':')[0] ?? normalized;
     const digits = jidUser.replace(/\D/g, '');
     return digits.length >= 10 ? digits : null;
   }
@@ -695,6 +732,29 @@ export class ProcessIncomingMessageUseCase {
       if (normalized) return normalized;
     }
     return undefined;
+  }
+
+  private isAllowedGroupJid(groupJid: string, connection: ResolvedIntegrationContext): boolean {
+    const allowed = [
+      ...(connection.evolution.allowedGroupJids ?? []),
+      ...(connection.evolution.allowedGroups ?? []).map((item) => item.jid),
+    ];
+    return allowed.map((item) => item.toLowerCase()).includes(groupJid.trim().toLowerCase());
+  }
+
+  private prefixGroupMessage(
+    content: string,
+    context: { pushName?: string; participantJid?: string }
+  ): string {
+    const participantPhone = this.extractPhoneFromJidOrNumber(context.participantJid);
+    const label = [
+      context.pushName?.trim() || 'Participante',
+      participantPhone ? `(${participantPhone})` : undefined,
+    ].filter(Boolean).join(' ');
+    const normalizedContent = String(content ?? '').trim();
+    return normalizedContent
+      ? `${label}: ${normalizedContent}`
+      : `${label} enviou uma midia no grupo.`;
   }
 
   private async handleReceiptStatusUpdate(
@@ -804,6 +864,144 @@ export class ProcessIncomingMessageUseCase {
         this.conversationLinkLocks.delete(lockKey);
       }
     }
+  }
+
+  private async resolveOrCreateGroupConversationLink(
+    groupJid: string,
+    connection: ResolvedIntegrationContext
+  ): Promise<{ contactIdentifier: string; conversationId: string }> {
+    const normalizedGroupJid = groupJid.trim();
+    const lockKey = `${connection.connectionKey}:${normalizedGroupJid}`;
+
+    return this.withConversationLinkLock(lockKey, async () => {
+      let link = await this.prisma.conversationLink.findUnique({
+        where: {
+          connectionKey_whatsappNumber: {
+            connectionKey: connection.connectionKey,
+            whatsappNumber: normalizedGroupJid,
+          },
+        },
+      });
+      const linkExisted = Boolean(link);
+
+      if (!link) {
+        const groupName = this.resolveAllowedGroupName(normalizedGroupJid, connection);
+        const contactResponse = (await this.chatwootClient.createOrFindContactByIdentifier(
+          connection.chatwoot,
+          normalizedGroupJid,
+          groupName,
+          {
+            source: 'WHATSAPP_GROUP',
+            connectionKey: connection.connectionKey,
+          },
+        )) as any;
+        const contact = contactResponse?.payload?.contact;
+        const contactIdentifier = await this.resolveChatwootContactIdentifier(connection, contact);
+
+        if (!contactIdentifier) {
+          throw new Error(`Nao foi possivel resolver source_id do grupo no Chatwoot (groupJid=${normalizedGroupJid})`);
+        }
+
+        const convResponse = (await this.chatwootClient.createConversation(
+          connection.chatwoot,
+          contactIdentifier,
+          contact?.id?.toString?.(),
+        )) as any;
+        const conversationId =
+          convResponse?.id?.toString?.() ??
+          convResponse?.payload?.id?.toString?.() ??
+          convResponse?.conversation?.id?.toString?.();
+
+        if (!conversationId) {
+          throw new Error(`Nao foi possivel resolver id da conversa de grupo no Chatwoot (groupJid=${normalizedGroupJid})`);
+        }
+
+        try {
+          link = await this.prisma.conversationLink.create({
+            data: {
+              companyId: connection.companyId ?? null,
+              connectionId: connection.connectionId,
+              connectionKey: connection.connectionKey,
+              whatsappNumber: normalizedGroupJid,
+              chatwootContactId: contactIdentifier,
+              chatwootConversationId: conversationId,
+            },
+          });
+        } catch (error: any) {
+          if (error?.code === 'P2002') {
+            link = await this.prisma.conversationLink.findUnique({
+              where: {
+                connectionKey_whatsappNumber: {
+                  connectionKey: connection.connectionKey,
+                  whatsappNumber: normalizedGroupJid,
+                },
+              },
+            });
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      if (!link?.chatwootContactId || !link?.chatwootConversationId) {
+        throw new Error(`Vinculo de grupo invalido para ${normalizedGroupJid}`);
+      }
+
+      this.logger.log(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'group_link_resolved',
+        groupJid: normalizedGroupJid,
+        contactIdentifier: link.chatwootContactId,
+        conversationId: link.chatwootConversationId,
+        isNew: !linkExisted,
+        connectionKey: connection.connectionKey,
+      }));
+
+      return {
+        contactIdentifier: link.chatwootContactId,
+        conversationId: link.chatwootConversationId,
+      };
+    });
+  }
+
+  private resolveAllowedGroupName(groupJid: string, connection: ResolvedIntegrationContext): string {
+    const match = (connection.evolution.allowedGroups ?? [])
+      .find((item) => item.jid.trim().toLowerCase() === groupJid.toLowerCase());
+    return match?.name?.trim() || `Grupo WhatsApp - ${groupJid.split('@')[0]}`;
+  }
+
+  private async resolveChatwootContactIdentifier(
+    connection: ResolvedIntegrationContext,
+    contact: any,
+  ): Promise<string | undefined> {
+    const configuredInboxIdentifier = connection.chatwoot.inboxIdentifier?.toString();
+    const configuredInboxId = connection.chatwoot.inboxId?.toString();
+    const matchesConfiguredInbox = (item: any) => {
+      const inboxId = item?.inbox?.id?.toString?.() ?? item?.inbox_id?.toString?.();
+      const inboxIdentifier = item?.inbox?.identifier?.toString?.() ?? item?.inbox_identifier?.toString?.();
+
+      if (configuredInboxIdentifier && inboxIdentifier === configuredInboxIdentifier) return true;
+      if (configuredInboxId && inboxId === configuredInboxId) return true;
+      if (!configuredInboxId && configuredInboxIdentifier && inboxId === configuredInboxIdentifier) return true;
+      return false;
+    };
+
+    const sourceIdFromEmbeddedInbox =
+      contact?.contact_inboxes
+        ?.find((item: any) => matchesConfiguredInbox(item))
+        ?.source_id
+        ?.toString?.();
+    const contactableInboxes =
+      contact?.id
+        ? await this.chatwootClient.getContactableInboxes(connection.chatwoot, contact.id.toString())
+        : [];
+    const sourceIdFromContactableInbox =
+      contactableInboxes
+        ?.find((item: any) => matchesConfiguredInbox(item))
+        ?.source_id
+        ?.toString?.();
+
+    return sourceIdFromEmbeddedInbox ?? sourceIdFromContactableInbox;
   }
 
   private async resolveOrCreateConversationLink(

@@ -27,6 +27,8 @@ export type ResolvedIntegrationContext = {
     instanceId: string;
     instanceToken?: string;
     webhookSecret?: string;
+    allowedGroupJids?: string[];
+    allowedGroups?: Array<{ jid: string; name?: string }>;
   };
   chatwoot: {
     url: string;
@@ -135,6 +137,14 @@ export class IntegrationContextService {
       payload?.instance?.instanceName,
       payload?.instance?.name,
     );
+    const groupJid = readTrimmedString(
+      payload?.data?.key?.remoteJid,
+      payload?.data?.Info?.Chat,
+      payload?.data?.info?.Chat,
+      payload?.key?.remoteJid,
+      payload?.Info?.Chat,
+      payload?.info?.Chat,
+    );
     const hasExplicitMatchInput = Boolean(instanceId || instance);
     const orFilters = [
       ...(instanceId ? [{ evolutionInstanceId: instanceId }] : []),
@@ -155,6 +165,15 @@ export class IntegrationContextService {
         `[integration_context] resolveForEvolutionWebhook database lookup failed; falling back to env runtime: ${error?.code ?? 'unknown'} ${error?.message ?? 'unknown_error'}`
       );
     }
+
+    const groupMatched = groupJid.endsWith('@g.us')
+      ? candidates
+          .map((row) => this.toResolvedContext(row))
+          .find((context): context is ResolvedIntegrationContext =>
+            Boolean(context && this.contextAllowsGroup(context, groupJid))
+          )
+      : null;
+    if (groupMatched) return groupMatched;
 
     const matched = this.toResolvedContext(candidates?.[0]);
     if (matched) return matched;
@@ -243,6 +262,8 @@ export class IntegrationContextService {
         instanceId: String(row.evolutionInstanceId ?? '').trim(),
         instanceToken: this.readOptionalString(evolutionMetadata.instanceToken),
         webhookSecret: this.decryptOptional(row.evolutionWebhookSecretEncrypted) ?? undefined,
+        allowedGroupJids: this.readStringList(evolutionMetadata.groupJids, evolutionMetadata.allowedGroupJids),
+        allowedGroups: this.readGroupList(evolutionMetadata.groups, evolutionMetadata.allowedGroups),
       },
       chatwoot: {
         url: String(row.chatwootUrl ?? '').trim(),
@@ -256,6 +277,14 @@ export class IntegrationContextService {
         incomingMediaMode: runtimeChatwoot.incomingMediaMode,
       },
     };
+  }
+
+  private contextAllowsGroup(context: ResolvedIntegrationContext, groupJid: string): boolean {
+    const allowed = [
+      ...(context.evolution.allowedGroupJids ?? []),
+      ...(context.evolution.allowedGroups ?? []).map((item) => item.jid),
+    ];
+    return allowed.map((item) => item.toLowerCase()).includes(groupJid.trim().toLowerCase());
   }
 
   private async readEnvFallback(): Promise<ResolvedIntegrationContext | null> {
@@ -301,6 +330,8 @@ export class IntegrationContextService {
         instanceId: resolvedEvolutionInstanceId,
         instanceToken: resolvedEvolutionInstanceToken || undefined,
         webhookSecret: undefined,
+        allowedGroupJids: [],
+        allowedGroups: [],
       },
       chatwoot: {
         url: chatwoot.url,
@@ -348,6 +379,49 @@ export class IntegrationContextService {
   private readOptionalString(value: unknown): string | undefined {
     const normalized = String(value ?? '').trim();
     return normalized || undefined;
+  }
+
+  private readStringList(...values: unknown[]): string[] {
+    for (const value of values) {
+      if (Array.isArray(value)) {
+        return Array.from(new Set(
+          value.map((item) => String(item ?? '').trim()).filter(Boolean),
+        ));
+      }
+
+      if (typeof value === 'string' && value.trim()) {
+        return Array.from(new Set(
+          value.split(',').map((item) => item.trim()).filter(Boolean),
+        ));
+      }
+    }
+
+    return [];
+  }
+
+  private readGroupList(...values: unknown[]): Array<{ jid: string; name?: string }> {
+    for (const value of values) {
+      if (!Array.isArray(value)) continue;
+      return value
+        .map((item) => {
+          if (typeof item === 'string') {
+            const jid = item.trim();
+            return jid ? { jid } : null;
+          }
+
+          if (item && typeof item === 'object') {
+            const source = item as Record<string, unknown>;
+            const jid = String(source.jid ?? source.groupJid ?? '').trim();
+            const name = String(source.name ?? source.label ?? '').trim();
+            return jid ? { jid, ...(name ? { name } : {}) } : null;
+          }
+
+          return null;
+        })
+        .filter((item): item is { jid: string; name?: string } => item !== null);
+    }
+
+    return [];
   }
 
   private resolveEncryptionKey(): Buffer {

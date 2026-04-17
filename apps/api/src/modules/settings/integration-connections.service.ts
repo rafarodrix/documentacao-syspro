@@ -264,24 +264,48 @@ export class IntegrationConnectionsService {
       throw new Error('companyId invalido');
     }
 
-    const activeConnectionWhere = {
-      companyId: normalizedCompanyId,
-      status: 'ACTIVE',
-      ...(excludeId ? { id: { not: excludeId } } : {}),
-    };
-    const existingActiveForCompany = await (this.prisma as any).integrationConnection.findFirst({
-      where: activeConnectionWhere,
-      select: { id: true, name: true },
+    const inputGroupJids = this.readConnectionGroupJids(input.metadata);
+    const evolutionConflict = await (this.prisma as any).integrationConnection.findFirst({
+      where: {
+        status: 'ACTIVE',
+        evolutionApiUrl: input.evolutionApiUrl.trim(),
+        ...(input.evolutionInstanceId?.trim()
+          ? { evolutionInstanceId: input.evolutionInstanceId.trim() }
+          : { evolutionInstance: input.evolutionInstance.trim() }),
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true, name: true, companyId: true },
     });
 
-    if ((input.status ?? 'ACTIVE') === 'ACTIVE' && existingActiveForCompany) {
-      throw new Error(`A empresa ja possui conexao ativa (${existingActiveForCompany.name}).`);
+    if ((input.status ?? 'ACTIVE') === 'ACTIVE' && evolutionConflict) {
+      if (inputGroupJids.length === 0) {
+        throw new Error(`Instancia Evolution ja vinculada pela conexao ${evolutionConflict.name}.`);
+      }
+
+      const sameInstanceConnections = await (this.prisma as any).integrationConnection.findMany({
+        where: {
+          status: 'ACTIVE',
+          evolutionApiUrl: input.evolutionApiUrl.trim(),
+          ...(input.evolutionInstanceId?.trim()
+            ? { evolutionInstanceId: input.evolutionInstanceId.trim() }
+            : { evolutionInstance: input.evolutionInstance.trim() }),
+          ...(excludeId ? { id: { not: excludeId } } : {}),
+        },
+        select: { id: true, name: true, metadata: true },
+      });
+      const groupConflict = (sameInstanceConnections as any[]).find((row) => {
+        const existingGroupJids = this.readConnectionGroupJids(row.metadata);
+        return existingGroupJids.some((jid) => inputGroupJids.includes(jid));
+      });
+
+      if (groupConflict) {
+        throw new Error(`Grupo Evolution ja vinculado pela conexao ${groupConflict.name}.`);
+      }
     }
 
     const inboxConflict = await (this.prisma as any).integrationConnection.findFirst({
       where: {
         status: 'ACTIVE',
-        companyId: { not: normalizedCompanyId },
         chatwootUrl: input.chatwootUrl.trim(),
         chatwootAccountId: input.chatwootAccountId.toString().trim(),
         ...(input.chatwootInboxId
@@ -293,7 +317,7 @@ export class IntegrationConnectionsService {
     });
 
     if ((input.status ?? 'ACTIVE') === 'ACTIVE' && inboxConflict) {
-      throw new Error(`Inbox do Chatwoot ja vinculada a outra empresa pela conexao ${inboxConflict.name}.`);
+      throw new Error(`Inbox do Chatwoot ja vinculada pela conexao ${inboxConflict.name}.`);
     }
   }
 
@@ -315,6 +339,25 @@ export class IntegrationConnectionsService {
       chatwootWebhookSecretEncrypted: input.chatwootWebhookSecret?.trim() ? this.encrypt(input.chatwootWebhookSecret.trim()) : null,
       metadata: input.metadata ?? null,
     };
+  }
+
+  private readConnectionGroupJids(metadata?: Record<string, unknown> | null): string[] {
+    const source = metadata && typeof metadata === 'object' ? metadata : {};
+    const evolution = source && typeof source.evolution === 'object' && source.evolution ? (source.evolution as Record<string, unknown>) : source;
+    const raw =
+      Array.isArray(evolution.allowedGroups) ? evolution.allowedGroups :
+      Array.isArray(evolution.groups) ? evolution.groups :
+      Array.isArray(evolution.allowedGroupJids) ? evolution.allowedGroupJids :
+      Array.isArray(evolution.groupJids) ? evolution.groupJids :
+      typeof evolution.allowedGroupJids === 'string' ? evolution.allowedGroupJids.split(',') :
+      typeof evolution.groupJids === 'string' ? evolution.groupJids.split(',') :
+      [];
+
+    return Array.from(new Set(
+      raw
+        .map((item: any) => String(typeof item === 'string' ? item : item?.jid ?? item?.groupJid ?? '').trim().toLowerCase())
+        .filter((item: string) => item.endsWith('@g.us')),
+    ));
   }
 
   private toOutput(row: any) {

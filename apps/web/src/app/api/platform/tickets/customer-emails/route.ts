@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { getCustomerEmailOptionsForCurrentUser } from "@/features/tickets/application/customer-emails";
 
 export async function GET(request: Request) {
