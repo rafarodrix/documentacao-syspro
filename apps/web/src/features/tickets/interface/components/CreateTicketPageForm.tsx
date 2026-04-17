@@ -146,6 +146,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
 
   const watchedSubject = form.watch("subject");
   const watchedPriority = form.watch("priority");
+  const resolvedPriority = watchedPriority || ticketSettings.defaultPriority || DEFAULT_TICKET_MODULE_SETTINGS.defaultPriority;
   const descriptionText = stripHtml(descriptionHtml);
   const selectedClientCompany = clientCompanies.find((company) => company.id === selectedCompanyId) ?? null;
   const selectedCategoryOption = ticketSettings.categories.find((item) => item.value === selectedCategory);
@@ -673,8 +674,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                     <h2 className="text-sm font-semibold text-foreground">Resumo operacional</h2>
                     <p className="text-xs text-muted-foreground">Conferencia antes do envio.</p>
                   </div>
-                  <Badge variant="outline" className={cn("rounded-md border px-2 py-1 text-[10px] font-semibold", getPriorityTone(watchedPriority))}>
-                    {getPriorityLabel(ticketSettings, watchedPriority)}
+                  <Badge variant="outline" className={cn("rounded-md border px-2 py-1 text-[10px] font-semibold", getPriorityTone(resolvedPriority))}>
+                    {getPriorityLabel(ticketSettings, resolvedPriority)}
                   </Badge>
                 </div>
 

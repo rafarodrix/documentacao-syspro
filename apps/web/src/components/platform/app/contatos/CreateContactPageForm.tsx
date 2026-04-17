@@ -1,17 +1,32 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, BadgeHelp, Building2, CheckCircle2, Loader2, Save, Search, Sparkles, Users, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  CircleDot,
+  Loader2,
+  Mail,
+  Phone,
+  Save,
+  Search,
+  Smartphone,
+  UserRound,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { toast } from "sonner";
+
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShineBorder } from "@/components/magicui/ShineBorder";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 type CompanyOption = {
   id: string;
@@ -28,6 +43,8 @@ type ContactInitialData = {
   companyIds: string[];
 };
 
+type ContactTextField = Exclude<keyof ContactInitialData, "companyIds">;
+
 type Props = {
   companies: CompanyOption[];
   backHref: string;
@@ -36,11 +53,19 @@ type Props = {
   initialData?: Partial<ContactInitialData>;
 };
 
-function normalizeDigits(value: string): string {
+function normalizeDigits(value: string) {
   return value.replace(/\D+/g, "");
 }
 
-function formatWhatsapp(value: string): string {
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function formatWhatsapp(value: string) {
   const digits = normalizeDigits(value).slice(0, 13);
 
   if (!digits) return "";
@@ -50,7 +75,7 @@ function formatWhatsapp(value: string): string {
   return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
 }
 
-function formatPhone(value: string): string {
+function formatPhone(value: string) {
   const digits = normalizeDigits(value).slice(0, 11);
 
   if (!digits) return "";
@@ -60,14 +85,18 @@ function formatPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
-function isValidWhatsapp(value: string): boolean {
+function isValidWhatsapp(value: string) {
   const digits = normalizeDigits(value);
   return digits.length === 12 || digits.length === 13;
 }
 
-function isValidPhone(value: string): boolean {
+function isValidPhone(value: string) {
   const digits = normalizeDigits(value);
   return digits.length === 10 || digits.length === 11;
+}
+
+function getCompanyLabel(company: CompanyOption) {
+  return company.nomeFantasia || company.razaoSocial;
 }
 
 export function CreateContactPageForm({
@@ -81,7 +110,7 @@ export function CreateContactPageForm({
   const isEdit = mode === "edit";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [companyQuery, setCompanyQuery] = useState("");
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ContactInitialData>({
     name: initialData?.name ?? "",
     email: initialData?.email ?? "",
     phone: initialData?.phone ?? "",
@@ -90,25 +119,43 @@ export function CreateContactPageForm({
     companyIds: initialData?.companyIds ?? ([] as string[]),
   });
 
-  const filteredCompanies = useMemo(() => {
-    const term = companyQuery.trim().toLowerCase();
-    if (!term) return companies.slice(0, 20);
-    return companies.filter((company) =>
-      [company.nomeFantasia, company.razaoSocial].some((value) => value?.toLowerCase().includes(term))
-    ).slice(0, 20);
-  }, [companies, companyQuery]);
   const selectedCompanies = useMemo(
     () => form.companyIds.map((companyId) => companies.find((item) => item.id === companyId)).filter(Boolean) as CompanyOption[],
     [companies, form.companyIds],
   );
-  const progressPct = Math.round(((form.name.trim() ? 1 : 0) + (form.email.trim() || form.phone.trim() || form.whatsapp.trim() ? 1 : 0) + (form.companyIds.length > 0 ? 1 : 0)) / 3 * 100);
+
+  const filteredCompanies = useMemo(() => {
+    const term = normalizeSearch(companyQuery);
+    const source = term
+      ? companies.filter((company) => normalizeSearch(`${company.nomeFantasia || ""} ${company.razaoSocial}`).includes(term))
+      : companies;
+
+    return source
+      .slice()
+      .sort((a, b) => getCompanyLabel(a).localeCompare(getCompanyLabel(b), "pt-BR", { sensitivity: "base", numeric: true }))
+      .slice(0, 30);
+  }, [companies, companyQuery]);
+
+  const activeChannelCount = [form.email, form.phone, form.whatsapp].filter((value) => value.trim()).length;
+  const readinessItems = [
+    { label: "Nome", done: Boolean(form.name.trim()) },
+    { label: "Canal", done: activeChannelCount > 0 },
+    { label: "Empresas", done: form.companyIds.length > 0 },
+  ];
+  const completedItems = readinessItems.filter((item) => item.done).length;
+  const progressPct = Math.round((completedItems / readinessItems.length) * 100);
+  const canSubmit = Boolean(form.name.trim()) && !isSubmitting;
+
+  function updateField(field: ContactTextField, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
 
   function toggleCompany(companyId: string) {
-    setForm((prev) => ({
-      ...prev,
-      companyIds: prev.companyIds.includes(companyId)
-        ? prev.companyIds.filter((id) => id !== companyId)
-        : [...prev.companyIds, companyId],
+    setForm((current) => ({
+      ...current,
+      companyIds: current.companyIds.includes(companyId)
+        ? current.companyIds.filter((id) => id !== companyId)
+        : [...current.companyIds, companyId],
     }));
   }
 
@@ -133,18 +180,15 @@ export function CreateContactPageForm({
     setIsSubmitting(true);
     try {
       const payload = {
-        name: form.name,
-        email: form.email || null,
-        phone: form.phone || null,
-        whatsapp: form.whatsapp || null,
-        notes: form.notes || null,
+        name: form.name.trim(),
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+        whatsapp: form.whatsapp.trim() || null,
+        notes: form.notes.trim() || null,
         companyIds: form.companyIds,
       };
 
-      const url = isEdit && contactId
-        ? `/api/contacts/${contactId}`
-        : "/api/contacts";
-
+      const url = isEdit && contactId ? `/api/contacts/${contactId}` : "/api/contacts";
       const response = await fetch(url, {
         method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -169,157 +213,157 @@ export function CreateContactPageForm({
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-2xl border border-border/50 bg-card/95 shadow-xl">
-      <ShineBorder borderWidth={1} duration={16} shineColor={["#2dd4bf", "#60a5fa", "#a78bfa"]} />
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 bg-gradient-to-r from-muted/30 via-background to-muted/20 px-6 py-4">
-        <div>
-          <h2 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <Sparkles className="h-5 w-5 text-primary/70" />
-            {isEdit ? "Editar Contato" : "Novo Contato"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
+    <div className="animate-in fade-in slide-in-from-bottom-3 space-y-5 pb-8 duration-500">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2 h-8 gap-2 text-muted-foreground" onClick={() => router.push(backHref)}>
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+            {isEdit ? "Editar contato" : "Novo contato"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground md:text-base">
             {isEdit
-              ? "Atualize os dados do contato e seus vinculos com empresas."
-              : "Cadastre o contato base da pessoa e vincule uma ou mais empresas quando fizer sentido."}
+              ? "Atualize identidade, canais e vinculos empresariais do contato."
+              : "Cadastre a pessoa e vincule empresas para atendimento e relacionamento."}
           </p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
-      </div>
-      <div className="border-b border-border/50 bg-muted/20 px-6 py-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Progresso do cadastro</span>
-          <span className="font-medium text-foreground">{progressPct}%</span>
-        </div>
-        <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-          <div className="h-1.5 rounded-full bg-primary transition-all duration-300" style={{ width: `${progressPct}%` }} />
+        <div className="rounded-lg border border-border/60 bg-card px-4 py-3 shadow-sm sm:min-w-72">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preenchimento</span>
+            <span className="text-sm font-semibold text-foreground">{progressPct}%</span>
+          </div>
+          <div className="mt-2 h-1.5 rounded-full bg-muted">
+            <div className={cn("h-1.5 rounded-full transition-all", progressPct === 100 ? "bg-emerald-500" : "bg-primary")} style={{ width: `${progressPct}%` }} />
+          </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex min-h-[calc(100vh-220px)] flex-col">
-        <div className="flex-1 space-y-6 overflow-y-auto p-6">
+      <form onSubmit={handleSubmit} className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <section className="space-y-5">
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Identidade</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{form.name.trim() ? "Ok" : "Pendente"}</p>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Canais ativos</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">
-                {[form.email, form.phone, form.whatsapp].filter((value) => value.trim()).length}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresas vinculadas</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{form.companyIds.length}</p>
-            </div>
+            <SummaryCard title="Identidade" value={form.name.trim() ? "Ok" : "Pendente"} icon={UserRound} tone={form.name.trim() ? "success" : "neutral"} />
+            <SummaryCard title="Canais ativos" value={String(activeChannelCount)} icon={Smartphone} tone={activeChannelCount > 0 ? "info" : "neutral"} />
+            <SummaryCard title="Empresas" value={String(form.companyIds.length)} icon={Building2} tone={form.companyIds.length > 0 ? "success" : "neutral"} />
           </div>
 
-          <Card className="border-border/60 bg-card/95">
-            <CardHeader>
-              <CardTitle className="text-base">Dados do contato</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="flex items-start gap-2 rounded-md border border-primary/15 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-                <BadgeHelp className="mt-0.5 h-3.5 w-3.5 text-primary" />
-                <p>
-                  {isEdit
-                    ? "Atualize os dados do contato. Os vinculos com empresas podem ser alterados a qualquer momento."
-                    : "O contato representa a identidade operacional da pessoa. Os vinculos com empresas podem ser adicionados agora ou depois, no mesmo padrao do cadastro de empresa."}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="contact-name">Nome</Label>
+          <Card className="border-border/60 bg-card shadow-sm">
+            <CardContent className="space-y-5 p-4 md:p-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Nome" htmlFor="contact-name" required>
                   <Input
                     id="contact-name"
                     value={form.name}
-                    onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                    onChange={(event) => updateField("name", event.target.value)}
                     placeholder="Nome completo"
+                    className="h-10 border-border/60 bg-background"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact-email">Email</Label>
+                </Field>
+
+                <Field label="Email" htmlFor="contact-email">
                   <Input
                     id="contact-email"
                     type="email"
                     value={form.email}
-                    onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                    onChange={(event) => updateField("email", event.target.value)}
                     placeholder="contato@empresa.com"
+                    className="h-10 border-border/60 bg-background"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact-phone">Telefone</Label>
+                </Field>
+
+                <Field label="Telefone" htmlFor="contact-phone" hint="Use DDD. Ex.: (34) 3333-4444.">
                   <Input
                     id="contact-phone"
                     inputMode="numeric"
                     autoComplete="tel"
                     value={form.phone}
-                    onChange={(event) => setForm((prev) => ({ ...prev, phone: formatPhone(event.target.value) }))}
+                    onChange={(event) => updateField("phone", formatPhone(event.target.value))}
                     placeholder="(00) 0000-0000"
+                    className="h-10 border-border/60 bg-background"
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    Informe o telefone com DDD. O sistema salva apenas os digitos.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact-whatsapp">WhatsApp</Label>
+                </Field>
+
+                <Field label="WhatsApp" htmlFor="contact-whatsapp" hint="Use DDI e DDD. Ex.: +55 (34) 99771-3731.">
                   <Input
                     id="contact-whatsapp"
                     inputMode="numeric"
                     autoComplete="tel"
                     value={form.whatsapp}
-                    onChange={(event) => setForm((prev) => ({ ...prev, whatsapp: formatWhatsapp(event.target.value) }))}
+                    onChange={(event) => updateField("whatsapp", formatWhatsapp(event.target.value))}
                     placeholder="+55 (34) 99771-3731"
+                    className="h-10 border-border/60 bg-background"
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    Use o numero com DDI e DDD. O sistema salva apenas os digitos.
-                  </p>
-                </div>
+                </Field>
               </div>
 
-              <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Users className="h-4 w-4 text-primary/70" />
-                  Empresas vinculadas
+              <Field label="Observacoes" htmlFor="contact-notes">
+                <Textarea
+                  id="contact-notes"
+                  rows={5}
+                  value={form.notes}
+                  onChange={(event) => updateField("notes", event.target.value)}
+                  placeholder="Preferencias, horarios, area responsavel ou observacoes comerciais."
+                  className="resize-none border-border/60 bg-background"
+                />
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 bg-card shadow-sm">
+            <CardContent className="space-y-4 p-4 md:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Empresas vinculadas</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">O contato pode pertencer a uma ou mais empresas.</p>
                 </div>
-                <div className="flex items-start gap-2 rounded-md border border-border/60 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
-                  <Building2 className="mt-0.5 h-3.5 w-3.5 text-primary/80" />
-                  <p>
-                    Ao vincular empresas aqui, o contato ja nasce pronto para atendimento, relacionamento comercial e futura promocao para usuario quando necessario.
-                  </p>
-                </div>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={companyQuery}
-                    onChange={(event) => setCompanyQuery(event.target.value)}
-                    placeholder="Buscar empresa por nome fantasia ou razao social..."
-                    className="pl-9"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCompanies.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">Nenhuma empresa vinculada.</span>
-                  ) : (
-                    selectedCompanies.map((company) => (
-                      <button
-                        key={company.id}
-                        type="button"
-                        onClick={() => toggleCompany(company.id)}
-                        className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs"
-                      >
-                        {company.nomeFantasia || company.razaoSocial}
-                        <X className="h-3 w-3" />
-                      </button>
-                    ))
-                  )}
-                </div>
-                <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-border/50 bg-background p-2">
-                  {filteredCompanies.map((company) => {
+                <Badge variant="outline" className="w-fit rounded-md border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                  {form.companyIds.length} selecionada(s)
+                </Badge>
+              </div>
+
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={companyQuery}
+                  onChange={(event) => setCompanyQuery(event.target.value)}
+                  placeholder="Buscar empresa por nome fantasia ou razao social..."
+                  className="h-10 border-border/60 bg-background pl-10"
+                />
+                {companyQuery ? (
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setCompanyQuery("")}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedCompanies.length === 0 ? (
+                  <span className="rounded-md border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">Nenhuma empresa vinculada.</span>
+                ) : (
+                  selectedCompanies.map((company) => (
+                    <button
+                      key={company.id}
+                      type="button"
+                      onClick={() => toggleCompany(company.id)}
+                      className="inline-flex max-w-full items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-foreground hover:bg-muted"
+                    >
+                      <span className="truncate">{getCompanyLabel(company)}</span>
+                      <X className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    </button>
+                  ))
+                )}
+              </div>
+
+              <div className="max-h-72 overflow-y-auto rounded-md border border-border/60 bg-background p-2">
+                {filteredCompanies.length === 0 ? (
+                  <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>
+                ) : (
+                  filteredCompanies.map((company) => {
                     const selected = form.companyIds.includes(company.id);
                     return (
                       <button
@@ -327,58 +371,149 @@ export function CreateContactPageForm({
                         type="button"
                         onClick={() => toggleCompany(company.id)}
                         className={cn(
-                          "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors",
-                          selected ? "bg-primary/10 text-primary" : "hover:bg-muted",
+                          "flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
+                          selected ? "bg-primary/10 text-primary" : "hover:bg-muted/60",
                         )}
                       >
-                        <div className="space-y-0.5">
-                          <span className="block">{company.nomeFantasia || company.razaoSocial}</span>
-                          {company.nomeFantasia ? (
-                            <span className="block text-[11px] text-muted-foreground">{company.razaoSocial}</span>
-                          ) : null}
-                        </div>
-                        <span className="text-[11px]">{selected ? "Selecionada" : "Selecionar"}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">{getCompanyLabel(company)}</span>
+                          {company.nomeFantasia ? <span className="block truncate text-[11px] text-muted-foreground">{company.razaoSocial}</span> : null}
+                        </span>
+                        <span className="shrink-0 text-[11px] font-medium">{selected ? "Selecionada" : "Selecionar"}</span>
                       </button>
                     );
-                  })}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  O contato pode existir sem empresa e receber vinculos depois. O usuario, quando existir, herdara estas empresas.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="contact-notes">Observacoes</Label>
-                <Textarea
-                  id="contact-notes"
-                  rows={4}
-                  value={form.notes}
-                  onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
-                  placeholder="Informacoes adicionais do contato"
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {form.name.trim() ? <Badge variant="outline" className="gap-1"><CheckCircle2 className="h-3 w-3" />Nome preenchido</Badge> : null}
-                {form.email.trim() ? <Badge variant="outline">Email informado</Badge> : null}
-                {form.phone.trim() ? <Badge variant="outline">Telefone informado</Badge> : null}
-                {form.whatsapp.trim() ? <Badge variant="outline">WhatsApp informado</Badge> : null}
-                {form.companyIds.length > 0 ? <Badge variant="outline">{form.companyIds.length} empresa(s) vinculada(s)</Badge> : null}
+                  })
+                )}
               </div>
             </CardContent>
           </Card>
-        </div>
+        </section>
 
-        <div className="flex items-center justify-end gap-2 border-t border-border/50 px-6 py-4">
-          <Button type="button" variant="ghost" onClick={() => router.push(backHref)}>
-            Cancelar
-          </Button>
-          <Button type="submit" className="gap-2" disabled={isSubmitting || !form.name.trim()}>
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {isEdit ? "Salvar Alteracoes" : "Salvar Cadastro"}
-          </Button>
-        </div>
+        <aside className="space-y-5">
+          <Card className="border-border/60 bg-card shadow-sm">
+            <CardContent className="space-y-4 p-4 md:p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Resumo do contato</h2>
+                  <p className="text-xs text-muted-foreground">Conferencia rapida antes de salvar.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {readinessItems.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs">
+                    <span className="text-muted-foreground">{item.label}</span>
+                    <span className={cn("inline-flex items-center gap-1 font-medium", item.done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
+                      {item.done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <CircleDot className="h-3.5 w-3.5" />}
+                      {item.done ? "Ok" : "Pendente"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-md border border-border/50 bg-muted/10 p-3 text-xs">
+                <div className="space-y-3">
+                  <SummaryLine icon={UserRound} label="Nome" value={form.name || "Nao informado"} />
+                  <SummaryLine icon={Mail} label="Email" value={form.email || "Nao informado"} />
+                  <SummaryLine icon={Phone} label="Telefone" value={form.phone || "Nao informado"} />
+                  <SummaryLine icon={Smartphone} label="WhatsApp" value={form.whatsapp || "Nao informado"} />
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end xl:flex-col-reverse">
+                <Button type="button" variant="outline" className="h-10 gap-2" onClick={() => router.push(backHref)}>
+                  <ArrowLeft className="h-4 w-4" />
+                  Cancelar
+                </Button>
+                <Button type="submit" className="h-10 gap-2" disabled={!canSubmit}>
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {isSubmitting ? "Salvando" : isEdit ? "Salvar alteracoes" : "Salvar contato"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </aside>
       </form>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  hint?: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required ? <span className="ml-1 text-destructive">*</span> : null}
+      </Label>
+      {children}
+      {hint ? <p className="text-[11px] text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
+
+function SummaryCard({
+  title,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  value: string;
+  icon: LucideIcon;
+  tone: "info" | "success" | "neutral";
+}) {
+  const toneClass = {
+    info: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
+    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+    neutral: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300",
+  }[tone];
+
+  return (
+    <Card className="border-border/60 bg-card shadow-sm">
+      <CardContent className="flex items-start justify-between gap-3 p-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+          <p className="mt-3 text-2xl font-semibold text-foreground">{value}</p>
+        </div>
+        <div className={cn("flex h-9 w-9 items-center justify-center rounded-md", toneClass)}>
+          <Icon className="h-4 w-4" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SummaryLine({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-2">
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="truncate text-xs font-medium text-foreground">{value}</p>
+      </div>
     </div>
   );
 }
