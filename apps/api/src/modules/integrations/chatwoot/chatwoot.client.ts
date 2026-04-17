@@ -501,7 +501,9 @@ export class ChatwootClient {
       } catch (e: any) {
         this.logger.error(`Erro ao processar anexo para o Chatwoot: ${e.message}`);
         if (this.isAttachmentStorageError(e)) {
-          const fallbackContent = this.buildAttachmentLinkContent(content, attachment);
+          const fallbackContent = this.buildAttachmentLinkContent(content, attachment, {
+            attachmentFailed: true,
+          });
           this.logger.warn(JSON.stringify({
             flow: 'evolution_to_chatwoot',
             stage: 'attachment_native_upload_failed_fallback_text',
@@ -979,6 +981,7 @@ export class ChatwootClient {
   private buildAttachmentLinkContent(
     content: string,
     attachment: { filename: string; mimetype: string; publicUrl?: string },
+    options?: { attachmentFailed?: boolean },
   ): string {
     const isImage = attachment.mimetype.toLowerCase().startsWith('image/');
     const mediaLine = attachment.publicUrl
@@ -989,7 +992,9 @@ export class ChatwootClient {
 
     const lines = [
       content?.trim(),
-      `[Midia recebida: ${attachment.filename} (${attachment.mimetype})]`,
+      options?.attachmentFailed
+        ? `Nao foi possivel anexar a midia automaticamente: ${attachment.filename} (${attachment.mimetype})`
+        : undefined,
       mediaLine,
     ].filter(Boolean);
 

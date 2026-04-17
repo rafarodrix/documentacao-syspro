@@ -101,7 +101,7 @@ export class ProcessIncomingMessageUseCase {
       else if (messagePayload?.imageMessage?.caption) textContent = messagePayload.imageMessage.caption;
       else if (messagePayload?.videoMessage?.caption) textContent = messagePayload.videoMessage.caption;
       else if (messagePayload?.documentMessage?.caption) textContent = messagePayload.documentMessage.caption;
-      else textContent = '[Mensagem de midia recebida]';
+      else textContent = '';
 
       let attachment: any = undefined;
       let isMedia = false;
