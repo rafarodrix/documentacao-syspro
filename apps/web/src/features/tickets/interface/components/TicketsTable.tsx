@@ -64,7 +64,11 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
           </div>
         ) : (
           tickets.map((ticket) => (
-            <div key={ticket.id} className="p-4 space-y-3">
+            <div 
+              key={ticket.id} 
+              className="p-4 space-y-3 cursor-pointer hover:bg-muted/10 transition-colors"
+              onClick={() => router.push(`/portal/tickets/${ticket.id}`)}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{ticket.title}</p>
@@ -89,7 +93,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                   </>
                 )}
                 <Button variant="outline" size="sm" asChild className="ml-auto">
-                  <Link href={`/portal/tickets/${ticket.id}`}>Abrir</Link>
+                  <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>Abrir</Link>
                 </Button>
               </div>
             </div>
@@ -118,8 +122,9 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
               tickets.map((ticket, index) => (
                 <TableRow
                   key={ticket.id}
-                  className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
+                  className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40 cursor-pointer"
                   style={{ animationDelay: `${index * 40}ms` }}
+                  onClick={() => router.push(`/portal/tickets/${ticket.id}`)}
                 >
                   <TableCell className="py-4">
                     <span className="rounded-md border border-border/40 bg-muted/30 px-2 py-1 font-mono text-[11px] font-medium text-muted-foreground">
@@ -164,7 +169,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                         </>
                       )}
                       <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10 hover:text-primary h-8 px-3 rounded-full">
-                        <Link href={`/portal/tickets/${ticket.id}`}>
+                        <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>
                           <span className="hidden sm:inline mr-1 text-xs font-medium">Abrir</span>
                           <ArrowUpRight className="h-3 w-3" />
                         </Link>

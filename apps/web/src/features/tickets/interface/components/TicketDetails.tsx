@@ -24,6 +24,7 @@ import {
     Zap,
 } from "lucide-react";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
+import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
 import { finalizeTicketAction, assignTicketToMeAction, triageTicketAction } from "@/features/tickets/application/ticket-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -171,6 +172,13 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                             <UserRound className="h-3 w-3" /> Assumir
                         </Button>
                     )}
+                    {isAdmin && ticket.status !== "Resolvido" && ticket.status !== "Fechado" && (
+                        <TransferTicketDialog 
+                           ticketId={ticket.id} 
+                           currentTeam={ticket.operations?.currentTeam || undefined} 
+                           currentStatus={ticket.status} 
+                        />
+                    )}
                     <StatusBadge status={ticket.status} />
                 </div>
             </div>
@@ -212,7 +220,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                         />
                         <SummaryPill
                             label="Resolucao"
-                            value={ticket.resolvedAt ? new Date(ticket.resolvedAt).toLocaleString("pt-BR") : "Em andamento"}
+                            value={ticket.resolvedAt ? new Date(ticket.resolvedAt).toLocaleString("pt-BR") : "Pendente"}
                             icon={Flag}
                             tone={ticket.resolvedAt ? "ok" : "neutral"}
                         />

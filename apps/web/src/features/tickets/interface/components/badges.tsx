@@ -43,9 +43,9 @@ export function SlaBadge({ ticket }: { ticket: TicketListItem }) {
   return <Badge variant="outline" className="text-[10px] px-2 rounded-full">No prazo</Badge>;
 }
 
-export function QuickButton({ label, pending, onClick }: { label: string; pending: boolean; onClick: () => void }) {
+export function QuickButton({ label, pending, onClick }: { label: string; pending: boolean; onClick: (e?: React.MouseEvent) => void }) {
   return (
-    <Button variant="outline" size="sm" onClick={onClick} disabled={pending}>
+    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onClick(e); }} disabled={pending}>
       {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : label}
     </Button>
   );

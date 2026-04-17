@@ -571,3 +571,47 @@ export async function saveTicketSettingsAction(settings: import("@dosc-syspro/co
     return { success: false, error: "Falha ao salvar. Verifique se o backend esta ativo." };
   }
 }
+
+export async function transferTicketAction(ticketId: string, payload: { team: string; status?: string; priority?: number; note?: string }): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  try {
+    const { updateTicketGateway, replyTicketGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
+    
+    // Convert priority back to TicketModulePriority format if needed
+    // Assuming backend handles it or we map it properly inside the gateway.
+    let priorityStr: "LOW" | "NORMAL" | "HIGH" | "CRITICAL" | undefined;
+    if (payload.priority !== undefined) {
+       priorityStr = payload.priority === 3 ? "HIGH" : payload.priority === 1 ? "LOW" : "NORMAL";
+    }
+
+    const updatePlayload = {
+      team: payload.team,
+      ...(payload.status ? { status: payload.status as any } : {}),
+      ...(priorityStr ? { priority: priorityStr } : {})
+    };
+
+    const result = await updateTicketGateway(ticketId, updatePlayload);
+    if (!result.success) {
+      return { success: false, error: result.error || "Falha ao transferir ticket." };
+    }
+
+    if (payload.note && payload.note.trim().length > 0) {
+       const noteMsg = `Transferido para a fila **${payload.team}**${payload.status ? ` (Status: ${payload.status})` : ''}.\n\nNota: ${payload.note}`;
+       await replyTicketGateway(ticketId, { message: noteMsg });
+    } else {
+       const noteMsg = `Transferido para a fila **${payload.team}**${payload.status ? ` (Status: ${payload.status})` : ''}.`;
+       await replyTicketGateway(ticketId, { message: noteMsg });
+    }
+
+    revalidateTicketCollections();
+    revalidateTicketViews(ticketId);
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em transferTicketAction:", error);
+    return { success: false, error: "Falha ao transferir chamado." };
+  }
+}

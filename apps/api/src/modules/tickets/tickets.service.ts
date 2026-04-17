@@ -840,15 +840,15 @@ export class TicketsService {
     settings: TicketModuleSettings,
     category?: string | null,
     allowDevelopment = true,
-  ): 'SUPORTE' | 'DESENVOLVIMENTO' {
+  ): 'SUPORTE' | 'DESENVOLVIMENTO' | 'TESTES' {
     const normalizedRequestedTeam = requestedTeam?.trim().toUpperCase();
-    if (normalizedRequestedTeam === 'SUPORTE' || normalizedRequestedTeam === 'DESENVOLVIMENTO') {
-      return normalizedRequestedTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : normalizedRequestedTeam;
+    if (normalizedRequestedTeam === 'SUPORTE' || normalizedRequestedTeam === 'DESENVOLVIMENTO' || normalizedRequestedTeam === 'TESTES') {
+      return normalizedRequestedTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : (normalizedRequestedTeam as any);
     }
 
     const categoryDefaultTeam = settings.categories.find((item) => item.value === category)?.defaultTeam;
-    if (categoryDefaultTeam === 'SUPORTE' || categoryDefaultTeam === 'DESENVOLVIMENTO') {
-      return categoryDefaultTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : categoryDefaultTeam;
+    if (categoryDefaultTeam === 'SUPORTE' || categoryDefaultTeam === 'DESENVOLVIMENTO' || categoryDefaultTeam === 'TESTES') {
+      return categoryDefaultTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : (categoryDefaultTeam as any);
     }
 
     if (role === Role.DEVELOPER && allowDevelopment) {
