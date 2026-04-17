@@ -146,10 +146,6 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         const controller = new AbortController();
         const timer = setTimeout(async () => {
             try {
-                if (!searchQuery.trim()) {
-                    setCustomerOptions([]);
-                    return;
-                }
                 setIsCustomerOptionsLoading(true);
                 const params = new URLSearchParams();
                 params.set("q", searchQuery.trim());

@@ -13,6 +13,9 @@ export default async function AtendimentoPage() {
   const requestHeaders = await headers();
   const cookie = requestHeaders.get("cookie");
   const appOrigin = resolveServerOrigin(requestHeaders);
+  let chatwootUrl: string | undefined;
+  let failureMessage =
+    "Verifique se o CHATWOOT_PLATFORM_API_TOKEN esta configurado no backend e se o Platform App tem permissao sobre a conta atual do Chatwoot.";
 
   try {
     const response = await fetch(`${appOrigin}/api/users/me/chatwoot/sso`, {
@@ -27,11 +30,20 @@ export default async function AtendimentoPage() {
     if (response.ok) {
       const payload = (await response.json()) as { url?: string };
       if (payload?.url) {
-        redirect(payload.url);
+        chatwootUrl = payload.url;
       }
+    } else {
+      const payload = await response.json().catch(() => null) as { message?: string; error?: string } | null;
+      failureMessage = payload?.message ?? payload?.error ?? failureMessage;
     }
-  } catch {
-    // Render fallback below.
+  } catch (error) {
+    failureMessage = error instanceof Error
+      ? `Nao foi possivel consultar o link SSO do Chatwoot: ${error.message}`
+      : "Nao foi possivel consultar o link SSO do Chatwoot.";
+  }
+
+  if (chatwootUrl) {
+    redirect(chatwootUrl);
   }
 
   return (
@@ -47,10 +59,7 @@ export default async function AtendimentoPage() {
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-muted-foreground">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-              <p>
-                Verifique se o `CHATWOOT_PLATFORM_API_TOKEN` esta configurado no backend e se o Platform App tem permissao
-                sobre a conta atual do Chatwoot.
-              </p>
+              <p>{failureMessage}</p>
             </div>
 
             <div className="flex gap-2">

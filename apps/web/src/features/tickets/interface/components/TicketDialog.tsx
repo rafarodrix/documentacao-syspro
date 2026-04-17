@@ -393,8 +393,6 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                         value={selectedCategory}
                         onValueChange={(value) => {
                           setSelectedCategory(value);
-                          const category = ticketSettings.categories.find((item) => item.value === value);
-                          setSelectedTeam(isSystemUser ? category?.defaultTeam || selectedTeam : "SUPORTE");
                           form.setValue("type", "incident"); // fallthrough default type internal
                         }}
                       >
@@ -404,7 +402,9 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {ticketSettings.categories.map((category) => (
+                          {ticketSettings.categories
+                            .filter((category) => !selectedTeam || category.defaultTeam === selectedTeam)
+                            .map((category) => (
                             <SelectItem key={category.id} value={category.value} className="text-sm">
                               {category.icon} {category.label}
                             </SelectItem>
@@ -419,7 +419,13 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                   <div className="grid grid-cols-2 gap-4">
                     <FormItem>
                       <Label className="text-xs">Roteado para:</Label>
-                      <Select value={selectedTeam} onValueChange={setSelectedTeam} disabled={!isSystemUser}>
+                      <Select value={selectedTeam} onValueChange={(val) => {
+                          setSelectedTeam(val);
+                          const availableCats = ticketSettings.categories.filter((c) => c.defaultTeam === val);
+                          if (availableCats.length > 0 && !availableCats.find(c => c.value === selectedCategory)) {
+                             setSelectedCategory(availableCats[0].value);
+                          }
+                      }} disabled={!isSystemUser}>
                         <FormControl>
                           <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60 disabled:opacity-70 disabled:bg-muted">
                             <SelectValue placeholder="Selecione..." />

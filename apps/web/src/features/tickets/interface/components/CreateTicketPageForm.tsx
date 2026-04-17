@@ -182,10 +182,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        if (!searchQuery.trim()) {
-          setCustomerOptions([]);
-          return;
-        }
         setIsCustomerOptionsLoading(true);
         const params = new URLSearchParams();
         params.set("q", searchQuery.trim());
@@ -387,19 +383,12 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                         setCustomerEmail(option?.email || email || "");
                         setCustomerCompany(option?.companyName || null);
                       }}
-                      placeholder="Buscar empresa cadastrada, contato ou e-mail..."
-                      searchPlaceholder="Digite empresa, contato, CNPJ ou e-mail..."
-                      emptyMessage={isCustomerOptionsLoading ? "Buscando..." : "Nenhuma empresa encontrada."}
-                      className="h-11 bg-muted/30 hover:bg-muted/40"
+                      onSearch={setSearchQuery}
+                      loading={isCustomerOptionsLoading}
+                      placeholder="Pesquisar ou selecionar empresa..."
+                      className="h-12 bg-white dark:bg-muted/10 hover:bg-muted/20 border-border/60 shadow-sm transition-all text-base"
                     />
-                    <Input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Refinar busca por empresa, contato, CNPJ ou e-mail..."
-                      className="h-10 bg-background"
-                    />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-1.5 opacity-80">
                       A busca considera empresas cadastradas no modulo Empresas e contatos vinculados.
                     </p>
                     {(customerEmail && customerCompany) || selectedCompanyId ? (
@@ -488,7 +477,13 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                 {isSystemUser ? (
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Setor atual</Label>
-                    <Select value={selectedTeam} onValueChange={(value) => setSelectedTeam(value as "SUPORTE" | "DESENVOLVIMENTO")}>
+                    <Select value={selectedTeam} onValueChange={(value) => {
+                        setSelectedTeam(value as "SUPORTE" | "DESENVOLVIMENTO");
+                        const availableCats = ticketSettings.categories.filter((c) => c.defaultTeam === value);
+                        if (availableCats.length > 0 && !availableCats.find((c) => c.value === selectedCategory)) {
+                            setSelectedCategory(availableCats[0].value);
+                        }
+                    }}>
                       <SelectTrigger className="bg-background">
                         <SelectValue placeholder="Selecione o setor..." />
                       </SelectTrigger>
@@ -523,9 +518,11 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                       <SelectValue placeholder="Selecione a categoria..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {ticketSettings.categories.map((category) => (
+                      {ticketSettings.categories
+                        .filter((category) => !selectedTeam || category.defaultTeam === selectedTeam)
+                        .map((category) => (
                         <SelectItem key={category.id} value={category.value}>
-                          {category.label}
+                          {category.icon} {category.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
