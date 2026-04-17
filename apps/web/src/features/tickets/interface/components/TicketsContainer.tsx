@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft as IconLeft, ChevronRight as IconRight, Download as DownloadIcon, PlusCircle } from "lucide-react";
+import { ChevronLeft as IconLeft, ChevronRight as IconRight, Download as DownloadIcon, PlusCircle, Search, UserRound, AlertTriangle, Inbox, MessageCircleWarning } from "lucide-react";
 
 import { TicketsStats } from "@/features/tickets/interface/components/TicketsStats";
 import { TicketsFilters } from "@/features/tickets/interface/components/TicketsFilters";
@@ -78,7 +78,7 @@ export function TicketsContainer({
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10 duration-700">
+    <div className="animate-in fade-in slide-in-from-bottom-4 space-y-5 pb-8 duration-700">
       {staleWarning && (
         <Alert className="border-amber-500/40 bg-amber-500/10">
           <AlertTitle>Dados em modo contingencia</AlertTitle>
@@ -88,14 +88,14 @@ export function TicketsContainer({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{isAdmin ? "Central de Atendimento" : "Meus Chamados"}</h1>
-          <p className="mt-1 text-lg text-muted-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{isAdmin ? "Central de Atendimento" : "Meus Chamados"}</h1>
+          <p className="mt-1 text-sm text-muted-foreground md:text-base">
             {isAdmin ? "Gerencie a fila de suporte e solicitacoes." : "Acompanhe o status das suas solicitacoes."}
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Link href="/portal/tickets/novo">
-            <Button className="h-10 w-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-linear-to-r from-primary to-primary/90 gap-2 sm:w-auto">
+            <Button className="h-10 w-full gap-2 shadow-sm sm:w-auto">
               <PlusCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Abrir Novo Chamado</span>
               <span className="sm:hidden">Novo</span>
@@ -106,47 +106,57 @@ export function TicketsContainer({
 
       <TicketsStats counts={statusCounts} activeStatus={statusGroup} onSelectStatus={setStatusFilter} />
 
-      {isAdmin && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex min-w-max gap-2">
-              <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("my_queue")}>
-                Minha fila ({queueCounts.my_queue})
-              </Button>
-              <Button variant={queue === "unassigned" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("unassigned")}>
-                Sem dono ({queueCounts.unassigned})
-              </Button>
-              <Button variant={queue === "critical" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("critical")}>
-                Criticos ({queueCounts.critical})
-              </Button>
-              <Button variant={queue === "no_response" ? "default" : "outline"} size="sm" onClick={() => setQueueFilter("no_response")}>
-                Sem resposta ({queueCounts.no_response})
-              </Button>
+      <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <TicketsFilters
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            statusFilter={statusGroup}
+            setStatusFilter={setStatusFilter}
+            closedWindow={closedWindow}
+            setClosedWindow={setClosedWindowFilter}
+            isAdmin={isAdmin}
+            counts={statusCounts}
+          />
+
+          <div className="flex flex-col gap-3 xl:items-end">
+            {isAdmin && (
+              <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex min-w-max gap-2">
+                  <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("my_queue")}>
+                    <UserRound className="h-3.5 w-3.5" /> Minha fila ({queueCounts.my_queue})
+                  </Button>
+                  <Button variant={queue === "unassigned" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("unassigned")}>
+                    <Inbox className="h-3.5 w-3.5" /> Sem dono ({queueCounts.unassigned})
+                  </Button>
+                  <Button variant={queue === "critical" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("critical")}>
+                    <AlertTriangle className="h-3.5 w-3.5" /> Criticos ({queueCounts.critical})
+                  </Button>
+                  <Button variant={queue === "no_response" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("no_response")}>
+                    <MessageCircleWarning className="h-3.5 w-3.5" /> Sem resposta ({queueCounts.no_response})
+                  </Button>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground xl:justify-end">
+              <span className="inline-flex items-center gap-1">
+                <Search className="h-3.5 w-3.5" />
+                {pagination.total ?? tickets.length} filtrados
+              </span>
+              {isAdmin && (
+                <Button variant="secondary" size="sm" className="h-9 gap-2" onClick={handleExportCsv} disabled={tickets.length === 0}>
+                  <DownloadIcon className="h-4 w-4" />
+                  Exportar CSV
+                </Button>
+              )}
             </div>
           </div>
-          <div className="w-full sm:w-auto">
-            <Button variant="secondary" size="sm" className="w-full gap-2 sm:w-auto" onClick={handleExportCsv} disabled={tickets.length === 0}>
-              <DownloadIcon className="h-4 w-4" />
-              Exportar CSV
-            </Button>
-          </div>
         </div>
-      )}
-
-      <TicketsFilters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={statusGroup}
-        setStatusFilter={setStatusFilter}
-        closedWindow={closedWindow}
-        setClosedWindow={setClosedWindowFilter}
-        isAdmin={isAdmin}
-        counts={statusCounts}
-      />
+      </section>
 
       <TicketsTable tickets={tickets} isAdmin={isAdmin} />
 
-      <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span>Total filtrado: {pagination.total ?? tickets.length}</span>
         <span>Itens nesta pagina: {tickets.length}</span>
       </div>

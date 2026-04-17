@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { getTicketStatusGroup } from "@dosc-syspro/core";
 import { Loader2 } from "lucide-react";
@@ -30,22 +31,22 @@ export function PriorityBadge({ priority }: { priority: TicketPriorityLevel }) {
 }
 
 export function SlaBadge({ ticket }: { ticket: TicketListItem }) {
-  if (ticket.slaBreached) return <Badge variant="destructive" className="text-[10px] px-2 rounded-full">SLA estourado</Badge>;
+  if (ticket.slaBreached) return <Badge variant="destructive" className="text-[10px] px-2 rounded-md">SLA estourado</Badge>;
   if (ticket.slaWarning) {
     const suffix = typeof ticket.minutesToBreach === "number" && ticket.minutesToBreach > 0 ? ` (${ticket.minutesToBreach} min)` : "";
     return (
-      <Badge variant="outline" className="text-[10px] px-2 rounded-full border-amber-500/50 text-amber-400">
+      <Badge variant="outline" className="text-[10px] px-2 rounded-md border-amber-500/50 text-amber-600 dark:text-amber-400">
         SLA alerta{suffix}
       </Badge>
     );
   }
-  if (ticket.firstResponseAt) return <Badge variant="secondary" className="text-[10px] px-2 rounded-full">Respondido</Badge>;
-  return <Badge variant="outline" className="text-[10px] px-2 rounded-full">No prazo</Badge>;
+  if (ticket.firstResponseAt) return <Badge variant="secondary" className="text-[10px] px-2 rounded-md">Respondido</Badge>;
+  return <Badge variant="outline" className="text-[10px] px-2 rounded-md">No prazo</Badge>;
 }
 
-export function QuickButton({ label, pending, onClick }: { label: string; pending: boolean; onClick: (e?: React.MouseEvent) => void }) {
+export function QuickButton({ label, pending, onClick }: { label: string; pending: boolean; onClick: (e?: MouseEvent) => void }) {
   return (
-    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onClick(e); }} disabled={pending}>
+    <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs" onClick={(e) => { e.stopPropagation(); onClick(e); }} disabled={pending}>
       {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : label}
     </Button>
   );

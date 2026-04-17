@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, Building2, Loader2, SearchX } from "lucide-react";
+import { ArrowUpRight, Building2, SearchX } from "lucide-react";
 import { toast } from "sonner";
-import { cn, formatDateSafe } from "@/lib/utils";
+import { formatDateSafe } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -54,9 +54,8 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
   };
 
   return (
-    <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl animate-in fade-in duration-700">
-      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-      <div className="md:hidden divide-y">
+    <Card className="overflow-hidden border-border/60 bg-card shadow-sm animate-in fade-in duration-700">
+      <div className="md:hidden divide-y divide-border/60">
         {tickets.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <p className="text-sm font-medium text-foreground">Nenhum chamado encontrado</p>
@@ -66,7 +65,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
           tickets.map((ticket) => (
             <div 
               key={ticket.id} 
-              className="p-4 space-y-3 cursor-pointer hover:bg-muted/10 transition-colors"
+              className="p-4 space-y-3 cursor-pointer hover:bg-muted/20 transition-colors"
               onClick={() => router.push(`/portal/tickets/${ticket.id}`)}
             >
               <div className="flex items-start justify-between gap-3">
@@ -101,18 +100,18 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
         )}
       </div>
 
-      <div className="hidden md:block">
+      <div className="hidden overflow-x-auto md:block">
         <Table>
-          <TableHeader className="bg-muted/20">
+          <TableHeader className="sticky top-0 z-10 bg-muted/40 backdrop-blur">
             <TableRow className="hover:bg-transparent border-b border-border/60">
-              <TableHead className="w-25 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Ticket</TableHead>
-              <TableHead className="min-w-70 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Assunto</TableHead>
-              {isAdmin && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Cliente</TableHead>}
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Status</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Prioridade</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">SLA</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Atualizacao</TableHead>
-              <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Acoes</TableHead>
+              <TableHead className="w-28 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ticket</TableHead>
+              <TableHead className="min-w-90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Assunto</TableHead>
+              {isAdmin && <TableHead className="min-w-56 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</TableHead>}
+              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
+              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>
+              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">SLA</TableHead>
+              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Atualizacao</TableHead>
+              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -122,18 +121,18 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
               tickets.map((ticket, index) => (
                 <TableRow
                   key={ticket.id}
-                  className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40 cursor-pointer"
+                  className="group/row cursor-pointer border-border/50 transition-colors hover:bg-muted/30"
                   style={{ animationDelay: `${index * 40}ms` }}
                   onClick={() => router.push(`/portal/tickets/${ticket.id}`)}
                 >
-                  <TableCell className="py-4">
-                    <span className="rounded-md border border-border/40 bg-muted/30 px-2 py-1 font-mono text-[11px] font-medium text-muted-foreground">
+                  <TableCell className="py-3">
+                    <span className="rounded-md border border-border/50 bg-muted/30 px-2 py-1 font-mono text-[11px] font-medium text-muted-foreground">
                       #{ticket.number}
                     </span>
                   </TableCell>
-                  <TableCell className="py-4">
+                  <TableCell className="py-3">
                     <div className="flex flex-col gap-0.5">
-                      <span className="font-medium text-foreground truncate max-w-70 sm:max-w-105">{ticket.title}</span>
+                      <span className="max-w-96 truncate text-sm font-medium text-foreground">{ticket.title}</span>
                       <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{ticket.group}</span>
                     </div>
                   </TableCell>
@@ -141,10 +140,10 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                   {isAdmin && (
                     <TableCell>
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-all group-hover/row:bg-primary/20 group-hover/row:scale-105">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-muted-foreground ring-1 ring-border/60 transition-colors group-hover/row:text-primary">
                           <Building2 className="w-3.5 h-3.5" />
                         </div>
-                        <span className="text-sm truncate max-w-45">{ticket.customer}</span>
+                        <span className="max-w-52 truncate text-sm">{ticket.customer}</span>
                       </div>
                     </TableCell>
                   )}
@@ -160,7 +159,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-mono">{formatDateSafe(ticket.updatedAt)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1.5">
                       {isAdmin && (
                         <>
                           <QuickButton label="Assumir" pending={isPending && loadingAction === `${ticket.id}:assume`} onClick={() => runQuickAction(ticket.id, "assume")} />
@@ -168,7 +167,7 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                           <QuickButton label="Macro" pending={isPending && loadingAction === `${ticket.id}:macro_followup`} onClick={() => runQuickAction(ticket.id, "macro_followup")} />
                         </>
                       )}
-                      <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10 hover:text-primary h-8 px-3 rounded-full">
+                      <Button variant="ghost" size="sm" asChild className="h-8 px-2.5 hover:bg-primary/10 hover:text-primary">
                         <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>
                           <span className="hidden sm:inline mr-1 text-xs font-medium">Abrir</span>
                           <ArrowUpRight className="h-3 w-3" />

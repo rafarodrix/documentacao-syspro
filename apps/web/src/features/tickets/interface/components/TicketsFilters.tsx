@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { CalendarDays, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type TicketStatusGroup } from "@dosc-syspro/core";
@@ -38,19 +38,19 @@ export function TicketsFilters({
     counts,
 }: TicketsFiltersProps) {
     return (
-        <div className="flex flex-col gap-4 p-1">
-            <div className="flex flex-col items-center justify-between gap-4 lg:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:w-auto">
                     <div className="flex min-w-max gap-2">
-                    <Button type="button" variant={statusFilter === "open" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("open")}>
-                        Abertos ({counts.open})
-                    </Button>
-                    <Button type="button" variant={statusFilter === "pending" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("pending")}>
-                        Em analise ({counts.pending})
-                    </Button>
-                    <Button type="button" variant={statusFilter === "closed" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("closed")}>
-                        Fechados ({counts.closed})
-                    </Button>
+                        <Button type="button" variant={statusFilter === "open" ? "default" : "outline"} size="sm" className="h-9" onClick={() => setStatusFilter("open")}>
+                            Abertos ({counts.open})
+                        </Button>
+                        <Button type="button" variant={statusFilter === "pending" ? "default" : "outline"} size="sm" className="h-9" onClick={() => setStatusFilter("pending")}>
+                            Em analise ({counts.pending})
+                        </Button>
+                        <Button type="button" variant={statusFilter === "closed" ? "default" : "outline"} size="sm" className="h-9" onClick={() => setStatusFilter("closed")}>
+                            Fechados ({counts.closed})
+                        </Button>
                     </div>
                 </div>
 
@@ -59,7 +59,7 @@ export function TicketsFilters({
                     <Input
                         id="global-ticket-search"
                         placeholder={isAdmin ? "Buscar por assunto, ID ou cliente..." : "Buscar por assunto ou ID..."}
-                        className="h-11 rounded-lg border-border/60 bg-background pl-10 transition-all focus:border-primary/50"
+                        className="h-9 rounded-md border-border/60 bg-background pl-10 text-sm transition-all focus:border-primary/50"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -68,9 +68,11 @@ export function TicketsFilters({
 
             {statusFilter === "closed" && (
                 <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">Periodo dos fechados</span>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
+                        <CalendarDays className="h-3.5 w-3.5" /> Periodo dos fechados
+                    </span>
                     <Select value={closedWindow} onValueChange={(value) => setClosedWindow(value as ClosedTicketsWindow)}>
-                        <SelectTrigger className="w-full bg-background sm:max-w-60">
+                        <SelectTrigger className="h-9 w-full bg-background sm:max-w-60">
                             <SelectValue placeholder="Selecione o periodo" />
                         </SelectTrigger>
                         <SelectContent>
