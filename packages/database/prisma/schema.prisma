@@ -165,8 +165,10 @@ enum ConversationChannel {
 enum ConversationStatus {
   NEW
   UNASSIGNED
+  TRIAGE
   IN_PROGRESS
   WAITING_CUSTOMER
+  TESTING
   RESOLVED
   ARCHIVED
 }
@@ -553,7 +555,7 @@ model UserAccessProfile {
   id String @id @default(cuid())
 
   userId String
-  user   User @relation("UserAccessProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation("UserAccessProfileUser", fields: [userId], references: [id], onDelete: Cascade)
 
   profileId String
   profile   AccessProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -564,13 +566,13 @@ model UserAccessProfile {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   assignedByUserId String?
-  assignedByUser   User? @relation("UserAccessProfileAssignedBy", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+  assignedByUser   User?   @relation("UserAccessProfileAssignedBy", fields: [assignedByUserId], references: [id], onDelete: SetNull)
 
-  reason    String?  @db.Text
-  startsAt  DateTime @default(now())
+  reason    String?   @db.Text
+  startsAt  DateTime  @default(now())
   endsAt    DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([userId, scopeType])
   @@index([profileId, scopeType])
@@ -921,12 +923,20 @@ model Conversation {
 
   metadata Json?
 
+  slaResponseDueAt   DateTime?
+  slaResolutionDueAt DateTime?
+  slaResponseHitAt     DateTime?
+  slaResolutionHitAt   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   messages    ConversationMessage[]
   assignments ConversationAssignment[]
+  ticketCategory   TicketCategory? @relation(fields: [ticketCategoryId], references: [id], onDelete: SetNull)
+  ticketCategoryId String?
 
+  @@index([ticketCategoryId])
   @@index([channel, status])
   @@index([companyId, status])
   @@index([companyContactId, status])
@@ -935,6 +945,25 @@ model Conversation {
   @@index([lastMessageAt])
   @@index([publishToReleases, closedAt])
   @@map("conversation")
+}
+
+model TicketCategory {
+  id        String @id @default(cuid())
+  name      String
+  slug      String @unique
+  type      String // "SUPPORT" | "DEVELOPMENT"
+  priority  String // "LOW" | "NORMAL" | "HIGH" | "CRITICAL"
+  
+  // SLA configs (in minutes)
+  slaResponseMinutes   Int @default(60)
+  slaResolutionMinutes Int @default(1440)
+  
+  // Roteamento
+  defaultTeam String? // "SUPORTE" | "DESENVOLVIMENTO"
+
+  conversations Conversation[]
+
+  @@map("ticket_category")
 }
 
 model ConversationMessage {
@@ -1327,15 +1356,15 @@ model DocumentoConfig {
 }
 
 model SefazStatus {
-  id        String           @id @default(cuid())
-  uf        String // "MG", "SP", "RS", "SVRS", etc.
-  service   SefazServiceType
-  status    SefazStatusType
-  latency   Int
-  statusCode Int?
+  id           String           @id @default(cuid())
+  uf           String // "MG", "SP", "RS", "SVRS", etc.
+  service      SefazServiceType
+  status       SefazStatusType
+  latency      Int
+  statusCode   Int?
   errorMessage String?
-  checkedAt DateTime
-  createdAt DateTime         @default(now())
+  checkedAt    DateTime
+  createdAt    DateTime         @default(now())
 
   @@index([uf, service, createdAt])
   @@index([checkedAt])

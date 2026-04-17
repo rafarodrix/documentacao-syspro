@@ -152,6 +152,59 @@ export class TicketsService {
       developmentOwnerName: normalizedTeam === 'DESENVOLVIMENTO' && assignedUserId ? openedByName : null,
     } as Prisma.InputJsonValue;
 
+    // Calculate SLAs based on priority/category (Enterprise Default Rules)
+    const now = new Date();
+    // Default ERP Logic: Priority 1 (LOW) -> 4h / 72h, Priority 2 (NORMAL) -> 1h / 24h, Priority 3 (HIGH) -> 15m / 4h
+    let responseMinutes = 60; // 1h
+    let resolutionMinutes = 1440; // 24h
+    if (data.priority === TicketPriority.LOW) {
+      responseMinutes = 240;
+      resolutionMinutes = 4320;
+    } else if (data.priority === TicketPriority.HIGH || data.priority === TicketPriority.CRITICAL) {
+      responseMinutes = 15;
+      resolutionMinutes = 240;
+    }
+
+    const slaResponseDueAt = new Date(now.getTime() + responseMinutes * 60000);
+    const slaResolutionDueAt = new Date(now.getTime() + resolutionMinutes * 60000);
+
+    // Timeline messages builder
+    const messagesToCreate: Prisma.ConversationMessageCreateWithoutConversationInput[] = [
+      {
+        direction: TicketMessageDirection.INTERNAL,
+        type: TicketMessageType.TEXT,
+        authorKind: TicketParticipantKind.USER,
+        authorUserId: requester.userId,
+        body: data.description,
+        status: TicketMessageStatus.SENT,
+        sentAt: now,
+      }
+    ];
+
+    if (databaseUrl) {
+      messagesToCreate.push({
+        direction: TicketMessageDirection.INTERNAL,
+        type: TicketMessageType.SYSTEM_EVENT,
+        authorKind: TicketParticipantKind.USER,
+        authorUserId: requester.userId,
+        body: `**Recurso de Diagnóstico (Base de Dados):**\n${databaseUrl}`,
+        status: TicketMessageStatus.SENT,
+        sentAt: new Date(now.getTime() + 1000), // slightly after
+      });
+    }
+
+    if (developmentVideoUrl) {
+      messagesToCreate.push({
+        direction: TicketMessageDirection.INTERNAL,
+        type: TicketMessageType.SYSTEM_EVENT,
+        authorKind: TicketParticipantKind.USER,
+        authorUserId: requester.userId,
+        body: `**Recurso de Diagnóstico (Vídeo):**\n${developmentVideoUrl}`,
+        status: TicketMessageStatus.SENT,
+        sentAt: new Date(now.getTime() + 2000), // slightly after
+      });
+    }
+
     await this.prisma.conversation.create({
       data: {
         channel: data.channel ?? TicketChannel.PORTAL,
@@ -163,21 +216,15 @@ export class TicketsService {
         companyId: resolvedCompanyId,
         companyContactId: resolvedContactId,
         assignedUserId,
+        slaResponseDueAt,
+        slaResolutionDueAt,
         externalThreadId: data.externalThreadId?.trim() || null,
         contactPhoneSnapshot: data.contactPhoneSnapshot?.trim() || null,
         contactWhatsappSnapshot: data.contactWhatsappSnapshot?.trim() || null,
         contactNameSnapshot: data.contactNameSnapshot?.trim() || null,
         metadata,
         messages: {
-          create: {
-            direction: TicketMessageDirection.INTERNAL,
-            type: TicketMessageType.TEXT,
-            authorKind: TicketParticipantKind.USER,
-            authorUserId: requester.userId,
-            body: data.description,
-            status: TicketMessageStatus.SENT,
-            sentAt: new Date(),
-          },
+          create: messagesToCreate,
         },
       },
     });
@@ -627,6 +674,132 @@ export class TicketsService {
     });
 
     return serializeMutationResponse('Ticket atualizado com sucesso.');
+  }
+
+  // --- ERP Actions ---
+  // Assign a ticket directly to the current user (Self-Assign)
+  async assignToMe(id: string, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const accessScope = await this.getTicketAccessScope(requester);
+
+    const ticket = await this.prisma.conversation.findUnique({
+      where: { id },
+      select: { id: true, companyId: true, metadata: true, assignedUserId: true },
+    });
+    if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
+    this.assertTicketAccess(ticket.companyId, accessScope);
+
+    if (ticket.assignedUserId === requester.userId) {
+      throw new BadRequestException('Voce ja e o responsavel atual deste ticket.');
+    }
+
+    const currentMetadata = ticket.metadata && typeof ticket.metadata === 'object' && !Array.isArray(ticket.metadata) 
+      ? { ...(ticket.metadata as Record<string, unknown>) } 
+      : {};
+
+    const requesterName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
+    
+    currentMetadata.currentOwnerUserId = requester.userId;
+    currentMetadata.currentOwnerName = requesterName;
+    currentMetadata.currentOwnerRole = requester.role;
+
+    if (requester.role === Role.DEVELOPER) {
+      currentMetadata.developmentOwnerUserId = requester.userId;
+      currentMetadata.developmentOwnerName = requesterName;
+      currentMetadata.currentTeam = 'DESENVOLVIMENTO';
+    } else {
+      currentMetadata.supportOwnerUserId = requester.userId;
+      currentMetadata.supportOwnerName = requesterName;
+      currentMetadata.currentTeam = 'SUPORTE';
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.conversation.update({
+        where: { id },
+        data: {
+          assignedUserId: requester.userId,
+          status: TicketStatus.IN_PROGRESS,
+          metadata: currentMetadata as Prisma.InputJsonValue,
+        },
+      }),
+      this.prisma.conversationAssignment.create({
+        data: {
+          conversationId: id,
+          assignedUserId: requester.userId,
+          assignedByUserId: requester.userId,
+          assignmentType: TicketAssignmentType.MANUAL,
+          status: TicketAssignmentStatus.ACTIVE,
+          reason: 'Auto-assigned by internal user',
+        },
+      }),
+      // Add system message logging the assignment
+      this.prisma.conversationMessage.create({
+        data: {
+          conversationId: id,
+          direction: TicketMessageDirection.INTERNAL,
+          type: TicketMessageType.SYSTEM_EVENT,
+          authorKind: TicketParticipantKind.USER,
+          authorUserId: requester.userId,
+          body: `Ticket assumido por ${requesterName} e movido para EM ANDAMENTO.`,
+          status: TicketMessageStatus.SENT,
+          sentAt: new Date(),
+        }
+      })
+    ]);
+
+    return serializeMutationResponse('Ticket atribuido a voce com sucesso.');
+  }
+
+  // Triage ticket
+  async triageTicket(id: string, input: { priority?: TicketPriority, team?: string, category?: string }, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const accessScope = await this.getTicketAccessScope(requester);
+
+    const ticket = await this.prisma.conversation.findUnique({
+      where: { id },
+      select: { id: true, companyId: true, metadata: true },
+    });
+    if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
+    this.assertTicketAccess(ticket.companyId, accessScope);
+
+    const currentMetadata = ticket.metadata && typeof ticket.metadata === 'object' && !Array.isArray(ticket.metadata) 
+      ? { ...(ticket.metadata as Record<string, unknown>) } 
+      : {};
+
+    const requesterName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
+    let logMessage = `Ticket triado por ${requesterName}.`;
+    if (input.priority) logMessage += ` Nova pioridade: ${input.priority}.`;
+    if (input.category) logMessage += ` Categoria: ${input.category}.`;
+    if (input.team) logMessage += ` Direcionado para: ${input.team}.`;
+
+    if (input.category) currentMetadata.category = input.category;
+    if (input.team) currentMetadata.currentTeam = input.team;
+
+    await this.prisma.$transaction([
+      this.prisma.conversation.update({
+        where: { id },
+        data: {
+          status: TicketStatus.TRIAGE,
+          priority: input.priority,
+          metadata: currentMetadata as Prisma.InputJsonValue,
+        },
+      }),
+      // Add system message
+      this.prisma.conversationMessage.create({
+        data: {
+          conversationId: id,
+          direction: TicketMessageDirection.INTERNAL,
+          type: TicketMessageType.SYSTEM_EVENT,
+          authorKind: TicketParticipantKind.USER,
+          authorUserId: requester.userId,
+          body: logMessage,
+          status: TicketMessageStatus.SENT,
+          sentAt: new Date(),
+        }
+      })
+    ]);
+
+    return serializeMutationResponse('Triagem realizada com sucesso.');
   }
 
   private generateTicketNumber() {

@@ -24,7 +24,7 @@ import {
     Zap,
 } from "lucide-react";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
-import { finalizeTicketAction } from "@/features/tickets/application/ticket-actions";
+import { finalizeTicketAction, assignTicketToMeAction, triageTicketAction } from "@/features/tickets/application/ticket-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,7 +135,42 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                         <Hash className="h-3 w-3" />{ticket.number}
                     </Badge>
                 </div>
-                <div className="ml-auto">
+                <div className="ml-auto flex items-center gap-2">
+                    {isAdmin && ticket.status === "Novo" && (
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 gap-1 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors text-xs" 
+                            onClick={() => {
+                                startTransition(async () => {
+                                    const res = await triageTicketAction(String(ticket.id), { priority: "NORMAL" });
+                                    if (res.success) toast.success("Triagem iniciada");
+                                    else toast.error(res.error || "Erro na triagem");
+                                    router.refresh();
+                                });
+                            }}
+                            disabled={isPending}
+                        >
+                            <Sparkles className="h-3 w-3" /> Triar
+                        </Button>
+                    )}
+                    {isAdmin && !ticket.ownerId && ticket.status !== "Resolvido" && ticket.status !== "Fechado" && (
+                        <Button 
+                            size="sm" 
+                            className="h-8 gap-1 bg-blue-600 hover:bg-blue-700 text-white transition-colors text-xs shadow-sm" 
+                            onClick={() => {
+                                startTransition(async () => {
+                                    const res = await assignTicketToMeAction(String(ticket.id));
+                                    if (res.success) toast.success("Ticket atribuído a você");
+                                    else toast.error(res.error || "Erro ao atribuir");
+                                    router.refresh();
+                                });
+                            }}
+                            disabled={isPending}
+                        >
+                            <UserRound className="h-3 w-3" /> Assumir
+                        </Button>
+                    )}
                     <StatusBadge status={ticket.status} />
                 </div>
             </div>
@@ -236,18 +271,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                                 )}
                                 {ticket.operations?.environment && (
                                     <SidebarField label="Ambiente" value={<span className="text-xs">{ticket.operations.environment}</span>} />
-                                )}
-                                {ticket.operations?.databaseUrl && (
-                                    <SidebarField
-                                        label="Base"
-                                        value={<ExternalTicketLink href={ticket.operations.databaseUrl} label="Abrir" />}
-                                    />
-                                )}
-                                {ticket.operations?.developmentVideoUrl && (
-                                    <SidebarField
-                                        label="Video dev"
-                                        value={<ExternalTicketLink href={ticket.operations.developmentVideoUrl} label="Abrir" />}
-                                    />
                                 )}
                                 {ticket.operations?.category && (
                                     <SidebarField label="Categoria" value={<span className="text-xs">{ticket.operations.category}</span>} />

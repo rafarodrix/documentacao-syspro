@@ -66,3 +66,27 @@ export async function updateTicketGateway(
 export async function fetchLinkedCompaniesGateway(): Promise<TicketModuleLinkedCompaniesResponse> {
   return ticketModuleLinkedCompaniesResponseSchema.parse(await callTicketsApi("/linked-companies"));
 }
+
+export async function assignTicketToMeGateway(
+  ticketId: string,
+): Promise<TicketModuleMutationResponse> {
+  return ticketModuleMutationResponseSchema.parse(
+    await callTicketsApi(`/${ticketId}/assign-me`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+}
+
+export async function triageTicketGateway(
+  ticketId: string,
+  payload: { priority?: string; team?: string; category?: string },
+): Promise<TicketModuleMutationResponse> {
+  return ticketModuleMutationResponseSchema.parse(
+    await callTicketsApi(`/${ticketId}/triage`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  );
+}

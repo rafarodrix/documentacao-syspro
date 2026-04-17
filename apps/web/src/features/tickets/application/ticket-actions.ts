@@ -459,6 +459,48 @@ export async function ticketQuickAction(input: {
 export const getMyTicketsAction = getTicketsAction;
 export const getAdminTicketsAction = getTicketsAction;
 
+export async function assignTicketToMeAction(ticketId: string): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  try {
+    const { assignTicketToMeGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
+    const result = await assignTicketToMeGateway(ticketId);
+    if (!result.success) {
+      return { success: false, error: result.error || "Falha ao assumir ticket." };
+    }
+    revalidateTicketCollections();
+    revalidateTicketViews(ticketId);
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em assignTicketToMeAction:", error);
+    return { success: false, error: "Falha ao assumir chamado." };
+  }
+}
+
+export async function triageTicketAction(ticketId: string, payload: { priority?: string; team?: string; category?: string; }): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  try {
+    const { triageTicketGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
+    const result = await triageTicketGateway(ticketId, payload);
+    if (!result.success) {
+      return { success: false, error: result.error || "Falha ao iniciar triagem." };
+    }
+    revalidateTicketCollections();
+    revalidateTicketViews(ticketId);
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em triageTicketAction:", error);
+    return { success: false, error: "Falha ao realizar triagem." };
+  }
+}
+
 export async function getUserLinkedCompaniesAction() {
   const session = await getProtectedSession();
   if (!session) return { success: false, data: [] };

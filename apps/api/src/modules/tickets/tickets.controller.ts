@@ -81,4 +81,14 @@ export class TicketsController {
     const input = this.parseOrThrow(ticketModuleUpdateRequestSchema, updateTicketDto);
     return this.ticketsService.updateStatus(id, input, req.headers);
   }
+
+  @Post(':id/assign-me')
+  assignToMe(@Req() req: Request, @Param('id') id: string) {
+    return this.ticketsService.assignToMe(id, req.headers);
+  }
+
+  @Patch(':id/triage')
+  triageTicket(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.ticketsService.triageTicket(id, body, req.headers);
+  }
 }
