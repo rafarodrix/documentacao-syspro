@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, Check, ChevronsUpDown, Loader2, Search, UserRound } from "lucide-react";
+import { Building2, Check, ChevronsUpDown, Loader2, Search, UserRound, PlusCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,11 +143,33 @@ export function TicketCompanyPicker({
             );
           })}
 
+          {loading && !filtered.length ? (
+            <div className="px-3 py-4 space-y-3">
+               <div className="flex items-center gap-3 animate-pulse">
+                 <div className="h-7 w-7 rounded-md bg-muted/50" />
+                 <div className="space-y-2 flex-1"><div className="h-3 w-2/3 bg-muted/50 rounded" /><div className="h-2 w-1/2 bg-muted/50 rounded" /></div>
+               </div>
+               <div className="flex items-center gap-3 animate-pulse">
+                 <div className="h-7 w-7 rounded-md bg-muted/50" />
+                 <div className="space-y-2 flex-1"><div className="h-3 w-1/2 bg-muted/50 rounded" /><div className="h-2 w-1/3 bg-muted/50 rounded" /></div>
+               </div>
+            </div>
+          ) : null}
+
           {!filtered.length && !loading ? (
             <div className="px-3 py-6 flex flex-col items-center justify-center text-center text-muted-foreground">
                 <Building2 className="h-6 w-6 opacity-20 mb-2" />
                 <p className="text-sm font-medium">{emptyMessage}</p>
-                <p className="text-[11px] mt-1 opacity-70">Verifique termo digitado ou CNPJ.</p>
+                <p className="text-[11px] mt-1 opacity-70">Verifique o termo digitado ou cadastre-o.</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full mt-4 h-8 text-xs bg-transparent hover:bg-muted/50"
+                  onClick={() => window.open("/portal/cadastros/empresas/novo", "_blank")}
+                >
+                  <PlusCircle className="mr-1.5 h-3.5 w-3.5 text-primary" />
+                  Cadastrar novo Contato
+                </Button>
             </div>
           ) : null}
         </div>

@@ -11,6 +11,10 @@ import {
   Loader2,
   Send,
   Sparkles,
+  ArrowDown,
+  CircleDot,
+  Flame,
+  Database
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -329,10 +333,16 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
       </div>
 
       {/* ── Progress bar ────────────────────────────────────────────────── */}
-      <div className="border-b border-border/50 bg-muted/20 px-6 py-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Progresso do preechimento</span>
-          <span className="font-medium text-foreground">{progressPct}%</span>
+      <div className="border-b border-border/50 bg-muted/10 px-6 py-3">
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+          <div className="flex items-center gap-3 font-semibold">
+            <span className={cn(progressPct > 0 ? "text-primary" : "")}>1. Identificação</span>
+            <span className="opacity-40">{'>'}</span>
+            <span className={cn(progressPct >= 66 ? "text-primary" : "")}>2. Detalhes</span>
+            <span className="opacity-40">{'>'}</span>
+            <span className={cn(progressPct === 100 ? "text-primary" : "")}>3. Envio</span>
+          </div>
+          <span className="font-bold text-foreground">{progressPct}%</span>
         </div>
         <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
           <div
@@ -353,19 +363,19 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
               {/* ── Main content (8 cols) ───────────────────────────────── */}
               <div className="lg:col-span-8 p-6 space-y-6 lg:border-r border-border/40">
 
-                {/* Summary cards */}
-                <div className="grid gap-3 grid-cols-3">
-                  <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                {/* Summary cards - Ghost Style */}
+                <div className="grid gap-3 grid-cols-3 opacity-90">
+                  <div className="rounded-md border border-border/30 bg-transparent p-2.5 shadow-sm text-center">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Setor</p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{selectedTeamLabel}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-foreground/80 truncate">{selectedTeamLabel}</p>
                   </div>
-                  <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                  <div className="rounded-md border border-border/30 bg-transparent p-2.5 shadow-sm text-center">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Categoria</p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{ticketSettings.categories.find(c => c.value === selectedCategory)?.label || "Nenhuma"}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-foreground/80 truncate">{ticketSettings.categories.find(c => c.value === selectedCategory)?.label || "Nenhuma"}</p>
                   </div>
-                  <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                  <div className="rounded-md border border-border/30 bg-transparent p-2.5 shadow-sm text-center">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Módulo</p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{ticketSettings.modules.find(m => m.value === selectedModule)?.label || "Nenhum"}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-foreground/80 truncate">{ticketSettings.modules.find(m => m.value === selectedModule)?.label || "Nenhum"}</p>
                   </div>
                 </div>
 
@@ -479,25 +489,31 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
 
                 {/* Database and Video Links (System only) */}
                 {isSystemUser && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Link da base de dados</Label>
-                      <Input
-                        value={databaseUrl}
-                        onChange={(e) => setDatabaseUrl(e.target.value)}
-                        placeholder="https://... ou caminho interno"
-                        className="h-11 bg-muted/30 focus:bg-background text-base"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Video explicativo para desenvolvimento</Label>
-                      <Input
-                        value={developmentVideoUrl}
-                        onChange={(e) => setDevelopmentVideoUrl(e.target.value)}
-                        placeholder="https://www.loom.com/... ou YouTube"
-                        className="h-11 bg-muted/30 focus:bg-background text-base"
-                      />
-                      <p className="text-xs text-muted-foreground opacity-80">Use para evidencias tecnicas internas quando o chamado for para desenvolvimento.</p>
+                  <div className="mt-4 border border-border/40 bg-card rounded-lg p-4 shadow-sm">
+                    <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                       <Database className="h-4 w-4 text-primary/70" />
+                       Recursos de Diagnóstico
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Link da base de dados</Label>
+                        <Input
+                          value={databaseUrl}
+                          onChange={(e) => setDatabaseUrl(e.target.value)}
+                          placeholder="https://... ou interno"
+                          className="h-10 bg-muted/30 focus:bg-background text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Vídeo explicativo</Label>
+                        <Input
+                          value={developmentVideoUrl}
+                          onChange={(e) => setDevelopmentVideoUrl(e.target.value)}
+                          placeholder="Loom / YouTube / Drive"
+                          className="h-10 bg-muted/30 focus:bg-background text-sm"
+                        />
+                        <p className="text-[10px] text-muted-foreground opacity-80 leading-tight">Uso técnico exclusivo da equipe.</p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -513,8 +529,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
               </div>
 
               {/* ── Sidebar (4 cols) ────────────────────────────────────── */}
-              <div className="lg:col-span-4 p-6 space-y-5 bg-muted/5">
-                <div className="space-y-1">
+              <div className="lg:col-span-4 px-5 py-6 space-y-4 bg-muted/30 border-l border-border/20">
+                <div className="space-y-1 mb-2">
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Sparkles className="h-3.5 w-3.5 text-primary/70" />
                     Metadados do chamado
@@ -614,9 +630,9 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="1 low">Baixa</SelectItem>
-                          <SelectItem value="2 normal">Normal</SelectItem>
-                          <SelectItem value="3 high">Alta (Urgente)</SelectItem>
+                          <SelectItem value="1 low"><div className="flex items-center gap-2 font-medium text-blue-500/80"><ArrowDown className="w-3.5 h-3.5" /> Baixa</div></SelectItem>
+                          <SelectItem value="2 normal"><div className="flex items-center gap-2 font-medium"><CircleDot className="w-3.5 h-3.5 opacity-40 text-foreground" /> Normal</div></SelectItem>
+                          <SelectItem value="3 high"><div className="flex items-center gap-2 font-medium text-red-500/90"><Flame className="w-3.5 h-3.5" /> Alta (Urgente)</div></SelectItem>
                         </SelectContent>
                       </Select>
                     </FormItem>
