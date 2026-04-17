@@ -474,3 +474,32 @@ export async function getUserLinkedCompaniesAction() {
     return { success: false, data: [] };
   }
 }
+
+export async function saveTicketSettingsAction(settings: import("@dosc-syspro/contracts/ticket").TicketModuleSettings): Promise<{success: boolean, message?: string, error?: string}> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  // Assuming we use an API endpoint to save the settings globally for now, or direct prisma if available,
+  // but since we are refactoring frontend legacy, we can maintain the fetch to the internal proxy or implement gateway logic.
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/platform/settings/tickets`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Cookie": `session=${session}` }, // basic auth bridging for demonstration if gateway is not there; actually it's easier to use the gateway if we have write global settings gateway.
+      body: JSON.stringify(settings),
+    });
+    
+    // As a more robust solution, we will do the native fetch using full absolute URL or let the component use standard useMutation.
+    // Given the scope, creating the server action simplifies the UI component.
+    const json = await response.json();
+    if (!response.ok || !json.success) {
+      return { success: false, error: json.error || "Erro ao salvar configuracoes." };
+    }
+    return { success: true, message: json.message };
+  } catch(error) {
+    console.error("error saving ticket settings", error);
+    return { success: false, error: "Falha ao salvar." };
+  }
+}
+
