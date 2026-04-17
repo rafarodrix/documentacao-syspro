@@ -571,10 +571,18 @@ export class ChatwootClient {
       const attempts = this.buildAttachmentFetchAttempts(config, attachmentUrl);
 
       for (const attempt of attempts) {
-        const response = await fetch(attempt.url, {
-          method: 'GET',
-          headers: attempt.headers,
-        });
+        let response: Response;
+        try {
+          response = await fetch(attempt.url, {
+            method: 'GET',
+            headers: attempt.headers,
+          });
+        } catch (error: any) {
+          failures.push(
+            `${attempt.label}:fetch_failed:${this.summarizeAttachmentCandidate(attachmentUrl)}:${this.truncateErrorText(this.describeFetchError(error))}`
+          );
+          continue;
+        }
 
         if (!response.ok) {
           const errorText = await response.text().catch(() => 'unknown_error');
@@ -900,6 +908,19 @@ export class ChatwootClient {
   private truncateErrorText(value: string): string {
     const normalized = String(value ?? '').replace(/\s+/g, ' ').trim();
     return normalized.length > 220 ? `${normalized.slice(0, 217)}...` : normalized;
+  }
+
+  private describeFetchError(error: any): string {
+    const parts = [
+      error?.message,
+      error?.cause?.message,
+      error?.cause?.code,
+      error?.cause?.errno,
+    ]
+      .map((value) => String(value ?? '').trim())
+      .filter(Boolean);
+
+    return parts.length ? parts.join(' | ') : 'fetch failed';
   }
 
   private appendAccountIncomingFields(formData: FormData): FormData {

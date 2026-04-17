@@ -635,6 +635,8 @@ export class ProcessOutgoingMessageUseCase {
     const message = String(error?.message ?? '').toLowerCase();
     return (
       message.includes('nosuchkey') ||
+      message.includes('fetch failed') ||
+      message.includes('fetch_failed') ||
       message.includes('404') ||
       message.includes('500') ||
       message.includes('something went wrong')
