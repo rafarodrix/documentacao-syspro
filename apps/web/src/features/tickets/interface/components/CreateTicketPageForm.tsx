@@ -81,6 +81,8 @@ interface CreateTicketPageFormProps {
   isSystemUser: boolean;
 }
 
+type TicketTeam = "SUPORTE" | "DESENVOLVIMENTO";
+
 const PRIORITY_ICONS = {
   "1 low": ArrowDown,
   "2 normal": CircleDot,
@@ -105,6 +107,10 @@ function getPriorityLabel(settings: TicketModuleSettings, priority: string) {
   return settings.priorities.find((item) => item.value === priority)?.label || "Normal";
 }
 
+function normalizeTicketTeam(value: string): TicketTeam {
+  return value === "DESENVOLVIMENTO" ? "DESENVOLVIMENTO" : "SUPORTE";
+}
+
 export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -124,7 +130,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
   const [selectedModule, setSelectedModule] = useState(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
   const [selectedEnvironment, setSelectedEnvironment] = useState(DEFAULT_TICKET_MODULE_SETTINGS.defaultEnvironment);
-  const [selectedTeam, setSelectedTeam] = useState(isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE");
+  const [selectedTeam, setSelectedTeam] = useState<TicketTeam>(isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE");
   const [databaseUrl, setDatabaseUrl] = useState("");
   const [developmentVideoUrl, setDevelopmentVideoUrl] = useState("");
 
@@ -212,7 +218,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
         if (!active || !json.success || !json.data) return;
 
         const nextSettings = json.data;
-        const nextTeam = isSystemUser ? nextSettings.defaultTeam : "SUPORTE";
+        const nextTeam: TicketTeam = isSystemUser ? nextSettings.defaultTeam : "SUPORTE";
         const nextCategory = nextSettings.categories.find((item) => item.defaultTeam === nextTeam)?.value || nextSettings.categories[0]?.value || "incident";
 
         setTicketSettings(nextSettings);
@@ -309,7 +315,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     setFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
   };
 
-  const handleTeamChange = (team: string) => {
+  const handleTeamChange = (value: string) => {
+    const team = normalizeTicketTeam(value);
     setSelectedTeam(team);
     const availableCategories = ticketSettings.categories.filter((category) => category.defaultTeam === team);
     if (availableCategories.length > 0 && !availableCategories.some((category) => category.value === selectedCategory)) {
