@@ -209,9 +209,14 @@ export class ProcessOutgoingMessageUseCase {
 
       let mediaPayload: { dataUrl: string; mimetype: string; filename: string } | null = null;
       try {
-        mediaPayload = await this.chatwootClient.resolveAttachmentPayload(
+        mediaPayload = await this.resolveAttachmentPayloadWithRetry(
           linkContext.chatwoot,
           attachment,
+          {
+            messageId,
+            chatwootConversationId,
+            attachmentId: attachment?.id?.toString?.() ?? null,
+          },
         );
       } catch (error: any) {
         this.logger.warn(JSON.stringify({
@@ -581,6 +586,68 @@ export class ProcessOutgoingMessageUseCase {
   private toOptionalString(value: unknown): string | undefined {
     const normalized = String(value ?? '').trim();
     return normalized.length > 0 ? normalized : undefined;
+  }
+
+  private async resolveAttachmentPayloadWithRetry(
+    config: Parameters<ChatwootClient['resolveAttachmentPayload']>[0],
+    attachment: any,
+    context: {
+      messageId?: string;
+      chatwootConversationId: string;
+      attachmentId: string | null;
+    },
+  ): Promise<{ dataUrl: string; mimetype: string; filename: string } | null> {
+    const retryDelaysMs = [0, 700, 1500, 3000, 5000];
+    let lastError: any;
+
+    for (let attemptIndex = 0; attemptIndex < retryDelaysMs.length; attemptIndex += 1) {
+      const delayMs = retryDelaysMs[attemptIndex];
+      if (delayMs > 0) {
+        await this.sleep(delayMs);
+      }
+
+      try {
+        return await this.chatwootClient.resolveAttachmentPayload(config, attachment);
+      } catch (error: any) {
+        lastError = error;
+        const isLastAttempt = attemptIndex === retryDelaysMs.length - 1;
+        if (isLastAttempt || !this.shouldRetryAttachmentDownload(error)) {
+          throw error;
+        }
+
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'attachment_download_retry',
+          messageId: context.messageId ?? null,
+          chatwootConversationId: context.chatwootConversationId,
+          attachmentId: context.attachmentId,
+          attempt: attemptIndex + 1,
+          nextDelayMs: retryDelaysMs[attemptIndex + 1],
+          error: this.truncateLog(error?.message ?? 'unknown_error'),
+        }));
+      }
+    }
+
+    throw lastError;
+  }
+
+  private shouldRetryAttachmentDownload(error: any): boolean {
+    const message = String(error?.message ?? '').toLowerCase();
+    return (
+      message.includes('nosuchkey') ||
+      message.includes('404') ||
+      message.includes('500') ||
+      message.includes('something went wrong')
+    );
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private truncateLog(value: string): string {
+    const normalized = String(value ?? '');
+    return normalized.length > 600 ? `${normalized.slice(0, 597)}...` : normalized;
   }
 
   private resolveOutgoingContent(payload: any, message: any): string | undefined {
