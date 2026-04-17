@@ -208,7 +208,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="w-[95vw] sm:max-w-3xl p-0 flex flex-col max-h-[90vh] overflow-hidden gap-0">
+      <DialogContent className="w-[98vw] sm:max-w-6xl p-0 flex flex-col max-h-[90vh] h-[85vh] overflow-hidden gap-0 shadow-2xl border-primary/20">
         <div className="p-6 border-b border-border/40 bg-muted/10 shrink-0">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-xl">
@@ -221,8 +221,8 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
           </DialogHeader>
         </div>
 
-        <ScrollArea className="flex-1 overflow-y-auto w-full">
-          <div className="p-6">
+        <ScrollArea className="flex-1 w-full bg-background/50">
+          <div className="p-0">
             <Form {...form}>
               <form
                 id="ticket-form"
@@ -240,28 +240,15 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     toast.error("Falha ao iniciar o envio do chamado.");
                   }
                 }}
-                className="space-y-6"
+                className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-0 min-h-full"
               >
-                <input type="hidden" name="source" value={source} />
-                <input type="hidden" name="chatwootConversationId" value={chatwootConversationId} />
-                <input type="hidden" name="chatwootContactId" value={chatwootContactId} />
-                <input type="hidden" name="chatwootAccountId" value={chatwootAccountId} />
-                <input type="hidden" name="chatwootConversationUrl" value={chatwootConversationUrl} />
-                <input type="hidden" name="customerName" value={customerName} />
-                <input type="hidden" name="customerPhone" value={customerPhone} />
-                <input type="hidden" name="customerWhatsapp" value={customerWhatsapp} />
-
-                {source === "chatwoot" && (
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
-                    <p className="font-medium text-foreground">Ticket criado a partir de um atendimento do Chatwoot.</p>
-                    <p className="mt-1 text-muted-foreground">O chamado sera salvo com o vinculo da conversa para rastreabilidade.</p>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit border border-primary/10">
-                    <FileText className="h-3.5 w-3.5" />
-                    <span>Informacoes Basicas</span>
+                <div className="p-6 lg:p-8 space-y-6 lg:border-r border-border/40">
+                  <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-3 py-1.5 rounded-md w-fit border border-primary/20">
+                        <FileText className="h-4 w-4" />
+                        <span>Resumo do chamado</span>
+                      </div>
+                      <div className="hidden lg:block text-xs text-muted-foreground mr-2 opacity-70">Passo 1 de 2</div>
                   </div>
 
                   <FormField
@@ -269,245 +256,28 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     name="subject"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Assunto</FormLabel>
+                        <FormLabel className="text-base font-semibold">Qual o problema ou solicitação?</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: Erro ao emitir Nota Fiscal..." className="bg-muted/30 focus:bg-background" {...field} />
+                          <Input placeholder="Ex: Erro ao emitir Nota Fiscal na empresa matriz..." className="h-12 bg-white dark:bg-muted/30 focus:bg-background text-base shadow-sm" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  {isSystemUser && (
-                    <FormItem>
-                      <Label>Empresa / contato</Label>
-                      <TicketCompanyPicker
-                        value={selectedSystemOption ? `${selectedSystemOption.companyId}::${selectedSystemOption.email}` : ""}
-                        options={systemCompanyOptions}
-                        onChange={(value) => {
-                          const [companyId, email] = value.split("::");
-                          const option = customerOptions.find((item) => item.companyId === companyId && item.email === email);
-                          setSelectedCompanyId(companyId || "");
-                          setCustomerEmail(option?.email || email || "");
-                          setCustomerCompany(option?.companyName || null);
-                        }}
-                        placeholder="Buscar empresa cadastrada, contato ou e-mail..."
-                        searchPlaceholder="Digite empresa, contato, CNPJ ou e-mail..."
-                        emptyMessage={isCustomerOptionsLoading ? "Buscando..." : "Nenhuma empresa encontrada."}
-                        className="bg-muted/30 hover:bg-muted/40"
-                      />
-                      <Input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(event) => setSearchQuery(event.target.value)}
-                        placeholder="Refinar busca por empresa, contato, CNPJ ou e-mail..."
-                        className="bg-background"
-                      />
-                      <p className="text-[0.8rem] text-muted-foreground">Busca empresas cadastradas no modulo Empresas e contatos vinculados.</p>
-                      {(customerCompany || customerEmail || selectedCompanyId) ? (
-                        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
-                          <p className="font-medium text-foreground">{customerCompany || "Empresa selecionada"}</p>
-                          {customerEmail ? <p className="text-muted-foreground">{customerEmail}</p> : null}
-                        </div>
-                      ) : null}
-                    </FormItem>
-                  )}
-
-                  {!isSystemUser && clientCompanies.length > 1 && (
-                    <FormItem>
-                      <Label>Empresa (Vinculo)</Label>
-                      <TicketCompanyPicker
-                        value={selectedCompanyId}
-                        options={clientCompanyOptions}
-                        onChange={setSelectedCompanyId}
-                        placeholder="Selecione a empresa"
-                        searchPlaceholder="Buscar empresa vinculada..."
-                        className="bg-muted/30"
-                      />
-                      <p className="text-[0.8rem] text-muted-foreground">Selecione para qual empresa deseja abrir o chamado.</p>
-                    </FormItem>
-                  )}
-                  {!isSystemUser && clientCompanies.length === 1 && <p className="text-xs text-muted-foreground">Empresa vinculada: {clientCompanies[0].name}</p>}
-
-                  {isSystemUser ? (
-                    <FormItem>
-                      <Label>Setor atual</Label>
-                      <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                        <FormControl>
-                          <SelectTrigger className="bg-muted/30">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ticketSettings.teams.map((team) => (
-                            <SelectItem key={team.id} value={team.value}>
-                              {team.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[0.8rem] text-muted-foreground">Clientes entram primeiro pelo suporte. Desenvolvimento fica restrito a usuarios internos.</p>
-                    </FormItem>
-                  ) : (
-                    <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm">
-                      <p className="font-medium text-foreground">Setor atual: Suporte</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Chamados de clientes entram primeiro na triagem do suporte.</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <FormItem>
-                      <Label>Categoria</Label>
-                      <Select
-                        value={selectedCategory}
-                        onValueChange={(value) => {
-                          setSelectedCategory(value);
-                          const category = ticketSettings.categories.find((item) => item.value === value);
-                          setSelectedTeam(isSystemUser ? category?.defaultTeam || selectedTeam : "SUPORTE");
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="bg-muted/30">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ticketSettings.categories.map((category) => (
-                            <SelectItem key={category.id} value={category.value}>
-                              {category.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-
-                    <FormField
-                      control={form.control}
-                      name="type"
-                      render={({ field }) => (
-                        <FormItem className="hidden">
-                          <FormLabel>Tipo</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-muted/30">
-                                <SelectValue placeholder="Selecione..." />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="incident">Incidente / Erro</SelectItem>
-                              <SelectItem value="question">Duvida</SelectItem>
-                              <SelectItem value="request">Solicitacao</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="priority"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Prioridade</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-muted/30">
-                                <SelectValue placeholder="Selecione..." />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="1 low">Baixa</SelectItem>
-                              <SelectItem value="2 normal">Normal</SelectItem>
-                              <SelectItem value="3 high">Alta (Urgente)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <FormItem>
-                      <Label>Modulo</Label>
-                      <Select value={selectedModule} onValueChange={setSelectedModule}>
-                        <FormControl>
-                          <SelectTrigger className="bg-muted/30">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ticketSettings.modules.map((moduleOption) => (
-                            <SelectItem key={moduleOption.id} value={moduleOption.value}>
-                              {moduleOption.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-
-                    <FormItem>
-                      <Label>Ambiente</Label>
-                      <Select value={selectedEnvironment} onValueChange={setSelectedEnvironment}>
-                        <FormControl>
-                          <SelectTrigger className="bg-muted/30">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ticketSettings.environments.map((environment) => (
-                            <SelectItem key={environment.id} value={environment.value}>
-                              {environment.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  </div>
-
-                  {isSystemUser && (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <FormItem>
-                        <Label>Link da base de dados</Label>
-                        <Input
-                          value={databaseUrl}
-                          onChange={(event) => setDatabaseUrl(event.target.value)}
-                          placeholder="https://... ou caminho interno"
-                          className="bg-muted/30"
-                        />
-                      </FormItem>
-                      <FormItem>
-                        <Label>Video explicativo dev</Label>
-                        <Input
-                          value={developmentVideoUrl}
-                          onChange={(event) => setDevelopmentVideoUrl(event.target.value)}
-                          placeholder="https://www.loom.com/... ou YouTube"
-                          className="bg-muted/30"
-                        />
-                      </FormItem>
-                    </div>
-                  )}
-
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-border/50">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider bg-primary/5 p-2 rounded-md w-fit border border-primary/10">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span>Detalhamento</span>
-                  </div>
-
-                  <FormField
+                   <FormField
                     control={form.control}
                     name="description"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descricao</FormLabel>
+                      <FormItem className="flex-1 flex flex-col">
+                        <FormLabel className="flex justify-between w-full">
+                            Detalhamento Técnico
+                            <span className="text-xs font-normal text-muted-foreground flex gap-1 items-center"><Info className="w-3 h-3"/> Passo a Passo</span>
+                        </FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Descreva o passo a passo..." className="min-h-32 resize-y bg-muted/30 focus:bg-background" {...field} />
+                          <Textarea placeholder="1. Onde você estava?&#10;2. Em que tela clicou?&#10;3. O que esperava que acontecesse?&#10;4. Qual erro ocorreu no sistema?..." className="min-h-[280px] lg:h-full resize-none bg-white dark:bg-muted/30 focus:bg-background shadow-inner text-sm leading-relaxed" {...field} />
                         </FormControl>
                         <FormMessage />
-                        <FormDescription className="flex items-center gap-1 text-xs">
-                          <Info className="h-3 w-3" /> Quanto mais detalhes, melhor.
-                        </FormDescription>
                       </FormItem>
                     )}
                   />
@@ -520,6 +290,208 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     accept="image/*,application/pdf"
                     compact
                   />
+                  
+                  {source === "chatwoot" && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm mt-4">
+                      <p className="font-medium text-foreground">Recebido via Omnichannel</p>
+                      <p className="mt-1 text-muted-foreground">O chamado será vinculado automaticamente à conversa do Chatwoot atual.</p>
+                    </div>
+                  )}
+
+                  <input type="hidden" name="source" value={source} />
+                  <input type="hidden" name="chatwootConversationId" value={chatwootConversationId} />
+                  <input type="hidden" name="chatwootContactId" value={chatwootContactId} />
+                  <input type="hidden" name="chatwootAccountId" value={chatwootAccountId} />
+                  <input type="hidden" name="chatwootConversationUrl" value={chatwootConversationUrl} />
+                  <input type="hidden" name="customerName" value={customerName} />
+                  <input type="hidden" name="customerPhone" value={customerPhone} />
+                  <input type="hidden" name="customerWhatsapp" value={customerWhatsapp} />
+                </div>
+
+                <div className="p-6 lg:p-8 space-y-6 bg-muted/5 sm:bg-transparent flex flex-col h-full">
+                  <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs font-bold text-foreground uppercase tracking-wider bg-muted p-2 rounded-md w-fit border border-border/40">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <span>Atribuição e SLA</span>
+                      </div>
+                      <div className="hidden lg:block text-xs text-muted-foreground opacity-70">Passo 2 de 2</div>
+                  </div>
+
+                  {isSystemUser && (
+                    <FormItem className="space-y-3 bg-white dark:bg-background rounded-xl p-4 shadow-sm border border-border/60">
+                      <Label className="flex justify-between items-center text-[13px] font-semibold">
+                          Cliente Solicitante <span className="p-1 bg-yellow-500/10 text-yellow-600 rounded text-[10px]">Restrito a Agentes</span>
+                      </Label>
+                      <TicketCompanyPicker
+                        value={selectedSystemOption ? `${selectedSystemOption.companyId}::${selectedSystemOption.email}` : ""}
+                        options={systemCompanyOptions}
+                        onChange={(value) => {
+                          const [companyId, email] = value.split("::");
+                          const option = customerOptions.find((item) => item.companyId === companyId && item.email === email);
+                          setSelectedCompanyId(companyId || "");
+                          setCustomerEmail(option?.email || email || "");
+                          setCustomerCompany(option?.companyName || null);
+                        }}
+                        onSearch={setSearchQuery}
+                        loading={isCustomerOptionsLoading}
+                        placeholder="Pesquisar por Contatos ou Empresa..."
+                        className="bg-muted/10 h-10 border-border/60 hover:bg-muted/20 hover:border-primary/40 focus:border-primary transition-all shadow-none"
+                      />
+                      {(customerCompany || customerEmail || selectedCompanyId) ? (
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs animate-in slide-in-from-top-1">
+                          <p className="font-semibold text-foreground text-[13px]">{customerCompany || "Empresa selecionada"}</p>
+                          {customerEmail ? <p className="text-muted-foreground mt-0.5">{customerEmail}</p> : null}
+                        </div>
+                      ) : null}
+                    </FormItem>
+                  )}
+
+                  {!isSystemUser && clientCompanies.length > 1 && (
+                    <FormItem>
+                      <Label>Qual das suas empresas matriz/filial?</Label>
+                      <TicketCompanyPicker
+                        value={selectedCompanyId}
+                        options={clientCompanyOptions}
+                        onChange={setSelectedCompanyId}
+                        placeholder="Selecione a empresa associada..."
+                        className="bg-white dark:bg-muted/30 shadow-sm"
+                      />
+                    </FormItem>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormItem>
+                      <Label className="text-xs">Prioridade (SLA)</Label>
+                      <FormField
+                        control={form.control}
+                        name="priority"
+                        render={({ field }) => (
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60">
+                                <SelectValue placeholder="Selecione..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {ticketSettings.priorities.map((p) => (
+                                <SelectItem key={p.id} value={p.value} className="text-sm">
+                                  <div className="flex items-center gap-2">
+                                      <div className={cn("w-2 h-2 rounded-full", String(p.color).includes("red") ? "bg-red-500" : String(p.color).includes("blue") ? "bg-blue-500" : "bg-neutral-400")} />
+                                      {p.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </FormItem>
+
+                    <FormItem>
+                      <Label className="text-xs">Categoria</Label>
+                      <Select
+                        value={selectedCategory}
+                        onValueChange={(value) => {
+                          setSelectedCategory(value);
+                          const category = ticketSettings.categories.find((item) => item.value === value);
+                          setSelectedTeam(isSystemUser ? category?.defaultTeam || selectedTeam : "SUPORTE");
+                          form.setValue("type", "incident"); // fallthrough default type internal
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ticketSettings.categories.map((category) => (
+                            <SelectItem key={category.id} value={category.value} className="text-sm">
+                              {category.icon} {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                    
+                    <FormField control={form.control} name="type" render={({field}) => <FormItem className="hidden"><FormControl><Input {...field}/></FormControl></FormItem>} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormItem>
+                      <Label className="text-xs">Roteado para:</Label>
+                      <Select value={selectedTeam} onValueChange={setSelectedTeam} disabled={!isSystemUser}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60 disabled:opacity-70 disabled:bg-muted">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ticketSettings.teams.map((team) => (
+                            <SelectItem key={team.id} value={team.value} className="text-sm">{team.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                    
+                    <FormItem>
+                      <Label className="text-xs">Módulo (Local Erro)</Label>
+                      <Select value={selectedModule} onValueChange={setSelectedModule}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ticketSettings.modules.map((m) => (
+                            <SelectItem key={m.id} value={m.value} className="text-sm">{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  </div>
+
+                  <FormItem>
+                      <Label className="text-xs">Ambiente/Produção</Label>
+                      <Select value={selectedEnvironment} onValueChange={setSelectedEnvironment}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ticketSettings.environments.map((environment) => (
+                            <SelectItem key={environment.id} value={environment.value} className="text-sm">{environment.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+
+                  {isSystemUser && (
+                    <div className="space-y-4 pt-6 mt-2 border-t border-dashed border-border/60">
+                      <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
+                        <Loader2 className="w-3 h-3" /> Integrações e Debug
+                      </div>
+                      <FormItem>
+                        <Label className="text-xs">URL da Base de Dados</Label>
+                        <Input
+                          value={databaseUrl}
+                          onChange={(event) => setDatabaseUrl(event.target.value)}
+                          placeholder="https://console.pve... ou IP SSH"
+                          className="bg-white dark:bg-muted/30 border-border/60 text-xs"
+                        />
+                      </FormItem>
+                      <FormItem>
+                        <Label className="text-xs">Gravação de Erro (Loom/Youtube)</Label>
+                        <Input
+                          value={developmentVideoUrl}
+                          onChange={(event) => setDevelopmentVideoUrl(event.target.value)}
+                          placeholder="https://www.loom.com/share/..."
+                          className="bg-white dark:bg-muted/30 border-border/60 text-xs"
+                        />
+                      </FormItem>
+                    </div>
+                  )}
+
                 </div>
               </form>
             </Form>

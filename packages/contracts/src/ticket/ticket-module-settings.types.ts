@@ -6,6 +6,7 @@ export const ticketModuleSettingsOptionSchema = z.object({
   value: z.string().trim().min(1),
   color: z.string().trim().optional(),
   icon: z.string().trim().optional(),
+  description: z.string().trim().optional(),
   defaultTeam: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).optional(),
 });
 
@@ -45,10 +46,17 @@ export type TicketModuleSettingsResponse = z.infer<typeof ticketModuleSettingsRe
 
 export const DEFAULT_TICKET_MODULE_SETTINGS: TicketModuleSettings = {
   categories: [
-    { id: "incident", label: "Incidente / Erro", value: "incident", icon: "🔴", color: "bg-red-100 text-red-700", defaultTeam: "SUPORTE" },
-    { id: "question", label: "Duvida", value: "question", icon: "🔵", color: "bg-blue-100 text-blue-700", defaultTeam: "SUPORTE" },
-    { id: "request", label: "Solicitacao", value: "request", icon: "🟢", color: "bg-emerald-100 text-emerald-700", defaultTeam: "SUPORTE" },
-    { id: "bug", label: "Bug", value: "bug", icon: "🛠", color: "bg-orange-100 text-orange-700", defaultTeam: "DESENVOLVIMENTO" },
+    { id: "incident", label: "Incidente / Erro", value: "incident", icon: "🔴", defaultTeam: "SUPORTE" },
+    { id: "question", label: "Duvida", value: "question", icon: "💬", defaultTeam: "SUPORTE" },
+    { id: "configuration", label: "Configuracao", value: "configuration", icon: "⚙️", defaultTeam: "SUPORTE" },
+    { id: "training", label: "Treinamento", value: "training", icon: "📚", defaultTeam: "SUPORTE" },
+    { id: "data-issue", label: "Problema de Dados", value: "data-issue", icon: "📝", defaultTeam: "SUPORTE" },
+    { id: "integration-issue", label: "Integracao", value: "integration-issue", icon: "🔗", defaultTeam: "SUPORTE" },
+    { id: "bug", label: "Bug", value: "bug", icon: "🐞", defaultTeam: "DESENVOLVIMENTO" },
+    { id: "enhancement", label: "Melhoria", value: "enhancement", icon: "✨", defaultTeam: "DESENVOLVIMENTO" },
+    { id: "new-feature", label: "Nova Funcionalidade", value: "new-feature", icon: "🚀", defaultTeam: "DESENVOLVIMENTO" },
+    { id: "performance", label: "Performance", value: "performance", icon: "⚡", defaultTeam: "DESENVOLVIMENTO" },
+    { id: "refactoring", label: "Refatoracao", value: "refactoring", icon: "🛠️", defaultTeam: "DESENVOLVIMENTO" },
   ],
   priorities: [
     { id: "1", label: "Baixa", value: "1 low", color: "bg-zinc-100 text-zinc-600", slaHours: 48 },

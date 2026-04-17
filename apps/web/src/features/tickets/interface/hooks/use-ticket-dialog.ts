@@ -275,7 +275,6 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         setCustomerEmail,
         customerCompany,
         setCustomerCompany,
-        searchQuery,
         setSearchQuery,
         customerOptions,
         isCustomerOptionsLoading,

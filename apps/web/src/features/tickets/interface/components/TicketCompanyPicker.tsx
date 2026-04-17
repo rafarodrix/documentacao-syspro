@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, Check, ChevronsUpDown, Search, UserRound } from "lucide-react";
+import { Building2, Check, ChevronsUpDown, Loader2, Search, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ interface TicketCompanyPickerProps {
   value: string;
   options: TicketCompanyPickerOption[];
   onChange: (value: string) => void;
+  onSearch?: (query: string) => void;
+  loading?: boolean;
   placeholder: string;
   searchPlaceholder?: string;
   emptyMessage?: string;
@@ -30,6 +32,8 @@ export function TicketCompanyPicker({
   value,
   options,
   onChange,
+  onSearch,
+  loading = false,
   placeholder,
   searchPlaceholder = "Buscar empresa...",
   emptyMessage = "Nenhum resultado encontrado.",
@@ -37,52 +41,74 @@ export function TicketCompanyPicker({
   className,
 }: TicketCompanyPickerProps) {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [internalQuery, setInternalQuery] = useState("");
+
+  const handleInputChange = (val: string) => {
+    setInternalQuery(val);
+    if (onSearch) {
+      onSearch(val);
+    }
+  };
 
   const filtered = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    if (onSearch) return options; // If async search is active, the parent strictly controls the options
+    const normalizedQuery = internalQuery.trim().toLowerCase();
     if (!normalizedQuery) return options;
 
     return options.filter((option) =>
       [option.label, option.description, option.meta]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedQuery)),
+        .some((val) => String(val).toLowerCase().includes(normalizedQuery)),
     );
-  }, [options, query]);
+  }, [options, internalQuery, onSearch]);
 
   const selected = options.find((option) => option.id === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(flag) => {
+        setOpen(flag);
+        if (!flag && onSearch) {
+          // Quando fechar o popover limpamos a query pra não ficar salvo sujeira proximo abri-lo
+          setTimeout(() => handleInputChange(""), 150);
+        }
+    }}>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
           disabled={disabled}
-          className={cn("w-full justify-between", !selected && "text-muted-foreground", className)}
+          className={cn("w-full justify-between overflow-hidden shadow-xs", !selected && "text-muted-foreground", className)}
         >
-          <span className="truncate text-left">{selected?.label ?? placeholder}</span>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+          <span className="truncate text-left text-sm font-medium">{selected?.label ?? placeholder}</span>
+          {loading && !open ? (
+             <Loader2 className="h-4 w-4 shrink-0 animate-spin opacity-50" />
+          ) : (
+             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-[var(--radix-popover-trigger-width)] min-w-[18rem] p-0"
-        onOpenAutoFocus={(event) => event.preventDefault()}
+        className="w-[var(--radix-popover-trigger-width)] min-w-[20rem] p-0 shadow-lg border-border/80"
+        onOpenAutoFocus={(event) => event.preventDefault()} // impede focar direto no input para não abrir teclado no mobile abruptamente
       >
-        <div className="border-b p-2.5">
+        <div className="border-b p-2">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              value={internalQuery}
+              onChange={(event) => handleInputChange(event.target.value)}
               placeholder={searchPlaceholder}
-              className="h-8 bg-background pl-8 text-xs"
+              className="h-9 bg-muted/20 pl-9 pr-8 text-sm focus-visible:ring-1 border-none shadow-none focus-visible:ring-offset-0"
+              autoFocus
             />
+            {loading && (
+              <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-primary animate-spin" />
+            )}
           </div>
         </div>
 
-        <div className="max-h-64 overflow-y-auto py-1">
+        <div className="max-h-64 overflow-y-auto py-1.5 scrollbar-thin">
           {filtered.map((option) => {
             const isSelected = option.id === value;
 
@@ -95,27 +121,35 @@ export function TicketCompanyPicker({
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex w-full items-start gap-3 px-3 py-2 text-left text-xs hover:bg-muted/60",
-                  isSelected && "bg-primary/5",
+                  "flex w-full items-start gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50 transition-colors",
+                  isSelected && "bg-primary/5 hover:bg-primary/10",
                 )}
               >
-                <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-foreground">{option.label}</span>
+                <div className="flex h-7 w-7 items-center justify-center shrink-0 rounded-md bg-muted/50 border border-border/50 text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                  <span className="block truncate font-semibold text-foreground/90">{option.label}</span>
                   {option.description ? (
-                    <span className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
-                      <UserRound className="h-3 w-3 shrink-0" />
+                    <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
+                      <UserRound className="h-3 w-3 shrink-0 opacity-70" />
                       {option.description}
                     </span>
                   ) : null}
-                  {option.meta ? <span className="block truncate text-[11px] text-muted-foreground">{option.meta}</span> : null}
-                </span>
-                {isSelected ? <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" /> : null}
+                  {option.meta ? <span className="block truncate text-[10px] uppercase text-muted-foreground/70">{option.meta}</span> : null}
+                </div>
+                {isSelected ? <Check className="mt-1 h-4 w-4 shrink-0 text-primary" /> : null}
               </button>
             );
           })}
 
-          {!filtered.length ? <p className="px-3 py-4 text-center text-xs text-muted-foreground">{emptyMessage}</p> : null}
+          {!filtered.length && !loading ? (
+            <div className="px-3 py-6 flex flex-col items-center justify-center text-center text-muted-foreground">
+                <Building2 className="h-6 w-6 opacity-20 mb-2" />
+                <p className="text-sm font-medium">{emptyMessage}</p>
+                <p className="text-[11px] mt-1 opacity-70">Verifique termo digitado ou CNPJ.</p>
+            </div>
+          ) : null}
         </div>
       </PopoverContent>
     </Popover>

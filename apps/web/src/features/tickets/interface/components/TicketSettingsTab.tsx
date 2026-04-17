@@ -205,10 +205,16 @@ export function TicketSettingsTab() {
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   {categoriesArray.fields.map((fieldItem, index) => (
-                    <div key={fieldItem.id} className="grid items-start gap-4 rounded-xl border border-border/40 bg-background/50 hover:bg-muted/20 transition-colors p-4 shadow-sm md:grid-cols-[1.5fr_1fr_180px_100px_40px]">
-                      <FormField control={form.control} name={`categories.${index}.label`} render={({field}) => (
-                        <FormItem><FormControl><Input placeholder="Nome ex: Incidente" {...field} /></FormControl></FormItem>
-                      )} />
+                    <div key={fieldItem.id} className="grid items-start gap-3 rounded-xl border border-border/40 bg-background/50 hover:bg-muted/20 transition-colors p-4 shadow-sm md:grid-cols-[1.5fr_1fr_180px_60px_40px]">
+                      <div className="space-y-3">
+                        <FormField control={form.control} name={`categories.${index}.label`} render={({field}) => (
+                          <FormItem><FormControl><Input placeholder="Nome ex: Incidente" {...field} /></FormControl></FormItem>
+                        )} />
+                        <FormField control={form.control} name={`categories.${index}.description`} render={({field}) => (
+                          <FormItem><FormControl><Input placeholder="Descrição ou observação da categoria..." className="text-xs h-8 text-muted-foreground" {...field} /></FormControl></FormItem>
+                        )} />
+                      </div>
+                      
                       <FormField control={form.control} name={`categories.${index}.value`} render={({field}) => (
                         <FormItem><FormControl><Input placeholder="slug-unico" {...field} /></FormControl></FormItem>
                       )} />
@@ -227,7 +233,30 @@ export function TicketSettingsTab() {
                         </FormItem>
                       )} />
                       <FormField control={form.control} name={`categories.${index}.icon`} render={({field}) => (
-                        <FormItem><FormControl><Input placeholder="Icone 🔴" {...field} /></FormControl></FormItem>
+                        <FormItem>
+                           <Select onValueChange={field.onChange} value={field.value || "🔴"}>
+                            <FormControl>
+                              <SelectTrigger className="px-2 font-emoji"><SelectValue placeholder="🔴" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="🔴">🔴</SelectItem>
+                              <SelectItem value="🟡">🟡</SelectItem>
+                              <SelectItem value="🟢">🟢</SelectItem>
+                              <SelectItem value="🔵">🔵</SelectItem>
+                              <SelectItem value="💬">💬</SelectItem>
+                              <SelectItem value="⚙️">⚙️</SelectItem>
+                              <SelectItem value="📚">📚</SelectItem>
+                              <SelectItem value="📝">📝</SelectItem>
+                              <SelectItem value="💾">💾</SelectItem>
+                              <SelectItem value="🔗">🔗</SelectItem>
+                              <SelectItem value="🐞">🐞</SelectItem>
+                              <SelectItem value="✨">✨</SelectItem>
+                              <SelectItem value="🚀">🚀</SelectItem>
+                              <SelectItem value="⚡">⚡</SelectItem>
+                              <SelectItem value="🛠️">🛠️</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
                       )} />
                       <Button type="button" variant="ghost" size="icon" onClick={() => categoriesArray.remove(index)} className="hover:bg-destructive/10 hover:text-destructive self-start mt-1 shrink-0">
                         <Trash2 className="h-4 w-4" />
