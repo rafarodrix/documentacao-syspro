@@ -74,7 +74,6 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     setCustomerEmail,
     customerCompany,
     setCustomerCompany,
-    searchQuery,
     setSearchQuery,
     customerOptions,
     isCustomerOptionsLoading,
