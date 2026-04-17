@@ -257,7 +257,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
       entryPoint: "INBOUND",
       companyId: companyIdInput || undefined,
       userSelectedCompanyId,
-      customerEmail: customerEmailInput,
+      customerEmail: customerEmailInput || undefined,
       category: categoryInput || undefined,
       module: moduleInput || undefined,
       environment: environmentInput || undefined,
@@ -495,4 +495,3 @@ export async function saveTicketSettingsAction(settings: import("@dosc-syspro/co
     return { success: false, error: "Falha ao salvar. Verifique se o backend esta ativo." };
   }
 }
-

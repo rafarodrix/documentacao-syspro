@@ -51,7 +51,7 @@ export class TicketsService {
 
     if (isSystemAdmin && data.customerEmail) {
       const contact = await this.prisma.companyContact.findFirst({
-        where: { email: data.customerEmail },
+        where: { email: { equals: data.customerEmail, mode: 'insensitive' } },
         select: {
           id: true,
           name: true,

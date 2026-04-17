@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTicketDialog } from "@/features/tickets/interface/hooks/use-ticket-dialog";
 import {
@@ -96,18 +96,38 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     setDevelopmentVideoUrl,
   } = useTicketDialog(() => setOpen(false), { isSystemUser });
 
-  const selectedSystemOption = customerOptions.find(
-    (option) =>
-      option.companyId === selectedCompanyId &&
-      option.email === customerEmail.trim().toLowerCase(),
-  ) ?? null;
+  const systemCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
+    const opts: TicketCompanyPickerOption[] = [];
+    const usedIds = new Set<string>();
 
-  const systemCompanyOptions: TicketCompanyPickerOption[] = customerOptions.map((option) => ({
-    id: `${option.companyId}::${option.email}`,
-    label: option.companyName,
-    description: option.contactName || option.email,
-    meta: option.contactName ? option.email : null,
-  }));
+    for (const option of customerOptions) {
+      let id = option.email ? `${option.companyId}::${option.email}` : `${option.companyId}::`;
+      if (usedIds.has(id)) {
+        id = `${id}::${option.contactName || option.companyName}`;
+      }
+      usedIds.add(id);
+
+      opts.push({
+        id,
+        label: option.companyName,
+        description: option.contactName || option.email,
+        meta: option.contactName ? option.email : null,
+      });
+    }
+
+    if (selectedCompanyId) {
+      const currentId = customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`;
+      if (!opts.some((option) => option.id === currentId || option.id.startsWith(`${currentId}::`))) {
+        opts.push({
+          id: currentId,
+          label: customerCompany || "Empresa selecionada",
+          description: customerEmail || undefined,
+        });
+      }
+    }
+
+    return opts;
+  }, [customerOptions, selectedCompanyId, customerEmail, customerCompany]);
 
   const clientCompanyOptions: TicketCompanyPickerOption[] = clientCompanies.map((company) => ({
     id: company.id,
@@ -323,11 +343,11 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                           Cliente Solicitante <span className="p-1 bg-yellow-500/10 text-yellow-600 rounded text-[10px]">Restrito a Agentes</span>
                       </Label>
                       <TicketCompanyPicker
-                        value={selectedSystemOption ? `${selectedSystemOption.companyId}::${selectedSystemOption.email}` : ""}
+                        value={selectedCompanyId || customerEmail ? (customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`) : ""}
                         options={systemCompanyOptions}
                         onChange={(value) => {
                           const [companyId, email] = value.split("::");
-                          const option = customerOptions.find((item) => item.companyId === companyId && item.email === email);
+                          const option = customerOptions.find((item) => item.companyId === companyId && (email ? item.email === email : true));
                           setSelectedCompanyId(companyId || "");
                           setCustomerEmail(option?.email || email || "");
                           setCustomerCompany(option?.companyName || null);

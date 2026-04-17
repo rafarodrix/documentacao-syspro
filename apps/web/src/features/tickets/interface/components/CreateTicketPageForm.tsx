@@ -133,7 +133,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     for (const option of customerOptions) {
       let baseId = option.email ? `${option.companyId}::${option.email}` : `${option.companyId}::`;
       if (usedIds.has(baseId)) {
-        baseId = `${baseId}::${option.contactName || Math.random()}`;
+        baseId = `${baseId}::${option.contactName || option.companyName}`;
       }
       usedIds.add(baseId);
 

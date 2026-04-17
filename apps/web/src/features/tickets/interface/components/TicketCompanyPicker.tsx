@@ -165,10 +165,10 @@ export function TicketCompanyPicker({
                   variant="outline" 
                   size="sm" 
                   className="w-full mt-4 h-8 text-xs bg-transparent hover:bg-muted/50"
-                  onClick={() => window.open("/portal/cadastros/empresas/novo", "_blank")}
+                  onClick={() => window.open("/portal/cadastros/empresa/novo", "_blank")}
                 >
                   <PlusCircle className="mr-1.5 h-3.5 w-3.5 text-primary" />
-                  Cadastrar novo Contato
+                  Cadastrar nova Empresa
                 </Button>
             </div>
           ) : null}

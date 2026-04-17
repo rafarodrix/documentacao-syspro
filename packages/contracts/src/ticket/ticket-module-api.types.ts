@@ -22,6 +22,16 @@ export const ticketModuleEntryPointSchema = z.enum(TICKET_MODULE_ENTRY_POINT_VAL
 export const ticketModuleDirectionSchema = z.enum(TICKET_MODULE_DIRECTION_VALUES);
 export const ticketModuleMessageTypeSchema = z.enum(TICKET_MODULE_MESSAGE_TYPE_VALUES);
 
+const optionalTrimmedStringSchema = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().trim().optional(),
+);
+
+const optionalTrimmedEmailSchema = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().trim().email().optional(),
+);
+
 export const ticketModuleStatusCountsSchema = z.object({
   open: z.number().int().nonnegative(),
   pending: z.number().int().nonnegative(),
@@ -42,21 +52,21 @@ export const ticketModuleCreateRequestSchema = z.object({
   priority: ticketModulePrioritySchema.optional(),
   channel: ticketModuleChannelSchema.optional(),
   entryPoint: ticketModuleEntryPointSchema.optional(),
-  companyId: z.string().trim().optional(),
-  companyContactId: z.string().trim().optional(),
-  externalThreadId: z.string().trim().optional(),
-  contactPhoneSnapshot: z.string().trim().optional(),
-  contactWhatsappSnapshot: z.string().trim().optional(),
-  contactNameSnapshot: z.string().trim().optional(),
+  companyId: optionalTrimmedStringSchema,
+  companyContactId: optionalTrimmedStringSchema,
+  externalThreadId: optionalTrimmedStringSchema,
+  contactPhoneSnapshot: optionalTrimmedStringSchema,
+  contactWhatsappSnapshot: optionalTrimmedStringSchema,
+  contactNameSnapshot: optionalTrimmedStringSchema,
   metadata: z.record(z.string(), z.unknown()).optional(),
-  userSelectedCompanyId: z.string().trim().optional(),
-  customerEmail: z.string().trim().email().optional(),
-  category: z.string().trim().optional(),
-  module: z.string().trim().optional(),
-  environment: z.string().trim().optional(),
-  team: z.string().trim().optional(),
-  databaseUrl: z.string().trim().optional(),
-  developmentVideoUrl: z.string().trim().optional(),
+  userSelectedCompanyId: optionalTrimmedStringSchema,
+  customerEmail: optionalTrimmedEmailSchema,
+  category: optionalTrimmedStringSchema,
+  module: optionalTrimmedStringSchema,
+  environment: optionalTrimmedStringSchema,
+  team: optionalTrimmedStringSchema,
+  databaseUrl: optionalTrimmedStringSchema,
+  developmentVideoUrl: optionalTrimmedStringSchema,
 });
 
 export const ticketModuleUpdateRequestSchema = z.object({
