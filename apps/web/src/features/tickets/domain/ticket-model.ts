@@ -19,6 +19,10 @@ export interface TicketListItem {
     ownerId?: string | number | null;
     firstResponseAt?: string | null;
     resolvedAt?: string | null;
+    slaResponseDueAt?: string | null;
+    slaResolutionDueAt?: string | null;
+    slaResponseHitAt?: string | null;
+    slaResolutionHitAt?: string | null;
     slaBreached?: boolean;
     slaWarning?: boolean;
     minutesToBreach?: number;
@@ -86,6 +90,10 @@ export interface TicketDetailsItem {
     updatedAt?: string | null;
     firstResponseAt?: string | null;
     resolvedAt?: string | null;
+    slaResponseDueAt?: string | null;
+    slaResolutionDueAt?: string | null;
+    slaResponseHitAt?: string | null;
+    slaResolutionHitAt?: string | null;
     resolvedByName?: string | null;
     resolutionSummary?: string | null;
     resolutionVideoUrl?: string | null;

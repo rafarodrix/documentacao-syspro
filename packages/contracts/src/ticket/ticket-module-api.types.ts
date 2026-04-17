@@ -3,8 +3,10 @@ import { z } from "zod";
 export const TICKET_MODULE_STATUS_VALUES = [
   "NEW",
   "UNASSIGNED",
+  "TRIAGE",
   "IN_PROGRESS",
   "WAITING_CUSTOMER",
+  "TESTING",
   "RESOLVED",
   "ARCHIVED",
 ] as const;
@@ -13,7 +15,7 @@ export const TICKET_MODULE_PRIORITY_VALUES = ["LOW", "NORMAL", "HIGH", "CRITICAL
 export const TICKET_MODULE_CHANNEL_VALUES = ["WHATSAPP", "EMAIL", "PORTAL", "PHONE"] as const;
 export const TICKET_MODULE_ENTRY_POINT_VALUES = ["INBOUND", "OUTBOUND", "INTERNAL"] as const;
 export const TICKET_MODULE_DIRECTION_VALUES = ["INBOUND", "OUTBOUND", "INTERNAL"] as const;
-export const TICKET_MODULE_MESSAGE_TYPE_VALUES = ["TEXT", "IMAGE", "DOCUMENT", "AUDIO"] as const;
+export const TICKET_MODULE_MESSAGE_TYPE_VALUES = ["TEXT", "IMAGE", "DOCUMENT", "AUDIO", "VIDEO", "SYSTEM_EVENT"] as const;
 
 export const ticketModuleStatusSchema = z.enum(TICKET_MODULE_STATUS_VALUES);
 export const ticketModulePrioritySchema = z.enum(TICKET_MODULE_PRIORITY_VALUES);
@@ -89,6 +91,12 @@ export const ticketModuleReplyRequestSchema = z.object({
   message: z.string().trim().optional(),
 });
 
+export const ticketModuleTriageRequestSchema = z.object({
+  priority: ticketModulePrioritySchema.optional(),
+  team: optionalTrimmedStringSchema,
+  category: optionalTrimmedStringSchema,
+});
+
 export const ticketModuleListQuerySchema = z.object({
   page: z.string().optional(),
   pageSize: z.string().optional(),
@@ -156,6 +164,10 @@ export const ticketModuleRecordSchema = z.object({
   contactPhoneSnapshot: z.string().nullable().optional(),
   contactWhatsappSnapshot: z.string().nullable().optional(),
   contactNameSnapshot: z.string().nullable().optional(),
+  slaResponseDueAt: z.string().nullable().optional(),
+  slaResolutionDueAt: z.string().nullable().optional(),
+  slaResponseHitAt: z.string().nullable().optional(),
+  slaResolutionHitAt: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   closedAt: z.string().nullable(),
@@ -210,6 +222,7 @@ export type TicketModuleQueueCounts = z.infer<typeof ticketModuleQueueCountsSche
 export type TicketModuleCreateRequest = z.infer<typeof ticketModuleCreateRequestSchema>;
 export type TicketModuleUpdateRequest = z.infer<typeof ticketModuleUpdateRequestSchema>;
 export type TicketModuleReplyRequest = z.infer<typeof ticketModuleReplyRequestSchema>;
+export type TicketModuleTriageRequest = z.infer<typeof ticketModuleTriageRequestSchema>;
 export type TicketModuleListQuery = z.infer<typeof ticketModuleListQuerySchema>;
 export type TicketModuleUser = z.infer<typeof ticketModuleUserSchema>;
 export type TicketModuleContact = z.infer<typeof ticketModuleContactSchema>;

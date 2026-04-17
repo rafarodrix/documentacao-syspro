@@ -38,6 +38,10 @@ type TicketRecordSource = {
   contactPhoneSnapshot?: string | null;
   contactWhatsappSnapshot?: string | null;
   contactNameSnapshot?: string | null;
+  slaResponseDueAt?: Date | string | null;
+  slaResolutionDueAt?: Date | string | null;
+  slaResponseHitAt?: Date | string | null;
+  slaResolutionHitAt?: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   closedAt: Date | string | null;
@@ -139,6 +143,10 @@ export function serializeTicketRecord(ticket: TicketRecordSource): TicketModuleR
     contactPhoneSnapshot: ticket.contactPhoneSnapshot ?? null,
     contactWhatsappSnapshot: ticket.contactWhatsappSnapshot ?? null,
     contactNameSnapshot: ticket.contactNameSnapshot ?? null,
+    slaResponseDueAt: toIso(ticket.slaResponseDueAt),
+    slaResolutionDueAt: toIso(ticket.slaResolutionDueAt),
+    slaResponseHitAt: toIso(ticket.slaResponseHitAt),
+    slaResolutionHitAt: toIso(ticket.slaResolutionHitAt),
     createdAt: toIso(ticket.createdAt) ?? new Date(0).toISOString(),
     updatedAt: toIso(ticket.updatedAt) ?? new Date(0).toISOString(),
     closedAt: toIso(ticket.closedAt),
@@ -168,7 +176,7 @@ export function serializeTicketListResponse(input: {
   requesterUserId?: string;
 }): TicketModuleListResponse {
   const { items, page, pageSize, total, requesterUserId } = input;
-  const openCount = items.filter((item) => ['NEW', 'UNASSIGNED', 'IN_PROGRESS'].includes(item.status)).length;
+  const openCount = items.filter((item) => ['NEW', 'UNASSIGNED', 'TRIAGE', 'IN_PROGRESS', 'TESTING'].includes(item.status)).length;
   const pendingCount = items.filter((item) => item.status === 'WAITING_CUSTOMER').length;
   const closedCount = items.filter((item) => ['RESOLVED', 'ARCHIVED'].includes(item.status)).length;
   const criticalCount = items.filter((item) => item.priority === 'CRITICAL').length;

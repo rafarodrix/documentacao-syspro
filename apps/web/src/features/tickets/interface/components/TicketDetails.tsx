@@ -495,7 +495,7 @@ function StatusBadge({ status }: { status?: string | null }) {
             ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
             : lowerStatus.includes("pendente") || lowerStatus.includes("aguardando")
                 ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
-                : lowerStatus.includes("andamento") || lowerStatus.includes("aberto") || lowerStatus.includes("novo")
+                : lowerStatus.includes("andamento") || lowerStatus.includes("aberto") || lowerStatus.includes("novo") || lowerStatus.includes("triagem") || lowerStatus.includes("teste")
                     ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
                     : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
 

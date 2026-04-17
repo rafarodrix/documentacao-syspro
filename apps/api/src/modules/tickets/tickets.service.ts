@@ -4,6 +4,7 @@ import type {
   TicketModuleCreateRequest,
   TicketModuleEntryPoint,
   TicketModuleListQuery,
+  TicketModuleTriageRequest,
   TicketModuleUpdateRequest,
 } from '@dosc-syspro/contracts/ticket';
 import { DEFAULT_TICKET_MODULE_SETTINGS, ticketModuleSettingsSchema } from '@dosc-syspro/contracts/ticket';
@@ -174,7 +175,7 @@ export class TicketsService {
         direction: TicketMessageDirection.INTERNAL,
         type: TicketMessageType.TEXT,
         authorKind: TicketParticipantKind.USER,
-        authorUserId: requester.userId,
+        authorUser: { connect: { id: requester.userId } },
         body: data.description,
         status: TicketMessageStatus.SENT,
         sentAt: now,
@@ -186,7 +187,7 @@ export class TicketsService {
         direction: TicketMessageDirection.INTERNAL,
         type: TicketMessageType.SYSTEM_EVENT,
         authorKind: TicketParticipantKind.USER,
-        authorUserId: requester.userId,
+        authorUser: { connect: { id: requester.userId } },
         body: `**Recurso de Diagnóstico (Base de Dados):**\n${databaseUrl}`,
         status: TicketMessageStatus.SENT,
         sentAt: new Date(now.getTime() + 1000), // slightly after
@@ -198,7 +199,7 @@ export class TicketsService {
         direction: TicketMessageDirection.INTERNAL,
         type: TicketMessageType.SYSTEM_EVENT,
         authorKind: TicketParticipantKind.USER,
-        authorUserId: requester.userId,
+        authorUser: { connect: { id: requester.userId } },
         body: `**Recurso de Diagnóstico (Vídeo):**\n${developmentVideoUrl}`,
         status: TicketMessageStatus.SENT,
         sentAt: new Date(now.getTime() + 2000), // slightly after
@@ -681,6 +682,7 @@ export class TicketsService {
   async assignToMe(id: string, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
+    await this.assertCanManageTickets(requester);
 
     const ticket = await this.prisma.conversation.findUnique({
       where: { id },
@@ -751,9 +753,10 @@ export class TicketsService {
   }
 
   // Triage ticket
-  async triageTicket(id: string, input: { priority?: TicketPriority, team?: string, category?: string }, rawHeaders?: IncomingHttpHeaders) {
+  async triageTicket(id: string, input: TicketModuleTriageRequest, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
+    await this.assertCanManageTickets(requester);
 
     const ticket = await this.prisma.conversation.findUnique({
       where: { id },
@@ -767,20 +770,24 @@ export class TicketsService {
       : {};
 
     const requesterName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
+    const settings = await this.getTicketModuleSettings();
+    const resolvedTeam = input.team
+      ? this.resolveTicketTeam(input.team, requester.role, settings, input.category, accessScope.isGlobal)
+      : undefined;
     let logMessage = `Ticket triado por ${requesterName}.`;
-    if (input.priority) logMessage += ` Nova pioridade: ${input.priority}.`;
+    if (input.priority) logMessage += ` Nova prioridade: ${input.priority}.`;
     if (input.category) logMessage += ` Categoria: ${input.category}.`;
-    if (input.team) logMessage += ` Direcionado para: ${input.team}.`;
+    if (resolvedTeam) logMessage += ` Direcionado para: ${resolvedTeam}.`;
 
     if (input.category) currentMetadata.category = input.category;
-    if (input.team) currentMetadata.currentTeam = input.team;
+    if (resolvedTeam) currentMetadata.currentTeam = resolvedTeam;
 
     await this.prisma.$transaction([
       this.prisma.conversation.update({
         where: { id },
         data: {
           status: TicketStatus.TRIAGE,
-          priority: input.priority,
+          ...(input.priority ? { priority: input.priority as TicketPriority } : {}),
           metadata: currentMetadata as Prisma.InputJsonValue,
         },
       }),
@@ -873,6 +880,18 @@ export class TicketsService {
       'tickets:view_own',
       'tickets:view_all',
     );
+  }
+
+  private async assertCanManageTickets(requester: { userId: string; role: Role; email: string }) {
+    const canManage = await this.authorizationService.userHasPermission(
+      requester,
+      'tickets:manage',
+      { acceptCompanyScope: true },
+    );
+
+    if (!canManage) {
+      throw new ForbiddenException('Sem permissao para gerenciar tickets.');
+    }
   }
 
   private assertTicketAccess(companyId: string | null, accessScope: { isGlobal: boolean; companyIds: string[] }) {

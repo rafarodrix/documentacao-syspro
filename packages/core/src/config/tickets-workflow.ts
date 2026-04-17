@@ -23,7 +23,7 @@ function matchesBucket(value: string, bucket: TicketStatusGroup): boolean {
   const normalized = normalizeLoose(value);
   if (bucket === "open") return normalized.includes("aberto") || normalized.includes("novo") || normalized.includes("open") || normalized.includes("new");
   if (bucket === "closed") return normalized.includes("resolvido") || normalized.includes("fechado") || normalized.includes("closed") || normalized.includes("finalizado");
-  return normalized.includes("anal") || normalized.includes("desenvolv") || normalized.includes("pend") || normalized.includes("aguard") || normalized.includes("test");
+  return normalized.includes("anal") || normalized.includes("triag") || normalized.includes("desenvolv") || normalized.includes("pend") || normalized.includes("aguard") || normalized.includes("test");
 }
 
 function getStateIdsByBucket(bucket: TicketStatusGroup): number[] {
@@ -44,6 +44,8 @@ export const TICKET_STATUS_QUERY_TERMS: Record<TicketStatusGroup, string[]> = {
   open: ["1. novo", "novo", "new", "aberto", "open"],
   pending: [
     "2. em analise",
+    "triagem",
+    "triage",
     "3. em desenvolvimento",
     "4. em testes",
     "5. aguardando validacao cliente",

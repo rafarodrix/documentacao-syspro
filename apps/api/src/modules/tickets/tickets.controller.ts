@@ -3,6 +3,7 @@ import {
   ticketModuleCreateRequestSchema,
   ticketModuleListQuerySchema,
   ticketModuleReplyRequestSchema,
+  ticketModuleTriageRequestSchema,
   ticketModuleUpdateRequestSchema,
 } from '@dosc-syspro/contracts/ticket';
 import type { Request } from 'express';
@@ -88,7 +89,8 @@ export class TicketsController {
   }
 
   @Patch(':id/triage')
-  triageTicket(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
-    return this.ticketsService.triageTicket(id, body, req.headers);
+  triageTicket(@Req() req: Request, @Param('id') id: string, @Body() body: unknown) {
+    const input = this.parseOrThrow(ticketModuleTriageRequestSchema, body);
+    return this.ticketsService.triageTicket(id, input, req.headers);
   }
 }

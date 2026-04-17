@@ -99,10 +99,14 @@ function mapStatusLabel(status: TicketModuleRecord["status"] | string): string {
       return "Novo";
     case "UNASSIGNED":
       return "Sem dono";
+    case "TRIAGE":
+      return "Triagem";
     case "IN_PROGRESS":
       return "Em andamento";
     case "WAITING_CUSTOMER":
       return "Pendente cliente";
+    case "TESTING":
+      return "Em teste";
     case "RESOLVED":
       return "Resolvido";
     case "ARCHIVED":
@@ -110,6 +114,29 @@ function mapStatusLabel(status: TicketModuleRecord["status"] | string): string {
     default:
       return status;
   }
+}
+
+function calculateSlaState(ticket: Pick<TicketModuleRecord, "slaResponseDueAt" | "slaResolutionDueAt" | "slaResponseHitAt" | "slaResolutionHitAt" | "closedAt">) {
+  const now = Date.now();
+  const responseDue = ticket.slaResponseDueAt ? Date.parse(ticket.slaResponseDueAt) : Number.NaN;
+  const resolutionDue = ticket.slaResolutionDueAt ? Date.parse(ticket.slaResolutionDueAt) : Number.NaN;
+  const activeDueDates = [
+    !ticket.slaResponseHitAt && Number.isFinite(responseDue) ? responseDue : null,
+    !ticket.slaResolutionHitAt && !ticket.closedAt && Number.isFinite(resolutionDue) ? resolutionDue : null,
+  ].filter((value): value is number => typeof value === "number");
+
+  if (activeDueDates.length === 0) {
+    return { slaBreached: false, slaWarning: false, minutesToBreach: undefined };
+  }
+
+  const nextDue = Math.min(...activeDueDates);
+  const minutesToBreach = Math.ceil((nextDue - now) / 60_000);
+
+  return {
+    slaBreached: minutesToBreach <= 0,
+    slaWarning: minutesToBreach > 0 && minutesToBreach <= 60,
+    minutesToBreach,
+  };
 }
 
 function readStringMetadata(metadata: Record<string, unknown> | null | undefined, key: string): string | null {
@@ -132,6 +159,8 @@ function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
     companyName ||
     "Cliente";
 
+  const sla = calculateSlaState(ticket);
+
   return {
     id: ticket.id,
     number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
@@ -142,11 +171,13 @@ function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
     priority: mapPriorityToLevel(ticket.priority),
     customer: customerName,
     ownerId: ticket.assignedUserId,
-    firstResponseAt: null,
+    firstResponseAt: ticket.slaResponseHitAt ?? null,
     resolvedAt: ticket.closedAt,
-    slaBreached: false,
-    slaWarning: false,
-    minutesToBreach: undefined,
+    slaResponseDueAt: ticket.slaResponseDueAt ?? null,
+    slaResolutionDueAt: ticket.slaResolutionDueAt ?? null,
+    slaResponseHitAt: ticket.slaResponseHitAt ?? null,
+    slaResolutionHitAt: ticket.slaResolutionHitAt ?? null,
+    ...sla,
     createdAt: ticket.createdAt,
     updatedAt: ticket.updatedAt,
   };
@@ -309,6 +340,7 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
     }
 
     const ticket = response.data;
+    const sla = calculateSlaState(ticket);
 
     return {
       success: true,
@@ -321,8 +353,12 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
         ownerId: ticket.assignedUserId,
         ownerName: ticket.assignedUser?.name || ticket.assignedUser?.email || readStringMetadata(ticket.metadata, "currentOwnerName"),
         updatedAt: ticket.updatedAt,
-        firstResponseAt: null,
+        firstResponseAt: ticket.slaResponseHitAt ?? null,
         resolvedAt: ticket.closedAt,
+        slaResponseDueAt: ticket.slaResponseDueAt ?? null,
+        slaResolutionDueAt: ticket.slaResolutionDueAt ?? null,
+        slaResponseHitAt: ticket.slaResponseHitAt ?? null,
+        slaResolutionHitAt: ticket.slaResolutionHitAt ?? null,
         resolvedByName: ticket.resolvedByUser?.name || ticket.resolvedByUser?.email || readStringMetadata(ticket.metadata, "resolvedByName"),
         resolutionSummary: ticket.resolutionSummary || null,
         resolutionVideoUrl: ticket.resolutionVideoUrl || null,
@@ -330,9 +366,7 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
         releaseTitle: ticket.releaseTitle || readStringMetadata(ticket.metadata, "releaseTitle"),
         releaseModule: ticket.releaseModule || null,
         publishToReleases: Boolean(ticket.publishToReleases),
-        slaBreached: false,
-        slaWarning: false,
-        minutesToBreach: undefined,
+        ...sla,
         origin: {
           source: readStringMetadata(ticket.metadata, "source"),
           externalThreadId: ticket.externalThreadId || null,
