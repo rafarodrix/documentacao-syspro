@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { TicketAttachmentField } from "@/features/tickets/interface/components/TicketAttachmentField";
 import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/TicketCompanyPicker";
+import { cn } from "@/lib/utils";
 
 interface TicketDialogProps {
   isSystemUser?: boolean;
