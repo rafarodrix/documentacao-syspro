@@ -176,11 +176,14 @@ export function serializeTicketListResponse(input: {
   requesterUserId?: string;
 }): TicketModuleListResponse {
   const { items, page, pageSize, total, requesterUserId } = input;
-  const openCount = items.filter((item) => ['NEW', 'UNASSIGNED', 'TRIAGE', 'IN_PROGRESS', 'TESTING'].includes(item.status)).length;
-  const pendingCount = items.filter((item) => item.status === 'WAITING_CUSTOMER').length;
+  const openCount = items.filter((item) => ['NEW', 'UNASSIGNED'].includes(item.status)).length;
+  const pendingCount = items.filter((item) => ['TRIAGE', 'IN_PROGRESS', 'TESTING', 'WAITING_CUSTOMER'].includes(item.status)).length;
   const closedCount = items.filter((item) => ['RESOLVED', 'ARCHIVED'].includes(item.status)).length;
   const criticalCount = items.filter((item) => item.priority === 'CRITICAL').length;
   const unassignedCount = items.filter((item) => !item.assignedUserId).length;
+  const noResponseCount = items.filter(
+    (item) => !item.slaResponseHitAt && !['RESOLVED', 'ARCHIVED'].includes(item.status),
+  ).length;
 
   return {
     success: true,
@@ -197,7 +200,7 @@ export function serializeTicketListResponse(input: {
       my_queue: requesterUserId ? items.filter((item) => item.assignedUserId === requesterUserId).length : 0,
       unassigned: unassignedCount,
       critical: criticalCount,
-      no_response: 0,
+      no_response: noResponseCount,
     },
     statusCounts: {
       open: openCount,

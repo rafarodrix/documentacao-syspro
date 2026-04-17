@@ -132,6 +132,11 @@ export class TicketsService {
     const developmentVideoUrl = data.developmentVideoUrl?.trim() || null;
     const openedByName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const assignedUserId = settings.autoAssignToCreator && isSystemAdmin ? requester.userId : null;
+    const now = new Date();
+    const priority = data.priority ?? TicketPriority.NORMAL;
+    const slaPolicy = this.resolveTicketSlaPolicy(priority, settings);
+    const slaResponseDueAt = new Date(now.getTime() + slaPolicy.firstResponseMinutes * 60000);
+    const slaResolutionDueAt = new Date(now.getTime() + slaPolicy.resolutionMinutes * 60000);
     const metadata = {
       ...(data.metadata && typeof data.metadata === 'object' ? data.metadata : {}),
       category: normalizedCategory,
@@ -145,6 +150,9 @@ export class TicketsService {
       openedByName,
       openedByEmail: requester.email,
       openedByRole: requester.role,
+      slaPolicyName: slaPolicy.name,
+      slaFirstResponseMinutes: slaPolicy.firstResponseMinutes,
+      slaResolutionMinutes: slaPolicy.resolutionMinutes,
       databaseUrl,
       developmentVideoUrl,
       supportOwnerUserId: normalizedTeam === 'SUPORTE' && assignedUserId ? requester.userId : null,
@@ -152,22 +160,6 @@ export class TicketsService {
       developmentOwnerUserId: normalizedTeam === 'DESENVOLVIMENTO' && assignedUserId ? requester.userId : null,
       developmentOwnerName: normalizedTeam === 'DESENVOLVIMENTO' && assignedUserId ? openedByName : null,
     } as Prisma.InputJsonValue;
-
-    // Calculate SLAs based on priority/category (Enterprise Default Rules)
-    const now = new Date();
-    // Default ERP Logic: Priority 1 (LOW) -> 4h / 72h, Priority 2 (NORMAL) -> 1h / 24h, Priority 3 (HIGH) -> 15m / 4h
-    let responseMinutes = 60; // 1h
-    let resolutionMinutes = 1440; // 24h
-    if (data.priority === TicketPriority.LOW) {
-      responseMinutes = 240;
-      resolutionMinutes = 4320;
-    } else if (data.priority === TicketPriority.HIGH || data.priority === TicketPriority.CRITICAL) {
-      responseMinutes = 15;
-      resolutionMinutes = 240;
-    }
-
-    const slaResponseDueAt = new Date(now.getTime() + responseMinutes * 60000);
-    const slaResolutionDueAt = new Date(now.getTime() + resolutionMinutes * 60000);
 
     // Timeline messages builder
     const messagesToCreate: Prisma.ConversationMessageCreateWithoutConversationInput[] = [
@@ -211,7 +203,7 @@ export class TicketsService {
         channel: data.channel ?? TicketChannel.PORTAL,
         entryPoint: this.toConversationEntryPoint(data.entryPoint),
         status: TicketStatus.NEW,
-        priority: data.priority ?? TicketPriority.NORMAL,
+        priority,
         subject: data.title,
         ticketNumber,
         companyId: resolvedCompanyId,
@@ -420,10 +412,33 @@ export class TicketsService {
 
     if (input.status && Object.values(TicketStatus).includes(input.status as TicketStatus)) {
       where.status = input.status as TicketStatus;
+    } else if (input.statusGroup && input.statusGroup !== 'all') {
+      const statusesByGroup: Record<'open' | 'pending' | 'closed', TicketStatus[]> = {
+        open: [TicketStatus.NEW, TicketStatus.UNASSIGNED],
+        pending: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER],
+        closed: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED],
+      };
+      where.status = { in: statusesByGroup[input.statusGroup] };
+      if (input.statusGroup === 'closed' && input.closedWindow && input.closedWindow !== 'all') {
+        const days = Number.parseInt(input.closedWindow.replace('d', ''), 10);
+        if (Number.isFinite(days) && days > 0) {
+          where.closedAt = { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) };
+        }
+      }
     }
 
     if (input.assignedUserId) {
       where.assignedUserId = input.assignedUserId;
+    }
+
+    if (input.queue && input.queue !== 'all') {
+      if (input.queue === 'my_queue') where.assignedUserId = requester.userId;
+      if (input.queue === 'unassigned') where.assignedUserId = null;
+      if (input.queue === 'critical') where.priority = TicketPriority.CRITICAL;
+      if (input.queue === 'no_response') {
+        where.slaResponseHitAt = null;
+        where.status = { notIn: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] };
+      }
     }
 
     if (input.companyId) {
@@ -506,7 +521,7 @@ export class TicketsService {
 
     const ticket = await this.prisma.conversation.findUnique({
       where: { id },
-      select: { id: true, companyId: true },
+      select: { id: true, companyId: true, slaResponseHitAt: true },
     });
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(ticket.companyId, accessScope);
@@ -532,6 +547,9 @@ export class TicketsService {
       data: {
         lastMessagePreview: message.trim().slice(0, 500),
         lastMessageAt: new Date(),
+        ...(this.authorizationService.isSystemRole(requester.role) && !ticket.slaResponseHitAt
+          ? { slaResponseHitAt: new Date() }
+          : {}),
       },
     });
 
@@ -596,6 +614,9 @@ export class TicketsService {
         data.closedAt =
           input.status === TicketStatus.RESOLVED || input.status === TicketStatus.ARCHIVED ? new Date() : null;
         data.resolvedByUserId = input.status === TicketStatus.RESOLVED ? requester.userId : null;
+        if (input.status === TicketStatus.RESOLVED) {
+          data.slaResolutionHitAt = new Date();
+        }
         if (input.status === TicketStatus.RESOLVED) {
           const resolver = await tx.user.findUnique({
             where: { id: requester.userId },
@@ -840,15 +861,15 @@ export class TicketsService {
     settings: TicketModuleSettings,
     category?: string | null,
     allowDevelopment = true,
-  ): 'SUPORTE' | 'DESENVOLVIMENTO' | 'TESTES' {
+  ): 'SUPORTE' | 'DESENVOLVIMENTO' {
     const normalizedRequestedTeam = requestedTeam?.trim().toUpperCase();
-    if (normalizedRequestedTeam === 'SUPORTE' || normalizedRequestedTeam === 'DESENVOLVIMENTO' || normalizedRequestedTeam === 'TESTES') {
-      return normalizedRequestedTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : (normalizedRequestedTeam as any);
+    if (normalizedRequestedTeam === 'SUPORTE' || normalizedRequestedTeam === 'DESENVOLVIMENTO') {
+      return normalizedRequestedTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : normalizedRequestedTeam;
     }
 
     const categoryDefaultTeam = settings.categories.find((item) => item.value === category)?.defaultTeam;
-    if (categoryDefaultTeam === 'SUPORTE' || categoryDefaultTeam === 'DESENVOLVIMENTO' || categoryDefaultTeam === 'TESTES') {
-      return categoryDefaultTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : (categoryDefaultTeam as any);
+    if (categoryDefaultTeam === 'SUPORTE' || categoryDefaultTeam === 'DESENVOLVIMENTO') {
+      return categoryDefaultTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : categoryDefaultTeam;
     }
 
     if (role === Role.DEVELOPER && allowDevelopment) {
@@ -856,6 +877,31 @@ export class TicketsService {
     }
 
     return settings.defaultTeam === 'DESENVOLVIMENTO' && allowDevelopment ? 'DESENVOLVIMENTO' : 'SUPORTE';
+  }
+
+  private resolveTicketSlaPolicy(priority: TicketPriority, settings: TicketModuleSettings) {
+    const fallbackByPriority: Record<TicketPriority, { firstResponseMinutes: number; resolutionMinutes: number }> = {
+      [TicketPriority.LOW]: { firstResponseMinutes: 240, resolutionMinutes: 4320 },
+      [TicketPriority.NORMAL]: { firstResponseMinutes: 60, resolutionMinutes: 1440 },
+      [TicketPriority.HIGH]: { firstResponseMinutes: 15, resolutionMinutes: 240 },
+      [TicketPriority.CRITICAL]: { firstResponseMinutes: 15, resolutionMinutes: 240 },
+    };
+    const configured = settings.priorities.find((item) => {
+      const value = `${item.id} ${item.value} ${item.label}`.toLowerCase();
+      if (priority === TicketPriority.CRITICAL) {
+        return value.includes('critical') || value.includes('urgent') || value.includes('alta') || value.includes('high') || item.id === '3';
+      }
+      if (priority === TicketPriority.HIGH) return value.includes('high') || value.includes('alta') || item.id === '3';
+      if (priority === TicketPriority.LOW) return value.includes('low') || value.includes('baixa') || item.id === '1';
+      return value.includes('normal') || item.id === '2';
+    });
+    const fallback = fallbackByPriority[priority] ?? fallbackByPriority[TicketPriority.NORMAL];
+
+    return {
+      name: configured?.label ?? priority,
+      firstResponseMinutes: configured?.firstResponseMinutes ?? fallback.firstResponseMinutes,
+      resolutionMinutes: configured?.resolutionMinutes ?? (configured?.slaHours ? configured.slaHours * 60 : fallback.resolutionMinutes),
+    };
   }
 
   private async resolveRequesterDisplayName(userId: string, email: string) {

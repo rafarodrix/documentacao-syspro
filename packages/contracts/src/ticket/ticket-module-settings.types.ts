@@ -15,6 +15,8 @@ export const ticketModuleSettingsPrioritySchema = z.object({
   label: z.string().trim().min(1),
   value: z.string().trim().min(1),
   color: z.string().trim().optional(),
+  firstResponseMinutes: z.number().int().positive().optional(),
+  resolutionMinutes: z.number().int().positive().optional(),
   slaHours: z.number().int().positive(),
 });
 
@@ -59,9 +61,33 @@ export const DEFAULT_TICKET_MODULE_SETTINGS: TicketModuleSettings = {
     { id: "refactoring", label: "Refatoracao", value: "refactoring", icon: "🛠️", defaultTeam: "DESENVOLVIMENTO" },
   ],
   priorities: [
-    { id: "1", label: "Baixa", value: "1 low", color: "bg-zinc-100 text-zinc-600", slaHours: 48 },
-    { id: "2", label: "Normal", value: "2 normal", color: "bg-blue-100 text-blue-700", slaHours: 24 },
-    { id: "3", label: "Alta (Urgente)", value: "3 high", color: "bg-red-100 text-red-700", slaHours: 4 },
+    {
+      id: "1",
+      label: "Baixa",
+      value: "1 low",
+      color: "bg-zinc-100 text-zinc-600",
+      firstResponseMinutes: 240,
+      resolutionMinutes: 4320,
+      slaHours: 72,
+    },
+    {
+      id: "2",
+      label: "Normal",
+      value: "2 normal",
+      color: "bg-blue-100 text-blue-700",
+      firstResponseMinutes: 60,
+      resolutionMinutes: 1440,
+      slaHours: 24,
+    },
+    {
+      id: "3",
+      label: "Alta (Urgente)",
+      value: "3 high",
+      color: "bg-red-100 text-red-700",
+      firstResponseMinutes: 15,
+      resolutionMinutes: 240,
+      slaHours: 4,
+    },
   ],
   teams: [
     { id: "support", label: "Suporte", value: "SUPORTE", color: "bg-blue-100 text-blue-700" },

@@ -18,11 +18,22 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { transferTicketAction } from "@/features/tickets/application/ticket-actions";
+import type { TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
 
 interface TransferTicketDialogProps {
   ticketId: string | number;
   currentTeam?: string;
   currentStatus?: string;
+}
+
+function normalizeStatusForSelect(status?: string): TicketModuleStatus {
+  const normalized = (status || "").trim().toLowerCase();
+  if (normalized === "new" || normalized === "novo") return "TRIAGE";
+  if (normalized === "triage" || normalized === "triagem") return "TRIAGE";
+  if (normalized === "testing" || normalized === "em teste") return "TESTING";
+  if (normalized === "waiting_customer" || normalized === "pendente cliente") return "WAITING_CUSTOMER";
+  if (normalized === "resolved" || normalized === "resolvido") return "RESOLVED";
+  return "IN_PROGRESS";
 }
 
 export function TransferTicketDialog({ ticketId, currentTeam, currentStatus }: TransferTicketDialogProps) {
@@ -31,7 +42,7 @@ export function TransferTicketDialog({ ticketId, currentTeam, currentStatus }: T
   const [isPending, startTransition] = useTransition();
 
   const [team, setTeam] = useState<string>(currentTeam || "SUPORTE");
-  const [status, setStatus] = useState<string>(currentStatus === "NEW" ? "TRIAGE" : currentStatus || "IN_PROGRESS");
+  const [status, setStatus] = useState<TicketModuleStatus>(normalizeStatusForSelect(currentStatus));
   const [note, setNote] = useState("");
 
   const handleTransfer = () => {
@@ -60,7 +71,7 @@ export function TransferTicketDialog({ ticketId, currentTeam, currentStatus }: T
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-8 gap-1 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors text-xs">
+        <Button id="transfer-ticket-btn" size="sm" variant="outline" className="h-8 gap-1 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors text-xs">
           <ArrowRightLeft className="h-3 w-3" /> Fila
         </Button>
       </DialogTrigger>
@@ -81,17 +92,17 @@ export function TransferTicketDialog({ ticketId, currentTeam, currentStatus }: T
               <SelectContent>
                 <SelectItem value="SUPORTE">Suporte</SelectItem>
                 <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
-                <SelectItem value="TESTES">Testes</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="status">Novo Status</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={(value) => setStatus(value as TicketModuleStatus)}>
               <SelectTrigger id="status">
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="TRIAGE">Triagem</SelectItem>
                 <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
                 <SelectItem value="TESTING">Em teste</SelectItem>
                 <SelectItem value="WAITING_CUSTOMER">Pendente cliente</SelectItem>

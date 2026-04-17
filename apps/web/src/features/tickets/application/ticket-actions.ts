@@ -4,6 +4,8 @@ import type {
   TicketModuleCreateRequest,
   TicketModulePriority,
   TicketModuleRecord,
+  TicketModuleStatus,
+  TicketModuleTriageRequest,
 } from "@dosc-syspro/contracts/ticket";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
@@ -514,7 +516,7 @@ export async function assignTicketToMeAction(ticketId: string): Promise<TicketMu
   }
 }
 
-export async function triageTicketAction(ticketId: string, payload: { priority?: string; team?: string; category?: string; }): Promise<TicketMutationResponse> {
+export async function triageTicketAction(ticketId: string, payload: TicketModuleTriageRequest): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
   if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
     return { success: false, error: "Nao autorizado." };
@@ -572,7 +574,7 @@ export async function saveTicketSettingsAction(settings: import("@dosc-syspro/co
   }
 }
 
-export async function transferTicketAction(ticketId: string, payload: { team: string; status?: string; priority?: number; note?: string }): Promise<TicketMutationResponse> {
+export async function transferTicketAction(ticketId: string, payload: { team: string; status?: TicketModuleStatus; priority?: number; note?: string }): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
   if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
     return { success: false, error: "Nao autorizado." };
@@ -588,13 +590,13 @@ export async function transferTicketAction(ticketId: string, payload: { team: st
        priorityStr = payload.priority === 3 ? "HIGH" : payload.priority === 1 ? "LOW" : "NORMAL";
     }
 
-    const updatePlayload = {
+    const updatePayload = {
       team: payload.team,
-      ...(payload.status ? { status: payload.status as any } : {}),
+      ...(payload.status ? { status: payload.status } : {}),
       ...(priorityStr ? { priority: priorityStr } : {})
     };
 
-    const result = await updateTicketGateway(ticketId, updatePlayload);
+    const result = await updateTicketGateway(ticketId, updatePayload);
     if (!result.success) {
       return { success: false, error: result.error || "Falha ao transferir ticket." };
     }

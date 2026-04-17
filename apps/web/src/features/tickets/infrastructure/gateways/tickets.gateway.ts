@@ -5,6 +5,7 @@ import type {
   TicketModuleListResponse,
   TicketModuleMutationResponse,
   TicketModuleReplyRequest,
+  TicketModuleTriageRequest,
   TicketModuleUpdateRequest,
 } from "@dosc-syspro/contracts/ticket";
 import {
@@ -80,7 +81,7 @@ export async function assignTicketToMeGateway(
 
 export async function triageTicketGateway(
   ticketId: string,
-  payload: { priority?: string; team?: string; category?: string },
+  payload: TicketModuleTriageRequest,
 ): Promise<TicketModuleMutationResponse> {
   return ticketModuleMutationResponseSchema.parse(
     await callTicketsApi(`/${ticketId}/triage`, {

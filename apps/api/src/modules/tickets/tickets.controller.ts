@@ -48,6 +48,9 @@ export class TicketsController {
     @Query('pageSize') pageSize?: string,
     @Query('search') search?: string,
     @Query('status') status?: string,
+    @Query('statusGroup') statusGroup?: string,
+    @Query('queue') queue?: string,
+    @Query('closedWindow') closedWindow?: string,
     @Query('assignedUserId') assignedUserId?: string,
     @Query('companyId') companyId?: string,
   ) {
@@ -56,6 +59,9 @@ export class TicketsController {
       pageSize,
       search,
       status,
+      statusGroup,
+      queue,
+      closedWindow,
       assignedUserId,
       companyId,
     });

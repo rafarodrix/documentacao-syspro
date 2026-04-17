@@ -26,6 +26,7 @@ import {
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
 import { finalizeTicketAction, assignTicketToMeAction, triageTicketAction } from "@/features/tickets/application/ticket-actions";
+import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,6 +60,22 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const backUrl = "/portal/tickets";
     const shouldRequireReleaseFields = publishToReleases;
+    const isClosedTicket = ticket?.status === "Resolvido" || ticket?.status === "Fechado" || ticket?.status === "Arquivado";
+
+    useTicketHotkeys({
+        onAssignToMe: () => {
+            if (isAdmin && !ticket?.ownerId && !isClosedTicket) {
+                startTransition(async () => {
+                    const res = await assignTicketToMeAction(String(ticket?.id));
+                    if (res.success) toast.success("Ticket atribuído a você (Atalho)");
+                    else toast.error(res.error || "Erro ao atribuir");
+                    router.refresh();
+                });
+            }
+        },
+        onChangeStatus: () => document.getElementById("transfer-ticket-btn")?.click(),
+        onReply: () => document.getElementById("ticket-reply-input")?.focus(),
+    });
 
     const runFinalizeAction = () => {
         if (!ticket) return;
@@ -155,7 +172,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                             <Sparkles className="h-3 w-3" /> Triar
                         </Button>
                     )}
-                    {isAdmin && !ticket.ownerId && ticket.status !== "Resolvido" && ticket.status !== "Fechado" && (
+                    {isAdmin && !ticket.ownerId && !isClosedTicket && (
                         <Button 
                             size="sm" 
                             className="h-8 gap-1 bg-blue-600 hover:bg-blue-700 text-white transition-colors text-xs shadow-sm" 
@@ -172,12 +189,14 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                             <UserRound className="h-3 w-3" /> Assumir
                         </Button>
                     )}
-                    {isAdmin && ticket.status !== "Resolvido" && ticket.status !== "Fechado" && (
-                        <TransferTicketDialog 
-                           ticketId={ticket.id} 
-                           currentTeam={ticket.operations?.currentTeam || undefined} 
-                           currentStatus={ticket.status} 
-                        />
+                    {isAdmin && !isClosedTicket && (
+                        <span id="transfer-ticket-btn-wrapper">
+                            <TransferTicketDialog
+                               ticketId={ticket.id}
+                               currentTeam={ticket.operations?.currentTeam || undefined}
+                               currentStatus={ticket.status}
+                            />
+                        </span>
                     )}
                     <StatusBadge status={ticket.status} />
                 </div>

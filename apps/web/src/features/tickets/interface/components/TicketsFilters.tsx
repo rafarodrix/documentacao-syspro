@@ -57,6 +57,7 @@ export function TicketsFilters({
                 <div className="group relative w-full lg:w-96">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
                     <Input
+                        id="global-ticket-search"
                         placeholder={isAdmin ? "Buscar por assunto, ID ou cliente..." : "Buscar por assunto ou ID..."}
                         className="h-11 rounded-lg border-border/60 bg-background pl-10 transition-all focus:border-primary/50"
                         value={searchTerm}

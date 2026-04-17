@@ -25,6 +25,21 @@ function createOptionId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSettings {
+  return {
+    ...settings,
+    priorities: settings.priorities.map((priority) => {
+      const resolutionMinutes = priority.resolutionMinutes ?? priority.slaHours * 60;
+      return {
+        ...priority,
+        firstResponseMinutes: priority.firstResponseMinutes ?? Math.max(15, Math.min(240, Math.ceil(resolutionMinutes / 24))),
+        resolutionMinutes,
+        slaHours: Math.max(1, Math.ceil(resolutionMinutes / 60)),
+      };
+    }),
+  };
+}
+
 export function TicketSettingsTab() {
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +63,7 @@ export function TicketSettingsTab() {
         const json = (await response.json()) as { success?: boolean; data?: TicketModuleSettings };
         if (!active) return;
         if (json.success && json.data) {
-          form.reset(json.data);
+          form.reset(normalizeTicketSettings(json.data));
         }
       })
       .catch((error) => {
@@ -67,7 +82,7 @@ export function TicketSettingsTab() {
   function onSubmit(data: TicketModuleSettings) {
     startTransition(async () => {
       try {
-        const result = await saveTicketSettingsAction(data);
+        const result = await saveTicketSettingsAction(normalizeTicketSettings(data));
         if (!result.success) {
           toast.error(result.error || "Erro ao salvar configuracoes.");
           return;
@@ -402,24 +417,38 @@ export function TicketSettingsTab() {
               <Card className="border-border/50 shadow-sm transition-shadow hover:shadow-md overflow-hidden">
                 <CardHeader className="bg-muted/10 pb-4 border-b border-border/50">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <Clock className="h-5 w-5 text-primary/70" /> Setup de SLA Baseado na Prioridade
+                    <Clock className="h-5 w-5 text-primary/70" /> Politicas de SLA por prioridade
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   {prioritiesArray.fields.map((fieldItem, index) => (
-                    <div key={fieldItem.id} className="grid items-center gap-4 rounded-xl border border-border/40 bg-background/50 hover:bg-muted/10 transition-colors p-4 shadow-sm md:grid-cols-[1fr_160px_200px]">
+                    <div key={fieldItem.id} className="grid items-center gap-4 rounded-xl border border-border/40 bg-background/50 hover:bg-muted/10 transition-colors p-4 shadow-sm md:grid-cols-[1fr_140px_180px_180px]">
                       <FormField control={form.control} name={`priorities.${index}.label`} render={({field}) => (
                         <FormItem><FormControl><Input placeholder="Nome da prioridade" {...field} /></FormControl></FormItem>
                       )} />
                       <FormField control={form.control} name={`priorities.${index}.value`} render={({field}) => (
                         <FormItem><FormControl><Input placeholder="Level (ex: normal)" {...field} /></FormControl></FormItem>
                       )} />
-                      <FormField control={form.control} name={`priorities.${index}.slaHours`} render={({field}) => (
+                      <FormField control={form.control} name={`priorities.${index}.firstResponseMinutes`} render={({field}) => (
                         <FormItem>
                            <FormControl>
                             <div className="relative">
-                              <Input type="number" min={1} max={720} {...field} onChange={e => field.onChange(parseInt(e.target.value) || 1)} className="pr-12 text-blue-600 bg-blue-50/50 dark:bg-blue-950/20 dark:text-blue-400 font-semibold border-blue-200/50" />
-                              <span className="absolute inset-y-0 right-3 flex items-center text-[10px] font-bold tracking-wider text-muted-foreground pointer-events-none">HORAS</span>
+                              <Input type="number" min={1} max={10080} value={field.value ?? ""} onChange={e => field.onChange(parseInt(e.target.value) || 1)} className="pr-12 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20 dark:text-amber-400 font-semibold border-amber-200/50" />
+                              <span className="absolute inset-y-0 right-3 flex items-center text-[10px] font-bold tracking-wider text-muted-foreground pointer-events-none">1A RESP.</span>
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name={`priorities.${index}.resolutionMinutes`} render={({field}) => (
+                        <FormItem>
+                           <FormControl>
+                            <div className="relative">
+                              <Input type="number" min={1} max={43200} value={field.value ?? ""} onChange={e => {
+                                const minutes = parseInt(e.target.value) || 1;
+                                field.onChange(minutes);
+                                form.setValue(`priorities.${index}.slaHours`, Math.max(1, Math.ceil(minutes / 60)), { shouldDirty: true });
+                              }} className="pr-12 text-blue-600 bg-blue-50/50 dark:bg-blue-950/20 dark:text-blue-400 font-semibold border-blue-200/50" />
+                              <span className="absolute inset-y-0 right-3 flex items-center text-[10px] font-bold tracking-wider text-muted-foreground pointer-events-none">RESOL.</span>
                             </div>
                           </FormControl>
                         </FormItem>
