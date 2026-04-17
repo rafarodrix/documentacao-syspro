@@ -37,6 +37,7 @@ export type ResolvedIntegrationContext = {
     inboxIdentifier: string;
     webhookSecret?: string;
     webhookMaxSkewSeconds: number;
+    incomingMediaMode?: 'link' | 'attachment';
   };
 };
 
@@ -252,6 +253,7 @@ export class IntegrationContextService {
         inboxIdentifier: String(row.chatwootInboxIdentifier ?? '').trim(),
         webhookSecret: this.decryptOptional(row.chatwootWebhookSecretEncrypted) ?? undefined,
         webhookMaxSkewSeconds: this.readWebhookSkew(metadata),
+        incomingMediaMode: runtimeChatwoot.incomingMediaMode,
       },
     };
   }
@@ -309,6 +311,7 @@ export class IntegrationContextService {
         inboxIdentifier: chatwoot.inboxIdentifier,
         webhookSecret: chatwoot.webhookSecret || undefined,
         webhookMaxSkewSeconds: chatwoot.webhookMaxSkewSeconds ?? 300,
+        incomingMediaMode: chatwoot.incomingMediaMode,
       },
     };
   }

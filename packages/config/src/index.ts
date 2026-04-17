@@ -22,6 +22,7 @@ const commonRuntimeConfigSchema = z.object({
   CHATWOOT_INBOX_IDENTIFIER: z.string().trim().optional(),
   CHATWOOT_WEBHOOK_SECRET: z.string().trim().optional(),
   CHATWOOT_WEBHOOK_MAX_SKEW_SECONDS: z.coerce.number().int().positive().optional(),
+  CHATWOOT_INCOMING_MEDIA_MODE: z.string().trim().optional(),
 });
 
 export type CommonRuntimeConfig = z.infer<typeof commonRuntimeConfigSchema>;
@@ -52,6 +53,10 @@ export function readEvolutionRuntimeConfig(env: RuntimeEnv = readRuntimeEnvFromG
 
 export function readChatwootRuntimeConfig(env: RuntimeEnv = readRuntimeEnvFromGlobal()) {
   const config = readCommonRuntimeConfig(env);
+  const incomingMediaMode: "link" | "attachment" = config.CHATWOOT_INCOMING_MEDIA_MODE?.trim().toLowerCase() === "attachment"
+    ? "attachment"
+    : "link";
+
   return {
     url: config.CHATWOOT_URL?.trim() ?? "",
     accountId: config.CHATWOOT_ACCOUNT_ID?.trim() ?? "",
@@ -61,6 +66,7 @@ export function readChatwootRuntimeConfig(env: RuntimeEnv = readRuntimeEnvFromGl
     inboxIdentifier: config.CHATWOOT_INBOX_IDENTIFIER?.trim() ?? "",
     webhookSecret: config.CHATWOOT_WEBHOOK_SECRET?.trim() ?? "",
     webhookMaxSkewSeconds: config.CHATWOOT_WEBHOOK_MAX_SKEW_SECONDS ?? 300,
+    incomingMediaMode,
   };
 }
 

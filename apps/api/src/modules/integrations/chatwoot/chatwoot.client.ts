@@ -9,6 +9,7 @@ export type ChatwootConnectionConfig = {
   inboxIdentifier: string;
   webhookSecret?: string;
   webhookMaxSkewSeconds?: number;
+  incomingMediaMode?: 'link' | 'attachment';
 };
 
 @Injectable()
@@ -427,7 +428,7 @@ export class ChatwootClient {
     const echoId = this.buildEchoId();
 
     if (attachment && attachment.base64) {
-      if (attachment.publicUrl) {
+      if (attachment.publicUrl && config.incomingMediaMode !== 'attachment') {
         const linkContent = this.buildAttachmentLinkContent(content, attachment);
         this.logger.log(JSON.stringify({
           flow: 'evolution_to_chatwoot',
@@ -435,6 +436,7 @@ export class ChatwootClient {
           conversationId,
           filename: attachment.filename,
           mimetype: attachment.mimetype,
+          incomingMediaMode: config.incomingMediaMode ?? 'link',
           storageUrlHost: this.extractUrlHost(attachment.publicUrl),
         }));
         return this.createIncomingMessage(
@@ -449,6 +451,18 @@ export class ChatwootClient {
       formData.append('content', content || '');
       formData.append('echo_id', echoId);
       try {
+        if (attachment.publicUrl) {
+          this.logger.log(JSON.stringify({
+            flow: 'evolution_to_chatwoot',
+            stage: 'attachment_native_upload_requested',
+            conversationId,
+            filename: attachment.filename,
+            mimetype: attachment.mimetype,
+            incomingMediaMode: config.incomingMediaMode ?? 'link',
+            storageUrlHost: this.extractUrlHost(attachment.publicUrl),
+          }));
+        }
+
         const normalizedAttachment = this.normalizeAttachmentInput(attachment);
         const buffer = Buffer.from(normalizedAttachment.base64, 'base64');
         const blob = new Blob([buffer], { type: normalizedAttachment.mimetype });
