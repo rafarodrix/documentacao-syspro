@@ -63,6 +63,9 @@ export class EvolutionWebhookController {
     const isCallEvent =
       normalizedEvent === 'call' ||
       normalizedEvent === 'calls' ||
+      normalizedEvent === 'calloffer' ||
+      normalizedEvent === 'callrelaylatency' ||
+      normalizedEvent === 'callterminate' ||
       normalizedEvent.startsWith('call.') ||
       normalizedEvent.startsWith('calls.');
 
@@ -85,6 +88,13 @@ export class EvolutionWebhookController {
         instanceId: resolvedInstanceId,
         connection: resolvedContext,
       });
+    } else {
+      this.logger.debug(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'ignored_event',
+        event: normalizedEvent || null,
+        instanceId: resolvedInstanceId || null,
+      }));
     }
     return { ok: true };
   }

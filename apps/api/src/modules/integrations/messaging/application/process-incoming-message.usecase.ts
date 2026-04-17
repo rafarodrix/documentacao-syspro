@@ -413,6 +413,28 @@ export class ProcessIncomingMessageUseCase {
 
     for (const call of calls) {
       const callInfo = this.extractCallInfo(call, context?.event);
+      if (callInfo.isRelayLatency) {
+        this.logger.debug(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'call_event_ignored_relay_latency',
+          event: context?.event ?? null,
+          instanceId: context?.instanceId ?? null,
+          callId: callInfo.callId ?? null,
+        }));
+        continue;
+      }
+
+      if (callInfo.isGroup) {
+        this.logger.debug(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'call_event_ignored_group',
+          event: context?.event ?? null,
+          instanceId: context?.instanceId ?? null,
+          callId: callInfo.callId ?? null,
+        }));
+        continue;
+      }
+
       if (!callInfo.phone) {
         this.logger.debug(JSON.stringify({
           flow: 'evolution_to_chatwoot',
@@ -509,65 +531,130 @@ export class ProcessIncomingMessageUseCase {
     status?: string;
     callType: 'audio' | 'video';
     fromMe: boolean;
+    isGroup: boolean;
+    isRelayLatency: boolean;
   } {
+    const normalizedEvent = String(event ?? '').trim().toLowerCase();
     const remoteJid = this.readFirstString(
       payload?.remoteJid,
+      payload?.RemoteJid,
       payload?.chatId,
+      payload?.Chat,
       payload?.from,
+      payload?.From,
       payload?.sender,
+      payload?.Sender,
+      payload?.jid,
+      payload?.JID,
       payload?.key?.remoteJid,
       payload?.Info?.Chat,
+      payload?.Info?.Sender,
       payload?.info?.Chat,
+      payload?.info?.Sender,
       payload?.call?.from,
+      payload?.call?.From,
       payload?.call?.chatId,
+      payload?.call?.Chat,
       payload?.data?.from,
+      payload?.data?.From,
       payload?.data?.chatId,
+      payload?.data?.Chat,
       payload?.data?.remoteJid,
+      payload?.data?.RemoteJid,
+      payload?.data?.Sender,
+      payload?.data?.JID,
     );
     const phone = this.extractPhoneFromJidOrNumber(remoteJid);
     const status = this.readFirstString(
       payload?.status,
+      payload?.Status,
       payload?.state,
+      payload?.State,
       payload?.type,
+      payload?.Type,
       payload?.callStatus,
+      payload?.CallStatus,
+      payload?.reason,
+      payload?.Reason,
+      payload?.accept,
+      payload?.Accept,
       payload?.call?.status,
+      payload?.call?.Status,
+      payload?.call?.reason,
+      payload?.call?.Reason,
       payload?.data?.status,
+      payload?.data?.Status,
+      payload?.data?.reason,
+      payload?.data?.Reason,
+      payload?.data?.accept,
+      payload?.data?.Accept,
       event,
     );
     const isVideo = Boolean(
       payload?.isVideo ??
+      payload?.IsVideo ??
       payload?.is_video ??
       payload?.video ??
       payload?.call?.isVideo ??
-      payload?.data?.isVideo
+      payload?.call?.IsVideo ??
+      payload?.data?.isVideo ??
+      payload?.data?.IsVideo
     );
 
     return {
       callId: this.readFirstString(
         payload?.id,
+        payload?.ID,
         payload?.callId,
+        payload?.CallID,
+        payload?.CallId,
         payload?.call_id,
         payload?.call?.id,
+        payload?.call?.ID,
+        payload?.call?.CallID,
+        payload?.call?.CallId,
         payload?.data?.id,
+        payload?.data?.ID,
         payload?.data?.callId,
+        payload?.data?.CallID,
+        payload?.data?.CallId,
       ),
       phone,
       pushName: this.readFirstString(
         payload?.pushName,
+        payload?.PushName,
         payload?.name,
+        payload?.Name,
         payload?.callerName,
+        payload?.CallerName,
         payload?.call?.pushName,
+        payload?.call?.PushName,
+        payload?.call?.Name,
         payload?.data?.pushName,
+        payload?.data?.PushName,
+        payload?.data?.Name,
       ),
       status,
       callType: isVideo ? 'video' : 'audio',
       fromMe: Boolean(
         payload?.fromMe ??
+        payload?.IsFromMe ??
         payload?.isFromMe ??
         payload?.key?.fromMe ??
         payload?.call?.fromMe ??
-        payload?.data?.fromMe
+        payload?.call?.IsFromMe ??
+        payload?.data?.fromMe ??
+        payload?.data?.IsFromMe
       ),
+      isGroup: Boolean(
+        payload?.isGroup ??
+        payload?.IsGroup ??
+        payload?.call?.isGroup ??
+        payload?.call?.IsGroup ??
+        payload?.data?.isGroup ??
+        payload?.data?.IsGroup
+      ),
+      isRelayLatency: normalizedEvent === 'callrelaylatency' || normalizedEvent.includes('relaylatency'),
     };
   }
 
@@ -584,6 +671,8 @@ export class ProcessIncomingMessageUseCase {
   private normalizeCallStatus(status?: string): string | null {
     const normalized = String(status ?? '').trim().toLowerCase();
     if (!normalized) return null;
+    if (normalized === 'true') return 'atendida';
+    if (normalized === 'false') return 'nao atendida';
     if (normalized.includes('offer') || normalized.includes('ring')) return 'recebida';
     if (normalized.includes('reject') || normalized.includes('miss')) return 'nao atendida';
     if (normalized.includes('timeout')) return 'nao atendida';
