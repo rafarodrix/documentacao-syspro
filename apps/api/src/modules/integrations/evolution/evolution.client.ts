@@ -201,6 +201,7 @@ export class EvolutionClient {
 
     const evMediaType = this.resolveEvolutionMediaType(mediaType);
     const resolvedFileName = fileName || 'arquivo';
+    const normalizedMedia = this.normalizeMediaInput(mediaUrlOrBase64);
 
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
@@ -215,6 +216,8 @@ export class EvolutionClient {
       mediaType: evMediaType,
       fileName: resolvedFileName,
       hasCaption: Boolean(caption),
+      mediaInputKind: normalizedMedia.kind,
+      mediaLength: normalizedMedia.value.length,
     }));
 
     const primaryResponse = await fetch(`${baseUrl}/send/media`, {
@@ -224,7 +227,7 @@ export class EvolutionClient {
         id: requestMessageId,
         number: normalizedNumber,
         type: evMediaType,
-        url: mediaUrlOrBase64,
+        url: normalizedMedia.value,
         filename: resolvedFileName,
         caption: caption || '',
         delay: 1200,
@@ -342,6 +345,20 @@ export class EvolutionClient {
     if (normalized.includes('video')) return 'video';
     if (normalized.includes('audio')) return 'audio';
     return 'document';
+  }
+
+  private normalizeMediaInput(value: string): { value: string; kind: 'url' | 'base64' | 'data_url' } {
+    const raw = String(value ?? '').trim();
+    if (/^https?:\/\//i.test(raw)) {
+      return { value: raw, kind: 'url' };
+    }
+
+    const dataUrlMatch = raw.match(/^data:[^;]+;base64,(.*)$/is);
+    const base64 = (dataUrlMatch?.[1] ?? raw).replace(/\s+/g, '');
+    return {
+      value: base64,
+      kind: dataUrlMatch ? 'data_url' : 'base64',
+    };
   }
 
   private extractMessageId(payload: any): string | undefined {
