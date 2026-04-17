@@ -427,6 +427,24 @@ export class ChatwootClient {
     const echoId = this.buildEchoId();
 
     if (attachment && attachment.base64) {
+      if (attachment.publicUrl) {
+        const linkContent = this.buildAttachmentLinkContent(content, attachment);
+        this.logger.log(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'attachment_public_url_forwarded_text',
+          conversationId,
+          filename: attachment.filename,
+          mimetype: attachment.mimetype,
+          storageUrlHost: this.extractUrlHost(attachment.publicUrl),
+        }));
+        return this.createIncomingMessage(
+          config,
+          contactIdentifier,
+          conversationId,
+          linkContent,
+        );
+      }
+
       const formData = new FormData();
       formData.append('content', content || '');
       formData.append('echo_id', echoId);
@@ -469,7 +487,7 @@ export class ChatwootClient {
       } catch (e: any) {
         this.logger.error(`Erro ao processar anexo para o Chatwoot: ${e.message}`);
         if (this.isAttachmentStorageError(e)) {
-          const fallbackContent = this.buildAttachmentFallbackContent(content, attachment);
+          const fallbackContent = this.buildAttachmentLinkContent(content, attachment);
           this.logger.warn(JSON.stringify({
             flow: 'evolution_to_chatwoot',
             stage: 'attachment_native_upload_failed_fallback_text',
@@ -944,7 +962,7 @@ export class ChatwootClient {
     );
   }
 
-  private buildAttachmentFallbackContent(
+  private buildAttachmentLinkContent(
     content: string,
     attachment: { filename: string; mimetype: string; publicUrl?: string },
   ): string {
@@ -955,6 +973,14 @@ export class ChatwootClient {
     ].filter(Boolean);
 
     return lines.join('\n');
+  }
+
+  private extractUrlHost(value: string): string | null {
+    try {
+      return new URL(value).host;
+    } catch {
+      return null;
+    }
   }
 
   private toNumericIdentifier(value: string): string | null {

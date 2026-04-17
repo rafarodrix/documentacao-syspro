@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EvolutionClient } from '../../evolution/evolution.client';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
-import { R2StorageService } from '../../storage/r2-storage.service';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IntegrationWebhookDedupService } from './integration-webhook-dedup.service';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../../../settings/integration-context.service';
@@ -13,7 +12,6 @@ export class ProcessOutgoingMessageUseCase {
   constructor(
     private readonly evolutionClient: EvolutionClient,
     private readonly chatwootClient: ChatwootClient,
-    private readonly r2Storage: R2StorageService,
     private readonly prisma: PrismaService,
     private readonly dedupService: IntegrationWebhookDedupService,
     private readonly integrationContext: IntegrationContextService,
@@ -245,42 +243,20 @@ export class ProcessOutgoingMessageUseCase {
         return;
       }
 
-      let mediaTarget = mediaPayload.dataUrl;
-      if (this.r2Storage.isEnabled()) {
-        try {
-          const { buffer, contentType } = this.decodeDataUrl(mediaPayload.dataUrl, mediaPayload.mimetype || fileType);
-          const uploaded = await this.r2Storage.uploadBuffer({
-            buffer,
-            filename: mediaPayload.filename || fileName,
-            contentType,
-            prefix: 'chatwoot-media',
-          });
-          mediaTarget = uploaded.url;
-          this.logger.log(JSON.stringify({
-            flow: 'chatwoot_to_evolution',
-            stage: 'attachment_uploaded_r2',
-            messageId,
-            chatwootConversationId,
-            attachmentId: attachment?.id?.toString?.() ?? null,
-            storageKey: uploaded.key,
-            storageUrlHost: this.extractUrlHost(uploaded.url),
-          }));
-        } catch (error: any) {
-          this.logger.warn(JSON.stringify({
-            flow: 'chatwoot_to_evolution',
-            stage: 'attachment_r2_upload_failed',
-            messageId,
-            chatwootConversationId,
-            attachmentId: attachment?.id?.toString?.() ?? null,
-            error: error?.message ?? 'unknown_error',
-          }));
-        }
-      }
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'attachment_reused_without_r2_copy',
+        messageId,
+        chatwootConversationId,
+        attachmentId: attachment?.id?.toString?.() ?? null,
+        mimetype: mediaPayload.mimetype || fileType,
+        filename: mediaPayload.filename || fileName,
+      }));
 
       const sendResult = await this.evolutionClient.sendMedia(
         linkContext.evolution,
         phone,
-        mediaTarget,
+        mediaPayload.dataUrl,
         mediaPayload.mimetype || fileType,
         mediaPayload.filename || fileName,
         content || '',
@@ -721,24 +697,4 @@ export class ProcessOutgoingMessageUseCase {
     return this.normalizeMessageText(value);
   }
 
-  private decodeDataUrl(dataUrl: string, fallbackMimeType: string): { buffer: Buffer; contentType: string } {
-    const normalized = String(dataUrl ?? '').trim();
-    const match = normalized.match(/^data:([^;]+);base64,(.+)$/i);
-    if (!match) {
-      throw new Error('Anexo em formato inesperado para upload no R2.');
-    }
-
-    return {
-      contentType: match[1] || fallbackMimeType || 'application/octet-stream',
-      buffer: Buffer.from(match[2], 'base64'),
-    };
-  }
-
-  private extractUrlHost(value: string): string | null {
-    try {
-      return new URL(value).host;
-    } catch {
-      return null;
-    }
-  }
 }
