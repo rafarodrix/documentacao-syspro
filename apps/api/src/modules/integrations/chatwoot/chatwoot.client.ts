@@ -935,6 +935,10 @@ export class ChatwootClient {
     return (
       message.includes('checksum') ||
       message.includes('nosuchkey') ||
+      message.includes('failed to open tcp connection') ||
+      message.includes('s3.auto.amazonaws.com') ||
+      message.includes('getaddrinfo') ||
+      message.includes('name does not resolve') ||
       message.includes('active storage') ||
       message.includes('falha ao baixar anexo')
     );
