@@ -34,6 +34,10 @@ export class ChatwootWebhookController {
   ) {
     const resolvedContext = await this.integrationContext.resolveForChatwootWebhook(payload);
     const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const conversationMessage = this.findConversationMessage(
+      payload,
+      payload?.id?.toString?.() ?? message?.id?.toString?.()
+    );
     if (payload?.event === 'message_created') {
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
@@ -142,7 +146,8 @@ export class ChatwootWebhookController {
             ),
             hasAttachments: Boolean(
               (Array.isArray(payload?.attachments) && payload.attachments.length > 0) ||
-              (Array.isArray(message?.attachments) && message.attachments.length > 0)
+              (Array.isArray(message?.attachments) && message.attachments.length > 0) ||
+              (Array.isArray(conversationMessage?.attachments) && conversationMessage.attachments.length > 0)
             ),
           }));
           await this.processOutgoingMessage.execute(payload, { connection: resolvedContext ?? undefined });
@@ -306,5 +311,19 @@ export class ChatwootWebhookController {
   private toOptionalString(value: unknown): string | undefined {
     const normalized = String(value ?? '').trim();
     return normalized || undefined;
+  }
+
+  private findConversationMessage(payload: any, messageId?: string): any | null {
+    const messages = Array.isArray(payload?.conversation?.messages)
+      ? payload.conversation.messages
+      : [];
+    if (messages.length === 0) return null;
+
+    if (messageId) {
+      const matchingMessage = messages.find((item: any) => String(item?.id ?? '') === messageId);
+      if (matchingMessage) return matchingMessage;
+    }
+
+    return messages[0] ?? null;
   }
 }

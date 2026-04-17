@@ -368,11 +368,17 @@ export class ProcessOutgoingMessageUseCase {
     attachments: any[];
   } {
     const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
-    const attachments = this.toArray(payload?.attachments ?? message?.attachments);
+    const messageId = this.toOptionalString(payload?.id ?? message?.id);
+    const conversationMessage = this.findConversationMessage(payload, messageId);
+    const attachments = this.toArray(
+      payload?.attachments ??
+      message?.attachments ??
+      conversationMessage?.attachments
+    );
     const content = this.resolveOutgoingContent(payload, message);
 
     return {
-      messageId: this.toOptionalString(payload?.id ?? message?.id),
+      messageId,
       messageType: payload?.message_type ?? message?.message_type,
       isPrivateNote: Boolean(payload?.private ?? message?.private),
       content,
@@ -384,6 +390,18 @@ export class ProcessOutgoingMessageUseCase {
       ),
       attachments,
     };
+  }
+
+  private findConversationMessage(payload: any, messageId?: string): any | null {
+    const messages = this.toArray(payload?.conversation?.messages);
+    if (messages.length === 0) return null;
+
+    if (messageId) {
+      const matchingMessage = messages.find((item: any) => String(item?.id ?? '') === messageId);
+      if (matchingMessage) return matchingMessage;
+    }
+
+    return messages[0] ?? null;
   }
 
   private extractPhoneFromPayload(payload: any): string | null {
