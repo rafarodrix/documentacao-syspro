@@ -24,12 +24,16 @@ import type { TicketDetailsItem } from "./types";
 interface TicketFinalizeDialogProps {
   ticket: TicketDetailsItem;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function TicketFinalizeDialog({ ticket, trigger }: TicketFinalizeDialogProps) {
+export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, onOpenChange }: TicketFinalizeDialogProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
 
   const [resolutionSummary, setResolutionSummary] = useState(ticket.resolutionSummary || "");
   const [resolutionVideoUrl, setResolutionVideoUrl] = useState(ticket.resolutionVideoUrl || "");
@@ -84,13 +88,15 @@ export function TicketFinalizeDialog({ ticket, trigger }: TicketFinalizeDialogPr
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
+      {trigger ? (
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+      ) : controlledOpen === undefined ? (
+        <DialogTrigger asChild>
           <Button size="sm" variant="outline" className="h-8 gap-1 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 transition-colors text-xs">
             <Flag className="h-3 w-3" /> Finalizar Ticket
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      ) : null}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-primary">

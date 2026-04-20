@@ -1,24 +1,37 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import type { ReactNode } from "react";
+import { useFieldArray, useForm, type FieldPath, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { AlertCircle, Clock, Loader2, Plus, Save, Settings2, Tag, Trash2, Workflow, MessageSquare, BriefcaseBusiness, Construction, HelpCircle } from "lucide-react";
+import {
+  AlertCircle,
+  Clock,
+  FolderKanban,
+  Layers3,
+  Loader2,
+  MessageSquareText,
+  Plus,
+  Save,
+  Settings2,
+  Trash2,
+} from "lucide-react";
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
-  type TicketModuleSettings,
   ticketModuleSettingsSchema,
+  type TicketModuleSettings,
 } from "@dosc-syspro/contracts/ticket";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { saveTicketSettingsAction } from "@/features/tickets/application/ticket-actions";
 
 function createOptionId(prefix: string) {
@@ -28,6 +41,7 @@ function createOptionId(prefix: string) {
 function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSettings {
   return {
     ...settings,
+    quickReplyTemplates: settings.quickReplyTemplates ?? DEFAULT_TICKET_MODULE_SETTINGS.quickReplyTemplates,
     priorities: settings.priorities.map((priority) => {
       const resolutionMinutes = priority.resolutionMinutes ?? priority.slaHours * 60;
       return {
@@ -54,6 +68,14 @@ export function TicketSettingsTab() {
   const modulesArray = useFieldArray({ control: form.control, name: "modules" });
   const environmentsArray = useFieldArray({ control: form.control, name: "environments" });
   const prioritiesArray = useFieldArray({ control: form.control, name: "priorities" });
+  const templatesArray = useFieldArray({ control: form.control, name: "quickReplyTemplates" });
+
+  const priorities = form.watch("priorities");
+  const environments = form.watch("environments");
+  const defaultTeam = form.watch("defaultTeam");
+  const defaultPriority = form.watch("defaultPriority");
+  const defaultEnvironment = form.watch("defaultEnvironment");
+  const autoResponseEnabled = form.watch("autoResponseEnabled");
 
   useEffect(() => {
     let active = true;
@@ -87,8 +109,9 @@ export function TicketSettingsTab() {
           toast.error(result.error || "Erro ao salvar configuracoes.");
           return;
         }
+
         toast.success(result.message || "Configuracoes do modulo de tickets salvas.");
-        
+        form.reset(normalizeTicketSettings(data));
       } catch (error) {
         console.error("Erro ao salvar configuracoes:", error);
         toast.error("Processo falhou.");
@@ -98,402 +121,477 @@ export function TicketSettingsTab() {
 
   if (isLoading) {
     return (
-      <div className="flex h-32 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card/50 shadow-sm backdrop-blur-md">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        <span className="text-sm font-medium text-muted-foreground">Carregando configuracoes visuais...</span>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <Card className="border-border/60">
+          <CardContent className="space-y-4 p-5">
+            <div className="h-8 w-64 animate-pulse rounded-md bg-muted" />
+            <div className="h-32 animate-pulse rounded-lg bg-muted/70" />
+            <div className="h-32 animate-pulse rounded-lg bg-muted/70" />
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="space-y-4 p-5">
+            <div className="h-6 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-10 animate-pulse rounded-md bg-muted/70" />
+            <div className="h-10 animate-pulse rounded-md bg-muted/70" />
+            <div className="h-10 animate-pulse rounded-md bg-muted/70" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 w-full min-w-0 pb-16">
-      <div className="flex items-start gap-4 rounded-xl border border-primary/20 bg-primary/5 p-5 shadow-sm max-w-5xl">
-        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-        <div className="text-sm text-foreground/90">
-          <p className="font-semibold text-primary">Configuracoes do Service Desk</p>
-          <p className="mt-1 leading-relaxed">Painel gerencial centralizado. Controle o roteamento, funil de prioridades e os fluxos sistemicos do ticket usando as abas abaixos.</p>
-        </div>
-      </div>
-
+    <div className="w-full min-w-0 animate-in fade-in duration-500">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <Tabs defaultValue="workflow" className="w-full max-w-5xl space-y-6">
-            <TabsList className="bg-muted/50 p-1 border border-border/40 h-auto grid w-full grid-cols-1 sm:grid-cols-3 md:w-fit">
-              <TabsTrigger value="workflow" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Settings2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Workflow & Automacao</span>
-                <span className="sm:hidden">Workflow</span>
-              </TabsTrigger>
-              <TabsTrigger value="categories" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Tag className="h-4 w-4" />
-                <span className="hidden sm:inline">Categorias & Tipos</span>
-                <span className="sm:hidden">Categorias</span>
-              </TabsTrigger>
-              <TabsTrigger value="flow" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Workflow className="h-4 w-4" />
-                <span className="hidden sm:inline">Metadados & Escalacao</span>
-                <span className="sm:hidden">Fluxo</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="workflow" className="space-y-6 animate-in zoom-in-95 duration-300 outline-none">
-              <Card className="border-border/50 shadow-sm transition-shadow hover:shadow-md">
-                <CardHeader className="bg-muted/10 pb-4 border-b border-border/50">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <MessageSquare className="h-5 w-5 text-primary/70" /> Respostas & Auto-Atribuicao
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6 grid gap-6 md:grid-cols-2">
-                  <FormField control={form.control} name="autoAssignToCreator" render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-border/50 bg-background hover:bg-muted/10 transition-colors p-4 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base text-foreground">Auto-atribuicao de Tickets Internos</FormLabel>
-                        <FormDescription className="text-xs">
-                          Operadores (sistemas) tornam-se donos do ticket ao abrirem via Portal internamente.
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )} />
-
-                  <FormField control={form.control} name="autoResponseEnabled" render={({ field }) => (
-                    <FormItem className="flex flex-col gap-2 rounded-lg border border-border/50 bg-background hover:bg-muted/10 transition-colors p-4 shadow-sm">
-                      <div className="flex items-center justify-between w-full">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base text-foreground">Auto Resposta (Abertura)</FormLabel>
-                          <FormDescription className="text-xs break-words">Disparar macro assim que cliente criar chamado.</FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </div>
-                      {field.value && (
-                        <FormField control={form.control} name="autoResponseMessage" render={({ field: msgField }) => (
-                           <FormControl>
-                            <Textarea
-                              rows={2}
-                              className="mt-2 bg-muted/20 border-border/50"
-                              placeholder="Faca assim: Ola cliente, recebemos..."
-                              {...msgField}
-                            />
-                          </FormControl>
-                        )} />
-                      )}
-                    </FormItem>
-                  )} />
-                </CardContent>
-              </Card>
-              
-              {/* Coming Soon Area - CSAT & Responses */}
-              <div className="grid gap-6 md:grid-cols-2 opacity-60">
-                 <Card className="border-dashed border-border/50 bg-muted/5 pointer-events-none grayscale">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base text-muted-foreground"><HelpCircle className="h-4 w-4"/> Pesquisa CSAT <Badge variant="secondary" className="ml-auto text-[10px]">Em breve</Badge></CardTitle>
-                      <CardDescription className="text-xs">Enviar pesquisa de 1 a 5 estrelas quando Ticket for &apos;Resolvido&apos;.</CardDescription>
-                    </CardHeader>
-                 </Card>
-                 <Card className="border-dashed border-border/50 bg-muted/5 pointer-events-none grayscale">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base text-muted-foreground"><MessageSquare className="h-4 w-4"/> Snippets Inteligentes <Badge variant="secondary" className="ml-auto text-[10px]">Em breve</Badge></CardTitle>
-                      <CardDescription className="text-xs">Menu extra na leitura de tickets com respostas padronizadas globais.</CardDescription>
-                    </CardHeader>
-                 </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="categories" className="space-y-6 animate-in zoom-in-95 duration-300 outline-none">
-              <Card className="border-border/50 shadow-sm transition-shadow hover:shadow-md">
-                <CardHeader className="bg-muted/10 pb-4 border-b border-border/50">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Tag className="h-5 w-5 text-primary/70" /> Gerenciamento de Categorias
-                      </CardTitle>
-                      <CardDescription className="mt-1">Categorizacao visual e roteamento logico de tickets.</CardDescription>
-                    </div>
-                    <Button type="button" variant="outline" size="sm" className="gap-2 shrink-0" onClick={() => categoriesArray.append({ id: createOptionId("cat"), label: "", value: "", defaultTeam: "SUPORTE" })}>
-                      <Plus className="h-3.5 w-3.5" /> Adicionar Categoria
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-4">
-                  {categoriesArray.fields.map((fieldItem, index) => (
-                    <div key={fieldItem.id} className="grid items-start gap-3 rounded-xl border border-border/40 bg-background/50 hover:bg-muted/20 transition-colors p-4 shadow-sm md:grid-cols-[1.5fr_1fr_180px_60px_40px]">
-                      <div className="space-y-3">
-                        <FormField control={form.control} name={`categories.${index}.label`} render={({field}) => (
-                          <FormItem><FormControl><Input placeholder="Nome ex: Incidente" {...field} /></FormControl></FormItem>
-                        )} />
-                        <FormField control={form.control} name={`categories.${index}.description`} render={({field}) => (
-                          <FormItem><FormControl><Input placeholder="Descrição ou observação da categoria..." className="text-xs h-8 text-muted-foreground" {...field} /></FormControl></FormItem>
-                        )} />
-                      </div>
-                      
-                      <FormField control={form.control} name={`categories.${index}.value`} render={({field}) => (
-                        <FormItem><FormControl><Input placeholder="slug-unico" {...field} /></FormControl></FormItem>
-                      )} />
-                      <FormField control={form.control} name={`categories.${index}.defaultTeam`} render={({field}) => (
-                        <FormItem>
-                          <Select onValueChange={field.onChange} value={field.value || "SUPORTE"}>
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder="Roteia para..." /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {form.watch("teams").map((t) => (
-                                <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name={`categories.${index}.icon`} render={({field}) => (
-                        <FormItem>
-                           <Select onValueChange={field.onChange} value={field.value || "🔴"}>
-                            <FormControl>
-                              <SelectTrigger className="px-2 font-emoji"><SelectValue placeholder="🔴" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="🔴">🔴</SelectItem>
-                              <SelectItem value="🟡">🟡</SelectItem>
-                              <SelectItem value="🟢">🟢</SelectItem>
-                              <SelectItem value="🔵">🔵</SelectItem>
-                              <SelectItem value="💬">💬</SelectItem>
-                              <SelectItem value="⚙️">⚙️</SelectItem>
-                              <SelectItem value="📚">📚</SelectItem>
-                              <SelectItem value="📝">📝</SelectItem>
-                              <SelectItem value="💾">💾</SelectItem>
-                              <SelectItem value="🔗">🔗</SelectItem>
-                              <SelectItem value="🐞">🐞</SelectItem>
-                              <SelectItem value="✨">✨</SelectItem>
-                              <SelectItem value="🚀">🚀</SelectItem>
-                              <SelectItem value="⚡">⚡</SelectItem>
-                              <SelectItem value="🛠️">🛠️</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )} />
-                      <Button type="button" variant="ghost" size="icon" onClick={() => categoriesArray.remove(index)} className="hover:bg-destructive/10 hover:text-destructive self-start mt-1 shrink-0">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  {categoriesArray.fields.length === 0 && (
-                    <div className="p-8 text-center text-muted-foreground bg-muted/10 rounded-xl border border-dashed">
-                      <p>Nenhuma categoria cadastrada. Os clientes não terão opções na criação via Portal.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="flow" className="space-y-6 animate-in zoom-in-95 duration-300 outline-none">
-              <Card className="border-border/50 shadow-sm transition-shadow hover:shadow-md">
-                 <CardHeader className="bg-muted/10 pb-4 border-b border-border/50">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <BriefcaseBusiness className="h-5 w-5 text-primary/70" /> Parâmetros Padrões Globais
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6 grid gap-6 md:grid-cols-3">
-                  <FormField control={form.control} name="defaultTeam" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Time Padrao Global</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {form.watch("teams").map((team) => (
-                            <SelectItem key={team.id} value={team.value}>{team.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="defaultEnvironment" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ambiente Padrao</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {form.watch("environments").map((env) => (
-                            <SelectItem key={env.id} value={env.value}>{env.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="defaultPriority" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prioridade Inbound</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {form.watch("priorities").map((p) => (
-                            <SelectItem key={p.id} value={p.value}>{p.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 shadow-sm transition-shadow hover:shadow-md">
-                 <CardHeader className="bg-muted/10 pb-4 border-b border-border/50">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Construction className="h-5 w-5 text-primary/70" /> Estruturas do Workspace
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-10 pt-6">
-                  {/* TIMES */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                      <h4 className="font-semibold text-foreground">Equipes Ativas</h4>
-                       <Button type="button" variant="ghost" size="sm" onClick={() => teamsArray.append({ id: createOptionId("team"), label: "", value: "" })}>
-                        <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar Equipe
-                      </Button>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                      {teamsArray.fields.map((fieldItem, index) => (
-                        <div key={fieldItem.id} className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/50 hover:bg-muted/20 p-2 pl-3">
-                          <FormField control={form.control} name={`teams.${index}.label`} render={({field}) => <Input placeholder="Nome" className="h-8 shadow-none border-dashed bg-transparent" {...field} />} />
-                          <FormField control={form.control} name={`teams.${index}.value`} render={({field}) => <Input placeholder="SLUG" className="h-8 shadow-none w-20 border-0 uppercase text-xs text-muted-foreground bg-transparent" {...field} />} />
-                          <Button type="button" variant="ghost" size="icon" onClick={() => teamsArray.remove(index)} className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* MODULOS E AMBIENTES */}
-                  <div className="grid gap-8 md:grid-cols-2">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <h4 className="font-semibold text-foreground">Mapeamento Syspro</h4>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => modulesArray.append({ id: createOptionId("mod"), label: "", value: "" })}>
-                          <Plus className="mr-1 h-3.5 w-3.5" /> Add Modulo
-                        </Button>
-                      </div>
-                      <div className="space-y-2">
-                        {modulesArray.fields.map((fieldItem, index) => (
-                           <div key={fieldItem.id} className="flex items-center gap-2">
-                            <FormField control={form.control} name={`modules.${index}.label`} render={({field}) => <Input placeholder="Módulo" className="h-9" {...field} />} />
-                            <FormField control={form.control} name={`modules.${index}.value`} render={({field}) => <Input placeholder="slug" className="h-9 w-24" {...field} />} />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => modulesArray.remove(index)} className="h-9 w-9 shrink-0"><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <h4 className="font-semibold text-foreground">Ambientes Deployment</h4>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => environmentsArray.append({ id: createOptionId("env"), label: "", value: "" })}>
-                          <Plus className="mr-1 h-3.5 w-3.5" /> Add Ambiente
-                        </Button>
-                      </div>
-                      <div className="space-y-2">
-                        {environmentsArray.fields.map((fieldItem, index) => (
-                           <div key={fieldItem.id} className="flex items-center gap-2">
-                            <FormField control={form.control} name={`environments.${index}.label`} render={({field}) => <Input placeholder="Ambiente" className="h-9" {...field} />} />
-                            <FormField control={form.control} name={`environments.${index}.value`} render={({field}) => <Input placeholder="slug" className="h-9 w-24" {...field} />} />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => environmentsArray.remove(index)} className="h-9 w-9 shrink-0"><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* SLA CARD */}
-              <Card className="border-border/50 shadow-sm transition-shadow hover:shadow-md overflow-hidden">
-                <CardHeader className="bg-muted/10 pb-4 border-b border-border/50">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Clock className="h-5 w-5 text-primary/70" /> Politicas de SLA por prioridade
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-4">
-                  {prioritiesArray.fields.map((fieldItem, index) => (
-                    <div key={fieldItem.id} className="grid items-center gap-4 rounded-xl border border-border/40 bg-background/50 hover:bg-muted/10 transition-colors p-4 shadow-sm md:grid-cols-[1fr_140px_180px_180px]">
-                      <FormField control={form.control} name={`priorities.${index}.label`} render={({field}) => (
-                        <FormItem><FormControl><Input placeholder="Nome da prioridade" {...field} /></FormControl></FormItem>
-                      )} />
-                      <FormField control={form.control} name={`priorities.${index}.value`} render={({field}) => (
-                        <FormItem><FormControl><Input placeholder="Level (ex: normal)" {...field} /></FormControl></FormItem>
-                      )} />
-                      <FormField control={form.control} name={`priorities.${index}.firstResponseMinutes`} render={({field}) => (
-                        <FormItem>
-                           <FormControl>
-                            <div className="relative">
-                              <Input type="number" min={1} max={10080} value={field.value ?? ""} onChange={e => field.onChange(parseInt(e.target.value) || 1)} className="pr-12 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20 dark:text-amber-400 font-semibold border-amber-200/50" />
-                              <span className="absolute inset-y-0 right-3 flex items-center text-[10px] font-bold tracking-wider text-muted-foreground pointer-events-none">1A RESP.</span>
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name={`priorities.${index}.resolutionMinutes`} render={({field}) => (
-                        <FormItem>
-                           <FormControl>
-                            <div className="relative">
-                              <Input type="number" min={1} max={43200} value={field.value ?? ""} onChange={e => {
-                                const minutes = parseInt(e.target.value) || 1;
-                                field.onChange(minutes);
-                                form.setValue(`priorities.${index}.slaHours`, Math.max(1, Math.ceil(minutes / 60)), { shouldDirty: true });
-                              }} className="pr-12 text-blue-600 bg-blue-50/50 dark:bg-blue-950/20 dark:text-blue-400 font-semibold border-blue-200/50" />
-                              <span className="absolute inset-y-0 right-3 flex items-center text-[10px] font-bold tracking-wider text-muted-foreground pointer-events-none">RESOL.</span>
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )} />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Coming Soon Area - Working Hours & Escalation */}
-              <div className="grid gap-6 md:grid-cols-2 opacity-60">
-                 <Card className="border-dashed border-border/50 bg-muted/5 pointer-events-none grayscale">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base text-muted-foreground"><Clock className="h-4 w-4"/> Horário Coorporativo <Badge variant="secondary" className="ml-auto text-[10px]">Em breve</Badge></CardTitle>
-                      <CardDescription className="text-xs">Definir finais de semana e feriados para que os relógios de SLA sejam interrompidos automaticamente.</CardDescription>
-                    </CardHeader>
-                 </Card>
-                 <Card className="border-dashed border-border/50 bg-muted/5 pointer-events-none grayscale">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base text-muted-foreground"><AlertCircle className="h-4 w-4"/> Regras de Escalonamento <Badge variant="secondary" className="ml-auto text-[10px]">Em breve</Badge></CardTitle>
-                      <CardDescription className="text-xs">Notificar gerência caso o SLA fique acima de 80% do deadline sem primeira resposta preenchida.</CardDescription>
-                    </CardHeader>
-                 </Card>
-              </div>
-            </TabsContent>
-
-          </Tabs>
-
-          <div className="fixed sm:absolute bottom-6 right-6 z-40 lg:right-10 flex">
-            <div className="rounded-xl border border-border/50 bg-card p-3 shadow-2xl ring-1 ring-border shadow-primary/10">
-              <Button type="submit" disabled={isPending} className="min-w-[200px] h-11 text-base font-semibold shadow-md transition-all hover:scale-105 active:scale-95" size="lg">
-                {isPending ? (
-                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Salvando Padrões...</>
-                ) : (
-                  <><Save className="mr-2 h-5 w-5" /> Adotar Modificações</>
-                )}
-              </Button>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          onKeyDown={(event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+              event.preventDefault();
+              void form.handleSubmit(onSubmit)();
+            }
+          }}
+          className="grid gap-5 pb-10 xl:grid-cols-[minmax(0,1fr)_25rem]"
+        >
+          <section className="min-w-0 space-y-5">
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold tracking-tight text-foreground">Configuracoes de tickets</h2>
+              <p className="text-sm text-muted-foreground">Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados.</p>
             </div>
-          </div>
+
+            <Tabs defaultValue="catalog" className="w-full">
+              <TabsList className="h-9">
+                <TabsTrigger value="catalog" className="gap-1.5 text-xs">
+                  <FolderKanban className="h-3.5 w-3.5" />
+                  Catalogo
+                </TabsTrigger>
+                <TabsTrigger value="sla" className="gap-1.5 text-xs">
+                  <Clock className="h-3.5 w-3.5" />
+                  SLA
+                </TabsTrigger>
+                <TabsTrigger value="templates" className="gap-1.5 text-xs">
+                  <MessageSquareText className="h-3.5 w-3.5" />
+                  Templates
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="catalog" className="mt-5 space-y-5">
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <FolderKanban className="h-4 w-4 text-primary/70" />
+                        Categorias e roteamento
+                      </CardTitle>
+                      <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => categoriesArray.append({ id: createOptionId("cat"), label: "", value: "", defaultTeam: "SUPORTE" })}>
+                        <Plus className="h-3.5 w-3.5" />
+                        Categoria
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {categoriesArray.fields.map((fieldItem, index) => (
+                      <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_11rem_2.5rem]">
+                        <div className="space-y-2">
+                          <FormField control={form.control} name={`categories.${index}.label`} render={({ field }) => (
+                            <FormItem>
+                              <FormControl><Input placeholder="Nome da categoria" {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name={`categories.${index}.description`} render={({ field }) => (
+                            <FormItem>
+                              <FormControl><Input placeholder="Descricao operacional" className="h-8 text-xs" {...field} /></FormControl>
+                            </FormItem>
+                          )} />
+                        </div>
+                        <FormField control={form.control} name={`categories.${index}.value`} render={({ field }) => (
+                          <FormItem>
+                            <FormControl><Input placeholder="slug" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name={`categories.${index}.defaultTeam`} render={({ field }) => (
+                          <FormItem>
+                            <Select onValueChange={field.onChange} value={field.value || "SUPORTE"}>
+                              <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Fila" /></SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="SUPORTE">Suporte</SelectItem>
+                                <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )} />
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => categoriesArray.remove(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <Layers3 className="h-4 w-4 text-primary/70" />
+                      Estrutura operacional
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-6 lg:grid-cols-3">
+                    <CatalogList
+                      title="Equipes"
+                      onAdd={() => teamsArray.append({ id: createOptionId("team"), label: "", value: "" })}
+                    >
+                      {teamsArray.fields.map((fieldItem, index) => (
+                        <CompactOptionRow
+                          key={fieldItem.id}
+                          labelName={`teams.${index}.label`}
+                          valueName={`teams.${index}.value`}
+                          labelPlaceholder="Equipe"
+                          valuePlaceholder="SLUG"
+                          onRemove={() => teamsArray.remove(index)}
+                          form={form}
+                        />
+                      ))}
+                    </CatalogList>
+
+                    <CatalogList
+                      title="Modulos"
+                      onAdd={() => modulesArray.append({ id: createOptionId("mod"), label: "", value: "" })}
+                    >
+                      {modulesArray.fields.map((fieldItem, index) => (
+                        <CompactOptionRow
+                          key={fieldItem.id}
+                          labelName={`modules.${index}.label`}
+                          valueName={`modules.${index}.value`}
+                          labelPlaceholder="Modulo"
+                          valuePlaceholder="slug"
+                          onRemove={() => modulesArray.remove(index)}
+                          form={form}
+                        />
+                      ))}
+                    </CatalogList>
+
+                    <CatalogList
+                      title="Ambientes"
+                      onAdd={() => environmentsArray.append({ id: createOptionId("env"), label: "", value: "" })}
+                    >
+                      {environmentsArray.fields.map((fieldItem, index) => (
+                        <CompactOptionRow
+                          key={fieldItem.id}
+                          labelName={`environments.${index}.label`}
+                          valueName={`environments.${index}.value`}
+                          labelPlaceholder="Ambiente"
+                          valuePlaceholder="slug"
+                          onRemove={() => environmentsArray.remove(index)}
+                          form={form}
+                        />
+                      ))}
+                    </CatalogList>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="sla" className="mt-5">
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-primary/70" />
+                        Politicas de SLA por prioridade
+                      </CardTitle>
+                      <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => prioritiesArray.append({ id: createOptionId("priority"), label: "", value: "", slaHours: 24, firstResponseMinutes: 60, resolutionMinutes: 1440 })}>
+                        <Plus className="h-3.5 w-3.5" />
+                        Prioridade
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {prioritiesArray.fields.map((fieldItem, index) => (
+                      <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1fr)_8rem_10rem_10rem_2.5rem]">
+                        <FormField control={form.control} name={`priorities.${index}.label`} render={({ field }) => (
+                          <FormItem>
+                            <FormControl><Input placeholder="Nome da prioridade" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name={`priorities.${index}.value`} render={({ field }) => (
+                          <FormItem>
+                            <FormControl><Input placeholder="valor" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name={`priorities.${index}.firstResponseMinutes`} render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <LabeledNumberInput label="1a resp." value={field.value ?? ""} min={1} max={10080} onChange={(value) => field.onChange(value)} />
+                            </FormControl>
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name={`priorities.${index}.resolutionMinutes`} render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <LabeledNumberInput
+                                label="resol."
+                                value={field.value ?? ""}
+                                min={1}
+                                max={43200}
+                                onChange={(value) => {
+                                  field.onChange(value);
+                                  form.setValue(`priorities.${index}.slaHours`, Math.max(1, Math.ceil(value / 60)), { shouldDirty: true });
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )} />
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => prioritiesArray.remove(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="templates" className="mt-5">
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <MessageSquareText className="h-4 w-4 text-primary/70" />
+                        Respostas rapidas do atendimento
+                      </CardTitle>
+                      <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => templatesArray.append({ id: createOptionId("template"), label: "", value: "" })}>
+                        <Plus className="h-3.5 w-3.5" />
+                        Template
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {templatesArray.fields.map((fieldItem, index) => (
+                      <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_2.5rem]">
+                        <FormField control={form.control} name={`quickReplyTemplates.${index}.label`} render={({ field }) => (
+                          <FormItem>
+                            <FormControl><Input placeholder="Nome do template" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name={`quickReplyTemplates.${index}.value`} render={({ field }) => (
+                          <FormItem>
+                            <FormControl><Textarea rows={2} placeholder="Texto que sera inserido no editor" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => templatesArray.remove(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </section>
+
+          <aside className="min-w-0 space-y-5">
+            <Card className="border-border/60 bg-card/95">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Settings2 className="h-4 w-4 text-primary/70" />
+                  Painel de comando
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField control={form.control} name="defaultTeam" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fila padrao</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="SUPORTE">Suporte</SelectItem>
+                        <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="defaultPriority" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Prioridade inbound</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {priorities.map((priority) => (
+                          <SelectItem key={priority.id} value={priority.value}>{priority.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="defaultEnvironment" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ambiente padrao</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {environments.map((environment) => (
+                          <SelectItem key={environment.id} value={environment.value}>{environment.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <Separator />
+
+                <FormField control={form.control} name="autoAssignToCreator" render={({ field }) => (
+                  <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/10 p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel>Auto-atribuir internos</FormLabel>
+                      <FormDescription className="text-xs">Operador vira responsavel ao abrir chamado pelo portal.</FormDescription>
+                    </div>
+                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="autoResponseEnabled" render={({ field }) => (
+                  <FormItem className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>Auto resposta</FormLabel>
+                        <FormDescription className="text-xs">Mensagem enviada na abertura pelo cliente.</FormDescription>
+                      </div>
+                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                    </div>
+                  </FormItem>
+                )} />
+
+                {autoResponseEnabled && (
+                  <FormField control={form.control} name="autoResponseMessage" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mensagem automatica</FormLabel>
+                      <FormControl><Textarea rows={4} {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
+
+                <Button type="submit" disabled={isPending} className="h-10 w-full gap-2">
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {isPending ? "Salvando" : "Salvar configuracoes"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 bg-card/95">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Resumo operacional</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                <SummaryRow label="Fila padrao" value={defaultTeam === "DESENVOLVIMENTO" ? "Desenvolvimento" : "Suporte"} />
+                <SummaryRow label="Prioridade" value={priorities.find((priority) => priority.value === defaultPriority)?.label || defaultPriority} />
+                <SummaryRow label="Ambiente" value={environments.find((environment) => environment.value === defaultEnvironment)?.label || defaultEnvironment} />
+                <Separator />
+                <div className="grid grid-cols-2 gap-2">
+                  <Metric label="Categorias" value={categoriesArray.fields.length} />
+                  <Metric label="Equipes" value={teamsArray.fields.length} />
+                  <Metric label="Modulos" value={modulesArray.fields.length} />
+                  <Metric label="Templates" value={templatesArray.fields.length} />
+                </div>
+                {form.formState.isDirty && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-300">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    Existem alteracoes pendentes.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </aside>
         </form>
       </Form>
     </div>
   );
 }
 
-function Badge({ children, className, variant }: { children: React.ReactNode, className?: string, variant?: string }) {
-   return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${className}`}>{children}</span>
+function CatalogList({ title, onAdd, children }: { title: string; onAdd: () => void; children: ReactNode }) {
+  return (
+    <div className="min-w-0 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={onAdd}>
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function CompactOptionRow({
+  form,
+  labelName,
+  valueName,
+  labelPlaceholder,
+  valuePlaceholder,
+  onRemove,
+}: {
+  form: UseFormReturn<TicketModuleSettings>;
+  labelName: FieldPath<TicketModuleSettings>;
+  valueName: FieldPath<TicketModuleSettings>;
+  labelPlaceholder: string;
+  valuePlaceholder: string;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 rounded-lg border border-border/60 bg-muted/10 p-2">
+      <Input placeholder={labelPlaceholder} className="h-8 min-w-0 flex-1" {...form.register(labelName)} />
+      <Input placeholder={valuePlaceholder} className="h-8 w-24 shrink-0 text-xs" {...form.register(valueName)} />
+      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={onRemove}>
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+function LabeledNumberInput({ label, value, min, max, onChange }: { label: string; value: number | ""; min: number; max: number; onChange: (value: number) => void }) {
+  return (
+    <div className="relative">
+      <Input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(Number.parseInt(event.target.value, 10) || min)}
+        className="pr-16"
+      />
+      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="min-w-0 truncate font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
+    </div>
+  );
 }

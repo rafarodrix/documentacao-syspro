@@ -20,12 +20,31 @@ export const ticketModuleSettingsPrioritySchema = z.object({
   slaHours: z.number().int().positive(),
 });
 
+export const DEFAULT_TICKET_QUICK_REPLY_TEMPLATES = [
+  {
+    id: "request-access",
+    label: "Solicitar acesso",
+    value: "Para prosseguir, preciso de acesso ao ambiente/servidor onde o problema ocorre. Pode me encaminhar os dados ou liberar o acesso remoto?",
+  },
+  {
+    id: "integration-done",
+    label: "Integracao concluida",
+    value: "A integracao foi configurada e validada. Peco que realize um novo teste operacional e me sinalize caso encontre algum comportamento diferente.",
+  },
+  {
+    id: "analysis-running",
+    label: "Analise em andamento",
+    value: "Estou analisando os registros e retorno assim que identificar a causa ou o proximo ajuste necessario.",
+  },
+];
+
 export const ticketModuleSettingsSchema = z.object({
   categories: z.array(ticketModuleSettingsOptionSchema).min(1),
   priorities: z.array(ticketModuleSettingsPrioritySchema).min(1),
   teams: z.array(ticketModuleSettingsOptionSchema).min(1),
   modules: z.array(ticketModuleSettingsOptionSchema).min(1),
   environments: z.array(ticketModuleSettingsOptionSchema).min(1),
+  quickReplyTemplates: z.array(ticketModuleSettingsOptionSchema).default(DEFAULT_TICKET_QUICK_REPLY_TEMPLATES),
   autoAssignToCreator: z.boolean(),
   autoResponseEnabled: z.boolean(),
   autoResponseMessage: z.string(),
@@ -106,6 +125,7 @@ export const DEFAULT_TICKET_MODULE_SETTINGS: TicketModuleSettings = {
     { id: "staging", label: "Homologacao", value: "staging" },
     { id: "training", label: "Treinamento", value: "training" },
   ],
+  quickReplyTemplates: DEFAULT_TICKET_QUICK_REPLY_TEMPLATES,
   autoAssignToCreator: true,
   autoResponseEnabled: false,
   autoResponseMessage: "Ola! Recebemos sua solicitacao e nossa equipe ja esta ciente. Retornaremos em breve com uma analise detalhada.",

@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import dynamic from "next/dynamic";
+import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModuleSettings } from "@dosc-syspro/contracts/ticket";
 import { useTicketChat } from "@/features/tickets/interface";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -33,21 +34,6 @@ interface TicketChatProps {
     ticketStatus: string;
 }
 
-const quickTemplates = [
-    {
-        label: "Solicitar acesso",
-        body: "<p>Para prosseguir, preciso de acesso ao ambiente/servidor onde o problema ocorre. Pode me encaminhar os dados ou liberar o acesso remoto?</p>",
-    },
-    {
-        label: "Integracao concluida",
-        body: "<p>A integracao foi configurada e validada. Peco que realize um novo teste operacional e me sinalize caso encontre algum comportamento diferente.</p>",
-    },
-    {
-        label: "Analise em andamento",
-        body: "<p>Estou analisando os registros e retorno assim que identificar a causa ou o proximo ajuste necessario.</p>",
-    },
-];
-
 export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps) {
     const {
         message, setMessage, files, addFiles, removeFile,
@@ -56,6 +42,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
 
     const [messageMode, setMessageMode] = useState<"PUBLIC" | "INTERNAL">("PUBLIC");
     const [isDragging, setIsDragging] = useState(false);
+    const [quickTemplates, setQuickTemplates] = useState(DEFAULT_TICKET_MODULE_SETTINGS.quickReplyTemplates);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const isClosed = ["closed", "merged", "fechado", "resolvido", "finalizado", "recusado"].includes(
         (ticketStatus || "").toLowerCase(),
@@ -65,8 +52,25 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
     const conversationArticles = articles.filter((article) => !isHistoryArticle(article, isSystem));
     const composerIsInternal = messageMode === "INTERNAL";
 
+    useEffect(() => {
+        let active = true;
+
+        fetch("/api/platform/settings/tickets", { method: "GET", cache: "no-store" })
+            .then(async (response) => {
+                const json = (await response.json()) as { success?: boolean; data?: TicketModuleSettings };
+                if (!active || !json.success || !json.data?.quickReplyTemplates) return;
+                setQuickTemplates(json.data.quickReplyTemplates);
+            })
+            .catch(() => undefined);
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
     const insertTemplate = (body: string) => {
-        setMessage((current) => `${current || ""}${current ? "<p><br></p>" : ""}${body}`);
+        const html = body.trim().startsWith("<") ? body : `<p>${body}</p>`;
+        setMessage((current) => `${current || ""}${current ? "<p><br></p>" : ""}${html}`);
     };
 
     return (
@@ -151,7 +155,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                         <DropdownMenuLabel className="text-xs">Respostas rapidas</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         {quickTemplates.map((template) => (
-                                            <DropdownMenuItem key={template.label} className="text-xs" onClick={() => insertTemplate(template.body)}>
+                                            <DropdownMenuItem key={template.id} className="text-xs" onClick={() => insertTemplate(template.value)}>
                                                 {template.label}
                                             </DropdownMenuItem>
                                         ))}
@@ -236,8 +240,8 @@ function Timeline({
     scrollRef?: RefObject<HTMLDivElement | null>;
 }) {
     return (
-        <ScrollArea className="h-130 max-w-full bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40">
-            <div className="max-w-full space-y-6 p-4">
+        <ScrollArea className="h-130 w-full max-w-full overflow-x-hidden bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40">
+            <div className="w-full max-w-full space-y-6 overflow-x-hidden p-4">
                 {articles.length === 0 && (
                     <div className="rounded-lg border border-dashed bg-background/60 px-4 py-10 text-center text-sm text-muted-foreground">
                         {emptyLabel}
@@ -261,7 +265,7 @@ function Timeline({
                     }
 
                     return (
-                        <div key={article.id} className={cn("flex max-w-full gap-3", messageIsMe ? "ml-auto flex-row-reverse" : "mr-auto")}>
+                        <div key={article.id} className={cn("flex w-full max-w-full gap-3 overflow-hidden", messageIsMe ? "flex-row-reverse" : "flex-row")}>
                             <Avatar className="h-9 w-9 shrink-0 border shadow-sm">
                                 <AvatarFallback
                                     className={cn(
@@ -274,13 +278,13 @@ function Timeline({
                                 </AvatarFallback>
                             </Avatar>
 
-                            <div className={cn("flex min-w-0 max-w-[92%] flex-col", messageIsMe && "items-end")}>
-                                <div className="mb-1 flex max-w-full items-center gap-2 px-1">
-                                    <span className="max-w-55 truncate text-xs font-medium">
+                            <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", messageIsMe && "items-end")}>
+                                <div className={cn("mb-1 flex w-full max-w-full flex-wrap items-center gap-2 px-1", messageIsMe && "justify-end")}>
+                                    <span className="min-w-0 max-w-55 truncate text-xs font-medium">
                                         {messageIsMe ? "Voce" : article.from.split("<")[0]}
                                     </span>
                                     {article.isInternal && (
-                                        <span className="rounded bg-amber-100 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
+                                        <span className="max-w-full break-words rounded bg-amber-100 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
                                             Nota Interna
                                         </span>
                                     )}
@@ -289,9 +293,10 @@ function Timeline({
 
                                 <div
                                     className={cn(
-                                        "prose prose-sm max-w-full rounded-2xl p-3 text-sm shadow-sm [overflow-wrap:anywhere] break-words",
+                                        "prose prose-sm w-fit max-w-[min(100%,42rem)] rounded-2xl p-3 text-sm shadow-sm [overflow-wrap:anywhere] break-words [&_*]:max-w-full [&_*]:[overflow-wrap:anywhere]",
+                                        "[&_p]:whitespace-normal [&_p]:break-words [&_span]:break-words [&_strong]:break-words",
                                         "prose-pre:max-w-full prose-pre:overflow-x-auto prose-pre:rounded-lg prose-pre:border prose-pre:bg-black prose-pre:p-3 prose-pre:text-white",
-                                        "prose-a:break-all prose-code:break-all",
+                                        "prose-a:break-all prose-code:break-all prose-code:whitespace-pre-wrap",
                                         article.isInternal
                                             ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
                                             : messageIsMe

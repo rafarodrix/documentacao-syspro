@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import {
     AlertCircle,
     ArrowLeft,
+    Building2,
     Calendar,
+    Check,
     ChevronDown,
     ChevronUp,
     Clock3,
@@ -17,13 +19,15 @@ import {
     Flag,
     Hash,
     Loader2,
+    MoreHorizontal,
     Sparkles,
     Timer,
     UserRound,
     Video,
     Zap,
 } from "lucide-react";
-import { assignTicketToMeAction, triageTicketAction, unassignTicketToMeAction } from "@/features/tickets/application/ticket-actions";
+import type { TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
+import { assignTicketToMeAction, triageTicketAction, unassignTicketToMeAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
@@ -31,6 +35,14 @@ import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -48,8 +60,10 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [finalizeOpen, setFinalizeOpen] = useState(false);
     const backUrl = "/portal/tickets";
     const isClosedTicket = ticket ? isTicketClosed(ticket.status) : false;
+    const currentTicketStatus = ticket ? normalizeStatusValue(ticket.status) : null;
 
     const assignToMe = () => {
         if (!ticket) return;
@@ -77,6 +91,21 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
             const res = await triageTicketAction(String(ticket.id), { priority: "NORMAL" });
             if (res.success) toast.success("Triagem iniciada");
             else toast.error(res.error || "Erro na triagem");
+            router.refresh();
+        });
+    };
+
+    const changeStatus = (status: TicketModuleStatus) => {
+        if (!ticket) return;
+        if (status === "RESOLVED") {
+            setFinalizeOpen(true);
+            return;
+        }
+
+        startTransition(async () => {
+            const res = await updateTicketStatusAction(String(ticket.id), status);
+            if (res.success) toast.success("Status atualizado.");
+            else toast.error(res.error || "Erro ao atualizar status");
             router.refresh();
         });
     };
@@ -159,6 +188,8 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                     </button>
 
                     <div className={cn("space-y-4", sidebarCollapsed && "hidden lg:block")}>
+                        <CustomerContextCard ticket={ticket} />
+
                         <Card className="relative overflow-hidden border-border/60 bg-card/95">
                             <div className="absolute left-0 top-0 h-0.5 w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
                             <CardHeader className="pb-3">
@@ -169,17 +200,26 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             </CardHeader>
                             <CardContent className="space-y-4 pt-0">
                                 <section className="space-y-3">
-                                    <SidebarField label="Status atual" value={<StatusBadge status={ticket.status} />} />
+                                    <SidebarField
+                                        label="Status atual"
+                                        value={
+                                            <StatusDropdown
+                                                status={ticket.status}
+                                                disabled={!isAdmin || isClosedTicket || isPending}
+                                                onChange={changeStatus}
+                                            />
+                                        }
+                                    />
                                     <SidebarField label="Prioridade" value={<PriorityBadge priority={ticket.priority} />} />
                                 </section>
 
-                                {isAdmin && (
+                                {isAdmin && !isClosedTicket && (
                                     <>
                                         <Separator />
                                         <section className="space-y-2">
                                             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes de fluxo</p>
                                             <div className="flex flex-wrap gap-2">
-                                                {ticket.status === "Novo" && (
+                                                {currentTicketStatus === "NEW" && (
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -209,21 +249,25 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                                         Liberar
                                                     </Button>
                                                 )}
-                                                {!isClosedTicket && (
-                                                    <TransferTicketDialog
-                                                        ticketId={ticket.id}
-                                                        currentTeam={ticket.operations?.currentTeam || undefined}
-                                                        currentStatus={ticket.status}
-                                                    />
-                                                )}
-                                                <TicketFinalizeDialog
-                                                    ticket={ticket}
-                                                    trigger={
-                                                        <Button size="sm" variant="outline" className="h-8 gap-1 border-emerald-500/30 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700">
-                                                            <Flag className="h-3 w-3" /> Finalizar Ticket
-                                                        </Button>
-                                                    }
+                                                <TransferTicketDialog
+                                                    ticketId={ticket.id}
+                                                    currentTeam={ticket.operations?.currentTeam || undefined}
                                                 />
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuLabel className="text-xs">Mais acoes</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem className="text-xs text-emerald-600 focus:text-emerald-700" onSelect={() => setFinalizeOpen(true)}>
+                                                            <Flag className="h-3.5 w-3.5" />
+                                                            Finalizar ticket
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </section>
                                     </>
@@ -260,7 +304,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             </CardContent>
                         </Card>
 
-                        {(ticket.companyId || ticket.origin?.source || ticket.operations?.databaseUrl || ticket.operations?.developmentVideoUrl) && (
+                        {(ticket.origin?.source || ticket.operations?.databaseUrl || ticket.operations?.developmentVideoUrl) && (
                             <Card className="border-border/60 bg-card/95">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -276,15 +320,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                             </Badge>
                                         </div>
                                     )}
-                                    {ticket.companyId && (
-                                        <Button asChild variant="outline" size="sm" className="h-8 w-full justify-start gap-1.5 text-xs">
-                                            <Link href={`/portal/cadastros/empresa/${ticket.companyId}/editar`}>
-                                                <ExternalLink className="h-3 w-3" />
-                                                Ver cliente no ERP
-                                            </Link>
-                                        </Button>
-                                    )}
-                                    {ticket.companyName && <SidebarField label="Cliente" value={<span className="text-xs">{ticket.companyName}</span>} />}
                                     {ticket.origin?.contactName && <SidebarField label="Contato" value={<span className="text-xs">{ticket.origin.contactName}</span>} />}
                                     {ticket.origin?.contactPhone && <SidebarField label="Telefone" value={<span className="font-mono text-xs">{ticket.origin.contactPhone}</span>} />}
                                     {ticket.origin?.contactWhatsapp && <SidebarField label="WhatsApp" value={<span className="font-mono text-xs">{ticket.origin.contactWhatsapp}</span>} />}
@@ -297,6 +332,8 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                     </div>
                 </aside>
             </div>
+
+            <TicketFinalizeDialog ticket={ticket} open={finalizeOpen} onOpenChange={setFinalizeOpen} />
         </div>
     );
 }
@@ -315,9 +352,95 @@ function SidebarField({ label, value }: { label: string; value: ReactNode }) {
     );
 }
 
+function CustomerContextCard({ ticket }: { ticket: TicketDetailsItem }) {
+    const customerName = ticket.companyName || ticket.origin?.contactName || "Cliente nao identificado";
+    const href = ticket.companyId ? `/portal/cadastros/empresa/${ticket.companyId}/editar` : null;
+
+    return (
+        <Card className="border-border/60 bg-card/95">
+            <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                        <Building2 className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cliente</p>
+                        {href ? (
+                            <Link href={href} target="_blank" className="mt-0.5 inline-flex max-w-full items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+                                <span className="truncate">{customerName}</span>
+                                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                            </Link>
+                        ) : (
+                            <p className="mt-0.5 truncate text-sm font-semibold text-foreground">{customerName}</p>
+                        )}
+                        <p className="mt-1 font-mono text-[11px] text-muted-foreground">#{ticket.number}</p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 function DetailDate({ value, fallback }: { value?: string | null; fallback: string }) {
     if (!value) return <span className="text-xs text-muted-foreground">{fallback}</span>;
     return <span className="font-mono text-xs text-muted-foreground">{new Date(value).toLocaleString("pt-BR")}</span>;
+}
+
+const statusOptions: Array<{ value: TicketModuleStatus; label: string }> = [
+    { value: "TRIAGE", label: "Triagem" },
+    { value: "IN_PROGRESS", label: "Em andamento" },
+    { value: "TESTING", label: "Em teste" },
+    { value: "WAITING_CUSTOMER", label: "Pendente cliente" },
+    { value: "RESOLVED", label: "Resolvido" },
+];
+
+function normalizeStatusValue(status?: string | null): TicketModuleStatus | null {
+    const normalized = (status || "").trim().toLowerCase();
+    if (normalized === "novo" || normalized === "new") return "NEW";
+    if (normalized === "sem dono" || normalized === "unassigned") return "UNASSIGNED";
+    if (normalized === "triagem" || normalized === "triage") return "TRIAGE";
+    if (normalized === "em andamento" || normalized === "in_progress") return "IN_PROGRESS";
+    if (normalized === "em teste" || normalized === "testing") return "TESTING";
+    if (normalized === "pendente cliente" || normalized === "waiting_customer") return "WAITING_CUSTOMER";
+    if (normalized === "resolvido" || normalized === "resolved") return "RESOLVED";
+    if (normalized === "arquivado" || normalized === "archived") return "ARCHIVED";
+    return null;
+}
+
+function StatusDropdown({
+    status,
+    disabled,
+    onChange,
+}: {
+    status?: string | null;
+    disabled?: boolean;
+    onChange: (status: TicketModuleStatus) => void;
+}) {
+    const current = normalizeStatusValue(status);
+
+    if (disabled) {
+        return <StatusBadge status={status} />;
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button type="button" className={cn("inline-flex rounded-full", !disabled && "hover:opacity-85")}>
+                    <StatusBadge status={status} />
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-xs">Alterar status</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {statusOptions.map((option) => (
+                    <DropdownMenuItem key={option.value} className="text-xs" onSelect={() => onChange(option.value)}>
+                        <span className="flex-1">{option.label}</span>
+                        {current === option.value && <Check className="h-3.5 w-3.5 text-primary" />}
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
 }
 
 function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isClosedTicket: boolean }) {
@@ -331,7 +454,7 @@ function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isC
     }
 
     const tone = ticket.slaBreached ? "danger" : ticket.slaWarning ? "warning" : "ok";
-    const label = ticket.slaBreached ? "Tempo esgotado" : ticket.slaWarning ? `Alerta (${ticket.minutesToBreach} min)` : "No prazo";
+    const label = formatSlaDelta(ticket.minutesToBreach);
     const progress = ticket.slaBreached ? 100 : ticket.slaWarning ? 85 : 30;
 
     return (
@@ -354,7 +477,7 @@ function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isC
                 value={progress}
                 className={cn(
                     "h-2",
-                    tone === "danger" && "bg-rose-200 *:bg-rose-500",
+                    tone === "danger" && "bg-rose-200 *:animate-pulse *:bg-rose-500",
                     tone === "warning" && "bg-amber-200 *:bg-amber-500",
                     tone === "ok" && "bg-emerald-100 *:bg-emerald-500",
                 )}
@@ -362,6 +485,15 @@ function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isC
             <SidebarField label="Vence em" value={<span className="font-mono text-xs text-muted-foreground">{new Date(ticket.slaResolutionDueAt).toLocaleString("pt-BR")}</span>} />
         </section>
     );
+}
+
+function formatSlaDelta(minutes?: number) {
+    if (typeof minutes !== "number") return "Sem prazo";
+    const sign = minutes < 0 ? "-" : "";
+    const absolute = Math.abs(minutes);
+    const hours = Math.floor(absolute / 60);
+    const mins = absolute % 60;
+    return `${sign}${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}h`;
 }
 
 function ExternalTicketLink({ href, label, icon: Icon = ExternalLink }: { href: string; label: string; icon?: ComponentType<{ className?: string }> }) {

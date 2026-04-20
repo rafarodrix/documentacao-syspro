@@ -570,6 +570,31 @@ export async function triageTicketAction(ticketId: string, payload: TicketModule
   }
 }
 
+export async function updateTicketStatusAction(ticketId: string, status: TicketModuleStatus): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  if (status === "RESOLVED") {
+    return { success: false, error: "Use o fluxo de finalizacao para resolver o ticket." };
+  }
+
+  try {
+    const result = await updateTicketGateway(ticketId, { status });
+    if (!result.success) {
+      return { success: false, error: result.error || "Falha ao atualizar status." };
+    }
+
+    revalidateTicketCollections();
+    revalidateTicketViews(ticketId);
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em updateTicketStatusAction:", error);
+    return { success: false, error: "Falha ao atualizar status." };
+  }
+}
+
 export async function getUserLinkedCompaniesAction() {
   const session = await getProtectedSession();
   if (!session) return { success: false, data: [] };
