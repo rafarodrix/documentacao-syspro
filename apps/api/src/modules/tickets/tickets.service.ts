@@ -32,6 +32,15 @@ import {
 } from './ticket-contract.mapper';
 import { AuthorizationService } from '../authorization/authorization.service';
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 @Injectable()
 export class TicketsService {
   constructor(
@@ -127,6 +136,7 @@ export class TicketsService {
     const normalizedCategory = data.category?.trim() || null;
     const normalizedModule = data.module?.trim() || null;
     const normalizedTeam = this.resolveTicketTeam(data.team, requester.role, settings, normalizedCategory, isSystemAdmin);
+    const databaseUrl = data.databaseUrl?.trim() || null;
     const developmentVideoUrl = data.developmentVideoUrl?.trim() || null;
     const openedByName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const assignedUserId = settings.autoAssignToCreator && isSystemAdmin ? requester.userId : null;
@@ -150,6 +160,7 @@ export class TicketsService {
       slaPolicyName: slaPolicy.name,
       slaFirstResponseMinutes: slaPolicy.firstResponseMinutes,
       slaResolutionMinutes: slaPolicy.resolutionMinutes,
+      databaseUrl,
       developmentVideoUrl,
       supportOwnerUserId: normalizedTeam === 'SUPORTE' && assignedUserId ? requester.userId : null,
       supportOwnerName: normalizedTeam === 'SUPORTE' && assignedUserId ? openedByName : null,
@@ -170,13 +181,27 @@ export class TicketsService {
       }
     ];
 
-    if (developmentVideoUrl) {
+    if (databaseUrl) {
+      const safeDatabaseUrl = escapeHtml(databaseUrl);
       messagesToCreate.push({
         direction: TicketMessageDirection.INTERNAL,
         type: TicketMessageType.SYSTEM_EVENT,
         authorKind: TicketParticipantKind.USER,
         authorUser: { connect: { id: requester.userId } },
-        body: `**Recurso de Diagnóstico (Vídeo):**\n${developmentVideoUrl}`,
+        body: `<p><strong>Recurso tecnico: base de dados</strong></p><p><a href="${safeDatabaseUrl}" target="_blank" rel="noopener noreferrer">${safeDatabaseUrl}</a></p>`,
+        status: TicketMessageStatus.SENT,
+        sentAt: new Date(now.getTime() + 1000),
+      });
+    }
+
+    if (developmentVideoUrl) {
+      const safeDevelopmentVideoUrl = escapeHtml(developmentVideoUrl);
+      messagesToCreate.push({
+        direction: TicketMessageDirection.INTERNAL,
+        type: TicketMessageType.SYSTEM_EVENT,
+        authorKind: TicketParticipantKind.USER,
+        authorUser: { connect: { id: requester.userId } },
+        body: `<p><strong>Recurso tecnico: video explicativo</strong></p><p><a href="${safeDevelopmentVideoUrl}" target="_blank" rel="noopener noreferrer">${safeDevelopmentVideoUrl}</a></p>`,
         status: TicketMessageStatus.SENT,
         sentAt: new Date(now.getTime() + 2000), // slightly after
       });
@@ -656,12 +681,17 @@ export class TicketsService {
       if (input.category !== undefined) currentMetadata.category = input.category?.trim() || null;
       if (input.module !== undefined) currentMetadata.module = input.module?.trim() || null;
       if (input.status !== undefined) {
+        const isClosingStatus = input.status === TicketStatus.RESOLVED || input.status === TicketStatus.ARCHIVED;
         data.status = input.status;
-        data.closedAt =
-          input.status === TicketStatus.RESOLVED || input.status === TicketStatus.ARCHIVED ? new Date() : null;
+        data.closedAt = isClosingStatus ? new Date() : null;
         data.resolvedByUserId = input.status === TicketStatus.RESOLVED ? requester.userId : null;
         if (input.status === TicketStatus.RESOLVED) {
           data.slaResolutionHitAt = new Date();
+        }
+        if (!isClosingStatus) {
+          data.slaResolutionHitAt = null;
+          delete currentMetadata.resolvedByName;
+          delete currentMetadata.resolvedByRole;
         }
         if (input.status === TicketStatus.RESOLVED) {
           const resolver = await tx.user.findUnique({

@@ -22,7 +22,6 @@ import {
     Sparkles,
     Timer,
     UserRound,
-    Video,
     Zap,
 } from "lucide-react";
 import type { TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
@@ -103,8 +102,8 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
         startTransition(async () => {
             const res = await updateTicketStatusAction(String(ticket.id), status);
-            if (res.success) toast.success("Status atualizado.");
-            else toast.error(res.error || "Erro ao atualizar status");
+            if (res.success) toast.success("Estagio atualizado.");
+            else toast.error(res.error || "Erro ao atualizar estagio");
             router.refresh();
         });
     };
@@ -135,6 +134,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     }
 
     const currentUserOwnsTicket = ticket.ownerId && String(ticket.ownerId) === String(currentUserId);
+    const timelineArticles = withTechnicalResourceArticles(articles || [], ticket);
 
     return (
         <div className="mx-auto max-w-[1440px] animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -170,7 +170,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
             <div className="grid grid-cols-1 gap-6 px-4 pb-10 md:px-0 lg:grid-cols-12">
                 <div className="min-w-0 space-y-6 lg:col-span-8">
-                    <TicketChat ticketId={String(ticket.id)} articles={articles || []} ticketStatus={ticket.status || ""} />
+                    <TicketChat ticketId={String(ticket.id)} articles={timelineArticles} ticketStatus={ticket.status || ""} />
                 </div>
 
                 <aside className="min-w-0 space-y-4 lg:col-span-4">
@@ -200,11 +200,11 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             <CardContent className="space-y-4 pt-0">
                                 <section className="space-y-3">
                                     <SidebarField
-                                        label="Status atual"
+                                        label="Estagio atual"
                                         value={
                                             <StatusDropdown
                                                 status={ticket.status}
-                                                disabled={!isAdmin || isClosedTicket || isPending}
+                                                disabled={!isAdmin || isPending}
                                                 onChange={changeStatus}
                                             />
                                         }
@@ -212,11 +212,11 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                     <SidebarField label="Prioridade" value={<PriorityBadge priority={ticket.priority} />} />
                                 </section>
 
-                                {isAdmin && !isClosedTicket && (
+                                {isAdmin && (
                                     <>
                                         <Separator />
                                         <section className="space-y-2">
-                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes de fluxo</p>
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{isClosedTicket ? "Correcoes de fluxo" : "Acoes de fluxo"}</p>
                                             <div className="flex flex-wrap gap-2">
                                                 {currentTicketStatus === "NEW" && (
                                                     <Button
@@ -252,21 +252,23 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                                     ticketId={ticket.id}
                                                     currentTeam={ticket.operations?.currentTeam || undefined}
                                                 />
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0">
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-48">
-                                                        <DropdownMenuLabel className="text-xs">Mais acoes</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className="text-xs text-emerald-600 focus:text-emerald-700" onSelect={() => setFinalizeOpen(true)}>
-                                                            <Flag className="h-3.5 w-3.5" />
-                                                            Finalizar ticket
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                {!isClosedTicket && (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0">
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="w-48">
+                                                            <DropdownMenuLabel className="text-xs">Mais acoes</DropdownMenuLabel>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem className="text-xs text-emerald-600 focus:text-emerald-700" onSelect={() => setFinalizeOpen(true)}>
+                                                                <Flag className="h-3.5 w-3.5" />
+                                                                Finalizar ticket
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                )}
                                             </div>
                                         </section>
                                     </>
@@ -289,7 +291,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
                                 <Separator />
                                 <section className="space-y-3">
-                                    {ticket.operations?.currentTeam && <SidebarField label="Setor" value={<span className="text-xs">{ticket.operations.currentTeam}</span>} />}
+                                    {ticket.operations?.currentTeam && <SidebarField label="Setor atual" value={<span className="text-xs">{ticket.operations.currentTeam}</span>} />}
                                     {ticket.operations?.module && <SidebarField label="Modulo" value={<span className="text-xs">{ticket.operations.module}</span>} />}
                                     {ticket.operations?.category && <SidebarField label="Categoria" value={<span className="text-xs">{ticket.operations.category}</span>} />}
                                     {ticket.operations?.openedByName && <SidebarField label="Operador" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />}
@@ -302,7 +304,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             </CardContent>
                         </Card>
 
-                        {(ticket.origin?.source || ticket.operations?.developmentVideoUrl) && (
+                        {(ticket.origin?.source || ticket.origin?.contactName || ticket.origin?.contactPhone || ticket.origin?.contactWhatsapp || ticket.origin?.chatwootConversationUrl) && (
                             <Card className="border-border/60 bg-card/95">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -322,7 +324,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                     {ticket.origin?.contactPhone && <SidebarField label="Telefone" value={<span className="font-mono text-xs">{ticket.origin.contactPhone}</span>} />}
                                     {ticket.origin?.contactWhatsapp && <SidebarField label="WhatsApp" value={<span className="font-mono text-xs">{ticket.origin.contactWhatsapp}</span>} />}
                                     {ticket.origin?.chatwootConversationUrl && <ExternalTicketLink href={ticket.origin.chatwootConversationUrl} label="Ver conversa no Chatwoot" />}
-                                    {ticket.operations?.developmentVideoUrl && <ExternalTicketLink href={ticket.operations.developmentVideoUrl} label="Abrir video tecnico" icon={Video} />}
                                 </CardContent>
                             </Card>
                         )}
@@ -338,6 +339,41 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 function isTicketClosed(status?: string | null) {
     const normalized = (status || "").toLowerCase();
     return ["resolvido", "fechado", "arquivado", "finalizado"].some((item) => normalized.includes(item));
+}
+
+function withTechnicalResourceArticles(articles: TicketArticleItem[], ticket: TicketDetailsItem): TicketArticleItem[] {
+    const resources = [
+        { id: "database", label: "Base de dados", url: ticket.operations?.databaseUrl },
+        { id: "video", label: "Video tecnico", url: ticket.operations?.developmentVideoUrl },
+    ].filter((resource): resource is { id: string; label: string; url: string } => Boolean(resource.url));
+
+    if (!resources.length) return articles;
+
+    const synthetic = resources
+        .filter((resource) => !articles.some((article) => article.body.includes(resource.url)))
+        .map((resource): TicketArticleItem => {
+            const safeUrl = escapeHtml(resource.url);
+            return {
+                id: `technical-resource-${resource.id}`,
+                from: "Sistema",
+                body: `<p><strong>Recurso tecnico: ${resource.label}</strong></p><p><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a></p>`,
+                createdAt: ticket.updatedAt ? new Date(ticket.updatedAt).toLocaleString("pt-BR") : ticket.createdAt,
+                sender: "Agent",
+                isInternal: true,
+                messageType: "TEXT",
+            };
+        });
+
+    return synthetic.length ? [...articles, ...synthetic] : articles;
+}
+
+function escapeHtml(value: string) {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 }
 
 function SidebarField({ label, value }: { label: string; value: ReactNode }) {

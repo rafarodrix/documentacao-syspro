@@ -89,6 +89,8 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     setSelectedModule,
     selectedTeam,
     setSelectedTeam,
+    databaseUrl,
+    setDatabaseUrl,
     developmentVideoUrl,
     setDevelopmentVideoUrl,
   } = useTicketDialog(() => setOpen(false), { isSystemUser });
@@ -480,6 +482,15 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                       <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
                         <Loader2 className="w-3 h-3" /> Integrações e Debug
                       </div>
+                      <FormItem>
+                        <Label className="text-xs">URL da Base de Dados</Label>
+                        <Input
+                          value={databaseUrl}
+                          onChange={(event) => setDatabaseUrl(event.target.value)}
+                          placeholder="https://console.pve... ou IP SSH"
+                          className="bg-white dark:bg-muted/30 border-border/60 text-xs"
+                        />
+                      </FormItem>
                       <FormItem>
                         <Label className="text-xs">Gravação de Erro (Loom/Youtube)</Label>
                         <Input

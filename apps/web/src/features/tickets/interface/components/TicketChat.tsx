@@ -223,7 +223,12 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
 }
 
 function isHistoryArticle(article: TicketArticleItem, isSystem: (from: string) => boolean) {
-    return article.messageType === "SYSTEM_EVENT" || isSystem(article.from);
+    return (article.messageType === "SYSTEM_EVENT" || isSystem(article.from)) && !isTechnicalResourceArticle(article);
+}
+
+function isTechnicalResourceArticle(article: TicketArticleItem) {
+    const body = article.body.toLowerCase();
+    return body.includes("recurso tecnico") || body.includes("recurso de diagnostico") || body.includes("recurso de diagnóstico");
 }
 
 function Timeline({
@@ -249,8 +254,9 @@ function Timeline({
                 )}
 
                 {articles.map((article) => {
-                    const messageIsMe = article.sender === "Agent" || isMe(article.from);
-                    const messageIsSystem = isSystem(article.from) || article.messageType === "SYSTEM_EVENT";
+                    const technicalResource = isTechnicalResourceArticle(article);
+                    const messageIsMe = !technicalResource && (article.sender === "Agent" || isMe(article.from));
+                    const messageIsSystem = (isSystem(article.from) || article.messageType === "SYSTEM_EVENT") && !technicalResource;
 
                     if (messageIsSystem) {
                         return (

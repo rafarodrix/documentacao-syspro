@@ -136,6 +136,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
   const [selectedModule, setSelectedModule] = useState(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
   const [selectedTeam, setSelectedTeam] = useState<TicketTeam>(isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE");
+  const [databaseUrl, setDatabaseUrl] = useState("");
   const [developmentVideoUrl, setDevelopmentVideoUrl] = useState("");
 
   const form = useForm<TicketFormInput, undefined, TicketFormOutput>({
@@ -367,6 +368,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
         if (selectedCategory) formData.append("category", selectedCategory);
         if (selectedModule) formData.append("module", selectedModule);
         if (selectedTeam) formData.append("team", selectedTeam);
+        if (databaseUrl.trim()) formData.append("databaseUrl", databaseUrl.trim());
         if (developmentVideoUrl.trim()) formData.append("developmentVideoUrl", developmentVideoUrl.trim());
         files.forEach((file) => formData.append("attachments", file));
 
@@ -572,7 +574,17 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                         <Paperclip className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <div className="grid gap-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="databaseUrl">Link da base de dados</Label>
+                        <Input
+                          id="databaseUrl"
+                          value={databaseUrl}
+                          onChange={(event) => setDatabaseUrl(event.target.value)}
+                          placeholder="URL ou caminho interno"
+                          className="h-10 border-border/60 bg-background"
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="developmentVideoUrl">Video explicativo</Label>
                         <Input

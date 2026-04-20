@@ -41,6 +41,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const [selectedTeam, setSelectedTeam] = useState<string>(
         options.isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE",
     );
+    const [databaseUrl, setDatabaseUrl] = useState("");
     const [developmentVideoUrl, setDevelopmentVideoUrl] = useState("");
     const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -209,6 +210,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 if (selectedCategory) formData.append("category", selectedCategory);
                 if (selectedModule) formData.append("module", selectedModule);
                 if (selectedTeam) formData.append("team", selectedTeam);
+                if (databaseUrl.trim()) formData.append("databaseUrl", databaseUrl.trim());
                 if (developmentVideoUrl.trim()) formData.append("developmentVideoUrl", developmentVideoUrl.trim());
                 const source = searchParams?.get("source") || "";
                 const chatwootConversationId = searchParams?.get("chatwootConversationId") || "";
@@ -242,6 +244,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                     setCustomerEmail("");
                     setCustomerCompany(null);
                     setSearchQuery("");
+                    setDatabaseUrl("");
                     setDevelopmentVideoUrl("");
                     if (clientCompanies.length > 0) {
                         setSelectedCompanyId(clientCompanies.length === 1 ? clientCompanies[0].id : "");
@@ -285,6 +288,8 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         setSelectedModule,
         selectedTeam,
         setSelectedTeam,
+        databaseUrl,
+        setDatabaseUrl,
         developmentVideoUrl,
         setDevelopmentVideoUrl,
     };

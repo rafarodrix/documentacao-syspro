@@ -67,6 +67,7 @@ export const ticketModuleCreateRequestSchema = z.object({
   category: optionalTrimmedStringSchema,
   module: optionalTrimmedStringSchema,
   team: optionalTrimmedStringSchema,
+  databaseUrl: optionalTrimmedStringSchema,
   developmentVideoUrl: optionalTrimmedStringSchema,
 });
 

@@ -40,5 +40,7 @@ export class CreateTicketDto implements TicketModuleCreateRequest {
 
   team?: string;
 
+  databaseUrl?: string;
+
   developmentVideoUrl?: string;
 }

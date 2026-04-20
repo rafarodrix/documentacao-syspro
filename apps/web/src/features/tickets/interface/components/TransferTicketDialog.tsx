@@ -42,7 +42,7 @@ export function TransferTicketDialog({ ticketId, currentTeam }: TransferTicketPo
         });
 
         if (result.success) {
-          toast.success("Fila atualizada.");
+          toast.success("Setor atualizado.");
           setOpen(false);
           setHandoffNote("");
           router.refresh();
@@ -59,13 +59,13 @@ export function TransferTicketDialog({ ticketId, currentTeam }: TransferTicketPo
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button id="transfer-ticket-btn" size="sm" variant="outline" className="h-8 gap-1 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors text-xs">
-          <ArrowRightLeft className="h-3 w-3" /> Fila
+          <ArrowRightLeft className="h-3 w-3" /> Setor
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2" align="end" sideOffset={8}>
         <div className="space-y-2">
           <div className="space-y-1">
-            <h4 className="px-2 pt-1 text-sm font-medium leading-none">Trocar fila</h4>
+            <h4 className="px-2 pt-1 text-sm font-medium leading-none">Trocar setor</h4>
             <p className="px-2 text-xs text-muted-foreground">Selecione o setor de destino.</p>
           </div>
           <div className="space-y-1">
