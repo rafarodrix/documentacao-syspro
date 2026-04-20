@@ -245,7 +245,7 @@ function Timeline({
     scrollRef?: RefObject<HTMLDivElement | null>;
 }) {
     return (
-        <ScrollArea className="h-[32.5rem] w-full max-w-full overflow-hidden bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40 [&_[data-radix-scroll-area-viewport]]:overflow-x-hidden">
+        <ScrollArea className="h-130 w-full max-w-full overflow-hidden bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40 **:data-radix-scroll-area-viewport:overflow-x-hidden">
             <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden p-4">
                 {articles.length === 0 && (
                     <div className="rounded-lg border border-dashed bg-background/60 px-4 py-10 text-center text-sm text-muted-foreground">
@@ -261,9 +261,9 @@ function Timeline({
                     if (messageIsSystem) {
                         return (
                             <div key={article.id} className="flex min-w-0 max-w-full justify-center overflow-hidden">
-                                <span className="flex min-w-0 max-w-full items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-xs text-muted-foreground shadow-sm [overflow-wrap:anywhere]">
+                                <span className="flex min-w-0 max-w-full items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-xs text-muted-foreground shadow-sm wrap-anywhere">
                                     <Bot className="h-3 w-3 shrink-0" />
-                                    <span className="min-w-0 break-words [overflow-wrap:anywhere]">{stripHtml(article.body)}</span>
+                                    <span className="min-w-0 wrap-anywhere">{stripHtml(article.body)}</span>
                                     <span className="shrink-0 opacity-70">* {article.createdAt}</span>
                                 </span>
                             </div>
@@ -290,7 +290,7 @@ function Timeline({
                                         {messageIsMe ? "Voce" : article.from.split("<")[0]}
                                     </span>
                                     {article.isInternal && (
-                                        <span className="max-w-full break-words rounded bg-amber-100 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
+                                        <span className="max-w-full wrap-break-word rounded bg-amber-100 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
                                             Nota Interna
                                         </span>
                                     )}
@@ -299,9 +299,9 @@ function Timeline({
 
                                 <div
                                     className={cn(
-                                        "prose prose-sm min-w-0 w-fit !max-w-[min(100%,42rem)] rounded-2xl p-3 text-sm shadow-sm [overflow-wrap:anywhere] break-words [&_*]:max-w-full [&_*]:[overflow-wrap:anywhere]",
-                                        "[&_p]:whitespace-normal [&_p]:break-words [&_span]:break-words [&_strong]:break-words",
-                                        "prose-pre:max-w-full prose-pre:overflow-x-hidden prose-pre:rounded-lg prose-pre:border prose-pre:bg-black prose-pre:p-3 prose-pre:text-white prose-pre:[white-space:pre-wrap]",
+                                        "prose prose-sm min-w-0 w-fit max-w-[min(100%,42rem)]! rounded-2xl p-3 text-sm shadow-sm wrap-anywhere **:max-w-full **:wrap-anywhere",
+                                        "[&_p]:whitespace-normal [&_p]:wrap-break-word [&_span]:wrap-break-word [&_strong]:wrap-break-word",
+                                        "prose-pre:max-w-full prose-pre:overflow-x-hidden prose-pre:rounded-lg prose-pre:border prose-pre:bg-black prose-pre:p-3 prose-pre:text-white prose-pre:whitespace-pre-wrap",
                                         "prose-a:break-all prose-code:break-all prose-code:whitespace-pre-wrap",
                                         article.isInternal
                                             ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"

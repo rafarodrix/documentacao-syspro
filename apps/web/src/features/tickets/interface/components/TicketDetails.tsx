@@ -165,7 +165,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const categoryOptions = getCategoriesForTeam(ticketSettings.categories, currentTeam, currentCategory);
 
     return (
-        <div className="mx-auto max-w-[1440px] animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="mx-auto max-w-360 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="mb-4 flex items-center gap-3 px-4 md:px-0">
                 <Button variant="ghost" size="icon" asChild className="h-9 w-9 shrink-0 rounded-full hover:bg-muted/80">
                     <Link href={backUrl}>
@@ -183,7 +183,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
             </div>
 
             <div className="mb-6 px-4 md:px-0">
-                <h1 className="max-w-full break-words text-xl font-bold leading-snug tracking-tight text-foreground md:text-2xl">{ticket.title}</h1>
+                <h1 className="max-w-full wrap-break-word text-xl font-bold leading-snug tracking-tight text-foreground md:text-2xl">{ticket.title}</h1>
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                         <Clock3 className="h-3 w-3" /> Criado em {ticket.createdAt}
@@ -218,7 +218,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                         <CustomerContextCard ticket={ticket} />
 
                         <Card className="relative overflow-hidden border-border/60 bg-card/95">
-                            <div className="absolute left-0 top-0 h-0.5 w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+                            <div className="absolute left-0 top-0 h-0.5 w-full bg-linear-to-r from-transparent via-primary/40 to-transparent" />
                             <CardHeader className="pb-3">
                                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                                     <Sparkles className="h-3.5 w-3.5 text-primary/70" />
@@ -382,7 +382,7 @@ function SidebarField({ label, value }: { label: string; value: ReactNode }) {
     return (
         <div className="flex items-center justify-between gap-3">
             <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-            <div className="min-w-0 text-right break-words">{value}</div>
+            <div className="min-w-0 text-right wrap-break-word">{value}</div>
         </div>
     );
 }
@@ -536,11 +536,11 @@ function NativeSelectPill({
             <SelectTrigger
                 id={id}
                 aria-label={label}
-                className="h-7 w-auto max-w-[190px] rounded-full border-border/70 bg-muted/20 px-2.5 py-0 text-right text-xs font-medium text-foreground shadow-none hover:border-primary/40 hover:bg-primary/10 focus:ring-2 focus:ring-primary/15 [&>svg]:ml-1.5 [&>svg]:h-3 [&>svg]:w-3"
+                className="h-7 w-auto max-w-47.5 rounded-full border-border/70 bg-muted/20 px-2.5 py-0 text-right text-xs font-medium text-foreground shadow-none hover:border-primary/40 hover:bg-primary/10 focus:ring-2 focus:ring-primary/15 [&>svg]:ml-1.5 [&>svg]:h-3 [&>svg]:w-3"
             >
                 <SelectValue />
             </SelectTrigger>
-            <SelectContent align="end" className="z-[80] min-w-[170px] border-border/70 bg-popover text-popover-foreground">
+            <SelectContent align="end" className="z-80 min-w-42.5 border-border/70 bg-popover text-popover-foreground">
                 {normalizedOptions.map((option, index) => (
                     <SelectItem key={`${option.value}-${index}`} value={option.value} className="text-xs">
                         {option.label}
