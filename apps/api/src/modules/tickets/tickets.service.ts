@@ -441,7 +441,7 @@ export class TicketsService {
     } else if (input.statusGroup && input.statusGroup !== 'all') {
       const statusesByGroup: Record<'open' | 'pending' | 'closed', TicketStatus[]> = {
         open: [TicketStatus.NEW, TicketStatus.UNASSIGNED],
-        pending: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER],
+        pending: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER, TicketStatus.WAITING_INTERNAL],
         closed: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED],
       };
       where.status = { in: statusesByGroup[input.statusGroup] };
@@ -468,7 +468,7 @@ export class TicketsService {
     }
 
     const openStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.NEW, TicketStatus.UNASSIGNED] } };
-    const pendingStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER] } };
+    const pendingStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER, TicketStatus.WAITING_INTERNAL] } };
     const closedStatusWhere: Prisma.ConversationWhereInput = {
       ...teamScopeWhere,
       status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
@@ -629,9 +629,18 @@ export class TicketsService {
     const releaseTitle = input.releaseTitle?.trim();
     const releaseModule = input.releaseModule?.trim();
     const publishToReleases = input.publishToReleases;
+    const requestedTeam =
+      input.team !== undefined
+        ? this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal)
+        : undefined;
+    const handoffNote = input.note?.trim();
 
     if (publishToReleases && !resolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
+    }
+
+    if (requestedTeam === 'DESENVOLVIMENTO' && (!handoffNote || handoffNote.length < 20)) {
+      throw new BadRequestException('Nota de contexto obrigatoria ao transferir para Desenvolvimento (min. 20 caracteres).');
     }
 
     if (publishToReleases && !releaseType) {
@@ -658,7 +667,7 @@ export class TicketsService {
           : {};
 
       if (input.team !== undefined) {
-        currentMetadata.currentTeam = this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal);
+        currentMetadata.currentTeam = requestedTeam;
       }
       if (input.category !== undefined) currentMetadata.category = input.category?.trim() || null;
       if (input.module !== undefined) currentMetadata.module = input.module?.trim() || null;
@@ -708,7 +717,7 @@ export class TicketsService {
             currentMetadata.currentOwnerRole = assignee.role;
             const targetTeam =
               input.team !== undefined
-                ? this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal)
+                ? requestedTeam
                 : assignee.role === Role.DEVELOPER
                   ? 'DESENVOLVIMENTO'
                   : 'SUPORTE';
@@ -744,6 +753,21 @@ export class TicketsService {
             assignedByUserId: requester.userId,
             assignmentType: TicketAssignmentType.MANUAL,
             status: TicketAssignmentStatus.ACTIVE,
+          },
+        });
+      }
+
+      if (requestedTeam) {
+        await tx.conversationMessage.create({
+          data: {
+            conversationId: id,
+            direction: TicketMessageDirection.INTERNAL,
+            type: TicketMessageType.SYSTEM_EVENT,
+            authorKind: TicketParticipantKind.USER,
+            authorUserId: requester.userId,
+            body: `Transferido para a fila **${requestedTeam}**.${handoffNote ? `\n\nNota: ${handoffNote}` : ''}`,
+            status: TicketMessageStatus.SENT,
+            sentAt: new Date(),
           },
         });
       }

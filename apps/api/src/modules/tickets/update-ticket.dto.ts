@@ -30,4 +30,6 @@ export class UpdateTicketDto implements TicketModuleUpdateRequest {
   environment?: string;
 
   team?: string;
+
+  note?: string;
 }

@@ -88,6 +88,7 @@ function mapTicketStatus(status: string): DashboardTicketSummary['status'] {
     case 'ARCHIVED':
       return 'Resolvido';
     case 'WAITING_CUSTOMER':
+    case 'WAITING_INTERNAL':
       return 'Pendente';
     case 'IN_PROGRESS':
     case 'UNASSIGNED':

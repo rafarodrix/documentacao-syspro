@@ -391,6 +391,7 @@ const statusOptions: Array<{ value: TicketModuleStatus; label: string }> = [
     { value: "IN_PROGRESS", label: "Em andamento" },
     { value: "TESTING", label: "Em teste" },
     { value: "WAITING_CUSTOMER", label: "Pendente cliente" },
+    { value: "WAITING_INTERNAL", label: "Aguardando interno" },
     { value: "RESOLVED", label: "Resolvido" },
 ];
 
@@ -402,6 +403,7 @@ function normalizeStatusValue(status?: string | null): TicketModuleStatus | null
     if (normalized === "em andamento" || normalized === "in_progress") return "IN_PROGRESS";
     if (normalized === "em teste" || normalized === "testing") return "TESTING";
     if (normalized === "pendente cliente" || normalized === "waiting_customer") return "WAITING_CUSTOMER";
+    if (normalized === "aguardando interno" || normalized === "waiting_internal") return "WAITING_INTERNAL";
     if (normalized === "resolvido" || normalized === "resolved") return "RESOLVED";
     if (normalized === "arquivado" || normalized === "archived") return "ARCHIVED";
     return null;
@@ -453,21 +455,22 @@ function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isC
         );
     }
 
-    const tone = ticket.slaBreached ? "danger" : ticket.slaWarning ? "warning" : "ok";
-    const label = formatSlaDelta(ticket.minutesToBreach);
-    const progress = ticket.slaBreached ? 100 : ticket.slaWarning ? 85 : 30;
+    const tone = ticket.slaPaused ? "paused" : ticket.slaBreached ? "danger" : ticket.slaWarning ? "warning" : "ok";
+    const label = ticket.slaPaused ? "Pausado" : formatSlaDelta(ticket.minutesToBreach);
+    const progress = ticket.slaPaused ? 50 : ticket.slaBreached ? 100 : ticket.slaWarning ? 85 : 30;
 
     return (
         <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">
                 <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <Timer className={cn("h-3.5 w-3.5", tone === "danger" ? "text-rose-500" : tone === "warning" ? "text-amber-500" : "text-emerald-500")} />
+                    <Timer className={cn("h-3.5 w-3.5", tone === "danger" ? "text-rose-500" : tone === "warning" || tone === "paused" ? "text-amber-500" : "text-emerald-500")} />
                     SLA
                 </p>
                 <Badge variant="outline" className={cn(
                     "rounded-full px-2 text-[10px]",
                     tone === "danger" && "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
                     tone === "warning" && "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                    tone === "paused" && "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400",
                     tone === "ok" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
                 )}>
                     {label}
@@ -479,6 +482,7 @@ function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isC
                     "h-2",
                     tone === "danger" && "bg-rose-200 *:animate-pulse *:bg-rose-500",
                     tone === "warning" && "bg-amber-200 *:bg-amber-500",
+                    tone === "paused" && "bg-orange-100 *:bg-orange-500",
                     tone === "ok" && "bg-emerald-100 *:bg-emerald-500",
                 )}
             />

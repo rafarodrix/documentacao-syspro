@@ -30,7 +30,6 @@ type TicketRecordSource = {
   resolutionSummary?: string | null;
   resolutionVideoUrl?: string | null;
   releaseType?: string | null;
-  releaseTitle?: string | null;
   releaseModule?: string | null;
   publishToReleases?: boolean | null;
   externalThreadId?: string | null;
@@ -100,6 +99,12 @@ function toMetadata(metadata: unknown): NullableRecord {
   return metadata as NullableRecord;
 }
 
+function readMetadataString(metadata: unknown, key: string): string | null {
+  const record = toMetadata(metadata);
+  const value = record?.[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
 function toMessage(message: NonNullable<TicketRecordSource['messages']>[number]): TicketModuleMessage {
   return {
     id: message.id,
@@ -133,9 +138,7 @@ export function serializeTicketRecord(ticket: TicketRecordSource): TicketModuleR
     resolutionSummary: ticket.resolutionSummary ?? null,
     resolutionVideoUrl: ticket.resolutionVideoUrl ?? null,
     releaseType: ticket.releaseType ?? null,
-    releaseTitle: typeof ticket.metadata === 'object' && ticket.metadata && !Array.isArray(ticket.metadata) && typeof (ticket.metadata as Record<string, unknown>).releaseTitle === 'string'
-      ? ((ticket.metadata as Record<string, unknown>).releaseTitle as string)
-      : null,
+    releaseTitle: readMetadataString(ticket.metadata, 'releaseTitle'),
     releaseModule: ticket.releaseModule ?? null,
     publishToReleases: Boolean(ticket.publishToReleases),
     externalThreadId: ticket.externalThreadId ?? null,
@@ -178,9 +181,6 @@ export function serializeTicketListResponse(input: {
   statusCounts?: TicketModuleListResponse['statusCounts'];
 }): TicketModuleListResponse {
   const { items, page, pageSize, total, requesterUserId } = input;
-  const openCount = items.filter((item) => ['NEW', 'UNASSIGNED'].includes(item.status)).length;
-  const pendingCount = items.filter((item) => ['TRIAGE', 'IN_PROGRESS', 'TESTING', 'WAITING_CUSTOMER'].includes(item.status)).length;
-  const closedCount = items.filter((item) => ['RESOLVED', 'ARCHIVED'].includes(item.status)).length;
   const criticalCount = items.filter((item) => item.priority === 'CRITICAL').length;
   const unassignedCount = items.filter((item) => !item.assignedUserId).length;
   const noResponseCount = items.filter(
@@ -204,11 +204,7 @@ export function serializeTicketListResponse(input: {
       critical: criticalCount,
       no_response: noResponseCount,
     },
-    statusCounts: input.statusCounts ?? {
-      open: openCount,
-      pending: pendingCount,
-      closed: closedCount,
-    },
+    statusCounts: input.statusCounts ?? { open: 0, pending: 0, closed: 0 },
   };
 }
 

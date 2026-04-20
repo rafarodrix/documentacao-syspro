@@ -28,6 +28,7 @@ export interface TicketListItem {
     slaResolutionHitAt?: string | null;
     slaBreached?: boolean;
     slaWarning?: boolean;
+    slaPaused?: boolean;
     minutesToBreach?: number;
     createdAt: string;
     updatedAt: string;
@@ -110,6 +111,7 @@ export interface TicketDetailsItem {
     publishToReleases?: boolean;
     slaBreached?: boolean;
     slaWarning?: boolean;
+    slaPaused?: boolean;
     minutesToBreach?: number;
     origin?: {
         source?: string | null;

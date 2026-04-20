@@ -107,6 +107,8 @@ function mapStatusLabel(status: TicketModuleRecord["status"] | string): string {
       return "Em andamento";
     case "WAITING_CUSTOMER":
       return "Pendente cliente";
+    case "WAITING_INTERNAL":
+      return "Aguardando interno";
     case "TESTING":
       return "Em teste";
     case "RESOLVED":
@@ -118,8 +120,13 @@ function mapStatusLabel(status: TicketModuleRecord["status"] | string): string {
   }
 }
 
-function calculateSlaState(ticket: Pick<TicketModuleRecord, "slaResponseDueAt" | "slaResolutionDueAt" | "slaResponseHitAt" | "slaResolutionHitAt" | "closedAt">) {
+function calculateSlaState(ticket: Pick<TicketModuleRecord, "slaResponseDueAt" | "slaResolutionDueAt" | "slaResponseHitAt" | "slaResolutionHitAt" | "closedAt" | "status">) {
   const now = Date.now();
+  const slaPaused = ["WAITING_CUSTOMER", "RESOLVED", "ARCHIVED"].includes(ticket.status);
+  if (slaPaused) {
+    return { slaBreached: false, slaWarning: false, minutesToBreach: undefined, slaPaused: true };
+  }
+
   const responseDue = ticket.slaResponseDueAt ? Date.parse(ticket.slaResponseDueAt) : Number.NaN;
   const resolutionDue = ticket.slaResolutionDueAt ? Date.parse(ticket.slaResolutionDueAt) : Number.NaN;
   const activeDueDates = [
@@ -128,7 +135,7 @@ function calculateSlaState(ticket: Pick<TicketModuleRecord, "slaResponseDueAt" |
   ].filter((value): value is number => typeof value === "number");
 
   if (activeDueDates.length === 0) {
-    return { slaBreached: false, slaWarning: false, minutesToBreach: undefined };
+    return { slaBreached: false, slaWarning: false, minutesToBreach: undefined, slaPaused: false };
   }
 
   const nextDue = Math.min(...activeDueDates);
@@ -138,6 +145,7 @@ function calculateSlaState(ticket: Pick<TicketModuleRecord, "slaResponseDueAt" |
     slaBreached: minutesToBreach <= 0,
     slaWarning: minutesToBreach > 0 && minutesToBreach <= 60,
     minutesToBreach,
+    slaPaused: false,
   };
 }
 
@@ -638,8 +646,14 @@ export async function transferTicketAction(ticketId: string, payload: { team: st
     return { success: false, error: "Nao autorizado." };
   }
 
+  const team = payload.team.trim().toUpperCase();
+  const note = payload.note?.trim() || "";
+  if (team === "DESENVOLVIMENTO" && note.length < 20) {
+    return { success: false, error: "Nota de contexto obrigatoria ao transferir para Desenvolvimento (min. 20 caracteres)." };
+  }
+
   try {
-    const { updateTicketGateway, replyTicketGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
+    const { updateTicketGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
     
     // Convert priority back to TicketModulePriority format if needed
     // Assuming backend handles it or we map it properly inside the gateway.
@@ -649,7 +663,8 @@ export async function transferTicketAction(ticketId: string, payload: { team: st
     }
 
     const updatePayload = {
-      team: payload.team,
+      team,
+      ...(note ? { note } : {}),
       ...(payload.status ? { status: payload.status } : {}),
       ...(priorityStr ? { priority: priorityStr } : {})
     };
@@ -657,14 +672,6 @@ export async function transferTicketAction(ticketId: string, payload: { team: st
     const result = await updateTicketGateway(ticketId, updatePayload);
     if (!result.success) {
       return { success: false, error: result.error || "Falha ao transferir ticket." };
-    }
-
-    if (payload.note && payload.note.trim().length > 0) {
-       const noteMsg = `Transferido para a fila **${payload.team}**${payload.status ? ` (Status: ${payload.status})` : ''}.\n\nNota: ${payload.note}`;
-       await replyTicketGateway(ticketId, { message: noteMsg });
-    } else {
-       const noteMsg = `Transferido para a fila **${payload.team}**${payload.status ? ` (Status: ${payload.status})` : ''}.`;
-       await replyTicketGateway(ticketId, { message: noteMsg });
     }
 
     revalidateTicketCollections();

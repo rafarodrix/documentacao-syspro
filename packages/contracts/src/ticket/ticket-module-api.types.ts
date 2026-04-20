@@ -6,6 +6,7 @@ export const TICKET_MODULE_STATUS_VALUES = [
   "TRIAGE",
   "IN_PROGRESS",
   "WAITING_CUSTOMER",
+  "WAITING_INTERNAL",
   "TESTING",
   "RESOLVED",
   "ARCHIVED",
@@ -85,6 +86,7 @@ export const ticketModuleUpdateRequestSchema = z.object({
   module: z.string().trim().optional(),
   environment: z.string().trim().optional(),
   team: z.string().trim().optional(),
+  note: z.string().trim().optional(),
 });
 
 export const ticketModuleReplyRequestSchema = z.object({
