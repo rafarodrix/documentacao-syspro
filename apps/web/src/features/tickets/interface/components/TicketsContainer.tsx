@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft as IconLeft, ChevronRight as IconRight, Download as DownloadIcon, PlusCircle, Search, UserRound, AlertTriangle, Inbox, MessageCircleWarning } from "lucide-react";
+import { ChevronLeft as IconLeft, ChevronRight as IconRight, PlusCircle, Search } from "lucide-react";
 
 import { TicketsStats } from "@/features/tickets/interface/components/TicketsStats";
 import { TicketsFilters } from "@/features/tickets/interface/components/TicketsFilters";
 import { TicketsTable } from "@/features/tickets/interface/components/TicketsTable";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { downloadCsv } from "@/features/tickets/application/utils";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import type { ClosedTicketsWindow, TicketListItem, TicketStatusCounts, TicketsPagination, TicketTeamFilter } from "./types";
@@ -62,24 +61,6 @@ export function TicketsContainer({
     },
   });
 
-  const handleExportCsv = () => {
-    if (!tickets || tickets.length === 0) return;
-    const csvRows = tickets.map((t) => ({
-      "ID Chamado": t.id,
-      Numero: t.number,
-      Assunto: t.title,
-      Equipe: t.team || "",
-      Modulo: t.module || t.group,
-      Status: t.statusLabel,
-      Prioridade: t.priority,
-      Cliente: t.customer,
-      "Data de Criacao": new Date(t.createdAt).toLocaleString("pt-BR"),
-      "Ultima Atualizacao": new Date(t.updatedAt).toLocaleString("pt-BR"),
-      "Estourou SLA?": t.slaBreached ? "Sim" : "Nao",
-    }));
-    const exportedDate = new Date().toISOString().split("T")[0];
-    downloadCsv(`exportacao_chamados_${exportedDate}.csv`, csvRows);
-  };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-5 pb-8 duration-700">
@@ -121,56 +102,19 @@ export function TicketsContainer({
             setClosedWindow={setClosedWindowFilter}
             isAdmin={isAdmin}
             counts={statusCounts}
+            team={team}
+            setTeamFilter={setTeamFilter}
+            queue={queue}
+            setQueueFilter={setQueueFilter}
+            queueCounts={queueCounts}
           />
 
-          <div className="flex flex-col gap-3 xl:items-end">
-            {isAdmin && (
-              <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex min-w-max gap-2">
-                  <Button variant={team === "all" ? "default" : "outline"} size="sm" className="h-9" onClick={() => setTeamFilter("all")}>
-                    Todas equipes
-                  </Button>
-                  <Button variant={team === "SUPORTE" ? "default" : "outline"} size="sm" className="h-9" onClick={() => setTeamFilter("SUPORTE")}>
-                    Suporte
-                  </Button>
-                  <Button variant={team === "DESENVOLVIMENTO" ? "default" : "outline"} size="sm" className="h-9" onClick={() => setTeamFilter("DESENVOLVIMENTO")}>
-                    Desenvolvimento
-                  </Button>
-                </div>
-              </div>
-            )}
-            {isAdmin && (
-              <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex min-w-max gap-2">
-                  <Button variant={queue === "all" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("all")}>
-                    Todos ({queueCounts.all})
-                  </Button>
-                  <Button variant={queue === "my_queue" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("my_queue")}>
-                    <UserRound className="h-3.5 w-3.5" /> Minha fila ({queueCounts.my_queue})
-                  </Button>
-                  <Button variant={queue === "unassigned" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("unassigned")}>
-                    <Inbox className="h-3.5 w-3.5" /> Sem dono ({queueCounts.unassigned})
-                  </Button>
-                  <Button variant={queue === "critical" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("critical")}>
-                    <AlertTriangle className="h-3.5 w-3.5" /> Criticos ({queueCounts.critical})
-                  </Button>
-                  <Button variant={queue === "no_response" ? "default" : "outline"} size="sm" className="h-9 gap-2" onClick={() => setQueueFilter("no_response")}>
-                    <MessageCircleWarning className="h-3.5 w-3.5" /> Sem resposta ({queueCounts.no_response})
-                  </Button>
-                </div>
-              </div>
-            )}
-            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground xl:justify-end">
+          <div className="flex flex-col gap-3 xl:items-end justify-start">
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground xl:justify-end mt-2">
               <span className="inline-flex items-center gap-1">
                 <Search className="h-3.5 w-3.5" />
                 {pagination.total ?? tickets.length} filtrados
               </span>
-              {isAdmin && (
-                <Button variant="secondary" size="sm" className="h-9 gap-2" onClick={handleExportCsv} disabled={tickets.length === 0}>
-                  <DownloadIcon className="h-4 w-4" />
-                  Exportar CSV
-                </Button>
-              )}
             </div>
           </div>
         </div>

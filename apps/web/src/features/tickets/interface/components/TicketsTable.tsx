@@ -88,8 +88,6 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                 {isAdmin && (
                   <>
                     <QuickButton label="Assumir" pending={isPending && loadingAction === `${ticket.id}:assume`} onClick={() => runQuickAction(ticket.id, "assume")} />
-                    <QuickButton label="Alta" pending={isPending && loadingAction === `${ticket.id}:priority_high`} onClick={() => runQuickAction(ticket.id, "priority_high")} />
-                    <QuickButton label="Macro" pending={isPending && loadingAction === `${ticket.id}:macro_followup`} onClick={() => runQuickAction(ticket.id, "macro_followup")} />
                   </>
                 )}
                 <Button variant="outline" size="sm" asChild className="ml-auto">
@@ -170,8 +168,6 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                       {isAdmin && (
                         <>
                           <QuickButton label="Assumir" pending={isPending && loadingAction === `${ticket.id}:assume`} onClick={() => runQuickAction(ticket.id, "assume")} />
-                          <QuickButton label="Alta" pending={isPending && loadingAction === `${ticket.id}:priority_high`} onClick={() => runQuickAction(ticket.id, "priority_high")} />
-                          <QuickButton label="Macro" pending={isPending && loadingAction === `${ticket.id}:macro_followup`} onClick={() => runQuickAction(ticket.id, "macro_followup")} />
                         </>
                       )}
                       <Button variant="ghost" size="sm" asChild className="h-8 px-2.5 hover:bg-primary/10 hover:text-primary">
