@@ -60,6 +60,7 @@ export function revalidateTicketCollections() {
 export function revalidateReleasesViews() {
   revalidateTag(CACHE_TAGS.releases);
   revalidatePath("/releases");
+  revalidatePath("/releases", "layout");
 }
 
 export function revalidateDashboardCollections() {

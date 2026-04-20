@@ -18,7 +18,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { TicketDetailsItem } from "./types";
 
 interface TicketFinalizeDialogProps {
@@ -44,6 +43,10 @@ function inferReleaseType(ticket: TicketDetailsItem): "BUG" | "MELHORIA" | "" {
   return "";
 }
 
+function resolveReleaseCategory(ticket: TicketDetailsItem) {
+  return ticket.operations?.category || (inferReleaseType(ticket) === "BUG" ? "Bug" : "Melhoria");
+}
+
 export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, onOpenChange }: TicketFinalizeDialogProps) {
   const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -51,15 +54,15 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
   const inferredReleaseType = inferReleaseType(ticket);
+  const effectiveReleaseType = inferredReleaseType || "MELHORIA";
   const shouldSuggestRelease = Boolean(ticket.publishToReleases || inferredReleaseType || ticket.operations?.currentTeam === "DESENVOLVIMENTO");
+  const releaseCategory = resolveReleaseCategory(ticket);
+  const releaseModule = ticket.releaseModule || ticket.operations?.module || "";
 
   const [resolutionSummary, setResolutionSummary] = useState(ticket.resolutionSummary || "");
   const [resolutionVideoUrl, setResolutionVideoUrl] = useState(ticket.resolutionVideoUrl || "");
   const [releaseTitle, setReleaseTitle] = useState(ticket.releaseTitle || ticket.title || "");
-  const [releaseType, setReleaseType] = useState<"BUG" | "MELHORIA" | "">(
-    ticket.releaseType === "BUG" || ticket.releaseType === "MELHORIA" ? ticket.releaseType : inferredReleaseType
-  );
-  const [releaseModule, setReleaseModule] = useState(ticket.releaseModule || ticket.operations?.module || "");
+  const releaseType = ticket.releaseType === "BUG" || ticket.releaseType === "MELHORIA" ? ticket.releaseType : effectiveReleaseType;
   const [publishToReleases, setPublishToReleases] = useState(shouldSuggestRelease);
 
   const shouldRequireReleaseFields = publishToReleases;
@@ -77,16 +80,15 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
       toast.error("Informe o titulo que vai aparecer no modulo de releases.");
       return;
     }
-
     startTransition(async () => {
       try {
         const result = await finalizeTicketAction({
           ticketId: String(ticket.id),
           resolutionSummary,
           resolutionVideoUrl,
-          releaseType: shouldRequireReleaseFields && releaseType ? releaseType : undefined,
+          releaseType: shouldRequireReleaseFields ? releaseType : undefined,
           releaseTitle: shouldRequireReleaseFields ? releaseTitle : undefined,
-          releaseModule,
+          releaseModule: shouldRequireReleaseFields ? releaseModule : undefined,
           publishToReleases,
         });
 
@@ -167,29 +169,19 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1 w-full">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo *</Label>
-                  <Select value={releaseType} onValueChange={(val) => setReleaseType(val as "BUG" | "MELHORIA" | "")} disabled={isPending}>
-                    <SelectTrigger className="text-xs h-9">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MELHORIA">Melhoria</SelectItem>
-                      <SelectItem value="BUG">Correcao (Bug)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categoria</Label>
+                  <div className="flex h-9 items-center rounded-md border border-border/70 bg-muted/20 px-3 text-xs font-medium text-foreground">
+                    {releaseCategory}
+                  </div>
                 </div>
 
                 <div className="space-y-1 w-full">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modulo</Label>
-                  <Input
-                    placeholder="Ex.: Financeiro"
-                    className="text-xs h-9"
-                    value={releaseModule}
-                    onChange={(e) => setReleaseModule(e.target.value)}
-                    disabled={isPending}
-                  />
+                  <div className="flex h-9 items-center rounded-md border border-border/70 bg-muted/20 px-3 text-xs font-medium text-foreground">
+                    {releaseModule || "Nao definido"}
+                  </div>
                 </div>
               </div>
 
