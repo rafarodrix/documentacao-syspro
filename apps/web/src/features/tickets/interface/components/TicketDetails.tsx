@@ -15,16 +15,14 @@ import {
     ChevronUp,
     Clock3,
     ExternalLink,
-    Flag,
     Hash,
-    Loader2,
     Sparkles,
     Timer,
     UserRound,
     Zap,
 } from "lucide-react";
-import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModuleSettings, type TicketModuleSettingsOption, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { assignTicketToMeAction, triageTicketAction, unassignTicketToMeAction, updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
+import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModulePriority, type TicketModuleSettings, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
+import { updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
@@ -62,9 +60,10 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const [localTeam, setLocalTeam] = useState(ticket?.operations?.currentTeam || "");
     const [localModule, setLocalModule] = useState(ticket?.operations?.module || "");
     const [localCategory, setLocalCategory] = useState(ticket?.operations?.category || "");
+    const [localPriority, setLocalPriority] = useState(ticket?.priority);
     const backUrl = "/portal/tickets";
     const isClosedTicket = ticket ? isTicketClosed(ticket.status) : false;
-    const currentTicketStatus = ticket ? normalizeStatusValue(ticket.status) : null;
+    void currentUserId;
 
     useEffect(() => {
         let active = true;
@@ -91,37 +90,8 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         setLocalTeam(ticket?.operations?.currentTeam || "");
         setLocalModule(ticket?.operations?.module || "");
         setLocalCategory(ticket?.operations?.category || "");
-    }, [ticket?.id, ticket?.operations?.category, ticket?.operations?.currentTeam, ticket?.operations?.module]);
-
-    const assignToMe = () => {
-        if (!ticket) return;
-        startTransition(async () => {
-            const res = await assignTicketToMeAction(String(ticket.id));
-            if (res.success) toast.success("Ticket atribuido a voce");
-            else toast.error(res.error || "Erro ao atribuir");
-            router.refresh();
-        });
-    };
-
-    const unassignFromMe = () => {
-        if (!ticket) return;
-        startTransition(async () => {
-            const res = await unassignTicketToMeAction(String(ticket.id));
-            if (res.success) toast.success("Ticket liberado com sucesso.");
-            else toast.error(res.error || "Erro ao liberar");
-            router.refresh();
-        });
-    };
-
-    const startTriage = () => {
-        if (!ticket) return;
-        startTransition(async () => {
-            const res = await triageTicketAction(String(ticket.id), { priority: "NORMAL" });
-            if (res.success) toast.success("Triagem iniciada");
-            else toast.error(res.error || "Erro na triagem");
-            router.refresh();
-        });
-    };
+        setLocalPriority(ticket?.priority);
+    }, [ticket?.id, ticket?.operations?.category, ticket?.operations?.currentTeam, ticket?.operations?.module, ticket?.priority]);
 
     const changeStatus = (status: TicketModuleStatus) => {
         if (!ticket) return;
@@ -138,13 +108,14 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         });
     };
 
-    const changeClassification = (payload: { module?: string; category?: string }) => {
+    const changeClassification = (payload: { module?: string; category?: string; priority?: TicketModulePriority }) => {
         if (!ticket) return;
         startTransition(async () => {
             const res = await updateTicketClassificationAction(String(ticket.id), payload);
             if (res.success) {
                 if (payload.module !== undefined) setLocalModule(payload.module);
                 if (payload.category !== undefined) setLocalCategory(payload.category);
+                if (payload.priority !== undefined) setLocalPriority(mapPriorityToLevel(payload.priority));
                 toast.success("Classificacao atualizada.");
             } else {
                 toast.error(res.error || "Erro ao atualizar classificacao");
@@ -154,9 +125,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     };
 
     useTicketHotkeys({
-        onAssignToMe: () => {
-            if (isAdmin && ticket && !ticket.ownerId && !isClosedTicket) assignToMe();
-        },
         onChangeStatus: () => document.getElementById("transfer-ticket-btn")?.click(),
         onReply: () => document.getElementById("ticket-reply-input")?.focus(),
     });
@@ -178,11 +146,11 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         );
     }
 
-    const currentUserOwnsTicket = ticket.ownerId && String(ticket.ownerId) === String(currentUserId);
     const timelineArticles = withTechnicalResourceArticles(articles || [], ticket);
     const currentTeam = localTeam || ticket.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
     const currentModule = localModule || ticket.operations?.module || "";
     const currentCategory = localCategory || ticket.operations?.category || "";
+    const currentPriority = localPriority ?? ticket.priority;
 
     return (
         <div className="mx-auto max-w-[1440px] animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -273,7 +241,17 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                             />
                                         }
                                     />
-                                    <SidebarField label="Prioridade" value={<PriorityBadge priority={ticket.priority} />} />
+                                    <SidebarField
+                                        label="Prioridade"
+                                        value={
+                                            <PriorityDropdown
+                                                priority={currentPriority}
+                                                options={ticketSettings.priorities}
+                                                disabled={!isAdmin || isPending}
+                                                onChange={(priority) => changeClassification({ priority })}
+                                            />
+                                        }
+                                    />
                                     <SidebarField
                                         label="Modulo"
                                         value={
@@ -301,58 +279,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                         }
                                     />
                                 </section>
-
-                                {isAdmin && !isClosedTicket && (
-                                    <>
-                                        <Separator />
-                                        <section className="space-y-2">
-                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes de fluxo</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {currentTicketStatus === "NEW" && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-8 gap-1 border-primary/20 bg-primary/5 text-xs text-primary hover:bg-primary/10"
-                                                        onClick={startTriage}
-                                                        disabled={isPending}
-                                                    >
-                                                        {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                                                        Triar
-                                                    </Button>
-                                                )}
-                                                {!ticket.ownerId && !isClosedTicket && (
-                                                    <Button size="sm" className="h-8 gap-1 bg-blue-600 text-xs text-white shadow-sm hover:bg-blue-700" onClick={assignToMe} disabled={isPending}>
-                                                        {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserRound className="h-3 w-3" />}
-                                                        Assumir
-                                                    </Button>
-                                                )}
-                                                {currentUserOwnsTicket && !isClosedTicket && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-8 gap-1 border-muted-foreground/30 text-xs text-muted-foreground shadow-sm hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-                                                        onClick={unassignFromMe}
-                                                        disabled={isPending}
-                                                    >
-                                                        {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserRound className="h-3 w-3" />}
-                                                        Liberar
-                                                    </Button>
-                                                )}
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="h-8 gap-1 border-emerald-500/25 bg-emerald-500/5 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
-                                                    onClick={() => setFinalizeOpen(true)}
-                                                    disabled={isPending}
-                                                >
-                                                    <Flag className="h-3 w-3" />
-                                                    Resolver
-                                                </Button>
-                                            </div>
-                                        </section>
-                                    </>
-                                )}
 
                                 <Separator />
                                 <SlaCompact ticket={ticket} isClosedTicket={isClosedTicket} />
@@ -475,7 +401,6 @@ function CustomerContextCard({ ticket }: { ticket: TicketDetailsItem }) {
                         ) : (
                             <p className="mt-0.5 truncate text-sm font-semibold text-foreground">{customerName}</p>
                         )}
-                        <p className="mt-1 font-mono text-[11px] text-muted-foreground">#{ticket.number}</p>
                     </div>
                 </div>
             </CardContent>
@@ -602,6 +527,67 @@ function ClassificationDropdown({
     );
 }
 
+function mapPriorityToLevel(priority: TicketModulePriority) {
+    if (priority === "LOW") return 1;
+    if (priority === "HIGH" || priority === "CRITICAL") return 3;
+    return 2;
+}
+
+function parsePriorityOption(option: TicketModuleSettingsPriority): TicketModulePriority {
+    const value = `${option.id} ${option.value} ${option.label}`.toLowerCase();
+    if (value.includes("low") || value.includes("baixa") || option.id === "1") return "LOW";
+    if (value.includes("high") || value.includes("alta") || value.includes("urgent") || option.id === "3") return "HIGH";
+    return "NORMAL";
+}
+
+function resolvePriorityLabel(priority: number, options: TicketModuleSettingsPriority[]) {
+    const match = options.find((option) => mapPriorityToLevel(parsePriorityOption(option)) === priority);
+    if (match) return match.label;
+    if (priority === 3) return "Alta";
+    if (priority === 1) return "Baixa";
+    return "Normal";
+}
+
+function PriorityDropdown({
+    priority,
+    options,
+    disabled,
+    onChange,
+}: {
+    priority: number;
+    options: TicketModuleSettingsPriority[];
+    disabled?: boolean;
+    onChange: (priority: TicketModulePriority) => void;
+}) {
+    const currentLabel = resolvePriorityLabel(priority, options);
+
+    if (disabled) {
+        return <span className="text-xs">{currentLabel}</span>;
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <InlineValueButton label={currentLabel} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs">Alterar prioridade</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {options.map((option) => {
+                    const optionPriority = parsePriorityOption(option);
+                    const active = mapPriorityToLevel(optionPriority) === priority;
+                    return (
+                        <DropdownMenuItem key={option.id} className="text-xs" onSelect={() => onChange(optionPriority)}>
+                            <span className="flex-1">{option.label}</span>
+                            {active && <Check className="h-3.5 w-3.5 text-primary" />}
+                        </DropdownMenuItem>
+                    );
+                })}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
 const statusOptions: Array<{ value: TicketModuleStatus; label: string }> = [
     { value: "TRIAGE", label: "Triagem" },
     { value: "IN_PROGRESS", label: "Em andamento" },
@@ -637,15 +623,13 @@ function StatusDropdown({
     const current = normalizeStatusValue(status);
 
     if (disabled) {
-        return <StatusBadge status={status} />;
+        return <span className="text-xs">{status || "Desconhecido"}</span>;
     }
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button type="button" className={cn("inline-flex rounded-full", !disabled && "hover:opacity-85")}>
-                    <StatusBadge status={status} />
-                </button>
+                <InlineValueButton label={status || "Desconhecido"} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel className="text-xs">Alterar status</DropdownMenuLabel>
@@ -728,28 +712,4 @@ function ExternalTicketLink({ href, label, icon: Icon = ExternalLink }: { href: 
             <span className="truncate">{label}</span>
         </a>
     );
-}
-
-function StatusBadge({ status }: { status?: string | null }) {
-    const lowerStatus = (status || "").toLowerCase();
-    const style =
-        lowerStatus.includes("resolvido") || lowerStatus.includes("fechado")
-            ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
-            : lowerStatus.includes("pendente") || lowerStatus.includes("aguardando")
-                ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
-                : lowerStatus.includes("andamento") || lowerStatus.includes("aberto") || lowerStatus.includes("novo") || lowerStatus.includes("triagem") || lowerStatus.includes("teste")
-                    ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
-                    : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
-
-    return (
-        <Badge variant="outline" className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium capitalize ${style}`}>
-            {status || "Desconhecido"}
-        </Badge>
-    );
-}
-
-function PriorityBadge({ priority }: { priority: number }) {
-    if (priority === 3) return <Badge variant="destructive" className="rounded-full px-2 text-[10px]">Alta</Badge>;
-    if (priority === 1) return <Badge variant="secondary" className="rounded-full bg-muted px-2 text-[10px] text-muted-foreground">Baixa</Badge>;
-    return <Badge variant="outline" className="rounded-full px-2 text-[10px] text-muted-foreground">Normal</Badge>;
 }

@@ -602,7 +602,7 @@ export async function updateTicketStatusAction(ticketId: string, status: TicketM
 
 export async function updateTicketClassificationAction(
   ticketId: string,
-  payload: { module?: string; category?: string },
+  payload: { module?: string; category?: string; priority?: TicketModulePriority },
 ): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
   if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
@@ -612,6 +612,7 @@ export async function updateTicketClassificationAction(
   const updatePayload = {
     ...(payload.module !== undefined ? { module: payload.module.trim() } : {}),
     ...(payload.category !== undefined ? { category: payload.category.trim() } : {}),
+    ...(payload.priority !== undefined ? { priority: payload.priority } : {}),
   };
 
   if (!Object.keys(updatePayload).length) {
